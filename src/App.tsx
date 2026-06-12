@@ -7,15 +7,21 @@ import {
   CalendarDays,
   CarFront,
   ChevronLeft,
+  ClipboardCheck,
   CreditCard,
+  FileCheck2,
   Gauge,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Menu,
+  ShieldAlert,
   Settings,
   ShieldCheck,
   UserRound,
   UsersRound,
+  WalletCards,
+  Wrench,
 } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -50,14 +56,102 @@ const dashboardNav = [
 ] as const;
 
 const adminNav = [
-  { label: 'Overview', icon: LayoutDashboard },
+  { label: 'Command', icon: LayoutDashboard },
   { label: 'Bookings', icon: CalendarDays },
+  { label: 'Dispatch', icon: Gauge },
   { label: 'Vehicles', icon: CarFront },
-  { label: 'Customers', icon: UsersRound },
-  { label: 'Calendar', icon: CalendarDays },
-  { label: 'Payments', icon: CreditCard },
+  { label: 'Members', icon: UsersRound },
+  { label: 'Finance', icon: CreditCard },
+  { label: 'Risk', icon: ShieldAlert },
   { label: 'Reports', icon: BarChart3 },
   { label: 'Settings', icon: Settings },
+] as const;
+
+const commandMetrics = [
+  ['Today\'s Revenue', '$8,400', '7 trips in motion'],
+  ['Active Trips', '7', '3 with chauffeurs'],
+  ['Vehicles Ready', '14', '2 in prep'],
+  ['Risk Holds', '3', '$6,500 exposure'],
+] as const;
+
+const bookingPipeline = [
+  ['New Requests', 'John D.', 'S-Class', 'May 24'],
+  ['Awaiting Payment', 'Sarah W.', 'Range Rover', '$2,500 hold'],
+  ['Confirmed', 'James A.', 'S-Class', 'Today'],
+  ['Ready for Dispatch', 'Michael B.', 'V-Class', 'Driver assigned'],
+] as const;
+
+const fleetStatus = [
+  ['S-Class', 'Ready', 'Today 10 AM', 'None'],
+  ['Range Rover', 'In Prep', 'Today 12 PM', 'Detail pending'],
+  ['V-Class', 'Out', 'Returns 4 PM', 'None'],
+  ['BMW 7 Series', 'Maintenance', 'Blocked', 'Tire replacement'],
+] as const;
+
+const cashExposure = [
+  ['Deposits Held', '$12,500'],
+  ['Open Balances', '$3,250'],
+  ['Refunds Pending', '$1,500'],
+  ['Damage Claims', '2 open'],
+] as const;
+
+const commandAlerts = [
+  'Range Rover returned with wheel damage',
+  'S-Class booking awaiting deposit',
+  'Driver reassignment needed at 3:00 PM',
+] as const;
+
+const tripStages = [
+  'Inquiry',
+  'Member Approved',
+  'Payment Hold',
+  'Vehicle Assigned',
+  'Driver Assigned',
+  'Vehicle Prepped',
+  'Inspection',
+  'Released',
+  'Active Rental',
+  'Return Inspection',
+  'Closed',
+] as const;
+
+const requiredGates = [
+  ['Member approved', true],
+  ['License verified', true],
+  ['Payment hold secured', true],
+  ['Vehicle assigned', true],
+  ['Driver assigned', true],
+  ['Inspection complete', false],
+] as const;
+
+const dispatchRows = [
+  ['S-Class', 'OUT', 'Active', 'Active', 'Return Prep'],
+  ['Range Rover', 'Prep', 'Deliver', 'Active', 'Active'],
+  ['V-Class', 'Ready', 'Ready', 'Pickup', 'Out'],
+  ['BMW 7 Series', 'Blocked', 'Service', 'Service', 'Hold'],
+] as const;
+
+const driverChecklist = [
+  'Confirm vehicle plate',
+  'Upload exterior photos',
+  'Upload interior photos',
+  'Verify member identity',
+  'Enter handoff PIN',
+  'Start trip',
+] as const;
+
+const rolePermissions = [
+  ['Owner / GM', 'Full', 'Full', 'Full', 'Full', 'Full'],
+  ['Concierge', 'High', 'Create/Edit', 'Request only', 'Status only', 'No'],
+  ['Dispatch', 'Limited', 'Operational', 'Full', 'No', 'No'],
+  ['Driver', 'Minimal', 'No', 'Assigned only', 'No', 'No'],
+  ['Fleet Prep', 'No', 'No', 'Status only', 'No', 'No'],
+  ['Finance/Risk', 'High', 'Lock/unlock', 'No', 'Full', 'No'],
+] as const;
+
+const workOrders = [
+  ['WO-2201', 'BMW 7 Series', 'Tire replacement', '$750 limit', 'May 23, 5 PM'],
+  ['WO-2202', 'Range Rover', 'Wheel inspection', '$1,200 limit', 'Today, 4 PM'],
 ] as const;
 
 function getRoute(): Route {
@@ -635,7 +729,7 @@ function MemberDashboard() {
 }
 
 function AdminDashboard() {
-  const [selected, setSelected] = useState('Overview');
+  const [selected, setSelected] = useState('Command');
 
   return (
     <section className="admin-page">
@@ -656,7 +750,10 @@ function AdminDashboard() {
       </aside>
       <div className="admin-main">
         <header className="admin-top">
-          <h1>Dashboard</h1>
+          <div>
+            <p>OBAVIA / Staff Platform</p>
+            <h1>Command Center</h1>
+          </div>
           <div>
             <button className="icon-button dark" type="button">
               <Bell size={26} strokeWidth={1.35} />
@@ -668,13 +765,21 @@ function AdminDashboard() {
             </button>
           </div>
         </header>
+
+        <section className="staff-hero reveal">
+          <div className="staff-hero-copy">
+            <p>Built around roles, not people</p>
+            <h2>Every trip moves only when the required control point is complete.</h2>
+          </div>
+          <div className="staff-hero-control">
+            <span>Core object</span>
+            <strong>The Trip</strong>
+            <p>Concierge creates it. Finance secures it. Fleet documents it. Dispatch releases it.</p>
+          </div>
+        </section>
+
         <div className="metric-grid reveal">
-          {[
-            ['Total Bookings', '128', '+12% from last month'],
-            ['Total Revenue', '$48,750', '+18% from last month'],
-            ['Active Vehicles', '24', '100% available'],
-            ['Customers', '356', '+8% from last month'],
-          ].map(([label, value, sub]) => (
+          {commandMetrics.map(([label, value, sub]) => (
             <article key={label}>
               <p>{label}</p>
               <h2>{value}</h2>
@@ -682,10 +787,11 @@ function AdminDashboard() {
             </article>
           ))}
         </div>
+
         <div className="admin-grid">
           <article className="admin-table reveal">
             <div className="panel-heading">
-              <h2>Recent Bookings</h2>
+              <h2>Booking Pipeline</h2>
               <select aria-label="Booking range" defaultValue="week">
                 <option value="week">This Week</option>
                 <option value="month">This Month</option>
@@ -694,62 +800,225 @@ function AdminDashboard() {
             <table>
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Vehicle</th>
+                  <th>Stage</th>
                   <th>Member</th>
-                  <th>Pickup</th>
-                  <th>Return</th>
+                  <th>Vehicle</th>
+                  <th>Control</th>
                 </tr>
               </thead>
               <tbody>
-                {bookings.map((booking, index) => (
-                  <tr key={`${booking.date}-${booking.customer}`}>
-                    <td>{booking.date}, {booking.time}</td>
-                    <td>{booking.vehicle}</td>
-                    <td>{booking.customer}</td>
-                    <td>{index < 2 ? 'May 24, 10:00 AM' : 'May 23, 9:00 AM'}</td>
-                    <td>{index < 2 ? 'May 26, 10:00 AM' : 'May 24, 9:00 AM'}</td>
+                {bookingPipeline.map(([stage, member, vehicle, control]) => (
+                  <tr key={stage}>
+                    <td>{stage}</td>
+                    <td>{member}</td>
+                    <td>{vehicle}</td>
+                    <td>{control}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <button className="text-link admin-table-link" type="button" onClick={() => go('book')}>
-              View All Bookings
+              Create Booking
               <ArrowRight size={18} strokeWidth={1.4} />
             </button>
           </article>
-          <article className="chart-panel reveal">
+
+          <article className="risk-panel reveal">
             <div className="panel-heading">
-              <h2>Bookings Overview</h2>
-              <select aria-label="Chart range" defaultValue="week">
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-              </select>
+              <h2>Alerts</h2>
+              <ShieldAlert size={22} strokeWidth={1.35} />
             </div>
-            <svg viewBox="0 0 620 420" role="img" aria-label="Gold line chart showing weekly bookings">
-              <path className="chart-axis" d="M64 58V348H590" />
-              <path className="chart-grid-line" d="M64 58H590M64 130H590M64 202H590M64 274H590" />
-              <path className="chart-fill" d="M64 286L142 198L220 224L298 254L376 246L454 164L532 222L590 94V348H64Z" />
-              <polyline
-                className="chart-line"
-                points="64,286 142,198 220,224 298,254 376,246 454,164 532,222 590,94"
-              />
-              <g className="chart-points">
-                {[64, 142, 220, 298, 376, 454, 532, 590].map((x, index) => {
-                  const y = [286, 198, 224, 254, 246, 164, 222, 94][index];
-                  return <circle key={x} cx={x} cy={y} r="6" />;
-                })}
-              </g>
-              <g className="chart-labels">
-                {['May 18', 'May 19', 'May 20', 'May 21', 'May 22', 'May 23', 'May 24'].map((label, index) => (
-                  <text key={label} x={76 + index * 82} y="384">
-                    {label}
-                  </text>
-                ))}
-              </g>
-            </svg>
+            <div className="alert-list">
+              {commandAlerts.map((alert) => (
+                <p key={alert}>{alert}</p>
+              ))}
+            </div>
+            <div className="cash-exposure">
+              {cashExposure.map(([label, value]) => (
+                <span key={label}>
+                  <small>{label}</small>
+                  <strong>{value}</strong>
+                </span>
+              ))}
+            </div>
           </article>
         </div>
+
+        <section className="trip-control reveal">
+          <div className="panel-heading">
+            <h2>Trip OB-1048</h2>
+            <span className="panel-status">Ready for release after inspection</span>
+          </div>
+          <div className="stage-rail" aria-label="Trip locked stages">
+            {tripStages.map((stage, index) => (
+              <span className={index <= 5 ? 'complete' : index === 6 ? 'current' : ''} key={stage}>
+                {stage}
+              </span>
+            ))}
+          </div>
+          <div className="gate-grid">
+            {requiredGates.map(([gate, complete]) => (
+              <span className={complete ? 'complete' : 'blocked'} key={gate}>
+                <ClipboardCheck size={18} strokeWidth={1.4} />
+                {gate}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="ops-grid">
+          <article className="dispatch-panel reveal">
+            <div className="panel-heading">
+              <h2>Dispatch Board / Today</h2>
+              <Gauge size={22} strokeWidth={1.35} />
+            </div>
+            <div className="dispatch-table">
+              <div className="dispatch-head">
+                <span>Vehicle</span>
+                <span>8 AM</span>
+                <span>10 AM</span>
+                <span>12 PM</span>
+                <span>4 PM</span>
+              </div>
+              {dispatchRows.map((row) => (
+                <div className="dispatch-row" key={row[0]}>
+                  {row.map((cell, index) => (
+                    <span key={`${row[0]}-${index}-${cell}`}>{cell}</span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="driver-panel reveal">
+            <div className="panel-heading">
+              <h2>Driver Mobile Task App</h2>
+              <KeyRound size={22} strokeWidth={1.35} />
+            </div>
+            <div className="driver-phone">
+              <p>Trip OB-1048</p>
+              <h3>Mercedes-Benz S-Class</h3>
+              <span>James Anderson / 10:00 AM / Downtown Office</span>
+              <ul>
+                {driverChecklist.map((item, index) => (
+                  <li key={item}>
+                    <span>{index < 2 ? 'Done' : 'Open'}</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button type="button">Enter Handoff PIN</button>
+            </div>
+          </article>
+        </section>
+
+        <section className="ops-grid">
+          <article className="admin-table reveal">
+            <div className="panel-heading">
+              <h2>Fleet Control</h2>
+              <CarFront size={22} strokeWidth={1.35} />
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Vehicle</th>
+                  <th>Status</th>
+                  <th>Next Booking</th>
+                  <th>Issue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fleetStatus.map(([vehicle, status, nextBooking, issue]) => (
+                  <tr key={vehicle}>
+                    <td>{vehicle}</td>
+                    <td>{status}</td>
+                    <td>{nextBooking}</td>
+                    <td>{issue}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </article>
+
+          <article className="finance-panel reveal">
+            <div className="panel-heading">
+              <h2>Finance & Risk Console</h2>
+              <WalletCards size={22} strokeWidth={1.35} />
+            </div>
+            <div className="finance-ledger">
+              {bookings.slice(0, 3).map((booking, index) => (
+                <div key={booking.customer}>
+                  <span>{booking.vehicle}</span>
+                  <strong>{index === 1 ? '$2,500 hold pending' : '$1,500 hold secured'}</strong>
+                  <small>{booking.customer}</small>
+                </div>
+              ))}
+            </div>
+            <div className="finance-actions">
+              <button type="button">Capture Balance</button>
+              <button type="button">Hold Deposit</button>
+              <button type="button">Create Damage Claim</button>
+            </div>
+          </article>
+        </section>
+
+        <section className="permission-panel reveal">
+          <div className="panel-heading">
+            <h2>Role-Based Permission Matrix</h2>
+            <FileCheck2 size={22} strokeWidth={1.35} />
+          </div>
+          <div className="permission-table">
+            <div className="permission-head">
+              <span>Role</span>
+              <span>Member Data</span>
+              <span>Booking Edit</span>
+              <span>Vehicle Assignment</span>
+              <span>Payment Control</span>
+              <span>Admin Settings</span>
+            </div>
+            {rolePermissions.map((row) => (
+              <div className="permission-row" key={row[0]}>
+                {row.map((cell, index) => (
+                  <span key={`${row[0]}-${index}-${cell}`}>{cell}</span>
+                ))}
+              </div>
+            ))}
+          </div>
+          <p className="control-rule">
+            No single non-owner role can approve a customer, release a vehicle, release payment, and clear damage.
+          </p>
+        </section>
+
+        <section className="ops-grid">
+          <article className="vendor-panel reveal">
+            <div className="panel-heading">
+              <h2>Vendor Work Orders</h2>
+              <Wrench size={22} strokeWidth={1.35} />
+            </div>
+            {workOrders.map(([id, vehicle, issue, limit, deadline]) => (
+              <div className="work-order" key={id}>
+                <span>{id}</span>
+                <strong>{vehicle}</strong>
+                <p>{issue}</p>
+                <small>{limit} / {deadline}</small>
+              </div>
+            ))}
+          </article>
+
+          <article className="release-panel reveal">
+            <div className="panel-heading">
+              <h2>Release Controls</h2>
+              <ShieldCheck size={22} strokeWidth={1.35} />
+            </div>
+            <ol>
+              <li>Valid card and deposit hold are active.</li>
+              <li>ID and license are verified.</li>
+              <li>Pre-trip photos and mileage are attached.</li>
+              <li>Driver confirms arrival and handoff PIN.</li>
+              <li>Return inspection completes before deposit release.</li>
+            </ol>
+          </article>
+        </section>
       </div>
     </section>
   );
