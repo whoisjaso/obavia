@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title>OBAVIA dark app icon</title>
+  <rect width="256" height="256" rx="42" fill="#121212" />
+  <g fill="none" stroke="#b89b5e" stroke-width="8" stroke-linecap="round">
+    <ellipse cx="108" cy="128" rx="43" ry="76" />
+    <ellipse cx="148" cy="128" rx="43" ry="76" />
+    <ellipse cx="128" cy="128" rx="57" ry="88" opacity=".72" />
+  </g>
+</svg>
