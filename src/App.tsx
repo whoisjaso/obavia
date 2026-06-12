@@ -332,7 +332,7 @@ function SiteNav({
 function HomePage() {
   return (
     <section className="hero-frame">
-      <img className="hero-image" src="/assets/hero-arrival.png" alt="Private chauffeur beside an executive sedan" />
+      <img className="hero-image" src="/assets/hero-obavia-background.png" alt="Private chauffeur beside an executive sedan" />
       <div className="hero-shade" />
       <SiteNav tone="dark" />
 

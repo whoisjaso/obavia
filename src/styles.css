@@ -1,20 +1,21 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Montserrat:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Montserrat:wght@400;500;600;700&display=swap");
 
 :root {
   color-scheme: light dark;
-  --ink: #080808;
+  --ink: #121212;
   --ink-2: #101010;
   --ink-3: #171717;
-  --ivory: #f4eee5;
+  --ivory: #f5f0e6;
   --ivory-2: #eee6da;
-  --gold: #c4a15b;
-  --gold-bright: #d6b26b;
-  --line-dark: rgba(214, 178, 107, 0.24);
+  --gold: #b89b5e;
+  --gold-bright: #b89b5e;
+  --line-dark: rgba(184, 155, 94, 0.24);
   --line-light: rgba(16, 16, 16, 0.18);
-  --white-soft: rgba(244, 238, 229, 0.78);
+  --white-soft: rgba(245, 240, 230, 0.78);
   --black-soft: rgba(8, 8, 8, 0.64);
-  --serif: "Cormorant Garamond", "Bodoni 72", Georgia, serif;
+  --serif: "Bodoni Moda", "Bodoni 72 Display", "Bodoni 72", Didot, Georgia, serif;
   --sans: "Montserrat", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+  --copy: "Helvetica Neue", Inter, Arial, sans-serif;
 }
 
 * {
@@ -107,7 +108,8 @@ p {
   font-size: 2.2rem;
   font-weight: 400;
   line-height: 0.95;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
 }
 
 .dark-section {
@@ -166,15 +168,15 @@ p {
   gap: 30px;
 }
 
-.nav-links button,
-.nav-actions button,
+.site-nav .nav-links button,
+.site-nav .nav-actions button,
 .mobile-nav button,
 .tabs button,
 .site-footer button {
   color: currentColor;
-  font-size: 0.86rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -274,6 +276,8 @@ p {
 .hero-frame .site-nav {
   position: absolute;
   inset: 0 0 auto;
+  min-height: 104px;
+  padding: 42px 54px 0;
 }
 
 .hero-image,
@@ -288,22 +292,22 @@ p {
   z-index: -3;
   object-fit: cover;
   object-position: center center;
-  filter: saturate(0.76) contrast(1.08) brightness(1);
+  filter: saturate(0.72) contrast(1.08) brightness(0.95);
 }
 
 .hero-shade {
   z-index: -2;
   background:
-    radial-gradient(circle at 50% 46%, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.56) 62%),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.2) 46%, rgba(0, 0, 0, 0.38)),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.28), transparent 34%, rgba(0, 0, 0, 0.5));
+    radial-gradient(circle at 50% 47%, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5) 62%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.23) 46%, rgba(0, 0, 0, 0.5)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.24), transparent 32%, rgba(0, 0, 0, 0.54));
 }
 
 .hero-lockup {
   position: absolute;
   left: 50%;
   top: 47%;
-  width: min(620px, calc(100% - 48px));
+  width: min(730px, calc(100% - 48px));
   transform: translate(-50%, -50%);
   display: grid;
   justify-items: center;
@@ -314,18 +318,18 @@ p {
   margin-top: 28px;
   color: var(--ivory);
   font-family: var(--serif);
-  font-size: clamp(4.4rem, 9vw, 8.15rem);
+  font-size: clamp(4.4rem, 6.25vw, 6rem);
   font-weight: 400;
-  line-height: 0.86;
-  letter-spacing: 0.24em;
+  line-height: 0.92;
+  letter-spacing: 0.33em;
   text-shadow: 0 4px 18px rgba(0, 0, 0, 0.65);
 }
 
 .hero-lockup p {
-  margin-top: 33px;
-  color: var(--gold-bright);
-  font-size: clamp(1.15rem, 2vw, 1.75rem);
-  font-weight: 600;
+  margin-top: 24px;
+  color: var(--gold);
+  font-size: clamp(1rem, 1.43vw, 1.375rem);
+  font-weight: 500;
   letter-spacing: 0.34em;
   text-transform: uppercase;
 }
@@ -340,14 +344,16 @@ p {
 
 .hero-caption h2 {
   color: var(--ivory);
-  font-size: clamp(1.3rem, 2vw, 1.65rem);
-  font-weight: 500;
+  font-family: var(--copy);
+  font-size: clamp(1.25rem, 1.56vw, 1.5rem);
+  font-weight: 400;
   letter-spacing: 0;
 }
 
 .hero-caption p {
-  color: rgba(244, 238, 229, 0.84);
-  font-size: 1.04rem;
+  color: rgba(245, 240, 230, 0.85);
+  font-family: var(--copy);
+  font-size: 1rem;
 }
 
 .hero-scroll {
@@ -2022,6 +2028,11 @@ th {
     font-size: 0.7rem;
   }
 
+  .hero-lockup {
+    top: 46%;
+    transform: translate(-50%, -50%);
+  }
+
   .hero-lockup h1 {
     font-size: clamp(2.9rem, 13.5vw, 3.55rem);
     letter-spacing: 0.1em;
@@ -2031,6 +2042,15 @@ th {
     margin-top: 18px;
     font-size: 0.72rem;
     letter-spacing: 0.18em;
+  }
+
+  .hero-caption h2 {
+    font-size: 1.12rem;
+    line-height: 1.28;
+  }
+
+  .hero-caption p {
+    font-size: 0.9rem;
   }
 
   .booking-vehicle,
