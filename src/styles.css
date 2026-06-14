@@ -2244,39 +2244,47 @@ th {
 }
 
 .app-greeting {
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 .app-greeting p {
-  color: rgba(245, 240, 230, 0.76);
+  color: rgba(245, 240, 230, 0.72);
   font-family: var(--serif);
-  font-size: 1.32rem;
+  font-size: 1.08rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.2;
 }
 
 .app-greeting h2 {
-  margin-top: 4px;
+  margin-top: 2px;
   color: var(--ivory);
   font-family: var(--serif);
-  font-size: 3.15rem;
+  font-size: 2.86rem;
   font-weight: 400;
-  line-height: 0.95;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .app-greeting span {
   display: block;
-  margin-top: 13px;
+  margin-top: 11px;
   color: var(--gold);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.28em;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .upcoming-card {
   position: relative;
-  min-height: 166px;
-  margin-top: 31px;
+  min-height: 154px;
+  margin-top: 28px;
   padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  column-gap: 12px;
+  align-items: end;
   overflow: hidden;
   border: 1px solid rgba(184, 155, 94, 0.3);
   border-radius: 11px;
@@ -2287,50 +2295,56 @@ th {
 .upcoming-card > div {
   position: relative;
   z-index: 2;
-  width: 58%;
+  width: auto;
+  min-width: 0;
 }
 
 .upcoming-card p,
 .detail-inclusions h3 {
   color: rgba(245, 240, 230, 0.84);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 
 .upcoming-card span {
   display: block;
-  margin-top: 18px;
+  margin-top: 15px;
   color: var(--gold);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
 .upcoming-card h3 {
-  margin-top: 6px;
+  margin-top: 4px;
   color: var(--ivory);
   font-family: var(--serif);
-  font-size: 2.05rem;
+  font-size: 1.86rem;
   font-weight: 400;
-  line-height: 0.95;
+  letter-spacing: -0.015em;
+  line-height: 1;
 }
 
 .upcoming-card small {
   display: block;
-  margin-top: 7px;
+  margin-top: 6px;
   color: rgba(245, 240, 230, 0.8);
-  font-size: 0.78rem;
+  font-size: 0.73rem;
+  line-height: 1.32;
 }
 
 .upcoming-card img {
-  position: absolute;
-  right: -6px;
-  bottom: 14px;
-  width: 158px;
-  height: 96px;
+  position: relative;
+  right: auto;
+  bottom: auto;
+  z-index: 1;
+  width: 132px;
+  height: 86px;
+  justify-self: end;
+  align-self: end;
   object-fit: cover;
   border-radius: 6px;
   filter: saturate(0.72) contrast(1.1) brightness(0.82);
@@ -2338,11 +2352,11 @@ th {
 
 .upcoming-card button {
   position: absolute;
-  right: 20px;
-  bottom: 20px;
+  right: 18px;
+  bottom: 18px;
   z-index: 3;
-  width: 50px;
-  height: 50px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   color: var(--gold);
@@ -2357,18 +2371,19 @@ th {
 }
 
 .quick-actions {
-  margin-top: 13px;
+  margin-top: 14px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
 .quick-actions button {
-  min-height: 96px;
-  padding: 15px;
+  min-height: 104px;
+  padding: 16px;
   display: grid;
-  align-content: space-between;
-  justify-items: start;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  grid-template-rows: auto 1fr auto;
+  align-items: start;
   color: var(--ivory);
   border: 1px solid rgba(184, 155, 94, 0.24);
   border-radius: 10px;
@@ -2384,16 +2399,26 @@ th {
 }
 
 .quick-actions button svg:first-child {
+  grid-column: 1;
+  grid-row: 1;
   color: var(--gold);
 }
 
 .quick-actions span {
-  font-family: var(--serif);
-  font-size: 1.18rem;
-  line-height: 1;
+  grid-column: 1;
+  grid-row: 3;
+  font-family: var(--sans);
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .quick-actions button svg:last-child {
+  grid-column: 2;
+  grid-row: 3;
+  align-self: end;
   justify-self: end;
   color: var(--gold);
 }
@@ -2453,18 +2478,18 @@ th {
 .app-bottom-label {
   max-width: 100%;
   overflow: hidden;
-  font-size: 0.45rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.1;
   text-align: center;
   text-overflow: clip;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
 }
 
 .app-bottom-nav button.active .app-bottom-label::after {
-  width: 32px;
+  width: 28px;
   height: 2px;
   margin: 7px auto 0;
   display: block;
