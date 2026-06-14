@@ -5,23 +5,37 @@ import {
   Bell,
   Briefcase,
   CalendarDays,
+  CalendarCheck,
   CarFront,
+  CheckCircle2,
   ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleUserRound,
+  CircleX,
   ClipboardCheck,
   CreditCard,
   FileCheck2,
   Gauge,
+  Headphones,
+  Heart,
+  Home as HomeIcon,
   KeyRound,
   LayoutDashboard,
   LogOut,
+  MapPin,
   Menu,
+  Search,
   ShieldAlert,
   Settings,
   ShieldCheck,
+  SlidersHorizontal,
   UserRound,
   UsersRound,
   WalletCards,
   Wrench,
+  X,
+  Zap,
 } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -37,7 +51,8 @@ type Route =
   | 'about'
   | 'membership'
   | 'member'
-  | 'admin';
+  | 'admin'
+  | 'mobile';
 
 const navItems = [
   { label: 'Vehicles', route: 'fleet' },
@@ -154,20 +169,187 @@ const workOrders = [
   ['WO-2202', 'Range Rover', 'Wheel inspection', '$1,200 limit', 'Today, 4 PM'],
 ] as const;
 
+const appCollections = [
+  {
+    title: 'Executive Collection',
+    copy: 'Premium sedans and chauffeured arrivals.',
+    price: 'From $150 / day',
+    image: '/assets/vehicle-sclass.jpg',
+    icon: CarFront,
+  },
+  {
+    title: 'Everyday Collection',
+    copy: 'Refined daily mobility.',
+    price: 'From $45 / day',
+    image: '/assets/vehicle-camry-dark.png',
+    icon: CarFront,
+  },
+  {
+    title: 'Electric Collection',
+    copy: 'Quiet, efficient, modern.',
+    price: 'From $85 / day',
+    image: '/assets/vehicle-model3-dark.png',
+    icon: Zap,
+  },
+  {
+    title: 'SUV Collection',
+    copy: 'Space, comfort, and presence.',
+    price: 'From $80 / day',
+    image: '/assets/vehicle-rav4-dark.png',
+    icon: CarFront,
+  },
+  {
+    title: 'Weekly Plans',
+    copy: 'Extended access for work, travel, and routine.',
+    price: 'From $275 / week',
+    image: '/assets/vehicle-van.jpg',
+    icon: CalendarDays,
+  },
+] as const;
+
+const appFleet = [
+  {
+    marque: 'Mercedes-Benz',
+    model: 'S-Class',
+    collection: 'Executive Collection',
+    seats: 4,
+    bags: 3,
+    price: '$250',
+    image: '/assets/vehicle-sclass.jpg',
+  },
+  {
+    marque: 'Tesla',
+    model: 'Model 3',
+    collection: 'Electric Collection',
+    seats: 5,
+    bags: 3,
+    price: '$95',
+    image: '/assets/vehicle-model3-dark.png',
+  },
+  {
+    marque: 'Toyota',
+    model: 'Camry',
+    collection: 'Everyday Collection',
+    seats: 5,
+    bags: 2,
+    price: '$55',
+    image: '/assets/vehicle-camry-dark.png',
+  },
+  {
+    marque: 'Toyota',
+    model: 'RAV4',
+    collection: 'SUV Collection',
+    seats: 5,
+    bags: 3,
+    price: '$75',
+    image: '/assets/vehicle-rav4-dark.png',
+  },
+  {
+    marque: 'Honda',
+    model: 'Civic',
+    collection: 'Everyday Collection',
+    seats: 5,
+    bags: 2,
+    price: '$45',
+    image: '/assets/vehicle-civic-dark.png',
+  },
+] as const;
+
+const appMenuItems = [
+  { label: 'Home', icon: HomeIcon },
+  { label: 'Executive Collection', icon: CarFront },
+  { label: 'Everyday Collection', icon: CarFront },
+  { label: 'Electric Collection', icon: Zap },
+  { label: 'SUV Collection', icon: CarFront },
+  { label: 'Weekly Plans', icon: CalendarDays },
+  { label: 'My Bookings', icon: CalendarCheck },
+  { label: 'Favorites', icon: Heart },
+  { label: 'Membership', icon: CircleCheck },
+  { label: 'Payment Methods', icon: CreditCard },
+  { label: 'Support', icon: Headphones },
+  { label: 'Settings', icon: Settings },
+  { label: 'Sign Out', icon: LogOut },
+] as const;
+
+const appBenefitRows = [
+  ['Everyday Fleet Access', 'yes', 'yes', 'yes'],
+  ['EV Access', 'no', 'yes', 'yes'],
+  ['Weekly Rates', 'Standard', 'Preferred', 'Exclusive'],
+  ['Airport Delivery', 'no', 'yes', 'yes'],
+  ['Concierge Support', 'no', 'yes', 'yes'],
+  ['Premium Fleet Access', 'no', 'yes', 'yes'],
+  ['Chauffeured Service', 'no', 'no', 'yes'],
+  ['Priority Availability', 'no', 'yes', 'yes'],
+  ['Dedicated Assistance', 'no', 'yes', 'yes'],
+] as const;
+
+const mobileFleetTabs = ['All', 'Executive', 'Everyday', 'Electric', 'SUVs', 'Weekly'] as const;
+
+type MobileFleetTab = (typeof mobileFleetTabs)[number];
+
+type MobileScreenId =
+  | 'splash'
+  | 'home'
+  | 'menu'
+  | 'categories'
+  | 'fleet'
+  | 'detail'
+  | 'booking'
+  | 'membership'
+  | 'benefits';
+
+type MobileScreenSelect = (screen: MobileScreenId) => void;
+
+type MobileScreenProps = {
+  onSelect?: MobileScreenSelect;
+};
+
+const noopMobileSelect: MobileScreenSelect = () => undefined;
+
+const collectionToFleetTab = (title: string): MobileFleetTab => {
+  if (title.includes('Executive')) return 'Executive';
+  if (title.includes('Everyday')) return 'Everyday';
+  if (title.includes('Electric')) return 'Electric';
+  if (title.includes('SUV')) return 'SUVs';
+  if (title.includes('Weekly')) return 'Weekly';
+  return 'All';
+};
+
 function getRoute(): Route {
   const hash = window.location.hash.replace('#', '');
+  const baseHash = hash.split('/')[0];
   if (
-    hash === 'book' ||
-    hash === 'fleet' ||
-    hash === 'vehicle' ||
-    hash === 'about' ||
-    hash === 'membership' ||
-    hash === 'member' ||
-    hash === 'admin'
+    baseHash === 'book' ||
+    baseHash === 'fleet' ||
+    baseHash === 'vehicle' ||
+    baseHash === 'about' ||
+    baseHash === 'membership' ||
+    baseHash === 'member' ||
+    baseHash === 'admin' ||
+    baseHash === 'mobile'
   ) {
-    return hash;
+    return baseHash;
   }
   return 'home';
+}
+
+function getMobileScreenFromHash(): MobileScreenId {
+  const screen = window.location.hash.replace('#', '').split('/')[1];
+  if (
+    screen === 'splash' ||
+    screen === 'home' ||
+    screen === 'menu' ||
+    screen === 'categories' ||
+    screen === 'fleet' ||
+    screen === 'detail' ||
+    screen === 'booking' ||
+    screen === 'membership' ||
+    screen === 'benefits'
+  ) {
+    return screen;
+  }
+
+  return 'splash';
 }
 
 function go(route: Route) {
@@ -241,6 +423,7 @@ export function App() {
       {route === 'membership' ? <MembershipPage /> : null}
       {route === 'member' ? <MemberDashboard /> : null}
       {route === 'admin' ? <AdminDashboard /> : null}
+      {route === 'mobile' ? <MobileAppShowcase /> : null}
     </main>
   );
 }
@@ -1022,6 +1205,620 @@ function AdminDashboard() {
       </div>
     </section>
   );
+}
+
+function MobileAppShowcase() {
+  const [activeScreen, setActiveScreen] = useState<MobileScreenId>(() => getMobileScreenFromHash());
+  const [activeFleetTab, setActiveFleetTab] = useState<MobileFleetTab>('All');
+  const selectScreen = (screen: MobileScreenId) => {
+    setActiveScreen(screen);
+    const nextHash = `#mobile/${screen}`;
+    if (window.location.hash !== nextHash) {
+      window.history.pushState(null, '', nextHash);
+    }
+  };
+
+  useEffect(() => {
+    const syncMobileScreen = () => setActiveScreen(getMobileScreenFromHash());
+    window.addEventListener('hashchange', syncMobileScreen);
+    window.addEventListener('popstate', syncMobileScreen);
+    return () => {
+      window.removeEventListener('hashchange', syncMobileScreen);
+      window.removeEventListener('popstate', syncMobileScreen);
+    };
+  }, []);
+
+  const openFleetTab = (tab: MobileFleetTab) => {
+    setActiveFleetTab(tab);
+    selectScreen('fleet');
+  };
+
+  const screens: Array<{
+    id: MobileScreenId;
+    node: React.ReactNode;
+  }> = [
+    { id: 'splash', node: <MobileSplashScreen onSelect={selectScreen} /> },
+    { id: 'home', node: <MobileHomeScreen onSelect={selectScreen} /> },
+    { id: 'menu', node: <MobileMenuScreen onSelect={selectScreen} onFleetTabSelect={openFleetTab} /> },
+    { id: 'categories', node: <MobileCategoriesScreen onSelect={selectScreen} onFleetTabSelect={openFleetTab} /> },
+    {
+      id: 'fleet',
+      node: (
+        <MobileFleetScreen
+          activeTab={activeFleetTab}
+          onSelect={selectScreen}
+          onTabChange={setActiveFleetTab}
+        />
+      ),
+    },
+    { id: 'detail', node: <MobileDetailScreen onSelect={selectScreen} /> },
+    { id: 'booking', node: <MobileBookingScreen onSelect={selectScreen} /> },
+    { id: 'membership', node: <MobileMembershipScreen onSelect={selectScreen} /> },
+    { id: 'benefits', node: <MobileBenefitsScreen onSelect={selectScreen} /> },
+  ];
+  const currentScreen = screens.find((screen) => screen.id === activeScreen) ?? screens[0];
+
+  return (
+    <section className="mobile-app-page" aria-label="OBAVIA mobile app experience">
+      <div className="mobile-app-viewport-wrap">
+        <div className="mobile-app-viewport" data-active-screen={currentScreen.id}>
+          <div className="mobile-app-screen-stage" key={currentScreen.id}>
+            {currentScreen.node}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IosStatus({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
+  return (
+    <div className={`ios-status ${tone}`}>
+      <span>9:41</span>
+      <div aria-hidden="true">
+        <i className="signal-bars" />
+        <i className="wifi-mark" />
+        <i className="battery-mark" />
+      </div>
+    </div>
+  );
+}
+
+function MobileIconButton({
+  label,
+  children,
+  onClick,
+}: {
+  label: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button className="mobile-icon-button" type="button" aria-label={label} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+function MobileTopBar({
+  tone = 'dark',
+  left,
+  right,
+}: {
+  tone?: 'dark' | 'light';
+  left: React.ReactNode;
+  right: React.ReactNode;
+}) {
+  return (
+    <div className={`app-topbar ${tone}`}>
+      {left}
+      <BrandMark size={52} tone="gold" />
+      {right}
+    </div>
+  );
+}
+
+function MobileBottomNav({
+  active = 'Home',
+  tone = 'dark',
+  onSelect = noopMobileSelect,
+}: {
+  active?: string;
+  tone?: 'dark' | 'light';
+  onSelect?: MobileScreenSelect;
+}) {
+  const tabs = [
+    { label: 'Home', icon: HomeIcon, screen: 'home' },
+    { label: 'Fleet', icon: CarFront, screen: 'fleet' },
+    { label: 'Book', icon: CalendarDays, screen: 'booking' },
+    { label: 'Membership', icon: null, screen: 'membership' },
+    { label: 'Account', icon: UserRound, screen: 'benefits' },
+  ] as const;
+
+  return (
+    <nav className={`app-bottom-nav ${tone}`} aria-label="Mobile app">
+      {tabs.map(({ label, icon: Icon, screen }) => (
+        <button
+          aria-current={label === active ? 'page' : undefined}
+          className={label === active ? 'active' : ''}
+          type="button"
+          key={label}
+          onClick={() => onSelect(screen)}
+        >
+          {Icon ? <Icon size={24} strokeWidth={1.45} /> : <BrandMark size={28} tone={label === active ? 'gold' : tone === 'light' ? 'ink' : 'ivory'} />}
+          <span className="app-bottom-label">{label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function MobileSplashScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  return (
+    <div className="app-screen app-screen-dark splash-app">
+      <IosStatus />
+      <img className="splash-photo" src="/assets/hero-obavia-background.png" alt="Chauffeur beside an executive vehicle" />
+      <div className="splash-wash" />
+      <div className="splash-brand">
+        <BrandMark size={76} tone="gold" />
+        <h2>OBAVIA</h2>
+        <p>Private Vehicle Rental</p>
+      </div>
+      <div className="splash-bottom">
+        <p>Private access. Everyday utility.</p>
+        <div className="app-dots" aria-hidden="true">
+          <span className="active" />
+          <span />
+          <span />
+        </div>
+        <button type="button" onClick={() => onSelect('home')}>Enter</button>
+      </div>
+    </div>
+  );
+}
+
+function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  const actions = [
+    { label: 'Book a Vehicle', icon: CalendarCheck, screen: 'booking' },
+    { label: 'View Fleet', icon: CarFront, screen: 'fleet' },
+    { label: 'Weekly Plans', icon: CalendarDays, screen: 'categories' },
+    { label: 'Membership', icon: CircleCheck, screen: 'membership' },
+  ] as const;
+
+  return (
+    <div className="app-screen app-screen-dark">
+      <IosStatus />
+      <div className="screen-body with-bottom-nav">
+        <MobileTopBar
+          left={<MobileIconButton label="Open menu" onClick={() => onSelect('menu')}><Menu size={28} strokeWidth={1.45} /></MobileIconButton>}
+          right={<MobileIconButton label="Notifications"><Bell size={24} strokeWidth={1.35} /></MobileIconButton>}
+        />
+        <section className="app-greeting">
+          <p>Good morning,</p>
+          <h2>James</h2>
+          <span>Reserve member</span>
+        </section>
+        <section className="upcoming-card">
+          <div>
+            <p>Upcoming Booking</p>
+            <span>Mercedes-Benz</span>
+            <h3>S-Class</h3>
+            <small>May 24, 2025 {'\u00b7'} 10:00 AM</small>
+            <small>Downtown Office, New York</small>
+          </div>
+          <img src="/assets/vehicle-sclass.jpg" alt="Mercedes-Benz S-Class" />
+          <button type="button" aria-label="View booking" onClick={() => onSelect('detail')}>
+            <ArrowRight size={26} strokeWidth={1.3} />
+          </button>
+        </section>
+        <div className="quick-actions">
+          {actions.map(({ label, icon: Icon, screen }) => (
+            <button type="button" key={label} onClick={() => onSelect(screen)}>
+              <Icon size={28} strokeWidth={1.35} />
+              <span>{label}</span>
+              <ChevronRight size={18} strokeWidth={1.4} />
+            </button>
+          ))}
+        </div>
+      </div>
+      <MobileBottomNav active="Home" onSelect={onSelect} />
+    </div>
+  );
+}
+
+function MobileMenuScreen({
+  onSelect = noopMobileSelect,
+  onFleetTabSelect = () => undefined,
+}: MobileScreenProps & {
+  onFleetTabSelect?: (tab: MobileFleetTab) => void;
+}) {
+  const menuTargets: Record<string, { screen?: MobileScreenId; tab?: MobileFleetTab }> = {
+    Home: { screen: 'home' },
+    'Executive Collection': { tab: 'Executive' },
+    'Everyday Collection': { tab: 'Everyday' },
+    'Electric Collection': { tab: 'Electric' },
+    'SUV Collection': { tab: 'SUVs' },
+    'Weekly Plans': { tab: 'Weekly' },
+    'My Bookings': { screen: 'home' },
+    Favorites: { screen: 'fleet' },
+    Membership: { screen: 'membership' },
+    'Payment Methods': { screen: 'benefits' },
+    Support: { screen: 'benefits' },
+    Settings: { screen: 'benefits' },
+    'Sign Out': { screen: 'splash' },
+  };
+
+  const handleMenuTarget = (label: string) => {
+    const target = menuTargets[label];
+    if (target?.tab) {
+      onFleetTabSelect(target.tab);
+      return;
+    }
+
+    onSelect(target?.screen ?? 'home');
+  };
+
+  return (
+    <div className="app-screen app-screen-dark menu-app">
+      <IosStatus />
+      <img className="menu-backdrop" src="/assets/about-entrance.png" alt="Architectural private entrance" />
+      <div className="menu-wash" />
+      <div className="screen-body menu-body">
+        <MobileTopBar
+          left={<MobileIconButton label="Close" onClick={() => onSelect('home')}><X size={28} strokeWidth={1.35} /></MobileIconButton>}
+          right={<span aria-hidden="true" />}
+        />
+        <nav className="app-menu-list" aria-label="Mobile menu">
+          {appMenuItems.map(({ label, icon: Icon }, index) => (
+            <button className={index === 0 ? 'active' : ''} type="button" key={label} onClick={() => handleMenuTarget(label)}>
+              <Icon size={24} strokeWidth={1.35} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="concierge-strip">
+          <p>Need assistance?</p>
+          <button type="button">Contact Concierge</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileCategoriesScreen({
+  onSelect = noopMobileSelect,
+  onFleetTabSelect = () => undefined,
+}: MobileScreenProps & {
+  onFleetTabSelect?: (tab: MobileFleetTab) => void;
+}) {
+  const openCollection = (title: string) => {
+    onFleetTabSelect(collectionToFleetTab(title));
+  };
+
+  return (
+    <div className="app-screen app-screen-dark">
+      <IosStatus />
+      <div className="screen-body categories-body">
+        <MobileTopBar
+          left={<MobileIconButton label="Back" onClick={() => onSelect('home')}><ChevronLeft size={27} strokeWidth={1.35} /></MobileIconButton>}
+          right={<MobileIconButton label="Search" onClick={() => onSelect('fleet')}><Search size={26} strokeWidth={1.35} /></MobileIconButton>}
+        />
+        <header className="app-title-block">
+          <h2>Choose Your Collection</h2>
+          <p>Vehicles curated for every way you move.</p>
+        </header>
+        <div className="collection-list">
+          {appCollections.map(({ title, copy, price, image, icon: Icon }, index) => (
+            <article
+              className={index === 0 ? 'active' : ''}
+              key={title}
+              role="button"
+              tabIndex={0}
+              onClick={() => openCollection(title)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  openCollection(title);
+                }
+              }}
+            >
+              <img src={image} alt="" />
+              <div>
+                <span>
+                  <Icon size={18} strokeWidth={1.35} />
+                </span>
+                <h3>{title}</h3>
+                <p>{copy}</p>
+                <small>{price}</small>
+              </div>
+              <ChevronRight size={20} strokeWidth={1.35} />
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileFleetScreen({
+  activeTab = 'All',
+  onSelect = noopMobileSelect,
+  onTabChange = () => undefined,
+}: MobileScreenProps & {
+  activeTab?: MobileFleetTab;
+  onTabChange?: (tab: MobileFleetTab) => void;
+}) {
+  const visibleFleet = appFleet.filter((vehicle) => {
+    if (activeTab === 'All') return true;
+    if (activeTab === 'Executive') return vehicle.collection === 'Executive Collection';
+    if (activeTab === 'Everyday') return vehicle.collection === 'Everyday Collection';
+    if (activeTab === 'Electric') return vehicle.collection === 'Electric Collection';
+    if (activeTab === 'SUVs') return vehicle.collection === 'SUV Collection';
+    return vehicle.collection === 'Everyday Collection' || vehicle.collection === 'SUV Collection';
+  });
+
+  return (
+    <div className="app-screen app-screen-dark">
+      <IosStatus />
+      <div className="screen-body fleet-body with-bottom-nav">
+        <MobileTopBar
+          left={<MobileIconButton label="Filter"><SlidersHorizontal size={25} strokeWidth={1.4} /></MobileIconButton>}
+          right={<MobileIconButton label="Search"><Search size={26} strokeWidth={1.35} /></MobileIconButton>}
+        />
+        <header className="app-title-block compact">
+          <h2>Curated Fleet</h2>
+        </header>
+        <div className="fleet-tabs" role="tablist" aria-label="Fleet categories">
+          {mobileFleetTabs.map((tab) => (
+            <button
+              aria-selected={tab === activeTab}
+              className={tab === activeTab ? 'active' : ''}
+              role="tab"
+              type="button"
+              key={tab}
+              onClick={() => onTabChange(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <div className="app-fleet-list">
+          {visibleFleet.map((vehicle) => (
+            <article key={`${vehicle.marque}-${vehicle.model}`}>
+              <img src={vehicle.image} alt="" />
+              <div>
+                <span>{vehicle.marque}</span>
+                <h3>{vehicle.model}</h3>
+                <p>{vehicle.collection}</p>
+                <small>{vehicle.seats} Seats {'\u00b7'} {vehicle.bags} Bags</small>
+                <strong>From {vehicle.price} <em>/ day</em></strong>
+              </div>
+              <button type="button" onClick={() => onSelect('detail')}>View</button>
+            </article>
+          ))}
+        </div>
+      </div>
+      <MobileBottomNav active="Fleet" onSelect={onSelect} />
+    </div>
+  );
+}
+
+function MobileDetailScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  const inclusions = [
+    'Bluetooth connectivity',
+    'Phone charger',
+    'Clean interior standard',
+    'Weekly plans available',
+    'Professional driver optional',
+  ] as const;
+
+  return (
+    <div className="app-screen app-screen-light">
+      <IosStatus tone="light" />
+      <div className="screen-body detail-app-body with-bottom-nav">
+        <MobileTopBar
+          tone="light"
+          left={<MobileIconButton label="Back" onClick={() => onSelect('fleet')}><ChevronLeft size={27} strokeWidth={1.35} /></MobileIconButton>}
+          right={<MobileIconButton label="Favorite"><Heart size={25} strokeWidth={1.35} /></MobileIconButton>}
+        />
+        <img className="detail-vehicle-image" src="/assets/vehicle-model3-ivory.png" alt="Tesla Model 3 studio view" />
+        <article className="detail-app-copy">
+          <h2>Tesla Model 3</h2>
+          <p>Elevated. Efficient. Effortless.</p>
+          <div className="detail-specs">
+            <span><UsersRound size={22} strokeWidth={1.35} />5 Seats</span>
+            <span><Gauge size={22} strokeWidth={1.35} />Automatic</span>
+            <span><Briefcase size={22} strokeWidth={1.35} />3 Bags</span>
+          </div>
+          <p className="detail-description-app">
+            Sleek, intelligent, and effortlessly refined. Designed for everyday mobility with comfort, efficiency,
+            and ease.
+          </p>
+          <section className="detail-inclusions">
+            <h3>Inclusions</h3>
+            {inclusions.map((item) => (
+              <span key={item}>
+                <CheckCircle2 size={18} strokeWidth={1.45} />
+                {item}
+              </span>
+            ))}
+          </section>
+          <div className="detail-price-row">
+            <p><span>From</span>$95 <small>/ day</small></p>
+            <button type="button" onClick={() => onSelect('booking')}>Book This Vehicle</button>
+          </div>
+        </article>
+      </div>
+      <MobileBottomNav active="Fleet" tone="light" onSelect={onSelect} />
+    </div>
+  );
+}
+
+function MobileBookingScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  const fields = [
+    ['Pick-up Location', 'Select pick-up location', MapPin],
+    ['Pick-up Date', 'Select date', CalendarDays],
+    ['Pick-up Time', 'Select time', Gauge],
+    ['Return Location', 'Select return location', MapPin],
+    ['Return Date', 'Select date', CalendarDays],
+    ['Return Time', 'Select time', Gauge],
+  ] as const;
+
+  return (
+    <div className="app-screen app-screen-dark">
+      <IosStatus />
+      <div className="screen-body booking-app-body">
+        <MobileTopBar
+          left={<MobileIconButton label="Back" onClick={() => onSelect('fleet')}><ChevronLeft size={27} strokeWidth={1.35} /></MobileIconButton>}
+          right={<MobileIconButton label="Account" onClick={() => onSelect('benefits')}><CircleUserRound size={25} strokeWidth={1.35} /></MobileIconButton>}
+        />
+        <header className="app-title-block booking-title">
+          <h2>Book a Vehicle</h2>
+          <div className="booking-steps-app">
+            {['Vehicle', 'Details', 'Confirm', 'Payment'].map((step, index) => (
+              <span className={index === 0 ? 'active' : ''} key={step}>{index + 1}. {step}</span>
+            ))}
+          </div>
+        </header>
+        <article className="selected-vehicle-card">
+          <img src="/assets/vehicle-camry-dark.png" alt="" />
+          <div>
+            <p>Everyday Collection</p>
+            <h3>Toyota Camry LE</h3>
+            <span>or similar</span>
+            <small>5 Seats {'\u00b7'} Automatic {'\u00b7'} 2 Bags</small>
+          </div>
+        </article>
+        <div className="booking-fields-app">
+          {fields.map(([label, placeholder, Icon], index) => (
+            <label className={index === 0 || index === 3 ? 'wide' : ''} key={`${label}-${placeholder}`}>
+              <span>{label}</span>
+              <i>
+                <Icon size={18} strokeWidth={1.35} />
+                {placeholder}
+                <ChevronRight size={16} strokeWidth={1.35} />
+              </i>
+            </label>
+          ))}
+        </div>
+        <div className="driver-toggle-app">
+          <span>Driver</span>
+          <button className="active" type="button"><CircleCheck size={18} strokeWidth={1.35} />With Driver</button>
+          <button type="button"><CircleCheck size={18} strokeWidth={1.35} />Self Drive</button>
+        </div>
+        <div className="weekly-badge-app">
+          <CalendarDays size={16} strokeWidth={1.35} />
+          Weekly plans available
+        </div>
+        <button className="continue-app-button" type="button" onClick={() => onSelect('membership')}>Continue</button>
+      </div>
+    </div>
+  );
+}
+
+function MobileMembershipScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  return (
+    <div className="app-screen app-screen-light">
+      <IosStatus tone="light" />
+      <div className="screen-body membership-app-body with-bottom-nav">
+        <header className="membership-app-head">
+          <BrandMark size={56} tone="gold" />
+          <span>OBAVIA</span>
+          <h2>Membership</h2>
+          <p>Access tailored to the way you move.</p>
+        </header>
+        <div className="tier-card-list">
+          <TierAppCard tier="Standard" mark="standard" benefits={['Everyday access', 'Weekly plans', 'Essential support']} />
+          <TierAppCard tier="Reserve" mark="reserve" popular benefits={['Priority booking', 'Premium fleet access', 'Concierge support', 'Better availability']} />
+          <TierAppCard tier="Noir" mark="noir" benefits={['Invitation-only access', 'Chauffeured privileges', 'First-call availability', 'Bespoke service']} />
+        </div>
+        <button className="compare-benefits-button" type="button" onClick={() => onSelect('benefits')}>Compare Benefits</button>
+        <p className="membership-footer-copy">Questions about membership?</p>
+        <button className="membership-concierge-link" type="button">Contact Concierge</button>
+      </div>
+      <MobileBottomNav active="Membership" tone="light" onSelect={onSelect} />
+    </div>
+  );
+}
+
+function TierAppCard({
+  tier,
+  benefits,
+  mark,
+  popular = false,
+}: {
+  tier: string;
+  benefits: readonly string[];
+  mark: 'standard' | 'reserve' | 'noir';
+  popular?: boolean;
+}) {
+  return (
+    <article className={`tier-app-card ${mark}`}>
+      <div className="tier-app-mark" aria-hidden="true">
+        {mark === 'noir' ? <BrandMark size={45} tone="gold" /> : null}
+      </div>
+      <div>
+        {popular ? <span className="popular-flag">Most Popular</span> : null}
+        <h3>{tier}</h3>
+        {benefits.map((benefit) => (
+          <p key={benefit}><CheckCircle2 size={16} strokeWidth={1.45} />{benefit}</p>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function MobileBenefitsScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  return (
+    <div className="app-screen app-screen-dark">
+      <IosStatus />
+      <div className="screen-body benefits-app-body with-bottom-nav">
+        <header className="benefits-head">
+          <BrandMark size={58} tone="gold" />
+          <h2>Benefits by Tier</h2>
+          <p>Choose your level of access.</p>
+        </header>
+        <div className="benefits-table-app">
+          <div className="benefits-columns">
+            <span />
+            <span>Standard</span>
+            <span className="reserve">Reserve</span>
+            <span>Noir</span>
+          </div>
+          {appBenefitRows.map(([label, standard, reserve, noir]) => (
+            <div className="benefits-row" key={label}>
+              <span>{label}</span>
+              <BenefitCell value={standard} />
+              <BenefitCell reserve value={reserve} />
+              <BenefitCell value={noir} />
+            </div>
+          ))}
+        </div>
+        <button className="upgrade-button-app" type="button">Upgrade to Reserve</button>
+        <button className="request-noir-button" type="button">Request Noir Access <ArrowRight size={16} strokeWidth={1.35} /></button>
+      </div>
+      <MobileBottomNav active="Membership" onSelect={onSelect} />
+    </div>
+  );
+}
+
+function BenefitCell({ value, reserve = false }: { value: string; reserve?: boolean }) {
+  if (value === 'yes') {
+    return (
+      <span className={reserve ? 'benefit-cell reserve' : 'benefit-cell'}>
+        <CircleCheck size={18} strokeWidth={1.5} />
+      </span>
+    );
+  }
+
+  if (value === 'no') {
+    return (
+      <span className={reserve ? 'benefit-cell reserve muted' : 'benefit-cell muted'}>
+        <CircleX size={18} strokeWidth={1.4} />
+      </span>
+    );
+  }
+
+  return <span className={reserve ? 'benefit-cell reserve text' : 'benefit-cell text'}>{value}</span>;
 }
 
 function Field({
