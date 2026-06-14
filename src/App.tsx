@@ -1432,24 +1432,31 @@ function MobileMenuScreen({
 }: MobileScreenProps & {
   onFleetTabSelect?: (tab: MobileFleetTab) => void;
 }) {
-  const menuTargets: Record<string, { screen?: MobileScreenId; tab?: MobileFleetTab }> = {
-    Home: { screen: 'home' },
-    'Executive Collection': { tab: 'Executive' },
-    'Everyday Collection': { tab: 'Everyday' },
-    'Electric Collection': { tab: 'Electric' },
-    'SUV Collection': { tab: 'SUVs' },
-    'Weekly Plans': { tab: 'Weekly' },
-    'My Bookings': { screen: 'home' },
-    Favorites: { screen: 'fleet' },
-    Membership: { screen: 'membership' },
-    'Payment Methods': { screen: 'benefits' },
-    Support: { screen: 'benefits' },
-    Settings: { screen: 'benefits' },
-    'Sign Out': { screen: 'splash' },
-  };
+  const primaryItems = [
+    { label: 'Home', icon: HomeIcon, screen: 'home' },
+    { label: 'Book a Vehicle', icon: CalendarCheck, screen: 'booking' },
+    { label: 'View Fleet', icon: CarFront, tab: 'All' },
+    { label: 'Weekly Plans', icon: CalendarDays, tab: 'Weekly' },
+    { label: 'Membership', icon: CircleCheck, screen: 'membership' },
+  ] as const;
 
-  const handleMenuTarget = (label: string) => {
-    const target = menuTargets[label];
+  const collectionItems = [
+    { label: 'Executive', icon: CarFront, tab: 'Executive' },
+    { label: 'Everyday', icon: CarFront, tab: 'Everyday' },
+    { label: 'Electric', icon: Zap, tab: 'Electric' },
+    { label: 'SUVs', icon: CarFront, tab: 'SUVs' },
+  ] as const;
+
+  const secondaryItems = [
+    { label: 'My Bookings', icon: CalendarCheck, screen: 'home' },
+    { label: 'Favorites', icon: Heart, screen: 'fleet' },
+    { label: 'Payments', icon: CreditCard, screen: 'benefits' },
+    { label: 'Support', icon: Headphones, screen: 'benefits' },
+    { label: 'Settings', icon: Settings, screen: 'benefits' },
+    { label: 'Sign Out', icon: LogOut, screen: 'splash' },
+  ] as const;
+
+  const handleMenuTarget = (target: { screen?: MobileScreenId; tab?: MobileFleetTab }) => {
     if (target?.tab) {
       onFleetTabSelect(target.tab);
       return;
@@ -1468,17 +1475,64 @@ function MobileMenuScreen({
           left={<MobileIconButton label="Close" onClick={() => onSelect('home')}><X size={28} strokeWidth={1.35} /></MobileIconButton>}
           right={<span aria-hidden="true" />}
         />
-        <nav className="app-menu-list" aria-label="Mobile menu">
-          {appMenuItems.map(({ label, icon: Icon }, index) => (
-            <button className={index === 0 ? 'active' : ''} type="button" key={label} onClick={() => handleMenuTarget(label)}>
-              <Icon size={24} strokeWidth={1.35} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="concierge-strip">
-          <p>Need assistance?</p>
-          <button type="button">Contact Concierge</button>
+        <div className="menu-content">
+          <nav className="menu-primary-list" aria-label="Primary mobile menu">
+            {primaryItems.map((item, index) => {
+              const { label, icon: Icon } = item;
+              return (
+              <button
+                className={index === 0 ? 'active' : ''}
+                style={{ '--menu-index': index } as React.CSSProperties}
+                type="button"
+                key={label}
+                onClick={() => handleMenuTarget({
+                  screen: 'screen' in item ? item.screen : undefined,
+                  tab: 'tab' in item ? item.tab : undefined,
+                })}
+              >
+                <Icon size={24} strokeWidth={1.35} />
+                <span>{label}</span>
+                <ChevronRight size={18} strokeWidth={1.35} />
+              </button>
+              );
+            })}
+          </nav>
+
+          <section className="menu-collection-block" aria-label="Collections">
+            <p>Collections</p>
+            <div>
+              {collectionItems.map(({ label, icon: Icon, tab }, index) => (
+                <button
+                  style={{ '--menu-index': index + primaryItems.length } as React.CSSProperties}
+                  type="button"
+                  key={label}
+                  onClick={() => handleMenuTarget({ tab })}
+                >
+                  <Icon size={20} strokeWidth={1.35} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <nav className="menu-secondary-list" aria-label="Account menu">
+            {secondaryItems.map(({ label, icon: Icon, screen }, index) => (
+              <button
+                style={{ '--menu-index': index + primaryItems.length + collectionItems.length } as React.CSSProperties}
+                type="button"
+                key={label}
+                onClick={() => handleMenuTarget({ screen })}
+              >
+                <Icon size={18} strokeWidth={1.35} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="concierge-strip">
+            <p>Need assistance?</p>
+            <button type="button">Contact Concierge</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1581,7 +1635,7 @@ function MobileFleetScreen({
             </button>
           ))}
         </div>
-        <div className="app-fleet-list">
+        <div className="app-fleet-list" key={activeTab}>
           {visibleFleet.map((vehicle) => (
             <article key={`${vehicle.marque}-${vehicle.model}`}>
               <img src={vehicle.image} alt="" />

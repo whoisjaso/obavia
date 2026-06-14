@@ -1933,13 +1933,13 @@ th {
 }
 
 .mobile-app-screen-stage > .app-screen {
-  animation: mobile-screen-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: mobile-screen-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes mobile-screen-enter {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.992);
+    transform: translateY(18px) scale(0.992);
   }
 
   to {
@@ -2428,6 +2428,11 @@ th {
   transition: color 180ms ease, transform 180ms ease;
 }
 
+.app-bottom-nav button svg,
+.app-bottom-nav button .brand-lockup {
+  transition: color 180ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease;
+}
+
 .app-bottom-nav button:active {
   transform: translateY(1px);
 }
@@ -2438,6 +2443,11 @@ th {
 
 .app-bottom-nav button.active {
   color: var(--gold);
+}
+
+.app-bottom-nav button.active svg,
+.app-bottom-nav button.active .brand-lockup {
+  transform: translateY(-2px) scale(1.04);
 }
 
 .app-bottom-label {
@@ -2472,55 +2482,170 @@ th {
 }
 
 .menu-wash {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.84), rgba(0, 0, 0, 0.42));
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.58) 48%, rgba(0, 0, 0, 0.34)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.52));
 }
 
 .menu-body {
-  padding-bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 28px;
 }
 
-.app-menu-list {
-  margin-top: 19px;
-  display: grid;
-  gap: 0;
+.menu-content {
+  min-height: 0;
+  margin-top: 26px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 22px;
 }
 
-.app-menu-list button {
-  min-height: 35px;
+.menu-primary-list {
   display: grid;
-  grid-template-columns: 36px 1fr;
+  gap: 12px;
+}
+
+.menu-primary-list button {
+  min-height: 54px;
+  padding: 0 2px;
+  display: grid;
+  grid-template-columns: 34px 1fr 20px;
   align-items: center;
-  gap: 17px;
+  gap: 16px;
   color: rgba(245, 240, 230, 0.9);
+  border-bottom: 1px solid rgba(245, 240, 230, 0.08);
   text-align: left;
-  transition: color 180ms ease, transform 180ms ease;
+  animation: menu-item-enter 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--menu-index, 0) * 36ms);
+  transition: color 180ms ease, border-color 180ms ease, transform 180ms ease;
 }
 
-.app-menu-list button:active {
+.menu-primary-list button:active,
+.menu-collection-block button:active,
+.menu-secondary-list button:active {
   transform: translateX(2px);
 }
 
-.app-menu-list button.active {
+.menu-primary-list button.active {
   color: var(--gold);
+  border-color: rgba(184, 155, 94, 0.42);
 }
 
-.app-menu-list span {
-  font-size: 0.73rem;
+.menu-primary-list span {
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
-.concierge-strip {
-  position: absolute;
-  left: 24px;
-  right: 24px;
-  bottom: 21px;
-  padding-top: 15px;
+.menu-primary-list button > svg:last-child {
+  justify-self: end;
+  color: rgba(184, 155, 94, 0.86);
+}
+
+.menu-collection-block {
+  padding-top: 2px;
   display: grid;
-  gap: 17px;
-  border-top: 1px solid var(--gold);
+  gap: 12px;
+}
+
+.menu-collection-block > p {
+  color: rgba(245, 240, 230, 0.58);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.menu-collection-block > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.menu-collection-block button {
+  min-height: 48px;
+  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(245, 240, 230, 0.84);
+  border: 1px solid rgba(245, 240, 230, 0.13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.018);
+  animation: menu-item-enter 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--menu-index, 0) * 36ms);
+}
+
+.menu-collection-block button svg {
+  color: var(--gold);
+}
+
+.menu-collection-block button span {
+  overflow: hidden;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.menu-secondary-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 12px;
+}
+
+.menu-secondary-list button {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(245, 240, 230, 0.72);
+  animation: menu-item-enter 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--menu-index, 0) * 28ms);
+}
+
+.menu-secondary-list button svg {
+  color: rgba(245, 240, 230, 0.78);
+}
+
+.menu-secondary-list span {
+  overflow: hidden;
+  font-size: 0.63rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.menu-primary-list button:focus-visible,
+.menu-collection-block button:focus-visible,
+.menu-secondary-list button:focus-visible,
+.concierge-strip button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.menu-primary-list button:hover,
+.menu-collection-block button:hover,
+.menu-secondary-list button:hover {
+  color: var(--gold);
+}
+
+.concierge-strip {
+  margin-top: auto;
+  padding-top: 18px;
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid rgba(184, 155, 94, 0.9);
   text-align: center;
+  animation: menu-item-enter 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 340ms;
 }
 
 .concierge-strip p {
@@ -2540,6 +2665,23 @@ th {
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.concierge-strip button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+@keyframes menu-item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .app-title-block {
@@ -2683,6 +2825,19 @@ th {
   margin-top: 11px;
   display: grid;
   gap: 7px;
+  animation: tab-panel-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes tab-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .app-fleet-list article {
