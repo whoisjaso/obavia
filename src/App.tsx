@@ -443,8 +443,11 @@ function SiteNav({
 }) {
   const [open, setOpen] = useState(false);
   const overlayItems: Array<{ label: string; route: Route }> = [
-    ...navItems,
-    { label: 'Book a Vehicle', route: 'book' },
+    { label: 'Vehicles', route: 'fleet' },
+    { label: 'Experience', route: 'vehicle' },
+    { label: 'About', route: 'about' },
+    { label: 'Membership', route: 'membership' },
+    { label: 'Weekly Plans', route: 'fleet' },
   ];
 
   useEffect(() => {
@@ -514,39 +517,44 @@ function SiteNav({
 
       {open ? (
         <div className={`site-menu-overlay ${tone}`} role="dialog" aria-modal="true" aria-label="OBAVIA navigation">
-          <img className="site-menu-photo" src="/assets/about-entrance.png" alt="" aria-hidden="true" />
+          <img className="site-menu-photo" src="/assets/hero-obavia-background.png" alt="" aria-hidden="true" />
           <div className="site-menu-wash" aria-hidden="true" />
+          <button className="site-menu-close" type="button" onClick={() => setOpen(false)} aria-label="Close navigation">
+            <X size={34} strokeWidth={1.15} />
+          </button>
           <div className="site-menu-inner">
-            <div className="site-menu-top">
-              <BrandMark size={56} tone="gold" />
-              <button type="button" onClick={() => setOpen(false)}>
-                Close
-                <X size={19} strokeWidth={1.45} />
-              </button>
-            </div>
-            <div className="site-menu-intro">
-              <p>Private access. Everyday utility.</p>
-              <span>OBAVIA navigation</span>
-            </div>
+            <BrandMark size={82} tone="gold" />
             <nav className="site-menu-links" aria-label="Expanded navigation">
-              {overlayItems.map((item, index) => (
-                <button
-                  key={item.label}
-                  style={{ '--site-menu-index': index } as React.CSSProperties}
-                  type="button"
-                  onClick={() => {
-                    go(item.route);
-                    setOpen(false);
-                  }}
-                >
-                  <span>{item.label}</span>
-                  <ChevronRight size={22} strokeWidth={1.35} />
-                </button>
-              ))}
+              {overlayItems.map((item, index) => {
+                const itemIsActive = active ? active === item.route : index === 0;
+
+                return (
+                  <button
+                    className={itemIsActive ? 'active' : ''}
+                    key={item.label}
+                    style={{ '--site-menu-index': index } as React.CSSProperties}
+                    type="button"
+                    onClick={() => {
+                      go(item.route);
+                      setOpen(false);
+                    }}
+                  >
+                    <span>{item.label}</span>
+                    {itemIsActive ? <i aria-hidden="true" /> : null}
+                  </button>
+                );
+              })}
             </nav>
+            <span className="site-menu-divider" aria-hidden="true" />
             <div className="site-menu-assist">
-              <p>Need assistance?</p>
-              <button type="button" onClick={() => setOpen(false)}>Contact Concierge</button>
+              <button type="button" onClick={() => { go('member'); setOpen(false); }}>Sign In</button>
+              <button type="button" onClick={() => { go('book'); setOpen(false); }}>Book Now</button>
+              <p>
+                <Headphones size={17} strokeWidth={1.35} />
+                <span>Concierge: +1 (212) 555-0198</span>
+                <b aria-hidden="true">|</b>
+                <span>Available 24/7</span>
+              </p>
             </div>
           </div>
         </div>
@@ -1475,28 +1483,12 @@ function MobileMenuScreen({
 }: MobileScreenProps & {
   onFleetTabSelect?: (tab: MobileFleetTab) => void;
 }) {
-  const primaryItems = [
-    { label: 'Home', icon: HomeIcon, screen: 'home' },
-    { label: 'Book a Vehicle', icon: CalendarCheck, screen: 'booking' },
-    { label: 'View Fleet', icon: CarFront, tab: 'All' },
-    { label: 'Weekly Plans', icon: CalendarDays, tab: 'Weekly' },
-    { label: 'Membership', icon: CircleCheck, screen: 'membership' },
-  ] as const;
-
-  const collectionItems = [
-    { label: 'Executive Collection', icon: CarFront, tab: 'Executive' },
-    { label: 'Everyday Collection', icon: CarFront, tab: 'Everyday' },
-    { label: 'Electric Collection', icon: Zap, tab: 'Electric' },
-    { label: 'SUV Collection', icon: CarFront, tab: 'SUVs' },
-  ] as const;
-
-  const secondaryItems = [
-    { label: 'My Bookings', icon: CalendarCheck, screen: 'home' },
-    { label: 'Favorites', icon: Heart, screen: 'fleet' },
-    { label: 'Payment Methods', icon: CreditCard, screen: 'benefits' },
-    { label: 'Support', icon: Headphones, screen: 'benefits' },
-    { label: 'Settings', icon: Settings, screen: 'benefits' },
-    { label: 'Sign Out', icon: LogOut, screen: 'splash' },
+  const menuItems = [
+    { label: 'Vehicles', tab: 'All' },
+    { label: 'Experience', screen: 'detail' },
+    { label: 'About', screen: 'home' },
+    { label: 'Membership', screen: 'membership' },
+    { label: 'Weekly Plans', tab: 'Weekly' },
   ] as const;
 
   const handleMenuTarget = (target: { screen?: MobileScreenId; tab?: MobileFleetTab }) => {
@@ -1511,71 +1503,42 @@ function MobileMenuScreen({
   return (
     <div className="app-screen app-screen-dark menu-app">
       <IosStatus />
-      <img className="menu-backdrop" src="/assets/about-entrance.png" alt="Architectural private entrance" />
+      <img className="menu-backdrop" src="/assets/hero-obavia-background.png" alt="Private chauffeur beside an executive sedan" />
       <div className="menu-wash" />
-      <div className="screen-body menu-body">
-        <MobileTopBar
-          left={<MobileIconButton label="Close" onClick={() => onSelect('home')}><X size={28} strokeWidth={1.35} /></MobileIconButton>}
-          right={<span aria-hidden="true" />}
-        />
-        <div className="menu-content">
-          <nav className="menu-primary-list" aria-label="Primary mobile menu">
-            {primaryItems.map((item, index) => {
-              const { label, icon: Icon } = item;
-              return (
+      <button className="mobile-menu-close" type="button" onClick={() => onSelect('home')} aria-label="Close menu">
+        <X size={28} strokeWidth={1.15} />
+      </button>
+      <div className="menu-content">
+        <BrandMark size={70} tone="gold" />
+        <nav className="menu-primary-list" aria-label="Primary mobile menu">
+          {menuItems.map((item, index) => {
+            const itemIsActive = index === 0;
+
+            return (
               <button
-                className={index === 0 ? 'active' : ''}
+                className={itemIsActive ? 'active' : ''}
                 style={{ '--menu-index': index } as React.CSSProperties}
                 type="button"
-                key={label}
+                key={item.label}
                 onClick={() => handleMenuTarget({
                   screen: 'screen' in item ? item.screen : undefined,
                   tab: 'tab' in item ? item.tab : undefined,
                 })}
               >
-                <Icon size={24} strokeWidth={1.35} />
-                <span>{label}</span>
-                <ChevronRight size={18} strokeWidth={1.35} />
+                <span>{item.label}</span>
+                {itemIsActive ? <i aria-hidden="true" /> : null}
               </button>
-              );
-            })}
-          </nav>
-
-          <section className="menu-collection-block" aria-label="Collections">
-            <p>Collections</p>
-            <div>
-              {collectionItems.map(({ label, icon: Icon, tab }, index) => (
-                <button
-                  style={{ '--menu-index': index + primaryItems.length } as React.CSSProperties}
-                  type="button"
-                  key={label}
-                  onClick={() => handleMenuTarget({ tab })}
-                >
-                  <Icon size={20} strokeWidth={1.35} />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <nav className="menu-secondary-list" aria-label="Account menu">
-            {secondaryItems.map(({ label, icon: Icon, screen }, index) => (
-              <button
-                style={{ '--menu-index': index + primaryItems.length + collectionItems.length } as React.CSSProperties}
-                type="button"
-                key={label}
-                onClick={() => handleMenuTarget({ screen })}
-              >
-                <Icon size={18} strokeWidth={1.35} />
-                <span>{label}</span>
-              </button>
-            ))}
-          </nav>
-
-          <div className="concierge-strip">
-            <p>Need assistance?</p>
-            <button type="button">Contact Concierge</button>
-          </div>
+            );
+          })}
+        </nav>
+        <span className="menu-divider" aria-hidden="true" />
+        <button className="menu-sign-in" type="button" onClick={() => onSelect('home')}>Sign In</button>
+        <button className="menu-book-now" type="button" onClick={() => onSelect('booking')}>Book Now</button>
+        <div className="concierge-strip">
+          <Headphones size={18} strokeWidth={1.3} />
+          <span>Concierge: +1 (212) 555-0198</span>
+          <b aria-hidden="true">|</b>
+          <span>Available 24/7</span>
         </div>
       </div>
     </div>
