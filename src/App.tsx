@@ -442,6 +442,23 @@ function SiteNav({
   showBack?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const overlayItems: Array<{ label: string; route: Route }> = [
+    ...navItems,
+    { label: 'Book a Vehicle', route: 'book' },
+  ];
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
 
   return (
     <header className={`site-nav ${tone} ${compact ? 'compact' : 'full'}`}>
@@ -452,9 +469,15 @@ function SiteNav({
             Back
           </button>
         ) : (
-          <button className="icon-button menu-button" type="button" onClick={() => setOpen((value) => !value)}>
-            <Menu size={27} strokeWidth={1.7} />
-            <span className="sr-only">Open navigation</span>
+          <button
+            aria-expanded={open}
+            aria-label={open ? 'Close navigation' : 'Open navigation'}
+            className={`icon-button menu-button ${open ? 'is-open' : ''}`}
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? <X size={26} strokeWidth={1.45} /> : <Menu size={27} strokeWidth={1.7} />}
+            <span className="sr-only">{open ? 'Close navigation' : 'Open navigation'}</span>
           </button>
         )}
 
@@ -490,22 +513,42 @@ function SiteNav({
       </div>
 
       {open ? (
-        <div className="mobile-nav">
-          {navItems.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => {
-                go(item.route);
-                setOpen(false);
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-          <button type="button" onClick={() => go('book')}>
-            Book Now
-          </button>
+        <div className={`site-menu-overlay ${tone}`} role="dialog" aria-modal="true" aria-label="OBAVIA navigation">
+          <img className="site-menu-photo" src="/assets/about-entrance.png" alt="" aria-hidden="true" />
+          <div className="site-menu-wash" aria-hidden="true" />
+          <div className="site-menu-inner">
+            <div className="site-menu-top">
+              <BrandMark size={56} tone="gold" />
+              <button type="button" onClick={() => setOpen(false)}>
+                Close
+                <X size={19} strokeWidth={1.45} />
+              </button>
+            </div>
+            <div className="site-menu-intro">
+              <p>Private access. Everyday utility.</p>
+              <span>OBAVIA navigation</span>
+            </div>
+            <nav className="site-menu-links" aria-label="Expanded navigation">
+              {overlayItems.map((item, index) => (
+                <button
+                  key={item.label}
+                  style={{ '--site-menu-index': index } as React.CSSProperties}
+                  type="button"
+                  onClick={() => {
+                    go(item.route);
+                    setOpen(false);
+                  }}
+                >
+                  <span>{item.label}</span>
+                  <ChevronRight size={22} strokeWidth={1.35} />
+                </button>
+              ))}
+            </nav>
+            <div className="site-menu-assist">
+              <p>Need assistance?</p>
+              <button type="button" onClick={() => setOpen(false)}>Contact Concierge</button>
+            </div>
+          </div>
         </div>
       ) : null}
     </header>
@@ -1441,16 +1484,16 @@ function MobileMenuScreen({
   ] as const;
 
   const collectionItems = [
-    { label: 'Executive', icon: CarFront, tab: 'Executive' },
-    { label: 'Everyday', icon: CarFront, tab: 'Everyday' },
-    { label: 'Electric', icon: Zap, tab: 'Electric' },
-    { label: 'SUVs', icon: CarFront, tab: 'SUVs' },
+    { label: 'Executive Collection', icon: CarFront, tab: 'Executive' },
+    { label: 'Everyday Collection', icon: CarFront, tab: 'Everyday' },
+    { label: 'Electric Collection', icon: Zap, tab: 'Electric' },
+    { label: 'SUV Collection', icon: CarFront, tab: 'SUVs' },
   ] as const;
 
   const secondaryItems = [
     { label: 'My Bookings', icon: CalendarCheck, screen: 'home' },
     { label: 'Favorites', icon: Heart, screen: 'fleet' },
-    { label: 'Payments', icon: CreditCard, screen: 'benefits' },
+    { label: 'Payment Methods', icon: CreditCard, screen: 'benefits' },
     { label: 'Support', icon: Headphones, screen: 'benefits' },
     { label: 'Settings', icon: Settings, screen: 'benefits' },
     { label: 'Sign Out', icon: LogOut, screen: 'splash' },
