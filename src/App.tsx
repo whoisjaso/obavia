@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   BarChart3,
@@ -42,6 +42,200 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { BrandMark } from './components/BrandMark';
 import { VehicleCard } from './components/VehicleCard';
 import { bookings, locations, vehicles, type VehicleCategory } from './data';
+
+const MENU_AMBIENCE_VIDEO_ID = 'NW8Cxc3uh5E';
+const MENU_AMBIENCE_TARGET_RATE = 0.77;
+
+type YouTubePlayerEvent = {
+  target: YouTubePlayer;
+};
+
+type YouTubePlayer = {
+  destroy: () => void;
+  getAvailablePlaybackRates?: () => number[];
+  getIframe?: () => HTMLIFrameElement;
+  pauseVideo: () => void;
+  playVideo: () => void;
+  seekTo?: (seconds: number, allowSeekAhead: boolean) => void;
+  setPlaybackRate?: (rate: number) => void;
+  stopVideo: () => void;
+};
+
+type YouTubeApi = {
+  Player: new (
+    element: HTMLElement | string,
+    options: {
+      height?: string;
+      host?: string;
+      playerVars?: Record<string, number | string>;
+      videoId: string;
+      width?: string;
+      events?: {
+        onReady?: (event: YouTubePlayerEvent) => void;
+        onStateChange?: (event: YouTubePlayerEvent & { data: number }) => void;
+      };
+    },
+  ) => YouTubePlayer;
+  PlayerState?: {
+    PLAYING: number;
+  };
+};
+
+declare global {
+  interface Window {
+    YT?: YouTubeApi;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+let youtubeApiPromise: Promise<void> | null = null;
+
+function loadYouTubeApi() {
+  if (window.YT?.Player) {
+    return Promise.resolve();
+  }
+
+  if (!youtubeApiPromise) {
+    youtubeApiPromise = new Promise((resolve) => {
+      const existingReady = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        existingReady?.();
+        resolve();
+      };
+
+      if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        script.async = true;
+        document.head.appendChild(script);
+      }
+    });
+  }
+
+  return youtubeApiPromise;
+}
+
+function getClosestPlaybackRate(player: YouTubePlayer) {
+  const availableRates = player.getAvailablePlaybackRates?.();
+
+  if (!availableRates?.length) {
+    return 0.75;
+  }
+
+  return availableRates.reduce((closest, rate) => {
+    const currentDelta = Math.abs(rate - MENU_AMBIENCE_TARGET_RATE);
+    const closestDelta = Math.abs(closest - MENU_AMBIENCE_TARGET_RATE);
+    return currentDelta < closestDelta ? rate : closest;
+  }, availableRates[0]);
+}
+
+function playMenuAmbience(player: YouTubePlayer) {
+  try {
+    player.seekTo?.(0, true);
+  } catch {
+    // The YouTube player may not accept seeks until metadata is ready.
+  }
+
+  try {
+    player.playVideo();
+  } catch {
+    return;
+  }
+
+  const applyRate = () => {
+    try {
+      player.setPlaybackRate?.(getClosestPlaybackRate(player));
+    } catch {
+      // Some embeds restrict playback-rate changes; normal speed is the fallback.
+    }
+  };
+
+  applyRate();
+  window.setTimeout(applyRate, 700);
+}
+
+function MenuAmbiencePlayer({ active }: { active: boolean }) {
+  const holderRef = useRef<HTMLDivElement | null>(null);
+  const playerRef = useRef<YouTubePlayer | null>(null);
+  const shouldPlayRef = useRef(active);
+
+  useEffect(() => {
+    shouldPlayRef.current = active;
+  }, [active]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadYouTubeApi().then(() => {
+      if (cancelled || !holderRef.current || playerRef.current || !window.YT?.Player) {
+        return;
+      }
+
+      playerRef.current = new window.YT.Player(holderRef.current, {
+        height: '1',
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          iv_load_policy: 3,
+          modestbranding: 1,
+          playsinline: 1,
+          rel: 0,
+          origin: window.location.origin,
+        },
+        videoId: MENU_AMBIENCE_VIDEO_ID,
+        width: '1',
+        events: {
+          onReady: ({ target }) => {
+            target.getIframe?.().setAttribute('allow', 'autoplay; encrypted-media');
+            if (shouldPlayRef.current) {
+              playMenuAmbience(target);
+            }
+          },
+          onStateChange: ({ target, data }) => {
+            if (data === window.YT?.PlayerState?.PLAYING) {
+              try {
+                target.setPlaybackRate?.(getClosestPlaybackRate(target));
+              } catch {
+                // Normal speed is the fallback if YouTube rejects the rate.
+              }
+            }
+          },
+        },
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+
+    if (active) {
+      playMenuAmbience(player);
+      return;
+    }
+
+    try {
+      player.stopVideo();
+    } catch {
+      player.pauseVideo();
+    }
+  }, [active]);
+
+  return (
+    <div className="menu-ambience-player" aria-hidden="true">
+      <div ref={holderRef} />
+    </div>
+  );
+}
 
 type Route =
   | 'home'
@@ -517,6 +711,7 @@ function SiteNav({
 
       {open ? (
         <div className={`site-menu-overlay ${tone}`} role="dialog" aria-modal="true" aria-label="OBAVIA navigation">
+          <MenuAmbiencePlayer active={open} />
           <img className="site-menu-photo" src="/assets/hero-obavia-background.png" alt="" aria-hidden="true" />
           <div className="site-menu-wash" aria-hidden="true" />
           <button className="site-menu-close" type="button" onClick={() => setOpen(false)} aria-label="Close navigation">
@@ -1503,6 +1698,7 @@ function MobileMenuScreen({
   return (
     <div className="app-screen app-screen-dark menu-app">
       <IosStatus />
+      <MenuAmbiencePlayer active />
       <img className="menu-backdrop" src="/assets/hero-obavia-background.png" alt="Private chauffeur beside an executive sedan" />
       <div className="menu-wash" />
       <button className="mobile-menu-close" type="button" onClick={() => onSelect('home')} aria-label="Close menu">

@@ -281,6 +281,24 @@ p {
   backdrop-filter: blur(14px);
 }
 
+.menu-ambience-player {
+  position: fixed;
+  z-index: -1;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.menu-ambience-player iframe {
+  width: 1px;
+  height: 1px;
+  border: 0;
+}
+
 .site-menu-close {
   position: absolute;
   z-index: 4;
