@@ -42,12 +42,14 @@ import { VehicleCard } from './components/VehicleCard';
 import {
   brandDoctrine,
   bookings,
+  confirmedStandardRows,
   confirmedTerms,
   fleetStats,
   hardshipBridgeMinimumLabel,
   hardshipBridgeRateLabel,
   locations,
   lossOfUseRateLabel,
+  publicStandards,
   standardWeeklyRateLabel,
   vehicles,
   type VehicleCategory,
@@ -438,7 +440,7 @@ const tripStages = [
 const requiredGates = [
   ['Member approved', true],
   ['License verified', true],
-  ['Payment hold secured', true],
+  ['Payment control secured', true],
   ['Vehicle assigned', true],
   ['Driver option selected', true],
   ['Inspection complete', false],
@@ -711,11 +713,11 @@ function SiteNav({
 }) {
   const [open, setOpen] = useState(false);
   const overlayItems: Array<{ label: string; route: Route }> = [
-    { label: 'Vehicles', route: 'fleet' },
-    { label: 'Standards', route: 'vehicle' },
-    { label: 'About', route: 'about' },
+    { label: 'Fleet Ledger', route: 'fleet' },
+    { label: 'Published Standards', route: 'vehicle' },
+    { label: 'Houston Service', route: 'about' },
     { label: 'Weekly Access', route: 'book' },
-    { label: 'Nothing Hidden', route: 'membership' },
+    { label: 'Member Portal', route: 'member' },
   ];
   const previewMenuSound = () => emitMenuInteractionSound('hover');
   const closeMenu = () => {
@@ -864,26 +866,92 @@ function SiteNav({
 
 function HomePage() {
   return (
-    <section className="hero-frame">
-      <img className="hero-image" src="/assets/hero-obavia-background.png" alt="Private chauffeur beside an executive sedan" />
-      <div className="hero-shade" />
-      <SiteNav tone="dark" />
+    <>
+      <section className="hero-frame">
+        <img className="hero-image" src="/assets/hero-obavia-background.png" alt="Private chauffeur beside an executive sedan" />
+        <div className="hero-shade" />
+        <SiteNav tone="dark" />
 
-      <div className="hero-lockup reveal">
-        <BrandMark size={116} tone="gold" />
-        <h1>OBAVIA</h1>
-        <p>Private Vehicle Rental</p>
+        <div className="hero-lockup reveal">
+          <BrandMark size={116} tone="gold" />
+          <h1>OBAVIA</h1>
+          <p>Private Vehicle Rental</p>
+        </div>
+
+        <div className="hero-caption reveal">
+          <h2>{brandDoctrine.trustPromise}</h2>
+          <p>{brandDoctrine.dignityPromise}</p>
+        </div>
+
+        <button className="hero-scroll" type="button" onClick={() => go('fleet')}>
+          View The Ledger
+          <ArrowRight size={23} strokeWidth={1.3} />
+        </button>
+      </section>
+      <HomeStandardsSection />
+    </>
+  );
+}
+
+function HomeStandardsSection() {
+  return (
+    <section className="standards-chapter dark-section" aria-label="OBAVIA published standards">
+      <div className="standards-chapter-inner">
+        <div className="standards-lede reveal">
+          <BrandMark size={76} tone="gold" />
+          <p>Published standards</p>
+          <h2>Dignity is operational.</h2>
+          <span>
+            OBAVIA does not make people guess. The standard, the ledger, the rate, and the next step are shown
+            before the request.
+          </span>
+          <button className="text-link" type="button" onClick={() => go('vehicle')}>
+            Review The Standard
+            <ArrowRight size={22} strokeWidth={1.35} />
+          </button>
+        </div>
+        <div className="standard-pillar-grid reveal">
+          {publicStandards.map((standard) => (
+            <article key={standard.title}>
+              <h3>{standard.title}</h3>
+              <p>{standard.copy}</p>
+            </article>
+          ))}
+        </div>
       </div>
 
-      <div className="hero-caption reveal">
-        <h2>{brandDoctrine.trustPromise}</h2>
-        <p>{brandDoctrine.dignityPromise}</p>
+      <div className="confirmed-standard-panel reveal">
+        <div className="confirmed-standard-head">
+          <p>Confirmed terms only</p>
+          <h2>{brandDoctrine.oneLine}</h2>
+        </div>
+        <div className="confirmed-standard-rows">
+          {confirmedStandardRows.map(([label, value]) => (
+            <div key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <button className="hero-scroll" type="button" onClick={() => go('fleet')}>
-        View The Ledger
-        <ArrowRight size={23} strokeWidth={1.3} />
-      </button>
+      <div className="ledger-path reveal">
+        <div>
+          <span>Current ledger</span>
+          <strong>{fleetStats.activeUnits}</strong>
+          <p>active units shown from the fleet ledger</p>
+        </div>
+        <div>
+          <span>Member posture</span>
+          <strong>Calm</strong>
+          <p>standards first, private handoff after confirmation</p>
+        </div>
+        <div>
+          <span>Houston frame</span>
+          <strong>{confirmedTerms.serviceArea}</strong>
+          <p>{confirmedTerms.tollRoads.join(', ')}</p>
+        </div>
+      </div>
     </section>
   );
 }
@@ -1500,7 +1568,7 @@ function AdminDashboard() {
             </div>
             <div className="finance-actions">
               <button type="button">Capture Balance</button>
-              <button type="button">Hold Deposit</button>
+              <button type="button">Review Payment</button>
               <button type="button">Create Damage Claim</button>
             </div>
           </article>
@@ -1555,11 +1623,11 @@ function AdminDashboard() {
               <ShieldCheck size={22} strokeWidth={1.35} />
             </div>
             <ol>
-              <li>Valid card and deposit hold are active.</li>
+              <li>Payment control is active.</li>
               <li>ID and license are verified.</li>
               <li>Pre-trip photos and mileage are attached.</li>
               <li>Driver confirms arrival and handoff PIN.</li>
-              <li>Return inspection completes before deposit release.</li>
+              <li>Return inspection completes before rental closure.</li>
             </ol>
           </article>
         </section>
@@ -1742,13 +1810,13 @@ function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
   const activeVehicle = vehicles[0];
   const actions = [
     { label: 'Request Access', icon: CalendarCheck, screen: 'booking' },
-    { label: 'View Fleet', icon: CarFront, screen: 'fleet' },
+    { label: 'Fleet Ledger', icon: CarFront, screen: 'fleet' },
     { label: 'Weekly Plans', icon: CalendarDays, screen: 'categories' },
     { label: 'Standards', icon: CircleCheck, screen: 'membership' },
   ] as const;
 
   return (
-    <div className="app-screen app-screen-dark">
+    <div className="app-screen app-screen-dark app-home-screen">
       <IosStatus />
       <div className="screen-body with-bottom-nav">
         <MobileTopBar
@@ -1758,11 +1826,11 @@ function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
         <section className="app-greeting">
           <p>Good morning,</p>
           <h2>James</h2>
-          <span>Published standard</span>
+          <span>Standard member</span>
         </section>
         <section className="upcoming-card">
           <div>
-            <p>Current Standard</p>
+            <p>Current Rental</p>
             <span>{activeVehicle.brand}</span>
             <h3>{activeVehicle.name}</h3>
             <small>{confirmedTerms.rentalStructure}</small>

@@ -4390,6 +4390,407 @@ th {
   }
 }
 
+.standards-chapter {
+  padding: clamp(104px, 10vw, 164px) clamp(24px, 5vw, 72px);
+  border-top: 1px solid rgba(184, 155, 94, 0.2);
+  background:
+    linear-gradient(180deg, #090909, var(--ink) 34%, #090909);
+}
+
+.standards-chapter-inner {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+  gap: clamp(56px, 7vw, 108px);
+  align-items: start;
+}
+
+.standards-lede {
+  display: grid;
+  justify-items: start;
+  gap: 24px;
+}
+
+.standards-lede > p,
+.confirmed-standard-head p,
+.ledger-path span {
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.standards-lede h2 {
+  max-width: 560px;
+  color: var(--ivory);
+  font-family: var(--serif);
+  font-size: clamp(4rem, 6.2vw, 7.1rem);
+  font-weight: 400;
+  line-height: 0.88;
+  text-wrap: balance;
+}
+
+.standards-lede > span {
+  max-width: 500px;
+  color: rgba(245, 240, 230, 0.72);
+  font-size: clamp(1rem, 1.25vw, 1.16rem);
+  line-height: 1.72;
+}
+
+.standard-pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgba(184, 155, 94, 0.22);
+  border-left: 1px solid rgba(184, 155, 94, 0.22);
+}
+
+.standard-pillar-grid article {
+  min-height: 244px;
+  padding: clamp(28px, 3vw, 44px);
+  display: grid;
+  align-content: end;
+  gap: 18px;
+  border-right: 1px solid rgba(184, 155, 94, 0.22);
+  border-bottom: 1px solid rgba(184, 155, 94, 0.22);
+}
+
+.standard-pillar-grid h3 {
+  color: var(--ivory);
+  font-family: var(--serif);
+  font-size: clamp(1.75rem, 2.45vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.standard-pillar-grid p {
+  max-width: 320px;
+  color: rgba(245, 240, 230, 0.68);
+  font-size: 0.96rem;
+  line-height: 1.62;
+}
+
+.confirmed-standard-panel {
+  width: min(1240px, 100%);
+  margin: clamp(70px, 8vw, 116px) auto 0;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.72fr) minmax(0, 1.28fr);
+  border: 1px solid rgba(184, 155, 94, 0.24);
+}
+
+.confirmed-standard-head {
+  padding: clamp(32px, 4.2vw, 56px);
+  display: grid;
+  align-content: center;
+  gap: 20px;
+  border-right: 1px solid rgba(184, 155, 94, 0.24);
+}
+
+.confirmed-standard-head h2 {
+  color: var(--ivory);
+  font-family: var(--serif);
+  font-size: clamp(2.2rem, 3.4vw, 3.6rem);
+  font-weight: 400;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.confirmed-standard-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.confirmed-standard-rows div {
+  min-height: 116px;
+  padding: 26px 30px;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  border-right: 1px solid rgba(184, 155, 94, 0.14);
+  border-bottom: 1px solid rgba(184, 155, 94, 0.14);
+}
+
+.confirmed-standard-rows div:nth-child(2n) {
+  border-right: 0;
+}
+
+.confirmed-standard-rows span {
+  color: rgba(245, 240, 230, 0.5);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.confirmed-standard-rows strong {
+  color: var(--ivory);
+  font-size: clamp(1rem, 1.45vw, 1.28rem);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.ledger-path {
+  width: min(1240px, 100%);
+  margin: 28px auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid rgba(184, 155, 94, 0.22);
+  border-bottom: 1px solid rgba(184, 155, 94, 0.22);
+}
+
+.ledger-path div {
+  min-height: 174px;
+  padding: 32px 34px;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  border-right: 1px solid rgba(184, 155, 94, 0.22);
+}
+
+.ledger-path div:last-child {
+  border-right: 0;
+}
+
+.ledger-path strong {
+  color: var(--ivory);
+  font-family: var(--serif);
+  font-size: clamp(2.5rem, 4.2vw, 4.6rem);
+  font-weight: 400;
+  line-height: 0.92;
+}
+
+.ledger-path p {
+  color: rgba(245, 240, 230, 0.64);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.site-menu-overlay {
+  background: rgba(3, 3, 3, 0.94);
+}
+
+.site-menu-inner {
+  width: min(780px, calc(100% - 48px));
+  padding-top: clamp(54px, 7vh, 84px);
+  padding-bottom: clamp(42px, 6vh, 70px);
+}
+
+.site-menu-links {
+  gap: clamp(34px, 5vh, 56px);
+  margin-top: clamp(64px, 8vh, 92px);
+}
+
+.site-menu-links span {
+  font-size: clamp(1.04rem, 1.45vw, 1.28rem);
+  letter-spacing: clamp(0.28em, 0.66vw, 0.44em);
+}
+
+.site-menu-assist {
+  margin-top: 36px;
+}
+
+.app-home-screen .screen-body {
+  padding-top: 74px;
+}
+
+.app-home-screen .app-topbar {
+  min-height: 64px;
+}
+
+.app-home-screen .app-greeting {
+  margin-top: 38px;
+}
+
+.app-home-screen .app-greeting p {
+  color: rgba(245, 240, 230, 0.68);
+  font-size: 1rem;
+}
+
+.app-home-screen .app-greeting h2 {
+  margin-top: 8px;
+  font-size: clamp(3.15rem, 9vw, 3.72rem);
+  line-height: 0.96;
+}
+
+.app-home-screen .app-greeting span {
+  margin-top: 17px;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+}
+
+.app-home-screen .upcoming-card {
+  min-height: 192px;
+  margin-top: 42px;
+  padding: 25px;
+  grid-template-columns: minmax(0, 1fr) 118px;
+  align-items: center;
+  column-gap: 20px;
+  border-radius: 10px;
+}
+
+.app-home-screen .upcoming-card p,
+.app-home-screen .upcoming-card span {
+  letter-spacing: 0.16em;
+}
+
+.app-home-screen .upcoming-card h3 {
+  margin-top: 6px;
+  font-size: 2.22rem;
+  line-height: 0.95;
+}
+
+.app-home-screen .upcoming-card small {
+  margin-top: 9px;
+  font-size: 0.76rem;
+  line-height: 1.48;
+}
+
+.app-home-screen .upcoming-card img {
+  width: 118px;
+  height: 96px;
+  border-radius: 5px;
+}
+
+.app-home-screen .quick-actions {
+  margin-top: 22px;
+  gap: 16px;
+}
+
+.app-home-screen .quick-actions button {
+  min-height: 128px;
+  padding: 20px;
+  grid-template-rows: 30px 1fr auto;
+  border-radius: 9px;
+}
+
+.app-home-screen .quick-actions span {
+  align-self: end;
+  font-size: 0.94rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.24;
+  white-space: normal;
+}
+
+.menu-app .menu-content {
+  justify-content: center;
+  padding-top: 94px;
+  padding-bottom: max(34px, env(safe-area-inset-bottom));
+}
+
+.menu-app .menu-primary-list {
+  margin-top: 64px;
+  gap: clamp(38px, 5.2vh, 52px);
+}
+
+.menu-app .menu-primary-list span {
+  font-size: 0.84rem;
+  letter-spacing: 0.25em;
+}
+
+.menu-app .concierge-strip {
+  margin-top: 36px;
+}
+
+@media (max-width: 900px) {
+  .standards-chapter {
+    padding: 84px 24px 96px;
+  }
+
+  .standards-chapter-inner,
+  .confirmed-standard-panel,
+  .ledger-path {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmed-standard-head {
+    border-right: 0;
+    border-bottom: 1px solid rgba(184, 155, 94, 0.24);
+  }
+}
+
+@media (max-width: 640px) {
+  .standards-lede h2 {
+    font-size: clamp(3.1rem, 16vw, 4.6rem);
+  }
+
+  .standard-pillar-grid,
+  .confirmed-standard-rows {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmed-standard-rows div,
+  .confirmed-standard-rows div:nth-child(2n),
+  .ledger-path div {
+    border-right: 0;
+  }
+
+  .ledger-path div {
+    border-bottom: 1px solid rgba(184, 155, 94, 0.18);
+  }
+
+  .ledger-path div:last-child {
+    border-bottom: 0;
+  }
+
+  .app-home-screen .screen-body {
+    padding-top: 60px;
+    padding-inline: 24px;
+  }
+
+  .app-home-screen .app-topbar {
+    min-height: 54px;
+  }
+
+  .app-home-screen .app-greeting {
+    margin-top: 22px;
+  }
+
+  .app-home-screen .app-greeting h2 {
+    font-size: 2.88rem;
+  }
+
+  .app-home-screen .app-greeting span {
+    margin-top: 12px;
+  }
+
+  .app-home-screen .upcoming-card {
+    min-height: 158px;
+    margin-top: 29px;
+    padding: 18px;
+    grid-template-columns: minmax(0, 1fr) 104px;
+  }
+
+  .app-home-screen .upcoming-card h3 {
+    font-size: 1.86rem;
+  }
+
+  .app-home-screen .upcoming-card small {
+    margin-top: 6px;
+    font-size: 0.72rem;
+  }
+
+  .app-home-screen .upcoming-card img {
+    width: 104px;
+    height: 82px;
+  }
+
+  .app-home-screen .quick-actions {
+    margin-top: 18px;
+    gap: 12px;
+  }
+
+  .app-home-screen .quick-actions button {
+    min-height: 98px;
+    padding: 15px;
+  }
+
+  .app-home-screen .quick-actions span {
+    font-size: 0.82rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

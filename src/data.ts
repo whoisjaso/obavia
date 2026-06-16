@@ -40,6 +40,36 @@ export const hardshipBridgeRateLabel = `${formatMoney(confirmedTerms.hardshipBri
 export const hardshipBridgeMinimumLabel = formatMoney(confirmedTerms.hardshipBridgeMinimum);
 export const lossOfUseRateLabel = `${formatMoney(confirmedTerms.lossOfUseDailyRate)}/day`;
 
+export const publicStandards = [
+  {
+    title: 'Published Standard',
+    copy: 'The rate, fuel rule, rental structure, and claim precedent are visible before a request is made.',
+  },
+  {
+    title: 'Live Ledger',
+    copy: 'Fleet inventory renders from the active ledger. Small fleet, real availability, no invented depth.',
+  },
+  {
+    title: 'Private Handoff',
+    copy: confirmedTerms.privateHandoffCopy,
+  },
+  {
+    title: 'Clear Path',
+    copy: `Standard weekly access is ${standardWeeklyRateLabel}; documented exceptions stay visible beside the standard.`,
+  },
+] as const;
+
+export const confirmedStandardRows = [
+  ['Standard weekly rate', standardWeeklyRateLabel],
+  ['Hardship Bridge', `${confirmedTerms.hardshipBridgeDiscountPercent}% off ${confirmedTerms.hardshipBridgeWeeks}`],
+  ['Bridge rate', hardshipBridgeRateLabel],
+  ['Bridge minimum', hardshipBridgeMinimumLabel],
+  ['Loss-of-use precedent', lossOfUseRateLabel],
+  ['Rental structure', confirmedTerms.rentalStructure],
+  ['Fuel policy', confirmedTerms.fuelPolicyShort],
+  ['Customer address', `${confirmedTerms.customerAddressLabel}: ${confirmedTerms.customerAddress}`],
+] as const;
+
 export type FleetLedgerUnit = {
   id: string;
   year: number;
