@@ -3,7 +3,6 @@ import {
   ArrowRight,
   BarChart3,
   Bell,
-  Briefcase,
   CalendarDays,
   CalendarCheck,
   CarFront,
@@ -35,13 +34,23 @@ import {
   WalletCards,
   Wrench,
   X,
-  Zap,
 } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { BrandMark } from './components/BrandMark';
 import { VehicleCard } from './components/VehicleCard';
-import { bookings, locations, vehicles, type VehicleCategory } from './data';
+import {
+  bookings,
+  confirmedTerms,
+  fleetStats,
+  hardshipBridgeMinimumLabel,
+  hardshipBridgeRateLabel,
+  locations,
+  lossOfUseRateLabel,
+  standardWeeklyRateLabel,
+  vehicles,
+  type VehicleCategory,
+} from './data';
 
 const MENU_AMBIENCE_VIDEO_ID = 'NW8Cxc3uh5E';
 const MENU_AMBIENCE_TARGET_RATE = 0.77;
@@ -379,37 +388,36 @@ const adminNav = [
 ] as const;
 
 const commandMetrics = [
-  ['Today\'s Revenue', '$8,400', '7 trips in motion'],
-  ['Active Trips', '7', '3 with chauffeurs'],
-  ['Vehicles Ready', '14', '2 in prep'],
-  ['Risk Holds', '3', '$6,500 exposure'],
+  ['Fleet Ledger', String(fleetStats.activeUnits), 'Active units only'],
+  ['Active Rental', String(fleetStats.rentedUnits), confirmedTerms.rentalStructure],
+  ['Standard Rate', standardWeeklyRateLabel, 'Confirmed weekly baseline'],
+  ['Loss-of-Use', lossOfUseRateLabel, 'Accepted insurer precedent'],
 ] as const;
 
 const bookingPipeline = [
-  ['New Requests', 'John D.', 'S-Class', 'May 24'],
-  ['Awaiting Payment', 'Sarah W.', 'Range Rover', '$2,500 hold'],
-  ['Confirmed', 'James A.', 'S-Class', 'Today'],
-  ['Ready for Dispatch', 'Michael B.', 'V-Class', 'Driver assigned'],
+  ['Active Rental', 'Confirmed member', vehicles[0].displayName, confirmedTerms.rentalStructure],
+  ['Available Review', 'Concierge', vehicles[1].displayName, standardWeeklyRateLabel],
+  ['Phase-Out Watch', 'Operations', vehicles[2].displayName, 'No new acquisitions'],
 ] as const;
 
-const fleetStatus = [
-  ['S-Class', 'Ready', 'Today 10 AM', 'None'],
-  ['Range Rover', 'In Prep', 'Today 12 PM', 'Detail pending'],
-  ['V-Class', 'Out', 'Returns 4 PM', 'None'],
-  ['BMW 7 Series', 'Maintenance', 'Blocked', 'Tire replacement'],
-] as const;
+const fleetStatus = vehicles.map((vehicle) => [
+  vehicle.displayName,
+  vehicle.publicStatus,
+  vehicle.rateLabel,
+  vehicle.statusDetail,
+] as const);
 
 const cashExposure = [
-  ['Deposits Held', '$12,500'],
-  ['Open Balances', '$3,250'],
-  ['Refunds Pending', '$1,500'],
-  ['Damage Claims', '2 open'],
+  ['Standard Weekly Rate', standardWeeklyRateLabel],
+  ['Bridge Rate', hardshipBridgeRateLabel],
+  ['Bridge Minimum', hardshipBridgeMinimumLabel],
+  ['Loss-of-Use Precedent', lossOfUseRateLabel],
 ] as const;
 
 const commandAlerts = [
-  'Range Rover returned with wheel damage',
-  'S-Class booking awaiting deposit',
-  'Driver reassignment needed at 3:00 PM',
+  `${vehicles[0].displayName} is currently rented.`,
+  `${vehicles[2].displayName} is active but on phase-out watch.`,
+  'Confirmed member handoff instructions stay private.',
 ] as const;
 
 const tripStages = [
@@ -431,16 +439,17 @@ const requiredGates = [
   ['License verified', true],
   ['Payment hold secured', true],
   ['Vehicle assigned', true],
-  ['Driver assigned', true],
+  ['Driver option selected', true],
   ['Inspection complete', false],
 ] as const;
 
-const dispatchRows = [
-  ['S-Class', 'OUT', 'Active', 'Active', 'Return Prep'],
-  ['Range Rover', 'Prep', 'Deliver', 'Active', 'Active'],
-  ['V-Class', 'Ready', 'Ready', 'Pickup', 'Out'],
-  ['BMW 7 Series', 'Blocked', 'Service', 'Service', 'Hold'],
-] as const;
+const dispatchRows = vehicles.map((vehicle) => [
+  vehicle.shortName,
+  vehicle.publicStatus,
+  vehicle.category,
+  vehicle.rateLabel,
+  vehicle.statusDetail,
+] as const);
 
 const driverChecklist = [
   'Confirm vehicle plate',
@@ -461,103 +470,65 @@ const rolePermissions = [
 ] as const;
 
 const workOrders = [
-  ['WO-2201', 'BMW 7 Series', 'Tire replacement', '$750 limit', 'May 23, 5 PM'],
-  ['WO-2202', 'Range Rover', 'Wheel inspection', '$1,200 limit', 'Today, 4 PM'],
+  ['Fleet Review', vehicles[2].displayName, 'Phase-out watch', 'Jason approval required', 'No public arriving card'],
+  ['Photo Standard', vehicles[0].displayName, 'Exact vehicle photos pending', 'Ledger truth required', 'No fake depth'],
 ] as const;
 
 const appCollections = [
   {
-    title: 'Executive Collection',
-    copy: 'Premium sedans and chauffeured arrivals.',
-    price: 'From $150 / day',
-    image: '/assets/vehicle-sclass.jpg',
-    icon: CarFront,
-  },
-  {
-    title: 'Everyday Collection',
-    copy: 'Refined daily mobility.',
-    price: 'From $45 / day',
-    image: '/assets/vehicle-camry-dark.png',
-    icon: CarFront,
-  },
-  {
-    title: 'Electric Collection',
-    copy: 'Quiet, efficient, modern.',
-    price: 'From $85 / day',
-    image: '/assets/vehicle-model3-dark.png',
-    icon: Zap,
-  },
-  {
-    title: 'SUV Collection',
-    copy: 'Space, comfort, and presence.',
-    price: 'From $80 / day',
-    image: '/assets/vehicle-rav4-dark.png',
-    icon: CarFront,
-  },
-  {
-    title: 'Weekly Plans',
-    copy: 'Extended access for work, travel, and routine.',
-    price: 'From $275 / week',
-    image: '/assets/vehicle-van.jpg',
+    title: 'Standard Weekly Fleet',
+    copy: 'Open-ended weekly mobility from the live ledger.',
+    price: standardWeeklyRateLabel,
+    image: vehicles[1].image,
     icon: CalendarDays,
+  },
+  {
+    title: 'Hardship Bridge',
+    copy: `${confirmedTerms.hardshipBridgeDiscountPercent}% off ${confirmedTerms.hardshipBridgeWeeks}, then standard.`,
+    price: hardshipBridgeRateLabel,
+    image: vehicles[0].image,
+    icon: ShieldCheck,
+  },
+  {
+    title: 'Houston Service Area',
+    copy: 'Built for daily movement across the Houston metro.',
+    price: confirmedTerms.serviceArea,
+    image: '/assets/about-entrance.png',
+    icon: MapPin,
+  },
+  {
+    title: 'Fuel & Return Standard',
+    copy: confirmedTerms.fuelPolicyShort,
+    price: 'Recorded at delivery',
+    image: vehicles[2].image,
+    icon: Gauge,
+  },
+  {
+    title: 'Fleet Ledger',
+    copy: 'A small fleet presented honestly, one vehicle at a time.',
+    price: `${fleetStats.activeUnits} active units`,
+    image: '/assets/hero-arrival.png',
+    icon: FileCheck2,
   },
 ] as const;
 
-const appFleet = [
-  {
-    marque: 'Mercedes-Benz',
-    model: 'S-Class',
-    collection: 'Executive Collection',
-    seats: 4,
-    bags: 3,
-    price: '$250',
-    image: '/assets/vehicle-sclass.jpg',
-  },
-  {
-    marque: 'Tesla',
-    model: 'Model 3',
-    collection: 'Electric Collection',
-    seats: 5,
-    bags: 3,
-    price: '$95',
-    image: '/assets/vehicle-model3-dark.png',
-  },
-  {
-    marque: 'Toyota',
-    model: 'Camry',
-    collection: 'Everyday Collection',
-    seats: 5,
-    bags: 2,
-    price: '$55',
-    image: '/assets/vehicle-camry-dark.png',
-  },
-  {
-    marque: 'Toyota',
-    model: 'RAV4',
-    collection: 'SUV Collection',
-    seats: 5,
-    bags: 3,
-    price: '$75',
-    image: '/assets/vehicle-rav4-dark.png',
-  },
-  {
-    marque: 'Honda',
-    model: 'Civic',
-    collection: 'Everyday Collection',
-    seats: 5,
-    bags: 2,
-    price: '$45',
-    image: '/assets/vehicle-civic-dark.png',
-  },
-] as const;
+const appFleet = vehicles.map((vehicle) => ({
+  id: vehicle.id,
+  marque: `${vehicle.year} ${vehicle.brand}`,
+  model: vehicle.name,
+  collection: vehicle.category,
+  status: vehicle.publicStatus,
+  detail: vehicle.statusDetail,
+  price: vehicle.rateLabel,
+  image: vehicle.image,
+}));
 
 const appMenuItems = [
   { label: 'Home', icon: HomeIcon },
-  { label: 'Executive Collection', icon: CarFront },
-  { label: 'Everyday Collection', icon: CarFront },
-  { label: 'Electric Collection', icon: Zap },
-  { label: 'SUV Collection', icon: CarFront },
+  { label: 'Fleet Ledger', icon: CarFront },
   { label: 'Weekly Plans', icon: CalendarDays },
+  { label: 'Hardship Bridge', icon: ShieldCheck },
+  { label: 'Houston Service', icon: MapPin },
   { label: 'My Bookings', icon: CalendarCheck },
   { label: 'Favorites', icon: Heart },
   { label: 'Membership', icon: CircleCheck },
@@ -568,18 +539,17 @@ const appMenuItems = [
 ] as const;
 
 const appBenefitRows = [
-  ['Everyday Fleet Access', 'yes', 'yes', 'yes'],
-  ['EV Access', 'no', 'yes', 'yes'],
-  ['Weekly Rates', 'Standard', 'Preferred', 'Exclusive'],
-  ['Airport Delivery', 'no', 'yes', 'yes'],
-  ['Concierge Support', 'no', 'yes', 'yes'],
-  ['Premium Fleet Access', 'no', 'yes', 'yes'],
-  ['Chauffeured Service', 'no', 'no', 'yes'],
-  ['Priority Availability', 'no', 'yes', 'yes'],
-  ['Dedicated Assistance', 'no', 'yes', 'yes'],
+  ['Weekly Rental Access', 'yes', 'yes', 'no'],
+  ['Confirmed Rate', standardWeeklyRateLabel, hardshipBridgeRateLabel, lossOfUseRateLabel],
+  ['Term Structure', 'Open-ended', confirmedTerms.hardshipBridgeWeeks, 'Precedent'],
+  ['Minimum Standard', 'Standard', hardshipBridgeMinimumLabel, 'Documented'],
+  ['Fuel Standard', 'Recorded level', 'Recorded level', 'Documented'],
+  ['Public Address', confirmedTerms.customerAddressLabel, confirmedTerms.customerAddressLabel, confirmedTerms.customerAddressLabel],
+  ['Private Handoff Lot', 'Private', 'Private', 'Private'],
+  ['Published Inventory', 'Ledger only', 'Ledger only', 'Ledger only'],
 ] as const;
 
-const mobileFleetTabs = ['All', 'Executive', 'Everyday', 'Electric', 'SUVs', 'Weekly'] as const;
+const mobileFleetTabs = ['All', 'Active', 'Rented', 'Phase-out', 'Bridge', 'Houston'] as const;
 
 type MobileFleetTab = (typeof mobileFleetTabs)[number];
 
@@ -603,11 +573,10 @@ type MobileScreenProps = {
 const noopMobileSelect: MobileScreenSelect = () => undefined;
 
 const collectionToFleetTab = (title: string): MobileFleetTab => {
-  if (title.includes('Executive')) return 'Executive';
-  if (title.includes('Everyday')) return 'Everyday';
-  if (title.includes('Electric')) return 'Electric';
-  if (title.includes('SUV')) return 'SUVs';
-  if (title.includes('Weekly')) return 'Weekly';
+  if (title.includes('Standard')) return 'Active';
+  if (title.includes('Bridge')) return 'Bridge';
+  if (title.includes('Houston')) return 'Houston';
+  if (title.includes('Ledger')) return 'All';
   return 'All';
 };
 
@@ -741,7 +710,7 @@ function SiteNav({
   const [open, setOpen] = useState(false);
   const overlayItems: Array<{ label: string; route: Route }> = [
     { label: 'Vehicles', route: 'fleet' },
-    { label: 'Experience', route: 'vehicle' },
+    { label: 'Standards', route: 'vehicle' },
     { label: 'About', route: 'about' },
     { label: 'Membership', route: 'membership' },
     { label: 'Weekly Plans', route: 'fleet' },
@@ -879,9 +848,9 @@ function SiteNav({
               </button>
               <p>
                 <Headphones size={17} strokeWidth={1.35} />
-                <span>Concierge: +1 (212) 555-0198</span>
+                <span>Concierge by confirmed appointment</span>
                 <b aria-hidden="true">|</b>
-                <span>Available 24/7</span>
+                <span>{confirmedTerms.serviceArea}</span>
               </p>
             </div>
           </div>
@@ -920,7 +889,7 @@ function HomePage() {
 function BookingPage() {
   const [driver, setDriver] = useState<'with-driver' | 'self-drive'>('with-driver');
   const [notice, setNotice] = useState('');
-  const selected = vehicles[0];
+  const selected = vehicles.find((vehicle) => vehicle.category === 'Active Fleet') ?? vehicles[0];
 
   return (
     <section className="light-page booking-page">
@@ -945,11 +914,11 @@ function BookingPage() {
           }}
         >
           <div className="booking-vehicle">
-            <img src={selected.image} alt="Mercedes-Benz S-Class" />
+            <img src={selected.image} alt={`${selected.displayName} fleet presentation`} />
             <div className="booking-summary">
               <p className="vehicle-brand">{selected.brand}</p>
               <h2>{selected.name}</h2>
-              <p>or similar</p>
+              <p>{selected.category}</p>
               <SpecLine vehicle={selected} />
               <button className="text-link ink" type="button" onClick={() => go('fleet')}>
                 Change Vehicle
@@ -1027,7 +996,7 @@ function BookingPage() {
           </fieldset>
 
           <button className="primary-ink booking-submit" type="submit">
-            Continue
+            Request Review
           </button>
           {notice ? <p className="booking-notice">{notice}</p> : null}
         </form>
@@ -1042,7 +1011,12 @@ function FleetPage() {
     () => (category === 'All Vehicles' ? vehicles : vehicles.filter((vehicle) => vehicle.category === category)),
     [category],
   );
-  const categories: Array<'All Vehicles' | VehicleCategory> = ['All Vehicles', 'Sedans', 'SUVs', 'Vans', 'Coupes'];
+  const categories: Array<'All Vehicles' | VehicleCategory> = [
+    'All Vehicles',
+    'Active Fleet',
+    'Currently Rented',
+    'Phase-Out Watch',
+  ];
 
   return (
     <section className="fleet-page dark-section page-min">
@@ -1050,6 +1024,9 @@ function FleetPage() {
       <div className="fleet-shell">
         <div className="page-title dark reveal">
           <h1>Our Fleet</h1>
+          <p className="fleet-truth-note">
+            Small by design. Every vehicle shown here renders from the active ledger.
+          </p>
           <div className="tabs" role="tablist" aria-label="Vehicle categories">
             {categories.map((item) => (
               <button
@@ -1070,7 +1047,7 @@ function FleetPage() {
         </div>
         <div className="center-action reveal">
           <button className="secondary-dark" type="button" onClick={() => go('book')}>
-            View All Vehicles
+            Request Weekly Access
           </button>
         </div>
       </div>
@@ -1079,9 +1056,9 @@ function FleetPage() {
 }
 
 function VehicleDetailPage() {
-  const selected = vehicles[0];
+  const selected = vehicles.find((vehicle) => vehicle.category === 'Active Fleet') ?? vehicles[0];
   const [mainImage, setMainImage] = useState(selected.image);
-  const thumbnails = [selected.image, '/assets/hero-arrival.png', '/assets/vehicle-sedan-side.jpg', '/assets/vehicle-noir.jpg'];
+  const thumbnails = [selected.image, '/assets/hero-arrival.png', '/assets/about-entrance.png'];
 
   return (
     <section className="light-page vehicle-detail-page">
@@ -1089,7 +1066,7 @@ function VehicleDetailPage() {
       <div className="detail-shell">
         <div className="detail-layout">
           <div className="detail-media reveal">
-            <img className="detail-main" src={mainImage} alt="Mercedes-Benz S-Class exterior" />
+            <img className="detail-main" src={mainImage} alt={`${selected.displayName} fleet presentation`} />
             <div className="thumbnail-row">
               {thumbnails.map((image) => (
                 <button
@@ -1107,11 +1084,10 @@ function VehicleDetailPage() {
           <article className="detail-copy reveal">
             <p className="vehicle-brand">{selected.brand}</p>
             <h1>{selected.name}</h1>
-            <p>or similar</p>
+            <p>{selected.category}</p>
             <SpecLine vehicle={selected} />
             <p className="detail-description">
-              The benchmark for executive travel. Experience refined performance, absolute comfort, and timeless
-              design.
+              {selected.description}
             </p>
           </article>
         </div>
@@ -1121,38 +1097,38 @@ function VehicleDetailPage() {
             <h2>Specifications</h2>
             <dl>
               <div>
-                <dt>Engine</dt>
-                <dd>{selected.engine}</dd>
+                <dt>Rate</dt>
+                <dd>{selected.rateLabel}</dd>
               </div>
               <div>
-                <dt>Power</dt>
-                <dd>{selected.power}</dd>
+                <dt>Structure</dt>
+                <dd>{confirmedTerms.rentalStructure}</dd>
               </div>
               <div>
-                <dt>0-100 km/h</dt>
-                <dd>{selected.acceleration}</dd>
+                <dt>Fuel</dt>
+                <dd>{confirmedTerms.fuelPolicyShort}</dd>
               </div>
               <div>
-                <dt>Luggage Capacity</dt>
-                <dd>{selected.bags} Bags</dd>
+                <dt>Status</dt>
+                <dd>{selected.publicStatus}</dd>
               </div>
             </dl>
           </section>
           <section>
             <h2>Inclusions</h2>
             <ul>
-              <li>Complimentary bottled water</li>
-              <li>Wi-Fi onboard</li>
-              <li>Phone charger</li>
-              <li>Professional driver if selected</li>
-              <li>Toll and parking included selected areas</li>
+              <li>{confirmedTerms.fuelPolicy}</li>
+              <li>{confirmedTerms.privateHandoffCopy}</li>
+              <li>Houston metro service framing</li>
+              <li>Weekly access review</li>
+              <li>Documented loss-of-use standard: {lossOfUseRateLabel}</li>
             </ul>
           </section>
         </div>
 
         <div className="booking-bar reveal">
           <p>
-            <span>From</span>${selected.price} <small>/ day</small>
+            <span>Standard</span>{selected.rateLabel}
           </p>
           <button className="primary-ink" type="button" onClick={() => go('book')}>
             Book This Vehicle
@@ -1211,11 +1187,11 @@ function MembershipPage() {
       <SiteNav tone="dark" active="membership" />
       <div className="tier-mark-stage reveal">
         <div className="tier-mark-frame">
-          <h1>Membership Tier Marks</h1>
+          <h1>Program Standards</h1>
           <div className="tier-mark-grid">
             <TierMark tier="Standard" kind="standard" />
-            <TierMark tier="Reserve" kind="reserve" />
-            <TierMark tier="Noir" kind="noir" />
+            <TierMark tier="Bridge" kind="reserve" />
+            <TierMark tier="Claims" kind="noir" />
           </div>
         </div>
       </div>
@@ -1234,6 +1210,8 @@ function MembershipPage() {
 
 function MemberDashboard() {
   const [selected, setSelected] = useState<(typeof dashboardNav)[number]>('Overview');
+  const activeBooking = bookings[0];
+  const activeVehicle = vehicles[0];
 
   return (
     <section className="member-page">
@@ -1261,22 +1239,22 @@ function MemberDashboard() {
             <article className="membership-status">
               <BrandMark size={66} tone="gold" />
               <div>
-                <p>Membership Tier</p>
-                <h2>Reserve</h2>
+                <p>Access Type</p>
+                <h2>Standard Weekly</h2>
               </div>
               <button className="text-link" type="button" onClick={() => go('membership')}>
-                View Benefits
+                View Standards
               </button>
             </article>
 
             <section className="member-booking-block">
-              <h2>Upcoming Booking</h2>
+              <h2>Current Rental</h2>
               <article className="upcoming-booking">
-                <img src="/assets/vehicle-sclass.jpg" alt="Mercedes-Benz S-Class" />
+                <img src={activeVehicle.image} alt={`${activeVehicle.displayName} fleet presentation`} />
                 <div>
-                  <h3>Mercedes-Benz S-Class</h3>
-                  <span>May 24, 2025 - 10:00 AM</span>
-                  <span>Downtown Office, New York</span>
+                  <h3>{activeBooking.vehicle}</h3>
+                  <span>{activeBooking.control}</span>
+                  <span>{activeBooking.location}</span>
                 </div>
                 <button className="outline-action ink" type="button" onClick={() => go('vehicle')}>
                   View Booking
@@ -1353,10 +1331,10 @@ function AdminDashboard() {
         <div className="admin-grid">
           <article className="admin-table reveal">
             <div className="panel-heading">
-              <h2>Booking Pipeline</h2>
+              <h2>Rental Pipeline</h2>
               <select aria-label="Booking range" defaultValue="week">
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
+                <option value="week">Current Ledger</option>
+                <option value="month">Confirmed Terms</option>
               </select>
             </div>
             <table>
@@ -1408,7 +1386,7 @@ function AdminDashboard() {
 
         <section className="trip-control reveal">
           <div className="panel-heading">
-            <h2>Trip OB-1048</h2>
+            <h2>Active Rental Control</h2>
             <span className="panel-status">Ready for release after inspection</span>
           </div>
           <div className="stage-rail" aria-label="Trip locked stages">
@@ -1431,16 +1409,16 @@ function AdminDashboard() {
         <section className="ops-grid">
           <article className="dispatch-panel reveal">
             <div className="panel-heading">
-              <h2>Dispatch Board / Today</h2>
+              <h2>Fleet Movement Board</h2>
               <Gauge size={22} strokeWidth={1.35} />
             </div>
             <div className="dispatch-table">
               <div className="dispatch-head">
                 <span>Vehicle</span>
-                <span>8 AM</span>
-                <span>10 AM</span>
-                <span>12 PM</span>
-                <span>4 PM</span>
+                <span>Status</span>
+                <span>Program</span>
+                <span>Rate</span>
+                <span>Control</span>
               </div>
               {dispatchRows.map((row) => (
                 <div className="dispatch-row" key={row[0]}>
@@ -1458,9 +1436,9 @@ function AdminDashboard() {
               <KeyRound size={22} strokeWidth={1.35} />
             </div>
             <div className="driver-phone">
-              <p>Trip OB-1048</p>
-              <h3>Mercedes-Benz S-Class</h3>
-              <span>James Anderson / 10:00 AM / Downtown Office</span>
+              <p>Member handoff</p>
+              <h3>{vehicles[1].displayName}</h3>
+              <span>{confirmedTerms.privateHandoffCopy}</span>
               <ul>
                 {driverChecklist.map((item, index) => (
                   <li key={item}>
@@ -1485,8 +1463,8 @@ function AdminDashboard() {
                 <tr>
                   <th>Vehicle</th>
                   <th>Status</th>
-                  <th>Next Booking</th>
-                  <th>Issue</th>
+                  <th>Rate</th>
+                  <th>Control</th>
                 </tr>
               </thead>
               <tbody>
@@ -1511,8 +1489,8 @@ function AdminDashboard() {
               {bookings.slice(0, 3).map((booking, index) => (
                 <div key={booking.customer}>
                   <span>{booking.vehicle}</span>
-                  <strong>{index === 1 ? '$2,500 hold pending' : '$1,500 hold secured'}</strong>
-                  <small>{booking.customer}</small>
+                  <strong>{index === 1 ? hardshipBridgeRateLabel : standardWeeklyRateLabel}</strong>
+                  <small>{booking.control}</small>
                 </div>
               ))}
             </div>
@@ -1757,6 +1735,7 @@ function MobileSplashScreen({ onSelect = noopMobileSelect }: MobileScreenProps) 
 }
 
 function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  const activeVehicle = vehicles[0];
   const actions = [
     { label: 'Book a Vehicle', icon: CalendarCheck, screen: 'booking' },
     { label: 'View Fleet', icon: CarFront, screen: 'fleet' },
@@ -1775,17 +1754,17 @@ function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
         <section className="app-greeting">
           <p>Good morning,</p>
           <h2>James</h2>
-          <span>Reserve member</span>
+          <span>Standard member</span>
         </section>
         <section className="upcoming-card">
           <div>
-            <p>Upcoming Booking</p>
-            <span>Mercedes-Benz</span>
-            <h3>S-Class</h3>
-            <small>May 24, 2025 {'\u00b7'} 10:00 AM</small>
-            <small>Downtown Office, New York</small>
+            <p>Current Rental</p>
+            <span>{activeVehicle.brand}</span>
+            <h3>{activeVehicle.name}</h3>
+            <small>{confirmedTerms.rentalStructure}</small>
+            <small>{confirmedTerms.serviceArea}</small>
           </div>
-          <img src="/assets/vehicle-sclass.jpg" alt="Mercedes-Benz S-Class" />
+          <img src={activeVehicle.image} alt={`${activeVehicle.displayName} fleet presentation`} />
           <button type="button" aria-label="View booking" onClick={() => onSelect('detail')}>
             <ArrowRight size={26} strokeWidth={1.3} />
           </button>
@@ -1812,11 +1791,11 @@ function MobileMenuScreen({
   onFleetTabSelect?: (tab: MobileFleetTab) => void;
 }) {
   const menuItems = [
-    { label: 'Vehicles', tab: 'All' },
-    { label: 'Experience', screen: 'detail' },
-    { label: 'About', screen: 'home' },
+    { label: 'Fleet Ledger', tab: 'All' },
+    { label: 'Weekly Plans', tab: 'Active' },
+    { label: 'Hardship Bridge', tab: 'Bridge' },
+    { label: 'Houston Service', tab: 'Houston' },
     { label: 'Membership', screen: 'membership' },
-    { label: 'Weekly Plans', tab: 'Weekly' },
   ] as const;
 
   const handleMenuTarget = (target: { screen?: MobileScreenId; tab?: MobileFleetTab }) => {
@@ -1905,9 +1884,9 @@ function MobileMenuScreen({
         </button>
         <div className="concierge-strip">
           <Headphones size={18} strokeWidth={1.3} />
-          <span>Concierge: +1 (212) 555-0198</span>
+          <span>Concierge by confirmed appointment</span>
           <b aria-hidden="true">|</b>
-          <span>Available 24/7</span>
+          <span>{confirmedTerms.serviceArea}</span>
         </div>
       </div>
     </div>
@@ -1978,11 +1957,12 @@ function MobileFleetScreen({
 }) {
   const visibleFleet = appFleet.filter((vehicle) => {
     if (activeTab === 'All') return true;
-    if (activeTab === 'Executive') return vehicle.collection === 'Executive Collection';
-    if (activeTab === 'Everyday') return vehicle.collection === 'Everyday Collection';
-    if (activeTab === 'Electric') return vehicle.collection === 'Electric Collection';
-    if (activeTab === 'SUVs') return vehicle.collection === 'SUV Collection';
-    return vehicle.collection === 'Everyday Collection' || vehicle.collection === 'SUV Collection';
+    if (activeTab === 'Active') return vehicle.collection === 'Active Fleet';
+    if (activeTab === 'Rented') return vehicle.collection === 'Currently Rented';
+    if (activeTab === 'Phase-out') return vehicle.collection === 'Phase-Out Watch';
+    if (activeTab === 'Bridge') return true;
+    if (activeTab === 'Houston') return true;
+    return true;
   });
 
   return (
@@ -2018,8 +1998,8 @@ function MobileFleetScreen({
                 <span>{vehicle.marque}</span>
                 <h3>{vehicle.model}</h3>
                 <p>{vehicle.collection}</p>
-                <small>{vehicle.seats} Seats {'\u00b7'} {vehicle.bags} Bags</small>
-                <strong>From {vehicle.price} <em>/ day</em></strong>
+                <small>{vehicle.status}</small>
+                <strong>{vehicle.price}</strong>
               </div>
               <button type="button" onClick={() => onSelect('detail')}>View</button>
             </article>
@@ -2032,12 +2012,13 @@ function MobileFleetScreen({
 }
 
 function MobileDetailScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  const selected = vehicles.find((vehicle) => vehicle.category === 'Active Fleet') ?? vehicles[0];
   const inclusions = [
-    'Bluetooth connectivity',
-    'Phone charger',
-    'Clean interior standard',
-    'Weekly plans available',
-    'Professional driver optional',
+    confirmedTerms.fuelPolicyShort,
+    confirmedTerms.rentalStructure,
+    confirmedTerms.privateHandoffCopy,
+    `Loss-of-use precedent: ${lossOfUseRateLabel}`,
+    `Standard weekly rate: ${standardWeeklyRateLabel}`,
   ] as const;
 
   return (
@@ -2049,18 +2030,17 @@ function MobileDetailScreen({ onSelect = noopMobileSelect }: MobileScreenProps) 
           left={<MobileIconButton label="Back" onClick={() => onSelect('fleet')}><ChevronLeft size={27} strokeWidth={1.35} /></MobileIconButton>}
           right={<MobileIconButton label="Favorite"><Heart size={25} strokeWidth={1.35} /></MobileIconButton>}
         />
-        <img className="detail-vehicle-image" src="/assets/vehicle-model3-ivory.png" alt="Tesla Model 3 studio view" />
+        <img className="detail-vehicle-image" src={selected.image} alt={`${selected.displayName} fleet presentation`} />
         <article className="detail-app-copy">
-          <h2>Tesla Model 3</h2>
-          <p>Elevated. Efficient. Effortless.</p>
+          <h2>{selected.shortName}</h2>
+          <p>{selected.category}</p>
           <div className="detail-specs">
-            <span><UsersRound size={22} strokeWidth={1.35} />5 Seats</span>
-            <span><Gauge size={22} strokeWidth={1.35} />Automatic</span>
-            <span><Briefcase size={22} strokeWidth={1.35} />3 Bags</span>
+            <span><CalendarDays size={22} strokeWidth={1.35} />{selected.rateLabel}</span>
+            <span><Gauge size={22} strokeWidth={1.35} />{selected.publicStatus}</span>
+            <span><MapPin size={22} strokeWidth={1.35} />{confirmedTerms.serviceArea}</span>
           </div>
           <p className="detail-description-app">
-            Sleek, intelligent, and effortlessly refined. Designed for everyday mobility with comfort, efficiency,
-            and ease.
+            {selected.description}
           </p>
           <section className="detail-inclusions">
             <h3>Inclusions</h3>
@@ -2072,7 +2052,7 @@ function MobileDetailScreen({ onSelect = noopMobileSelect }: MobileScreenProps) 
             ))}
           </section>
           <div className="detail-price-row">
-            <p><span>From</span>$95 <small>/ day</small></p>
+            <p><span>Standard</span>{selected.rateLabel}</p>
             <button type="button" onClick={() => onSelect('booking')}>Book This Vehicle</button>
           </div>
         </article>
@@ -2083,6 +2063,7 @@ function MobileDetailScreen({ onSelect = noopMobileSelect }: MobileScreenProps) 
 }
 
 function MobileBookingScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  const selected = vehicles.find((vehicle) => vehicle.category === 'Active Fleet') ?? vehicles[0];
   const fields = [
     ['Pick-up Location', 'Select pick-up location', MapPin],
     ['Pick-up Date', 'Select date', CalendarDays],
@@ -2109,12 +2090,12 @@ function MobileBookingScreen({ onSelect = noopMobileSelect }: MobileScreenProps)
           </div>
         </header>
         <article className="selected-vehicle-card">
-          <img src="/assets/vehicle-camry-dark.png" alt="" />
+          <img src={selected.image} alt="" />
           <div>
-            <p>Everyday Collection</p>
-            <h3>Toyota Camry LE</h3>
-            <span>or similar</span>
-            <small>5 Seats {'\u00b7'} Automatic {'\u00b7'} 2 Bags</small>
+            <p>{selected.category}</p>
+            <h3>{selected.displayName}</h3>
+            <span>{selected.publicStatus}</span>
+            <small>{selected.rateLabel} {'\u00b7'} {confirmedTerms.rentalStructure}</small>
           </div>
         </article>
         <div className="booking-fields-app">
@@ -2136,7 +2117,7 @@ function MobileBookingScreen({ onSelect = noopMobileSelect }: MobileScreenProps)
         </div>
         <div className="weekly-badge-app">
           <CalendarDays size={16} strokeWidth={1.35} />
-          Weekly plans available
+          {standardWeeklyRateLabel} standard weekly plan
         </div>
         <button className="continue-app-button" type="button" onClick={() => onSelect('membership')}>Continue</button>
       </div>
@@ -2152,16 +2133,32 @@ function MobileMembershipScreen({ onSelect = noopMobileSelect }: MobileScreenPro
         <header className="membership-app-head">
           <BrandMark size={56} tone="gold" />
           <span>OBAVIA</span>
-          <h2>Membership</h2>
-          <p>Access tailored to the way you move.</p>
+          <h2>Standards</h2>
+          <p>Confirmed terms for weekly mobility.</p>
         </header>
         <div className="tier-card-list">
-          <TierAppCard tier="Standard" mark="standard" benefits={['Everyday access', 'Weekly plans', 'Essential support']} />
-          <TierAppCard tier="Reserve" mark="reserve" popular benefits={['Priority booking', 'Premium fleet access', 'Concierge support', 'Better availability']} />
-          <TierAppCard tier="Noir" mark="noir" benefits={['Invitation-only access', 'Chauffeured privileges', 'First-call availability', 'Bespoke service']} />
+          <TierAppCard
+            tier="Standard"
+            mark="standard"
+            benefits={[standardWeeklyRateLabel, confirmedTerms.rentalStructure, confirmedTerms.fuelPolicyShort]}
+          />
+          <TierAppCard
+            tier="Hardship Bridge"
+            mark="reserve"
+            benefits={[
+              `${confirmedTerms.hardshipBridgeDiscountPercent}% off ${confirmedTerms.hardshipBridgeWeeks}`,
+              hardshipBridgeRateLabel,
+              `${hardshipBridgeMinimumLabel} minimum`,
+            ]}
+          />
+          <TierAppCard
+            tier="Claims Standard"
+            mark="noir"
+            benefits={[lossOfUseRateLabel, 'Documented precedent', 'Commercial insurer accepted']}
+          />
         </div>
-        <button className="compare-benefits-button" type="button" onClick={() => onSelect('benefits')}>Compare Benefits</button>
-        <p className="membership-footer-copy">Questions about membership?</p>
+        <button className="compare-benefits-button" type="button" onClick={() => onSelect('benefits')}>Compare Standards</button>
+        <p className="membership-footer-copy">Questions about weekly access?</p>
         <button className="membership-concierge-link" type="button">Contact Concierge</button>
       </div>
       <MobileBottomNav active="Membership" tone="light" onSelect={onSelect} />
@@ -2203,15 +2200,15 @@ function MobileBenefitsScreen({ onSelect = noopMobileSelect }: MobileScreenProps
       <div className="screen-body benefits-app-body with-bottom-nav">
         <header className="benefits-head">
           <BrandMark size={58} tone="gold" />
-          <h2>Benefits by Tier</h2>
-          <p>Choose your level of access.</p>
+          <h2>Standards Table</h2>
+          <p>Confirmed values only.</p>
         </header>
         <div className="benefits-table-app">
           <div className="benefits-columns">
             <span />
             <span>Standard</span>
-            <span className="reserve">Reserve</span>
-            <span>Noir</span>
+            <span className="reserve">Bridge</span>
+            <span>Claims</span>
           </div>
           {appBenefitRows.map(([label, standard, reserve, noir]) => (
             <div className="benefits-row" key={label}>
@@ -2222,8 +2219,8 @@ function MobileBenefitsScreen({ onSelect = noopMobileSelect }: MobileScreenProps
             </div>
           ))}
         </div>
-        <button className="upgrade-button-app" type="button">Upgrade to Reserve</button>
-        <button className="request-noir-button" type="button">Request Noir Access <ArrowRight size={16} strokeWidth={1.35} /></button>
+        <button className="upgrade-button-app" type="button">Request Bridge Review</button>
+        <button className="request-noir-button" type="button" onClick={() => onSelect('fleet')}>Open Fleet Ledger <ArrowRight size={16} strokeWidth={1.35} /></button>
       </div>
       <MobileBottomNav active="Membership" onSelect={onSelect} />
     </div>
@@ -2271,22 +2268,22 @@ function SpecLine({ vehicle }: { vehicle: (typeof vehicles)[number] }) {
   return (
     <div className="spec-line">
       <span>
-        <UsersRound size={22} strokeWidth={1.35} />
-        {vehicle.seats} Seats
+        <CalendarDays size={22} strokeWidth={1.35} />
+        {vehicle.rateLabel}
       </span>
       <span>
         <Gauge size={22} strokeWidth={1.35} />
-        {vehicle.gearbox}
+        {vehicle.publicStatus}
       </span>
       <span>
-        <Briefcase size={22} strokeWidth={1.35} />
-        {vehicle.bags} Bags
+        <MapPin size={22} strokeWidth={1.35} />
+        {confirmedTerms.serviceArea}
       </span>
     </div>
   );
 }
 
-function TierMark({ tier, kind }: { tier: 'Standard' | 'Reserve' | 'Noir'; kind: 'standard' | 'reserve' | 'noir' }) {
+function TierMark({ tier, kind }: { tier: string; kind: 'standard' | 'reserve' | 'noir' }) {
   return (
     <article className={`tier-mark ${kind}`}>
       <div className="tier-symbol">

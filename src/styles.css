@@ -4013,6 +4013,321 @@ th {
   }
 }
 
+/* OBAVIA verified-program polish layer */
+.fleet-truth-note {
+  margin: 18px auto 0;
+  max-width: 560px;
+  color: rgba(245, 240, 230, 0.66);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.site-menu-photo {
+  filter: blur(13px) saturate(0.58) contrast(1.06) brightness(0.56);
+  transform: scale(1.06);
+}
+
+.site-menu-wash {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(184, 155, 94, 0.11), transparent 18rem),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.82)),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.84), rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.84));
+  backdrop-filter: blur(16px);
+}
+
+.site-menu-links {
+  gap: clamp(28px, 4.2vh, 44px);
+}
+
+.site-menu-links span {
+  font-size: clamp(1rem, 1.5vw, 1.22rem);
+  letter-spacing: clamp(0.24em, 0.75vw, 0.42em);
+}
+
+.site-menu-assist p,
+.menu-app .concierge-strip span {
+  max-width: 440px;
+  justify-content: center;
+}
+
+.site-menu-assist p {
+  letter-spacing: 0.22em;
+}
+
+.site-menu-assist p span {
+  white-space: nowrap;
+}
+
+.mobile-app-screen-stage {
+  animation: obavia-screen-enter 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes obavia-screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.screen-body {
+  padding-inline: 30px;
+}
+
+.app-greeting {
+  margin-top: 30px;
+  padding-bottom: 5px;
+}
+
+.app-greeting p {
+  font-size: 1.03rem;
+  line-height: 1.35;
+}
+
+.app-greeting h2 {
+  margin-top: 7px;
+  font-size: 3.18rem;
+  letter-spacing: 0;
+}
+
+.app-greeting span {
+  margin-top: 15px;
+  letter-spacing: 0.18em;
+}
+
+.upcoming-card {
+  min-height: 178px;
+  margin-top: 36px;
+  padding: 22px;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  column-gap: 18px;
+  align-items: center;
+  border-radius: 13px;
+  transition:
+    border-color 260ms ease,
+    background 260ms ease,
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.upcoming-card:hover {
+  border-color: rgba(184, 155, 94, 0.55);
+  background: rgba(184, 155, 94, 0.035);
+}
+
+.upcoming-card h3 {
+  font-size: 2.04rem;
+  letter-spacing: 0;
+}
+
+.upcoming-card small {
+  max-width: 17rem;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.upcoming-card img {
+  width: 120px;
+  height: 92px;
+}
+
+.quick-actions {
+  margin-top: 18px;
+  gap: 14px;
+}
+
+.quick-actions button {
+  min-height: 118px;
+  padding: 18px;
+  border-radius: 12px;
+  transition:
+    border-color 260ms ease,
+    background 260ms ease,
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quick-actions span {
+  font-size: 0.94rem;
+  white-space: normal;
+}
+
+.menu-app .menu-backdrop {
+  filter: blur(14px) saturate(0.58) contrast(1.08) brightness(0.5);
+  transform: scale(1.1);
+}
+
+.menu-app .menu-wash {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(184, 155, 94, 0.12), transparent 17rem),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.84)),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.84), rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.84));
+  backdrop-filter: blur(16px);
+}
+
+.menu-app .menu-content {
+  padding-inline: 42px;
+}
+
+.menu-app .menu-primary-list {
+  margin-top: 58px;
+  gap: clamp(34px, 4.4vh, 48px);
+}
+
+.menu-app .menu-primary-list span {
+  font-size: 0.88rem;
+  letter-spacing: 0.28em;
+}
+
+.menu-divider {
+  margin-top: 44px;
+}
+
+.menu-sign-in {
+  margin-top: 32px;
+}
+
+.menu-book-now {
+  margin-top: 18px;
+  transition:
+    background 260ms ease,
+    color 260ms ease,
+    border-color 260ms ease,
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.collection-list {
+  margin-top: 24px;
+  gap: 12px;
+}
+
+.collection-list article {
+  min-height: 108px;
+  grid-template-columns: 104px 1fr auto;
+  gap: 14px;
+  border-radius: 12px;
+  transition:
+    border-color 260ms ease,
+    background 260ms ease,
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.collection-list img {
+  width: 104px;
+  height: 108px;
+}
+
+.collection-list h3 {
+  font-size: 1.2rem;
+}
+
+.collection-list p {
+  max-width: 13rem;
+  font-size: 0.72rem;
+}
+
+.fleet-tabs {
+  scroll-padding-inline: 28px;
+}
+
+.fleet-tabs button {
+  transition:
+    color 240ms ease,
+    border-color 240ms ease,
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fleet-tabs button:active {
+  transform: translateY(1px);
+}
+
+.app-fleet-list {
+  animation: obavia-list-enter 430ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes obavia-list-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-fleet-list article,
+.selected-vehicle-card,
+.tier-app-card,
+.benefits-row {
+  transition:
+    border-color 260ms ease,
+    background 260ms ease,
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 640px) {
+  .screen-body {
+    padding-inline: 22px;
+  }
+
+  .app-greeting {
+    margin-top: 18px;
+  }
+
+  .app-greeting h2 {
+    font-size: 2.78rem;
+  }
+
+  .upcoming-card {
+    min-height: 158px;
+    margin-top: 30px;
+    padding: 18px;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    gap: 14px;
+  }
+
+  .upcoming-card img {
+    width: 112px;
+    height: 88px;
+  }
+
+  .upcoming-card h3 {
+    font-size: 1.82rem;
+  }
+
+  .upcoming-card small {
+    font-size: 0.72rem;
+  }
+
+  .quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .quick-actions button {
+    min-height: 94px;
+    padding: 14px;
+  }
+
+  .quick-actions span {
+    font-size: 0.82rem;
+  }
+
+  .menu-app .menu-content {
+    padding-inline: 30px;
+  }
+}
+
+@media (max-width: 360px) {
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

@@ -1,4 +1,4 @@
-import { Briefcase, UsersRound } from 'lucide-react';
+import { CalendarDays, Gauge } from 'lucide-react';
 import type { Vehicle } from '../data';
 
 type VehicleCardProps = {
@@ -15,20 +15,20 @@ export function VehicleCard({ vehicle, onOpen }: VehicleCardProps) {
         onClick={() => onOpen?.(vehicle.id)}
         aria-label={`View ${vehicle.brand} ${vehicle.name}`}
       >
-        <img src={vehicle.image} alt={`${vehicle.brand} ${vehicle.name}`} />
+        <img src={vehicle.image} alt={`${vehicle.displayName} fleet presentation`} />
       </button>
       <div className="vehicle-copy">
         <p className="vehicle-brand">{vehicle.brand}</p>
         <h3>{vehicle.name}</h3>
-        <p>or similar</p>
+        <p>{vehicle.category}</p>
         <div className="spec-line" aria-label="Vehicle specifications">
           <span>
-            <UsersRound size={15} strokeWidth={1.5} />
-            {vehicle.seats} Seats
+            <CalendarDays size={15} strokeWidth={1.5} />
+            {vehicle.rateLabel}
           </span>
           <span>
-            <Briefcase size={15} strokeWidth={1.5} />
-            {vehicle.bags} Bags
+            <Gauge size={15} strokeWidth={1.5} />
+            {vehicle.publicStatus}
           </span>
         </div>
       </div>
