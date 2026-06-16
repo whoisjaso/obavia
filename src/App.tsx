@@ -45,6 +45,10 @@ import { bookings, locations, vehicles, type VehicleCategory } from './data';
 
 const MENU_AMBIENCE_VIDEO_ID = 'NW8Cxc3uh5E';
 const MENU_AMBIENCE_TARGET_RATE = 0.77;
+const MENU_INTERACTION_SOUND_VIDEO_ID = 'NiMJ6FChRfw';
+const MENU_INTERACTION_SOUND_EVENT = 'obavia:menu-interaction-sound';
+
+type MenuInteractionSoundKind = 'hover' | 'click';
 
 type YouTubePlayerEvent = {
   target: YouTubePlayer;
@@ -152,6 +156,104 @@ function playMenuAmbience(player: YouTubePlayer) {
 
   applyRate();
   window.setTimeout(applyRate, 700);
+}
+
+function emitMenuInteractionSound(kind: MenuInteractionSoundKind) {
+  window.dispatchEvent(new CustomEvent<MenuInteractionSoundKind>(MENU_INTERACTION_SOUND_EVENT, { detail: kind }));
+}
+
+function MenuInteractionSoundLayer() {
+  const holderRef = useRef<HTMLDivElement | null>(null);
+  const playerRef = useRef<YouTubePlayer | null>(null);
+  const pendingPlayRef = useRef<MenuInteractionSoundKind | null>(null);
+  const lastHoverAtRef = useRef(0);
+
+  const playInteractionSound = (kind: MenuInteractionSoundKind) => {
+    if (kind === 'hover') {
+      const now = window.performance.now();
+      if (now - lastHoverAtRef.current < 420) {
+        return;
+      }
+      lastHoverAtRef.current = now;
+    }
+
+    const player = playerRef.current;
+    if (!player) {
+      pendingPlayRef.current = kind;
+      return;
+    }
+
+    try {
+      player.seekTo?.(0, true);
+    } catch {
+      // The interaction player may not accept seeks until metadata is ready.
+    }
+
+    try {
+      player.setPlaybackRate?.(1);
+      player.playVideo();
+    } catch {
+      // Browser media policy may block hover sound before a user gesture.
+    }
+  };
+
+  useEffect(() => {
+    const handleInteractionSound = (event: Event) => {
+      playInteractionSound((event as CustomEvent<MenuInteractionSoundKind>).detail ?? 'click');
+    };
+
+    window.addEventListener(MENU_INTERACTION_SOUND_EVENT, handleInteractionSound);
+    return () => window.removeEventListener(MENU_INTERACTION_SOUND_EVENT, handleInteractionSound);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadYouTubeApi().then(() => {
+      if (cancelled || !holderRef.current || playerRef.current || !window.YT?.Player) {
+        return;
+      }
+
+      playerRef.current = new window.YT.Player(holderRef.current, {
+        height: '1',
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          iv_load_policy: 3,
+          modestbranding: 1,
+          playsinline: 1,
+          rel: 0,
+          origin: window.location.origin,
+        },
+        videoId: MENU_INTERACTION_SOUND_VIDEO_ID,
+        width: '1',
+        events: {
+          onReady: ({ target }) => {
+            target.getIframe?.().setAttribute('allow', 'autoplay; encrypted-media');
+            if (pendingPlayRef.current) {
+              playInteractionSound(pendingPlayRef.current);
+              pendingPlayRef.current = null;
+            }
+          },
+        },
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
+  }, []);
+
+  return (
+    <div className="menu-ambience-player" aria-hidden="true">
+      <div ref={holderRef} />
+    </div>
+  );
 }
 
 function MenuAmbiencePlayer({ active }: { active: boolean }) {
@@ -609,6 +711,7 @@ export function App() {
 
   return (
     <main className={`app route-${route}`}>
+      <MenuInteractionSoundLayer />
       {route === 'home' ? <HomePage /> : null}
       {route === 'book' ? <BookingPage /> : null}
       {route === 'fleet' ? <FleetPage /> : null}
@@ -643,6 +746,16 @@ function SiteNav({
     { label: 'Membership', route: 'membership' },
     { label: 'Weekly Plans', route: 'fleet' },
   ];
+  const previewMenuSound = () => emitMenuInteractionSound('hover');
+  const closeMenu = () => {
+    emitMenuInteractionSound('click');
+    setOpen(false);
+  };
+  const navigateFromMenu = (route: Route) => {
+    emitMenuInteractionSound('click');
+    go(route);
+    setOpen(false);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -714,7 +827,14 @@ function SiteNav({
           <MenuAmbiencePlayer active={open} />
           <img className="site-menu-photo" src="/assets/hero-obavia-background.png" alt="" aria-hidden="true" />
           <div className="site-menu-wash" aria-hidden="true" />
-          <button className="site-menu-close" type="button" onClick={() => setOpen(false)} aria-label="Close navigation">
+          <button
+            className="site-menu-close"
+            type="button"
+            onMouseEnter={previewMenuSound}
+            onFocus={previewMenuSound}
+            onClick={closeMenu}
+            aria-label="Close navigation"
+          >
             <X size={34} strokeWidth={1.15} />
           </button>
           <div className="site-menu-inner">
@@ -729,10 +849,9 @@ function SiteNav({
                     key={item.label}
                     style={{ '--site-menu-index': index } as React.CSSProperties}
                     type="button"
-                    onClick={() => {
-                      go(item.route);
-                      setOpen(false);
-                    }}
+                    onMouseEnter={previewMenuSound}
+                    onFocus={previewMenuSound}
+                    onClick={() => navigateFromMenu(item.route)}
                   >
                     <span>{item.label}</span>
                     {itemIsActive ? <i aria-hidden="true" /> : null}
@@ -742,8 +861,22 @@ function SiteNav({
             </nav>
             <span className="site-menu-divider" aria-hidden="true" />
             <div className="site-menu-assist">
-              <button type="button" onClick={() => { go('member'); setOpen(false); }}>Sign In</button>
-              <button type="button" onClick={() => { go('book'); setOpen(false); }}>Book Now</button>
+              <button
+                type="button"
+                onMouseEnter={previewMenuSound}
+                onFocus={previewMenuSound}
+                onClick={() => navigateFromMenu('member')}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onMouseEnter={previewMenuSound}
+                onFocus={previewMenuSound}
+                onClick={() => navigateFromMenu('book')}
+              >
+                Book Now
+              </button>
               <p>
                 <Headphones size={17} strokeWidth={1.35} />
                 <span>Concierge: +1 (212) 555-0198</span>
@@ -1687,12 +1820,27 @@ function MobileMenuScreen({
   ] as const;
 
   const handleMenuTarget = (target: { screen?: MobileScreenId; tab?: MobileFleetTab }) => {
+    emitMenuInteractionSound('click');
+
     if (target?.tab) {
       onFleetTabSelect(target.tab);
       return;
     }
 
     onSelect(target?.screen ?? 'home');
+  };
+  const previewMenuSound = () => emitMenuInteractionSound('hover');
+  const closeMenu = () => {
+    emitMenuInteractionSound('click');
+    onSelect('home');
+  };
+  const openBooking = () => {
+    emitMenuInteractionSound('click');
+    onSelect('booking');
+  };
+  const signIn = () => {
+    emitMenuInteractionSound('click');
+    onSelect('home');
   };
 
   return (
@@ -1701,7 +1849,14 @@ function MobileMenuScreen({
       <MenuAmbiencePlayer active />
       <img className="menu-backdrop" src="/assets/hero-obavia-background.png" alt="Private chauffeur beside an executive sedan" />
       <div className="menu-wash" />
-      <button className="mobile-menu-close" type="button" onClick={() => onSelect('home')} aria-label="Close menu">
+      <button
+        className="mobile-menu-close"
+        type="button"
+        onMouseEnter={previewMenuSound}
+        onFocus={previewMenuSound}
+        onClick={closeMenu}
+        aria-label="Close menu"
+      >
         <X size={28} strokeWidth={1.15} />
       </button>
       <div className="menu-content">
@@ -1716,6 +1871,8 @@ function MobileMenuScreen({
                 style={{ '--menu-index': index } as React.CSSProperties}
                 type="button"
                 key={item.label}
+                onMouseEnter={previewMenuSound}
+                onFocus={previewMenuSound}
                 onClick={() => handleMenuTarget({
                   screen: 'screen' in item ? item.screen : undefined,
                   tab: 'tab' in item ? item.tab : undefined,
@@ -1728,8 +1885,24 @@ function MobileMenuScreen({
           })}
         </nav>
         <span className="menu-divider" aria-hidden="true" />
-        <button className="menu-sign-in" type="button" onClick={() => onSelect('home')}>Sign In</button>
-        <button className="menu-book-now" type="button" onClick={() => onSelect('booking')}>Book Now</button>
+        <button
+          className="menu-sign-in"
+          type="button"
+          onMouseEnter={previewMenuSound}
+          onFocus={previewMenuSound}
+          onClick={signIn}
+        >
+          Sign In
+        </button>
+        <button
+          className="menu-book-now"
+          type="button"
+          onMouseEnter={previewMenuSound}
+          onFocus={previewMenuSound}
+          onClick={openBooking}
+        >
+          Book Now
+        </button>
         <div className="concierge-strip">
           <Headphones size={18} strokeWidth={1.3} />
           <span>Concierge: +1 (212) 555-0198</span>
