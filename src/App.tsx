@@ -40,6 +40,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { BrandMark } from './components/BrandMark';
 import { VehicleCard } from './components/VehicleCard';
 import {
+  brandDoctrine,
   bookings,
   confirmedTerms,
   fleetStats,
@@ -361,9 +362,9 @@ type Route =
 
 const navItems = [
   { label: 'Vehicles', route: 'fleet' },
-  { label: 'Experience', route: 'vehicle' },
+  { label: 'Standards', route: 'vehicle' },
   { label: 'About', route: 'about' },
-  { label: 'Membership', route: 'membership' },
+  { label: 'Access', route: 'membership' },
 ] as const;
 
 const dashboardNav = [
@@ -371,7 +372,7 @@ const dashboardNav = [
   'My Bookings',
   'Favorites',
   'Payment Methods',
-  'Membership',
+  'Standards',
   'Settings',
 ] as const;
 
@@ -477,21 +478,21 @@ const workOrders = [
 const appCollections = [
   {
     title: 'Standard Weekly Fleet',
-    copy: 'Open-ended weekly mobility from the live ledger.',
+    copy: 'Published weekly access from the live ledger.',
     price: standardWeeklyRateLabel,
     image: vehicles[1].image,
     icon: CalendarDays,
   },
   {
     title: 'Hardship Bridge',
-    copy: `${confirmedTerms.hardshipBridgeDiscountPercent}% off ${confirmedTerms.hardshipBridgeWeeks}, then standard.`,
+    copy: `${confirmedTerms.hardshipBridgeDiscountPercent}% off ${confirmedTerms.hardshipBridgeWeeks}; reverts automatically.`,
     price: hardshipBridgeRateLabel,
     image: vehicles[0].image,
     icon: ShieldCheck,
   },
   {
     title: 'Houston Service Area',
-    copy: 'Built for daily movement across the Houston metro.',
+    copy: 'Built for real local movement across the Houston metro.',
     price: confirmedTerms.serviceArea,
     image: '/assets/about-entrance.png',
     icon: MapPin,
@@ -505,7 +506,7 @@ const appCollections = [
   },
   {
     title: 'Fleet Ledger',
-    copy: 'A small fleet presented honestly, one vehicle at a time.',
+    copy: 'Small fleet, real availability, one vehicle at a time.',
     price: `${fleetStats.activeUnits} active units`,
     image: '/assets/hero-arrival.png',
     icon: FileCheck2,
@@ -528,10 +529,11 @@ const appMenuItems = [
   { label: 'Fleet Ledger', icon: CarFront },
   { label: 'Weekly Plans', icon: CalendarDays },
   { label: 'Hardship Bridge', icon: ShieldCheck },
+  { label: 'Published Standards', icon: FileCheck2 },
   { label: 'Houston Service', icon: MapPin },
   { label: 'My Bookings', icon: CalendarCheck },
   { label: 'Favorites', icon: Heart },
-  { label: 'Membership', icon: CircleCheck },
+  { label: 'Standards', icon: CircleCheck },
   { label: 'Payment Methods', icon: CreditCard },
   { label: 'Support', icon: Headphones },
   { label: 'Settings', icon: Settings },
@@ -712,8 +714,8 @@ function SiteNav({
     { label: 'Vehicles', route: 'fleet' },
     { label: 'Standards', route: 'vehicle' },
     { label: 'About', route: 'about' },
-    { label: 'Membership', route: 'membership' },
-    { label: 'Weekly Plans', route: 'fleet' },
+    { label: 'Weekly Access', route: 'book' },
+    { label: 'Nothing Hidden', route: 'membership' },
   ];
   const previewMenuSound = () => emitMenuInteractionSound('hover');
   const closeMenu = () => {
@@ -786,7 +788,7 @@ function SiteNav({
         </button>
         {showBook ? (
           <button className="outline-action" type="button" onClick={() => go('book')}>
-            Book Now
+            Request Access
           </button>
         ) : null}
       </div>
@@ -844,7 +846,7 @@ function SiteNav({
                 onFocus={previewMenuSound}
                 onClick={() => navigateFromMenu('book')}
               >
-                Book Now
+                Request Access
               </button>
               <p>
                 <Headphones size={17} strokeWidth={1.35} />
@@ -874,12 +876,12 @@ function HomePage() {
       </div>
 
       <div className="hero-caption reveal">
-        <h2>Discretion. Excellence. Wherever you are.</h2>
-        <p>Curated vehicles. Impeccable service.</p>
+        <h2>{brandDoctrine.trustPromise}</h2>
+        <p>{brandDoctrine.dignityPromise}</p>
       </div>
 
       <button className="hero-scroll" type="button" onClick={() => go('fleet')}>
-        Scroll To Discover
+        View The Ledger
         <ArrowRight size={23} strokeWidth={1.3} />
       </button>
     </section>
@@ -896,9 +898,10 @@ function BookingPage() {
       <SiteNav tone="light" compact showBook={false} />
       <div className="booking-shell">
         <div className="page-title reveal">
-          <h1>Book A Vehicle</h1>
+          <h1>Request Weekly Access</h1>
+          <p className="page-subcopy ink">{brandDoctrine.accessPromise}</p>
           <div className="steps" aria-label="Booking steps">
-            {['Vehicle', 'Details', 'Confirm', 'Payment'].map((step, index) => (
+            {['Vehicle', 'Standards', 'Review', 'Payment'].map((step, index) => (
               <span className={index === 0 ? 'active' : ''} key={step}>
                 {index + 1}. {step}
               </span>
@@ -910,7 +913,7 @@ function BookingPage() {
           className="booking-panel reveal"
           onSubmit={(event) => {
             event.preventDefault();
-            setNotice('Vehicle held for review. Member services will confirm availability.');
+            setNotice('Request received. Member services will confirm availability and standards before anything moves.');
           }}
         >
           <div className="booking-vehicle">
@@ -1023,9 +1026,9 @@ function FleetPage() {
       <SiteNav tone="dark" active="fleet" />
       <div className="fleet-shell">
         <div className="page-title dark reveal">
-          <h1>Our Fleet</h1>
+          <h1>Live Fleet Ledger</h1>
           <p className="fleet-truth-note">
-            Small by design. Every vehicle shown here renders from the active ledger.
+            {brandDoctrine.fleetPromise} Every vehicle shown here renders from the active ledger.
           </p>
           <div className="tabs" role="tablist" aria-label="Vehicle categories">
             {categories.map((item) => (
@@ -1047,7 +1050,7 @@ function FleetPage() {
         </div>
         <div className="center-action reveal">
           <button className="secondary-dark" type="button" onClick={() => go('book')}>
-            Request Weekly Access
+            Request Access
           </button>
         </div>
       </div>
@@ -1084,7 +1087,7 @@ function VehicleDetailPage() {
           <article className="detail-copy reveal">
             <p className="vehicle-brand">{selected.brand}</p>
             <h1>{selected.name}</h1>
-            <p>{selected.category}</p>
+            <p>{brandDoctrine.oneLine}</p>
             <SpecLine vehicle={selected} />
             <p className="detail-description">
               {selected.description}
@@ -1122,6 +1125,7 @@ function VehicleDetailPage() {
               <li>Houston metro service framing</li>
               <li>Weekly access review</li>
               <li>Documented loss-of-use standard: {lossOfUseRateLabel}</li>
+              <li>{brandDoctrine.trustPromise}</li>
             </ul>
           </section>
         </div>
@@ -1131,7 +1135,7 @@ function VehicleDetailPage() {
             <span>Standard</span>{selected.rateLabel}
           </p>
           <button className="primary-ink" type="button" onClick={() => go('book')}>
-            Book This Vehicle
+            Request Access
           </button>
         </div>
       </div>
@@ -1146,13 +1150,13 @@ function AboutPage() {
       <div className="about-hero">
         <div className="about-copy reveal">
           <p>About Obavia</p>
-          <h1>Crafted for those who value more.</h1>
+          <h1>Published standards. Nothing hidden.</h1>
           <p>
-            Obavia is a private vehicle rental house built on discretion, precision, and legacy. We offer more than
-            vehicles, we deliver time, comfort, and absolute peace of mind.
+            Obavia is a private rental house for Houston drivers who are tired of being treated like a liability.
+            The experience is quiet, direct, and dignified: real availability, visible standards, and no buried terms.
           </p>
           <button className="text-link" type="button" onClick={() => go('membership')}>
-            Our Philosophy
+            View Standards
             <ArrowRight size={24} strokeWidth={1.35} />
           </button>
         </div>
@@ -1163,18 +1167,18 @@ function AboutPage() {
       <div className="principles reveal">
         <article>
           <ShieldCheck size={46} strokeWidth={1.35} />
-          <h2>Discreet</h2>
-          <p>Your privacy is our highest priority.</p>
+          <h2>Published</h2>
+          <p>The standard is visible before the request.</p>
         </article>
         <article>
           <CarFront size={46} strokeWidth={1.35} />
-          <h2>Curated</h2>
-          <p>An exceptional fleet, meticulously selected.</p>
+          <h2>Honest</h2>
+          <p>Only active ledger vehicles are shown.</p>
         </article>
         <article>
           <Gauge size={46} strokeWidth={1.35} />
-          <h2>Dependable</h2>
-          <p>Impeccable service, every time.</p>
+          <h2>Dignified</h2>
+          <p>Weekly access without the rental-counter posture.</p>
         </article>
       </div>
     </section>
@@ -1187,7 +1191,7 @@ function MembershipPage() {
       <SiteNav tone="dark" active="membership" />
       <div className="tier-mark-stage reveal">
         <div className="tier-mark-frame">
-          <h1>Program Standards</h1>
+          <h1>Published Standards</h1>
           <div className="tier-mark-grid">
             <TierMark tier="Standard" kind="standard" />
             <TierMark tier="Bridge" kind="reserve" />
@@ -1687,8 +1691,8 @@ function MobileBottomNav({
   const tabs = [
     { label: 'Home', icon: HomeIcon, screen: 'home' },
     { label: 'Fleet', icon: CarFront, screen: 'fleet' },
-    { label: 'Book', icon: CalendarDays, screen: 'booking' },
-    { label: 'Membership', icon: null, screen: 'membership' },
+    { label: 'Access', icon: CalendarDays, screen: 'booking' },
+    { label: 'Standards', icon: null, screen: 'membership' },
     { label: 'Account', icon: UserRound, screen: 'benefits' },
   ] as const;
 
@@ -1722,7 +1726,7 @@ function MobileSplashScreen({ onSelect = noopMobileSelect }: MobileScreenProps) 
         <p>Private Vehicle Rental</p>
       </div>
       <div className="splash-bottom">
-        <p>Private access. Everyday utility.</p>
+        <p>{brandDoctrine.oneLine}</p>
         <div className="app-dots" aria-hidden="true">
           <span className="active" />
           <span />
@@ -1737,10 +1741,10 @@ function MobileSplashScreen({ onSelect = noopMobileSelect }: MobileScreenProps) 
 function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
   const activeVehicle = vehicles[0];
   const actions = [
-    { label: 'Book a Vehicle', icon: CalendarCheck, screen: 'booking' },
+    { label: 'Request Access', icon: CalendarCheck, screen: 'booking' },
     { label: 'View Fleet', icon: CarFront, screen: 'fleet' },
     { label: 'Weekly Plans', icon: CalendarDays, screen: 'categories' },
-    { label: 'Membership', icon: CircleCheck, screen: 'membership' },
+    { label: 'Standards', icon: CircleCheck, screen: 'membership' },
   ] as const;
 
   return (
@@ -1754,11 +1758,11 @@ function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
         <section className="app-greeting">
           <p>Good morning,</p>
           <h2>James</h2>
-          <span>Standard member</span>
+          <span>Published standard</span>
         </section>
         <section className="upcoming-card">
           <div>
-            <p>Current Rental</p>
+            <p>Current Standard</p>
             <span>{activeVehicle.brand}</span>
             <h3>{activeVehicle.name}</h3>
             <small>{confirmedTerms.rentalStructure}</small>
@@ -1793,9 +1797,9 @@ function MobileMenuScreen({
   const menuItems = [
     { label: 'Fleet Ledger', tab: 'All' },
     { label: 'Weekly Plans', tab: 'Active' },
+    { label: 'Published Standards', screen: 'membership' },
     { label: 'Hardship Bridge', tab: 'Bridge' },
     { label: 'Houston Service', tab: 'Houston' },
-    { label: 'Membership', screen: 'membership' },
   ] as const;
 
   const handleMenuTarget = (target: { screen?: MobileScreenId; tab?: MobileFleetTab }) => {
@@ -1880,7 +1884,7 @@ function MobileMenuScreen({
           onFocus={previewMenuSound}
           onClick={openBooking}
         >
-          Book Now
+          Request Access
         </button>
         <div className="concierge-strip">
           <Headphones size={18} strokeWidth={1.3} />
@@ -1912,8 +1916,8 @@ function MobileCategoriesScreen({
           right={<MobileIconButton label="Search" onClick={() => onSelect('fleet')}><Search size={26} strokeWidth={1.35} /></MobileIconButton>}
         />
         <header className="app-title-block">
-          <h2>Choose Your Collection</h2>
-          <p>Vehicles curated for every way you move.</p>
+          <h2>Published Standards</h2>
+          <p>{brandDoctrine.accessPromise}</p>
         </header>
         <div className="collection-list">
           {appCollections.map(({ title, copy, price, image, icon: Icon }, index) => (
@@ -1974,7 +1978,7 @@ function MobileFleetScreen({
           right={<MobileIconButton label="Search"><Search size={26} strokeWidth={1.35} /></MobileIconButton>}
         />
         <header className="app-title-block compact">
-          <h2>Curated Fleet</h2>
+          <h2>Live Fleet Ledger</h2>
         </header>
         <div className="fleet-tabs" role="tablist" aria-label="Fleet categories">
           {mobileFleetTabs.map((tab) => (
@@ -2053,7 +2057,7 @@ function MobileDetailScreen({ onSelect = noopMobileSelect }: MobileScreenProps) 
           </section>
           <div className="detail-price-row">
             <p><span>Standard</span>{selected.rateLabel}</p>
-            <button type="button" onClick={() => onSelect('booking')}>Book This Vehicle</button>
+            <button type="button" onClick={() => onSelect('booking')}>Request Access</button>
           </div>
         </article>
       </div>
@@ -2082,9 +2086,9 @@ function MobileBookingScreen({ onSelect = noopMobileSelect }: MobileScreenProps)
           right={<MobileIconButton label="Account" onClick={() => onSelect('benefits')}><CircleUserRound size={25} strokeWidth={1.35} /></MobileIconButton>}
         />
         <header className="app-title-block booking-title">
-          <h2>Book a Vehicle</h2>
+          <h2>Request Access</h2>
           <div className="booking-steps-app">
-            {['Vehicle', 'Details', 'Confirm', 'Payment'].map((step, index) => (
+            {['Vehicle', 'Standards', 'Review', 'Payment'].map((step, index) => (
               <span className={index === 0 ? 'active' : ''} key={step}>{index + 1}. {step}</span>
             ))}
           </div>
@@ -2119,7 +2123,7 @@ function MobileBookingScreen({ onSelect = noopMobileSelect }: MobileScreenProps)
           <CalendarDays size={16} strokeWidth={1.35} />
           {standardWeeklyRateLabel} standard weekly plan
         </div>
-        <button className="continue-app-button" type="button" onClick={() => onSelect('membership')}>Continue</button>
+        <button className="continue-app-button" type="button" onClick={() => onSelect('membership')}>Review Standards</button>
       </div>
     </div>
   );
@@ -2133,8 +2137,8 @@ function MobileMembershipScreen({ onSelect = noopMobileSelect }: MobileScreenPro
         <header className="membership-app-head">
           <BrandMark size={56} tone="gold" />
           <span>OBAVIA</span>
-          <h2>Standards</h2>
-          <p>Confirmed terms for weekly mobility.</p>
+          <h2>Published Standards</h2>
+          <p>{brandDoctrine.trustPromise}</p>
         </header>
         <div className="tier-card-list">
           <TierAppCard
@@ -2158,10 +2162,10 @@ function MobileMembershipScreen({ onSelect = noopMobileSelect }: MobileScreenPro
           />
         </div>
         <button className="compare-benefits-button" type="button" onClick={() => onSelect('benefits')}>Compare Standards</button>
-        <p className="membership-footer-copy">Questions about weekly access?</p>
+        <p className="membership-footer-copy">Questions before requesting access?</p>
         <button className="membership-concierge-link" type="button">Contact Concierge</button>
       </div>
-      <MobileBottomNav active="Membership" tone="light" onSelect={onSelect} />
+      <MobileBottomNav active="Standards" tone="light" onSelect={onSelect} />
     </div>
   );
 }
@@ -2200,7 +2204,7 @@ function MobileBenefitsScreen({ onSelect = noopMobileSelect }: MobileScreenProps
       <div className="screen-body benefits-app-body with-bottom-nav">
         <header className="benefits-head">
           <BrandMark size={58} tone="gold" />
-          <h2>Standards Table</h2>
+          <h2>Nothing Hidden</h2>
           <p>Confirmed values only.</p>
         </header>
         <div className="benefits-table-app">
@@ -2222,7 +2226,7 @@ function MobileBenefitsScreen({ onSelect = noopMobileSelect }: MobileScreenProps
         <button className="upgrade-button-app" type="button">Request Bridge Review</button>
         <button className="request-noir-button" type="button" onClick={() => onSelect('fleet')}>Open Fleet Ledger <ArrowRight size={16} strokeWidth={1.35} /></button>
       </div>
-      <MobileBottomNav active="Membership" onSelect={onSelect} />
+      <MobileBottomNav active="Standards" onSelect={onSelect} />
     </div>
   );
 }

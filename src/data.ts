@@ -2,6 +2,14 @@ export type VehicleCategory = 'Active Fleet' | 'Currently Rented' | 'Phase-Out W
 
 const ledgerVehicleImage = '/assets/fleet-ledger-sedan.svg';
 
+export const brandDoctrine = {
+  oneLine: 'A private rental house with published standards and nothing hidden.',
+  trustPromise: 'Published standards. Real availability. No hidden terms.',
+  dignityPromise: 'Private rental dignity for Houston weekly mobility.',
+  fleetPromise: 'Real availability, visible standards, no hidden terms.',
+  accessPromise: 'Review the standard before you request access.',
+} as const;
+
 export const confirmedTerms = {
   standardWeeklyRate: 250,
   hardshipBridgeDiscountPercent: 20,
