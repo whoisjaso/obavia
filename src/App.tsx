@@ -369,28 +369,16 @@ const navItems = [
   { label: 'Access', route: 'membership' },
 ] as const;
 
-const dashboardNav = [
-  'Overview',
-  'Current Rental',
-  'Renewal',
-  'Contract',
-  'Standards',
-  'Support',
-  'Settings',
-] as const;
+const dashboardNav = ['Rental', 'Renewal', 'Contract', 'Support'] as const;
 
 type DashboardNavLabel = (typeof dashboardNav)[number];
 
 const adminNav = [
-  { label: 'Command', icon: LayoutDashboard },
   { label: 'Inventory', icon: CarFront },
   { label: 'Renewals', icon: CalendarCheck },
   { label: 'Overdues', icon: ShieldAlert },
   { label: 'Contracts', icon: FileCheck2 },
-  { label: 'Members', icon: UsersRound },
-  { label: 'Finance', icon: CreditCard },
-  { label: 'Reports', icon: BarChart3 },
-  { label: 'Settings', icon: Settings },
+  { label: 'Portal', icon: UsersRound },
 ] as const;
 
 type AdminNavLabel = (typeof adminNav)[number]['label'];
@@ -513,6 +501,13 @@ const adminModules = [
   },
 ] as const;
 
+const adminOverviewCards = [
+  ['Inventory', `${fleetStats.activeUnits} active ledger units`, 'Only real units render.'],
+  ['Renewals', standardWeeklyRateLabel, confirmedTerms.rentalStructure],
+  ['Overdues', 'Ledger gated', 'No balances without proof.'],
+  ['Contracts', 'Confirmed terms', 'Logo packet, confirmed rows.'],
+] as const;
+
 const inventoryRows = vehicles.map((vehicle) => [
   vehicle.displayName,
   vehicle.publicStatus,
@@ -548,10 +543,19 @@ const contractRows = [
 ] as const;
 
 const memberSystemCards = [
-  ['Current Rental', vehicles[0].displayName, confirmedTerms.rentalStructure],
-  ['Renewal Standard', standardWeeklyRateLabel, 'Published weekly baseline'],
-  ['Contract Terms', confirmedTerms.fuelPolicyShort, 'Visible before request'],
-  ['Concierge', confirmedTerms.serviceArea, 'Confirmed handoff instructions stay private'],
+  ['Rental', vehicles[0].displayName, confirmedTerms.rentalStructure],
+  ['Renewal', standardWeeklyRateLabel, 'Published weekly baseline'],
+  ['Contract', confirmedTerms.fuelPolicyShort, 'Visible before request'],
+] as const;
+
+const contractClauses = [
+  ['Rental structure', confirmedTerms.rentalStructure],
+  ['Standard weekly rate', standardWeeklyRateLabel],
+  ['Fuel return', confirmedTerms.fuelPolicy],
+  ['Hardship Bridge', `${confirmedTerms.hardshipBridgeDiscountPercent}% off ${confirmedTerms.hardshipBridgeWeeks}; ${hardshipBridgeRateLabel}; minimum ${hardshipBridgeMinimumLabel}`],
+  ['Loss-of-use precedent', `${lossOfUseRateLabel} for documented claims`],
+  ['Customer-facing address', `${confirmedTerms.customerAddressLabel}: ${confirmedTerms.customerAddress}`],
+  ['Handoff instructions', confirmedTerms.privateHandoffCopy],
 ] as const;
 
 const appCollections = [
@@ -1099,10 +1103,10 @@ function BookingPage() {
               </Field>
               <div className="split-fields">
                 <Field label="Pick-up Date" hiddenLabel>
-                  <input aria-label="Pick-up Date" type="text" placeholder="Date" />
+                  <input aria-label="Pick-up Date" type="text" />
                 </Field>
                 <Field label="Pick-up Time" hiddenLabel>
-                  <input aria-label="Pick-up Time" type="text" placeholder="Time" />
+                  <input aria-label="Pick-up Time" type="text" />
                 </Field>
               </div>
             </div>
@@ -1121,10 +1125,10 @@ function BookingPage() {
               </Field>
               <div className="split-fields">
                 <Field label="Return Date" hiddenLabel>
-                  <input aria-label="Return Date" type="text" placeholder="Date" />
+                  <input aria-label="Return Date" type="text" />
                 </Field>
                 <Field label="Return Time" hiddenLabel>
-                  <input aria-label="Return Time" type="text" placeholder="Time" />
+                  <input aria-label="Return Time" type="text" />
                 </Field>
               </div>
             </div>
@@ -1368,9 +1372,9 @@ function MembershipPage() {
 
 function getMemberPanel(selected: DashboardNavLabel) {
   switch (selected) {
-    case 'Current Rental':
+    case 'Rental':
       return {
-        title: 'Current Rental',
+        title: 'Active Rental',
         copy: 'The active rental view mirrors the ledger and does not add vehicles outside the confirmed fleet.',
         rows: [
           ['Vehicle', vehicles[0].displayName],
@@ -1401,12 +1405,6 @@ function getMemberPanel(selected: DashboardNavLabel) {
           ['Private handoff', confirmedTerms.privateHandoffCopy],
         ],
       };
-    case 'Standards':
-      return {
-        title: 'Published Standards',
-        copy: brandDoctrine.trustPromise,
-        rows: confirmedStandardRows,
-      };
     case 'Support':
       return {
         title: 'Concierge Support',
@@ -1418,21 +1416,9 @@ function getMemberPanel(selected: DashboardNavLabel) {
           ['Availability', 'Confirmed appointment'],
         ],
       };
-    case 'Settings':
-      return {
-        title: 'Account Settings',
-        copy: 'Profile settings stay quiet until backend profile controls are attached.',
-        rows: [
-          ['Profile', 'Member record'],
-          ['Notifications', 'Concierge updates'],
-          ['Payment method', 'Reviewed in portal'],
-          ['Privacy', 'Private handoff model'],
-        ],
-      };
-    case 'Overview':
     default:
       return {
-        title: 'Portal Overview',
+        title: 'Active Rental',
         copy: 'A member portal for current rental status, renewals, contract standards, and support.',
         rows: [
           ['Active rental', bookings[0].vehicle],
@@ -1444,8 +1430,63 @@ function getMemberPanel(selected: DashboardNavLabel) {
   }
 }
 
+function ContractDocument({ compact = false }: { compact?: boolean }) {
+  const activeVehicle = vehicles[0];
+
+  return (
+    <article className={compact ? 'contract-document compact' : 'contract-document'} aria-label="OBAVIA contract packet">
+      <header className="contract-letterhead">
+        <BrandMark size={compact ? 48 : 66} tone="gold" />
+        <div>
+          <span>OBAVIA</span>
+          <p>Private Vehicle Rental Agreement</p>
+        </div>
+      </header>
+
+      <section className="contract-title-block">
+        <p>Contract Packet</p>
+        <h2>{activeVehicle.displayName}</h2>
+        <span>{confirmedTerms.rentalStructure}</span>
+      </section>
+
+      <dl className="contract-summary-grid">
+        <div>
+          <dt>Member</dt>
+          <dd>{bookings[0].customer}</dd>
+        </div>
+        <div>
+          <dt>Vehicle</dt>
+          <dd>{activeVehicle.displayName}</dd>
+        </div>
+        <div>
+          <dt>Program</dt>
+          <dd>{standardWeeklyRateLabel}</dd>
+        </div>
+        <div>
+          <dt>Area</dt>
+          <dd>{confirmedTerms.serviceArea}</dd>
+        </div>
+      </dl>
+
+      <div className="contract-clause-list">
+        {contractClauses.map(([label, value]) => (
+          <div key={label}>
+            <span>{label}</span>
+            <p>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <footer className="contract-footer">
+        <span>{brandDoctrine.oneLine}</span>
+        <strong>OBAVIA</strong>
+      </footer>
+    </article>
+  );
+}
+
 function MemberDashboard() {
-  const [selected, setSelected] = useState<DashboardNavLabel>('Overview');
+  const [selected, setSelected] = useState<DashboardNavLabel>('Rental');
   const activeBooking = bookings[0];
   const activeVehicle = vehicles[0];
   const panel = getMemberPanel(selected);
@@ -1469,8 +1510,8 @@ function MemberDashboard() {
         <div className="member-main">
           <div className="member-content reveal">
             <div className="dashboard-heading">
-              <p>Welcome back,</p>
-              <h1>James Anderson</h1>
+              <p>Member portal</p>
+              <h1>Confirmed Member</h1>
             </div>
 
             <article className="membership-status">
@@ -1479,8 +1520,8 @@ function MemberDashboard() {
                 <p>Access Type</p>
                 <h2>Standard Weekly</h2>
               </div>
-              <button className="text-link" type="button" onClick={() => go('membership')}>
-                View Standards
+              <button className="text-link" type="button" onClick={() => setSelected('Contract')}>
+                View Contract
               </button>
             </article>
 
@@ -1494,21 +1535,25 @@ function MemberDashboard() {
               ))}
             </section>
 
-            <section className="member-detail-panel" aria-live="polite">
-              <div>
-                <p>{selected}</p>
-                <h2>{panel.title}</h2>
-                <span>{panel.copy}</span>
-              </div>
-              <dl>
-                {panel.rows.map(([label, value]) => (
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
+            {selected === 'Contract' ? (
+              <ContractDocument />
+            ) : (
+              <section className="member-detail-panel" aria-live="polite">
+                <div>
+                  <p>{selected}</p>
+                  <h2>{panel.title}</h2>
+                  <span>{panel.copy}</span>
+                </div>
+                <dl>
+                  {panel.rows.map(([label, value]) => (
+                    <div key={label}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
 
             <section className="member-booking-block">
               <h2>Current Rental</h2>
@@ -1538,13 +1583,41 @@ function AdminSystemsPanel({
   selected: AdminNavLabel;
   onSelect: (label: AdminNavLabel) => void;
 }) {
+  const heroCopy: Record<AdminNavLabel, { eyebrow: string; title: string; copy: string }> = {
+    Inventory: {
+      eyebrow: 'Inventory',
+      title: 'Ledger units only.',
+      copy: 'Incoming or retired units do not appear until the ledger makes them real.',
+    },
+    Renewals: {
+      eyebrow: 'Renewals',
+      title: 'Weekly continuation without hidden terms.',
+      copy: confirmedTerms.rentalStructure,
+    },
+    Overdues: {
+      eyebrow: 'Overdues',
+      title: 'No balance appears without ledger proof.',
+      copy: 'The page is ready for overdue rows, but the current confirmed data does not publish one.',
+    },
+    Contracts: {
+      eyebrow: 'Contracts',
+      title: 'A branded packet built from confirmed terms.',
+      copy: 'The agreement shows the standard, exceptions, fuel rule, and claim precedent without invented figures.',
+    },
+    Portal: {
+      eyebrow: 'Customer Portal',
+      title: 'The member sees rental, renewal, contract, support.',
+      copy: 'The portal begins with the current ledger record and keeps every hidden operational address private.',
+    },
+  };
+
   if (selected === 'Inventory') {
     return (
       <section className="admin-system-workspace reveal" aria-label="Inventory system">
         <div className="admin-system-hero">
-          <p>Inventory</p>
-          <h2>Ledger units only.</h2>
-          <span>Incoming or retired units do not appear until the ledger makes them real.</span>
+          <p>{heroCopy.Inventory.eyebrow}</p>
+          <h2>{heroCopy.Inventory.title}</h2>
+          <span>{heroCopy.Inventory.copy}</span>
         </div>
         <div className="admin-ledger-table four-col">
           <div className="admin-ledger-head">
@@ -1570,9 +1643,9 @@ function AdminSystemsPanel({
     return (
       <section className="admin-system-workspace reveal" aria-label="Renewals system">
         <div className="admin-system-hero">
-          <p>Renewals</p>
-          <h2>Weekly continuation without hidden terms.</h2>
-          <span>{confirmedTerms.rentalStructure}</span>
+          <p>{heroCopy.Renewals.eyebrow}</p>
+          <h2>{heroCopy.Renewals.title}</h2>
+          <span>{heroCopy.Renewals.copy}</span>
         </div>
         <div className="admin-ledger-table four-col">
           <div className="admin-ledger-head">
@@ -1598,9 +1671,9 @@ function AdminSystemsPanel({
     return (
       <section className="admin-system-workspace reveal" aria-label="Overdues system">
         <div className="admin-system-hero">
-          <p>Overdues</p>
-          <h2>No balance appears without ledger proof.</h2>
-          <span>The page is ready for overdue rows, but the current confirmed data does not publish one.</span>
+          <p>{heroCopy.Overdues.eyebrow}</p>
+          <h2>{heroCopy.Overdues.title}</h2>
+          <span>{heroCopy.Overdues.copy}</span>
         </div>
         <div className="admin-overdue-grid">
           {overdueControls.map(([label, copy]) => (
@@ -1618,37 +1691,34 @@ function AdminSystemsPanel({
     return (
       <section className="admin-system-workspace reveal" aria-label="Contracts system">
         <div className="admin-system-hero">
-          <p>Contracts</p>
-          <h2>Packet controls built from confirmed terms.</h2>
-          <span>Contracts show the standard, exceptions, fuel rule, and claim precedent without invented figures.</span>
+          <p>{heroCopy.Contracts.eyebrow}</p>
+          <h2>{heroCopy.Contracts.title}</h2>
+          <span>{heroCopy.Contracts.copy}</span>
         </div>
-        <div className="admin-ledger-table four-col">
-          <div className="admin-ledger-head">
-            <span>Packet</span>
-            <span>Status</span>
-            <span>Value</span>
-            <span>Use</span>
+        <div className="admin-contract-layout">
+          <div className="contract-control-list" aria-label="Contract controls">
+            {contractRows.map(([packet, status, value, use]) => (
+              <article key={packet}>
+                <p>{packet}</p>
+                <strong>{value}</strong>
+                <span>{status}</span>
+                <small>{use}</small>
+              </article>
+            ))}
           </div>
-          {contractRows.map(([packet, status, value, use]) => (
-            <div className="admin-ledger-row" key={packet}>
-              <span>{packet}</span>
-              <span>{status}</span>
-              <span>{value}</span>
-              <span>{use}</span>
-            </div>
-          ))}
+          <ContractDocument compact />
         </div>
       </section>
     );
   }
 
-  if (selected === 'Members') {
+  if (selected === 'Portal') {
     return (
       <section className="admin-system-workspace reveal" aria-label="Member controls">
         <div className="admin-system-hero">
-          <p>Members</p>
-          <h2>Customer portal controls begin here.</h2>
-          <span>Member-facing screens expose current rental, renewal standard, contract terms, and support.</span>
+          <p>{heroCopy.Portal.eyebrow}</p>
+          <h2>{heroCopy.Portal.title}</h2>
+          <span>{heroCopy.Portal.copy}</span>
         </div>
         <div className="admin-module-actions">
           <button type="button" onClick={() => go('member')}>Open Member Portal</button>
@@ -1658,90 +1728,11 @@ function AdminSystemsPanel({
     );
   }
 
-  if (selected === 'Finance') {
-    return (
-      <section className="admin-system-workspace reveal" aria-label="Finance system">
-        <div className="admin-system-hero">
-          <p>Finance</p>
-          <h2>Confirmed figures only.</h2>
-          <span>Rates and claim precedent come from the confirmed standards sheet.</span>
-        </div>
-        <div className="admin-overdue-grid">
-          {cashExposure.map(([label, value]) => (
-            <article key={label}>
-              <strong>{label}</strong>
-              <p>{value}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  if (selected === 'Reports') {
-    return (
-      <section className="admin-system-workspace reveal" aria-label="Reports system">
-        <div className="admin-system-hero">
-          <p>Reports</p>
-          <h2>Standards report.</h2>
-          <span>Report rows match the public standards table.</span>
-        </div>
-        <div className="admin-ledger-table two-col">
-          {confirmedStandardRows.map(([label, value]) => (
-            <div className="admin-ledger-row" key={label}>
-              <span>{label}</span>
-              <span>{value}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  if (selected === 'Settings') {
-    return (
-      <section className="admin-system-workspace reveal" aria-label="Settings system">
-        <div className="admin-system-hero">
-          <p>Settings</p>
-          <h2>Release controls stay gated.</h2>
-          <span>Settings are presentation-only until backend permissions are connected.</span>
-        </div>
-        <div className="gate-grid admin-settings-grid">
-          {requiredGates.map(([gate, complete]) => (
-            <span className={complete ? 'complete' : 'blocked'} key={gate}>
-              <ClipboardCheck size={18} strokeWidth={1.4} />
-              {gate}
-            </span>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="admin-system-workspace reveal" aria-label="Admin systems">
-      <div className="admin-system-hero">
-        <p>Operating Systems</p>
-        <h2>Inventory, renewals, overdues, contracts.</h2>
-        <span>Each module is ready for backend wiring without duplicating ledger logic.</span>
-      </div>
-      <div className="admin-module-switchboard">
-        {adminModules.map(({ label, value, copy, control, icon: Icon }) => (
-          <button type="button" key={label} onClick={() => onSelect(label)}>
-            <Icon size={23} strokeWidth={1.35} />
-            <p>{label}</p>
-            <strong>{value}</strong>
-            <span>{copy}</span>
-            <small>{control}</small>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
+  return null;
 }
 
 function AdminDashboard() {
-  const [selected, setSelected] = useState<AdminNavLabel>('Command');
+  const [selected, setSelected] = useState<AdminNavLabel>('Inventory');
 
   return (
     <section className="admin-page">
@@ -1764,7 +1755,7 @@ function AdminDashboard() {
         <header className="admin-top">
           <div>
             <p>OBAVIA / Staff Platform</p>
-            <h1>{selected === 'Command' ? 'Command Center' : selected}</h1>
+            <h1>Operations</h1>
           </div>
           <div>
             <button className="icon-button dark" type="button">
@@ -1780,263 +1771,32 @@ function AdminDashboard() {
 
         <section className="staff-hero reveal">
           <div className="staff-hero-copy">
-            <p>Built around roles, not people</p>
-            <h2>Every trip moves only when the required control point is complete.</h2>
+            <p>Simple control</p>
+            <h2>One ledger. One contract. One member portal.</h2>
           </div>
           <div className="staff-hero-control">
-            <span>Core object</span>
-            <strong>The Trip</strong>
-            <p>Concierge creates it. Finance secures it. Fleet documents it. Dispatch releases it.</p>
+            <span>Active module</span>
+            <strong>{selected}</strong>
+            <p>Switch modules from the left rail. No duplicate tables below the work surface.</p>
           </div>
+        </section>
+
+        <section className="admin-overview-strip reveal" aria-label="Admin overview">
+          {adminOverviewCards.map(([label, value, copy]) => (
+            <button
+              className={label === selected ? 'active' : ''}
+              type="button"
+              key={label}
+              onClick={() => setSelected(label as AdminNavLabel)}
+            >
+              <span>{label}</span>
+              <strong>{value}</strong>
+              <small>{copy}</small>
+            </button>
+          ))}
         </section>
 
         <AdminSystemsPanel selected={selected} onSelect={setSelected} />
-
-        {selected === 'Command' ? (
-          <>
-        <div className="metric-grid reveal">
-          {commandMetrics.map(([label, value, sub]) => (
-            <article key={label}>
-              <p>{label}</p>
-              <h2>{value}</h2>
-              <span>{sub}</span>
-            </article>
-          ))}
-        </div>
-
-        <div className="admin-grid">
-          <article className="admin-table reveal">
-            <div className="panel-heading">
-              <h2>Rental Pipeline</h2>
-              <select aria-label="Booking range" defaultValue="week">
-                <option value="week">Current Ledger</option>
-                <option value="month">Confirmed Terms</option>
-              </select>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Stage</th>
-                  <th>Member</th>
-                  <th>Vehicle</th>
-                  <th>Control</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookingPipeline.map(([stage, member, vehicle, control]) => (
-                  <tr key={stage}>
-                    <td>{stage}</td>
-                    <td>{member}</td>
-                    <td>{vehicle}</td>
-                    <td>{control}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button className="text-link admin-table-link" type="button" onClick={() => go('book')}>
-              Create Booking
-              <ArrowRight size={18} strokeWidth={1.4} />
-            </button>
-          </article>
-
-          <article className="risk-panel reveal">
-            <div className="panel-heading">
-              <h2>Alerts</h2>
-              <ShieldAlert size={22} strokeWidth={1.35} />
-            </div>
-            <div className="alert-list">
-              {commandAlerts.map((alert) => (
-                <p key={alert}>{alert}</p>
-              ))}
-            </div>
-            <div className="cash-exposure">
-              {cashExposure.map(([label, value]) => (
-                <span key={label}>
-                  <small>{label}</small>
-                  <strong>{value}</strong>
-                </span>
-              ))}
-            </div>
-          </article>
-        </div>
-
-        <section className="trip-control reveal">
-          <div className="panel-heading">
-            <h2>Active Rental Control</h2>
-            <span className="panel-status">Ready for release after inspection</span>
-          </div>
-          <div className="stage-rail" aria-label="Trip locked stages">
-            {tripStages.map((stage, index) => (
-              <span className={index <= 5 ? 'complete' : index === 6 ? 'current' : ''} key={stage}>
-                {stage}
-              </span>
-            ))}
-          </div>
-          <div className="gate-grid">
-            {requiredGates.map(([gate, complete]) => (
-              <span className={complete ? 'complete' : 'blocked'} key={gate}>
-                <ClipboardCheck size={18} strokeWidth={1.4} />
-                {gate}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        <section className="ops-grid">
-          <article className="dispatch-panel reveal">
-            <div className="panel-heading">
-              <h2>Fleet Movement Board</h2>
-              <Gauge size={22} strokeWidth={1.35} />
-            </div>
-            <div className="dispatch-table">
-              <div className="dispatch-head">
-                <span>Vehicle</span>
-                <span>Status</span>
-                <span>Program</span>
-                <span>Rate</span>
-                <span>Control</span>
-              </div>
-              {dispatchRows.map((row) => (
-                <div className="dispatch-row" key={row[0]}>
-                  {row.map((cell, index) => (
-                    <span key={`${row[0]}-${index}-${cell}`}>{cell}</span>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="driver-panel reveal">
-            <div className="panel-heading">
-              <h2>Driver Mobile Task App</h2>
-              <KeyRound size={22} strokeWidth={1.35} />
-            </div>
-            <div className="driver-phone">
-              <p>Member handoff</p>
-              <h3>{vehicles[1].displayName}</h3>
-              <span>{confirmedTerms.privateHandoffCopy}</span>
-              <ul>
-                {driverChecklist.map((item, index) => (
-                  <li key={item}>
-                    <span>{index < 2 ? 'Done' : 'Open'}</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <button type="button">Enter Handoff PIN</button>
-            </div>
-          </article>
-        </section>
-
-        <section className="ops-grid">
-          <article className="admin-table reveal">
-            <div className="panel-heading">
-              <h2>Fleet Control</h2>
-              <CarFront size={22} strokeWidth={1.35} />
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Vehicle</th>
-                  <th>Status</th>
-                  <th>Rate</th>
-                  <th>Control</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fleetStatus.map(([vehicle, status, nextBooking, issue]) => (
-                  <tr key={vehicle}>
-                    <td>{vehicle}</td>
-                    <td>{status}</td>
-                    <td>{nextBooking}</td>
-                    <td>{issue}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </article>
-
-          <article className="finance-panel reveal">
-            <div className="panel-heading">
-              <h2>Finance & Risk Console</h2>
-              <WalletCards size={22} strokeWidth={1.35} />
-            </div>
-            <div className="finance-ledger">
-              {bookings.slice(0, 3).map((booking, index) => (
-                <div key={booking.customer}>
-                  <span>{booking.vehicle}</span>
-                  <strong>{index === 1 ? hardshipBridgeRateLabel : standardWeeklyRateLabel}</strong>
-                  <small>{booking.control}</small>
-                </div>
-              ))}
-            </div>
-            <div className="finance-actions">
-              <button type="button">Capture Balance</button>
-              <button type="button">Review Payment</button>
-              <button type="button">Create Damage Claim</button>
-            </div>
-          </article>
-        </section>
-
-        <section className="permission-panel reveal">
-          <div className="panel-heading">
-            <h2>Role-Based Permission Matrix</h2>
-            <FileCheck2 size={22} strokeWidth={1.35} />
-          </div>
-          <div className="permission-table">
-            <div className="permission-head">
-              <span>Role</span>
-              <span>Member Data</span>
-              <span>Booking Edit</span>
-              <span>Vehicle Assignment</span>
-              <span>Payment Control</span>
-              <span>Admin Settings</span>
-            </div>
-            {rolePermissions.map((row) => (
-              <div className="permission-row" key={row[0]}>
-                {row.map((cell, index) => (
-                  <span key={`${row[0]}-${index}-${cell}`}>{cell}</span>
-                ))}
-              </div>
-            ))}
-          </div>
-          <p className="control-rule">
-            No single non-owner role can approve a customer, release a vehicle, release payment, and clear damage.
-          </p>
-        </section>
-
-        <section className="ops-grid">
-          <article className="vendor-panel reveal">
-            <div className="panel-heading">
-              <h2>Vendor Work Orders</h2>
-              <Wrench size={22} strokeWidth={1.35} />
-            </div>
-            {workOrders.map(([id, vehicle, issue, limit, deadline]) => (
-              <div className="work-order" key={id}>
-                <span>{id}</span>
-                <strong>{vehicle}</strong>
-                <p>{issue}</p>
-                <small>{limit} / {deadline}</small>
-              </div>
-            ))}
-          </article>
-
-          <article className="release-panel reveal">
-            <div className="panel-heading">
-              <h2>Release Controls</h2>
-              <ShieldCheck size={22} strokeWidth={1.35} />
-            </div>
-            <ol>
-              <li>Payment control is active.</li>
-              <li>ID and license are verified.</li>
-              <li>Pre-trip photos and mileage are attached.</li>
-              <li>Driver confirms arrival and handoff PIN.</li>
-              <li>Return inspection completes before rental closure.</li>
-            </ol>
-          </article>
-        </section>
-          </>
-        ) : null}
       </div>
     </section>
   );
@@ -2230,8 +1990,8 @@ function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
           right={<MobileIconButton label="Notifications"><Bell size={24} strokeWidth={1.35} /></MobileIconButton>}
         />
         <section className="app-greeting">
-          <p>Good morning,</p>
-          <h2>James</h2>
+          <p>Member portal</p>
+          <h2>Confirmed</h2>
           <span>Standard member</span>
         </section>
         <section className="upcoming-card">
@@ -2590,12 +2350,12 @@ function MobileBookingScreen({ onSelect = noopMobileSelect }: MobileScreenProps)
           </div>
         </article>
         <div className="booking-fields-app">
-          {fields.map(([label, placeholder, Icon], index) => (
-            <label className={index === 0 || index === 3 ? 'wide' : ''} key={`${label}-${placeholder}`}>
+          {fields.map(([label, value, Icon], index) => (
+            <label className={index === 0 || index === 3 ? 'wide' : ''} key={`${label}-${value}`}>
               <span>{label}</span>
               <i>
                 <Icon size={18} strokeWidth={1.35} />
-                {placeholder}
+                {value}
                 <ChevronRight size={16} strokeWidth={1.35} />
               </i>
             </label>
