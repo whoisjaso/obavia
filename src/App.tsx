@@ -371,24 +371,29 @@ const navItems = [
 
 const dashboardNav = [
   'Overview',
-  'My Bookings',
-  'Favorites',
-  'Payment Methods',
+  'Current Rental',
+  'Renewal',
+  'Contract',
   'Standards',
+  'Support',
   'Settings',
 ] as const;
 
+type DashboardNavLabel = (typeof dashboardNav)[number];
+
 const adminNav = [
   { label: 'Command', icon: LayoutDashboard },
-  { label: 'Bookings', icon: CalendarDays },
-  { label: 'Dispatch', icon: Gauge },
-  { label: 'Vehicles', icon: CarFront },
+  { label: 'Inventory', icon: CarFront },
+  { label: 'Renewals', icon: CalendarCheck },
+  { label: 'Overdues', icon: ShieldAlert },
+  { label: 'Contracts', icon: FileCheck2 },
   { label: 'Members', icon: UsersRound },
   { label: 'Finance', icon: CreditCard },
-  { label: 'Risk', icon: ShieldAlert },
   { label: 'Reports', icon: BarChart3 },
   { label: 'Settings', icon: Settings },
 ] as const;
+
+type AdminNavLabel = (typeof adminNav)[number]['label'];
 
 const commandMetrics = [
   ['Fleet Ledger', String(fleetStats.activeUnits), 'Active units only'],
@@ -426,7 +431,7 @@ const commandAlerts = [
 const tripStages = [
   'Inquiry',
   'Member Approved',
-  'Payment Hold',
+  'Payment Control',
   'Vehicle Assigned',
   'Driver Assigned',
   'Vehicle Prepped',
@@ -475,6 +480,78 @@ const rolePermissions = [
 const workOrders = [
   ['Fleet Review', vehicles[2].displayName, 'Phase-out watch', 'Jason approval required', 'No public arriving card'],
   ['Photo Standard', vehicles[0].displayName, 'Exact vehicle photos pending', 'Ledger truth required', 'No fake depth'],
+] as const;
+
+const adminModules = [
+  {
+    label: 'Inventory',
+    value: `${fleetStats.activeUnits} ledger units`,
+    copy: 'Every public vehicle row comes from the active ledger.',
+    control: 'No fake depth',
+    icon: CarFront,
+  },
+  {
+    label: 'Renewals',
+    value: standardWeeklyRateLabel,
+    copy: 'Weekly continuation is tied to the open-ended rental structure.',
+    control: confirmedTerms.rentalStructure,
+    icon: CalendarCheck,
+  },
+  {
+    label: 'Overdues',
+    value: 'Ledger gated',
+    copy: 'Overdue balances stay blank until a confirmed ledger entry exists.',
+    control: 'No imagined balances',
+    icon: ShieldAlert,
+  },
+  {
+    label: 'Contracts',
+    value: 'Packet control',
+    copy: 'Contract presentation uses confirmed terms and vehicle ledger rows.',
+    control: confirmedTerms.fuelPolicyShort,
+    icon: FileCheck2,
+  },
+] as const;
+
+const inventoryRows = vehicles.map((vehicle) => [
+  vehicle.displayName,
+  vehicle.publicStatus,
+  vehicle.rateLabel,
+  vehicle.statusDetail,
+] as const);
+
+const renewalRows = vehicles.map((vehicle) => {
+  const isActiveRental = vehicle.id === vehicles[0].id;
+  const program = isActiveRental ? 'Active weekly rental' : vehicle.category;
+  const action = isActiveRental ? 'Review weekly continuation' : 'No renewal action';
+
+  return [
+    vehicle.displayName,
+    program,
+    vehicle.rateLabel,
+    action,
+  ] as const;
+});
+
+const overdueControls = [
+  ['Confirmed overdue ledger', 'No confirmed overdue row is published in this build.'],
+  ['Loss-of-use precedent', `${lossOfUseRateLabel} is available only for documented claims.`],
+  ['Hardship Bridge floor', `${hardshipBridgeMinimumLabel} remains the non-waivable minimum.`],
+  ['Operator rule', 'Do not render balances, fees, or dates without ledger confirmation.'],
+] as const;
+
+const contractRows = [
+  [vehicles[0].displayName, 'Active agreement', confirmedTerms.rentalStructure, confirmedTerms.fuelPolicyShort],
+  ['Standard packet', 'Weekly access', standardWeeklyRateLabel, 'Published before request'],
+  ['Hardship Bridge addendum', confirmedTerms.hardshipBridgeWeeks, hardshipBridgeRateLabel, `Minimum ${hardshipBridgeMinimumLabel}`],
+  ['Claims demand precedent', 'Documented loss-of-use', lossOfUseRateLabel, 'Use with evidence only'],
+] as const;
+
+const memberSystemCards = [
+  ['Current Rental', vehicles[0].displayName, confirmedTerms.rentalStructure],
+  ['Renewal Standard', standardWeeklyRateLabel, 'Published weekly baseline'],
+  ['Contract Terms', confirmedTerms.fuelPolicyShort, 'Visible before request'],
+  ['Concierge', confirmedTerms.serviceArea, 'Confirmed handoff instructions stay private'],
 ] as const;
 
 const appCollections = [
@@ -856,6 +933,15 @@ function SiteNav({
                 <b aria-hidden="true">|</b>
                 <span>{confirmedTerms.serviceArea}</span>
               </p>
+              <button
+                className="site-menu-admin-link"
+                type="button"
+                onMouseEnter={previewMenuSound}
+                onFocus={previewMenuSound}
+                onClick={() => navigateFromMenu('admin')}
+              >
+                Admin
+              </button>
             </div>
           </div>
         </div>
@@ -1280,10 +1366,89 @@ function MembershipPage() {
   );
 }
 
+function getMemberPanel(selected: DashboardNavLabel) {
+  switch (selected) {
+    case 'Current Rental':
+      return {
+        title: 'Current Rental',
+        copy: 'The active rental view mirrors the ledger and does not add vehicles outside the confirmed fleet.',
+        rows: [
+          ['Vehicle', vehicles[0].displayName],
+          ['Status', vehicles[0].publicStatus],
+          ['Program', confirmedTerms.rentalStructure],
+          ['Handoff', confirmedTerms.privateHandoffCopy],
+        ],
+      };
+    case 'Renewal':
+      return {
+        title: 'Renewal Standard',
+        copy: 'Weekly continuation stays visible, with documented exceptions shown beside the standard.',
+        rows: [
+          ['Standard weekly rate', standardWeeklyRateLabel],
+          ['Rental structure', confirmedTerms.rentalStructure],
+          ['Hardship Bridge', `${confirmedTerms.hardshipBridgeDiscountPercent}% off ${confirmedTerms.hardshipBridgeWeeks}`],
+          ['Bridge minimum', hardshipBridgeMinimumLabel],
+        ],
+      };
+    case 'Contract':
+      return {
+        title: 'Contract Packet',
+        copy: 'The customer sees the rules that matter before request, then the full packet after confirmation.',
+        rows: [
+          ['Fuel policy', confirmedTerms.fuelPolicy],
+          ['Customer-facing address', `${confirmedTerms.customerAddressLabel}: ${confirmedTerms.customerAddress}`],
+          ['Loss-of-use precedent', lossOfUseRateLabel],
+          ['Private handoff', confirmedTerms.privateHandoffCopy],
+        ],
+      };
+    case 'Standards':
+      return {
+        title: 'Published Standards',
+        copy: brandDoctrine.trustPromise,
+        rows: confirmedStandardRows,
+      };
+    case 'Support':
+      return {
+        title: 'Concierge Support',
+        copy: 'Support stays specific to the confirmed service area and handoff model.',
+        rows: [
+          ['Service area', confirmedTerms.serviceArea],
+          ['Toll road context', confirmedTerms.tollRoads.join(', ')],
+          ['Handoff instructions', confirmedTerms.privateHandoffCopy],
+          ['Availability', 'Confirmed appointment'],
+        ],
+      };
+    case 'Settings':
+      return {
+        title: 'Account Settings',
+        copy: 'Profile settings stay quiet until backend profile controls are attached.',
+        rows: [
+          ['Profile', 'Member record'],
+          ['Notifications', 'Concierge updates'],
+          ['Payment method', 'Reviewed in portal'],
+          ['Privacy', 'Private handoff model'],
+        ],
+      };
+    case 'Overview':
+    default:
+      return {
+        title: 'Portal Overview',
+        copy: 'A member portal for current rental status, renewals, contract standards, and support.',
+        rows: [
+          ['Active rental', bookings[0].vehicle],
+          ['Program', bookings[0].control],
+          ['Service area', bookings[0].location],
+          ['Standard', standardWeeklyRateLabel],
+        ],
+      };
+  }
+}
+
 function MemberDashboard() {
-  const [selected, setSelected] = useState<(typeof dashboardNav)[number]>('Overview');
+  const [selected, setSelected] = useState<DashboardNavLabel>('Overview');
   const activeBooking = bookings[0];
   const activeVehicle = vehicles[0];
+  const panel = getMemberPanel(selected);
 
   return (
     <section className="member-page">
@@ -1319,6 +1484,32 @@ function MemberDashboard() {
               </button>
             </article>
 
+            <section className="member-system-grid" aria-label="Member portal systems">
+              {memberSystemCards.map(([label, value, copy]) => (
+                <article key={label}>
+                  <p>{label}</p>
+                  <strong>{value}</strong>
+                  <span>{copy}</span>
+                </article>
+              ))}
+            </section>
+
+            <section className="member-detail-panel" aria-live="polite">
+              <div>
+                <p>{selected}</p>
+                <h2>{panel.title}</h2>
+                <span>{panel.copy}</span>
+              </div>
+              <dl>
+                {panel.rows.map(([label, value]) => (
+                  <div key={label}>
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+
             <section className="member-booking-block">
               <h2>Current Rental</h2>
               <article className="upcoming-booking">
@@ -1340,8 +1531,217 @@ function MemberDashboard() {
   );
 }
 
+function AdminSystemsPanel({
+  selected,
+  onSelect,
+}: {
+  selected: AdminNavLabel;
+  onSelect: (label: AdminNavLabel) => void;
+}) {
+  if (selected === 'Inventory') {
+    return (
+      <section className="admin-system-workspace reveal" aria-label="Inventory system">
+        <div className="admin-system-hero">
+          <p>Inventory</p>
+          <h2>Ledger units only.</h2>
+          <span>Incoming or retired units do not appear until the ledger makes them real.</span>
+        </div>
+        <div className="admin-ledger-table four-col">
+          <div className="admin-ledger-head">
+            <span>Vehicle</span>
+            <span>Status</span>
+            <span>Rate</span>
+            <span>Control</span>
+          </div>
+          {inventoryRows.map(([vehicle, status, rate, control]) => (
+            <div className="admin-ledger-row" key={vehicle}>
+              <span>{vehicle}</span>
+              <span>{status}</span>
+              <span>{rate}</span>
+              <span>{control}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (selected === 'Renewals') {
+    return (
+      <section className="admin-system-workspace reveal" aria-label="Renewals system">
+        <div className="admin-system-hero">
+          <p>Renewals</p>
+          <h2>Weekly continuation without hidden terms.</h2>
+          <span>{confirmedTerms.rentalStructure}</span>
+        </div>
+        <div className="admin-ledger-table four-col">
+          <div className="admin-ledger-head">
+            <span>Vehicle</span>
+            <span>Program</span>
+            <span>Rate</span>
+            <span>Next action</span>
+          </div>
+          {renewalRows.map(([vehicle, program, rate, action]) => (
+            <div className="admin-ledger-row" key={vehicle}>
+              <span>{vehicle}</span>
+              <span>{program}</span>
+              <span>{rate}</span>
+              <span>{action}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (selected === 'Overdues') {
+    return (
+      <section className="admin-system-workspace reveal" aria-label="Overdues system">
+        <div className="admin-system-hero">
+          <p>Overdues</p>
+          <h2>No balance appears without ledger proof.</h2>
+          <span>The page is ready for overdue rows, but the current confirmed data does not publish one.</span>
+        </div>
+        <div className="admin-overdue-grid">
+          {overdueControls.map(([label, copy]) => (
+            <article key={label}>
+              <strong>{label}</strong>
+              <p>{copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (selected === 'Contracts') {
+    return (
+      <section className="admin-system-workspace reveal" aria-label="Contracts system">
+        <div className="admin-system-hero">
+          <p>Contracts</p>
+          <h2>Packet controls built from confirmed terms.</h2>
+          <span>Contracts show the standard, exceptions, fuel rule, and claim precedent without invented figures.</span>
+        </div>
+        <div className="admin-ledger-table four-col">
+          <div className="admin-ledger-head">
+            <span>Packet</span>
+            <span>Status</span>
+            <span>Value</span>
+            <span>Use</span>
+          </div>
+          {contractRows.map(([packet, status, value, use]) => (
+            <div className="admin-ledger-row" key={packet}>
+              <span>{packet}</span>
+              <span>{status}</span>
+              <span>{value}</span>
+              <span>{use}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (selected === 'Members') {
+    return (
+      <section className="admin-system-workspace reveal" aria-label="Member controls">
+        <div className="admin-system-hero">
+          <p>Members</p>
+          <h2>Customer portal controls begin here.</h2>
+          <span>Member-facing screens expose current rental, renewal standard, contract terms, and support.</span>
+        </div>
+        <div className="admin-module-actions">
+          <button type="button" onClick={() => go('member')}>Open Member Portal</button>
+          <button type="button" onClick={() => go('book')}>Request Access Flow</button>
+        </div>
+      </section>
+    );
+  }
+
+  if (selected === 'Finance') {
+    return (
+      <section className="admin-system-workspace reveal" aria-label="Finance system">
+        <div className="admin-system-hero">
+          <p>Finance</p>
+          <h2>Confirmed figures only.</h2>
+          <span>Rates and claim precedent come from the confirmed standards sheet.</span>
+        </div>
+        <div className="admin-overdue-grid">
+          {cashExposure.map(([label, value]) => (
+            <article key={label}>
+              <strong>{label}</strong>
+              <p>{value}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (selected === 'Reports') {
+    return (
+      <section className="admin-system-workspace reveal" aria-label="Reports system">
+        <div className="admin-system-hero">
+          <p>Reports</p>
+          <h2>Standards report.</h2>
+          <span>Report rows match the public standards table.</span>
+        </div>
+        <div className="admin-ledger-table two-col">
+          {confirmedStandardRows.map(([label, value]) => (
+            <div className="admin-ledger-row" key={label}>
+              <span>{label}</span>
+              <span>{value}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (selected === 'Settings') {
+    return (
+      <section className="admin-system-workspace reveal" aria-label="Settings system">
+        <div className="admin-system-hero">
+          <p>Settings</p>
+          <h2>Release controls stay gated.</h2>
+          <span>Settings are presentation-only until backend permissions are connected.</span>
+        </div>
+        <div className="gate-grid admin-settings-grid">
+          {requiredGates.map(([gate, complete]) => (
+            <span className={complete ? 'complete' : 'blocked'} key={gate}>
+              <ClipboardCheck size={18} strokeWidth={1.4} />
+              {gate}
+            </span>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="admin-system-workspace reveal" aria-label="Admin systems">
+      <div className="admin-system-hero">
+        <p>Operating Systems</p>
+        <h2>Inventory, renewals, overdues, contracts.</h2>
+        <span>Each module is ready for backend wiring without duplicating ledger logic.</span>
+      </div>
+      <div className="admin-module-switchboard">
+        {adminModules.map(({ label, value, copy, control, icon: Icon }) => (
+          <button type="button" key={label} onClick={() => onSelect(label)}>
+            <Icon size={23} strokeWidth={1.35} />
+            <p>{label}</p>
+            <strong>{value}</strong>
+            <span>{copy}</span>
+            <small>{control}</small>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function AdminDashboard() {
-  const [selected, setSelected] = useState('Command');
+  const [selected, setSelected] = useState<AdminNavLabel>('Command');
 
   return (
     <section className="admin-page">
@@ -1364,7 +1764,7 @@ function AdminDashboard() {
         <header className="admin-top">
           <div>
             <p>OBAVIA / Staff Platform</p>
-            <h1>Command Center</h1>
+            <h1>{selected === 'Command' ? 'Command Center' : selected}</h1>
           </div>
           <div>
             <button className="icon-button dark" type="button">
@@ -1390,6 +1790,10 @@ function AdminDashboard() {
           </div>
         </section>
 
+        <AdminSystemsPanel selected={selected} onSelect={setSelected} />
+
+        {selected === 'Command' ? (
+          <>
         <div className="metric-grid reveal">
           {commandMetrics.map(([label, value, sub]) => (
             <article key={label}>
@@ -1631,6 +2035,8 @@ function AdminDashboard() {
             </ol>
           </article>
         </section>
+          </>
+        ) : null}
       </div>
     </section>
   );
@@ -1893,6 +2299,10 @@ function MobileMenuScreen({
     emitMenuInteractionSound('click');
     onSelect('home');
   };
+  const openAdmin = () => {
+    emitMenuInteractionSound('click');
+    go('admin');
+  };
 
   return (
     <div className="app-screen app-screen-dark menu-app">
@@ -1960,6 +2370,15 @@ function MobileMenuScreen({
           <b aria-hidden="true">|</b>
           <span>{confirmedTerms.serviceArea}</span>
         </div>
+        <button
+          className="mobile-menu-admin-link"
+          type="button"
+          onMouseEnter={previewMenuSound}
+          onFocus={previewMenuSound}
+          onClick={openAdmin}
+        >
+          Admin
+        </button>
       </div>
     </div>
   );
