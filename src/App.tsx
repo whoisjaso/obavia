@@ -467,7 +467,7 @@ const rolePermissions = [
 
 const workOrders = [
   ['Fleet Review', vehicles[2].displayName, 'Phase-out watch', 'Jason approval required', 'No public arriving card'],
-  ['Photo Standard', vehicles[0].displayName, 'Exact vehicle photos pending', 'Ledger truth required', 'No fake depth'],
+  ['Ledger Standard', vehicles[0].displayName, vehicles[0].publicStatus, 'Ledger truth required', 'Show confirmed record only'],
 ] as const;
 
 const adminModules = [
@@ -475,7 +475,7 @@ const adminModules = [
     label: 'Inventory',
     value: `${fleetStats.activeUnits} ledger units`,
     copy: 'Every public vehicle row comes from the active ledger.',
-    control: 'No fake depth',
+    control: 'Confirmed rows only',
     icon: CarFront,
   },
   {
@@ -563,35 +563,30 @@ const appCollections = [
     title: 'Standard Weekly Fleet',
     copy: 'Published weekly access from the live ledger.',
     price: standardWeeklyRateLabel,
-    image: vehicles[1].image,
     icon: CalendarDays,
   },
   {
     title: 'Hardship Bridge',
     copy: `${confirmedTerms.hardshipBridgeDiscountPercent}% off ${confirmedTerms.hardshipBridgeWeeks}; reverts automatically.`,
     price: hardshipBridgeRateLabel,
-    image: vehicles[0].image,
     icon: ShieldCheck,
   },
   {
     title: 'Houston Service Area',
     copy: 'Built for real local movement across the Houston metro.',
     price: confirmedTerms.serviceArea,
-    image: '/assets/about-entrance.png',
     icon: MapPin,
   },
   {
     title: 'Fuel & Return Standard',
     copy: confirmedTerms.fuelPolicyShort,
     price: 'Recorded at delivery',
-    image: vehicles[2].image,
     icon: Gauge,
   },
   {
     title: 'Fleet Ledger',
     copy: 'Small fleet, real availability, one vehicle at a time.',
     price: `${fleetStats.activeUnits} active units`,
-    image: '/assets/hero-arrival.png',
     icon: FileCheck2,
   },
 ] as const;
@@ -604,7 +599,6 @@ const appFleet = vehicles.map((vehicle) => ({
   status: vehicle.publicStatus,
   detail: vehicle.statusDetail,
   price: vehicle.rateLabel,
-  image: vehicle.image,
 }));
 
 const appMenuItems = [
@@ -1077,7 +1071,11 @@ function BookingPage() {
           }}
         >
           <div className="booking-vehicle">
-            <img src={selected.image} alt={`${selected.displayName} fleet presentation`} />
+            <div className="booking-ledger-card" aria-label={`${selected.displayName} ledger record`}>
+              <span>{selected.year}</span>
+              <strong>{selected.brand}</strong>
+              <small>{selected.publicStatus}</small>
+            </div>
             <div className="booking-summary">
               <p className="vehicle-brand">{selected.brand}</p>
               <h2>{selected.name}</h2>
@@ -1220,29 +1218,13 @@ function FleetPage() {
 
 function VehicleDetailPage() {
   const selected = vehicles.find((vehicle) => vehicle.category === 'Active Fleet') ?? vehicles[0];
-  const [mainImage, setMainImage] = useState(selected.image);
-  const thumbnails = [selected.image, '/assets/hero-arrival.png', '/assets/about-entrance.png'];
 
   return (
     <section className="light-page vehicle-detail-page">
       <SiteNav tone="light" compact showBack />
       <div className="detail-shell">
         <div className="detail-layout">
-          <div className="detail-media reveal">
-            <img className="detail-main" src={mainImage} alt={`${selected.displayName} fleet presentation`} />
-            <div className="thumbnail-row">
-              {thumbnails.map((image) => (
-                <button
-                  className={image === mainImage ? 'active' : ''}
-                  key={image}
-                  type="button"
-                  onClick={() => setMainImage(image)}
-                >
-                  <img src={image} alt="" />
-                </button>
-              ))}
-            </div>
-          </div>
+          <VehicleLedgerPanel vehicle={selected} />
 
           <article className="detail-copy reveal">
             <p className="vehicle-brand">{selected.brand}</p>
@@ -1369,6 +1351,33 @@ function MembershipPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+function VehicleLedgerPanel({ vehicle }: { vehicle: (typeof vehicles)[number] }) {
+  return (
+    <article className="vehicle-ledger-panel reveal" aria-label={`${vehicle.displayName} ledger record`}>
+      <p>Ledger Unit</p>
+      <h2>{vehicle.displayName}</h2>
+      <dl>
+        <div>
+          <dt>Status</dt>
+          <dd>{vehicle.publicStatus}</dd>
+        </div>
+        <div>
+          <dt>Rate</dt>
+          <dd>{vehicle.rateLabel}</dd>
+        </div>
+        <div>
+          <dt>Structure</dt>
+          <dd>{confirmedTerms.rentalStructure}</dd>
+        </div>
+        <div>
+          <dt>Control</dt>
+          <dd>{vehicle.statusDetail}</dd>
+        </div>
+      </dl>
+    </article>
   );
 }
 
@@ -1560,7 +1569,10 @@ function MemberDashboard() {
             <section className="member-booking-block">
               <h2>Current Rental</h2>
               <article className="upcoming-booking">
-                <img src={activeVehicle.image} alt={`${activeVehicle.displayName} fleet presentation`} />
+                <div className="booking-ledger-mark" aria-hidden="true">
+                  <span>{activeVehicle.year}</span>
+                  <strong>{activeVehicle.brand}</strong>
+                </div>
                 <div>
                   <h3>{activeBooking.vehicle}</h3>
                   <span>{activeBooking.control}</span>
@@ -2237,7 +2249,7 @@ function MobileCategoriesScreen({
           <p>{brandDoctrine.accessPromise}</p>
         </header>
         <div className="collection-list">
-          {appCollections.map(({ title, copy, price, image, icon: Icon }, index) => (
+          {appCollections.map(({ title, copy, price, icon: Icon }, index) => (
             <article
               className={index === 0 ? 'active' : ''}
               key={title}
@@ -2250,7 +2262,6 @@ function MobileCategoriesScreen({
                 }
               }}
             >
-              <img src={image} alt="" />
               <div>
                 <span>
                   <Icon size={18} strokeWidth={1.35} />
@@ -2314,7 +2325,10 @@ function MobileFleetScreen({
         <div className="app-fleet-list" key={activeTab}>
           {visibleFleet.map((vehicle) => (
             <article key={`${vehicle.marque}-${vehicle.model}`}>
-              <img src={vehicle.image} alt="" />
+              <div className="fleet-ledger-mark" aria-hidden="true">
+                <span>{vehicle.marque}</span>
+                <strong>{vehicle.status}</strong>
+              </div>
               <div>
                 <span>{vehicle.marque}</span>
                 <h3>{vehicle.model}</h3>
@@ -2351,7 +2365,7 @@ function MobileDetailScreen({ onSelect = noopMobileSelect }: MobileScreenProps) 
           left={<MobileIconButton label="Back" onClick={() => onSelect('fleet')}><ChevronLeft size={27} strokeWidth={1.35} /></MobileIconButton>}
           right={<MobileIconButton label="Favorite"><Heart size={25} strokeWidth={1.35} /></MobileIconButton>}
         />
-        <img className="detail-vehicle-image" src={selected.image} alt={`${selected.displayName} fleet presentation`} />
+        <VehicleLedgerPanel vehicle={selected} />
         <article className="detail-app-copy">
           <h2>{selected.shortName}</h2>
           <p>{selected.category}</p>
@@ -2411,7 +2425,10 @@ function MobileBookingScreen({ onSelect = noopMobileSelect }: MobileScreenProps)
           </div>
         </header>
         <article className="selected-vehicle-card">
-          <img src={selected.image} alt="" />
+          <div className="booking-ledger-mark" aria-hidden="true">
+            <span>{selected.year}</span>
+            <strong>{selected.brand}</strong>
+          </div>
           <div>
             <p>{selected.category}</p>
             <h3>{selected.displayName}</h3>

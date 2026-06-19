@@ -727,11 +727,38 @@ p {
   gap: 62px;
 }
 
-.booking-vehicle img {
-  width: 100%;
-  aspect-ratio: 2.04;
-  object-fit: cover;
-  filter: saturate(0.7) contrast(1.02);
+.booking-ledger-card {
+  min-height: 300px;
+  padding: 42px;
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  border: 1px solid rgba(18, 18, 18, 0.12);
+  background:
+    linear-gradient(135deg, rgba(184, 155, 94, 0.16), transparent 45%),
+    rgba(255, 255, 255, 0.26);
+}
+
+.booking-ledger-card span,
+.booking-ledger-card small {
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.booking-ledger-card strong {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(3.8rem, 6vw, 6rem);
+  font-weight: 400;
+  line-height: 0.88;
+}
+
+.booking-ledger-card small {
+  color: rgba(18, 18, 18, 0.62);
+  line-height: 1.5;
 }
 
 .booking-summary {
@@ -911,6 +938,44 @@ p {
   background: #0a0a0a;
 }
 
+.vehicle-ledger-media {
+  width: 100%;
+  min-height: 184px;
+  padding: 26px;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 10px;
+  overflow: hidden;
+  color: var(--ivory);
+  background:
+    linear-gradient(135deg, rgba(184, 155, 94, 0.12), transparent 42%),
+    #070707;
+  text-align: left;
+}
+
+.vehicle-ledger-media span,
+.vehicle-ledger-media small {
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.vehicle-ledger-media strong {
+  font-family: var(--serif);
+  font-size: clamp(2.5rem, 4vw, 3.7rem);
+  font-weight: 400;
+  line-height: 0.9;
+}
+
+.vehicle-ledger-media small {
+  max-width: 14rem;
+  color: rgba(245, 240, 230, 0.7);
+  line-height: 1.5;
+}
+
 .vehicle-media img,
 .detail-main,
 .about-portrait img,
@@ -978,6 +1043,56 @@ p {
   grid-template-columns: minmax(520px, 735px) minmax(390px, 1fr);
   gap: 58px;
   align-items: start;
+}
+
+.vehicle-ledger-panel {
+  min-height: 420px;
+  padding: clamp(28px, 4vw, 54px);
+  display: grid;
+  align-content: center;
+  gap: 26px;
+  border: 1px solid rgba(18, 18, 18, 0.14);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.vehicle-ledger-panel p,
+.vehicle-ledger-panel dt {
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.vehicle-ledger-panel h2 {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(3rem, 5vw, 5.2rem);
+  font-weight: 400;
+  line-height: 0.92;
+}
+
+.vehicle-ledger-panel dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgba(18, 18, 18, 0.12);
+  border-left: 1px solid rgba(18, 18, 18, 0.12);
+}
+
+.vehicle-ledger-panel dl div {
+  min-height: 104px;
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  border-right: 1px solid rgba(18, 18, 18, 0.12);
+  border-bottom: 1px solid rgba(18, 18, 18, 0.12);
+}
+
+.vehicle-ledger-panel dd {
+  color: rgba(18, 18, 18, 0.7);
+  font-size: 1rem;
+  line-height: 1.45;
 }
 
 .detail-main {
@@ -1443,16 +1558,24 @@ p {
   min-height: 264px;
   padding: 28px 35px;
   display: grid;
-  grid-template-columns: 300px 1fr auto;
+  grid-template-columns: minmax(160px, 220px) 1fr auto;
   gap: 45px;
   align-items: center;
   border: 1px solid var(--line-light);
   border-radius: 4px;
 }
 
-.upcoming-booking img {
-  aspect-ratio: 1.46;
-  filter: saturate(0.72) contrast(1.03);
+.upcoming-booking .booking-ledger-mark {
+  min-height: 156px;
+  border-color: rgba(18, 18, 18, 0.13);
+  background: rgba(18, 18, 18, 0.025);
+}
+
+.upcoming-booking .booking-ledger-mark strong {
+  color: rgba(18, 18, 18, 0.72);
+  font-family: var(--serif);
+  font-size: 2.1rem;
+  font-weight: 400;
 }
 
 .upcoming-booking h3 {
@@ -2924,12 +3047,13 @@ th {
 .collection-list article {
   min-height: 91px;
   display: grid;
-  grid-template-columns: 92px 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 11px;
+  gap: 16px;
   overflow: hidden;
   border: 1px solid rgba(245, 240, 230, 0.12);
   border-radius: 10px;
+  padding: 20px;
   background: rgba(255, 255, 255, 0.02);
   cursor: pointer;
   transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
@@ -2942,18 +3066,6 @@ th {
 .collection-list article:active {
   transform: scale(0.992);
   background: rgba(184, 155, 94, 0.045);
-}
-
-.collection-list img {
-  width: 92px;
-  height: 91px;
-  object-fit: cover;
-  filter: saturate(0.72) contrast(1.08) brightness(0.78);
-}
-
-.collection-list article:nth-child(3) img {
-  background: var(--ivory);
-  filter: saturate(0.6) contrast(1.05) brightness(0.76);
 }
 
 .collection-list div {
@@ -3047,23 +3159,17 @@ th {
 }
 
 .app-fleet-list article {
-  min-height: 86px;
+  min-height: 102px;
   display: grid;
-  grid-template-columns: 100px 1fr 56px;
+  grid-template-columns: 104px 1fr 56px;
   align-items: center;
   gap: 12px;
+  padding-left: 12px;
   overflow: hidden;
   border: 1px solid rgba(245, 240, 230, 0.12);
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.018);
   transition: border-color 180ms ease, background 180ms ease;
-}
-
-.app-fleet-list img {
-  width: 100px;
-  height: 86px;
-  object-fit: cover;
-  filter: saturate(0.7) contrast(1.08) brightness(0.78);
 }
 
 .app-fleet-list span {
@@ -3116,6 +3222,36 @@ th {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.fleet-ledger-mark,
+.booking-ledger-mark {
+  min-height: 78px;
+  padding: 13px 12px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid rgba(184, 155, 94, 0.28);
+  border-radius: 7px;
+  background: rgba(184, 155, 94, 0.035);
+}
+
+.fleet-ledger-mark span,
+.booking-ledger-mark span {
+  color: var(--gold);
+  font-size: 0.58rem;
+  font-weight: 720;
+  letter-spacing: 0.16em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.fleet-ledger-mark strong,
+.booking-ledger-mark strong {
+  color: rgba(245, 240, 230, 0.76);
+  font-size: 0.7rem;
+  font-weight: 560;
+  line-height: 1.25;
 }
 
 .app-fleet-list button:active {
@@ -3289,20 +3425,14 @@ th {
   min-height: 100px;
   margin-top: 13px;
   display: grid;
-  grid-template-columns: 112px 1fr;
+  grid-template-columns: 96px 1fr;
   gap: 16px;
   align-items: center;
   overflow: hidden;
+  padding: 12px;
   border: 1px solid rgba(184, 155, 94, 0.34);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.02);
-}
-
-.selected-vehicle-card img {
-  width: 112px;
-  height: 100px;
-  object-fit: cover;
-  filter: saturate(0.72) brightness(0.78);
 }
 
 .selected-vehicle-card p {
@@ -4050,7 +4180,8 @@ th {
     #080808;
 }
 
-.fleet-page .vehicle-media {
+.fleet-page .vehicle-media,
+.fleet-page .vehicle-ledger-media {
   height: 100%;
   min-height: 210px;
   aspect-ratio: auto;
@@ -5790,6 +5921,34 @@ th {
 
 .mobile-app-viewport .contract-footer {
   flex-direction: column;
+}
+
+.mobile-app-viewport .vehicle-ledger-panel {
+  min-height: auto;
+  margin-top: 10px;
+  padding: 22px 18px;
+  gap: 18px;
+  border-color: rgba(18, 18, 18, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.mobile-app-viewport .vehicle-ledger-panel h2 {
+  font-size: 2.1rem;
+}
+
+.mobile-app-viewport .vehicle-ledger-panel dl {
+  grid-template-columns: 1fr;
+}
+
+.mobile-app-viewport .vehicle-ledger-panel dl div {
+  min-height: 68px;
+  padding: 14px 0;
+  border-right: 0;
+}
+
+.mobile-app-viewport .vehicle-ledger-panel dd {
+  font-size: 0.84rem;
 }
 
 .portal-app-screen .mobile-system-head {

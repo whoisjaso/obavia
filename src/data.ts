@@ -1,7 +1,5 @@
 export type VehicleCategory = 'Active Fleet' | 'Currently Rented' | 'Phase-Out Watch';
 
-const ledgerVehicleImage = '/assets/fleet-ledger-sedan.svg';
-
 export const brandDoctrine = {
   oneLine: 'A private rental house with published standards and nothing hidden.',
   trustPromise: 'Published standards. Real availability. No hidden terms.',
@@ -81,7 +79,6 @@ export type FleetLedgerUnit = {
   status: string;
   publicStatus: string;
   statusDetail: string;
-  image: string;
   presentationNote: string;
   rateLabel: string;
   description: string;
@@ -99,7 +96,6 @@ export const fleetLedger: FleetLedgerUnit[] = [
     status: 'Active, rented',
     publicStatus: 'Currently rented',
     statusDetail: 'Returns to fleet when the current open-ended agreement closes.',
-    image: ledgerVehicleImage,
     presentationNote: 'Active ledger unit presented with full OBAVIA dignity while in fleet.',
     rateLabel: standardWeeklyRateLabel,
     description:
@@ -114,7 +110,6 @@ export const fleetLedger: FleetLedgerUnit[] = [
     status: 'Active',
     publicStatus: 'Active',
     statusDetail: 'Proven standard-tier unit for Houston weekly mobility.',
-    image: ledgerVehicleImage,
     presentationNote: 'Proven unit in active ledger.',
     rateLabel: standardWeeklyRateLabel,
     description:
@@ -129,7 +124,6 @@ export const fleetLedger: FleetLedgerUnit[] = [
     status: 'Active, phase-out list',
     publicStatus: 'Active, phase-out list',
     statusDetail: 'Maintained while active; no new acquisitions of this platform.',
-    image: ledgerVehicleImage,
     presentationNote: 'Active ledger unit monitored for phase-out.',
     rateLabel: standardWeeklyRateLabel,
     description:

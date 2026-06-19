@@ -10,16 +10,18 @@ export function VehicleCard({ vehicle, onOpen }: VehicleCardProps) {
   return (
     <article className="vehicle-card reveal">
       <button
-        className="vehicle-media"
+        className="vehicle-ledger-media"
         type="button"
         onClick={() => onOpen?.(vehicle.id)}
         aria-label={`View ${vehicle.brand} ${vehicle.name}`}
       >
-        <img src={vehicle.image} alt={`${vehicle.displayName} fleet presentation`} />
+        <span>{vehicle.year}</span>
+        <strong>{vehicle.brand}</strong>
+        <small>{vehicle.publicStatus}</small>
       </button>
       <div className="vehicle-copy">
         <p className="vehicle-brand">{vehicle.brand}</p>
-        <h3>{vehicle.name}</h3>
+        <h3>{vehicle.name}{vehicle.trim ? ` ${vehicle.trim}` : ''}</h3>
         <p>{vehicle.category}</p>
         <div className="spec-line" aria-label="Vehicle specifications">
           <span>
