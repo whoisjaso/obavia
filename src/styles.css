@@ -5518,6 +5518,333 @@ th {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Direct admin operating surfaces */
+.admin-top {
+  position: relative;
+}
+
+.admin-top h1 {
+  font-size: 2.35rem;
+}
+
+.admin-top-actions {
+  position: relative;
+}
+
+.admin-popover {
+  position: absolute;
+  z-index: 30;
+  top: 52px;
+  right: 0;
+  width: 280px;
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(244, 238, 229, 0.14);
+  border-radius: 8px;
+  background: #111;
+  color: var(--ivory);
+}
+
+.admin-popover h2 {
+  color: var(--ivory);
+  font-family: var(--sans);
+  font-size: 0.86rem;
+  font-weight: 720;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-popover p {
+  color: rgba(244, 238, 229, 0.7);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.admin-popover button {
+  min-height: 38px;
+  justify-self: start;
+  padding: 0 14px;
+  color: var(--gold-bright);
+  border: 1px solid rgba(184, 155, 94, 0.5);
+  border-radius: 4px;
+  font-size: 0.74rem;
+  font-weight: 720;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-module-title {
+  margin-top: 34px;
+  padding: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(244, 238, 229, 0.12);
+}
+
+.admin-module-title svg {
+  color: var(--gold-bright);
+}
+
+.admin-module-title h2 {
+  color: var(--ivory);
+  font-family: var(--sans);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-system-workspace.simple {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-ledger-table {
+  margin-top: 0;
+  border: 1px solid rgba(244, 238, 229, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.admin-ledger-head,
+.admin-ledger-row {
+  min-width: 980px;
+}
+
+.admin-ledger-table.inventory-table .admin-ledger-head,
+.admin-ledger-table.inventory-table .admin-ledger-row {
+  grid-template-columns:
+    minmax(58px, 0.46fr)
+    minmax(78px, 0.58fr)
+    minmax(138px, 1fr)
+    minmax(112px, 0.78fr)
+    minmax(110px, 0.76fr)
+    minmax(96px, 0.7fr)
+    minmax(126px, 0.84fr)
+    minmax(84px, 0.62fr)
+    minmax(148px, 1fr);
+}
+
+.admin-ledger-table.renewals-table .admin-ledger-head,
+.admin-ledger-table.renewals-table .admin-ledger-row {
+  grid-template-columns: minmax(160px, 0.8fr) minmax(260px, 1.2fr) minmax(150px, 0.7fr) minmax(120px, 0.6fr) minmax(240px, 1fr);
+}
+
+.admin-ledger-table.overdues-table .admin-ledger-head,
+.admin-ledger-table.overdues-table .admin-ledger-row {
+  grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.1fr) minmax(130px, 0.6fr) minmax(190px, 0.9fr);
+}
+
+.admin-ledger-head span,
+.admin-ledger-row span {
+  min-height: 54px;
+  padding: 15px 14px;
+  border-top: 0;
+  border-right: 1px solid rgba(244, 238, 229, 0.07);
+}
+
+.admin-ledger-head span:last-child,
+.admin-ledger-row span:last-child {
+  border-right: 0;
+}
+
+.admin-ledger-head {
+  border-bottom: 1px solid rgba(244, 238, 229, 0.11);
+}
+
+.admin-ledger-row + .admin-ledger-row {
+  border-top: 1px solid rgba(244, 238, 229, 0.08);
+}
+
+.admin-ledger-row span:nth-child(n) {
+  color: rgba(244, 238, 229, 0.78);
+}
+
+.admin-ledger-row span:first-child,
+.admin-ledger-row span:nth-child(2),
+.admin-ledger-row span:nth-child(3) {
+  color: var(--ivory);
+}
+
+.admin-empty-state {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+  border: 1px solid rgba(244, 238, 229, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.018);
+  text-align: center;
+}
+
+.admin-empty-state svg {
+  color: var(--gold-bright);
+}
+
+.admin-empty-state h2 {
+  color: var(--ivory);
+  font-family: var(--sans);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.admin-empty-state p {
+  max-width: 420px;
+  color: rgba(244, 238, 229, 0.62);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.admin-portal-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-portal-preview article {
+  min-height: 170px;
+  padding: 22px;
+  display: grid;
+  align-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(244, 238, 229, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.admin-portal-preview span {
+  color: var(--gold-bright);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-portal-preview strong {
+  color: var(--ivory);
+  font-family: var(--serif);
+  font-size: 1.85rem;
+  font-weight: 400;
+  line-height: 1.03;
+}
+
+.admin-portal-preview p {
+  color: rgba(244, 238, 229, 0.62);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.admin-module-actions.compact {
+  margin-top: 18px;
+}
+
+.contract-workspace {
+  display: grid;
+  justify-items: center;
+}
+
+.contract-document.legal {
+  width: min(960px, 100%);
+  padding: 42px;
+  gap: 26px;
+  background: var(--ivory);
+  box-shadow: none;
+}
+
+.contract-document.legal.compact {
+  width: min(820px, 100%);
+}
+
+.legal-section {
+  display: grid;
+  gap: 14px;
+}
+
+.legal-section h3 {
+  padding-bottom: 8px;
+  color: var(--ink);
+  border-bottom: 1px solid rgba(18, 18, 18, 0.16);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 760;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.legal-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgba(18, 18, 18, 0.1);
+  border-left: 1px solid rgba(18, 18, 18, 0.1);
+}
+
+.legal-grid div {
+  min-height: 82px;
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  border-right: 1px solid rgba(18, 18, 18, 0.1);
+  border-bottom: 1px solid rgba(18, 18, 18, 0.1);
+}
+
+.legal-grid dt {
+  color: var(--gold);
+  font-size: 0.66rem;
+  font-weight: 720;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.legal-grid dd {
+  margin: 0;
+  color: rgba(18, 18, 18, 0.76);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.legal-signatures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+  padding-top: 18px;
+}
+
+.legal-signatures div {
+  display: grid;
+  gap: 22px;
+}
+
+.legal-signatures span {
+  color: rgba(18, 18, 18, 0.64);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.legal-signatures i {
+  display: block;
+  height: 1px;
+  background: rgba(18, 18, 18, 0.38);
+}
+
+.member-detail-panel.simple {
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 28px;
+}
+
+.member-detail-panel.simple h2 {
+  font-size: clamp(2rem, 3vw, 3rem);
+}
+
 /* Mobile-only simplification pass */
 .mobile-app-screen-stage > .app-screen {
   animation: mobile-route-fade 360ms cubic-bezier(0.16, 1, 0.3, 1) both;

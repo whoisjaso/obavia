@@ -508,32 +508,33 @@ const adminOverviewCards = [
   ['Contracts', 'Confirmed terms', 'Logo packet, confirmed rows.'],
 ] as const;
 
-const inventoryRows = vehicles.map((vehicle) => [
-  vehicle.displayName,
-  vehicle.publicStatus,
-  vehicle.rateLabel,
-  vehicle.statusDetail,
-] as const);
+const inventoryRows = vehicles.map((vehicle) => ({
+  vehicle: vehicle.displayName,
+  year: String(vehicle.year),
+  make: vehicle.brand,
+  model: `${vehicle.name}${vehicle.trim ? ` ${vehicle.trim}` : ''}`,
+  color: vehicle.color ?? 'Not recorded',
+  vin: 'Not recorded',
+  plate: 'Not recorded',
+  status: vehicle.publicStatus,
+  rate: vehicle.rateLabel,
+  term: confirmedTerms.rentalStructure,
+}));
 
-const renewalRows = vehicles.map((vehicle) => {
-  const isActiveRental = vehicle.id === vehicles[0].id;
-  const program = isActiveRental ? 'Active weekly rental' : vehicle.category;
-  const action = isActiveRental ? 'Review weekly continuation' : 'No renewal action';
+const renewalRows = bookings.map((booking) => ({
+  client: booking.customer,
+  vehicle: booking.vehicle,
+  status: booking.status,
+  rate: standardWeeklyRateLabel,
+  term: booking.control,
+}));
 
-  return [
-    vehicle.displayName,
-    program,
-    vehicle.rateLabel,
-    action,
-  ] as const;
-});
-
-const overdueControls = [
-  ['Confirmed overdue ledger', 'No confirmed overdue row is published in this build.'],
-  ['Loss-of-use precedent', `${lossOfUseRateLabel} is available only for documented claims.`],
-  ['Hardship Bridge floor', `${hardshipBridgeMinimumLabel} remains the non-waivable minimum.`],
-  ['Operator rule', 'Do not render balances, fees, or dates without ledger confirmation.'],
-] as const;
+const overdueRows: Array<{
+  client: string;
+  vehicle: string;
+  amount: string;
+  status: string;
+}> = [];
 
 const contractRows = [
   [vehicles[0].displayName, 'Active agreement', confirmedTerms.rentalStructure, confirmedTerms.fuelPolicyShort],
@@ -1445,7 +1446,7 @@ function ContractDocument({ compact = false }: { compact?: boolean }) {
   const activeVehicle = vehicles[0];
 
   return (
-    <article className={compact ? 'contract-document compact' : 'contract-document'} aria-label="OBAVIA contract packet">
+    <article className={compact ? 'contract-document compact legal' : 'contract-document legal'} aria-label="OBAVIA standard agreement">
       <header className="contract-letterhead">
         <BrandMark size={compact ? 48 : 66} tone="gold" />
         <div>
@@ -1455,41 +1456,80 @@ function ContractDocument({ compact = false }: { compact?: boolean }) {
       </header>
 
       <section className="contract-title-block">
-        <p>Contract Packet</p>
-        <h2>{activeVehicle.displayName}</h2>
+        <p>Standard Agreement</p>
+        <h2>Rental Terms</h2>
         <span>{confirmedTerms.rentalStructure}</span>
       </section>
 
-      <dl className="contract-summary-grid">
-        <div>
-          <dt>Member</dt>
-          <dd>{bookings[0].customer}</dd>
-        </div>
-        <div>
-          <dt>Vehicle</dt>
-          <dd>{activeVehicle.displayName}</dd>
-        </div>
-        <div>
-          <dt>Program</dt>
-          <dd>{standardWeeklyRateLabel}</dd>
-        </div>
-        <div>
-          <dt>Area</dt>
-          <dd>{confirmedTerms.serviceArea}</dd>
-        </div>
-      </dl>
-
-      <div className="contract-clause-list">
-        {contractClauses.map(([label, value]) => (
-          <div key={label}>
-            <span>{label}</span>
-            <p>{value}</p>
+      <section className="legal-section">
+        <h3>Parties</h3>
+        <dl className="legal-grid">
+          <div>
+            <dt>Rental house</dt>
+            <dd>OBAVIA</dd>
           </div>
-        ))}
-      </div>
+          <div>
+            <dt>Customer record</dt>
+            <dd>{bookings[0].customer}</dd>
+          </div>
+          <div>
+            <dt>Customer-facing address</dt>
+            <dd>{confirmedTerms.customerAddressLabel}: {confirmedTerms.customerAddress}</dd>
+          </div>
+          <div>
+            <dt>Service area</dt>
+            <dd>{confirmedTerms.serviceArea}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="legal-section">
+        <h3>Vehicle Schedule</h3>
+        <dl className="legal-grid">
+          <div>
+            <dt>Vehicle</dt>
+            <dd>{activeVehicle.displayName}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{activeVehicle.publicStatus}</dd>
+          </div>
+          <div>
+            <dt>Color</dt>
+            <dd>{activeVehicle.color}</dd>
+          </div>
+          <div>
+            <dt>Term</dt>
+            <dd>{confirmedTerms.rentalStructure}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="legal-section">
+        <h3>Commercial Terms</h3>
+        <div className="contract-clause-list">
+          {contractClauses.map(([label, value]) => (
+            <div key={label}>
+              <span>{label}</span>
+              <p>{value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="legal-signatures" aria-label="Signature blocks">
+        <div>
+          <span>OBAVIA Authorized Representative</span>
+          <i />
+        </div>
+        <div>
+          <span>Customer</span>
+          <i />
+        </div>
+      </section>
 
       <footer className="contract-footer">
-        <span>{brandDoctrine.oneLine}</span>
+        <span>{confirmedTerms.privateHandoffCopy}</span>
         <strong>OBAVIA</strong>
       </footer>
     </article>
@@ -1521,50 +1561,9 @@ function MemberDashboard() {
         <div className="member-main">
           <div className="member-content reveal">
             <div className="dashboard-heading">
-              <p>Member portal</p>
-              <h1>Confirmed Member</h1>
+              <p>Customer Portal</p>
+              <h1>{selected}</h1>
             </div>
-
-            <article className="membership-status">
-              <BrandMark size={66} tone="gold" />
-              <div>
-                <p>Access Type</p>
-                <h2>Standard Weekly</h2>
-              </div>
-              <button className="text-link" type="button" onClick={() => setSelected('Contract')}>
-                View Contract
-              </button>
-            </article>
-
-            <section className="member-system-grid" aria-label="Member portal systems">
-              {memberSystemCards.map(([label, value, copy]) => (
-                <article key={label}>
-                  <p>{label}</p>
-                  <strong>{value}</strong>
-                  <span>{copy}</span>
-                </article>
-              ))}
-            </section>
-
-            {selected === 'Contract' ? (
-              <ContractDocument />
-            ) : (
-              <section className="member-detail-panel" aria-live="polite">
-                <div>
-                  <p>{selected}</p>
-                  <h2>{panel.title}</h2>
-                  <span>{panel.copy}</span>
-                </div>
-                <dl>
-                  {panel.rows.map(([label, value]) => (
-                    <div key={label}>
-                      <dt>{label}</dt>
-                      <dd>{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            )}
 
             <section className="member-booking-block">
               <h2>Current Rental</h2>
@@ -1579,10 +1578,29 @@ function MemberDashboard() {
                   <span>{activeBooking.location}</span>
                 </div>
                 <button className="outline-action ink" type="button" onClick={() => go('vehicle')}>
-                  View Booking
+                  View Vehicle
                 </button>
               </article>
             </section>
+
+            {selected === 'Contract' ? (
+              <ContractDocument />
+            ) : (
+              <section className="member-detail-panel simple" aria-live="polite">
+              <div>
+                  <p>{selected}</p>
+                  <h2>{panel.title}</h2>
+              </div>
+                <dl>
+                  {panel.rows.map(([label, value]) => (
+                    <div key={label}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
           </div>
         </div>
       </div>
@@ -1592,60 +1610,36 @@ function MemberDashboard() {
 
 function AdminSystemsPanel({
   selected,
-  onSelect,
 }: {
   selected: AdminNavLabel;
   onSelect: (label: AdminNavLabel) => void;
 }) {
-  const heroCopy: Record<AdminNavLabel, { eyebrow: string; title: string; copy: string }> = {
-    Inventory: {
-      eyebrow: 'Inventory',
-      title: 'Ledger units only.',
-      copy: 'Incoming or retired units do not appear until the ledger makes them real.',
-    },
-    Renewals: {
-      eyebrow: 'Renewals',
-      title: 'Weekly continuation without hidden terms.',
-      copy: confirmedTerms.rentalStructure,
-    },
-    Overdues: {
-      eyebrow: 'Overdues',
-      title: 'No balance appears without ledger proof.',
-      copy: 'The page is ready for overdue rows, but the current confirmed data does not publish one.',
-    },
-    Contracts: {
-      eyebrow: 'Contracts',
-      title: 'A branded packet built from confirmed terms.',
-      copy: 'The agreement shows the standard, exceptions, fuel rule, and claim precedent without invented figures.',
-    },
-    Portal: {
-      eyebrow: 'Customer Portal',
-      title: 'The member sees rental, renewal, contract, support.',
-      copy: 'The portal begins with the current ledger record and keeps every hidden operational address private.',
-    },
-  };
-
   if (selected === 'Inventory') {
     return (
-      <section className="admin-system-workspace reveal" aria-label="Inventory system">
-        <div className="admin-system-hero">
-          <p>{heroCopy.Inventory.eyebrow}</p>
-          <h2>{heroCopy.Inventory.title}</h2>
-          <span>{heroCopy.Inventory.copy}</span>
-        </div>
-        <div className="admin-ledger-table four-col">
+      <section className="admin-system-workspace simple reveal" aria-label="Inventory">
+        <div className="admin-ledger-table inventory-table">
           <div className="admin-ledger-head">
-            <span>Vehicle</span>
+            <span>Year</span>
+            <span>Make</span>
+            <span>Model</span>
+            <span>Color</span>
+            <span>VIN</span>
+            <span>Plate</span>
             <span>Status</span>
-            <span>Rate</span>
-            <span>Control</span>
+            <span>Price</span>
+            <span>Term</span>
           </div>
-          {inventoryRows.map(([vehicle, status, rate, control]) => (
-            <div className="admin-ledger-row" key={vehicle}>
-              <span>{vehicle}</span>
-              <span>{status}</span>
-              <span>{rate}</span>
-              <span>{control}</span>
+          {inventoryRows.map((row) => (
+            <div className="admin-ledger-row" key={row.vehicle}>
+              <span>{row.year}</span>
+              <span>{row.make}</span>
+              <span>{row.model}</span>
+              <span>{row.color}</span>
+              <span>{row.vin}</span>
+              <span>{row.plate}</span>
+              <span>{row.status}</span>
+              <span>{row.rate}</span>
+              <span>{row.term}</span>
             </div>
           ))}
         </div>
@@ -1655,25 +1649,22 @@ function AdminSystemsPanel({
 
   if (selected === 'Renewals') {
     return (
-      <section className="admin-system-workspace reveal" aria-label="Renewals system">
-        <div className="admin-system-hero">
-          <p>{heroCopy.Renewals.eyebrow}</p>
-          <h2>{heroCopy.Renewals.title}</h2>
-          <span>{heroCopy.Renewals.copy}</span>
-        </div>
-        <div className="admin-ledger-table four-col">
+      <section className="admin-system-workspace simple reveal" aria-label="Renewals">
+        <div className="admin-ledger-table renewals-table">
           <div className="admin-ledger-head">
+            <span>Client</span>
             <span>Vehicle</span>
-            <span>Program</span>
+            <span>Status</span>
             <span>Rate</span>
-            <span>Next action</span>
+            <span>Term</span>
           </div>
-          {renewalRows.map(([vehicle, program, rate, action]) => (
-            <div className="admin-ledger-row" key={vehicle}>
-              <span>{vehicle}</span>
-              <span>{program}</span>
-              <span>{rate}</span>
-              <span>{action}</span>
+          {renewalRows.map((row) => (
+            <div className="admin-ledger-row" key={`${row.client}-${row.vehicle}`}>
+              <span>{row.client}</span>
+              <span>{row.vehicle}</span>
+              <span>{row.status}</span>
+              <span>{row.rate}</span>
+              <span>{row.term}</span>
             </div>
           ))}
         </div>
@@ -1683,60 +1674,68 @@ function AdminSystemsPanel({
 
   if (selected === 'Overdues') {
     return (
-      <section className="admin-system-workspace reveal" aria-label="Overdues system">
-        <div className="admin-system-hero">
-          <p>{heroCopy.Overdues.eyebrow}</p>
-          <h2>{heroCopy.Overdues.title}</h2>
-          <span>{heroCopy.Overdues.copy}</span>
-        </div>
-        <div className="admin-overdue-grid">
-          {overdueControls.map(([label, copy]) => (
-            <article key={label}>
-              <strong>{label}</strong>
-              <p>{copy}</p>
-            </article>
-          ))}
-        </div>
+      <section className="admin-system-workspace simple reveal" aria-label="Overdues">
+        {overdueRows.length > 0 ? (
+          <div className="admin-ledger-table overdues-table danger">
+            <div className="admin-ledger-head">
+              <span>Client</span>
+              <span>Vehicle</span>
+              <span>Amount</span>
+              <span>Status</span>
+            </div>
+            {overdueRows.map((row) => (
+              <div className="admin-ledger-row" key={`${row.client}-${row.vehicle}`}>
+                <span>{row.client}</span>
+                <span>{row.vehicle}</span>
+                <span>{row.amount}</span>
+                <span>{row.status}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="admin-empty-state">
+            <ShieldAlert size={34} strokeWidth={1.35} />
+            <h2>No active overdues</h2>
+            <p>Emergency overdue records will appear here when the ledger confirms one.</p>
+          </div>
+        )}
       </section>
     );
   }
 
   if (selected === 'Contracts') {
     return (
-      <section className="admin-system-workspace reveal" aria-label="Contracts system">
-        <div className="admin-system-hero">
-          <p>{heroCopy.Contracts.eyebrow}</p>
-          <h2>{heroCopy.Contracts.title}</h2>
-          <span>{heroCopy.Contracts.copy}</span>
-        </div>
-        <div className="admin-contract-layout">
-          <div className="contract-control-list" aria-label="Contract controls">
-            {contractRows.map(([packet, status, value, use]) => (
-              <article key={packet}>
-                <p>{packet}</p>
-                <strong>{value}</strong>
-                <span>{status}</span>
-                <small>{use}</small>
-              </article>
-            ))}
-          </div>
-          <ContractDocument compact />
-        </div>
+      <section className="admin-system-workspace contract-workspace simple reveal" aria-label="Contracts">
+        <ContractDocument compact />
       </section>
     );
   }
 
   if (selected === 'Portal') {
+    const activeBooking = bookings[0];
+
     return (
-      <section className="admin-system-workspace reveal" aria-label="Member controls">
-        <div className="admin-system-hero">
-          <p>{heroCopy.Portal.eyebrow}</p>
-          <h2>{heroCopy.Portal.title}</h2>
-          <span>{heroCopy.Portal.copy}</span>
+      <section className="admin-system-workspace simple reveal" aria-label="Portal preview">
+        <div className="admin-portal-preview">
+          <article>
+            <span>Current Rental</span>
+            <strong>{activeBooking.vehicle}</strong>
+            <p>{activeBooking.control}</p>
+          </article>
+          <article>
+            <span>Renewal</span>
+            <strong>{standardWeeklyRateLabel}</strong>
+            <p>{confirmedTerms.rentalStructure}</p>
+          </article>
+          <article>
+            <span>Contract</span>
+            <strong>{confirmedTerms.fuelPolicyShort}</strong>
+            <p>{confirmedTerms.serviceArea}</p>
+          </article>
         </div>
-        <div className="admin-module-actions">
-          <button type="button" onClick={() => go('member')}>Open Member Portal</button>
-          <button type="button" onClick={() => go('book')}>Request Access Flow</button>
+        <div className="admin-module-actions compact">
+          <button type="button" onClick={() => go('member')}>Open Portal</button>
+          <button type="button" onClick={() => go('book')}>Request Access</button>
         </div>
       </section>
     );
@@ -1747,6 +1746,9 @@ function AdminSystemsPanel({
 
 function AdminDashboard() {
   const [selected, setSelected] = useState<AdminNavLabel>('Inventory');
+  const [openPanel, setOpenPanel] = useState<'notifications' | 'profile' | null>(null);
+  const selectedIcon = adminNav.find((item) => item.label === selected)?.icon ?? LayoutDashboard;
+  const SelectedIcon = selectedIcon;
 
   return (
     <section className="admin-page">
@@ -1768,46 +1770,48 @@ function AdminDashboard() {
       <div className="admin-main">
         <header className="admin-top">
           <div>
-            <p>OBAVIA / Staff Platform</p>
-            <h1>Operations</h1>
+            <p>Admin</p>
+            <h1>{selected}</h1>
           </div>
-          <div>
-            <button className="icon-button dark" type="button">
+          <div className="admin-top-actions">
+            <button
+              className="icon-button dark"
+              type="button"
+              aria-expanded={openPanel === 'notifications'}
+              onClick={() => setOpenPanel(openPanel === 'notifications' ? null : 'notifications')}
+            >
               <Bell size={26} strokeWidth={1.35} />
               <span className="sr-only">Notifications</span>
             </button>
-            <button className="icon-button dark admin-user" type="button">
+            <button
+              className="icon-button dark admin-user"
+              type="button"
+              aria-expanded={openPanel === 'profile'}
+              onClick={() => setOpenPanel(openPanel === 'profile' ? null : 'profile')}
+            >
               <UserRound size={26} strokeWidth={1.35} />
               <span className="sr-only">Account</span>
             </button>
+            {openPanel === 'notifications' ? (
+              <div className="admin-popover" role="status">
+                <h2>Notifications</h2>
+                <p>{overdueRows.length === 0 ? 'No active overdues.' : `${overdueRows.length} overdue record needs review.`}</p>
+                <p>{renewalRows.length} active renewal record.</p>
+              </div>
+            ) : null}
+            {openPanel === 'profile' ? (
+              <div className="admin-popover profile" role="dialog" aria-label="Admin profile">
+                <h2>Admin</h2>
+                <p>OBAVIA staff access</p>
+                <button type="button" onClick={() => go('home')}>Log out</button>
+              </div>
+            ) : null}
           </div>
         </header>
 
-        <section className="staff-hero reveal">
-          <div className="staff-hero-copy">
-            <p>Simple control</p>
-            <h2>One ledger. One contract. One member portal.</h2>
-          </div>
-          <div className="staff-hero-control">
-            <span>Active module</span>
-            <strong>{selected}</strong>
-            <p>Switch modules from the left rail. No duplicate tables below the work surface.</p>
-          </div>
-        </section>
-
-        <section className="admin-overview-strip reveal" aria-label="Admin overview">
-          {adminOverviewCards.map(([label, value, copy]) => (
-            <button
-              className={label === selected ? 'active' : ''}
-              type="button"
-              key={label}
-              onClick={() => setSelected(label as AdminNavLabel)}
-            >
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>{copy}</small>
-            </button>
-          ))}
+        <section className="admin-module-title reveal">
+          <SelectedIcon size={26} strokeWidth={1.35} />
+          <h2>{selected}</h2>
         </section>
 
         <AdminSystemsPanel selected={selected} onSelect={setSelected} />
@@ -2135,6 +2139,13 @@ function MobileAdminScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
   const [selected, setSelected] = useState<AdminNavLabel>('Inventory');
   const selectedModule = adminNav.find((item) => item.label === selected) ?? adminNav[0];
   const ModuleIcon = selectedModule.icon;
+  const mobileAdminSubline: Record<AdminNavLabel, string> = {
+    Inventory: `${inventoryRows.length} vehicles`,
+    Renewals: `${renewalRows.length} active`,
+    Overdues: `${overdueRows.length} overdue`,
+    Contracts: 'Agreement',
+    Portal: 'Customer view',
+  };
 
   return (
     <div className="app-screen app-screen-dark admin-app-screen">
@@ -2147,7 +2158,7 @@ function MobileAdminScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
         <header className="mobile-system-head">
           <p>Admin</p>
           <h2>{selected}</h2>
-          <span>Ledger truth only.</span>
+          <span>{mobileAdminSubline[selected]}</span>
         </header>
 
         <nav className="mobile-admin-list" aria-label="Admin systems">
@@ -2171,34 +2182,40 @@ function MobileAdminScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
           </div>
           {selected === 'Inventory' ? (
             <div className="mobile-admin-rows">
-              {inventoryRows.map(([vehicle, status, rate]) => (
-                <article key={vehicle}>
-                  <strong>{vehicle}</strong>
-                  <span>{status}</span>
-                  <small>{rate}</small>
+              {inventoryRows.map((row) => (
+                <article key={row.vehicle}>
+                  <strong>{row.vehicle}</strong>
+                  <span>{row.status}</span>
+                  <small>{row.rate} / {row.term}</small>
                 </article>
               ))}
             </div>
           ) : null}
           {selected === 'Renewals' ? (
             <div className="mobile-admin-rows">
-              {renewalRows.map(([vehicle, program, rate, action]) => (
-                <article key={vehicle}>
-                  <strong>{vehicle}</strong>
-                  <span>{program}</span>
-                  <small>{rate}: {action}</small>
+              {renewalRows.map((row) => (
+                <article key={`${row.client}-${row.vehicle}`}>
+                  <strong>{row.client}</strong>
+                  <span>{row.vehicle}</span>
+                  <small>{row.rate} / {row.term}</small>
                 </article>
               ))}
             </div>
           ) : null}
           {selected === 'Overdues' ? (
             <div className="mobile-admin-rows">
-              {overdueControls.map(([label, value]) => (
-                <article key={label}>
-                  <strong>{label}</strong>
-                  <span>{value}</span>
+              {overdueRows.length > 0 ? overdueRows.map((row) => (
+                <article key={`${row.client}-${row.vehicle}`}>
+                  <strong>{row.client}</strong>
+                  <span>{row.vehicle}</span>
+                  <small>{row.amount} / {row.status}</small>
                 </article>
-              ))}
+              )) : (
+                <article>
+                  <strong>No active overdues</strong>
+                  <span>Emergency records will appear here.</span>
+                </article>
+              )}
             </div>
           ) : null}
           {selected === 'Contracts' ? (
