@@ -642,6 +642,7 @@ type MobileScreenId =
   | 'splash'
   | 'home'
   | 'menu'
+  | 'admin'
   | 'categories'
   | 'fleet'
   | 'detail'
@@ -689,6 +690,7 @@ function getMobileScreenFromHash(): MobileScreenId {
     screen === 'splash' ||
     screen === 'home' ||
     screen === 'menu' ||
+    screen === 'admin' ||
     screen === 'categories' ||
     screen === 'fleet' ||
     screen === 'detail' ||
@@ -1835,6 +1837,7 @@ function MobileAppShowcase() {
     { id: 'splash', node: <MobileSplashScreen onSelect={selectScreen} /> },
     { id: 'home', node: <MobileHomeScreen onSelect={selectScreen} /> },
     { id: 'menu', node: <MobileMenuScreen onSelect={selectScreen} onFleetTabSelect={openFleetTab} /> },
+    { id: 'admin', node: <MobileAdminScreen onSelect={selectScreen} /> },
     { id: 'categories', node: <MobileCategoriesScreen onSelect={selectScreen} onFleetTabSelect={openFleetTab} /> },
     {
       id: 'fleet',
@@ -1926,8 +1929,8 @@ function MobileBottomNav({
     { label: 'Home', icon: HomeIcon, screen: 'home' },
     { label: 'Fleet', icon: CarFront, screen: 'fleet' },
     { label: 'Access', icon: CalendarDays, screen: 'booking' },
-    { label: 'Standards', icon: null, screen: 'membership' },
-    { label: 'Account', icon: UserRound, screen: 'benefits' },
+    { label: 'Terms', icon: null, screen: 'membership' },
+    { label: 'Portal', icon: UserRound, screen: 'benefits' },
   ] as const;
 
   return (
@@ -1975,10 +1978,8 @@ function MobileSplashScreen({ onSelect = noopMobileSelect }: MobileScreenProps) 
 function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
   const activeVehicle = vehicles[0];
   const actions = [
-    { label: 'Request Access', icon: CalendarCheck, screen: 'booking' },
     { label: 'Fleet Ledger', icon: CarFront, screen: 'fleet' },
-    { label: 'Weekly Plans', icon: CalendarDays, screen: 'categories' },
-    { label: 'Standards', icon: CircleCheck, screen: 'membership' },
+    { label: 'Contract', icon: FileCheck2, screen: 'benefits' },
   ] as const;
 
   return (
@@ -2002,7 +2003,6 @@ function MobileHomeScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
             <small>{confirmedTerms.rentalStructure}</small>
             <small>{confirmedTerms.serviceArea}</small>
           </div>
-          <img src={activeVehicle.image} alt={`${activeVehicle.displayName} fleet presentation`} />
           <button type="button" aria-label="View booking" onClick={() => onSelect('detail')}>
             <ArrowRight size={26} strokeWidth={1.3} />
           </button>
@@ -2029,10 +2029,11 @@ function MobileMenuScreen({
   onFleetTabSelect?: (tab: MobileFleetTab) => void;
 }) {
   const menuItems = [
+    { label: 'Home', screen: 'home' },
     { label: 'Fleet Ledger', tab: 'All' },
-    { label: 'Weekly Plans', tab: 'Active' },
+    { label: 'Contract', screen: 'benefits' },
+    { label: 'Request Access', screen: 'booking' },
     { label: 'Published Standards', screen: 'membership' },
-    { label: 'Hardship Bridge', tab: 'Bridge' },
     { label: 'Houston Service', tab: 'Houston' },
   ] as const;
 
@@ -2051,17 +2052,9 @@ function MobileMenuScreen({
     emitMenuInteractionSound('click');
     onSelect('home');
   };
-  const openBooking = () => {
-    emitMenuInteractionSound('click');
-    onSelect('booking');
-  };
-  const signIn = () => {
-    emitMenuInteractionSound('click');
-    onSelect('home');
-  };
   const openAdmin = () => {
     emitMenuInteractionSound('click');
-    go('admin');
+    onSelect('admin');
   };
 
   return (
@@ -2106,24 +2099,6 @@ function MobileMenuScreen({
           })}
         </nav>
         <span className="menu-divider" aria-hidden="true" />
-        <button
-          className="menu-sign-in"
-          type="button"
-          onMouseEnter={previewMenuSound}
-          onFocus={previewMenuSound}
-          onClick={signIn}
-        >
-          Sign In
-        </button>
-        <button
-          className="menu-book-now"
-          type="button"
-          onMouseEnter={previewMenuSound}
-          onFocus={previewMenuSound}
-          onClick={openBooking}
-        >
-          Request Access
-        </button>
         <div className="concierge-strip">
           <Headphones size={18} strokeWidth={1.3} />
           <span>Concierge by confirmed appointment</span>
@@ -2139,6 +2114,101 @@ function MobileMenuScreen({
         >
           Admin
         </button>
+      </div>
+    </div>
+  );
+}
+
+function MobileAdminScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
+  const [selected, setSelected] = useState<AdminNavLabel>('Inventory');
+  const selectedModule = adminNav.find((item) => item.label === selected) ?? adminNav[0];
+  const ModuleIcon = selectedModule.icon;
+
+  return (
+    <div className="app-screen app-screen-dark admin-app-screen">
+      <IosStatus />
+      <div className="screen-body admin-app-body">
+        <MobileTopBar
+          left={<MobileIconButton label="Back to menu" onClick={() => onSelect('menu')}><ChevronLeft size={27} strokeWidth={1.35} /></MobileIconButton>}
+          right={<MobileIconButton label="Home" onClick={() => onSelect('home')}><HomeIcon size={24} strokeWidth={1.35} /></MobileIconButton>}
+        />
+        <header className="mobile-system-head">
+          <p>Admin</p>
+          <h2>{selected}</h2>
+          <span>Ledger truth only.</span>
+        </header>
+
+        <nav className="mobile-admin-list" aria-label="Admin systems">
+          {adminNav.map(({ label, icon: Icon }) => (
+            <button
+              className={label === selected ? 'active' : ''}
+              type="button"
+              key={label}
+              onClick={() => setSelected(label)}
+            >
+              <Icon size={21} strokeWidth={1.35} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <section className="mobile-admin-panel" aria-label={`${selected} module`}>
+          <div className="mobile-admin-panel-head">
+            <ModuleIcon size={25} strokeWidth={1.25} />
+            <p>{selected}</p>
+          </div>
+          {selected === 'Inventory' ? (
+            <div className="mobile-admin-rows">
+              {inventoryRows.map(([vehicle, status, rate]) => (
+                <article key={vehicle}>
+                  <strong>{vehicle}</strong>
+                  <span>{status}</span>
+                  <small>{rate}</small>
+                </article>
+              ))}
+            </div>
+          ) : null}
+          {selected === 'Renewals' ? (
+            <div className="mobile-admin-rows">
+              {renewalRows.map(([vehicle, program, rate, action]) => (
+                <article key={vehicle}>
+                  <strong>{vehicle}</strong>
+                  <span>{program}</span>
+                  <small>{rate}: {action}</small>
+                </article>
+              ))}
+            </div>
+          ) : null}
+          {selected === 'Overdues' ? (
+            <div className="mobile-admin-rows">
+              {overdueControls.map(([label, value]) => (
+                <article key={label}>
+                  <strong>{label}</strong>
+                  <span>{value}</span>
+                </article>
+              ))}
+            </div>
+          ) : null}
+          {selected === 'Contracts' ? (
+            <div className="mobile-admin-contract">
+              <ContractDocument compact />
+            </div>
+          ) : null}
+          {selected === 'Portal' ? (
+            <div className="mobile-admin-rows">
+              {memberSystemCards.map(([label, value, copy]) => (
+                <article key={label}>
+                  <strong>{label}</strong>
+                  <span>{value}</span>
+                  <small>{copy}</small>
+                </article>
+              ))}
+              <button className="mobile-admin-action" type="button" onClick={() => onSelect('benefits')}>
+                Open Customer Portal
+              </button>
+            </div>
+          ) : null}
+        </section>
       </div>
     </div>
   );
@@ -2412,7 +2482,7 @@ function MobileMembershipScreen({ onSelect = noopMobileSelect }: MobileScreenPro
         <p className="membership-footer-copy">Questions before requesting access?</p>
         <button className="membership-concierge-link" type="button">Contact Concierge</button>
       </div>
-      <MobileBottomNav active="Standards" tone="light" onSelect={onSelect} />
+      <MobileBottomNav active="Terms" tone="light" onSelect={onSelect} />
     </div>
   );
 }
@@ -2446,34 +2516,27 @@ function TierAppCard({
 
 function MobileBenefitsScreen({ onSelect = noopMobileSelect }: MobileScreenProps) {
   return (
-    <div className="app-screen app-screen-dark">
-      <IosStatus />
-      <div className="screen-body benefits-app-body with-bottom-nav">
-        <header className="benefits-head">
-          <BrandMark size={58} tone="gold" />
-          <h2>Nothing Hidden</h2>
-          <p>Confirmed values only.</p>
+    <div className="app-screen app-screen-light portal-app-screen">
+      <IosStatus tone="light" />
+      <div className="screen-body portal-app-body with-bottom-nav">
+        <MobileTopBar
+          tone="light"
+          left={<MobileIconButton label="Back" onClick={() => onSelect('home')}><ChevronLeft size={27} strokeWidth={1.35} /></MobileIconButton>}
+          right={<MobileIconButton label="Admin" onClick={() => onSelect('admin')}><LayoutDashboard size={24} strokeWidth={1.35} /></MobileIconButton>}
+        />
+        <header className="mobile-system-head light">
+          <p>Customer Portal</p>
+          <h2>Contract</h2>
+          <span>{brandDoctrine.trustPromise}</span>
         </header>
-        <div className="benefits-table-app">
-          <div className="benefits-columns">
-            <span />
-            <span>Standard</span>
-            <span className="reserve">Bridge</span>
-            <span>Claims</span>
-          </div>
-          {appBenefitRows.map(([label, standard, reserve, noir]) => (
-            <div className="benefits-row" key={label}>
-              <span>{label}</span>
-              <BenefitCell value={standard} />
-              <BenefitCell reserve value={reserve} />
-              <BenefitCell value={noir} />
-            </div>
-          ))}
+
+        <div className="mobile-contract-frame">
+          <ContractDocument compact />
         </div>
-        <button className="upgrade-button-app" type="button">Request Bridge Review</button>
-        <button className="request-noir-button" type="button" onClick={() => onSelect('fleet')}>Open Fleet Ledger <ArrowRight size={16} strokeWidth={1.35} /></button>
+
+        <button className="upgrade-button-app" type="button" onClick={() => onSelect('booking')}>Request Access</button>
       </div>
-      <MobileBottomNav active="Standards" onSelect={onSelect} />
+      <MobileBottomNav active="Portal" tone="light" onSelect={onSelect} />
     </div>
   );
 }

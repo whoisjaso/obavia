@@ -5387,6 +5387,458 @@ th {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Mobile-only simplification pass */
+.mobile-app-screen-stage > .app-screen {
+  animation: mobile-route-fade 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes mobile-route-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.mobile-app-viewport .screen-body {
+  padding-inline: 28px;
+}
+
+.mobile-app-viewport .app-topbar {
+  width: 100%;
+}
+
+.app-home-screen .screen-body {
+  padding: 72px 28px 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.app-home-screen .app-greeting {
+  margin-top: 48px;
+  display: grid;
+  justify-items: center;
+}
+
+.app-home-screen .app-greeting p {
+  font-size: 0.98rem;
+  color: rgba(245, 240, 230, 0.72);
+}
+
+.app-home-screen .app-greeting h2 {
+  margin-top: 8px;
+  font-size: 3.34rem;
+  line-height: 0.96;
+  letter-spacing: -0.012em;
+}
+
+.app-home-screen .app-greeting span {
+  margin-top: 18px;
+  font-size: 0.64rem;
+  letter-spacing: 0.24em;
+}
+
+.app-home-screen .upcoming-card {
+  width: 100%;
+  max-width: 344px;
+  min-height: 210px;
+  margin-top: 52px;
+  padding: 28px 24px 24px;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: center;
+  align-content: center;
+  gap: 14px;
+  text-align: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.app-home-screen .upcoming-card p,
+.app-home-screen .upcoming-card span {
+  letter-spacing: 0.18em;
+}
+
+.app-home-screen .upcoming-card span {
+  margin-top: 18px;
+}
+
+.app-home-screen .upcoming-card h3 {
+  margin-top: 8px;
+  font-size: 2.38rem;
+}
+
+.app-home-screen .upcoming-card small {
+  max-width: 230px;
+  margin-inline: auto;
+}
+
+.app-home-screen .upcoming-card img {
+  display: none;
+}
+
+.app-home-screen .upcoming-card button {
+  position: static;
+  margin-top: 10px;
+  background: transparent;
+}
+
+.app-home-screen .quick-actions {
+  width: 100%;
+  max-width: 344px;
+  margin-top: 16px;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.app-home-screen .quick-actions button {
+  min-height: 66px;
+  padding: 0 18px;
+  grid-template-columns: 30px minmax(0, 1fr) 18px;
+  grid-template-rows: 1fr;
+  align-items: center;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.app-home-screen .quick-actions button svg:first-child,
+.app-home-screen .quick-actions button svg:last-child,
+.app-home-screen .quick-actions span {
+  grid-row: 1;
+  align-self: center;
+}
+
+.app-home-screen .quick-actions button svg:first-child {
+  grid-column: 1;
+}
+
+.app-home-screen .quick-actions span {
+  grid-column: 2;
+  justify-self: start;
+  font-size: 0.88rem;
+  letter-spacing: 0;
+}
+
+.app-home-screen .quick-actions button svg:last-child {
+  grid-column: 3;
+}
+
+.menu-app .menu-content {
+  min-height: 100%;
+  padding: 86px 36px 76px;
+  justify-content: center;
+}
+
+.menu-app .menu-primary-list {
+  width: 100%;
+  max-width: 340px;
+  margin-top: 56px;
+  gap: 34px;
+}
+
+.menu-app .menu-primary-list span {
+  max-width: 100%;
+  font-size: 0.82rem;
+  letter-spacing: 0.2em;
+  line-height: 1.35;
+  text-wrap: balance;
+  white-space: normal;
+}
+
+.menu-app .menu-divider {
+  margin-top: 40px;
+}
+
+.menu-app .menu-sign-in {
+  margin-top: 26px;
+  letter-spacing: 0.28em;
+}
+
+.menu-app .menu-book-now {
+  width: min(100%, 292px);
+  margin-top: 16px;
+  letter-spacing: 0.24em;
+}
+
+.menu-app .concierge-strip {
+  display: none;
+}
+
+.menu-app .mobile-menu-admin-link {
+  bottom: max(18px, calc(env(safe-area-inset-bottom) + 12px));
+  padding-top: 0;
+  font-size: 0.58rem;
+  letter-spacing: 0.24em;
+}
+
+.admin-app-body,
+.portal-app-body {
+  padding: 72px 28px 34px;
+}
+
+.mobile-system-head {
+  margin-top: 52px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.mobile-system-head p {
+  margin-top: 10px;
+  color: var(--gold);
+  font-size: 0.68rem;
+  font-weight: 720;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.mobile-system-head h2 {
+  color: var(--ivory);
+  font-family: var(--serif);
+  font-size: 3.15rem;
+  font-weight: 400;
+  line-height: 0.95;
+}
+
+.mobile-system-head span {
+  max-width: 280px;
+  color: rgba(245, 240, 230, 0.64);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.mobile-system-head.light h2 {
+  color: var(--ink);
+}
+
+.mobile-system-head.light span {
+  color: rgba(18, 18, 18, 0.62);
+}
+
+.mobile-admin-list {
+  width: 100%;
+  margin-top: 30px;
+  display: grid;
+  gap: 9px;
+}
+
+.mobile-admin-list button,
+.mobile-admin-action {
+  min-height: 58px;
+  padding: 0 18px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  color: rgba(245, 240, 230, 0.76);
+  border: 1px solid rgba(184, 155, 94, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.014);
+  text-align: left;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobile-admin-list button.active,
+.mobile-admin-list button:focus-visible,
+.mobile-admin-list button:hover {
+  color: var(--ivory);
+  border-color: rgba(184, 155, 94, 0.55);
+  background: rgba(184, 155, 94, 0.045);
+}
+
+.mobile-admin-list svg,
+.mobile-admin-panel-head svg {
+  color: var(--gold);
+}
+
+.mobile-admin-list span {
+  font-size: 0.78rem;
+  font-weight: 720;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.mobile-admin-panel {
+  width: 100%;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(184, 155, 94, 0.22);
+}
+
+.mobile-admin-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.mobile-admin-panel-head p {
+  color: var(--ivory);
+  font-size: 0.78rem;
+  font-weight: 720;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.mobile-admin-rows {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.mobile-admin-rows article {
+  min-height: 82px;
+  padding: 18px;
+  display: grid;
+  gap: 6px;
+  align-content: center;
+  border: 1px solid rgba(245, 240, 230, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.mobile-admin-rows strong {
+  color: var(--ivory);
+  font-family: var(--serif);
+  font-size: 1.28rem;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.mobile-admin-rows span,
+.mobile-admin-rows small {
+  color: rgba(245, 240, 230, 0.62);
+  font-size: 0.82rem;
+  line-height: 1.42;
+}
+
+.mobile-admin-rows small {
+  color: var(--gold);
+}
+
+.mobile-admin-action {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  color: var(--gold);
+  font-size: 0.74rem;
+  font-weight: 720;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.mobile-admin-contract {
+  margin-top: 18px;
+}
+
+.mobile-app-viewport .contract-document.compact {
+  padding: 24px 20px;
+  gap: 20px;
+  border-radius: 4px;
+}
+
+.mobile-app-viewport .contract-letterhead {
+  align-items: center;
+}
+
+.mobile-app-viewport .contract-letterhead span {
+  font-size: 1.18rem;
+  letter-spacing: 0.22em;
+}
+
+.mobile-app-viewport .contract-letterhead p {
+  font-size: 0.72rem;
+}
+
+.mobile-app-viewport .contract-title-block h2 {
+  font-size: 2.18rem;
+}
+
+.mobile-app-viewport .contract-summary-grid,
+.mobile-app-viewport .contract-document.compact .contract-summary-grid {
+  grid-template-columns: 1fr;
+}
+
+.mobile-app-viewport .contract-summary-grid div,
+.mobile-app-viewport .contract-document.compact .contract-summary-grid div:nth-child(2n) {
+  min-height: 76px;
+  border-right: 0;
+  border-bottom: 1px solid rgba(18, 18, 18, 0.1);
+}
+
+.mobile-app-viewport .contract-summary-grid div:last-child {
+  border-bottom: 0;
+}
+
+.mobile-app-viewport .contract-clause-list div {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.mobile-app-viewport .contract-footer {
+  flex-direction: column;
+}
+
+.portal-app-screen .mobile-system-head {
+  margin-top: 48px;
+}
+
+.mobile-portal-status {
+  margin-top: 30px;
+  display: grid;
+  gap: 10px;
+}
+
+.mobile-portal-status article {
+  min-height: 74px;
+  padding: 16px 0;
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid rgba(18, 18, 18, 0.12);
+}
+
+.mobile-portal-status article:last-child {
+  border-bottom: 1px solid rgba(18, 18, 18, 0.12);
+}
+
+.mobile-portal-status span {
+  color: var(--gold);
+  font-size: 0.66rem;
+  font-weight: 720;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.mobile-portal-status strong {
+  color: rgba(18, 18, 18, 0.78);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.mobile-contract-frame {
+  margin-top: 28px;
+}
+
+.portal-app-body .upgrade-button-app {
+  margin-top: 18px;
+  background: var(--ink);
+  color: var(--gold);
+}
+
 @media (max-width: 1100px) {
   .member-system-grid,
   .admin-module-switchboard,
