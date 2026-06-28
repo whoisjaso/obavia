@@ -1,3 +1,7 @@
 name = "obavia"
 compatibility_date = "2026-06-28"
 pages_build_output_dir = "."
+
+[[kv_namespaces]]
+binding = "OBAVIA_KV"
+id = "04e5fc1ae56542049eaf431bb46ad28b"

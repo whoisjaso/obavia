@@ -1,52 +1,744 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
 <title>OBAVIA | Operations</title>
+<link rel="icon" href="./favicon.ico" sizes="any">
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  :root {
+    color-scheme: dark;
+    --ink:#f5f0e6;
+    --muted:rgba(245,240,230,.62);
+    --faint:rgba(245,240,230,.36);
+    --line:rgba(245,240,230,.12);
+    --gold:#b89b5e;
+    --gold-2:#d8b66a;
+    --bg:#111111;
+    --panel:#181818;
+    --panel-2:#202020;
+    --green:#a8d5a1;
+    --red:#e49b95;
+    --blue:#9fc5e8;
+  }
   *{box-sizing:border-box}
-  html,body{margin:0;min-height:100%;background:#121212;color:#F5F0E6}
-  body{font-family:'Montserrat','Helvetica Neue',Arial,sans-serif}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:Montserrat,Arial,sans-serif}
+  body{min-width:320px}
+  button,input,select,textarea{font:inherit}
+  button{border:0;background:none;color:inherit;cursor:pointer}
+  button:disabled{cursor:not-allowed;opacity:.48}
   a{color:inherit;text-decoration:none}
-  .page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 18px;background:radial-gradient(circle at 50% 10%,rgba(184,155,94,.13),transparent 36%),#121212}
-  .shell{width:min(100%,520px);text-align:center}
-  .word{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:600;letter-spacing:.32em;padding-left:.32em;margin-top:18px}
-  .kicker{font-size:11px;font-weight:700;letter-spacing:.36em;text-transform:uppercase;color:#b89b5e;margin-top:10px}
-  .panel{margin-top:38px;border:1px solid rgba(184,155,94,.24);background:rgba(245,240,230,.035);border-radius:8px;padding:32px 28px}
-  h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(2rem,7vw,2.8rem);line-height:1.05;margin:0 0 14px}
-  p{font-size:14px;line-height:1.7;color:rgba(245,240,230,.68);margin:0 auto;max-width:39rem}
-  .actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:28px}
-  .primary,.secondary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;border-radius:4px;padding:0 20px;font-size:11.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
-  .primary{background:#b89b5e;color:#121212}
-  .secondary{border:1px solid rgba(184,155,94,.48);color:#b89b5e}
+  .topbar{height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,38px);border-bottom:1px solid var(--line);background:rgba(17,17,17,.94);position:sticky;top:0;z-index:20;backdrop-filter:blur(16px)}
+  .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .mark{width:32px;height:32px;display:grid;place-items:center;border:1px solid rgba(184,155,94,.45);color:var(--gold-2);font-family:"Cormorant Garamond",serif;font-size:25px;font-weight:600;line-height:1}
+  .brand-title{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .brand-title strong{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:600;letter-spacing:.03em}
+  .brand-title span{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--faint)}
+  .status-pill{min-width:104px;text-align:center;border:1px solid var(--line);border-radius:999px;padding:8px 12px;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em}
+  .status-pill.dirty{border-color:rgba(216,182,106,.55);color:var(--gold-2);background:rgba(184,155,94,.08)}
+  .status-pill.error{border-color:rgba(228,155,149,.55);color:var(--red);background:rgba(228,155,149,.08)}
+  .layout{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:calc(100vh - 66px)}
+  .rail{border-right:1px solid var(--line);background:#141414;padding:22px;display:flex;flex-direction:column;gap:18px}
+  .rail h2,.workspace h1{margin:0;font-family:"Cormorant Garamond",serif;font-weight:600;letter-spacing:.01em}
+  .identity,.nav,.vehicle-list,.editor,.audit-panel{border:1px solid var(--line);background:var(--panel)}
+  .identity{padding:16px;display:grid;gap:12px}
+  .field{display:grid;gap:7px}
+  .field span{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);font-weight:700}
+  input,select,textarea{width:100%;border:1px solid rgba(245,240,230,.16);background:#101010;color:var(--ink);padding:11px 12px;outline:none;border-radius:6px}
+  textarea{min-height:104px;resize:vertical;line-height:1.45}
+  input:focus,select:focus,textarea:focus{border-color:rgba(216,182,106,.72);box-shadow:0 0 0 3px rgba(184,155,94,.12)}
+  .nav{display:grid;padding:8px}
+  .nav button{display:flex;align-items:center;justify-content:space-between;text-align:left;padding:12px;border-radius:6px;color:var(--muted);font-size:13px;font-weight:700}
+  .nav button.active{background:rgba(184,155,94,.1);color:var(--gold-2)}
+  .workspace{padding:clamp(20px,4vw,38px);display:grid;gap:22px;align-content:start}
+  .workspace-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}
+  .workspace-head p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.55;max-width:720px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  .btn{min-height:40px;border:1px solid rgba(245,240,230,.16);border-radius:6px;padding:0 14px;color:var(--ink);background:#171717;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .btn.primary{background:var(--gold);border-color:var(--gold);color:#121212}
+  .btn.warn{border-color:rgba(228,155,149,.5);color:var(--red)}
+  .btn.ghost{background:transparent}
+  .vehicle-grid{display:grid;grid-template-columns:minmax(250px,340px) minmax(0,1fr);gap:18px;align-items:start}
+  .vehicle-list{min-height:380px;display:grid;grid-template-rows:auto 1fr}
+  .list-head{display:flex;align-items:center;justify-content:space-between;padding:14px 15px;border-bottom:1px solid var(--line)}
+  .list-head strong{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--faint)}
+  .list-scroll{display:grid;align-content:start;max-height:calc(100vh - 232px);overflow:auto}
+  .vehicle-row{display:grid;grid-template-columns:54px minmax(0,1fr);gap:12px;align-items:center;padding:13px 15px;border-bottom:1px solid rgba(245,240,230,.08);text-align:left}
+  .vehicle-row.active{background:rgba(184,155,94,.09)}
+  .thumb{width:54px;aspect-ratio:16/10;background:#242424;border:1px solid rgba(245,240,230,.08);overflow:hidden}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .row-copy{min-width:0}
+  .row-copy strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row-copy span{display:block;margin-top:4px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .empty{padding:28px 18px;color:var(--muted);font-size:13px;line-height:1.6}
+  .editor{padding:18px;display:grid;gap:18px}
+  .editor-top{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding-bottom:16px}
+  .editor-top h2{font-family:"Cormorant Garamond",serif;font-size:28px;margin:0;font-weight:600}
+  .badge{display:inline-flex;align-items:center;min-height:24px;border:1px solid var(--line);border-radius:999px;padding:0 9px;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+  .badge.available{color:var(--green);border-color:rgba(168,213,161,.42)}
+  .badge.service{color:var(--blue);border-color:rgba(159,197,232,.42)}
+  .badge.hidden{color:var(--faint)}
+  .form-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+  .span-2{grid-column:span 2}.span-3{grid-column:span 3}.span-4{grid-column:span 4}.span-6{grid-column:span 6}.span-12{grid-column:1/-1}
+  .photo-row{display:grid;grid-template-columns:minmax(220px,360px) minmax(0,1fr);gap:16px;align-items:start}
+  .photo-preview{aspect-ratio:16/10;background:#222;border:1px solid rgba(245,240,230,.14);overflow:hidden;display:grid;place-items:center;color:var(--faint);font-size:12px;text-align:center}
+  .photo-preview img{width:100%;height:100%;object-fit:cover;display:block}
+  .photo-actions{display:grid;gap:12px}
+  .hint{font-size:12px;color:var(--muted);line-height:1.6;margin:0}
+  .alert{display:none;border:1px solid rgba(228,155,149,.42);background:rgba(228,155,149,.08);color:#f0c7c3;padding:12px 14px;font-size:13px;line-height:1.45}
+  .alert.show{display:block}
+  .audit-panel{display:grid}
+  .audit-row{display:grid;gap:9px;padding:16px 18px;border-bottom:1px solid rgba(245,240,230,.08)}
+  .audit-meta{display:flex;align-items:center;justify-content:space-between;gap:14px;color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+  .audit-title{font-size:14px;color:var(--ink);font-weight:700}
+  .audit-changes{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{border:1px solid rgba(245,240,230,.12);color:var(--muted);padding:5px 8px;border-radius:999px;font-size:11px}
+  .modal-shell{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;place-items:center;padding:18px;z-index:100}
+  .modal-shell.show{display:grid}
+  .modal{width:min(520px,100%);border:1px solid rgba(216,182,106,.34);background:#171717;box-shadow:0 30px 90px rgba(0,0,0,.55);padding:22px;display:grid;gap:16px}
+  .modal h2{font-family:"Cormorant Garamond",serif;font-size:30px;margin:0;font-weight:600}
+  .modal p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+  .toast{position:fixed;right:20px;bottom:20px;max-width:min(380px,calc(100vw - 40px));background:#202020;border:1px solid rgba(216,182,106,.32);box-shadow:0 18px 50px rgba(0,0,0,.38);padding:13px 15px;color:var(--ink);font-size:13px;display:none;z-index:120}
+  .toast.show{display:block}
+  @media (max-width: 940px){
+    .layout,.vehicle-grid,.photo-row{grid-template-columns:1fr}
+    .rail{border-right:0;border-bottom:1px solid var(--line)}
+    .list-scroll{max-height:none}
+    .workspace-head{align-items:stretch;flex-direction:column}
+    .actions{justify-content:flex-start}
+  }
+  @media (max-width: 680px){
+    .topbar{height:auto;min-height:66px;align-items:flex-start;flex-direction:column;padding:14px 16px;gap:10px}
+    .status-pill{text-align:left}
+    .workspace{padding:18px 14px}
+    .form-grid{grid-template-columns:1fr}
+    .span-2,.span-3,.span-4,.span-6,.span-12{grid-column:1}
+    .editor-top{align-items:flex-start;flex-direction:column}
+  }
 </style>
 </head>
 <body>
-<main class="page">
-  <section class="shell" aria-labelledby="ops-title">
-    <svg width="56" height="68" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="5" stroke-linecap="round" aria-hidden="true"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/><ellipse cx="60" cy="80" rx="38" ry="70" opacity=".72"/></svg>
-    <div class="word">OBAVIA</div>
-    <div class="kicker">Operations</div>
-    <div class="panel">
-      <h1 id="ops-title">Restricted access.</h1>
-      <p>The operations portal is private and should only open through owner-managed authentication. Public admin access, seeded team accounts, and local browser records have been removed from this deployment.</p>
+<header class="topbar">
+  <a class="brand" href="./index.html" aria-label="OBAVIA home">
+    <span class="mark">O</span>
+    <span class="brand-title"><strong>OBAVIA</strong><span>Operations</span></span>
+  </a>
+  <span id="saveState" class="status-pill">Synced</span>
+</header>
+
+<main class="layout">
+  <aside class="rail">
+    <section class="identity" aria-label="Operator identity">
+      <h2>Operator</h2>
+      <label class="field">
+        <span>Name</span>
+        <input id="actorName" autocomplete="name">
+      </label>
+      <label class="field">
+        <span>Email</span>
+        <input id="actorEmail" type="email" autocomplete="email">
+      </label>
+      <label class="field">
+        <span>Role</span>
+        <select id="actorRole">
+          <option value="owner">Owner</option>
+          <option value="admin">Admin</option>
+          <option value="team">Team</option>
+        </select>
+      </label>
+      <button id="saveIdentity" class="btn ghost" type="button">Set Operator</button>
+    </section>
+
+    <nav class="nav" aria-label="Operations">
+      <button id="navVehicles" class="active" type="button">Vehicles <span id="vehicleCount">0</span></button>
+      <button id="navAudit" type="button">Audit <span id="auditCount">0</span></button>
+    </nav>
+  </aside>
+
+  <section class="workspace" id="vehicleView">
+    <div class="workspace-head">
+      <div>
+        <h1>Vehicles</h1>
+        <p>Manage the fleet records and photos that appear on the public vehicle page.</p>
+      </div>
       <div class="actions">
-        <a class="primary" href="./index.html">Return Home</a>
-        <a class="secondary" href="./Obavia%20Vehicles.dc.html">View Application</a>
+        <button id="newVehicle" class="btn ghost" type="button">New Vehicle</button>
+        <button id="saveVehicle" class="btn primary" type="button" disabled>Save Changes</button>
       </div>
     </div>
+
+    <div id="alert" class="alert"></div>
+
+    <div class="vehicle-grid">
+      <section class="vehicle-list" aria-label="Vehicle list">
+        <div class="list-head">
+          <strong>Fleet</strong>
+          <button id="refreshVehicles" class="btn ghost" type="button">Refresh</button>
+        </div>
+        <div id="vehicleList" class="list-scroll"></div>
+      </section>
+
+      <section class="editor" aria-label="Vehicle editor">
+        <div class="editor-top">
+          <h2 id="editorTitle">New Vehicle</h2>
+          <span id="statusBadge" class="badge hidden">Hidden</span>
+        </div>
+
+        <div class="photo-row">
+          <div id="photoPreview" class="photo-preview">No photo selected</div>
+          <div class="photo-actions">
+            <label class="field">
+              <span>Primary photo</span>
+              <input id="photoInput" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+            <p class="hint">Public cards use a 16:10 crop. Upload clear front or three-quarter exterior photos for the best fit.</p>
+          </div>
+        </div>
+
+        <form id="vehicleForm" class="form-grid">
+          <input id="vehicleId" type="hidden">
+          <label class="field span-3"><span>Unit</span><input id="unit" maxlength="40"></label>
+          <label class="field span-2"><span>Year</span><input id="year" inputmode="numeric" maxlength="4"></label>
+          <label class="field span-3"><span>Make</span><input id="make" maxlength="50"></label>
+          <label class="field span-4"><span>Model</span><input id="model" maxlength="60"></label>
+          <label class="field span-4"><span>Color</span><input id="color" maxlength="50"></label>
+          <label class="field span-3"><span>Class</span><select id="tier"><option>Standard</option><option>Reserve</option><option>Noir</option></select></label>
+          <label class="field span-2"><span>Rate</span><input id="rate" inputmode="numeric"></label>
+          <label class="field span-3"><span>Status</span><select id="status"><option value="hidden">Hidden</option><option value="available">Available</option><option value="reserved">Reserved</option><option value="rented">Rented</option><option value="service">Service</option></select></label>
+          <label class="field span-6"><span>Mileage</span><input id="mileagePolicy" maxlength="120"></label>
+          <label class="field span-6"><span>Term</span><input id="term" maxlength="120"></label>
+          <label class="field span-12"><span>Description</span><textarea id="description" maxlength="800"></textarea></label>
+        </form>
+      </section>
+    </div>
+  </section>
+
+  <section class="workspace" id="auditView" hidden>
+    <div class="workspace-head">
+      <div>
+        <h1>Audit</h1>
+        <p>Vehicle changes are stamped with operator identity, confirmation status, and changed fields.</p>
+      </div>
+      <div class="actions">
+        <button id="refreshAudit" class="btn ghost" type="button">Refresh</button>
+      </div>
+    </div>
+    <section id="auditList" class="audit-panel" aria-label="Audit log"></section>
   </section>
 </main>
+
+<div id="unsavedModal" class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="unsavedTitle">
+  <section class="modal">
+    <h2 id="unsavedTitle">Unsaved vehicle changes</h2>
+    <p>This vehicle has edits that have not been saved.</p>
+    <div class="modal-actions">
+      <button id="keepEditing" class="btn ghost" type="button">Keep Editing</button>
+      <button id="discardChanges" class="btn warn" type="button">Discard</button>
+      <button id="modalSave" class="btn primary" type="button">Save Changes</button>
+    </div>
+  </section>
+</div>
+
+<div id="confirmModal" class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <section class="modal">
+    <h2 id="confirmTitle">Confirm team change</h2>
+    <p id="confirmCopy">Type CONFIRM before saving this vehicle change.</p>
+    <label class="field">
+      <span>Confirmation</span>
+      <input id="confirmText" autocomplete="off">
+    </label>
+    <div class="modal-actions">
+      <button id="cancelConfirm" class="btn ghost" type="button">Cancel</button>
+      <button id="submitConfirm" class="btn primary" type="button" disabled>Confirm Save</button>
+    </div>
+  </section>
+</div>
+
+<div id="toast" class="toast"></div>
+
 <script>
-  try {
-    localStorage.removeItem("obavia_staff");
-  } catch (e) {}
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    saveState: $("saveState"),
+    actorName: $("actorName"),
+    actorEmail: $("actorEmail"),
+    actorRole: $("actorRole"),
+    saveIdentity: $("saveIdentity"),
+    navVehicles: $("navVehicles"),
+    navAudit: $("navAudit"),
+    vehicleCount: $("vehicleCount"),
+    auditCount: $("auditCount"),
+    vehicleView: $("vehicleView"),
+    auditView: $("auditView"),
+    newVehicle: $("newVehicle"),
+    saveVehicle: $("saveVehicle"),
+    refreshVehicles: $("refreshVehicles"),
+    refreshAudit: $("refreshAudit"),
+    vehicleList: $("vehicleList"),
+    auditList: $("auditList"),
+    alert: $("alert"),
+    editorTitle: $("editorTitle"),
+    statusBadge: $("statusBadge"),
+    photoInput: $("photoInput"),
+    photoPreview: $("photoPreview"),
+    form: $("vehicleForm"),
+    unsavedModal: $("unsavedModal"),
+    keepEditing: $("keepEditing"),
+    discardChanges: $("discardChanges"),
+    modalSave: $("modalSave"),
+    confirmModal: $("confirmModal"),
+    confirmCopy: $("confirmCopy"),
+    confirmText: $("confirmText"),
+    submitConfirm: $("submitConfirm"),
+    cancelConfirm: $("cancelConfirm"),
+    toast: $("toast")
+  };
+
+  const fields = ["vehicleId", "unit", "year", "make", "model", "color", "tier", "rate", "status", "mileagePolicy", "term", "description"];
+  const state = {
+    vehicles: [],
+    audit: [],
+    selectedId: "",
+    savedSnapshot: "",
+    dirty: false,
+    photoDataUrl: "",
+    verifiedOwner: false,
+    pendingAction: null,
+    pendingSaveResolver: null
+  };
+
+  function clean(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function identity() {
+    return {
+      name: clean(els.actorName.value) || "Unknown operator",
+      email: clean(els.actorEmail.value).toLowerCase(),
+      role: els.actorRole.value || "team"
+    };
+  }
+
+  function loadIdentity() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("obavia_operator") || "{}");
+      els.actorName.value = saved.name || "";
+      els.actorEmail.value = saved.email || "";
+      els.actorRole.value = saved.role || "team";
+    } catch {
+      els.actorRole.value = "team";
+    }
+  }
+
+  function saveIdentity() {
+    localStorage.setItem("obavia_operator", JSON.stringify(identity()));
+    toast("Operator set.");
+  }
+
+  function actorHeaders() {
+    const actor = identity();
+    return {
+      "x-obavia-actor-name": actor.name,
+      "x-obavia-actor-email": actor.email,
+      "x-obavia-actor-role": actor.role
+    };
+  }
+
+  function setAlert(message) {
+    els.alert.textContent = message || "";
+    els.alert.classList.toggle("show", Boolean(message));
+    els.saveState.className = message ? "status-pill error" : (state.dirty ? "status-pill dirty" : "status-pill");
+    if (message) els.saveState.textContent = "Needs review";
+  }
+
+  function toast(message) {
+    els.toast.textContent = message;
+    els.toast.classList.add("show");
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => els.toast.classList.remove("show"), 3200);
+  }
+
+  function vehicleName(vehicle) {
+    const base = [vehicle.year || "", vehicle.make || "", vehicle.model || ""].join(" ").replace(/\s+/g, " ").trim();
+    return base || vehicle.unit || "New vehicle";
+  }
+
+  function photoUrl(vehicle) {
+    return vehicle && vehicle.photoKey ? `/api/vehicle-image/${encodeURIComponent(vehicle.photoKey)}` : "";
+  }
+
+  function blankVehicle() {
+    return {
+      id: "",
+      unit: "",
+      year: "",
+      make: "",
+      model: "",
+      color: "",
+      tier: "Standard",
+      rate: "",
+      status: "hidden",
+      mileagePolicy: "Unlimited within Texas",
+      term: "Weekly, open-ended",
+      description: "",
+      photoKey: ""
+    };
+  }
+
+  function currentVehicle() {
+    return state.vehicles.find((vehicle) => vehicle.id === state.selectedId) || blankVehicle();
+  }
+
+  function captureForm() {
+    return {
+      id: clean($("vehicleId").value),
+      unit: clean($("unit").value),
+      year: clean($("year").value),
+      make: clean($("make").value),
+      model: clean($("model").value),
+      color: clean($("color").value),
+      tier: $("tier").value,
+      rate: clean($("rate").value),
+      status: $("status").value,
+      mileagePolicy: clean($("mileagePolicy").value),
+      term: clean($("term").value),
+      description: clean($("description").value),
+      photoKey: currentVehicle().photoKey || ""
+    };
+  }
+
+  function snapshot() {
+    return JSON.stringify(captureForm());
+  }
+
+  function setDirty() {
+    state.dirty = snapshot() !== state.savedSnapshot || Boolean(state.photoDataUrl);
+    els.saveVehicle.disabled = !state.dirty;
+    els.saveState.textContent = state.dirty ? "Unsaved" : "Synced";
+    els.saveState.className = state.dirty ? "status-pill dirty" : "status-pill";
+  }
+
+  function statusLabel(value) {
+    return ({ available: "Available", reserved: "Reserved", rented: "Rented", service: "Service", hidden: "Hidden" })[value] || "Hidden";
+  }
+
+  function fillForm(vehicle) {
+    const v = vehicle || blankVehicle();
+    $("vehicleId").value = v.id || "";
+    $("unit").value = v.unit || "";
+    $("year").value = v.year || "";
+    $("make").value = v.make || "";
+    $("model").value = v.model || "";
+    $("color").value = v.color || "";
+    $("tier").value = v.tier || "Standard";
+    $("rate").value = v.rate || "";
+    $("status").value = v.status || "hidden";
+    $("mileagePolicy").value = v.mileagePolicy || "Unlimited within Texas";
+    $("term").value = v.term || "Weekly, open-ended";
+    $("description").value = v.description || "";
+    state.photoDataUrl = "";
+    els.photoInput.value = "";
+    renderPhoto(v);
+    els.editorTitle.textContent = vehicleName(v);
+    els.statusBadge.textContent = statusLabel(v.status || "hidden");
+    els.statusBadge.className = `badge ${v.status || "hidden"}`;
+    state.savedSnapshot = snapshot();
+    setDirty();
+  }
+
+  function renderPhoto(vehicle) {
+    const url = state.photoDataUrl || photoUrl(vehicle);
+    if (!url) {
+      els.photoPreview.textContent = "No photo selected";
+      return;
+    }
+    els.photoPreview.innerHTML = "";
+    const img = new Image();
+    img.alt = vehicleName(vehicle);
+    img.src = url;
+    els.photoPreview.appendChild(img);
+  }
+
+  function renderVehicleList() {
+    els.vehicleCount.textContent = state.vehicles.length;
+    if (!state.vehicles.length) {
+      els.vehicleList.innerHTML = `<div class="empty">No vehicles have been added.</div>`;
+      return;
+    }
+    els.vehicleList.innerHTML = "";
+    state.vehicles.forEach((vehicle) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = `vehicle-row${vehicle.id === state.selectedId ? " active" : ""}`;
+      row.innerHTML = `
+        <span class="thumb">${photoUrl(vehicle) ? `<img src="${photoUrl(vehicle)}" alt="">` : ""}</span>
+        <span class="row-copy">
+          <strong>${escapeHtml(vehicleName(vehicle))}</strong>
+          <span>${escapeHtml(vehicle.unit || "No unit")} · ${escapeHtml(statusLabel(vehicle.status))} · ${escapeHtml(vehicle.tier || "Standard")}</span>
+        </span>
+      `;
+      row.addEventListener("click", () => guardUnsaved(() => selectVehicle(vehicle.id)));
+      els.vehicleList.appendChild(row);
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value || "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[ch]);
+  }
+
+  function selectVehicle(id) {
+    state.selectedId = id || "";
+    fillForm(currentVehicle());
+    renderVehicleList();
+    setAlert("");
+  }
+
+  function newVehicle() {
+    state.selectedId = "";
+    fillForm(blankVehicle());
+    renderVehicleList();
+    setAlert("");
+  }
+
+  function showView(view) {
+    const isAudit = view === "audit";
+    els.vehicleView.hidden = isAudit;
+    els.auditView.hidden = !isAudit;
+    els.navVehicles.classList.toggle("active", !isAudit);
+    els.navAudit.classList.toggle("active", isAudit);
+    if (isAudit) loadAudit();
+  }
+
+  function guardUnsaved(action) {
+    if (!state.dirty) {
+      action();
+      return;
+    }
+    state.pendingAction = action;
+    els.unsavedModal.classList.add("show");
+  }
+
+  function closeUnsaved() {
+    els.unsavedModal.classList.remove("show");
+    state.pendingAction = null;
+  }
+
+  async function continuePendingAfterSave() {
+    const ok = await attemptSave();
+    if (!ok) return;
+    const action = state.pendingAction;
+    closeUnsaved();
+    if (action) action();
+  }
+
+  function discardPending() {
+    const action = state.pendingAction;
+    closeUnsaved();
+    state.photoDataUrl = "";
+    fillForm(currentVehicle());
+    if (action) action();
+  }
+
+  function validateForm(vehicle) {
+    if (!vehicle.unit) return "Enter a unit identifier before saving.";
+    if (!vehicle.make && !vehicle.model) return "Enter at least a make or model before saving.";
+    if (!vehicle.rate || Number(vehicle.rate) < 1) return "Enter the weekly rate before saving.";
+    return "";
+  }
+
+  function changeSummary() {
+    const vehicle = captureForm();
+    const current = currentVehicle();
+    const changes = [];
+    ["unit", "year", "make", "model", "color", "tier", "rate", "status", "mileagePolicy", "term", "description"].forEach((field) => {
+      if (String(vehicle[field] || "") !== String(current[field] || "")) changes.push(field);
+    });
+    if (state.photoDataUrl) changes.push("photo");
+    return changes.join(", ");
+  }
+
+  async function attemptSave(confirmText = "") {
+    const actor = identity();
+    if (!actor.name || actor.name === "Unknown operator") {
+      setAlert("Set the operator name before saving.");
+      return false;
+    }
+
+    const vehicle = captureForm();
+    const validation = validateForm(vehicle);
+    if (validation) {
+      setAlert(validation);
+      return false;
+    }
+
+    if (!state.verifiedOwner && confirmText !== "CONFIRM") {
+      return await requestConfirm();
+    }
+
+    els.saveVehicle.disabled = true;
+    els.saveState.textContent = "Saving";
+    setAlert("");
+    try {
+      const res = await fetch("/api/admin/vehicles", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...actorHeaders() },
+        body: JSON.stringify({ actor, vehicle, photoDataUrl: state.photoDataUrl, confirmText })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to save vehicle.");
+      await loadVehicles(data.vehicle.id);
+      toast(data.changed ? "Vehicle saved." : "No changes to save.");
+      return true;
+    } catch (error) {
+      setAlert(error.message || "Unable to save vehicle.");
+      setDirty();
+      return false;
+    }
+  }
+
+  function requestConfirm() {
+    els.confirmText.value = "";
+    els.submitConfirm.disabled = true;
+    els.confirmCopy.textContent = `Type CONFIRM to save changes to ${vehicleName(captureForm())}. Changed fields: ${changeSummary() || "none"}.`;
+    els.confirmModal.classList.add("show");
+    setTimeout(() => els.confirmText.focus(), 40);
+    return new Promise((resolve) => {
+      state.pendingSaveResolver = resolve;
+    });
+  }
+
+  function resolveConfirm(value) {
+    els.confirmModal.classList.remove("show");
+    const resolve = state.pendingSaveResolver;
+    state.pendingSaveResolver = null;
+    if (resolve) resolve(value);
+  }
+
+  async function loadVehicles(selectId = state.selectedId) {
+    try {
+      const res = await fetch("/api/admin/vehicles", { headers: actorHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to load vehicles.");
+      state.verifiedOwner = Boolean(data.actor && data.actor.verifiedOwner);
+      if (data.actor && data.actor.source === "cloudflare-access") {
+        if (data.actor.name && data.actor.name !== "Unknown operator") els.actorName.value = data.actor.name;
+        if (data.actor.email) els.actorEmail.value = data.actor.email;
+        els.actorRole.value = data.actor.role || "team";
+      }
+      state.vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
+      const exists = state.vehicles.some((vehicle) => vehicle.id === selectId);
+      state.selectedId = exists ? selectId : (state.vehicles[0]?.id || "");
+      renderVehicleList();
+      fillForm(currentVehicle());
+      setAlert("");
+    } catch (error) {
+      state.vehicles = [];
+      renderVehicleList();
+      newVehicle();
+      setAlert(error.message || "Unable to load vehicles.");
+    }
+  }
+
+  async function loadAudit() {
+    try {
+      const res = await fetch("/api/admin/audit", { headers: actorHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to load audit.");
+      state.audit = Array.isArray(data.audit) ? data.audit : [];
+      els.auditCount.textContent = state.audit.length;
+      renderAudit();
+    } catch (error) {
+      els.auditList.innerHTML = `<div class="empty">${escapeHtml(error.message || "Unable to load audit.")}</div>`;
+    }
+  }
+
+  function renderAudit() {
+    els.auditCount.textContent = state.audit.length;
+    if (!state.audit.length) {
+      els.auditList.innerHTML = `<div class="empty">No vehicle changes have been recorded.</div>`;
+      return;
+    }
+    els.auditList.innerHTML = "";
+    state.audit.forEach((event) => {
+      const row = document.createElement("article");
+      row.className = "audit-row";
+      const actor = event.actor || {};
+      const date = event.at ? new Date(event.at).toLocaleString() : "";
+      const changes = Array.isArray(event.changes) ? event.changes : [];
+      row.innerHTML = `
+        <div class="audit-meta"><span>${escapeHtml(date)}</span><span>${escapeHtml(actor.name || "Unknown")} · ${escapeHtml(actor.role || "team")}</span></div>
+        <div class="audit-title">${escapeHtml(event.vehicleName || event.vehicleId || "Vehicle")} · ${escapeHtml(event.action || "change")}</div>
+        <div class="audit-changes">${changes.map((item) => `<span class="chip">${escapeHtml(item.label || item.field || "Field")}</span>`).join("")}</div>
+      `;
+      els.auditList.appendChild(row);
+    });
+  }
+
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      if (!file) return resolve("");
+      if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) return reject(new Error("Use a PNG, JPG, or WebP image."));
+      if (file.size > 6 * 1024 * 1024) return reject(new Error("Use an image under 6 MB."));
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Unable to read the selected image."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  fields.forEach((id) => {
+    if (!$(id) || id === "vehicleId") return;
+    $(id).addEventListener("input", setDirty);
+    $(id).addEventListener("change", setDirty);
+  });
+
+  els.photoInput.addEventListener("change", async () => {
+    try {
+      state.photoDataUrl = await fileToDataUrl(els.photoInput.files[0]);
+      renderPhoto(captureForm());
+      setAlert("");
+      setDirty();
+    } catch (error) {
+      els.photoInput.value = "";
+      setAlert(error.message);
+    }
+  });
+
+  els.saveIdentity.addEventListener("click", saveIdentity);
+  els.newVehicle.addEventListener("click", () => guardUnsaved(newVehicle));
+  els.refreshVehicles.addEventListener("click", () => guardUnsaved(() => loadVehicles()));
+  els.saveVehicle.addEventListener("click", () => attemptSave());
+  els.navVehicles.addEventListener("click", () => guardUnsaved(() => showView("vehicles")));
+  els.navAudit.addEventListener("click", () => guardUnsaved(() => showView("audit")));
+  els.refreshAudit.addEventListener("click", loadAudit);
+  els.keepEditing.addEventListener("click", closeUnsaved);
+  els.discardChanges.addEventListener("click", discardPending);
+  els.modalSave.addEventListener("click", continuePendingAfterSave);
+  els.confirmText.addEventListener("input", () => {
+    els.submitConfirm.disabled = els.confirmText.value !== "CONFIRM";
+  });
+  els.cancelConfirm.addEventListener("click", () => resolveConfirm(false));
+  els.submitConfirm.addEventListener("click", async () => {
+    const ok = await attemptSave("CONFIRM");
+    resolveConfirm(ok);
+  });
+
+  window.addEventListener("beforeunload", (event) => {
+    if (!state.dirty) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
+
+  loadIdentity();
+  loadVehicles();
+})();
 </script>
 </body>
 </html>
