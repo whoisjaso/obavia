@@ -544,26 +544,26 @@ class Component extends DCLogic {
   componentDidMount(){ try { var u = new URLSearchParams(location.search); if (u.get("print") === "1") { setTimeout(function(){ try { window.print(); } catch (e) {} }, 1000); } } catch (e) {} }
   renderVals() {
     const DEFAULTS = {
-      effectiveDate: "June 24, 2026",
-      renterLegalName: "John Lawrence Doe",
-      renterAka: "John Doe",
-      renterDob: "March 4, 1991",
-      idNumber: "TX DL 1184-2207",
-      idState: "Texas",
-      idExp: "March 4, 2029",
-      residentialAddress: "5120 Telephone Rd, Apt 4, Houston, TX 77087",
-      insurer: "Lone Star Mutual Insurance",
-      policyNumber: "LSM-7741-0093",
-      namedInsured: "John L. Doe",
-      coverageType: "Full coverage — liability, collision & comprehensive",
-      insEffective: "May 1, 2026",
-      insExpiration: "November 1, 2026",
-      vehYMM: "2021 Toyota Camry SE",
-      vehColor: "Silver / 4-door sedan",
-      vehVin: "4T1G11AK7MU558210",
-      vehPlate: "KLM-4471 / TX",
-      vehOdo: "48,210 mi",
-      vehFuel: "Full"
+      effectiveDate: "",
+      renterLegalName: "Pending verified renter",
+      renterAka: "",
+      renterDob: "",
+      idNumber: "",
+      idState: "",
+      idExp: "",
+      residentialAddress: "",
+      insurer: "",
+      policyNumber: "",
+      namedInsured: "",
+      coverageType: "",
+      insEffective: "",
+      insExpiration: "",
+      vehYMM: "",
+      vehColor: "",
+      vehVin: "",
+      vehPlate: "",
+      vehOdo: "",
+      vehFuel: ""
     };
     let src = this.props.data;
     if (!src) {

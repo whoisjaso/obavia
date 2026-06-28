@@ -1,217 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
+<meta name="robots" content="noindex,nofollow">
+<title>OBAVIA | Member Access</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box}
-  html,body{margin:0;background:#121212}
-  button{font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;color:inherit;background:none;border:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;background:#121212;color:#F5F0E6}
+  body{font-family:'Montserrat','Helvetica Neue',Arial,sans-serif}
   a{color:inherit;text-decoration:none}
-  input{font-family:'Montserrat',sans-serif}
-  input{color:#F5F0E6;background:rgba(245,240,230,.045);border:1px solid rgba(184,155,94,.26);border-radius:4px;padding:14px 15px;font-size:14px;letter-spacing:.02em;width:100%}
-  input::placeholder{color:rgba(245,240,230,.32)}
-  input:focus{outline:none;border-color:#b89b5e;background:rgba(245,240,230,.07)}
+  button,input{font:inherit}
   ::selection{background:#b89b5e;color:#121212}
-  @keyframes obRise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
-  @keyframes obGlow{0%,100%{opacity:.34}50%{opacity:.66}}
-  @media (prefers-reduced-motion:reduce){[data-anim]{animation:none!important;opacity:1!important;transform:none!important}[data-glow]{animation:none!important}}
+  .page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 18px;background:radial-gradient(circle at 50% 0,rgba(184,155,94,.12),transparent 34%),#121212}
+  .shell{width:min(100%,470px)}
+  .brand{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:34px}
+  .word{font-family:'Bodoni Moda',Didot,Georgia,serif;font-size:34px;letter-spacing:.32em;padding-left:.32em;margin-top:18px}
+  .kicker{font-size:11px;font-weight:700;letter-spacing:.34em;text-transform:uppercase;color:#b89b5e;margin-top:10px}
+  .panel{border:1px solid rgba(184,155,94,.26);background:rgba(245,240,230,.035);padding:30px 28px;border-radius:8px}
+  h1{font-family:'Bodoni Moda',Didot,Georgia,serif;font-weight:400;font-size:clamp(2rem,7vw,2.65rem);line-height:1.05;margin:0 0 12px;text-align:center}
+  p{font-size:13.5px;line-height:1.65;color:rgba(245,240,230,.68);margin:0}
+  label{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#b89b5e;margin:24px 0 8px}
+  input{width:100%;border:1px solid rgba(184,155,94,.35);background:rgba(245,240,230,.045);color:#F5F0E6;border-radius:4px;padding:15px 16px}
+  input:focus{outline:none;border-color:#d8b66a}
+  .actions{display:grid;gap:10px;margin-top:22px}
+  .primary,.secondary{display:inline-flex;align-items:center;justify-content:center;min-height:50px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  .primary{border:0;background:#b89b5e;color:#121212;cursor:pointer}
+  .secondary{border:1px solid rgba(184,155,94,.5);color:#b89b5e}
+  .status{display:none;margin-top:18px;border:1px solid rgba(216,182,106,.3);background:rgba(216,182,106,.07);border-radius:6px;padding:13px 14px;font-size:12.5px;line-height:1.55;color:rgba(245,240,230,.78)}
+  .fine{margin-top:22px;text-align:center;font-size:11.5px;color:rgba(245,240,230,.45)}
 </style>
-</helmet>
-<div style="position:relative; min-height:100vh; background:#121212; color:#F5F0E6; font-family:'Montserrat','Helvetica Neue',Arial,sans-serif; overflow:hidden; display:flex; align-items:center; justify-content:center; padding:64px 22px;">
-
-  <div style="position:absolute; inset:0; z-index:0;">
-    <img src="assets/hero-obavia-background.png" alt="" style="width:100%; height:100%; object-fit:cover; object-position:center; opacity:.16; filter:saturate(.6) brightness(.7);">
-    <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(18,18,18,.82), rgba(18,18,18,.94) 60%, #121212);"></div>
-  </div>
-
-  <div data-glow style="position:absolute; top:32%; left:50%; width:440px; height:440px; transform:translate(-50%,-50%); z-index:1; pointer-events:none; background:radial-gradient(closest-side, rgba(184,155,94,.30), rgba(184,155,94,0) 70%); filter:blur(26px); animation:obGlow 8s ease-in-out infinite;"></div>
-
-  <a href="Obavia Home.dc.html" style="position:absolute; top:24px; left:24px; z-index:6; display:inline-flex; align-items:center; gap:8px; font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:rgba(245,240,230,.5);" style-hover="color:#ecc24f;">
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 3 L5 8 L10 13"/></svg>Home
-  </a>
-
-  <div data-anim style="position:relative; z-index:5; width:100%; max-width:412px; animation:obRise .8s ease-out both;">
-
-    <div style="display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:34px;">
-      <svg width="40" height="52" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="5" stroke-linecap="round" style="margin-bottom:16px;"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
-      <span style="font-family:'Bodoni Moda',Didot,serif; font-size:21px; letter-spacing:.34em; padding-left:.34em; margin-bottom:18px;">OBAVIA</span>
-      <span style="font-size:10.5px; font-weight:600; letter-spacing:.26em; text-transform:uppercase; color:#b89b5e;">Member Access</span>
-    </div>
-
-    <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ false }}">
-      <div style="text-align:center;">
-        <h1 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.9rem,7vw,2.4rem); line-height:1.1; margin:0 0 10px;">Welcome back.</h1>
-        <p style="font-size:13.5px; line-height:1.6; color:rgba(245,240,230,.62); margin:0 0 26px;">You are signed in as {{ sessionName }}.</p>
-        <button type="button" onClick="{{ continueDash }}" style="width:100%; background:#b89b5e; color:#121212; padding:15px; border-radius:4px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; transition:background .25s ease;" style-hover="background:#ecc24f;">Continue to your dashboard</button>
-        <button type="button" onClick="{{ signOut }}" style="margin-top:16px; font-size:11.5px; font-weight:600; letter-spacing:.06em; color:rgba(245,240,230,.5); transition:color .25s ease;" style-hover="color:#ecc24f;">Sign out</button>
-      </div>
-    </sc-if>
-
-    <sc-if value="{{ signedOut }}" hint-placeholder-val="{{ true }}">
-      <div style="text-align:center; margin-bottom:26px;">
-        <h1 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.9rem,7vw,2.4rem); line-height:1.1; margin:0 0 9px;">Welcome back.</h1>
-        <p style="font-size:13px; line-height:1.6; color:rgba(245,240,230,.6); margin:0;">Sign in to your standing, your vehicle, and your benefits.</p>
-      </div>
-
-      <form onSubmit="{{ onSubmit }}">
-        <div style="margin-bottom:16px;">
-          <label style="display:block; font-size:10px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:rgba(245,240,230,.5); margin-bottom:8px;">Email or phone</label>
-          <input value="{{ idVal }}" onInput="{{ setId }}" type="text" autocomplete="username" placeholder="you@email.com" aria-label="Email or phone">
+</head>
+<body>
+<main class="page">
+  <section class="shell" aria-labelledby="member-title">
+    <a class="brand" href="./index.html" aria-label="OBAVIA home">
+      <svg width="52" height="62" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="5" stroke-linecap="round" aria-hidden="true"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/><ellipse cx="60" cy="80" rx="38" ry="70" opacity=".72"/></svg>
+      <span class="word">OBAVIA</span>
+      <span class="kicker">Member Access</span>
+    </a>
+    <div class="panel">
+      <h1 id="member-title">Active renters only.</h1>
+      <p>Member accounts are reserved for verified renters with an active OBAVIA agreement. If you already have an account, use the email or mobile number Obavia has on file.</p>
+      <form id="access-form">
+        <label for="member-id">Email or mobile number</label>
+        <input id="member-id" name="member-id" autocomplete="username" inputmode="email" placeholder="Email or mobile number" required>
+        <div class="actions">
+          <button class="primary" type="submit">Check Access</button>
+          <a class="secondary" href="./Obavia%20Vehicles.dc.html">Begin Application</a>
         </div>
-
-        <sc-if value="{{ isPassword }}" hint-placeholder-val="{{ true }}">
-          <div style="margin-bottom:10px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-              <label style="font-size:10px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:rgba(245,240,230,.5);">Password</label>
-              <button type="button" onClick="{{ toggleShowPw }}" style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:rgba(245,240,230,.45);" style-hover="color:#ecc24f;">{{ showPwLabel }}</button>
-            </div>
-            <input value="{{ pwVal }}" onInput="{{ setPw }}" type="{{ pwType }}" autocomplete="current-password" placeholder="Your password" aria-label="Password">
-          </div>
-          <div style="text-align:right; margin-bottom:20px;">
-            <button type="button" onClick="{{ forgot }}" style="font-size:11px; font-weight:600; letter-spacing:.04em; color:rgba(245,240,230,.5);" style-hover="color:#ecc24f;">Forgot password?</button>
-          </div>
-        </sc-if>
-
-        <sc-if value="{{ isCode }}" hint-placeholder-val="{{ false }}">
-          <div style="margin-bottom:20px;">
-            <label style="display:block; font-size:10px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:rgba(245,240,230,.5); margin-bottom:8px;">6-digit code</label>
-            <input value="{{ codeVal }}" onInput="{{ setCode }}" type="text" inputmode="numeric" placeholder="• • • • • •" aria-label="One-time code" style="letter-spacing:.5em; text-align:center; font-size:18px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:9px;">
-              <span style="font-size:11px; color:rgba(245,240,230,.45);">Sent to your phone on file</span>
-              <button type="button" onClick="{{ resend }}" style="font-size:10.5px; font-weight:600; letter-spacing:.08em; color:rgba(245,240,230,.5);" style-hover="color:#ecc24f;">Resend</button>
-            </div>
-          </div>
-        </sc-if>
-
-        <sc-if value="{{ hasNote }}" hint-placeholder-val="{{ false }}">
-          <p style="font-size:12px; line-height:1.5; color:#b89b5e; margin:0 0 16px; text-align:center;">{{ noteText }}</p>
-        </sc-if>
-        <sc-if value="{{ hasErr }}" hint-placeholder-val="{{ false }}">
-          <p style="font-size:12px; line-height:1.5; color:rgba(245,240,230,.78); margin:0 0 16px; padding:11px 13px; border:1px solid rgba(184,155,94,.32); border-radius:4px; background:rgba(184,155,94,.07);">{{ errText }}</p>
-        </sc-if>
-
-        <button type="submit" style="width:100%; background:#b89b5e; color:#121212; padding:15px; border-radius:4px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; transition:background .25s ease;" style-hover="background:#ecc24f;">Sign In</button>
       </form>
-
-      <div style="text-align:center; margin-top:18px;">
-        <button type="button" onClick="{{ toggleMode }}" style="font-size:11.5px; font-weight:600; letter-spacing:.04em; color:rgba(245,240,230,.62); transition:color .25s ease;" style-hover="color:#ecc24f;">{{ modeToggleLabel }}</button>
-      </div>
-
-      <div style="height:1px; background:rgba(184,155,94,.16); margin:28px 0;"></div>
-
-      <div style="text-align:center;">
-        <p style="font-size:12.5px; color:rgba(245,240,230,.55); margin:0 0 12px;">Not a member yet?</p>
-        <a href="Obavia Vehicles.dc.html" style="display:inline-block; border:1px solid rgba(184,155,94,.5); color:#b89b5e; padding:12px 26px; border-radius:4px; font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; transition:background .25s ease, color .25s ease;" style-hover="background:#b89b5e; color:#121212;">Begin your application</a>
-        <div style="margin-top:14px;">
-          <a href="OBAVIA Membership.dc.html" style="font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:rgba(245,240,230,.45);" style-hover="color:#ecc24f;">Explore membership</a>
-        </div>
-      </div>
-
-      <p style="text-align:center; font-size:10px; letter-spacing:.04em; color:rgba(245,240,230,.26); margin:30px 0 0; line-height:1.5;">Demo access · john.doe@obavia.com · any password</p>
-    </sc-if>
-
-  </div>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:880}}">
-class Component extends DCLogic {
-  state = { mode: "password", id: "", pw: "", code: "", showPw: false, err: "", note: "", session: null };
-
-  componentDidMount(){
-    var s = null;
-    try { s = localStorage.getItem("obavia_session") || null; } catch(e){}
-    if (s) this.setState({ session: s });
-  }
-
-  norm(v){ return (v || "").trim().toLowerCase(); }
-  digits(v){ return (v || "").replace(/[^0-9]/g, ""); }
-
-  lookup(){
-    var v = this.norm(this.state.id), d = this.digits(this.state.id);
-    var DEMO = { "john.doe@obavia.com": "John Lawrence Doe", "john@obavia.com": "John Lawrence Doe" };
-    if (DEMO[v]) return DEMO[v];
-    if (d && d.length >= 10 && d.slice(-10) === "7135550142") return "John Lawrence Doe";
-    if (v && v.indexOf("john") >= 0) return "John Lawrence Doe";
-    try {
-      var m = JSON.parse(localStorage.getItem("obavia_members") || "{}");
-      for (var k in m) { if (this.norm(k) === v) return k; }
-    } catch(e){}
-    return null;
-  }
-
-  setField(k, val){ var n = {}; n[k] = val; n.err = ""; n.note = ""; this.setState(n); }
-
-  toggleMode(){
-    this.setState(function(o){
-      var toCode = o.mode === "password";
-      return { mode: toCode ? "code" : "password", err: "", note: toCode ? "We've sent a 6-digit code to the phone on your membership." : "" };
-    });
-  }
-  resend(){ this.setState({ note: "A new code is on its way.", err: "" }); }
-  forgot(){ this.setState({ note: "If that account exists, a reset link is on its way.", err: "" }); }
-  toggleShowPw(){ this.setState(function(o){ return { showPw: !o.showPw }; }); }
-
-  submit(){
-    var st = this.state;
-    if (!st.id.trim()) { this.setState({ err: "Enter the email or phone on your membership." }); return; }
-    var name = this.lookup();
-    if (!name) { this.setState({ err: "We couldn't match those details to a membership. Check the email or phone, or begin your application below." }); return; }
-    if (st.mode === "password") {
-      if (!st.pw) { this.setState({ err: "Enter your password." }); return; }
-    } else {
-      if (this.digits(st.code).length < 4) { this.setState({ err: "Enter the code we sent to your phone." }); return; }
-    }
-    try { localStorage.setItem("obavia_session", name); } catch(e){}
-    try { window.location.href = "Obavia Member Dashboard.dc.html"; } catch(e){}
-  }
-
-  continueDash(){ try { window.location.href = "Obavia Member Dashboard.dc.html"; } catch(e){} }
-  signOut(){
-    try { localStorage.removeItem("obavia_session"); } catch(e){}
-    this.setState({ session: null, id: "", pw: "", code: "", mode: "password", err: "", note: "" });
-  }
-
-  renderVals(){
-    var self = this, s = this.state;
-    var signedIn = !!s.session;
-    return {
-      signedIn: signedIn,
-      signedOut: !signedIn,
-      sessionName: s.session || "",
-      idVal: s.id,
-      pwVal: s.pw,
-      codeVal: s.code,
-      isPassword: s.mode === "password",
-      isCode: s.mode === "code",
-      pwType: s.showPw ? "text" : "password",
-      showPwLabel: s.showPw ? "Hide" : "Show",
-      modeToggleLabel: s.mode === "password" ? "Prefer a one-time code? We'll text you one." : "Use your password instead",
-      hasErr: !!s.err,
-      errText: s.err,
-      hasNote: !!s.note,
-      noteText: s.note,
-      setId: function(e){ self.setField("id", e.target.value); },
-      setPw: function(e){ self.setField("pw", e.target.value); },
-      setCode: function(e){ self.setField("code", e.target.value); },
-      toggleShowPw: function(){ self.toggleShowPw(); },
-      toggleMode: function(){ self.toggleMode(); },
-      resend: function(){ self.resend(); },
-      forgot: function(){ self.forgot(); },
-      onSubmit: function(e){ if (e && e.preventDefault) e.preventDefault(); self.submit(); },
-      continueDash: function(){ self.continueDash(); },
-      signOut: function(){ self.signOut(); }
-    };
-  }
-}
+      <div class="status" id="status" role="status">No active member record was found here. Begin an application or use the private access instructions sent by OBAVIA.</div>
+      <p class="fine"><a href="./OBAVIA%20Membership.dc.html">Explore membership</a></p>
+    </div>
+  </section>
+</main>
+<script>
+  try {
+    localStorage.removeItem("obavia_session");
+  } catch (e) {}
+  document.getElementById("access-form").addEventListener("submit", function (event) {
+    event.preventDefault();
+    document.getElementById("status").style.display = "block";
+  });
 </script>
 </body>
 </html>

@@ -90,9 +90,9 @@
       </sc-if>
       <sc-if value="{{ noCars }}" hint-placeholder-val="{{ false }}">
         <div style="border:1px solid rgba(245,240,230,.1); border-radius:13px; background:rgba(245,240,230,.02); padding:48px 30px; text-align:center;">
-          <div style="font-family:'Cormorant Garamond',serif; font-size:1.7rem; color:rgba(245,240,230,.82); margin-bottom:8px;">Every one is out right now.</div>
-          <p style="font-size:13.5px; color:rgba(245,240,230,.6); max-width:38ch; margin:0 auto 20px;">Start your application and we'll reach out the moment one frees up.</p>
-          <button onClick="{{ clearFilter }}" style="border:1px solid rgba(184,155,94,.5); color:#b89b5e; border-radius:5px; padding:13px 22px; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;" style-hover="background:rgba(184,155,94,.12);">Show every car</button>
+          <div style="font-family:'Cormorant Garamond',serif; font-size:1.7rem; color:rgba(245,240,230,.82); margin-bottom:8px;">Fleet availability is reviewed with each application.</div>
+          <p style="font-size:13.5px; color:rgba(245,240,230,.6); max-width:38ch; margin:0 auto 20px;">Start with your driving need and timing. OBAVIA will match the right vehicle when a real unit is available.</p>
+          <button onClick="{{ startGeneral }}" style="border:1px solid rgba(184,155,94,.5); color:#b89b5e; border-radius:5px; padding:13px 22px; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;" style-hover="background:rgba(184,155,94,.12);">Begin application</button>
         </div>
       </sc-if>
     </div>
@@ -264,12 +264,7 @@ class Component extends DCLogic {
     detailId: null, selected: null, appStarted: false, step: 0, inquiryDone: false,
     answers: { intent: [], name: "", timeline: "", delivery: "", age: "", license: "", insurance: "", card: "", texas: "", record: "", phone: "" } };
 
-  SEED = [
-    { id: "v-camry", unit: "Unit 01", year: 2021, make: "Toyota", model: "Camry SE", color: "Silver", tier: "Standard", rate: 350 },
-    { id: "v-sonata", unit: "Unit 05", year: 2019, make: "Hyundai", model: "Sonata", color: "Pearl", tier: "Standard", rate: 350 },
-    { id: "v-accord", unit: "Unit 04", year: 2020, make: "Honda", model: "Accord", color: "Graphite", tier: "Reserve", rate: 480 },
-    { id: "v-sclass", unit: "Unit 06", year: 2023, make: "Mercedes-Benz", model: "S 580", color: "Obsidian", tier: "Noir", rate: 1950 }
-  ];
+  SEED = [];
   SWATCH = { Standard: "linear-gradient(135deg,#2c3744,#1b2430)", Reserve: "linear-gradient(135deg,#3a2e20,#26201a)", Noir: "linear-gradient(135deg,#2c2113,#0a0a0b)" };
 
   componentDidMount(){
@@ -458,6 +453,7 @@ class Component extends DCLogic {
       classChips: classChips, toggleAvail: function(){ self.toggleAvail(); },
       availBorder: s.availOnly ? "#b89b5e" : "rgba(245,240,230,.18)", availBg: s.availOnly ? "rgba(184,155,94,.14)" : "transparent", availFg: s.availOnly ? "#d8b66a" : "rgba(245,240,230,.65)", availDot: s.availOnly ? "#8fbf7d" : "rgba(245,240,230,.4)",
       clearFilter: function(){ self.setState({ classFilter: "all", availOnly: false }); },
+      startGeneral: function(){ self.setState({ view: "apply", selected: null, detailId: null, appStarted: false }); self.toTop(); },
 
       // application
       hasSelected: !!sel, selName: sel ? sel.name : "", selSwatch: sel ? this.SWATCH[sel.tier] : "", selPhotoId: sel ? ("veh-" + sel.id + "-listing-1") : "", clearSelected: function(){ self.clearSelected(); },
