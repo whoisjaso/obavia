@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#121212}
+  button{font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;color:inherit;background:none;border:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:#b89b5e;color:#121212}
+  @keyframes obUp{from{transform:translateY(16px)}to{transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="min-height:100vh; background:#121212; color:#F5F0E6; font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;">
+
+  <!-- top bar -->
+  <div style="position:sticky; top:0; z-index:40; background:rgba(18,18,18,.88); backdrop-filter:blur(10px); border-bottom:1px solid rgba(184,155,94,.14);">
+    <div style="max-width:1080px; margin:0 auto; height:58px; display:flex; align-items:center; gap:14px; padding:0 clamp(16px,4vw,28px);">
+      <a href="Obavia Home.dc.html" style="display:inline-flex; align-items:center; gap:10px;">
+        <svg width="18" height="22" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="6" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
+        <span style="font-family:'Bodoni Moda',Didot,serif; font-size:17px; letter-spacing:.32em; padding-left:.32em;">OBAVIA</span>
+      </a>
+      <div style="flex:1;"></div>
+      <a href="Obavia Vehicles.dc.html" style="font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(245,240,230,.62);" style-hover="color:#b89b5e;">The fleet</a>
+    </div>
+  </div>
+
+  <!-- hero -->
+  <section style="max-width:1080px; margin:0 auto; padding:clamp(56px,11vh,128px) clamp(22px,6vw,48px) clamp(40px,7vh,72px);">
+    <div style="font-size:11px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#b89b5e; margin-bottom:24px; animation:obUp .8s ease-out both;">The experience</div>
+    <h1 style="font-family:'Bodoni Moda',Didot,Georgia,serif; font-weight:400; font-size:clamp(2.6rem,7vw,5rem); line-height:1.04; letter-spacing:-.01em; margin:0; max-width:17ch; animation:obUp .9s cubic-bezier(.2,.7,.2,1) both;">From wanting a car to driving one — without the runaround.</h1>
+    <p style="font-size:clamp(1.05rem,1.7vw,1.3rem); line-height:1.6; color:rgba(245,240,230,.72); max-width:54ch; margin:30px 0 0;">No counter, no haggling, no surprise holds. You apply from your phone, we verify quickly, and the car comes to you. Here's exactly how it goes.</p>
+  </section>
+
+  <!-- journey -->
+  <section style="max-width:1080px; margin:0 auto; padding:clamp(20px,4vw,30px) clamp(22px,6vw,48px) clamp(44px,7vw,72px);">
+    <div style="display:grid; grid-template-columns:1fr; gap:0;">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+        <div style="display:flex; gap:clamp(18px,4vw,34px); padding:clamp(22px,4vw,30px) 0; border-top:1px solid rgba(184,155,94,.18);">
+          <div style="flex:0 0 auto; width:clamp(54px,8vw,76px);">
+            <div style="font-family:'Bodoni Moda',Didot,serif; font-size:clamp(2rem,5vw,3rem); color:#b89b5e; line-height:1;">{{ s.n }}</div>
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+              <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.5rem,3.5vw,2.1rem); line-height:1.1; margin:0;">{{ s.t }}</h2>
+              <span style="font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#d8b66a; border:1px solid rgba(184,155,94,.4); border-radius:20px; padding:4px 11px;">{{ s.when }}</span>
+            </div>
+            <p style="font-size:14.5px; line-height:1.65; color:rgba(245,240,230,.68); margin:0; max-width:60ch;">{{ s.d }}</p>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- the care -->
+  <section style="border-top:1px solid rgba(184,155,94,.14); background:linear-gradient(180deg, rgba(184,155,94,.05), rgba(18,18,18,0));">
+    <div style="max-width:1080px; margin:0 auto; padding:clamp(48px,8vw,90px) clamp(22px,6vw,48px);">
+      <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.8rem,4vw,2.8rem); line-height:1.1; margin:0 0 14px; max-width:20ch;">And then we keep you on the road.</h2>
+      <p style="font-size:15px; line-height:1.65; color:rgba(245,240,230,.7); max-width:56ch; margin:0 0 34px;">The hand-off isn't the end of the relationship — it's the start. For a driver whose week is the car, staying moving is the whole point.</p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr)); gap:14px;">
+        <sc-for list="{{ care }}" as="c" hint-placeholder-count="4">
+          <div style="border:1px solid {{ c.border }}; border-radius:13px; background:{{ c.bg }}; padding:22px;">
+            <div style="display:flex; align-items:center; gap:9px; margin-bottom:9px;">
+              <span style="width:7px; height:7px; border-radius:50%; background:#b89b5e; flex:0 0 auto;"></span>
+              <span style="font-size:14.5px; font-weight:600; color:#F5F0E6;">{{ c.t }}</span>
+              <sc-if value="{{ c.flag }}" hint-placeholder-val="{{ false }}"><span style="font-size:8.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#121212; background:#b89b5e; padding:3px 7px; border-radius:3px;">Headline</span></sc-if>
+            </div>
+            <div style="font-size:13px; line-height:1.55; color:rgba(245,240,230,.62);">{{ c.d }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- certainty / future-paced -->
+  <section style="max-width:1080px; margin:0 auto; padding:clamp(44px,7vw,80px) clamp(22px,6vw,48px);">
+    <div style="font-size:11px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#b89b5e; margin-bottom:26px;">What to expect, on the calendar</div>
+    <div style="display:flex; flex-direction:column; gap:0;">
+      <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="3">
+        <div style="display:flex; gap:18px; align-items:baseline; padding:16px 0; border-bottom:1px solid rgba(245,240,230,.08);">
+          <span style="flex:0 0 auto; width:clamp(96px,16vw,140px); font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#d8b66a;">{{ t.when }}</span>
+          <span style="flex:1; font-size:15px; line-height:1.55; color:rgba(245,240,230,.78);">{{ t.what }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="max-width:1080px; margin:0 auto; padding:0 clamp(22px,6vw,48px) clamp(64px,10vh,110px);">
+    <div style="border:1px solid rgba(184,155,94,.3); border-radius:18px; background:linear-gradient(160deg, rgba(184,155,94,.08), rgba(18,18,18,0)); padding:clamp(30px,6vw,52px); text-align:center;">
+      <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.9rem,4.5vw,3rem); line-height:1.06; margin:0 0 14px;">By Friday, you could be driving.</h2>
+      <p style="font-size:14.5px; line-height:1.6; color:rgba(245,240,230,.66); max-width:44ch; margin:0 auto 28px;">Pick a car and answer a few honest questions. It takes about a minute, and there's no credit pull to begin.</p>
+      <div style="display:flex; gap:13px; flex-wrap:wrap; justify-content:center;">
+        <a href="Obavia Vehicles.dc.html" style="background:#b89b5e; color:#121212; border-radius:5px; padding:16px 30px; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;" style-hover="background:#F5F0E6;">Start with a car</a>
+        <a href="OBAVIA Membership.dc.html" style="border:1px solid rgba(245,240,230,.26); color:#F5F0E6; border-radius:5px; padding:16px 26px; font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;" style-hover="border-color:#b89b5e; color:#b89b5e;">See membership</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- footer -->
+  <div style="border-top:1px solid rgba(184,155,94,.14);">
+    <div style="max-width:1080px; margin:0 auto; padding:24px clamp(16px,4vw,28px); display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;">
+      <a href="Obavia Home.dc.html" style="display:inline-flex; align-items:center; gap:9px;"><svg width="15" height="19" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="7" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg><span style="font-family:'Bodoni Moda',Didot,serif; font-size:13px; letter-spacing:.26em; padding-left:.26em; color:rgba(245,240,230,.7);">OBAVIA</span></a>
+      <span style="font-size:11px; color:rgba(245,240,230,.4); letter-spacing:.03em;">Houston, Texas · Delivered or picked up · No deposit on Standard</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1080,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  renderVals(){
+    return {
+      steps: [
+        { n: "1", t: "Pick a car and apply", when: "About a minute", d: "Browse the fleet, choose the one that fits your week, and answer a few plain questions — what you need it for, and whether you meet our published standards. No credit pull to begin." },
+        { n: "2", t: "Get pre-qualified", when: "Instantly", d: "You see where you stand right away — pre-qualified, pending a quick check. If something's not a fit, we tell you exactly what it is and what would change it. No cold rejection." },
+        { n: "3", t: "Verify and sign", when: "Within 48 hours", d: "A real person reviews your inquiry and reaches out. You verify your ID, insurance, and card from your phone, then sign — everything merged in, nothing re-entered." },
+        { n: "4", t: "We bring you the keys", when: "Often the same week", d: "Pickup or delivery across the Houston metro, on your schedule. The car is cleaned, fueled, and ready to earn the moment it reaches you." }
+      ],
+      care: [
+        { t: "Zero-Downtime Guarantee", flag: true, d: "If your car goes down, a replacement is on its way within hours — not days. Your income never waits on a repair.", border: "rgba(184,155,94,.45)", bg: "rgba(184,155,94,.06)" },
+        { t: "Delivery or pickup", flag: false, d: "Across the Houston metro, on your schedule — no extra screening either way.", border: "rgba(245,240,230,.1)", bg: "rgba(245,240,230,.02)" },
+        { t: "Swap & skip-a-week", flag: false, d: "Change units as your week changes, or pause for a week without losing your rate.", border: "rgba(245,240,230,.1)", bg: "rgba(245,240,230,.02)" },
+        { t: "A real concierge", flag: false, d: "One number, a person who knows your name. No phone tree, no waiting room.", border: "rgba(245,240,230,.1)", bg: "rgba(245,240,230,.02)" }
+      ],
+      timeline: [
+        { when: "By Friday", what: "You're approved and driving the car you picked." },
+        { when: "By month three", what: "Your on-time payments are on your credit file, working for you." },
+        { when: "By month twelve", what: "Your standing is reviewed for newer units, tier access, and the ownership path — automatically." }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

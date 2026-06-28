@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: #e7ddc6; }
+  @page {
+    size: letter;
+    margin: 0.82in 0.7in 0.9in;
+    @bottom-left { content: "OBAVIA LLC · 8774 Almeda Genoa Road, Houston, TX 77075"; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 7pt; color: #9c8345; }
+    @bottom-center { content: "Weekly Motor Vehicle Rental Agreement · v1.0 Draft"; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 7pt; color: #9c8345; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 7pt; color: #9c8345; }
+  }
+  @media print {
+    *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    html, body { background: #f7f2e7 !important; height: auto !important; min-height: 0 !important; }
+    /* The DC runtime pins html/body/#dc-root to height:100% on the standalone (print) boot,
+       which makes Chrome paginate to a single page. Force the whole chain back to auto. */
+    #dc-root, #dc-root > .sc-host, main, .doc { height: auto !important; min-height: 0 !important; overflow: visible !important; }
+    main { padding: 0 !important; }
+    .doc { box-shadow: none !important; margin: 0 !important; max-width: none !important; width: 100% !important; padding: 28px 8px 14px !important; }
+    .screen-only { display: none !important; }
+    .avoid { break-inside: avoid; }
+    section { break-inside: auto; }
+    h2, h3 { break-after: avoid; }
+    p, li { orphans: 3; widows: 3; }
+    .page-break { break-before: page; }
+  }
+</style>
+</helmet>
+<main style="font-family:'Plus Jakarta Sans',sans-serif; padding:40px 16px 72px; -webkit-font-smoothing:antialiased;">
+<div class="doc" style="max-width:8.3in; margin:0 auto; background:#f7f2e7; color:#3c3729; box-shadow:0 18px 50px rgba(60,48,20,.16); padding:64px clamp(28px,5.5vw,72px) 60px; background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='440' height='480' viewBox='0 0 440 480'%3E%3Cg fill='none' stroke='%23b89b5e' stroke-opacity='0.06' stroke-width='2.5'%3E%3Cellipse cx='220' cy='240' rx='62' ry='118'/%3E%3Cellipse cx='220' cy='240' rx='40' ry='106' transform='rotate(-13 220 240)'/%3E%3Cellipse cx='220' cy='240' rx='40' ry='106' transform='rotate(13 220 240)'/%3E%3C/g%3E%3C/svg%3E&quot;);">
+
+  <!-- ============ HEADER ============ -->
+  <header style="text-align:center; padding-bottom:26px; border-bottom:2px solid #b89b5e; margin-bottom:6px;">
+    <svg width="58" height="64" viewBox="0 0 100 116" style="display:block; margin:0 auto 14px;">
+      <g fill="none" stroke="#b89b5e" stroke-width="2.4">
+        <ellipse cx="50" cy="58" rx="27" ry="52"></ellipse>
+        <ellipse cx="50" cy="58" rx="17" ry="46" transform="rotate(-13 50 58)"></ellipse>
+        <ellipse cx="50" cy="58" rx="17" ry="46" transform="rotate(13 50 58)"></ellipse>
+      </g>
+    </svg>
+    <div style="font-family:'Playfair Display',serif; font-size:30px; font-weight:500; letter-spacing:.42em; color:#b89b5e; padding-left:.42em;">OBAVIA</div>
+    <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:.34em; color:#a98f55; margin-top:7px; padding-left:.34em;">PRIVATE VEHICLE RENTAL</div>
+  </header>
+
+  <div style="text-align:center; margin:30px 0 8px;">
+    <h1 style="font-family:'Playfair Display',serif; font-size:30px; font-weight:600; color:#2b2820; margin:0; line-height:1.18;">Weekly Motor Vehicle<br>Rental Agreement</h1>
+    <div style="font-size:12.5px; letter-spacing:.06em; color:#8a7a4e; margin-top:10px; font-weight:500;">Open-Ended · Continuous Weekly Rental · Renter-Carried Insurance</div>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px 28px; margin:22px auto 4px; padding:13px 22px; background:#efe6cd; border:1px solid #ddcfa8; border-radius:5px; max-width:560px; font-size:12.5px;">
+    <div><span style="color:#9c8345; letter-spacing:.04em;">Effective date</span> &nbsp;<span style="background:#e7d8b2; color:#7a6324; padding:1px 8px; border-radius:3px; font-weight:600;">EFFECTIVE DATE</span></div>
+    <div><span style="color:#9c8345; letter-spacing:.04em;">Standard rate</span> &nbsp;<strong style="color:#2b2820;">$250.00 / week</strong></div>
+  </div>
+
+  <!-- ============ RECITALS & PARTIES ============ -->
+  <section style="margin-top:36px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700; letter-spacing:.04em;">§</span><span>Recitals &amp; Parties</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;">This Weekly Motor Vehicle Rental Agreement (this <strong style="color:#2b2820;">&ldquo;Agreement&rdquo;</strong>) is made and entered into as of the Effective Date by and between <span style="background:#e7d8b2; color:#7a6324; padding:1px 7px; border-radius:3px; font-weight:600; font-size:.9em;">OBAVIA</span>, a Texas limited liability company with its principal place of business at <strong style="color:#2b2820;">8774 Almeda Genoa Road, Houston, Texas 77075</strong> (the <strong style="color:#2b2820;">&ldquo;Company,&rdquo;</strong> &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;), and the individual identified and signing on the Signature &amp; Initials Page (the <strong style="color:#2b2820;">&ldquo;Renter,&rdquo;</strong> &ldquo;you,&rdquo; or &ldquo;your&rdquo;). The Company and the Renter are each a &ldquo;Party&rdquo; and together the &ldquo;Parties.&rdquo;</p>
+
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">A. The Company&rsquo;s business.</strong> The Company is engaged in the trade and business of renting motor vehicles to the public. The Company owns, or holds the right to rent, the vehicle described in Section&nbsp;2 (the &ldquo;Vehicle&rdquo;) and rents it to the Renter for the Renter&rsquo;s own use. The Renter &mdash; not the Company &mdash; directs, controls, and is responsible for the day-to-day operation of the Vehicle during the Rental Period. The Company does not direct how, when, or where the Renter drives.</p>
+    <div class="avoid" style="margin:13px 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">We rent cars for a living, and once the keys are in your hand, you&rsquo;re the one driving. Because we&rsquo;re a rental company and you control the driving, federal law (49&nbsp;U.S.C. §&nbsp;30106) means we, as the owner, are not automatically on the hook for how the car gets driven. That protection only holds if this stays a real rental &mdash; which it is.</div>
+    </div>
+
+    <p style="margin:14px 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">B. This is a true rental.</strong> This Agreement is a true rental of a motor vehicle and nothing more. The Renter acquires <strong style="color:#2b2820;">no ownership interest, no equity, and no option to purchase</strong> the Vehicle. No portion of any rent or other amount the Renter pays applies toward ownership or a purchase price. This Agreement is <strong style="color:#2b2820;">not</strong> a lease-purchase, a rent-to-own arrangement, a retail installment sale, or any form of financing. Title to the Vehicle remains with the Company (or its owner) at all times.</p>
+    <div class="avoid" style="margin:13px 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">You&rsquo;re renting, not buying. No matter how many weeks you pay, you never start to &ldquo;own&rdquo; the car and none of your rent builds toward owning it. If you ever want a car of your own, that&rsquo;s a separate conversation &mdash; this paper isn&rsquo;t a path to it.</div>
+    </div>
+  </section>
+
+  <!-- ============ 1. DEFINITIONS ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">1</span><span>Definitions</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;">In this Agreement, the following terms have the meanings given below.</p>
+    <ul style="margin:0; padding-left:0; list-style:none; font-size:14px; line-height:1.6; color:#3c3729;">
+      <li style="margin-bottom:8px;"><strong style="color:#2b2820;">Vehicle</strong> &mdash; the motor vehicle identified in Section&nbsp;2, together with its keys, equipment, documents, and accessories.</li>
+      <li style="margin-bottom:8px;"><strong style="color:#2b2820;">Rental Period</strong> &mdash; the continuous period beginning when the Vehicle is delivered to the Renter and ending when the Vehicle is returned to or recovered by the Company under this Agreement.</li>
+      <li style="margin-bottom:8px;"><strong style="color:#2b2820;">Rental Week</strong> &mdash; each recurring seven-day billing cycle within the Rental Period.</li>
+      <li style="margin-bottom:8px;"><strong style="color:#2b2820;">Rent</strong> &mdash; the weekly amount payable for the Vehicle, plus any authorized fees, surcharges, and pass-through amounts described in this Agreement.</li>
+      <li style="margin-bottom:8px;"><strong style="color:#2b2820;">Authorized Driver</strong> &mdash; the Renter and any additional driver expressly approved in writing by the Company, each of whom holds a valid driver license and is covered by the required insurance.</li>
+      <li style="margin-bottom:8px;"><strong style="color:#2b2820;">Device(s)</strong> &mdash; the GPS/telematics unit and the starter-interrupt (payment-assurance) unit installed in the Vehicle, as disclosed in Sections&nbsp;13 and&nbsp;14.</li>
+      <li style="margin-bottom:8px;"><strong style="color:#2b2820;">Default</strong> &mdash; any of the events listed in Section&nbsp;15.</li>
+      <li style="margin-bottom:0;"><strong style="color:#2b2820;">Condition Record</strong> &mdash; the dated, photo-documented record of the Vehicle&rsquo;s condition taken at handoff, described in Section&nbsp;2.</li>
+    </ul>
+  </section>
+
+  <!-- ============ 2. THE VEHICLE ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">2</span><span>The Vehicle</span></h2>
+    <p style="margin:0 0 14px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">2.1 &nbsp;Identification.</strong> The Company rents to the Renter, and the Renter rents from the Company, the following Vehicle:</p>
+    <div class="avoid" style="border:1px solid #d8c89e; border-radius:5px; overflow:hidden; margin-bottom:14px; background:#fffdf7;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0;">
+        <div style="padding:11px 16px; border-bottom:1px solid #e6dab8; border-right:1px solid #e6dab8;"><div style="font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; margin-bottom:3px;">Year / Make / Model</div><div style="height:18px;"></div></div>
+        <div style="padding:11px 16px; border-bottom:1px solid #e6dab8;"><div style="font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; margin-bottom:3px;">Color / Body</div><div style="height:18px;"></div></div>
+        <div style="padding:11px 16px; border-bottom:1px solid #e6dab8; border-right:1px solid #e6dab8;"><div style="font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; margin-bottom:3px;">VIN</div><div style="height:18px;"></div></div>
+        <div style="padding:11px 16px; border-bottom:1px solid #e6dab8;"><div style="font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; margin-bottom:3px;">License Plate / State</div><div style="height:18px;"></div></div>
+        <div style="padding:11px 16px; border-right:1px solid #e6dab8;"><div style="font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; margin-bottom:3px;">Odometer at Handoff</div><div style="height:18px;"></div></div>
+        <div style="padding:11px 16px;"><div style="font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; margin-bottom:3px;">Fuel Level at Handoff</div><div style="height:18px;"></div></div>
+      </div>
+    </div>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">2.2 &nbsp;Condition Record.</strong> At handoff, the Parties will create a dated, photo-documented record of the Vehicle&rsquo;s condition, inside and out. Both Parties acknowledge that the Condition Record is accurate as of handoff and is incorporated into this Agreement by reference. The Condition Record is the agreed baseline for any later question about pre-existing wear or damage.</p>
+    <div class="avoid" style="margin:13px 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">We both take photos of the car together on day one. If a scratch or dent shows up in those photos, it was already there and it&rsquo;s not on you. If new damage shows up later that isn&rsquo;t in those photos, we&rsquo;ll look at it. The photos settle &ldquo;it was already like that&rdquo; for both of us.</div>
+    </div>
+  </section>
+
+  <!-- ============ 3. TERM ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">3</span><span>Term &mdash; Open-Ended Weekly</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">3.1 &nbsp;Continuous weekly rental.</strong> This is a continuous, open-ended rental billed by the Rental Week. It has no fixed end date. Each Rental Week automatically renews into the next unless and until either Party ends the rental under Section&nbsp;3.2. There is no minimum number of weeks, and the rental does not convert into ownership, a longer-term lease, or a purchase by the passage of time.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">3.2 &nbsp;Ending the rental.</strong> Either Party may end this rental at any time, for any reason or no reason, by giving the other Party at least <span style="background:#e7d8b2; color:#7a6324; padding:1px 7px; border-radius:3px; font-weight:600; font-size:.9em;">END NOTICE HOURS</span> of notice. On the end date, the Renter returns the Vehicle to the Company&rsquo;s address with all keys, equipment, and documents. Rent is owed through the end of the rental as provided in Section&nbsp;4. Ending the rental does not erase amounts already owed, and Section&nbsp;15 still applies if the rental ends because of a Default.</p>
+    <div class="avoid" style="margin:13px 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">You&rsquo;re not locked into a contract length. You can walk away with a little notice, and so can we. Keep paying and the car stays yours to drive, week after week &mdash; but it never becomes your car.</div>
+    </div>
+  </section>
+
+  <!-- ============ 4. RENT & BILLING ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">4</span><span>Rent &amp; Billing</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">4.1 &nbsp;Weekly rate.</strong> The standard Rent is <strong style="color:#2b2820;">$350.00 per Rental Week</strong>, subject only to the Hardship Bridge in Section&nbsp;6 during the weeks it applies.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">4.2 &nbsp;Billing cycle and due day.</strong> Rent is billed in advance for each Rental Week and is due on the same day of each week as the Effective Date (the &ldquo;Due Day&rdquo;). The first Rental Week is due at handoff.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">4.3 &nbsp;Sole accepted method &mdash; card on file.</strong> Payment is by <strong style="color:#2b2820;">automatic charge to the valid, non-prepaid debit or credit card the Renter keeps on file</strong> (see Section&nbsp;5). This is the only accepted method. The Company does not accept cash, checks, money orders, peer-to-peer transfers, or prepaid or gift cards. <strong style="color:#2b2820;">Debit cards are fully accepted</strong>; only prepaid cards are excluded.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">4.4 &nbsp;Application of payments.</strong> Payments are applied first to past-due Rent, then to current Rent, then to any authorized fees and pass-through amounts. A receipt is available for every payment on request.</p>
+  </section>
+
+  <!-- ============ 5. PAYMENT AUTHORIZATION ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">5</span><span>Payment Authorization &amp; Surcharge</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">5.1 &nbsp;Card on file &amp; auto-charge authorization.</strong> The Renter keeps a <strong style="color:#2b2820;">valid, non-prepaid debit or credit card</strong> on file and authorizes the Company to automatically charge that card, without further action by the Renter (an &ldquo;off-session&rdquo; charge), for Rent and other authorized amounts as they come due each Rental Week. The Renter must maintain a working card on file for the whole Rental Period; if a card is declined or removed, the Renter promptly provides a replacement non-prepaid card. This authorization continues until the rental ends and all amounts are paid.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">5.2 &nbsp;Card surcharge.</strong> A credit-card surcharge may apply <strong style="color:#2b2820;">to credit cards only</strong>. Debit cards are <strong style="color:#2b2820;">never</strong> surcharged. Any surcharge will not exceed the Company&rsquo;s actual cost of accepting the card.</p>
+    <div class="avoid" style="margin:13px 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">You keep a working debit or credit card on file and we run your weekly payment automatically, so there&rsquo;s nothing to remember each week. A regular bank debit card is perfectly fine &mdash; only prepaid or gift cards aren&rsquo;t accepted. If you use a credit card, there may be a small surcharge that only covers what the card company charges us &mdash; never more, and never on a debit card.</div>
+    </div>
+    <div class="avoid" style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin:16px 0 2px; padding:10px 14px; background:#f3ead2; border:1px dashed #c9b274; border-radius:4px;">
+      <span style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600;">Renter initials &mdash; auto-charge authorization</span>
+      <span style="display:inline-block; width:66px; height:32px; border:1.5px solid #b89b5e; border-radius:3px; background:#fffdf7;"></span>
+    </div>
+  </section>
+
+  <!-- ============ 6. HARDSHIP BRIDGE ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">6</span><span>Hardship Bridge Program</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">6.1 &nbsp;The bridge.</strong> The Hardship Bridge gives every new Renter a softer start on the same terms. For <strong style="color:#2b2820;">Rental Weeks 1 and 2 only</strong>, Rent is reduced by <strong style="color:#2b2820;">20%</strong>, subject to a non-waivable minimum of <strong style="color:#2b2820;">$100.00 per week</strong>. Beginning in <strong style="color:#2b2820;">Rental Week 3</strong>, Rent automatically reverts to the full standard rate of $350.00 per week.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">6.2 &nbsp;Equal terms.</strong> The Hardship Bridge is offered to everyone on identical terms. It is not a discretionary favor, is not negotiated case by case, and does not depend on anyone&rsquo;s financial situation. It is simply built into the first two weeks.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">Your first two weeks are 20% off (but never below $100), to help you get rolling. From week three on, it&rsquo;s the regular $350. Everyone gets the same deal &mdash; nothing special asked of you, nothing held over you.</div>
+    </div>
+  </section>
+
+  <!-- ============ 7. LATE PAYMENT ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">7</span><span>Late Payment</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">7.1 &nbsp;Grace period.</strong> If Rent is not paid on the Due Day, the Renter has a grace period of <strong style="color:#2b2820;">three (3) calendar days</strong> before any late fee attaches.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">7.2 &nbsp;Late fee.</strong> If Rent remains unpaid after the grace period, a single late fee of <strong style="color:#2b2820;">$75.00</strong> applies for that occurrence. This is the only late fee, and it is the same <strong style="color:#2b2820;">$75.00</strong> wherever a late fee appears in this Agreement. It is a reasonable estimate of the Company&rsquo;s administrative cost of handling a late payment, not a penalty.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">7.3 &nbsp;Consequence ladder.</strong> The Company handles late Rent in a calm, consistent order: <strong style="color:#2b2820;">(1)</strong>&nbsp;a friendly reminder; <strong style="color:#2b2820;">(2)</strong>&nbsp;the single <strong style="color:#2b2820;">$75.00</strong> after the grace period; <strong style="color:#2b2820;">(3)</strong>&nbsp;an attempt to charge the payment method on file under Section&nbsp;5; and then, only if the balance is still unpaid, <strong style="color:#2b2820;">(4)</strong>&nbsp;the enforcement steps in Section&nbsp;15, each with the notice that Section requires.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">If a payment is late, you get a short grace window first. After that there&rsquo;s one flat fee &mdash; the same amount every time, just covering our paperwork, not a punishment. We start with a reminder, not a threat, and nothing escalates without notice.</div>
+    </div>
+  </section>
+
+  <!-- ============ 8. SECURITY DEPOSIT ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">8</span><span>Security Deposit</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">8.1 &nbsp;Amount.</strong> The security deposit is <span style="background:#e7d8b2; color:#7a6324; padding:1px 7px; border-radius:3px; font-weight:600; font-size:.9em;">SECURITY DEPOSIT</span>, collected at handoff.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">8.2 &nbsp;What it covers.</strong> The deposit secures the Renter&rsquo;s obligations under this Agreement. It may be applied only to actual, itemized amounts the Renter owes &mdash; unpaid Rent, unpaid authorized fees, pass-through amounts under Section&nbsp;12, or chargeable damage beyond normal wear under Section&nbsp;18. It is not additional rent and is not the Company&rsquo;s to keep absent an actual amount owed.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">8.3 &nbsp;Return.</strong> Within <strong style="color:#2b2820;">fourteen (14) days</strong> after the Vehicle is returned and the rental ends, the Company will return the deposit, less any amounts actually owed, together with a written, line-item statement of any deductions. If nothing is owed, the full deposit is returned.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">Your deposit is your money, held in case something is owed at the end. When you return the car, you get it back within two weeks &mdash; in full if you don&rsquo;t owe anything, or with a clear itemized list if anything is deducted. No vague &ldquo;fees,&rdquo; no guessing.</div>
+    </div>
+  </section>
+
+  <!-- ============ 9. INSURANCE ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">9</span><span>Insurance &mdash; Renter-Carried</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">9.1 &nbsp;Renter carries the coverage.</strong> The Renter maintains the Renter&rsquo;s own full-coverage motor vehicle insurance &mdash; including liability, collision, and comprehensive coverage &mdash; continuously for the entire Rental Period. The insurance is the Renter&rsquo;s, the risk is the Renter&rsquo;s, and the coverage must remain in force every day the Renter has the Vehicle.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">9.2 &nbsp;Proof and notice.</strong> The Renter provides proof of coverage at handoff and again whenever the Company reasonably requests it, and names or notifies the Company as the policy requires (for example, as an additional interest or loss payee). The Renter tells the Company promptly of any change, lapse, or cancellation.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">9.3 &nbsp;Lapse is a Default.</strong> If the Renter&rsquo;s coverage lapses, is canceled, or falls below full coverage, that is an immediate Default. The Company may then place its own coverage on the Vehicle (at the Renter&rsquo;s cost) and/or recover the Vehicle under Sections&nbsp;15 and&nbsp;16.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">The insurance on this car is yours and has to stay active the whole time you drive it. Keep it current and show proof when we ask. If it lapses, that&rsquo;s a serious problem &mdash; you can&rsquo;t legally drive, and we may need the car back &mdash; so don&rsquo;t let it slip.</div>
+    </div>
+  </section>
+
+  <!-- ============ 10. AUTHORIZED USE ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">10</span><span>Authorized Use &amp; Drivers</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">10.1 &nbsp;Lawful use, authorized drivers.</strong> The Vehicle is used lawfully and only by the Renter and any Authorized Driver. The Renter does not sublet, re-rent, loan, or assign the Vehicle to anyone else, and does not let an unlicensed or uninsured person drive it.</p>
+    <div class="avoid" style="margin:14px 0; padding:14px 18px; background:#f3ead2; border:1.5px solid #c9b274; border-radius:5px;">
+      <div style="font-family:'Playfair Display',serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#9c8345; margin-bottom:6px; font-weight:600;">Express authorization &mdash; delivery &amp; rideshare</div>
+      <p style="margin:0; font-size:14px; line-height:1.6; color:#3c3729;"><strong style="color:#2b2820;">10.2 &nbsp;Commercial delivery and rideshare use is expressly authorized.</strong> The Renter <strong style="color:#2b2820;">may</strong> use the Vehicle for commercial delivery and rideshare work &mdash; including food and package delivery and ride-hail platforms &mdash; provided the Renter maintains insurance appropriate to that commercial use under Section&nbsp;9. This use is permitted, not prohibited.</p>
+    </div>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">Driving for delivery or rideshare is fine here &mdash; that&rsquo;s expected. Just make sure your insurance actually covers that kind of work. The one rule: only you and approved drivers use the car, and you don&rsquo;t rent it out to anyone else.</div>
+    </div>
+  </section>
+
+  <!-- ============ 11. MAINTENANCE ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">11</span><span>Maintenance &amp; Mechanical Responsibility</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">11.1 &nbsp;Company handles major mechanical.</strong> The Company is responsible for major mechanical repair arising from normal use, performed through its own shop or a shop it designates. The Renter should bring the Vehicle in promptly when asked so the Company can keep it roadworthy.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">11.2 &nbsp;Renter handles routine care.</strong> The Renter handles day-to-day care: checking and topping fluids, keeping tires at proper pressure, keeping the Vehicle reasonably clean, and reporting any warning light, noise, leak, or problem promptly.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">11.3 &nbsp;Renter-caused damage.</strong> Damage caused by neglect, misuse, abuse, or by continuing to drive after a known fault or warning is the Renter&rsquo;s responsibility, including the resulting repair cost.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">11.4 &nbsp;Mileage.</strong> Mileage is <strong style="color:#2b2820;">unlimited, unless a specific mileage limit is stated in writing</strong>.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">Big repairs from normal driving are on us, through our shop. The everyday stuff &mdash; fluids, tire pressure, keeping it clean, and telling us when something&rsquo;s wrong &mdash; is on you. If a small problem gets ignored and turns into a big one, that part&rsquo;s on you.</div>
+    </div>
+  </section>
+
+  <!-- ============ 12. TOLLS & CITATIONS ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">12</span><span>Tolls, Citations &amp; Tickets &mdash; Pass-Through</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">12.1 &nbsp;Renter&rsquo;s responsibility.</strong> Tolls, parking tickets, traffic citations, red-light and speed-camera charges, and similar amounts incurred while the Renter has the Vehicle are the Renter&rsquo;s responsibility.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">12.2 &nbsp;Pass-through plus admin fee.</strong> When the Company receives and processes one of these items, it passes the actual charge through to the Renter, plus a flat administrative fee of <strong style="color:#2b2820;">$30.00</strong> per item processed. The Company provides the underlying documentation for each item on request.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">Tolls and tickets you run up are yours to pay. If one comes to us first, we forward it to you at cost, plus one small flat fee for the time it takes to handle it &mdash; and we&rsquo;ll show you the original charge.</div>
+    </div>
+  </section>
+
+  <!-- ============ 13. GPS / TELEMATICS ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">13</span><span>GPS / Telematics Disclosure &amp; Consent</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">13.1 &nbsp;Disclosure.</strong> The Vehicle contains a GPS/telematics device. The Company uses it for vehicle location, recovery, theft response, and routine account management. The Renter consents to its presence and use for these purposes.</p>
+    <div class="avoid" style="margin:13px 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">The car can report its location. We use that to find it if it&rsquo;s stolen, to recover it if we have to, and to keep accounts straight &mdash; not to watch your day. We&rsquo;re telling you it&rsquo;s there so there are no surprises.</div>
+    </div>
+    <div class="avoid" style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin:8px 0 2px; padding:10px 14px; background:#f3ead2; border:1px dashed #c9b274; border-radius:4px;">
+      <span style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600;">Renter initials &mdash; GPS / telematics consent</span>
+      <span style="display:inline-block; width:66px; height:32px; border:1.5px solid #b89b5e; border-radius:3px; background:#fffdf7;"></span>
+    </div>
+  </section>
+
+  <!-- ============ 14. STARTER-INTERRUPT ============ -->
+  <section style="margin-top:34px;">
+    <div class="avoid" style="border:1.5px solid #b89b5e; border-radius:6px; overflow:hidden;">
+      <div style="background:#b89b5e; padding:10px 18px;">
+        <h2 style="font-family:'Playfair Display',serif; font-size:19px; font-weight:600; color:#fffdf7; margin:0; display:flex; gap:12px; align-items:baseline;"><span style="font-weight:700;">14</span><span>Starter-Interrupt / Payment-Assurance Device &mdash; Texas Disclosure &amp; Consent</span></h2>
+      </div>
+      <div style="padding:16px 18px; background:#fbf6e9;">
+        <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">14.1 &nbsp;Disclosure.</strong> The Vehicle is equipped with a starter-interrupt (payment-assurance) device. The Renter is entitled to a clear, plain explanation of how it works, and the Company gives it here:</p>
+        <ul style="margin:0 0 11px; padding-left:20px; font-size:14px; line-height:1.6; color:#3c3729;">
+          <li style="margin-bottom:7px;">The device <strong style="color:#2b2820;">does not and cannot disable the Vehicle while it is moving.</strong> It has no effect on a Vehicle in motion.</li>
+          <li style="margin-bottom:7px;">The device can only prevent a <strong style="color:#2b2820;">future start</strong> &mdash; it stops the engine from starting next time, and never interferes with steering, braking, or a running engine.</li>
+          <li style="margin-bottom:7px;">The Company gives <strong style="color:#2b2820;">advance notice before any disable</strong> tied to nonpayment, so the Renter has a chance to pay or make arrangements first.</li>
+          <li style="margin-bottom:0;"><strong style="color:#2b2820;">Reactivation on cure:</strong> once the past-due amount is paid (the Default is cured), the Company promptly re-enables the Vehicle so it can start normally again.</li>
+        </ul>
+        <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">14.2 &nbsp;Consent.</strong> The Renter acknowledges this disclosure and consents to the device on these terms.</p>
+        <div class="avoid" style="margin:14px 0 4px; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+          <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+          <div style="font-size:13px; line-height:1.55; color:#4a4436;">There&rsquo;s a device that can keep the car from starting again if payment is seriously past due &mdash; but it can never shut the car off while you&rsquo;re driving, and it never touches steering or brakes. You&rsquo;ll always get a heads-up before it&rsquo;s used, and the moment you catch up, the car starts again.</div>
+        </div>
+        <div class="avoid" style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin:10px 0 0; padding:10px 14px; background:#f3ead2; border:1px dashed #c9b274; border-radius:4px;">
+          <span style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600;">Renter initials &mdash; starter-interrupt consent</span>
+          <span style="display:inline-block; width:66px; height:32px; border:1.5px solid #b89b5e; border-radius:3px; background:#fffdf7;"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 15. DEFAULT & REMEDIES ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">15</span><span>Default &amp; Remedies</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">15.1 &nbsp;What counts as Default.</strong> Each of the following is a Default: (a)&nbsp;Rent remains unpaid after the grace period in Section&nbsp;7; (b)&nbsp;the Renter&rsquo;s insurance lapses, is canceled, or falls below full coverage (Section&nbsp;9); (c)&nbsp;the Vehicle is used in a prohibited way (Sections&nbsp;10 and&nbsp;19); (d)&nbsp;the Renter gives materially false information; or (e)&nbsp;the Renter otherwise materially breaches this Agreement and does not cure within a reasonable time after notice.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">15.2 &nbsp;The Company&rsquo;s remedies, in order.</strong> On a Default, the Company may, neutrally and consistently: <strong style="color:#2b2820;">(1)</strong>&nbsp;attempt an off-session charge of the amount due to the payment method on file; <strong style="color:#2b2820;">(2)</strong>&nbsp;after the advance notice described in Section&nbsp;14, take device action; and <strong style="color:#2b2820;">(3)</strong>&nbsp;recover the Vehicle under Section&nbsp;16. The Company applies these steps the same way for everyone and only as far as needed to cure the Default.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">15.3 &nbsp;Cure.</strong> The Renter may stop the ladder at any point by curing the Default &mdash; typically by bringing the account current. On cure, normal use resumes (including device reactivation under Section&nbsp;14).</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">If things go wrong &mdash; payment stops, insurance drops, the car is misused &mdash; here&rsquo;s exactly what happens, in order, and it&rsquo;s the same for everyone. Nothing skips ahead, you get notice before any device step, and catching up stops the process at any point.</div>
+    </div>
+  </section>
+
+  <!-- ============ 16. REPOSSESSION ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">16</span><span>Repossession &amp; Personal Property</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">16.1 &nbsp;Lawful recovery.</strong> On a Default, the Company may recover the Vehicle by lawful means and <strong style="color:#2b2820;">without breach of the peace</strong>. The Vehicle remains the Company&rsquo;s property throughout.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">16.2 &nbsp;Your personal property.</strong> Personal belongings in a recovered Vehicle remain the Renter&rsquo;s. The Company will inventory any personal property it finds, store it safely, and make it available for the Renter to retrieve at the Company&rsquo;s address during normal hours. The Company will not condition the return of personal property on payment of Rent or other amounts.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">If we ever have to take the car back, it&rsquo;s done lawfully and without confrontation. Anything of yours inside stays yours &mdash; we&rsquo;ll list it, keep it safe, and let you pick it up. We won&rsquo;t hold your belongings hostage over money.</div>
+    </div>
+  </section>
+
+  <!-- ============ 17. CREDIT REPORTING ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">17</span><span>Credit Reporting &amp; Collections Disclosure</span></h2>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;">The Company may report the Renter&rsquo;s payment performance &mdash; whether positive or negative &mdash; to consumer credit bureaus, and may place unpaid balances with a third-party collection agency. The Company reports accurately and consistently.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">How you pay can show up on your credit &mdash; paying on time can help, and unpaid balances can hurt and may go to collections. We report the truth, nothing more.</div>
+    </div>
+  </section>
+
+  <!-- ============ 18. DAMAGE / WEAR / RETURN ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">18</span><span>Damage, Normal Wear &amp; Return Condition</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">18.1 &nbsp;Normal wear is expected.</strong> Ordinary wear from normal use &mdash; light scuffs, minor interior wear, routine tire and brake wear &mdash; is not chargeable.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">18.2 &nbsp;Chargeable damage.</strong> Damage beyond normal wear &mdash; dents, broken glass, torn or burned upholstery, missing equipment, or damage from neglect or misuse &mdash; is chargeable. Any charge is measured against the Section&nbsp;2 Condition Record, so only new damage counts, and is documented for the Renter.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">18.3 &nbsp;Return condition.</strong> At return, the Vehicle comes back in the same condition as at handoff, normal wear excepted, reasonably clean, with all keys, equipment, and documents, and with a fuel level at least equal to the level at handoff (or the Renter may pay the documented refueling cost).</p>
+  </section>
+
+  <!-- ============ 19. PROHIBITED USES ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">19</span><span>Prohibited Uses</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">19.1 &nbsp;Not allowed.</strong> The Renter does not use the Vehicle: for any illegal activity or in furtherance of a crime; for racing, speed contests, or stunts; to tow or push another vehicle or object; off-road or where the Vehicle is not designed to go; or for mechanical alteration of the Vehicle without the Company&rsquo;s written consent.</p>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">19.2 &nbsp;Seizure or impound.</strong> If the Vehicle is seized, impounded, or forfeited because of the Renter&rsquo;s conduct, the Renter bears all resulting liability, cost, and loss, including the Vehicle&rsquo;s value if it is not recovered.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">19.3 &nbsp;Out-of-state use.</strong> Out-of-state use is <strong style="color:#2b2820;">prohibited</strong>. The Vehicle must remain within the State of Texas at all times during the Rental Period.</p>
+  </section>
+
+  <!-- ============ 20. INDEMNIFICATION ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">20</span><span>Indemnification &amp; Limitation of Liability</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">20.1 &nbsp;Indemnification.</strong> Because the Renter controls the operation of the Vehicle, the Renter indemnifies and holds the Company harmless from claims, losses, and costs arising out of the Renter&rsquo;s or any Authorized Driver&rsquo;s operation or use of the Vehicle during the Rental Period. This is consistent with the Company&rsquo;s role as the renting owner under 49&nbsp;U.S.C. §&nbsp;30106. It does not extend to loss caused by the Company&rsquo;s own gross negligence or willful misconduct.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">20.2 &nbsp;Limitation of liability.</strong> To the extent the law allows, neither Party is liable to the other for indirect, incidental, or consequential damages. Nothing here limits a Party&rsquo;s liability for its own gross negligence, willful misconduct, or anything that cannot be limited by law.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">Since you&rsquo;re the one driving, you cover claims that come from your driving &mdash; not us. This is the same idea that keeps a rental company from being blamed for how a renter drives. It doesn&rsquo;t let either of us off the hook for serious, deliberate wrongdoing.</div>
+    </div>
+  </section>
+
+  <!-- ============ 21. DISPUTE RESOLUTION ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">21</span><span>Dispute Resolution</span></h2>
+    <p style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">21.1 &nbsp;Individual arbitration.</strong> Any dispute arising out of this Agreement is resolved by binding individual arbitration administered by <span style="background:#e7d8b2; color:#7a6324; padding:1px 7px; border-radius:3px; font-weight:600; font-size:.9em;">ARBITRATION PROVIDER</span> under its applicable rules. Disputes are brought on an individual basis, not as a class action.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">21.2 &nbsp;Venue and governing law.</strong> The arbitration takes place in, and venue lies in, <strong style="color:#2b2820;">Harris County, Texas</strong>, and this Agreement is governed by the laws of the State of Texas. Either Party may still bring an individual claim in small-claims court where it qualifies.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">If we ever truly disagree, we settle it through a neutral arbitrator here in Harris County under Texas law, rather than a long court fight &mdash; one-on-one, not as part of a group case. Small everyday claims can still go to small-claims court.</div>
+    </div>
+  </section>
+
+  <!-- ============ 22. E-SIGN ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">22</span><span>Electronic Signature Consent</span></h2>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;">The Parties agree to sign and keep this Agreement electronically. Under the federal E-SIGN Act and the Texas Uniform Electronic Transactions Act (UETA), an electronic signature and electronic record have the same legal effect as ink on paper. The Renter may request a paper copy at any time.</p>
+  </section>
+
+  <!-- ============ 23. GENERAL ============ -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8; display:flex; gap:12px; align-items:baseline;"><span style="color:#b89b5e; font-weight:700;">23</span><span>General</span></h2>
+    <p style="margin:0 0 9px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">23.1 &nbsp;Severability.</strong> If any part of this Agreement is found unenforceable, the rest stays in full force.</p>
+    <p style="margin:0 0 9px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">23.2 &nbsp;Entire agreement.</strong> This Agreement, with the Condition Record, is the entire agreement between the Parties and replaces any prior understandings on this subject.</p>
+    <p style="margin:0 0 9px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">23.3 &nbsp;No oral modifications.</strong> Any change to this Agreement must be in writing and signed by both Parties. Spoken promises do not change it.</p>
+    <p style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">23.4 &nbsp;Headings.</strong> Headings are for convenience only and do not affect meaning.</p>
+  </section>
+
+  <!-- ============ SIGNATURE & INITIALS PAGE ============ -->
+  <section class="page-break" style="margin-top:46px; padding-top:30px; border-top:2px solid #b89b5e;">
+    <div style="text-align:center; margin-bottom:24px;">
+      <svg width="40" height="46" viewBox="0 0 100 116" style="display:block; margin:0 auto 10px;">
+        <g fill="none" stroke="#b89b5e" stroke-width="2.6">
+          <ellipse cx="50" cy="58" rx="27" ry="52"></ellipse>
+          <ellipse cx="50" cy="58" rx="17" ry="46" transform="rotate(-13 50 58)"></ellipse>
+          <ellipse cx="50" cy="58" rx="17" ry="46" transform="rotate(13 50 58)"></ellipse>
+        </g>
+      </svg>
+      <h2 style="font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#2b2820; margin:0;">Signature &amp; Initials Page</h2>
+      <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:10px auto 0; max-width:520px;">By signing below, each Party agrees to this Weekly Motor Vehicle Rental Agreement. The Renter confirms they have read it, understood the &ldquo;What this means&rdquo; explanations, and completed every initial item in the grid below.</p>
+    </div>
+
+    <!-- Consolidated initials grid -->
+    <div class="avoid" style="margin:0 0 28px;">
+      <div style="font-family:'Playfair Display',serif; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; margin-bottom:10px; font-weight:600;">Required separate initials</div>
+      <div style="border:1px solid #d8c89e; border-radius:5px; overflow:hidden; background:#fffdf7;">
+        <div style="display:flex; align-items:center; gap:16px; padding:14px 16px; border-bottom:1px solid #e6dab8;">
+          <div style="flex:1;"><div style="font-size:14px; font-weight:600; color:#2b2820;">Auto-Charge Authorization</div><div style="font-size:12.5px; color:#6b6450; margin-top:2px;">Section 5 &mdash; automatic charges to the payment method on file each cycle.</div></div>
+          <span style="display:inline-block; width:78px; height:36px; border:1.5px solid #b89b5e; border-radius:3px; background:#f7f2e7;"></span>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px; padding:14px 16px; border-bottom:1px solid #e6dab8;">
+          <div style="flex:1;"><div style="font-size:14px; font-weight:600; color:#2b2820;">GPS / Telematics Consent</div><div style="font-size:12.5px; color:#6b6450; margin-top:2px;">Section 13 &mdash; location and recovery device disclosure and consent.</div></div>
+          <span style="display:inline-block; width:78px; height:36px; border:1.5px solid #b89b5e; border-radius:3px; background:#f7f2e7;"></span>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px; padding:14px 16px;">
+          <div style="flex:1;"><div style="font-size:14px; font-weight:600; color:#2b2820;">Starter-Interrupt Device Consent</div><div style="font-size:12.5px; color:#6b6450; margin-top:2px;">Section 14 &mdash; payment-assurance device disclosure and consent (Texas).</div></div>
+          <span style="display:inline-block; width:78px; height:36px; border:1.5px solid #b89b5e; border-radius:3px; background:#f7f2e7;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signature blocks -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px;">
+      <div class="avoid">
+        <div style="font-family:'Playfair Display',serif; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#b89b5e; margin-bottom:18px; font-weight:600; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">Renter</div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Printed name</div></div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Signature</div></div>
+        <div style="display:flex; gap:14px; margin-bottom:22px;">
+          <div style="flex:1.4;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Driver license no.</div></div>
+          <div style="flex:.7;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">State</div></div>
+        </div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Phone</div></div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Email</div></div>
+        <div><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Date signed</div></div>
+      </div>
+      <div class="avoid">
+        <div style="font-family:'Playfair Display',serif; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#b89b5e; margin-bottom:18px; font-weight:600; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">Company &mdash; Obavia</div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Entity &mdash; <span style="color:#7a6324;">[ LEGAL ENTITY NAME ]</span></div></div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">By (authorized representative)</div></div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Signature</div></div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Title</div></div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Date signed</div></div>
+        <div style="padding:14px 16px; background:#efe6cd; border:1px solid #ddcfa8; border-radius:5px;">
+          <div style="font-size:12px; line-height:1.55; color:#6b6450;"><strong style="color:#2b2820;">Company contact</strong><br>8774 Almeda Genoa Road<br>Houston, Texas 77075</div>
+        </div>
+      </div>
+    </div>
+
+    <p style="text-align:center; font-size:11.5px; line-height:1.5; color:#8a8270; margin:40px auto 0; max-width:560px; font-style:italic;">This document should be reviewed by qualified Texas counsel before use.</p>
+  </section>
+
+  <!-- screen footer -->
+  <div class="screen-only" style="margin-top:38px; padding-top:16px; border-top:1px solid #ddcfa8; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; font-size:10.5px; color:#9c8345; letter-spacing:.03em;">
+    <span>OBAVIA LLC &middot; 8774 Almeda Genoa Road, Houston, TX 77075</span>
+    <span>Weekly Motor Vehicle Rental Agreement &middot; v1.0 Draft</span>
+  </div>
+
+</div>
+</main>
+</x-dc>
+</body>
+</html>

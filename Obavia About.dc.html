@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#121212}
+  button{font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;color:inherit;background:none;border:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:#b89b5e;color:#121212}
+  @keyframes obUp{from{transform:translateY(16px)}to{transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="min-height:100vh; background:#121212; color:#F5F0E6; font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;">
+
+  <!-- top bar -->
+  <div style="position:sticky; top:0; z-index:40; background:rgba(18,18,18,.88); backdrop-filter:blur(10px); border-bottom:1px solid rgba(184,155,94,.14);">
+    <div style="max-width:1080px; margin:0 auto; height:58px; display:flex; align-items:center; gap:14px; padding:0 clamp(16px,4vw,28px);">
+      <a href="Obavia Home.dc.html" style="display:inline-flex; align-items:center; gap:10px;">
+        <svg width="18" height="22" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="6" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
+        <span style="font-family:'Bodoni Moda',Didot,serif; font-size:17px; letter-spacing:.32em; padding-left:.32em;">OBAVIA</span>
+      </a>
+      <div style="flex:1;"></div>
+      <a href="Obavia Vehicles.dc.html" style="font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(245,240,230,.62);" style-hover="color:#b89b5e;">The fleet</a>
+    </div>
+  </div>
+
+  <!-- hero -->
+  <section style="max-width:1080px; margin:0 auto; padding:clamp(56px,11vh,128px) clamp(22px,6vw,48px) clamp(40px,7vh,80px);">
+    <div style="font-size:11px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#b89b5e; margin-bottom:24px; animation:obUp .8s ease-out both;">About OBAVIA</div>
+    <h1 style="font-family:'Bodoni Moda',Didot,Georgia,serif; font-weight:400; font-size:clamp(2.6rem,7vw,5rem); line-height:1.04; letter-spacing:-.01em; margin:0; max-width:18ch; animation:obUp .9s cubic-bezier(.2,.7,.2,1) both;">A car rental house that treats you like a guest, not a risk.</h1>
+    <p style="font-size:clamp(1.05rem,1.7vw,1.3rem); line-height:1.6; color:rgba(245,240,230,.72); max-width:54ch; margin:30px 0 0;">OBAVIA rents premium and everyday vehicles by the week in Houston — to the drivers most companies screen out, and for the occasions that deserve something finer. The respect is the luxury.</p>
+  </section>
+
+  <!-- belief -->
+  <section style="border-top:1px solid rgba(184,155,94,.14); background:linear-gradient(180deg, rgba(184,155,94,.05), rgba(18,18,18,0));">
+    <div style="max-width:1080px; margin:0 auto; padding:clamp(48px,8vw,90px) clamp(22px,6vw,48px); display:grid; grid-template-columns:1fr; gap:clamp(28px,4vw,44px);">
+      <div style="max-width:62ch;">
+        <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.8rem,4vw,2.8rem); line-height:1.1; margin:0 0 20px;">Most rental companies are built to say no.</h2>
+        <p style="font-size:15.5px; line-height:1.7; color:rgba(245,240,230,.74); margin:0 0 16px;">A thin credit file, a gig income, a card that isn't a platinum — and the door closes. We built OBAVIA for the people on the other side of that door: rideshare and delivery drivers whose week <em>is</em> the car, families replacing one that's in the shop, and anyone who simply wants a beautiful vehicle for a weekend that matters.</p>
+        <p style="font-size:15.5px; line-height:1.7; color:rgba(245,240,230,.74); margin:0;">Our standards are real and they're published — not a mood the front desk is in. Meet them and you're a member, welcomed the same whether you're driving a Corolla on Monday or a Mercedes on Friday.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- principles -->
+  <section style="max-width:1080px; margin:0 auto; padding:clamp(44px,7vw,80px) clamp(22px,6vw,48px);">
+    <div style="font-size:11px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#b89b5e; margin-bottom:30px;">What we stand on</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr)); gap:clamp(20px,3vw,36px);">
+      <sc-for list="{{ principles }}" as="p" hint-placeholder-count="4">
+        <div style="border-top:1px solid rgba(184,155,94,.3); padding-top:18px;">
+          <div style="font-family:'Bodoni Moda',Didot,serif; font-size:1.4rem; line-height:1.15; margin-bottom:10px;">{{ p.t }}</div>
+          <div style="font-size:14px; line-height:1.6; color:rgba(245,240,230,.64);">{{ p.d }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- the arc -->
+  <section style="border-top:1px solid rgba(184,155,94,.14); background:linear-gradient(180deg, rgba(231,201,122,.05), rgba(18,18,18,0));">
+    <div style="max-width:1080px; margin:0 auto; padding:clamp(48px,8vw,90px) clamp(22px,6vw,48px);">
+      <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.8rem,4vw,2.8rem); line-height:1.1; margin:0 0 14px; max-width:20ch;">Renting here is supposed to take you somewhere.</h2>
+      <p style="font-size:15.5px; line-height:1.7; color:rgba(245,240,230,.72); max-width:56ch; margin:0 0 34px;">We report your on-time payments, so the weeks you drive build your credit. Membership lowers your rate and, in good standing, can open the door to owning a car from our fleet on house terms. The same account that gets you a reliable sedan this week is the one that gets you further.</p>
+      <div style="display:flex; align-items:stretch; gap:0; flex-wrap:wrap;">
+        <sc-for list="{{ arc }}" as="a" hint-placeholder-count="3">
+          <div style="flex:1; min-width:180px; padding:20px 22px; border:1px solid rgba(245,240,230,.1); border-radius:12px; background:rgba(245,240,230,.02); margin:0 8px 8px 0;">
+            <div style="font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:#b89b5e; margin-bottom:8px;">{{ a.k }}</div>
+            <div style="font-family:'Bodoni Moda',Didot,serif; font-size:1.25rem; line-height:1.2; margin-bottom:6px;">{{ a.t }}</div>
+            <div style="font-size:13px; line-height:1.5; color:rgba(245,240,230,.6);">{{ a.d }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- houston -->
+  <section style="max-width:1080px; margin:0 auto; padding:clamp(44px,7vw,80px) clamp(22px,6vw,48px); display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b89b5e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M12 21s7-6.3 7-11a7 7 0 0 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>
+    <p style="flex:1; min-width:260px; font-size:15px; line-height:1.6; color:rgba(245,240,230,.7); margin:0;"><strong style="color:#F5F0E6;">Houston, Texas.</strong> One house, one fleet, delivered or picked up across the metro. Our vehicles stay in Texas, and we host Texas residents — close enough to know our members by name.</p>
+  </section>
+
+  <!-- CTA -->
+  <section style="max-width:1080px; margin:0 auto; padding:0 clamp(22px,6vw,48px) clamp(64px,10vh,110px);">
+    <div style="border:1px solid rgba(184,155,94,.3); border-radius:18px; background:linear-gradient(160deg, rgba(184,155,94,.08), rgba(18,18,18,0)); padding:clamp(30px,6vw,52px); text-align:center;">
+      <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.9rem,4.5vw,3rem); line-height:1.06; margin:0 0 14px;">Find the one you'll drive.</h2>
+      <p style="font-size:14.5px; line-height:1.6; color:rgba(245,240,230,.66); max-width:46ch; margin:0 auto 28px;">Browse the fleet, answer a few honest questions, and see where you stand — usually within 48 hours.</p>
+      <div style="display:flex; gap:13px; flex-wrap:wrap; justify-content:center;">
+        <a href="Obavia Vehicles.dc.html" style="background:#b89b5e; color:#121212; border-radius:5px; padding:16px 30px; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;" style-hover="background:#F5F0E6;">See the fleet</a>
+        <a href="OBAVIA Membership.dc.html" style="border:1px solid rgba(245,240,230,.26); color:#F5F0E6; border-radius:5px; padding:16px 26px; font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;" style-hover="border-color:#b89b5e; color:#b89b5e;">Explore membership</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- footer -->
+  <div style="border-top:1px solid rgba(184,155,94,.14);">
+    <div style="max-width:1080px; margin:0 auto; padding:24px clamp(16px,4vw,28px); display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;">
+      <a href="Obavia Home.dc.html" style="display:inline-flex; align-items:center; gap:9px;"><svg width="15" height="19" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="7" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg><span style="font-family:'Bodoni Moda',Didot,serif; font-size:13px; letter-spacing:.26em; padding-left:.26em; color:rgba(245,240,230,.7);">OBAVIA</span></a>
+      <span style="font-size:11px; color:rgba(245,240,230,.4); letter-spacing:.03em;">Houston, Texas · Vehicles stay within Texas · No deposit on Standard</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1080,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  renderVals(){
+    return {
+      principles: [
+        { t: "Published standards", d: "The bar to become a member is written down and the same for everyone — identity, driving record, insurance. No mood, no favorites." },
+        { t: "Honest pricing", d: "No deposit on Standard. Your insurance, your terms, every fee shown before you sign. The price you see is the price." },
+        { t: "Dignity in every state", d: "From your first week to a missed payment, the voice never changes. Calm, fair, with the cure path always shown — never an alarm screen." },
+        { t: "No traps", d: "Cancel anytime and revert to standard rates immediately. The only thing keeping you here is that it's worth it." }
+      ],
+      arc: [
+        { k: "This week", t: "A reliable car", d: "An everyday vehicle, ready to earn, often within 48 hours of approval." },
+        { k: "Along the way", t: "Credit, built", d: "On-time payments reported — the weeks add up on your file." },
+        { k: "On the horizon", t: "A car of your own", d: "Members in good standing can buy from the fleet on house terms." }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

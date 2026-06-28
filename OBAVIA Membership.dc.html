@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./obavia-membership.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#121212}
+  button{font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;color:inherit;background:none;border:none;padding:0;cursor:pointer}
+  a{color:inherit;text-decoration:none}
+  input{font-family:'Montserrat',sans-serif}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:3px;background:rgba(184,155,94,.3);border-radius:2px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:#b89b5e;cursor:pointer;border:3px solid #121212;box-shadow:0 0 0 1px #b89b5e}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#b89b5e;cursor:pointer;border:3px solid #121212}
+  ::selection{background:#b89b5e;color:#121212}
+  @keyframes obmRise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+  @keyframes obmFade{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:560px){ [data-mem-eyebrow]{display:none!important} }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#121212; color:#F5F0E6; font-family:'Montserrat','Helvetica Neue',Arial,sans-serif; overflow-x:hidden;">
+
+  <!-- ============ TOP BAR ============ -->
+  <div style="position:sticky; top:0; z-index:40; background:rgba(18,18,18,.86); backdrop-filter:blur(10px); border-bottom:1px solid rgba(184,155,94,.16);">
+    <div style="max-width:1120px; margin:0 auto; height:62px; display:flex; align-items:center; gap:16px; padding:0 24px;">
+      <a href="Obavia Home.dc.html" style="display:inline-flex; align-items:center; gap:11px;">
+        <svg width="20" height="24" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="6" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
+        <span style="font-family:'Bodoni Moda',Didot,serif; font-size:19px; letter-spacing:.34em; padding-left:.34em; color:#F5F0E6;">OBAVIA</span>
+      </a>
+      <span data-mem-eyebrow style="width:1px; height:20px; background:rgba(184,155,94,.4);"></span>
+      <span data-mem-eyebrow style="font-size:11px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:#b89b5e;">Membership</span>
+      <div style="flex:1;"></div>
+      <a href="Obavia Member Sign In.dc.html" style="font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:rgba(245,240,230,.62);" style-hover="color:#b89b5e;">Member sign-in</a>
+      <button onClick="{{ scrollJoin }}" style="border:1px solid rgba(184,155,94,.55); color:#b89b5e; border-radius:3px; padding:9px 18px; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;" style-hover="background:#b89b5e; color:#121212;">Join</button>
+    </div>
+  </div>
+
+  <!-- ============ HERO ============ -->
+  <section style="max-width:1120px; margin:0 auto; padding:clamp(56px,9vw,110px) 24px clamp(40px,6vw,72px); position:relative;">
+    <div style="max-width:760px;">
+      <div style="font-size:11px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#b89b5e; margin-bottom:22px; animation:obmFade .8s ease-out both;">A standing membership</div>
+      <h1 style="font-family:'Bodoni Moda',Didot,Georgia,serif; font-weight:400; font-size:clamp(2.7rem,6.4vw,5rem); line-height:1.02; letter-spacing:-.01em; margin:0 0 24px; animation:obmRise .9s cubic-bezier(.2,.7,.2,1) both;">Membership that<br>earns its keep.</h1>
+      <p style="font-size:clamp(1rem,1.5vw,1.18rem); line-height:1.62; color:rgba(245,240,230,.74); max-width:48ch; margin:0 0 32px; animation:obmRise .9s cubic-bezier(.2,.7,.2,1) both; animation-delay:.08s;">Save on every week you drive. It pays for itself by week two &mdash; see the math.</p>
+
+      <!-- honest anchor -->
+      <div style="display:inline-flex; flex-wrap:wrap; align-items:flex-end; gap:18px 26px; padding:20px 26px; border:1px solid rgba(184,155,94,.34); border-radius:7px; background:linear-gradient(180deg, rgba(184,155,94,.07), rgba(184,155,94,.02)); margin-bottom:30px; animation:obmRise .9s ease-out both; animation-delay:.16s;">
+        <div>
+          <div style="font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#b89b5e; margin-bottom:8px;">{{ heroFoundingKicker }}</div>
+          <div style="display:flex; align-items:baseline; gap:8px;"><span style="font-family:'Bodoni Moda',Didot,serif; font-size:clamp(2.2rem,3.4vw,2.9rem); color:#F5F0E6; line-height:1;">{{ heroPrice }}</span><span style="font-size:14px; color:rgba(245,240,230,.6);">/ month</span></div>
+        </div>
+        <sc-if value="{{ heroShowAnchor }}" hint-placeholder-val="{{ true }}">
+          <div style="padding-bottom:4px;">
+            <div style="font-size:12.5px; color:rgba(245,240,230,.6); line-height:1.5;">Locked in for life.</div>
+            <div style="font-size:12.5px; color:rgba(245,240,230,.5); line-height:1.5;">Regular price <b style="color:rgba(245,240,230,.82); font-weight:600;">{{ heroRegular }}/mo</b> for members who join later.</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:14px; animation:obmFade 1s ease-out both; animation-delay:.24s;">
+        <button onClick="{{ scrollJoin }}" style="background:#b89b5e; color:#121212; border-radius:4px; padding:15px 30px; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;" style-hover="background:#F5F0E6;">Become a Keyholder</button>
+        <button onClick="{{ scrollMath }}" style="border:1px solid rgba(245,240,230,.26); color:#F5F0E6; border-radius:4px; padding:15px 26px; font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;" style-hover="border-color:#b89b5e; color:#b89b5e;">Show me the math</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ THE LADDER ============ -->
+  <section style="max-width:1120px; margin:0 auto; padding:clamp(30px,5vw,56px) 24px;">
+    <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; flex-wrap:wrap;">
+      <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.7rem,3vw,2.3rem); margin:0;">Three keys.</h2>
+      <span style="font-size:13px; color:rgba(245,240,230,.55);">Pick the one that fits how much you drive.</span>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; align-items:stretch;">
+      <sc-for list="{{ tierCards }}" as="t" hint-placeholder-count="3">
+        <div style="position:relative; display:flex; flex-direction:column; border:1px solid {{ t.cardBorder }}; border-radius:10px; background:{{ t.cardBg }}; padding:28px 26px 26px; box-shadow:{{ t.cardShadow }};">
+          <sc-if value="{{ t.flag }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; top:-11px; left:26px; white-space:nowrap; background:#b89b5e; color:#121212; font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:5px 12px; border-radius:3px;">{{ t.flagText }}</div>
+          </sc-if>
+          <div style="display:flex; align-items:center; gap:11px; margin-bottom:6px;">
+            <svg width="17" height="20" viewBox="0 0 120 160" fill="none" stroke="{{ t.keyColor }}" stroke-width="7" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
+            <span style="font-family:'Bodoni Moda',Didot,serif; font-size:1.55rem; color:{{ t.nameColor }};">{{ t.name }}</span>
+          </div>
+          <div style="font-size:12px; letter-spacing:.04em; color:{{ t.taglineColor }}; margin-bottom:18px; min-height:16px;">{{ t.tagline }}</div>
+          <div style="display:flex; align-items:baseline; gap:7px; margin-bottom:4px;"><span style="font-family:'Bodoni Moda',Didot,serif; font-size:2.3rem; color:{{ t.nameColor }}; line-height:1;">{{ t.priceMain }}</span><span style="font-size:13px; color:{{ t.subColor }};">{{ t.priceUnit }}</span></div>
+          <div style="font-size:11.5px; color:{{ t.subColor }}; min-height:16px; margin-bottom:18px;">{{ t.priceNote }}</div>
+          <div style="display:inline-flex; align-self:flex-start; align-items:center; gap:7px; padding:7px 13px; border-radius:20px; background:{{ t.pctBg }}; border:1px solid {{ t.pctBorder }}; margin-bottom:20px;"><span style="font-family:'Bodoni Moda',Didot,serif; font-size:1.05rem; color:{{ t.pctColor }};">{{ t.pctLabel }}</span><span style="font-size:11px; color:{{ t.subColor }};">{{ t.pctSuffix }}</span></div>
+          <div style="display:flex; flex-direction:column; gap:11px; margin-bottom:24px; flex:1;">
+            <sc-for list="{{ t.perks }}" as="p" hint-placeholder-count="4">
+              <div style="display:flex; gap:10px; align-items:flex-start;"><span style="color:{{ t.checkColor }}; font-size:13px; flex:0 0 auto; line-height:1.5;">{{ t.check }}</span><span style="font-size:13px; line-height:1.5; color:{{ t.perkColor }};">{{ p }}</span></div>
+            </sc-for>
+          </div>
+          <button onClick="{{ t.join }}" style="width:100%; border-radius:4px; padding:14px; font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; background:{{ t.btnBg }}; color:{{ t.btnFg }}; border:1px solid {{ t.btnBorder }};" style-hover="{{ t.btnHover }}">{{ t.cta }}</button>
+        </div>
+      </sc-for>
+    </div>
+    <div style="font-size:12px; color:rgba(245,240,230,.45); margin-top:18px; line-height:1.6;">Your discount comes off the weekly rate automatically, the whole time you&rsquo;re a member.</div>
+  </section>
+
+  <!-- ============ SHOW ME THE MATH ============ -->
+  <section data-math-anchor style="max-width:1120px; margin:0 auto; padding:clamp(48px,7vw,84px) 24px;">
+    <div style="text-align:center; max-width:640px; margin:0 auto 38px;">
+      <div style="font-size:11px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#b89b5e; margin-bottom:16px;">Show me the math</div>
+      <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(2rem,3.6vw,2.9rem); line-height:1.06; margin:0 0 14px;">Don't take our word. Run it.</h2>
+      <p style="font-size:14.5px; line-height:1.6; color:rgba(245,240,230,.66); margin:0;">Pick a car and how long you&rsquo;d keep it. We subtract the fee in plain sight &mdash; what&rsquo;s left is yours.</p>
+    </div>
+
+    <div data-calc-grid style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:22px; align-items:start; border:1px solid rgba(184,155,94,.24); border-radius:14px; background:rgba(245,240,230,.02); padding:8px;">
+      <!-- controls -->
+      <div style="padding:26px 24px;">
+        <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:rgba(245,240,230,.5); margin-bottom:12px;">Your membership</div>
+        <div style="display:flex; gap:9px; margin-bottom:24px;">
+          <sc-for list="{{ calcTierOpts }}" as="o" hint-placeholder-count="2">
+            <button onClick="{{ o.pick }}" style="flex:1; padding:12px 10px; border-radius:7px; border:1px solid {{ o.border }}; background:{{ o.bg }}; text-align:left;">
+              <div style="font-family:'Bodoni Moda',Didot,serif; font-size:1.05rem; color:{{ o.nameColor }};">{{ o.name }}</div>
+              <div style="font-size:10.5px; color:{{ o.subColor }}; margin-top:2px;">{{ o.priceLabel }} · {{ o.pct }}</div>
+            </button>
+          </sc-for>
+        </div>
+
+        <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:rgba(245,240,230,.5); margin-bottom:12px;">The car you'd drive</div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:22px;">
+          <sc-for list="{{ calcVehOpts }}" as="o" hint-placeholder-count="3">
+            <button onClick="{{ o.pick }}" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 15px; border-radius:7px; border:1px solid {{ o.border }}; background:{{ o.bg }};">
+              <span style="font-size:13px; color:{{ o.nameColor }};">{{ o.label }}</span>
+              <span style="font-size:13px; font-weight:600; color:{{ o.rateColor }};">{{ o.rate }}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:9px;"><span style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:rgba(245,240,230,.5);">Weeks you'd keep it</span><span style="font-family:'Bodoni Moda',Didot,serif; font-size:1.2rem; color:#b89b5e;">{{ calcWeeks }}</span></div>
+        <input type="range" min="1" max="26" step="1" value="{{ calcWeeks }}" onInput="{{ onWeeks }}" style="width:100%;">
+        <div style="display:flex; justify-content:space-between; font-size:10.5px; color:rgba(245,240,230,.4); margin-top:6px;"><span>1 week</span><span>26 weeks</span></div>
+      </div>
+
+      <!-- result -->
+      <div style="background:#0e0e0e; border:1px solid rgba(184,155,94,.2); border-radius:11px; padding:28px 26px; min-height:100%;">
+        <sc-if value="{{ calcApplies }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#b89b5e; margin-bottom:10px;">After {{ calcWeeks }} weeks on {{ calcVehShort }}</div>
+          <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;"><span style="font-family:'Bodoni Moda',Didot,serif; font-size:clamp(2.6rem,4.6vw,3.5rem); color:{{ calcNetColor }}; line-height:1;">{{ calcNet }}</span><span style="font-size:14px; color:rgba(245,240,230,.6);">in your pocket</span></div>
+          <div style="font-size:13px; color:rgba(245,240,230,.66); margin:12px 0 22px; line-height:1.55;">{{ calcHeadline }}</div>
+
+          <div style="border:1px solid rgba(245,240,230,.09); border-radius:8px; overflow:hidden;">
+            <div style="display:grid; grid-template-columns:1fr 1.1fr 1fr 1fr; padding:10px 14px; background:rgba(245,240,230,.03); font-size:9.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:rgba(245,240,230,.45);">
+              <span>Week</span><span style="text-align:right;">Saved</span><span style="text-align:right;">Fee</span><span style="text-align:right;">Net</span>
+            </div>
+            <sc-for list="{{ calcRows }}" as="r" hint-placeholder-count="4">
+              <div style="display:grid; grid-template-columns:1fr 1.1fr 1fr 1fr; padding:10px 14px; border-top:1px solid rgba(245,240,230,.06); background:{{ r.rowBg }};">
+                <span style="font-size:12.5px; color:rgba(245,240,230,.7);">{{ r.wk }}</span>
+                <span style="font-size:12.5px; text-align:right; color:#cdbf9a;">{{ r.saved }}</span>
+                <span style="font-size:12.5px; text-align:right; color:rgba(245,240,230,.5);">{{ r.fee }}</span>
+                <span style="font-size:12.5px; text-align:right; font-weight:600; color:{{ r.netColor }};">{{ r.net }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; margin-top:16px; padding:11px 14px; background:rgba(143,191,125,.08); border:1px solid rgba(143,191,125,.3); border-radius:7px;">
+            <span style="color:#8fbf7d; font-size:14px;">&#10003;</span>
+            <span style="font-size:12.5px; color:#bcd9ad; line-height:1.45;">{{ calcBreakeven }}</span>
+          </div>
+          <div style="font-size:11px; color:rgba(245,240,230,.4); margin-top:14px; line-height:1.55;">Saving {{ calcPerWeek }}/week at {{ calcPct }} off · membership fee {{ calcFee }}/mo is subtracted above, nothing hidden.</div>
+        </sc-if>
+        <sc-if value="{{ calcGated }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; height:100%; justify-content:center; align-items:flex-start; gap:14px; padding:10px 4px;">
+            <svg width="26" height="31" viewBox="0 0 120 160" fill="none" stroke="#e7c97a" stroke-width="7" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
+            <div style="font-family:'Bodoni Moda',Didot,serif; font-size:1.5rem; color:#F5F0E6; line-height:1.2;">{{ calcVehShort }} is a Black Key key.</div>
+            <div style="font-size:13px; line-height:1.6; color:rgba(245,240,230,.66); max-width:42ch;">Keyholder covers the everyday fleet. Exotic and Noir units — and the 20% that comes with them — open up on Black Key.</div>
+            <button onClick="{{ calcSwitchBlack }}" style="margin-top:4px; background:#b89b5e; color:#121212; border-radius:4px; padding:12px 22px; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;" style-hover="background:#F5F0E6;">See it on Black Key</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+    <div style="text-align:center; font-size:12px; color:rgba(245,240,230,.4); margin-top:18px;">Every figure is computed from OBAVIA's real per-vehicle rates and your membership percentage. Run your own numbers — it holds up.</div>
+  </section>
+
+  <!-- ============ WHAT'S INCLUDED (compact) ============ -->
+  <section style="max-width:1120px; margin:0 auto; padding:clamp(30px,5vw,56px) 24px;">
+    <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(1.7rem,3vw,2.3rem); margin:0 0 8px;">What's included.</h2>
+    <span style="font-size:13px; color:rgba(245,240,230,.5);">Every paid tier. Black Key adds the 20% and the exotic keys.</span>
+
+    <!-- headline benefit, one line -->
+    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; border:1px solid rgba(184,155,94,.32); border-radius:9px; background:rgba(184,155,94,.06); padding:18px 22px; margin:22px 0 16px;">
+      <span style="font-size:9px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#121212; background:#b89b5e; padding:4px 9px; border-radius:3px; flex:0 0 auto;">Headline</span>
+      <span style="font-size:15px; color:#F5F0E6;"><b>Zero-Downtime Guarantee</b> &mdash; if your car goes down, a replacement is on its way within {{ guaranteeHours }} hours. Your income never waits on a repair.</span>
+    </div>
+
+    <!-- the rest, as a lean checklist -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px 28px;">
+      <sc-for list="{{ perksLean }}" as="p" hint-placeholder-count="7">
+        <div style="display:flex; gap:11px; align-items:baseline; padding:8px 0; border-bottom:1px solid rgba(245,240,230,.06);">
+          <span style="color:#b89b5e; font-size:13px; flex:0 0 auto;">&#10003;</span>
+          <span style="font-size:14px; color:rgba(245,240,230,.82);">{{ p }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ============ JOIN CTA ============ -->
+  <section data-join-anchor style="max-width:1120px; margin:0 auto; padding:clamp(48px,7vw,90px) 24px; text-align:center;">
+    <div style="font-size:11px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#b89b5e; margin-bottom:18px;">{{ heroFoundingKicker }}</div>
+    <h2 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:clamp(2.2rem,4.6vw,3.4rem); line-height:1.04; margin:0 auto 18px; max-width:20ch;">Lock the founding rate before it rises.</h2>
+    <p style="font-size:15px; line-height:1.62; color:rgba(245,240,230,.66); max-width:52ch; margin:0 auto 30px;">{{ heroPrice }}/month, held for as long as you're a member — even after the price moves to {{ heroRegular }} for everyone who comes later. One membership per driver.</p>
+    <div style="display:flex; flex-wrap:wrap; gap:14px; justify-content:center;">
+      <button onClick="{{ joinKeyholder }}" style="background:#b89b5e; color:#121212; border-radius:4px; padding:16px 34px; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;" style-hover="background:#F5F0E6;">Become a Keyholder · {{ heroPrice }}/mo</button>
+      <button onClick="{{ joinBlack }}" style="border:1px solid #b89b5e; color:#e7c97a; border-radius:4px; padding:16px 30px; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; background:#161616;" style-hover="background:#000;">Go Black Key · $199.99/mo</button>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <div style="border-top:1px solid rgba(184,155,94,.14);">
+    <div style="max-width:1120px; margin:0 auto; padding:30px 24px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;">
+      <a href="Obavia Home.dc.html" style="display:inline-flex; align-items:center; gap:10px;"><svg width="16" height="20" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="7" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg><span style="font-family:'Bodoni Moda',Didot,serif; font-size:14px; letter-spacing:.28em; padding-left:.28em; color:rgba(245,240,230,.7);">OBAVIA</span></a>
+      <span style="font-size:11px; color:rgba(245,240,230,.4); letter-spacing:.04em;">Houston, Texas · Membership reverts to standard rates anytime you choose.</span>
+    </div>
+  </div>
+
+  <!-- ============ JOIN MODAL ============ -->
+  <sc-if value="{{ joinOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeJoin }}" style="position:fixed; inset:0; z-index:90; background:rgba(8,8,8,.82); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:24px; animation:obmFade .25s ease-out both;">
+      <div onClick="{{ stop }}" style="max-width:440px; width:100%; background:#161616; border:1px solid {{ joinBorder }}; border-radius:14px; padding:32px 30px; animation:obmRise .3s ease-out both;">
+        <sc-if value="{{ joinDone }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;">
+            <div style="width:54px; height:54px; border:1px solid #b89b5e; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 18px; color:#b89b5e; font-size:24px;">&#10003;</div>
+            <h3 style="font-family:'Bodoni Moda',Didot,serif; font-weight:400; font-size:1.7rem; margin:0 0 10px;">{{ joinDoneTitle }}</h3>
+            <p style="font-size:13.5px; line-height:1.62; color:rgba(245,240,230,.66); margin:0 0 22px;">{{ joinDoneBody }}</p>
+            <a href="Obavia Customer Portal.dc.html" style="display:block; background:#b89b5e; color:#121212; border-radius:5px; padding:14px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;">Go to my member portal</a>
+            <button onClick="{{ closeJoin }}" style="margin-top:12px; font-size:12px; color:rgba(245,240,230,.55);" style-hover="color:#b89b5e;">Close</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ joinConfirm }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:center; gap:11px; margin-bottom:6px;">
+            <svg width="18" height="22" viewBox="0 0 120 160" fill="none" stroke="{{ joinKeyColor }}" stroke-width="7" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
+            <span style="font-family:'Bodoni Moda',Didot,serif; font-size:1.5rem;">{{ joinTierName }}</span>
+          </div>
+          <div style="font-size:13px; color:rgba(245,240,230,.6); margin-bottom:22px;">{{ joinTagline }}</div>
+          <div style="border:1px solid rgba(245,240,230,.1); border-radius:9px; overflow:hidden; margin-bottom:20px;">
+            <sc-for list="{{ joinRows }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex; justify-content:space-between; gap:14px; padding:13px 16px; border-bottom:1px solid rgba(245,240,230,.06);"><span style="font-size:12.5px; color:rgba(245,240,230,.58);">{{ r.k }}</span><span style="font-size:12.5px; font-weight:600; color:#F5F0E6;">{{ r.v }}</span></div>
+            </sc-for>
+          </div>
+          <div style="font-size:11.5px; line-height:1.55; color:rgba(245,240,230,.5); margin-bottom:20px;">{{ joinFuture }}</div>
+          <button onClick="{{ confirmJoin }}" style="width:100%; background:#b89b5e; color:#121212; border-radius:5px; padding:15px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;" style-hover="background:#F5F0E6;">{{ joinConfirmCta }}</button>
+          <button onClick="{{ closeJoin }}" style="width:100%; margin-top:10px; font-size:12px; color:rgba(245,240,230,.5); padding:6px;" style-hover="color:#b89b5e;">Not yet</button>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:900},&quot;foundingAvailable&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Membership&quot;},&quot;guaranteeHours&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;min&quot;:1,&quot;max&quot;:24,&quot;unit&quot;:&quot;hours&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Membership&quot;}}">
+class Component extends DCLogic {
+  state = { calcTier: "keyholder", calcVeh: "standard", calcWeeks: 4, joinTier: null, joinDone: false };
+
+  M(){ return window.OBAVIA_MEMBERSHIP; }
+  vehPresets(){
+    return {
+      standard: { rate: 350, cls: "Standard", label: "Standard \u00b7 Camry SE", short: "a $350 Standard" },
+      reserve:  { rate: 480, cls: "Reserve",  label: "Reserve \u00b7 Accord SUV", short: "a $480 Reserve" },
+      noir:     { rate: 1950, cls: "Noir",    label: "Noir \u00b7 Mercedes S 580", short: "a $1,950 Noir" }
+    };
+  }
+  scrollToSel(sel){ try { var el = document.querySelector(sel); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - 70, behavior: "smooth" }); } catch(e){} }
+
+  renderVals(){
+    const M = this.M();
+    const s = this.state;
+    const self = this;
+    const foundingAvail = this.props.foundingAvailable !== false;
+    const guaranteeHours = this.props.guaranteeHours != null ? this.props.guaranteeHours : 3;
+    if (!M) return { heroPrice: "$29.99", heroRegular: "$79.99", guaranteeHours: guaranteeHours };
+
+    const key = M.tier("keyholder"), black = M.tier("blackkey");
+    const heroFee = foundingAvail ? M.FOUNDING.fee : key.regularFee;
+
+    // ----- tier ladder cards -----
+    const perksByTier = {
+      open: ["Standard published rates", "Book and drive, no commitment", "Upgrade to a member rate anytime"],
+      keyholder: ["5% off the everyday fleet", "Zero-Downtime Guarantee", "Priority access & free upgrades", "Skip the line on re-rental", "Mileage & expense reports"],
+      blackkey: ["20% off every class", "Noir & exotic access", "Everything in Keyholder", "First call on the rare units", "Concierge handoff"]
+    };
+    const tierCards = M.TIERS.map(function(t){
+      const isKey = t.id === "keyholder", isBlack = t.id === "blackkey", isOpen = t.id === "open";
+      const founding = isKey && foundingAvail;
+      return {
+        id: t.id, name: t.name, tagline: t.tagline,
+        flag: isKey, flagText: founding ? "Founding rate" : "Most popular",
+        keyColor: isBlack ? "#e7c97a" : (isOpen ? "#9a917c" : "#b89b5e"),
+        nameColor: "#F5F0E6", taglineColor: isBlack ? "rgba(231,201,122,.8)" : "#b89b5e",
+        subColor: "rgba(245,240,230,.5)", perkColor: "rgba(245,240,230,.78)",
+        cardBg: isBlack ? "linear-gradient(165deg,#1c1a14,#0c0c0c)" : (isKey ? "rgba(184,155,94,.06)" : "rgba(245,240,230,.02)"),
+        cardBorder: isBlack ? "rgba(184,155,94,.5)" : (isKey ? "rgba(184,155,94,.45)" : "rgba(245,240,230,.1)"),
+        cardShadow: isKey ? "0 20px 50px rgba(184,155,94,.1)" : "none",
+        priceMain: t.fee === 0 ? "$0" : M.moneyShort(founding ? M.FOUNDING.fee : t.fee),
+        priceUnit: t.fee === 0 ? "" : "/ month",
+        priceNote: isOpen ? "Always free" : (founding ? ("Founding rate \u00b7 regular " + M.moneyShort(t.regularFee)) : (isKey ? "Per member, per month" : "Per member, per month")),
+        pctLabel: t.discountPct + "%", pctSuffix: isOpen ? "no discount" : (isBlack ? "off every class" : "off everyday fleet"),
+        pctBg: isBlack ? "rgba(231,201,122,.1)" : (isOpen ? "rgba(245,240,230,.04)" : "rgba(184,155,94,.12)"),
+        pctBorder: isBlack ? "rgba(231,201,122,.4)" : (isOpen ? "rgba(245,240,230,.14)" : "rgba(184,155,94,.4)"),
+        pctColor: isBlack ? "#e7c97a" : (isOpen ? "rgba(245,240,230,.6)" : "#d8b66a"),
+        perks: perksByTier[t.id], check: "\u2014", checkColor: isBlack ? "#e7c97a" : "#b89b5e",
+        cta: isOpen ? "Keep standard rates" : (isBlack ? "Go Black Key" : "Become a Keyholder"),
+        btnBg: isKey ? "#b89b5e" : (isBlack ? "#000" : "transparent"),
+        btnFg: isKey ? "#121212" : (isBlack ? "#e7c97a" : "#F5F0E6"),
+        btnBorder: isKey ? "#b89b5e" : (isBlack ? "#b89b5e" : "rgba(245,240,230,.24)"),
+        btnHover: isKey ? "background:#F5F0E6;" : "border-color:#b89b5e; color:#b89b5e;",
+        join: function(){ if (isOpen) { self.scrollToSel("[data-math-anchor]"); } else { self.setState({ joinTier: t.id, joinDone: false }); } }
+      };
+    });
+
+    // ----- calculator -----
+    const presets = this.vehPresets();
+    const veh = presets[s.calcVeh] || presets.standard;
+    const proj = M.projection({ weeklyRate: veh.rate, tierId: s.calcTier, vehClass: veh.cls, weeks: s.calcWeeks, founding: foundingAvail });
+    const gated = !proj.applies; // tier % doesn't apply to this class (e.g. Keyholder on Noir)
+
+    // build compact display rows: all if <=6 weeks, else milestones (1, 2, breakeven, last)
+    let showRows = proj.rows;
+    if (proj.rows.length > 6) {
+      const idxs = [0, 1];
+      if (proj.breakevenWeek) idxs.push(proj.breakevenWeek - 1);
+      idxs.push(proj.rows.length - 1);
+      const uniq = idxs.filter(function(v, i, a){ return v >= 0 && a.indexOf(v) === i; }).sort(function(a, b){ return a - b; });
+      showRows = uniq.map(function(i){ return proj.rows[i]; });
+    }
+    const calcRows = showRows.map(function(r){
+      return { wk: "Week " + r.week, saved: M.moneyShort(r.cumGross), fee: "\u2212" + M.moneyShort(r.feesPaid),
+        net: (r.net >= 0 ? "+" : "\u2212") + M.moneyShort(Math.abs(r.net)),
+        netColor: r.net >= 0 ? "#8fbf7d" : "#d99a8c", rowBg: (proj.breakevenWeek === r.week ? "rgba(143,191,125,.06)" : "transparent") };
+    });
+
+    const calcTierOpts = ["keyholder", "blackkey"].map(function(id){
+      const t = M.tier(id); const on = s.calcTier === id; const f = id === "keyholder" && foundingAvail;
+      return { id: id, name: t.name, pct: t.discountPct + "% off", priceLabel: M.moneyShort(f ? M.FOUNDING.fee : t.fee) + "/mo",
+        pick: function(){ self.setState({ calcTier: id }); },
+        border: on ? "#b89b5e" : "rgba(245,240,230,.14)", bg: on ? "rgba(184,155,94,.1)" : "rgba(245,240,230,.02)",
+        nameColor: on ? "#F5F0E6" : "rgba(245,240,230,.8)", subColor: on ? "#b89b5e" : "rgba(245,240,230,.45)" };
+    });
+    const calcVehOpts = ["standard", "reserve", "noir"].map(function(id){
+      const p = presets[id]; const on = s.calcVeh === id;
+      return { id: id, label: p.label, rate: "$" + p.rate + "/wk", pick: function(){ self.setState({ calcVeh: id }); },
+        border: on ? "#b89b5e" : "rgba(245,240,230,.12)", bg: on ? "rgba(184,155,94,.08)" : "rgba(245,240,230,.02)",
+        nameColor: on ? "#F5F0E6" : "rgba(245,240,230,.72)", rateColor: on ? "#d8b66a" : "rgba(245,240,230,.5)" };
+    });
+
+    let calcHeadline = "", calcBreakeven = "";
+    if (!gated) {
+      calcHeadline = proj.netSaved >= 0
+        ? ("That's after the membership fee \u2014 you're ahead and still driving.")
+        : ("Keep going \u2014 by week " + (proj.breakevenWeek || (Math.ceil(proj.fee / proj.perWeek))) + " the fee is fully covered.");
+      calcBreakeven = proj.breakevenWeek
+        ? ("By week " + proj.breakevenWeek + ", your membership has paid for itself. Every week after is money back in your pocket.")
+        : ("At " + M.moneyShort(proj.perWeek) + "/week saved, the fee is covered fast \u2014 then it's all upside.");
+    }
+
+    // ----- perks -----
+    const perksA = M.PERKS_A.map(function(p){
+      return { name: p.name, desc: p.desc, headline: !!p.headline,
+        border: p.headline ? "rgba(184,155,94,.45)" : "rgba(245,240,230,.09)",
+        bg: p.headline ? "rgba(184,155,94,.06)" : "rgba(245,240,230,.02)" };
+    });
+    // lean list = every Category-A perk except the headline (shown separately as the banner)
+    const perksLean = M.PERKS_A.filter(function(p){ return !p.headline; }).map(function(p){ return p.name; });
+    const perksBLive = M.livePerksB();
+
+    // ----- join modal -----
+    const jt = s.joinTier ? M.tier(s.joinTier) : null;
+    const jFounding = s.joinTier === "keyholder" && foundingAvail;
+    const jFee = jt ? (jFounding ? M.FOUNDING.fee : jt.fee) : 0;
+    const joinRows = jt ? [
+      { k: "Monthly", v: M.moneyShort(jFee) + (jFounding ? " \u00b7 founding, locked for life" : "/mo") },
+      { k: "Discount", v: jt.discountPct + "% off " + (s.joinTier === "blackkey" ? "every class" : "the everyday fleet") },
+      { k: s.joinTier === "blackkey" ? "Access" : "Fleet", v: s.joinTier === "blackkey" ? "Noir & exotic included" : "Standard & Reserve" },
+      { k: "Billed to", v: "Your debit or credit card \u2014 no prepaid" },
+      { k: "Cancel", v: "Anytime \u2014 reverts to standard rates" }
+    ] : [];
+
+    return {
+      heroPrice: M.moneyShort(heroFee), heroRegular: M.moneyShort(key.regularFee),
+      heroShowAnchor: foundingAvail, guaranteeHours: guaranteeHours,
+      heroFoundingKicker: foundingAvail ? "Founding member \u00b7 limited" : "Membership",
+      scrollJoin: function(){ self.scrollToSel("[data-join-anchor]"); },
+      scrollMath: function(){ self.scrollToSel("[data-math-anchor]"); },
+
+      tierCards: tierCards,
+
+      guaranteeSteps: [
+        { n: "1", t: "Report it in the app", d: "One tap when your car won't run. No phone tree, no waiting room." },
+        { n: "2", t: "A replacement is dispatched", d: "We pull from the float fleet and bring you a comparable unit within hours." },
+        { n: "3", t: "Keep your week and your rate", d: "Same member rate, no re-verification. We deal with the repair." }
+      ],
+
+      calcWeeks: s.calcWeeks, onWeeks: function(e){ self.setState({ calcWeeks: parseInt(e.target.value) || 1 }); },
+      calcTierOpts: calcTierOpts, calcVehOpts: calcVehOpts,
+      calcApplies: !gated, calcGated: gated,
+      calcVehShort: veh.short, calcNet: (proj.netSaved >= 0 ? "+" : "\u2212") + M.moneyShort(Math.abs(proj.netSaved)),
+      calcNetColor: proj.netSaved >= 0 ? "#8fbf7d" : "#F5F0E6",
+      calcHeadline: calcHeadline, calcRows: calcRows, calcBreakeven: calcBreakeven,
+      calcPerWeek: M.moneyShort(proj.perWeek), calcPct: proj.discountPct + "%", calcFee: M.moneyShort(proj.fee),
+      calcSwitchBlack: function(){ self.setState({ calcTier: "blackkey" }); },
+
+      perksA: perksA, perksLean: perksLean, hasLivePerksB: perksBLive.length > 0, perksBLive: perksBLive,
+
+      honesty: [
+        { t: "Cancel in one tap", d: "Revert to standard rates whenever you like. No phone call, no retention maze, no penalty." },
+        { t: "The anchor is real", d: foundingAvail ? ("$29.99 is the founding rate; $79.99 is genuinely what later members pay. No invented \u201cwas\u201d price.") : ("One honest price. No invented \u201cwas\u201d price, no fake urgency.") },
+        { t: "No fake scarcity", d: "No countdown clocks. If the price rises, it's because founding spots genuinely filled \u2014 not theater." },
+        { t: "One per driver", d: "One membership per verified identity, non-transferable. The founding rate is yours, once." }
+      ],
+
+      joinKeyholder: function(){ self.setState({ joinTier: "keyholder", joinDone: false }); },
+      joinBlack: function(){ self.setState({ joinTier: "blackkey", joinDone: false }); },
+      joinOpen: !!s.joinTier, closeJoin: function(){ self.setState({ joinTier: null, joinDone: false }); }, stop: function(e){ e.stopPropagation(); },
+      joinConfirm: !!s.joinTier && !s.joinDone, joinDone: s.joinDone,
+      joinBorder: s.joinTier === "blackkey" ? "rgba(184,155,94,.5)" : "rgba(184,155,94,.4)",
+      joinKeyColor: s.joinTier === "blackkey" ? "#e7c97a" : "#b89b5e",
+      joinTierName: jt ? jt.name : "", joinTagline: jt ? jt.blurb : "",
+      joinRows: joinRows,
+      joinFuture: jt ? ("By Friday you're driving on the member rate. Your first month is " + M.moneyShort(jFee) + (jFounding ? ", locked for as long as you stay." : ".") + " Cancel anytime and you're back to standard rates immediately.") : "",
+      joinConfirmCta: jt ? ("Lock in \u00b7 " + M.moneyShort(jFee) + "/mo") : "Confirm",
+      joinDoneTitle: s.joinTier === "blackkey" ? "Welcome, Black Key." : "You're a founding Keyholder.",
+      joinDoneBody: jt ? ("Your membership is active and your " + jt.discountPct + "% member rate now applies to every eligible rental. We've noted your founding rate \u2014 it won't change as long as you stay.") : "",
+      confirmJoin: function(){
+        try {
+          var rec = { tier: s.joinTier, founding: jFounding, since: new Date().toISOString().slice(0,10), fee: jFee };
+          localStorage.setItem("obavia_membership", JSON.stringify(rec));
+        } catch(e){}
+        self.setState({ joinDone: true });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,16 +1,7 @@
 # OBAVIA
 
-Private luxury vehicle rental frontend built as a React and Vite single-page app.
+Static OBAVIA web system for Cloudflare Pages.
 
-## Run
-
-```powershell
-npm.cmd install
-npm.cmd run dev
-```
-
-## Build
-
-```powershell
-npm.cmd run build
-```
+The production home page is `index.html`, copied from `Obavia Home.dc.html`.
+The standalone admin, portal, membership, vehicle, and agreement surfaces are
+kept as static `.dc.html` files and share the local runtime in `support.js`.

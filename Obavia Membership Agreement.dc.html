@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./obavia-membership.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:#e7ddc6}
+  .print-only{display:none}
+  @page{ size:Letter; margin:0.95in 0.8in 0.9in; }
+  @page{
+    @top-center{ content:"OBAVIA \2014 MEMBERSHIP AGREEMENT"; font:600 7.5pt 'Plus Jakarta Sans',sans-serif; letter-spacing:.16em; color:#a98f55; }
+    @bottom-left{ content:"OBAVIA LLC \00B7 8774 Almeda Genoa Road, Houston, TX 77075"; font:500 7pt 'Plus Jakarta Sans',sans-serif; color:#9c8345; }
+    @bottom-center{ content:"Confidential"; font:500 7pt 'Plus Jakarta Sans',sans-serif; letter-spacing:.1em; color:#b3a06a; }
+    @bottom-right{ content:"Page " counter(page) " of " counter(pages); font:600 7pt 'Plus Jakarta Sans',sans-serif; color:#9c8345; }
+  }
+  @page :first{ @top-center{ content:""; } }
+  @media print{
+    *,*::before,*::after{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    html, body, #dc-root, #dc-root > .sc-host, main, .doc { height:auto !important; min-height:0 !important; max-height:none !important; overflow:visible !important; }
+    html,body{ background:#fff !important; }
+    main{ padding:0 !important; font-family:'Plus Jakarta Sans',sans-serif; }
+    .doc{ box-shadow:none !important; margin:0 !important; max-width:none !important; width:100% !important; padding:0 !important; background:#fff !important; color:#2b2820 !important; }
+    .screen-only{ display:none !important; }
+    .run{ position:fixed !important; left:0; right:0; display:flex !important; align-items:center; }
+    .run-head{ top:-0.66in; justify-content:center; gap:9px; }
+    .run-foot{ bottom:-0.6in; justify-content:space-between; border-top:0.5pt solid #e0d3ad; padding-top:5px; }
+    p, li, .clause{ orphans:3; widows:3; break-inside:avoid; }
+    h1,h2,h3{ break-after:avoid; break-inside:avoid; }
+    .avoid,.keep-together,.sig-grid > *{ break-inside:avoid; }
+    .page-break{ break-before:page; }
+  }
+  @media (max-width:560px){ .doc{ padding:40px 22px 44px !important; } .sig-grid{ grid-template-columns:1fr !important; } }
+</style>
+</helmet>
+<main style="font-family:'Plus Jakarta Sans',sans-serif; padding:40px 16px 72px; -webkit-font-smoothing:antialiased;">
+
+<div class="run run-head print-only" aria-hidden="true">
+  <svg width="13" height="15" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="6" stroke-linecap="round"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
+  <span style="font-family:'Playfair Display',serif; font-size:9px; letter-spacing:.34em; color:#b89b5e; padding-left:.34em;">OBAVIA</span>
+  <span style="font-size:7.5px; letter-spacing:.16em; text-transform:uppercase; color:#a98f55;">Membership Agreement</span>
+</div>
+<div class="run run-foot print-only" aria-hidden="true">
+  <span style="font-size:7.5px; letter-spacing:.04em; color:#9c8345;">{{ entityLegal }} &middot; {{ companyAddress }}</span>
+  <span style="font-size:7.5px; letter-spacing:.08em; color:#b3a06a;">Membership Agreement v1.0</span>
+</div>
+
+<div class="doc" style="max-width:8.3in; margin:0 auto; background:#f7f2e7; color:#3c3729; box-shadow:0 18px 50px rgba(60,48,20,.16); padding:64px clamp(28px,5.5vw,72px) 60px;">
+
+  <!-- masthead -->
+  <div style="text-align:center; padding-bottom:22px; border-bottom:1px solid #ddcfa8;">
+    <svg width="30" height="38" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="5" stroke-linecap="round" style="margin-bottom:14px;"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
+    <div style="font-size:10px; font-weight:600; letter-spacing:.3em; text-transform:uppercase; color:#b89b5e; margin-bottom:12px;">{{ entityName }} &middot; Membership</div>
+    <h1 style="font-family:'Playfair Display',serif; font-size:30px; font-weight:600; color:#2b2820; margin:0; line-height:1.18;">Membership Agreement</h1>
+    <div style="font-size:12.5px; letter-spacing:.06em; color:#8a7a4e; margin-top:10px; font-weight:500;">Card-Billed Subscription &middot; Cancel Anytime &middot; No Traps</div>
+  </div>
+
+  <!-- meta strip -->
+  <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px 28px; margin:22px auto 4px; padding:13px 22px; background:#efe6cd; border:1px solid #ddcfa8; border-radius:5px; max-width:640px; font-size:12px;">
+    <div><span style="color:#9c8345; letter-spacing:.04em;">Effective date</span> &nbsp;<strong style="color:#2b2820;">{{ effectiveDate }}</strong></div>
+    <div><span style="color:#9c8345; letter-spacing:.04em;">Member</span> &nbsp;<strong style="color:#2b2820;">{{ memberDisplayName }}</strong></div>
+    <div><span style="color:#9c8345; letter-spacing:.04em;">Tier</span> &nbsp;<strong style="color:#2b2820;">{{ memberTierName }}</strong></div>
+  </div>
+
+  <!-- §1 -->
+  <section style="margin-top:34px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">1. &nbsp;The membership</h2>
+    <p class="clause" style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;">This Membership Agreement (this <strong style="color:#2b2820;">&ldquo;Agreement&rdquo;</strong>) is entered into as of the Effective Date between <span style="background:#e7d8b2; color:#7a6324; padding:1px 7px; border-radius:3px; font-weight:600; font-size:.9em;">{{ entityName }}</span>, a Texas limited liability company at <strong style="color:#2b2820;">{{ companyAddress }}</strong> (the <strong style="color:#2b2820;">&ldquo;Company&rdquo;</strong>), and the individual named above (the <strong style="color:#2b2820;">&ldquo;Member&rdquo;</strong>). Membership is a paid subscription that lowers the Member&rsquo;s weekly vehicle rate and unlocks the benefits below. It is separate from, and does not replace, any rental agreement the Member signs for a specific vehicle.</p>
+    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">1.1 &nbsp;Tiers.</strong> The Company offers the following membership tiers:</p>
+    <div class="avoid" style="margin:12px 0 2px; border:1px solid #ddcfa8; border-radius:6px; overflow:hidden;">
+      <sc-for list="{{ tierRows }}" as="t" hint-placeholder-count="3">
+        <div style="display:flex; gap:14px; padding:11px 16px; border-bottom:1px solid #e6dab8; background:{{ t.bg }};">
+          <div style="flex:0 0 120px; font-weight:700; color:#2b2820; font-size:13.5px;">{{ t.name }}</div>
+          <div style="flex:0 0 96px; color:#7a6324; font-weight:600; font-size:13px;">{{ t.fee }}</div>
+          <div style="flex:1; color:#4a4436; font-size:13px; line-height:1.45;">{{ t.benefit }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- §2 -->
+  <section style="margin-top:30px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">2. &nbsp;Fee &amp; billing</h2>
+    <p class="clause" style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">2.1 &nbsp;Monthly fee.</strong> The Member&rsquo;s tier and its monthly fee are shown above and bill on a recurring monthly cycle until cancelled. The first month is charged when the membership begins.</p>
+    <p class="clause" style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">2.2 &nbsp;Card on file &mdash; the only method.</strong> Membership is billed to a <strong style="color:#2b2820;">valid, non-prepaid debit or credit card</strong> on file. Debit is fully accepted; only prepaid and gift cards are excluded. The Member authorizes the Company to charge that card automatically each cycle. No cash, checks, peer-to-peer transfers, or prepaid cards are accepted.</p>
+    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">2.3 &nbsp;Surcharge.</strong> Any card surcharge applies to credit cards only and never to debit, and will not exceed the Company&rsquo;s actual cost of acceptance.</p>
+  </section>
+
+  <!-- §3 -->
+  <section style="margin-top:30px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">3. &nbsp;The member benefit</h2>
+    <p class="clause" style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">3.1 &nbsp;Rate discount.</strong> While the membership is active, the Member&rsquo;s tier discount applies automatically to the weekly rate of the vehicle the Member rents. The discount is a percentage off that vehicle&rsquo;s rate and is reflected on each weekly charge.</p>
+    <p class="clause" style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">3.2 &nbsp;No stacking with the Hardship Bridge.</strong> The member discount does not stack with the Hardship Bridge. In any week both could apply, the Member receives whichever is more favorable &mdash; never both.</p>
+    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">3.3 &nbsp;Exotic &amp; Noir access.</strong> Discounts and priority access to exotic and Noir-class vehicles are reserved for the Black Key tier. Other tiers may rent those classes at standard rates where available.</p>
+    <div class="avoid" style="margin:13px 0 0; padding:12px 16px; background:#ece1c6; border-left:3px solid #b89b5e; border-radius:0 3px 3px 0;">
+      <div style="font-family:'Playfair Display',serif; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#9c8345; margin-bottom:5px; font-weight:600;">What this means</div>
+      <div style="font-size:13px; line-height:1.55; color:#4a4436;">Your membership saves you money every week you drive, and you always get the better of your member rate or the Hardship Bridge. The savings scale with the car &mdash; the nicer the vehicle, the more your percentage is worth.</div>
+    </div>
+  </section>
+
+  <!-- §4 -->
+  <section style="margin-top:30px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">4. &nbsp;Founding rate</h2>
+    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;">Early Keyholder members may lock the <strong style="color:#2b2820;">founding rate of {{ foundingFee }}/month for life</strong>, held for as long as the membership stays active. The regular Keyholder price is a bona fide <strong style="color:#2b2820;">{{ foundingRegular }}/month</strong> &mdash; the genuine price later members pay. There is no fake &ldquo;was&rdquo; price and no countdown. The founding rate is available once per verified identity; if the membership lapses or is cancelled, the founding rate is not guaranteed on re-enrollment.</p>
+  </section>
+
+  <!-- §5 -->
+  <section style="margin-top:30px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">5. &nbsp;Member perks</h2>
+    <p class="clause" style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;">Active members receive the benefits published for their tier, which may include income protection during a covered vehicle outage, priority access and complimentary upgrades, expedited re-rental, unit swaps, mileage and expense reports, and loyalty milestones. The Company lists a benefit only once it is genuinely available and never advertises a benefit it cannot deliver. Benefits may be added over time and apply automatically to active members; they are not a guarantee of any specific outcome.</p>
+    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">5.1 &nbsp;Credit reporting.</strong> Where offered, on-time payments may be reported to consumer reporting agencies, so renting in good standing can help the Member build credit. Reporting is informational and not a promise of any particular credit result.</p>
+  </section>
+
+  <!-- §6 -->
+  <section style="margin-top:30px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">6. &nbsp;Cancellation &mdash; no traps</h2>
+    <p class="clause" style="margin:0 0 11px; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">6.1 &nbsp;Cancel anytime.</strong> The Member may cancel at any time, with no penalty, no retention maze, and no phone call required. Membership remains active through the end of the current paid month and does not renew after that.</p>
+    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;"><strong style="color:#2b2820;">6.2 &nbsp;Reverting to standard.</strong> When membership ends or lapses, the Member&rsquo;s rate simply reverts to the standard published rate immediately. Any vehicle rental already in place continues on its own terms; only the membership discount stops.</p>
+  </section>
+
+  <!-- §7 -->
+  <section style="margin-top:30px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">7. &nbsp;One per member</h2>
+    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;">Membership is personal to the Member and <strong style="color:#2b2820;">non-transferable</strong>. One membership is permitted per verified identity, backed by a valid non-prepaid card. The founding rate is available once per identity. Sharing, reselling, or transferring a membership or its benefits is not permitted and may end the membership.</p>
+  </section>
+
+  <!-- §8 -->
+  <section style="margin-top:30px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">8. &nbsp;General</h2>
+    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;">This Agreement is governed by the laws of the State of Texas, with venue in Harris County, Texas; the English-language version controls. The Company may update tier pricing or benefits prospectively on notice; a Member&rsquo;s locked founding rate is honored for as long as the membership stays active. This Agreement, together with any rental agreement the Member signs, is the entire understanding on its subject.</p>
+  </section>
+
+  <!-- signature -->
+  <section class="page-break" style="margin-top:40px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 18px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">Acceptance</h2>
+    <div class="sig-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:36px;">
+      <div class="avoid">
+        <div style="font-family:'Playfair Display',serif; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#b89b5e; margin-bottom:18px; font-weight:600; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">The Member</div>
+        <div style="margin-bottom:22px;"><div style="min-height:24px; border-bottom:1.5px solid #2b2820; font-weight:600; color:#2b2820; padding-bottom:2px;">{{ memberDisplayName }}</div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Printed name</div></div>
+        <div style="margin-bottom:22px;"><div style="min-height:24px; border-bottom:1.5px solid #2b2820;">{{ memberSignature }}</div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Signature</div></div>
+        <div><div style="min-height:24px; border-bottom:1.5px solid #2b2820;">{{ memberSignDate }}</div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Date</div></div>
+      </div>
+      <div class="avoid">
+        <div style="font-family:'Playfair Display',serif; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#b89b5e; margin-bottom:18px; font-weight:600; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">The Company</div>
+        <div style="margin-bottom:22px;"><div style="min-height:24px; border-bottom:1.5px solid #2b2820; font-weight:600; color:#2b2820; padding-bottom:2px;">{{ entityLegal }}</div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Company</div></div>
+        <div style="margin-bottom:22px;"><div style="height:24px; border-bottom:1.5px solid #2b2820;"></div><div style="font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#8a8270; margin-top:5px;">Authorized signature</div></div>
+        <div style="padding:14px 16px; background:#efe6cd; border:1px solid #ddcfa8; border-radius:5px;">
+          <div style="font-size:12px; line-height:1.55; color:#6b6450;"><strong style="color:#2b2820;">Billed to</strong><br>Your debit or credit card on file<br>No prepaid &middot; cancel anytime</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="screen-only" style="margin-top:38px; padding-top:16px; border-top:1px solid #ddcfa8; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; font-size:10.5px; color:#9c8345;">
+    <span>{{ entityName }} &middot; {{ companyAddress }}</span>
+    <span>Membership Agreement &middot; v1.0</span>
+  </div>
+
+</div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:900}}">
+class Component extends DCLogic {
+  componentDidMount(){ try { var u = new URLSearchParams(location.search); if (u.get("print") === "1") setTimeout(function(){ try { window.print(); } catch(e){} }, 800); } catch(e){} }
+  renderVals(){
+    var DEFAULTS = { effectiveDate: "June 27, 2026", memberLegalName: "John Lawrence Doe", memberTier: "keyholder", memberSignature: "", memberSignDate: "" };
+    var src = this.props.data || {};
+    var d = Object.assign({}, DEFAULTS, src);
+
+    // Settings = single source of truth (same store Admin Settings writes).
+    var SET = { entity: "OBAVIA LLC", dba: "OBAVIA", address: "8774 Almeda Genoa Road, Houston, TX 77075" };
+    try { var saved = JSON.parse(localStorage.getItem("obavia_settings_v2") || "null"); if (saved && saved.legal) Object.assign(SET, { entity: saved.legal.entity || SET.entity, dba: saved.legal.dba || SET.dba, address: saved.legal.address || SET.address }); } catch(e){}
+
+    var M = window.OBAVIA_MEMBERSHIP;
+    var money = M ? M.moneyShort : function(n){ return "$" + n; };
+    var tierRows = [], foundingFee = "$29.99", foundingRegular = "$79.99", tierName = "Keyholder";
+    if (M){
+      foundingFee = money(M.FOUNDING.fee); foundingRegular = money(M.FOUNDING.regularFee);
+      var benefits = {
+        open: "Standard published rates. No fee, no commitment.",
+        keyholder: M.tier("keyholder").discountPct + "% off the everyday fleet, plus member protection & priority.",
+        blackkey: M.tier("blackkey").discountPct + "% off every class, plus Noir & exotic access."
+      };
+      tierRows = M.TIERS.map(function(t){
+        var founding = t.id === "keyholder";
+        return { name: t.name, fee: t.fee === 0 ? "Free" : (money(founding ? M.FOUNDING.fee : t.fee) + "/mo"),
+          benefit: benefits[t.id] || (t.discountPct + "% off"),
+          bg: t.id === d.memberTier ? "#f1ead6" : "#fbf6e9" };
+      });
+      var mt = M.tier(d.memberTier); if (mt) tierName = mt.name;
+    } else {
+      tierRows = [ { name: "Open", fee: "Free", benefit: "Standard published rates.", bg: "#fbf6e9" },
+        { name: "Keyholder", fee: "$29.99/mo", benefit: "5% off the everyday fleet.", bg: "#f1ead6" },
+        { name: "Black Key", fee: "$199.99/mo", benefit: "20% off every class + Noir access.", bg: "#fbf6e9" } ];
+    }
+
+    return Object.assign({}, d, {
+      entityName: SET.dba, entityLegal: SET.entity, companyAddress: SET.address,
+      memberDisplayName: d.memberLegalName, memberTierName: tierName,
+      tierRows: tierRows, foundingFee: foundingFee, foundingRegular: foundingRegular
+    });
+  }
+}
+</script>
+</body>
+</html>
