@@ -1,62 +1,989 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title>OBAVIA | Secure Onboarding</title>
-<link rel="icon" href="./favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  *{box-sizing:border-box}
-  html,body{margin:0;min-height:100%;background:#F5F0E6;color:#121212}
-  body{font-family:'Montserrat','Helvetica Neue',Arial,sans-serif}
-  a{color:inherit;text-decoration:none}
-  .page{min-height:100vh;display:grid;place-items:center;padding:28px 18px}
-  .shell{width:min(100%,720px);border:1px solid #d8c89e;background:#fffdf9;border-radius:10px;padding:clamp(28px,6vw,54px);box-shadow:0 22px 70px rgba(60,48,20,.12)}
-  .brand{display:flex;align-items:center;gap:12px;margin-bottom:38px;color:#121212}
-  .word{font-family:'Bodoni Moda',Didot,Georgia,serif;font-size:22px;letter-spacing:.3em;padding-left:.3em}
-  .eyebrow{font-size:11px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:#9c8345;margin-bottom:12px}
-  h1{font-family:'Bodoni Moda',Didot,Georgia,serif;font-weight:400;font-size:clamp(2.45rem,8vw,4rem);line-height:1.02;margin:0 0 18px;color:#2b2820}
-  p{font-size:15px;line-height:1.72;color:#625b49;max-width:58ch;margin:0 0 24px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:30px 0}
-  .item{border:1px solid #e2d5ae;background:#faf6ec;border-radius:8px;padding:17px 16px}
-  .item strong{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9c8345;margin-bottom:8px}
-  .item span{display:block;font-size:13px;line-height:1.55;color:#3c3729}
-  .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
-  .primary,.secondary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;border-radius:4px;padding:0 20px;font-size:11.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
-  .primary{background:#b89b5e;color:#121212}
-  .secondary{border:1px solid #b89b5e;color:#8b7139}
-</style>
+<script src="./support.js"></script>
 </head>
 <body>
-<main class="page">
-  <section class="shell" aria-labelledby="portal-title">
-    <a class="brand" href="./index.html">
-      <svg width="25" height="31" viewBox="0 0 120 160" fill="none" stroke="#b89b5e" stroke-width="6" stroke-linecap="round" aria-hidden="true"><ellipse cx="50" cy="80" rx="30" ry="61"/><ellipse cx="70" cy="80" rx="30" ry="61"/></svg>
-      <span class="word">OBAVIA</span>
-    </a>
-    <div class="eyebrow">Secure onboarding</div>
-    <h1 id="portal-title">Invitation required.</h1>
-    <p>Onboarding opens from a private OBAVIA link after the team has reviewed an application. That link is where verified identity, insurance, payment authorization, and agreement signing should happen.</p>
-    <div class="grid" aria-label="Onboarding requirements">
-      <div class="item"><strong>Identity</strong><span>Government ID and renter identity must match.</span></div>
-      <div class="item"><strong>Insurance</strong><span>Coverage must be active and tied to the verified renter.</span></div>
-      <div class="item"><strong>Agreement</strong><span>Terms are generated only from verified renter and vehicle records.</span></div>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./obavia-i18n.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e7ddc6; }
+  input, button, textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
+  input:focus { outline: none; border-color: #b89b5e !important; box-shadow: 0 0 0 3px rgba(184,155,94,.15); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #cdbb8e; border-radius: 6px; border: 2px solid #e7ddc6; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+<main style="font-family:'Plus Jakarta Sans',sans-serif; min-height:100vh; padding:30px 16px 60px; -webkit-font-smoothing:antialiased; color:#3c3729;">
+
+  <div dir="{{ uiDir }}" style="max-width:{{ shellMaxWidth }}; margin:0 auto; transition:max-width .25s ease;">
+
+    <!-- ===== Language gate ===== -->
+    <sc-if value="{{ showGate }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed; inset:0; z-index:200; background:#e7ddc6; display:flex; align-items:center; justify-content:center; padding:24px; overflow:auto;">
+        <div style="max-width:440px; width:100%; background:#fffdf7; border:1px solid #e6dab8; border-radius:18px; padding:30px 28px; box-shadow:0 18px 50px rgba(60,48,20,.16); text-align:center;">
+          <svg width="34" height="40" viewBox="0 0 100 116" style="display:block; margin:0 auto 14px;"><g fill="none" stroke="#b89b5e" stroke-width="3"><ellipse cx="50" cy="58" rx="27" ry="52"></ellipse><ellipse cx="50" cy="58" rx="17" ry="46" transform="rotate(-13 50 58)"></ellipse><ellipse cx="50" cy="58" rx="17" ry="46" transform="rotate(13 50 58)"></ellipse></g></svg>
+          <h2 style="font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#2b2820; margin:0 0 6px;">{{ tr.gate_title }}</h2>
+          <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:0 0 8px;">{{ tr.gate_sub }}</p>
+          <div style="font-size:11px; color:#9c8345; margin-bottom:16px;">{{ tr.gate_detected }}: <b style="color:#7a6324;">{{ detectedNative }}</b></div>
+          <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:18px;">
+            <sc-for list="{{ gateOptions }}" as="o" hint-placeholder-count="3">
+              <div onClick="{{ o.pick }}" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 16px; border:1.5px solid {{ o.border }}; background:{{ o.bg }}; border-radius:11px;">
+                <span style="font-size:15px; font-weight:600; color:#2b2820;">{{ o.native }}</span>
+                <span style="font-size:11.5px; color:#a8946a;">{{ o.english }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <button onClick="{{ chooseLang }}" style="cursor:pointer; width:100%; background:#b89b5e; color:#fff; border:none; border-radius:10px; padding:14px; font-size:14.5px; font-weight:700;">{{ tr.gate_continue }}</button>
+          <div style="font-size:11px; color:#a8946a; margin-top:12px;">{{ tr.gate_more }}</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== Top control bar ===== -->
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+      <div onClick="{{ toggleOpMode }}" style="cursor:pointer; display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:600; color:#8a7a4e; border:1px solid #d8c89e; border-radius:20px; padding:5px 12px; background:#f7f2e7;">
+        <span style="width:7px; height:7px; border-radius:50%; background:{{ opDot }};"></span>{{ opModeLabel }}
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;">
+        <span style="font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">{{ tr.switch_label }}</span>
+        <sc-for list="{{ langOptions }}" as="o" hint-placeholder-count="3">
+          <button onClick="{{ o.pick }}" style="cursor:pointer; font-size:11.5px; font-weight:600; padding:5px 11px; border-radius:18px; border:1px solid {{ o.border }}; background:{{ o.bg }}; color:{{ o.fg }};">{{ o.native }}</button>
+        </sc-for>
+      </div>
     </div>
-    <p>No onboarding data is accepted from this public page. New renters should begin with the application.</p>
-    <div class="actions">
-      <a class="primary" href="./Obavia%20Vehicles.dc.html">Begin Application</a>
-      <a class="secondary" href="./index.html">Return Home</a>
+
+    <!-- ===== Operator strip ===== -->
+    <sc-if value="{{ opMode }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-bottom:16px; border:1px solid #cdbb8e; border-left:3px solid #b89b5e; background:#f3ead2; border-radius:9px; padding:12px 15px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <div style="font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#8a6d1f; font-weight:700;">{{ tr.op_banner }}</div>
+          <div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span style="font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:#a8946a;">{{ tr.op_language }}</span>
+            <sc-for list="{{ opLangOptions }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.pick }}" style="cursor:pointer; font-size:11px; font-weight:600; padding:4px 10px; border-radius:16px; border:1px solid {{ o.border }}; background:{{ o.bg }}; color:{{ o.fg }};">{{ o.native }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="font-size:12px; color:#6b5a28; line-height:1.5; margin-top:8px;">{{ opNoteText }}</div>
+      </div>
+    </sc-if>
+
+    <!-- ===== Brand bar ===== -->
+    <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:18px;">
+      <svg width="26" height="30" viewBox="0 0 100 116" style="display:block;">
+        <g fill="none" stroke="#b89b5e" stroke-width="3">
+          <ellipse cx="50" cy="58" rx="27" ry="52"></ellipse>
+          <ellipse cx="50" cy="58" rx="17" ry="46" transform="rotate(-13 50 58)"></ellipse>
+          <ellipse cx="50" cy="58" rx="17" ry="46" transform="rotate(13 50 58)"></ellipse>
+        </g>
+      </svg>
+      <div style="font-family:'Playfair Display',serif; font-size:19px; font-weight:500; letter-spacing:.34em; color:#b89b5e; padding-left:.34em;">OBAVIA</div>
     </div>
-  </section>
+
+    <!-- ===== Progress rail ===== -->
+    <div style="background:#f7f2e7; border:1px solid #e6dab8; border-radius:14px; padding:16px 18px 14px; margin-bottom:18px; box-shadow:0 6px 20px rgba(60,48,20,.07);">
+      <div style="display:flex; align-items:center; gap:0;">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="7">
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:0; position:relative; cursor:{{ s.cursor }};" onClick="{{ s.go }}">
+            <div style="display:flex; align-items:center; width:100%;">
+              <div style="flex:1; height:2px; background:{{ s.leftLine }};"></div>
+              <div style="width:26px; height:26px; flex:0 0 26px; border-radius:50%; background:{{ s.dotBg }}; border:2px solid {{ s.dotBorder }}; color:{{ s.dotFg }}; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">{{ s.dotIcon }}</div>
+              <div style="flex:1; height:2px; background:{{ s.rightLine }};"></div>
+            </div>
+            <div style="font-size:8.5px; letter-spacing:.04em; text-transform:uppercase; color:{{ s.labelColor }}; margin-top:6px; text-align:center; font-weight:600; line-height:1.2;">{{ s.short }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- ===== STEP 1 — ACCOUNT & CONTACT ===== -->
+    <sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ true }}">
+      <div style="background:#fffdf7; border:1px solid #e6dab8; border-radius:16px; padding:26px 26px 24px; box-shadow:0 10px 30px rgba(60,48,20,.08);">
+        <div style="font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#b89b5e; font-weight:600; margin-bottom:5px;">{{ stepOf }}</div>
+        <h2 style="font-family:'Playfair Display',serif; font-size:23px; font-weight:600; color:#2b2820; margin:0 0 4px;">{{ tr.s1_title }}</h2>
+        <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:0 0 20px;">Let&rsquo;s start with how to reach you. Enter your name <strong style="color:#2b2820;">exactly as it appears on your government ID</strong> &mdash; we&rsquo;ll match it in the next step.</p>
+
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">Legal name (as on ID)</div>
+          <input type="text" value="{{ fullName }}" onChange="{{ onFullName }}" placeholder="e.g. John Doe" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#fff; font-size:14.5px; color:#2b2820;">
+        </div>
+        <div style="display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:150px;">
+            <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">Mobile phone</div>
+            <input type="tel" inputmode="numeric" value="{{ phone }}" onChange="{{ onPhone }}" placeholder="(713) 555-0000" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#fff; font-size:14.5px; color:#2b2820;">
+          </div>
+          <div style="flex:1; min-width:150px;">
+            <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">Email</div>
+            <input type="text" value="{{ email }}" onChange="{{ onEmail }}" placeholder="you@email.com" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#fff; font-size:14.5px; color:#2b2820;">
+          </div>
+        </div>
+        <div style="margin-bottom:14px; position:relative;">
+          <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">Street address</div>
+          <input type="text" value="{{ addrStreet }}" onChange="{{ onStreet }}" onFocus="{{ onAddressFocus }}" onBlur="{{ onAddressBlur }}" autocomplete="off" placeholder="Start typing your street address…" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#fff; font-size:14.5px; color:#2b2820;">
+          <sc-if value="{{ showAddrDrop }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; left:0; right:0; top:100%; margin-top:5px; background:#fff; border:1px solid #d8c89e; border-radius:9px; box-shadow:0 12px 28px rgba(60,48,20,.18); overflow:hidden; z-index:40;">
+              <sc-for list="{{ addrSuggestions }}" as="a" hint-placeholder-count="3">
+                <div onMouseDown="{{ a.pick }}" style="cursor:pointer; display:flex; align-items:center; gap:11px; padding:11px 14px; border-bottom:1px solid #f1e8d2;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b89b5e" stroke-width="2" style="flex:0 0 15px;"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+                  <span style="font-size:13px; color:#2b2820;">{{ a.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:120px;">
+            <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">Apt / Unit <span style="text-transform:none; letter-spacing:0; color:#b3a172;">(optional)</span></div>
+            <input type="text" value="{{ addrApt }}" onChange="{{ onApt }}" placeholder="Apt, Suite, Unit" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#fff; font-size:14.5px; color:#2b2820;">
+          </div>
+          <div style="flex:1.4; min-width:140px;">
+            <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">City</div>
+            <input type="text" value="{{ addrCity }}" onChange="{{ onCity }}" placeholder="City" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#faf6ec; font-size:14.5px; color:#2b2820;">
+          </div>
+          <div style="flex:.6; min-width:62px;">
+            <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">State</div>
+            <input type="text" value="{{ addrState }}" onChange="{{ onState }}" placeholder="TX" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#faf6ec; font-size:14.5px; color:#2b2820;">
+          </div>
+          <div style="flex:.8; min-width:82px;">
+            <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">ZIP</div>
+            <input type="text" value="{{ addrZip }}" onChange="{{ onZip }}" placeholder="77075" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#faf6ec; font-size:14.5px; color:#2b2820;">
+          </div>
+        </div>
+        <div style="font-size:11px; color:#a8946a; margin-top:8px;">City, state, and ZIP fill in automatically when you choose a suggestion.</div>
+      </div>
+    </sc-if>
+
+    <!-- ===== STEP 2 — IDENTITY ===== -->
+    <sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fffdf7; border:1px solid #e6dab8; border-radius:16px; padding:26px 26px 24px; box-shadow:0 10px 30px rgba(60,48,20,.08);">
+        <div style="font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#b89b5e; font-weight:600; margin-bottom:5px;">{{ stepOf }}</div>
+        <h2 style="font-family:'Playfair Display',serif; font-size:23px; font-weight:600; color:#2b2820; margin:0 0 4px;">{{ tr.s2_title }}</h2>
+        <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:0 0 18px;">Upload your government photo ID and take a quick selfie. We confirm the ID is real and unexpired, that you&rsquo;re its holder, and that the name matches what you entered.</p>
+
+        <!-- upload -->
+        <div onClick="{{ onUploadId }}" style="cursor:pointer; border:1.5px dashed {{ idDashColor }}; border-radius:12px; background:{{ idDropBg }}; padding:18px; display:flex; align-items:center; gap:14px; margin-bottom:8px;">
+          <div style="width:46px; height:46px; flex:0 0 46px; border-radius:10px; background:#efe6cd; display:flex; align-items:center; justify-content:center; font-size:20px;">{{ idDropIcon }}</div>
+          <div style="flex:1;">
+            <div style="font-size:14px; font-weight:600; color:#2b2820;">{{ idDropTitle }}</div>
+            <div style="font-size:12px; color:#6b6450; margin-top:2px;">{{ idDropSub }}</div>
+          </div>
+        </div>
+
+        <!-- extracted + result -->
+        <sc-if value="{{ idLoaded }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <!-- verdict banner -->
+            <div style="margin:14px 0 12px; border:1px solid {{ idResBorder }}; background:{{ idResBg }}; border-radius:11px; overflow:hidden;">
+              <div style="display:flex; align-items:center; gap:10px; padding:11px 15px;">
+                <div style="width:24px; height:24px; flex:0 0 24px; border-radius:50%; background:{{ idResFg }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">{{ idResIcon }}</div>
+                <div style="flex:1;">
+                  <div style="font-size:13.5px; font-weight:700; color:{{ idResFg }};">{{ idResTitle }}</div>
+                  <div style="font-size:12px; color:#5a5340; margin-top:1px;">{{ idResReason }}</div>
+                </div>
+                <div style="font-size:10px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; color:{{ idResFg }}; background:#fff; border:1px solid {{ idResBorder }}; padding:4px 8px; border-radius:20px;">Tier {{ idTier }}</div>
+              </div>
+              <div style="padding:9px 15px; background:rgba(255,255,255,.55); border-top:1px solid {{ idResBorder }}; font-size:12px; color:#3c3729;">Legal renter party (controlling): <strong style="color:#2b2820;">{{ idControlling }}</strong></div>
+            </div>
+
+            <!-- extracted fields -->
+            <div style="border:1px solid #e6dab8; border-radius:11px; overflow:hidden; background:#fbf6e9; margin-bottom:14px;">
+              <div style="padding:8px 14px; background:#efe6cd; border-bottom:1px solid #e6dab8; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; font-weight:600;">Captured from ID &mdash; confirm it&rsquo;s correct</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; font-size:12.5px;">
+                <div style="padding:9px 14px; border-right:1px solid #eaddbc; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Full name</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ idName }}</div></div>
+                <div style="padding:9px 14px; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Date of birth</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ idDob }}</div></div>
+                <div style="padding:9px 14px; border-right:1px solid #eaddbc; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">ID number</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ idNumber }}</div></div>
+                <div style="padding:9px 14px; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Expiration</div><div style="font-weight:600; margin-top:1px; color:{{ idExpColor }};">{{ idExp }}</div></div>
+                <div style="padding:9px 14px; border-right:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Issuing state</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ idState }}</div></div>
+                <div style="padding:9px 14px;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Selfie / liveness</div><div style="font-weight:600; margin-top:1px; color:{{ faceColor }};">{{ faceLabel }}</div></div>
+              </div>
+            </div>
+
+            <!-- operator review -->
+            <sc-if value="{{ idShowOperator }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #e3d09a; background:#f6edd4; border-radius:11px; padding:13px 15px; margin-bottom:14px;">
+                <div style="font-size:12.5px; color:#6b5a28; line-height:1.5; margin-bottom:10px;"><strong style="color:#4d4015;">This isn&rsquo;t a dead end.</strong> An ambiguous match goes to a person, not an automatic rejection. An operator reviews the ID and entered name and clears it if it&rsquo;s the same renter.</div>
+                <button onClick="{{ approveId }}" style="cursor:pointer; background:#8a6d1f; color:#fff; border:none; border-radius:8px; padding:9px 16px; font-size:12.5px; font-weight:600;">Operator: approve this match</button>
+              </div>
+            </sc-if>
+
+            <!-- demo controls -->
+            <div style="border-top:1px dashed #ddcfa8; padding-top:13px;">
+              <div style="font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#b3a172; font-weight:600; margin-bottom:9px;">Demo &mdash; try a name-matching scenario</div>
+              <div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:11px;">
+                <sc-for list="{{ scenarios }}" as="sc" hint-placeholder-count="7">
+                  <button onClick="{{ sc.onPick }}" style="cursor:pointer; background:{{ sc.bg }}; color:{{ sc.fg }}; border:1px solid {{ sc.border }}; border-radius:20px; padding:6px 12px; font-size:11.5px; font-weight:600;">{{ sc.label }}</button>
+                </sc-for>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <button onClick="{{ toggleExpired }}" style="cursor:pointer; background:{{ expBtnBg }}; color:{{ expBtnFg }}; border:1px solid {{ expBtnBorder }}; border-radius:20px; padding:6px 12px; font-size:11.5px; font-weight:600;">Expired ID: {{ expState }}</button>
+                <button onClick="{{ toggleUnderage }}" style="cursor:pointer; background:{{ ageBtnBg }}; color:{{ ageBtnFg }}; border:1px solid {{ ageBtnBorder }}; border-radius:20px; padding:6px 12px; font-size:11.5px; font-weight:600;">Age: {{ renterAge }}</button>
+                <button onClick="{{ toggleFace }}" style="cursor:pointer; background:{{ faceBtnBg }}; color:{{ faceBtnFg }}; border:1px solid {{ faceBtnBorder }}; border-radius:20px; padding:6px 12px; font-size:11.5px; font-weight:600;">Selfie match: {{ faceState }}</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===== STEP 3 — INSURANCE ===== -->
+    <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fffdf7; border:1px solid #e6dab8; border-radius:16px; padding:26px 26px 24px; box-shadow:0 10px 30px rgba(60,48,20,.08);">
+        <div style="font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#b89b5e; font-weight:600; margin-bottom:5px;">{{ stepOf }}</div>
+        <h2 style="font-family:'Playfair Display',serif; font-size:23px; font-weight:600; color:#2b2820; margin:0 0 4px;">{{ tr.s3_title }}</h2>
+        <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:0 0 18px;">Upload your declarations page. We confirm coverage is active and that the named insured is you &mdash; matched to your verified identity using the same rules.</p>
+
+        <div onClick="{{ onUploadIns }}" style="cursor:pointer; border:1.5px dashed {{ insDashColor }}; border-radius:12px; background:{{ insDropBg }}; padding:18px; display:flex; align-items:center; gap:14px; margin-bottom:8px;">
+          <div style="width:46px; height:46px; flex:0 0 46px; border-radius:10px; background:#efe6cd; display:flex; align-items:center; justify-content:center; font-size:20px;">{{ insDropIcon }}</div>
+          <div style="flex:1;">
+            <div style="font-size:14px; font-weight:600; color:#2b2820;">{{ insDropTitle }}</div>
+            <div style="font-size:12px; color:#6b6450; margin-top:2px;">{{ insDropSub }}</div>
+          </div>
+        </div>
+
+        <sc-if value="{{ insLoaded }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="margin:14px 0 12px; border:1px solid {{ insResBorder }}; background:{{ insResBg }}; border-radius:11px; padding:11px 15px; display:flex; align-items:center; gap:10px;">
+              <div style="width:24px; height:24px; flex:0 0 24px; border-radius:50%; background:{{ insResFg }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">{{ insResIcon }}</div>
+              <div style="flex:1;">
+                <div style="font-size:13.5px; font-weight:700; color:{{ insResFg }};">{{ insResTitle }}</div>
+                <div style="font-size:12px; color:#5a5340; margin-top:1px;">{{ insResReason }}</div>
+              </div>
+            </div>
+            <div style="border:1px solid #e6dab8; border-radius:11px; overflow:hidden; background:#fbf6e9; margin-bottom:14px;">
+              <div style="padding:8px 14px; background:#efe6cd; border-bottom:1px solid #e6dab8; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; font-weight:600;">Coverage captured</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; font-size:12.5px;">
+                <div style="padding:9px 14px; border-right:1px solid #eaddbc; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Insurer</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ insurer }}</div></div>
+                <div style="padding:9px 14px; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Policy number</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ policyNumber }}</div></div>
+                <div style="padding:9px 14px; border-right:1px solid #eaddbc; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Named insured</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ namedInsured }}</div></div>
+                <div style="padding:9px 14px; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Coverage</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">Full coverage</div></div>
+                <div style="padding:9px 14px; border-right:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Effective</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ insEffective }}</div></div>
+                <div style="padding:9px 14px;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Expiration</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ insExpiration }}</div></div>
+              </div>
+            </div>
+            <sc-if value="{{ insShowOperator }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #e3d09a; background:#f6edd4; border-radius:11px; padding:13px 15px; margin-bottom:8px;">
+                <div style="font-size:12.5px; color:#6b5a28; line-height:1.5; margin-bottom:10px;">The named insured doesn&rsquo;t cleanly match your verified identity, so it goes to an operator &mdash; not an auto-reject.</div>
+                <button onClick="{{ approveIns }}" style="cursor:pointer; background:#8a6d1f; color:#fff; border:none; border-radius:8px; padding:9px 16px; font-size:12.5px; font-weight:600;">Operator: approve coverage</button>
+              </div>
+            </sc-if>
+            <div style="border-top:1px dashed #ddcfa8; padding-top:13px;">
+              <div style="font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#b3a172; font-weight:600; margin-bottom:9px;">Demo</div>
+              <button onClick="{{ toggleInsMismatch }}" style="cursor:pointer; background:{{ insMisBg }}; color:{{ insMisFg }}; border:1px solid {{ insMisBorder }}; border-radius:20px; padding:6px 12px; font-size:11.5px; font-weight:600;">Named insured: {{ insMisState }}</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===== STEP 4 — VEHICLE ===== -->
+    <sc-if value="{{ isStep4 }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fffdf7; border:1px solid #e6dab8; border-radius:16px; padding:26px 26px 24px; box-shadow:0 10px 30px rgba(60,48,20,.08);">
+        <div style="font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#b89b5e; font-weight:600; margin-bottom:5px;">{{ stepOf }}</div>
+        <h2 style="font-family:'Playfair Display',serif; font-size:23px; font-weight:600; color:#2b2820; margin:0 0 4px;">{{ tr.s4_title }}</h2>
+        <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:0 0 18px;">This is the unit assigned to you. Review it and the handoff condition photos, then confirm.</p>
+        <div style="border:1px solid #e6dab8; border-radius:11px; overflow:hidden; background:#fbf6e9; margin-bottom:14px;">
+          <div style="padding:8px 14px; background:#efe6cd; border-bottom:1px solid #e6dab8; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; font-weight:600;">Assigned unit</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; font-size:12.5px;">
+            <div style="padding:9px 14px; border-right:1px solid #eaddbc; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Year / Make / Model</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ vehYMM }}</div></div>
+            <div style="padding:9px 14px; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Color / Body</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ vehColor }}</div></div>
+            <div style="padding:9px 14px; border-right:1px solid #eaddbc; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">VIN</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ vehVin }}</div></div>
+            <div style="padding:9px 14px; border-bottom:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Plate / State</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ vehPlate }}</div></div>
+            <div style="padding:9px 14px; border-right:1px solid #eaddbc;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Odometer at handoff</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ vehOdo }}</div></div>
+            <div style="padding:9px 14px;"><div style="font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a8946a;">Fuel at handoff</div><div style="color:#2b2820; font-weight:600; margin-top:1px;">{{ vehFuel }}</div></div>
+          </div>
+        </div>
+        <div style="font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:8px;">Handoff condition record &mdash; incorporated by reference</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px;">
+          <div style="aspect-ratio:4/3; border:1px solid #d8c89e; border-radius:8px; background:#efe6cd; display:flex; align-items:center; justify-content:center; font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:#a8946a; text-align:center;">Front</div>
+          <div style="aspect-ratio:4/3; border:1px solid #d8c89e; border-radius:8px; background:#efe6cd; display:flex; align-items:center; justify-content:center; font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:#a8946a; text-align:center;">Rear</div>
+          <div style="aspect-ratio:4/3; border:1px solid #d8c89e; border-radius:8px; background:#efe6cd; display:flex; align-items:center; justify-content:center; font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:#a8946a; text-align:center;">Interior</div>
+          <div style="aspect-ratio:4/3; border:1px solid #d8c89e; border-radius:8px; background:#efe6cd; display:flex; align-items:center; justify-content:center; font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:#a8946a; text-align:center;">Odometer</div>
+        </div>
+        <div onClick="{{ toggleVehConfirm }}" style="cursor:pointer; display:flex; align-items:center; gap:11px; padding:13px 15px; border:1.5px solid {{ vehChkBorder }}; background:{{ vehChkBg }}; border-radius:11px;">
+          <div style="width:22px; height:22px; flex:0 0 22px; border-radius:6px; border:2px solid {{ vehChkBox }}; background:{{ vehChkFill }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">{{ vehChkMark }}</div>
+          <div style="font-size:13px; color:#2b2820; font-weight:500;">I confirm this is the vehicle assigned to me and the condition photos are accurate at handoff.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== STEP 5 — PAYMENT ===== -->
+    <sc-if value="{{ isStep5 }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fffdf7; border:1px solid #e6dab8; border-radius:16px; padding:26px 26px 24px; box-shadow:0 10px 30px rgba(60,48,20,.08);">
+        <div style="font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#b89b5e; font-weight:600; margin-bottom:5px;">{{ stepOf }}</div>
+        <h2 style="font-family:'Playfair Display',serif; font-size:23px; font-weight:600; color:#2b2820; margin:0 0 4px;">{{ tr.s5_title }}</h2>
+        <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:0 0 12px;">We securely vault a payment card for your weekly rent of <strong style="color:#2b2820;">$350.00</strong>. <strong style="color:#2b2820;">A valid debit or credit card is required &mdash; prepaid cards aren&rsquo;t accepted.</strong> A regular bank debit card is perfectly fine.</p>
+
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <button onClick="{{ setCredit }}" style="cursor:pointer; flex:1; padding:9px; border-radius:8px; font-size:12.5px; font-weight:600; border:1px solid {{ creditBorder }}; background:{{ creditBg }}; color:{{ creditFg }};">Credit card</button>
+          <button onClick="{{ setDebit }}" style="cursor:pointer; flex:1; padding:9px; border-radius:8px; font-size:12.5px; font-weight:600; border:1px solid {{ debitBorder }}; background:{{ debitBg }}; color:{{ debitFg }};">Debit card</button>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">Card number</div>
+          <input type="text" value="{{ cardNumber }}" onChange="{{ onCardNumber }}" placeholder="4242 4242 4242 4242" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#fff; font-size:14.5px; color:#2b2820;">
+        </div>
+        <div style="display:flex; gap:12px; margin-bottom:14px;">
+          <div style="flex:1;"><div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">Expiry</div><input type="text" value="{{ cardExp }}" onChange="{{ onCardExp }}" placeholder="MM/YY" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#fff; font-size:14.5px; color:#2b2820;"></div>
+          <div style="flex:1;"><div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">CVC</div><input type="text" value="{{ cardCvc }}" onChange="{{ onCardCvc }}" placeholder="123" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#fff; font-size:14.5px; color:#2b2820;"></div>
+          <div style="flex:1;"><div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">ZIP</div><input type="text" value="{{ cardZip }}" onChange="{{ onCardZip }}" placeholder="77075" style="width:100%; padding:11px 13px; border:1px solid #d8c89e; border-radius:8px; background:#fff; font-size:14.5px; color:#2b2820;"></div>
+        </div>
+
+        <div style="border:1px solid {{ surchargeBorder }}; background:{{ surchargeBg }}; border-radius:10px; padding:11px 14px; margin-bottom:14px; font-size:12.5px; line-height:1.5; color:#5a5340;">{{ surchargeNote }}</div>
+
+        <sc-if value="{{ cardPrepaid }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px solid #d8a99b; background:#f7e9e4; border-radius:10px; padding:13px 15px; margin-bottom:14px;">
+            <div style="font-size:12.5px; font-weight:600; color:#9a3b2e; margin-bottom:3px;">This looks like a prepaid card.</div>
+            <div style="font-size:12.5px; line-height:1.5; color:#6b5048;">OBAVIA membership runs on a bank-linked debit or credit card. Please enter a standard debit or credit card to continue &mdash; a regular bank debit card works perfectly.</div>
+          </div>
+        </sc-if>
+
+        <div onClick="{{ toggleAutoCharge }}" style="cursor:pointer; display:flex; align-items:flex-start; gap:11px; padding:13px 15px; border:1.5px solid {{ acBorder }}; background:{{ acBg }}; border-radius:11px;">
+          <div style="width:22px; height:22px; flex:0 0 22px; border-radius:6px; border:2px solid {{ acBox }}; background:{{ acFill }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">{{ acMark }}</div>
+          <div style="font-size:13px; color:#2b2820; line-height:1.5;">I authorize Obavia to automatically charge this method for weekly rent and authorized amounts each cycle (off-session).</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== STEP 6 — REVIEW ===== -->
+    <sc-if value="{{ isStep6 }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fffdf7; border:1px solid #e6dab8; border-radius:16px; padding:26px clamp(20px,3vw,30px) 24px; box-shadow:0 10px 30px rgba(60,48,20,.08);">
+        <div style="font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#b89b5e; font-weight:600; margin-bottom:5px;">{{ stepOf }}</div>
+        <h2 style="font-family:'Playfair Display',serif; font-size:23px; font-weight:600; color:#2b2820; margin:0 0 4px;">{{ tr.s6_title }}</h2>
+        <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:0 0 18px;">Here&rsquo;s your agreement with your verified information merged in. Initial the three items below, then continue to sign.</p>
+
+        <!-- separate initials -->
+        <div style="font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:9px;">Required separate initials</div>
+        <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:20px;">
+          <div onClick="{{ toggleInitAuto }}" style="cursor:pointer; display:flex; align-items:center; gap:13px; padding:13px 15px; border:1.5px solid {{ iaBorder }}; background:{{ iaBg }}; border-radius:11px;">
+            <div style="width:48px; height:34px; flex:0 0 48px; border:1.5px solid #b89b5e; border-radius:5px; background:#fffdf7; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:14px; font-weight:600; color:#7a6324;">{{ iaInitials }}</div>
+            <div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#2b2820;">Auto-charge authorization</div><div style="font-size:11.5px; color:#6b6450;">Automatic charges to your method each cycle (§5).</div></div>
+          </div>
+          <div onClick="{{ toggleInitGps }}" style="cursor:pointer; display:flex; align-items:center; gap:13px; padding:13px 15px; border:1.5px solid {{ igBorder }}; background:{{ igBg }}; border-radius:11px;">
+            <div style="width:48px; height:34px; flex:0 0 48px; border:1.5px solid #b89b5e; border-radius:5px; background:#fffdf7; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:14px; font-weight:600; color:#7a6324;">{{ igInitials }}</div>
+            <div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#2b2820;">GPS / telematics consent</div><div style="font-size:11.5px; color:#6b6450;">Location &amp; recovery device disclosure (§13).</div></div>
+          </div>
+          <div onClick="{{ toggleInitStarter }}" style="cursor:pointer; display:flex; align-items:center; gap:13px; padding:13px 15px; border:1.5px solid {{ isBorder }}; background:{{ isBg }}; border-radius:11px;">
+            <div style="width:48px; height:34px; flex:0 0 48px; border:1.5px solid #b89b5e; border-radius:5px; background:#fffdf7; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:14px; font-weight:600; color:#7a6324;">{{ isInitials }}</div>
+            <div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#2b2820;">Starter-interrupt device consent</div><div style="font-size:11.5px; color:#6b6450;">Payment-assurance device, Texas disclosure (§14).</div></div>
+          </div>
+        </div>
+
+        <div style="font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:9px;">Your agreement &mdash; data-bound</div>
+        <div style="border:1px solid #ddcfa8; border-radius:10px; max-height:560px; overflow:auto; background:#e7ddc6; box-shadow:inset 0 0 0 1px rgba(0,0,0,.02);">
+          <dc-import name="Obavia Rental Agreement (Portal Edition)" data="{{ boundData }}" hint-size="100%,1500px"></dc-import>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== STEP 7 — EXECUTE ===== -->
+    <sc-if value="{{ isStep7 }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:fadein .3s ease;">
+        <sc-if value="{{ executed }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#fffdf7; border:1px solid #cbdcbd; border-radius:16px; padding:30px 26px; box-shadow:0 10px 30px rgba(60,48,20,.08); text-align:center;">
+            <div style="width:58px; height:58px; border-radius:50%; background:#eaf1e2; border:2px solid #cbdcbd; color:#3a6235; display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 14px;">&#10003;</div>
+            <h2 style="font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#2b2820; margin:0 0 6px;">Agreement executed</h2>
+            <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:0 auto 20px; max-width:420px;">Signed and bound on {{ executedAt }}. Your verified identity, insurance, address, vehicle, and payment method are now the binding facts of this rental.</p>
+            <div style="text-align:left; border:1px solid #e6dab8; border-radius:11px; overflow:hidden; background:#fbf6e9; max-width:460px; margin:0 auto;">
+              <div style="padding:8px 14px; background:#efe6cd; border-bottom:1px solid #e6dab8; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; font-weight:600;">Binding record</div>
+              <div style="padding:11px 15px; font-size:12.5px; line-height:1.7; color:#3c3729;">
+                <div><strong style="color:#2b2820;">Renter:</strong> {{ boundData.renterLegalName }}{{ akaSuffix }}</div>
+                <div><strong style="color:#2b2820;">Address:</strong> {{ address }}</div>
+                <div><strong style="color:#2b2820;">Insurance:</strong> {{ insurer }} · {{ policyNumber }}</div>
+                <div><strong style="color:#2b2820;">Vehicle:</strong> {{ vehYMM }} · {{ vehPlate }}</div>
+                <div><strong style="color:#2b2820;">Payment:</strong> {{ cardBrandLabel }} ending {{ cardLast4 }} · auto-charge authorized</div>
+                <div><strong style="color:#2b2820;">Rate:</strong> $350.00 / week</div>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:460px; margin:16px auto 0; text-align:left;">
+              <div style="border:1px solid #cbdcbd; background:#f4f8ef; border-radius:9px; padding:10px 13px;"><div style="font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:#7a9a6f; font-weight:600;">Your copy (renter)</div><div style="font-size:12px; color:#3a6235; margin-top:2px;">&#10003; Sent to {{ renterEmail }}</div></div>
+              <div style="border:1px solid #cbdcbd; background:#f4f8ef; border-radius:9px; padding:10px 13px;"><div style="font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:#7a9a6f; font-weight:600;">Owner copy (Obavia)</div><div style="font-size:12px; color:#3a6235; margin-top:2px;">&#10003; Filed to Obavia</div></div>
+            </div>
+
+            <div style="display:flex; justify-content:center; margin-top:20px;">
+              <a href="{{ printHref }}" target="_blank" rel="noopener" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px; background:#b89b5e; color:#fff; border-radius:10px; padding:14px 28px; font-size:14px; font-weight:700;"><span style="font-size:15px;">&#8595;</span> Print / Save as PDF</a>
+            </div>
+            <div style="font-size:11px; color:#8a8270; margin-top:10px;">Opens the signed contract in a new tab and launches your browser&rsquo;s print dialog &mdash; choose &ldquo;Save as PDF.&rdquo; The same copy is available to you and to Obavia.</div>
+          </div>
+
+          <div style="margin-top:18px;">
+            <div style="font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:9px; text-align:center;">Signed agreement &mdash; on-screen copy</div>
+            <div style="border:1px solid #ddcfa8; border-radius:10px; max-height:600px; overflow:auto; background:#e7ddc6;">
+              <dc-import name="Obavia Rental Agreement (Portal Edition)" data="{{ signedBound }}" hint-size="100%,1500px"></dc-import>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ notExecuted }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#fffdf7; border:1px solid #e6dab8; border-radius:16px; padding:26px; box-shadow:0 10px 30px rgba(60,48,20,.08);">
+            <div style="font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#b89b5e; font-weight:600; margin-bottom:5px;">{{ stepOf }}</div>
+            <h2 style="font-family:'Playfair Display',serif; font-size:23px; font-weight:600; color:#2b2820; margin:0 0 4px;">{{ tr.s7_title }}</h2>
+            <p style="font-size:13px; line-height:1.55; color:#6b6450; margin:0 0 18px;">Type your full legal name to sign. Your signature binds to your verified identity: <strong style="color:#2b2820;">{{ idName }}</strong>.</p>
+            <div style="margin-bottom:6px;">
+              <div style="font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#9c8345; font-weight:600; margin-bottom:6px;">Type to sign</div>
+              <input type="text" value="{{ signName }}" onChange="{{ onSignName }}" placeholder="Your full legal name" style="width:100%; padding:13px; border:1.5px solid {{ signBorder }}; border-radius:8px; background:#fff; font-family:'Playfair Display',serif; font-size:20px; color:#2b2820;">
+            </div>
+            <div style="font-size:11.5px; color:{{ signMsgColor }}; margin-bottom:16px; min-height:16px;">{{ signMsg }}</div>
+            <div onClick="{{ toggleEsign }}" style="cursor:pointer; display:flex; align-items:flex-start; gap:11px; padding:13px 15px; border:1.5px solid {{ esBorder }}; background:{{ esBg }}; border-radius:11px; margin-bottom:18px;">
+              <div style="width:22px; height:22px; flex:0 0 22px; border-radius:6px; border:2px solid {{ esBox }}; background:{{ esFill }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">{{ esMark }}</div>
+              <div style="font-size:12.5px; color:#2b2820; line-height:1.5;">I agree to sign electronically and to receive records electronically under the E-SIGN Act and Texas UETA.</div>
+            </div>
+            <button onClick="{{ executeNow }}" style="cursor:{{ execCursor }}; width:100%; background:{{ execBg }}; color:#fff; border:none; border-radius:10px; padding:15px; font-size:15px; font-weight:700; letter-spacing:.02em; opacity:{{ execOpacity }};">Execute agreement</button>
+            <sc-if value="{{ execBlocked }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11.5px; color:#9a3b2e; margin-top:10px; text-align:center;">{{ execBlockedMsg }}</div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===== Nav ===== -->
+    <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; gap:12px; align-items:center; margin-top:18px;">
+        <sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ back }}" style="cursor:pointer; background:transparent; color:#8a7a4e; border:1px solid #d8c89e; border-radius:9px; padding:13px 22px; font-size:13.5px; font-weight:600;">Back</button>
+        </sc-if>
+        <div style="flex:1;"></div>
+        <button onClick="{{ next }}" style="cursor:{{ nextCursor }}; background:{{ nextBg }}; color:#fff; border:none; border-radius:9px; padding:13px 30px; font-size:13.5px; font-weight:700; opacity:{{ nextOpacity }};">{{ nextLabel }}</button>
+      </div>
+      <div style="font-size:11px; color:{{ gateColor }}; margin-top:9px; text-align:right; min-height:14px;">{{ gateMsg }}</div>
+    </sc-if>
+
+  </div>
 </main>
-<script>
-  try {
-    localStorage.removeItem("obavia_signed");
-  } catch (e) {}
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:520,&quot;height&quot;:760}}">
+class Component extends DCLogic {
+  state = {
+    step: 1,
+    lang: "en",
+    opLang: "en",
+    langChosen: false,
+    opMode: false,
+    fullName: "John Doe",
+    phone: "(713) 555-0142",
+    email: "john.doe@email.com",
+    addrStreet: "5120 Telephone Rd",
+    addrApt: "Apt 4",
+    addrCity: "Houston",
+    addrState: "TX",
+    addrZip: "77087",
+    addressOpen: false,
+    idLoaded: false,
+    idName: "John Lawrence Doe",
+    idDob: "March 4, 1991",
+    idNumber: "TX DL 1184-2207",
+    idState: "Texas",
+    idExp: "March 4, 2029",
+    idType: "Driver License",
+    idExpired: false,
+    faceMatch: true,
+    renterAge: 35,
+    idApproved: false,
+    insLoaded: false,
+    insurer: "Lone Star Mutual Insurance",
+    policyNumber: "LSM-7741-0093",
+    namedInsured: "John L. Doe",
+    insEffective: "May 1, 2026",
+    insExpiration: "November 1, 2026",
+    insMismatch: false,
+    insApproved: false,
+    vehConfirmed: false,
+    cardType: "credit",
+    cardNumber: "4242 4242 4242 4242",
+    cardExp: "08/29",
+    cardCvc: "123",
+    cardZip: "77075",
+    cardLast4: "4242",
+    autoCharge: false,
+    payVaulted: false,
+    initAuto: false,
+    initGps: false,
+    initStarter: false,
+    signName: "",
+    esign: false,
+    executed: false,
+    executedAt: ""
+  };
+
+  MINAGE = 21;
+
+  // ---------- name-matching engine ----------
+  norm(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/['\u2019.]/g,"").replace(/-/g," ").replace(/[^a-z\s]/g," ").replace(/\s+/g," ").trim(); }
+  compact(s){ return this.norm(s).replace(/\s+/g,""); }
+  parse(s){
+    const SUF = ["jr","sr","ii","iii","iv","2nd","3rd","jnr","snr"];
+    let t = this.norm(s).split(" ").filter(Boolean);
+    const suf = [];
+    t = t.filter(x => { if (SUF.indexOf(x) >= 0){ suf.push(x); return false; } return true; });
+    return { first: t[0]||"", last: t.length>1 ? t[t.length-1] : "", mids: t.slice(1,-1), suf };
+  }
+  nickGroups(){
+    return [
+      ["michael","mike","mikey"],["robert","bob","rob","bobby"],["william","bill","will","billy"],
+      ["james","jim","jimmy"],["anthony","tony"],["elizabeth","liz","beth","betty","eliza"],
+      ["richard","rick","dick","rich"],["joseph","joe","joey"],["charles","charlie","chuck"],
+      ["thomas","tom","tommy"],["christopher","chris"],["daniel","dan","danny"],["matthew","matt"],
+      ["david","dave"],["steven","stephen","steve"],["edward","ed","eddie","ted"],
+      ["margaret","maggie","meg","peggy"],["katherine","catherine","kate","katie","kathy"],
+      ["jennifer","jen","jenny"],["patricia","pat","patty","tricia"],["nicholas","nick"],
+      ["samuel","sam"],["benjamin","ben"],["alexander","alex"],["andrew","andy","drew"],
+      ["jonathan","jon"],["gregory","greg"],["timothy","tim"],["kenneth","ken"],["ronald","ron"]
+    ];
+  }
+  nick(a,b){
+    if (a === b) return true;
+    const g = this.nickGroups();
+    for (let i=0;i<g.length;i++){ if (g[i].indexOf(a)>=0 && g[i].indexOf(b)>=0) return true; }
+    return false;
+  }
+  matchName(idName, other){
+    const A = this.parse(idName), B = this.parse(other);
+    if (!A.first || !B.first) return { tier:2, reason:"Name is incomplete — needs review." };
+    if (this.compact(idName) === this.compact(other)) return { tier:1, reason:"Exact match." };
+    const firstM = A.first === B.first || this.nick(A.first, B.first);
+    const lastM = A.last === B.last || this.compact(A.last) === this.compact(B.last);
+    const reversed = (A.first === B.last || this.nick(A.first,B.last)) && (A.last === B.first || this.nick(A.last,B.first));
+    const notes = [];
+    if (firstM && this.nick(A.first,B.first) && A.first !== B.first) notes.push("Nickname mapping recognized (\u201c"+B.first+"\u201d \u2194 \u201c"+A.first+"\u201d).");
+    if (A.suf.join() !== B.suf.join()) notes.push("Generational suffix differs \u2014 same person.");
+    if (lastM && A.last !== B.last) notes.push("Surname punctuation/accent variant.");
+    if (firstM && lastM && A.mids.join(" ") !== B.mids.join(" ")) notes.push("Middle name/initial difference \u2014 non-blocking.");
+    if (firstM && lastM) return { tier:1, reason: notes.length ? notes.join(" ") : "First and last name align." };
+    if (reversed) return { tier:2, reason:"Possible name-order or compound-name ambiguity \u2014 first and last may be swapped." };
+    if (firstM && !lastM) return { tier:2, reason:"Given name matches but surname differs \u2014 possible maiden/married or hyphenated surname." };
+    if (!firstM && lastM) return { tier:2, reason:"Surname matches but given name differs \u2014 possible non-standard nickname." };
+    return { tier:3, reason:"Given and surname both differ with no nickname or variant explanation." };
+  }
+  tierStyle(t){
+    if (t === 1) return { fg:"#3a6235", bg:"#eaf1e2", border:"#cbdcbd", icon:"\u2713", title:"Auto-pass \u2014 same person" };
+    if (t === 2) return { fg:"#8a6d1f", bg:"#f6edd4", border:"#e3d09a", icon:"!", title:"Routed to operator review" };
+    return { fg:"#9a3b2e", bg:"#f4e1da", border:"#e6c3b7", icon:"\u2715", title:"Blocked until resolved" };
+  }
+
+  // ---------- identity result ----------
+  idEval(){
+    const hard = [];
+    if (this.state.idExpired) hard.push("Government ID is expired.");
+    if (this.state.renterAge < this.MINAGE) hard.push("Renter is under the minimum age.");
+    if (!this.state.faceMatch) hard.push("Selfie did not match the ID photo.");
+    const nameR = this.matchName(this.state.idName, this.state.fullName);
+    let tier = nameR.tier;
+    let reason = nameR.reason;
+    if (hard.length){ tier = 3; reason = hard.join(" ") + (nameR.tier > 1 ? " " + nameR.reason : ""); }
+    let status = tier === 1 ? "verified" : (tier === 2 ? "review" : "blocked");
+    if (tier === 2 && this.state.idApproved){ status = "verified"; reason = "Operator-approved. " + nameR.reason; }
+    return { tier, reason, status };
+  }
+  insEval(){
+    if (!this.state.insLoaded) return { tier:0, status:"todo", reason:"" };
+    const named = this.state.insMismatch ? "Janet Williams" : this.state.namedInsured;
+    const r = this.matchName(this.state.idName, named);
+    let tier = r.tier, reason = "Named insured " + (r.tier === 1 ? "matches" : "vs") + " verified identity. " + r.reason;
+    let status = tier === 1 ? "verified" : (tier === 2 ? "review" : "blocked");
+    if (tier >= 2 && this.state.insApproved){ status = "verified"; reason = "Operator-approved. " + r.reason; }
+    return { tier, status, reason, named };
+  }
+
+  stepStatus(n){
+    const s = this.state;
+    if (n === 1) return (s.fullName && s.phone && s.email && s.addrStreet && s.addrCity && s.addrState && s.addrZip) ? "verified" : "todo";
+    if (n === 2) return s.idLoaded ? this.idEval().status : "todo";
+    if (n === 3) return s.insLoaded ? this.insEval().status : "todo";
+    if (n === 4) return s.vehConfirmed ? "verified" : "todo";
+    if (n === 5) return (s.payVaulted && s.autoCharge && !this.isPrepaidCard(s.cardNumber)) ? "verified" : "todo";
+    if (n === 6) return (s.initAuto && s.initGps && s.initStarter) ? "verified" : "todo";
+    if (n === 7) return s.executed ? "verified" : "todo";
+    return "todo";
+  }
+  canPass(n){ const st = this.stepStatus(n); return st === "verified"; }
+  gateOk(n){
+    // a step's gate is satisfied to advance
+    const s = this.state;
+    if (n === 1) return this.canPass(1);
+    if (n === 2) return this.stepStatus(2) === "verified";
+    if (n === 3) return this.stepStatus(3) === "verified";
+    if (n === 4) return s.vehConfirmed;
+    if (n === 5) return s.payVaulted && s.autoCharge && !this.isPrepaidCard(s.cardNumber);
+    if (n === 6) return s.initAuto && s.initGps && s.initStarter;
+    return true;
+  }
+
+  initials(name){
+    const t = this.norm(name).split(" ").filter(Boolean);
+    return t.map(x => x[0].toUpperCase()).join("");
+  }
+
+  setField(k){ return (e) => this.setState({ [k]: e.target.value }); }
+
+  // Prepaid detection is BIN-based: the first 6 digits (the BIN) are matched against known prepaid
+  // ranges. A strong filter, not a perfect guarantee — Claude Code wires the live BIN service. Debit
+  // and credit both pass; only prepaid is excluded (the burner / fraud vector).
+  isPrepaidCard(num){
+    var d = (num || "").replace(/\D/g, "");
+    if (d.length < 6) return false;
+    var bin = d.slice(0, 6);
+    // Illustrative known-prepaid BIN prefixes (4–6 digits). The default 4242… test card is NOT prepaid.
+    var PREPAID = ["400006", "401795", "411773", "438857", "446675", "483316", "517805", "533248", "539218", "552260", "627384", "5392", "4847", "6050"];
+    return PREPAID.some(function(p){ return bin.indexOf(p) === 0; });
+  }
+
+  componentDidMount(){
+    try {
+      var I = window.OBAVIA_I18N; if (!I) return;
+      var stored = localStorage.getItem("obavia_lang");
+      var op = localStorage.getItem("obavia_op_lang");
+      var next = {};
+      if (stored && I.isSupported(stored)) { next.lang = stored; next.langChosen = true; }
+      else { next.lang = I.detect(); }
+      if (op && I.isSupported(op)) next.opLang = op;
+      this.setState(next);
+    } catch (e) {}
+    // Carry the public application forward (deep-link: nothing re-entered). Prefill name + phone
+    // from the pre-qual application if present, so verification continues where they left off.
+    try {
+      var app = JSON.parse(localStorage.getItem("obavia_application") || "null");
+      if (app && app.answers) {
+        var carry = {};
+        if (app.answers.name && app.answers.name.trim()) carry.fullName = app.answers.name.trim();
+        if (app.answers.phone) { var d = app.answers.phone.replace(/\D/g, ""); if (d) carry.phone = this.formatPhone(d); }
+        if (Object.keys(carry).length) this.setState(carry);
+      }
+    } catch (e) {}
+  }
+
+  formatPhone(v){
+    const d = (v||"").replace(/\D/g,"").slice(0,10);
+    if (d.length === 0) return "";
+    if (d.length < 4) return "(" + d;
+    if (d.length < 7) return "(" + d.slice(0,3) + ") " + d.slice(3);
+    return "(" + d.slice(0,3) + ") " + d.slice(3,6) + "-" + d.slice(6);
+  }
+  addressBook(){
+    return [
+      "5120 Telephone Rd, Houston, TX 77087",
+      "5210 Telephone Rd, Houston, TX 77087",
+      "8774 Almeda Genoa Rd, Houston, TX 77075",
+      "3300 S Wayside Dr, Houston, TX 77087",
+      "7100 Bellfort Ave, Houston, TX 77087",
+      "4501 Mykawa Rd, Houston, TX 77033",
+      "9200 Cullen Blvd, Houston, TX 77051",
+      "2500 Broadway St, Houston, TX 77012",
+      "6300 Bissonnet St, Houston, TX 77074",
+      "10100 S Main St, Houston, TX 77025",
+      "12000 Gulf Fwy, Houston, TX 77034",
+      "14100 Westheimer Rd, Houston, TX 77077",
+      "1600 Pasadena Blvd, Pasadena, TX 77506",
+      "900 Spencer Hwy, South Houston, TX 77587",
+      "4200 San Jacinto St, Houston, TX 77004"
+    ];
+  }
+  parseAddr(a){
+    const p = (a||"").split(",").map(function(x){return x.trim();});
+    const sz = (p[2]||"").split(/\s+/).filter(Boolean);
+    return { full: a, street: p[0]||"", city: p[1]||"", state: sz[0]||"", zip: sz[1]||"" };
+  }
+
+  pickScenario(entered, idn){
+    return () => this.setState({ fullName: entered, idName: idn, idLoaded: true, idExpired: false, faceMatch: true, renterAge: 35, idApproved: false, idType: "Driver License", namedInsured: idn === "John Lawrence Doe" ? "John L. Doe" : idn, insApproved: false, insMismatch: false });
+  }
+
+  renderVals(){
+    const s = this.state;
+    const step = s.step;
+    const I18 = window.OBAVIA_I18N;
+    const lang = s.lang || "en";
+    const opLang = s.opLang || "en";
+    const uiDir = I18 ? I18.dir(lang) : "ltr";
+    const tr = Object.assign({}, (I18 ? I18.T.en : {}), (I18 && I18.T[lang] ? I18.T[lang] : {}));
+    const langMeta = I18 ? I18.meta(lang) : { native: "English", english: "English" };
+    const opLangMeta = I18 ? I18.meta(opLang) : { native: "English", english: "English" };
+    const tFn = function(k, v){ return I18 ? I18.t(lang, k, v) : (tr[k] || k); };
+    const idR = this.idEval();
+    const insR = this.insEval();
+
+    // ----- address autocomplete -----
+    const aq = this.norm(s.addrStreet);
+    let addrSug = [];
+    if (aq.length >= 2){
+      const atoks = aq.split(" ").filter(Boolean);
+      addrSug = this.addressBook().filter(a => { const an = this.norm(a); return atoks.every(t => an.indexOf(t) >= 0); }).slice(0, 5).map(a => this.parseAddr(a));
+    }
+    const addrPicked = addrSug.length === 1 && this.norm(addrSug[0].street) === aq;
+    const showAddrDrop = s.addressOpen && addrSug.length > 0 && !addrPicked;
+    const fullAddress = [s.addrStreet + (s.addrApt ? (", " + s.addrApt) : ""), (s.addrCity ? (s.addrCity + ", " + s.addrState + " " + s.addrZip) : "")].filter(Boolean).join(", ");
+
+    // ----- progress rail -----
+    const labels = [tr.rail_account, tr.rail_identity, tr.rail_insurance, tr.rail_vehicle, tr.rail_payment, tr.rail_review, tr.rail_execute];
+    const steps = labels.map((lab, i) => {
+      const n = i + 1;
+      const st = this.stepStatus(n);
+      const active = step === n;
+      const reached = n <= step || this.canPass(n);
+      let dotBg = "#f1e7cf", dotBorder = "#d8c89e", dotFg = "#a8946a", dotIcon = String(n);
+      if (st === "verified"){ dotBg = "#eaf1e2"; dotBorder = "#9bbf8e"; dotFg = "#3a6235"; dotIcon = "\u2713"; }
+      else if (st === "review"){ dotBg = "#f6edd4"; dotBorder = "#e3d09a"; dotFg = "#8a6d1f"; dotIcon = "!"; }
+      else if (st === "blocked"){ dotBg = "#f4e1da"; dotBorder = "#e6c3b7"; dotFg = "#9a3b2e"; dotIcon = "\u2715"; }
+      if (active){ dotBorder = "#b89b5e"; if (st === "todo"){ dotBg = "#b89b5e"; dotFg = "#fff"; } }
+      return {
+        n, short: lab, dotBg, dotBorder, dotFg, dotIcon,
+        leftLine: i === 0 ? "transparent" : "#e2d6b5",
+        rightLine: i === labels.length - 1 ? "transparent" : "#e2d6b5",
+        labelColor: active ? "#7a6324" : "#a8946a",
+        cursor: reached ? "pointer" : "default",
+        go: reached ? (() => this.setState({ step: n })) : (() => {})
+      };
+    });
+
+    // ----- identity drop visuals -----
+    const idSt = idR.status;
+    const tS = this.tierStyle(idR.tier);
+    const idDropDone = s.idLoaded;
+
+    // ----- insurance visuals -----
+    const inSt = insR.status;
+    const inS = this.tierStyle(insR.tier || 1);
+
+    // ----- payment -----
+    const isCredit = s.cardType === "credit";
+    const surchargeNote = isCredit ? tr.s5_surcharge_credit : tr.s5_surcharge_debit;
+    const cardBrandLabel = isCredit ? "Visa credit" : "Visa debit";
+    const cardPrepaid = this.isPrepaidCard(s.cardNumber);
+
+    // ----- review initials -----
+    const ini = this.initials(s.idName);
+
+    // ----- bound data for the agreement -----
+    const akaCommon = this.compact(s.fullName) !== this.compact(s.idName) ? s.fullName : "";
+    const today = "June 24, 2026";
+    const boundData = {
+      lang: lang,
+      effectiveDate: s.executed ? s.executedAt.split(",").slice(0,1).join("") || today : today,
+      renterLegalName: s.idName,
+      renterAka: akaCommon,
+      renterDob: s.idDob,
+      idNumber: s.idNumber,
+      idState: s.idState,
+      idExp: s.idExp,
+      residentialAddress: fullAddress,
+      insurer: s.insurer,
+      policyNumber: s.policyNumber,
+      namedInsured: insR.named || s.namedInsured,
+      coverageType: "Full coverage \u2014 liability, collision & comprehensive",
+      insEffective: s.insEffective,
+      insExpiration: s.insExpiration,
+      vehYMM: "2021 Toyota Camry SE",
+      vehColor: "Silver / 4-door sedan",
+      vehVin: "4T1G11AK7MU558210",
+      vehPlate: "KLM-4471 / TX",
+      vehOdo: "48,210 mi",
+      vehFuel: "Full"
+    };
+
+    // ----- sign -----
+    const signR = s.signName ? this.matchName(s.idName, s.signName) : { tier: 0 };
+    const signMatches = signR.tier === 1;
+    let signMsg = "", signMsgColor = "#8a7a4e", signBorder = "#d8c89e";
+    if (s.signName){
+      if (signMatches){ signMsg = tr.s7_match; signMsgColor = "#3a6235"; signBorder = "#9bbf8e"; }
+      else { signMsg = tFn("s7_nomatch", { id: s.idName }); signMsgColor = "#9a3b2e"; signBorder = "#e6c3b7"; }
+    }
+
+    const allInitials = s.initAuto && s.initGps && s.initStarter;
+    const canExecute = idR.status === "verified" && insR.status === "verified" && s.vehConfirmed && s.payVaulted && s.autoCharge && !this.isPrepaidCard(s.cardNumber) && allInitials && signMatches && s.esign;
+    let execBlockedMsg = "";
+    if (!canExecute && !s.executed){
+      if (!signMatches) execBlockedMsg = tr.s7_block_sign;
+      else if (!s.esign) execBlockedMsg = tr.s7_block_esign;
+      else execBlockedMsg = tr.s7_block_steps;
+    }
+
+    // ----- nav -----
+    const gate = this.gateOk(step);
+    const nextLabel = step === 6 ? tr.nav_continue_sign : (step === 7 ? tr.nav_done : tr.nav_continue);
+    let gateMsg = "", gateColor = "#9a3b2e";
+    if (!gate){
+      const st = this.stepStatus(step);
+      if (step === 2 && st === "blocked") gateMsg = tr.g_blocked_id;
+      else if (step === 2 && st === "review") gateMsg = tr.g_await_op;
+      else if (step === 3 && st === "blocked") gateMsg = tr.g_blocked_ins;
+      else if (step === 3 && st === "review") gateMsg = tr.g_await_op;
+      else gateMsg = tr.g_complete;
+    }
+
+    const mk = (k) => () => this.setState(p => ({ [k]: !p[k] }));
+
+    return {
+      shellMaxWidth: (step === 6 || (step === 7 && s.executed)) ? "940px" : "480px",
+      steps,
+      tr: tr, uiDir: uiDir,
+      stepOf: tFn("step_of", { n: step }),
+      langChosen: s.langChosen,
+      showGate: !s.langChosen,
+      detectedNative: (I18 ? I18.meta(I18.detect()).native : "English"),
+      gateOptions: (I18 ? I18.supportedList() : [{code:"en",native:"English",english:"English"}]).map((l) => ({ code: l.code, native: l.native, english: l.english, active: l.code === lang, border: l.code === lang ? "#b89b5e" : "#e6dab8", bg: l.code === lang ? "#f4f8ef" : "#fffdf7", pick: () => { try { localStorage.setItem("obavia_lang", l.code); } catch(e){} this.setState({ lang: l.code }); } })),
+      langOptions: (I18 ? I18.supportedList() : [{code:"en",native:"English"}]).map((l) => ({ code: l.code, native: l.native, active: l.code === lang, border: l.code === lang ? "#b89b5e" : "#d8c89e", bg: l.code === lang ? "#b89b5e" : "#fff", fg: l.code === lang ? "#fff" : "#8a7a4e", pick: () => { try { localStorage.setItem("obavia_lang", l.code); } catch(e){} this.setState({ lang: l.code }); } })),
+      opLangOptions: (I18 ? I18.supportedList() : [{code:"en",native:"English"}]).map((l) => ({ code: l.code, native: l.native, active: l.code === opLang, border: l.code === opLang ? "#b89b5e" : "#d8c89e", bg: l.code === opLang ? "#b89b5e" : "#fff", fg: l.code === opLang ? "#fff" : "#8a7a4e", pick: () => { try { localStorage.setItem("obavia_op_lang", l.code); } catch(e){} this.setState({ opLang: l.code }); } })),
+      chooseLang: () => { try { localStorage.setItem("obavia_lang", s.lang); } catch(e){} this.setState({ langChosen: true }); },
+      langNative: langMeta.native, opLangNative: opLangMeta.native,
+      opMode: s.opMode, toggleOpMode: () => this.setState(p => ({ opMode: !p.opMode })),
+      opDot: s.opMode ? "#3a6235" : "#c9b274",
+      opModeLabel: s.opMode ? tr.operator_side : tr.renter_side,
+      opNoteText: tr.op_note,
+      signLangLabel: langMeta.native,
+      suSubText: tFn("su_sub", { date: s.executedAt }),
+      suSentText: tFn("su_sent", { email: s.email }),
+      s7subText: tFn("s7_sub", { id: s.idName }),
+      isStep1: step===1, isStep2: step===2, isStep3: step===3, isStep4: step===4, isStep5: step===5, isStep6: step===6, isStep7: step===7,
+
+      // contact
+      fullName: s.fullName, phone: s.phone, email: s.email, address: fullAddress,
+      addrStreet: s.addrStreet, addrApt: s.addrApt, addrCity: s.addrCity, addrState: s.addrState, addrZip: s.addrZip,
+      onFullName: this.setField("fullName"),
+      onPhone: (e) => this.setState({ phone: this.formatPhone(e.target.value) }),
+      onEmail: this.setField("email"),
+      onStreet: (e) => this.setState({ addrStreet: e.target.value, addressOpen: true }),
+      onApt: this.setField("addrApt"),
+      onCity: this.setField("addrCity"),
+      onState: this.setField("addrState"),
+      onZip: this.setField("addrZip"),
+      onAddressFocus: () => this.setState({ addressOpen: true }),
+      onAddressBlur: () => { setTimeout(() => this.setState({ addressOpen: false }), 160); },
+      showAddrDrop,
+      addrSuggestions: addrSug.map(a => ({ text: a.full, pick: () => this.setState({ addrStreet: a.street, addrCity: a.city, addrState: a.state, addrZip: a.zip, addressOpen: false }) })),
+
+      // identity drop
+      onUploadId: () => this.setState({ idLoaded: true }),
+      idLoaded: s.idLoaded,
+      idDashColor: idDropDone ? "#cbdcbd" : "#cdbb8e",
+      idDropBg: idDropDone ? "#f4f8ef" : "#fbf6e9",
+      idDropIcon: idDropDone ? "\uD83D\uDCC4" : "\u2B06",
+      idDropTitle: idDropDone ? tr.s2_drop_done_t : tr.s2_drop_idle_t,
+      idDropSub: idDropDone ? tr.s2_drop_done_s : tr.s2_drop_idle_s,
+      idName: s.idName, idDob: s.idDob, idNumber: s.idNumber, idState: s.idState, idExp: s.idExp,
+      idExpColor: s.idExpired ? "#9a3b2e" : "#2b2820",
+      faceLabel: s.faceMatch ? tr.s2_matched : tr.s2_nomatch,
+      faceColor: s.faceMatch ? "#3a6235" : "#9a3b2e",
+      idTier: idR.tier,
+      idResFg: tS.fg, idResBg: tS.bg, idResBorder: tS.border, idResIcon: idR.status==="verified" ? "\u2713" : tS.icon,
+      idResTitle: idR.status === "verified" ? tr.s2_v_verified : (idR.tier === 1 ? tr.s2_v_autopass : (idR.tier === 2 ? tr.s2_v_review : tr.s2_v_blocked)),
+      idResReason: idR.reason,
+      idControlling: akaCommon ? (s.idName + " (a/k/a \u201c" + akaCommon + "\u201d)") : s.idName,
+      idShowOperator: idR.status === "review",
+      approveId: () => this.setState({ idApproved: true }),
+
+      // demo scenario chips
+      scenarios: [
+        { label: tr.sc_middle, entered:"John Doe", idn:"John Lawrence Doe" },
+        { label: tr.sc_nick, entered:"Bob Smith", idn:"Robert Smith" },
+        { label: tr.sc_accent, entered:"Jose Garcia", idn:"Jos\u00e9 Garc\u00eda" },
+        { label: tr.sc_suffix, entered:"Marcus Bell", idn:"Marcus Bell III" },
+        { label: tr.sc_maiden, entered:"Jane Williams", idn:"Jane Carter" },
+        { label: tr.sc_order, entered:"Wei Chen", idn:"Chen Wei" },
+        { label: tr.sc_diff, entered:"John Doe", idn:"Marcus Bell" }
+      ].map(x => {
+        const r = this.matchName(x.idn, x.entered);
+        const ts = this.tierStyle(r.tier);
+        return { label: x.label, bg: ts.bg, fg: ts.fg, border: ts.border, onPick: this.pickScenario(x.entered, x.idn) };
+      }),
+      toggleExpired: mk("idExpired"),
+      toggleFace: mk("faceMatch"),
+      toggleUnderage: () => this.setState(p => ({ renterAge: p.renterAge < 21 ? 35 : 19 })),
+      expState: s.idExpired ? tr.s2_expired : tr.s2_valid,
+      expBtnBg: s.idExpired ? "#f4e1da" : "#f1e7cf", expBtnFg: s.idExpired ? "#9a3b2e" : "#8a7a4e", expBtnBorder: s.idExpired ? "#e6c3b7" : "#dbcca0",
+      renterAge: s.renterAge,
+      ageBtnBg: s.renterAge < 21 ? "#f4e1da" : "#f1e7cf", ageBtnFg: s.renterAge < 21 ? "#9a3b2e" : "#8a7a4e", ageBtnBorder: s.renterAge < 21 ? "#e6c3b7" : "#dbcca0",
+      faceState: s.faceMatch ? tr.s2_match : tr.s2_fail,
+      faceBtnBg: s.faceMatch ? "#f1e7cf" : "#f4e1da", faceBtnFg: s.faceMatch ? "#8a7a4e" : "#9a3b2e", faceBtnBorder: s.faceMatch ? "#dbcca0" : "#e6c3b7",
+
+      // insurance
+      onUploadIns: () => this.setState({ insLoaded: true }),
+      insLoaded: s.insLoaded,
+      insDashColor: s.insLoaded ? "#cbdcbd" : "#cdbb8e",
+      insDropBg: s.insLoaded ? "#f4f8ef" : "#fbf6e9",
+      insDropIcon: s.insLoaded ? "\uD83D\uDCC4" : "\u2B06",
+      insDropTitle: s.insLoaded ? tr.s3_drop_done_t : tr.s3_drop_idle_t,
+      insDropSub: s.insLoaded ? tr.s3_drop_done_s : tr.s3_drop_idle_s,
+      insurer: s.insurer, policyNumber: s.policyNumber, namedInsured: insR.named || s.namedInsured, insEffective: s.insEffective, insExpiration: s.insExpiration,
+      insResFg: this.tierStyle(insR.tier||1).fg, insResBg: this.tierStyle(insR.tier||1).bg, insResBorder: this.tierStyle(insR.tier||1).border,
+      insResIcon: insR.status==="verified" ? "\u2713" : this.tierStyle(insR.tier||1).icon,
+      insResTitle: insR.status === "verified" ? tr.s3_v_verified : (insR.tier === 2 ? tr.s2_v_review : tr.s2_v_blocked),
+      insResReason: insR.reason,
+      insShowOperator: insR.status === "review",
+      approveIns: () => this.setState({ insApproved: true }),
+      toggleInsMismatch: () => this.setState(p => ({ insMismatch: !p.insMismatch, insApproved: false })),
+      insMisState: s.insMismatch ? tr.s3_mismatch : tr.s3_matched,
+      insMisBg: s.insMismatch ? "#f4e1da" : "#f1e7cf", insMisFg: s.insMismatch ? "#9a3b2e" : "#8a7a4e", insMisBorder: s.insMismatch ? "#e6c3b7" : "#dbcca0",
+
+      // vehicle
+      vehYMM:"2021 Toyota Camry SE", vehColor:"Silver / 4-door sedan", vehVin:"4T1G11AK7MU558210", vehPlate:"KLM-4471 / TX", vehOdo:"48,210 mi", vehFuel:"Full",
+      toggleVehConfirm: mk("vehConfirmed"),
+      vehChkBorder: s.vehConfirmed ? "#9bbf8e" : "#d8c89e", vehChkBg: s.vehConfirmed ? "#f4f8ef" : "#fffdf7",
+      vehChkBox: s.vehConfirmed ? "#3a6235" : "#c9b274", vehChkFill: s.vehConfirmed ? "#3a6235" : "transparent", vehChkMark: s.vehConfirmed ? "\u2713" : "",
+
+      // payment
+      setCredit: () => this.setState({ cardType: "credit" }),
+      setDebit: () => this.setState({ cardType: "debit" }),
+      creditBg: isCredit ? "#b89b5e" : "#fff", creditFg: isCredit ? "#fff" : "#8a7a4e", creditBorder: isCredit ? "#b89b5e" : "#d8c89e",
+      debitBg: !isCredit ? "#b89b5e" : "#fff", debitFg: !isCredit ? "#fff" : "#8a7a4e", debitBorder: !isCredit ? "#b89b5e" : "#d8c89e",
+      cardNumber: s.cardNumber, cardExp: s.cardExp, cardCvc: s.cardCvc, cardZip: s.cardZip,
+      onCardNumber: this.setField("cardNumber"), onCardExp: this.setField("cardExp"), onCardCvc: this.setField("cardCvc"), onCardZip: this.setField("cardZip"),
+      surchargeNote, surchargeBorder: "#e3d09a", surchargeBg: "#f9f2dd",
+      cardPrepaid: cardPrepaid,
+      toggleAutoCharge: () => this.setState(p => ({ autoCharge: !p.autoCharge, payVaulted: true })),
+      acBorder: s.autoCharge ? "#9bbf8e" : "#d8c89e", acBg: s.autoCharge ? "#f4f8ef" : "#fffdf7",
+      acBox: s.autoCharge ? "#3a6235" : "#c9b274", acFill: s.autoCharge ? "#3a6235" : "transparent", acMark: s.autoCharge ? "\u2713" : "",
+      cardBrandLabel, cardLast4: s.cardLast4,
+
+      // review
+      toggleInitAuto: () => this.setState({ initAuto: true }),
+      toggleInitGps: () => this.setState({ initGps: true }),
+      toggleInitStarter: () => this.setState({ initStarter: true }),
+      iaInitials: s.initAuto ? ini : "", igInitials: s.initGps ? ini : "", isInitials: s.initStarter ? ini : "",
+      iaBorder: s.initAuto ? "#9bbf8e" : "#d8c89e", iaBg: s.initAuto ? "#f4f8ef" : "#fffdf7",
+      igBorder: s.initGps ? "#9bbf8e" : "#d8c89e", igBg: s.initGps ? "#f4f8ef" : "#fffdf7",
+      isBorder: s.initStarter ? "#9bbf8e" : "#d8c89e", isBg: s.initStarter ? "#f4f8ef" : "#fffdf7",
+      boundData,
+      signedBound: Object.assign({}, boundData, { signed: true, signedName: s.signName || s.idName, signedDate: s.executedAt, sigInitials: this.initials(s.idName), signLang: lang, signLangLabel: langMeta.native, signLangEnglish: langMeta.english }),
+      renterEmail: s.email,
+      printHref: "Obavia%20Rental%20Agreement%20(Portal%20Edition).dc.html?print=1",
+
+      // execute
+      executed: s.executed, notExecuted: !s.executed, executedAt: s.executedAt,
+      akaSuffix: akaCommon ? (" (a/k/a \u201c" + akaCommon + "\u201d)") : "",
+      signName: s.signName, onSignName: this.setField("signName"),
+      signMsg, signMsgColor, signBorder,
+      toggleEsign: mk("esign"),
+      esBorder: s.esign ? "#9bbf8e" : "#d8c89e", esBg: s.esign ? "#f4f8ef" : "#fffdf7",
+      esBox: s.esign ? "#3a6235" : "#c9b274", esFill: s.esign ? "#3a6235" : "transparent", esMark: s.esign ? "\u2713" : "",
+      executeNow: () => {
+        if (!canExecute) return;
+        const now = new Date().toLocaleString("en-US", { month:"long", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" });
+        const signedDoc = Object.assign({}, boundData, { signed: true, signedName: s.signName || s.idName, signedDate: now, sigInitials: this.initials(s.idName) });
+        try { localStorage.setItem("obavia_signed", JSON.stringify(signedDoc)); } catch (e) {}
+        this.setState({ executed: true, executedAt: now });
+      },
+      execBg: canExecute ? "#3a6235" : "#b9b09a", execOpacity: canExecute ? "1" : ".6", execCursor: canExecute ? "pointer" : "not-allowed",
+      execBlocked: !canExecute, execBlockedMsg,
+
+      // nav
+      showNav: !(step === 7 && s.executed),
+      showBack: step > 1,
+      back: () => this.setState({ step: Math.max(1, step - 1) }),
+      next: () => { if (step < 7 && this.gateOk(step)) this.setState({ step: step + 1 }); },
+      nextLabel,
+      nextBg: gate ? "#b89b5e" : "#c9bd9c", nextOpacity: gate ? "1" : ".55", nextCursor: gate ? "pointer" : "not-allowed",
+      gateMsg, gateColor
+    };
+  }
+}
 </script>
 </body>
 </html>

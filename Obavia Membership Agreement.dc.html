@@ -111,7 +111,7 @@
   <!-- §4 -->
   <section style="margin-top:30px;">
     <h2 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:600; color:#2b2820; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddcfa8;">4. &nbsp;Founding rate</h2>
-    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;">Early Keyholder members may lock the <strong style="color:#2b2820;">founding rate of {{ foundingFee }}/month for life</strong>, held for as long as the membership stays active. The regular Keyholder price is a bona fide <strong style="color:#2b2820;">{{ foundingRegular }}/month</strong> &mdash; the genuine price later members pay. There is no artificial &ldquo;was&rdquo; price and no countdown. The founding rate is available once per verified identity; if the membership lapses or is cancelled, the founding rate is not guaranteed on re-enrollment.</p>
+    <p class="clause" style="margin:0; font-size:14px; line-height:1.62; color:#3c3729;">Early Keyholder members may lock the <strong style="color:#2b2820;">founding rate of {{ foundingFee }}/month for life</strong>, held for as long as the membership stays active. The regular Keyholder price is a bona fide <strong style="color:#2b2820;">{{ foundingRegular }}/month</strong> &mdash; the genuine price later members pay. There is no fake &ldquo;was&rdquo; price and no countdown. The founding rate is available once per verified identity; if the membership lapses or is cancelled, the founding rate is not guaranteed on re-enrollment.</p>
   </section>
 
   <!-- §5 -->
@@ -173,7 +173,7 @@
 class Component extends DCLogic {
   componentDidMount(){ try { var u = new URLSearchParams(location.search); if (u.get("print") === "1") setTimeout(function(){ try { window.print(); } catch(e){} }, 800); } catch(e){} }
   renderVals(){
-    var DEFAULTS = { effectiveDate: "", memberLegalName: "Pending verified member", memberTier: "open", memberSignature: "", memberSignDate: "" };
+    var DEFAULTS = { effectiveDate: "June 27, 2026", memberLegalName: "John Lawrence Doe", memberTier: "keyholder", memberSignature: "", memberSignDate: "" };
     var src = this.props.data || {};
     var d = Object.assign({}, DEFAULTS, src);
 

@@ -31,7 +31,24 @@
     return { id: null, stage: "A", inquiry: null, triage: null, customer: null, agreement: null, rental: null };
   };
 
-  window.OBAVIA_SEED = null;
+  // ONE explicit sample journey threading A -> D (a demo persona, never a fabricated balance).
+  window.OBAVIA_SEED = {
+    id: "OBV-1042", stage: "D",
+    inquiry: { ageBand: "25+", purpose: "gig", platforms: ["Uber", "DoorDash", "Instacart"], daysPerWeek: "5+",
+      timeline: "This week", name: "John Doe", phone: "(713) 555-0142", email: "john.doe@email.com",
+      preferredTime: "Morning", language: "es", createdAt: "2026-06-24" },
+    triage: { decision: "accepted", decidedAt: "2026-06-24", operator: "M. Alvarez", operatorLanguage: "es" },
+    customer: { legalName: "John Lawrence Doe", aka: "John Doe", dob: "March 4, 1991",
+      idNumber: "TX DL 1184-2207", idState: "Texas", idExp: "March 4, 2029",
+      address: "5120 Telephone Rd, Apt 4, Houston, TX 77087", faceMatch: true, ageCheck: true, nameMatchTier: 1,
+      insurer: "Lone Star Mutual Insurance", policyNumber: "LSM-7741-0093", namedInsured: "John L. Doe",
+      coverage: "Full coverage", insActive: true, namedInsuredMatchTier: 1,
+      paymentRef: "pm_visa_4242", cardType: "credit", surchargeApplies: true, selectedLanguage: "es" },
+    agreement: { signedName: "John Lawrence Doe", signedDate: "June 24, 2026", signingLanguage: "es",
+      controllingLanguage: "en", initials: { auto: true, gps: true, starter: true }, esignConsent: true,
+      pdfRef: "agreements/OBV-1042.pdf", rate: 350 },
+    rental: { vehicleId: "CAMRY-21-KLM4471", vehicle: "2021 Toyota Camry SE", status: "Active" }
+  };
 
   window.OBAVIA_journeyFromInquiry = function (inq) {
     return {

@@ -20,8 +20,6 @@
   input{font-family:'Montserrat',sans-serif}
   ::selection{background:#b89b5e;color:#121212}
   image-slot{display:block}
-  .ob-vehicle-photo{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block}
-  .ob-thumb-photo{width:100%; height:100%; object-fit:cover; display:block}
   @keyframes obFadeUp{from{transform:translateY(14px)}to{transform:none}}
   @keyframes obFade{from{transform:none}to{transform:none}}
   @keyframes obCue{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(6px);opacity:.9}}
@@ -75,8 +73,7 @@
           <sc-for list="{{ vehicles }}" as="v" hint-placeholder-count="4">
             <button onClick="{{ v.open }}" class="obcard" style="display:flex; flex-direction:column; text-align:left; border:1px solid rgba(245,240,230,.1); border-radius:13px; background:rgba(245,240,230,.025); overflow:hidden; cursor:pointer;">
               <div style="position:relative; width:100%; aspect-ratio:16/10; background:{{ v.swatch }};">
-                <sc-if value="{{ v.hasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ v.photoUrl }}" alt="{{ v.name }}" class="ob-vehicle-photo"></sc-if>
-                <sc-if value="{{ v.noPhoto }}" hint-placeholder-val="{{ true }}"><image-slot id="{{ v.photoId }}" shape="rect" fit="cover" placeholder="{{ v.placeholder }}" style="position:absolute; inset:0; width:100%; height:100%;"></image-slot></sc-if>
+                <image-slot id="{{ v.photoId }}" shape="rect" fit="cover" placeholder="{{ v.placeholder }}" style="position:absolute; inset:0; width:100%; height:100%;"></image-slot>
                 <span style="position:absolute; top:11px; left:11px; font-size:9.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:5px 10px; border-radius:4px; backdrop-filter:blur(6px); color:{{ v.badgeFg }}; background:{{ v.badgeBg }}; border:1px solid {{ v.badgeBorder }};">{{ v.badge }}</span>
               </div>
               <div style="padding:16px 17px 18px;">
@@ -93,9 +90,9 @@
       </sc-if>
       <sc-if value="{{ noCars }}" hint-placeholder-val="{{ false }}">
         <div style="border:1px solid rgba(245,240,230,.1); border-radius:13px; background:rgba(245,240,230,.02); padding:48px 30px; text-align:center;">
-          <div style="font-family:'Cormorant Garamond',serif; font-size:1.7rem; color:rgba(245,240,230,.82); margin-bottom:8px;">Fleet availability is reviewed with each application.</div>
-          <p style="font-size:13.5px; color:rgba(245,240,230,.6); max-width:38ch; margin:0 auto 20px;">Start with your driving need and timing. OBAVIA will match the right vehicle when a real unit is available.</p>
-          <button onClick="{{ startGeneral }}" style="border:1px solid rgba(184,155,94,.5); color:#b89b5e; border-radius:5px; padding:13px 22px; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;" style-hover="background:rgba(184,155,94,.12);">Begin application</button>
+          <div style="font-family:'Cormorant Garamond',serif; font-size:1.7rem; color:rgba(245,240,230,.82); margin-bottom:8px;">Every one is out right now.</div>
+          <p style="font-size:13.5px; color:rgba(245,240,230,.6); max-width:38ch; margin:0 auto 20px;">Start your application and we'll reach out the moment one frees up.</p>
+          <button onClick="{{ clearFilter }}" style="border:1px solid rgba(184,155,94,.5); color:#b89b5e; border-radius:5px; padding:13px 22px; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;" style-hover="background:rgba(184,155,94,.12);">Show every car</button>
         </div>
       </sc-if>
     </div>
@@ -105,13 +102,12 @@
   <sc-if value="{{ inDetail }}" hint-placeholder-val="{{ false }}">
     <div data-screen-label="Vehicles — Detail" style="max-width:920px; margin:0 auto; padding:clamp(24px,5vw,44px) clamp(16px,4vw,28px) clamp(70px,10vh,110px); animation:obFade .45s ease-out both;">
       <div style="position:relative; width:100%; aspect-ratio:16/10; border-radius:14px; overflow:hidden; background:{{ detSwatch }}; box-shadow:0 26px 60px rgba(0,0,0,.45);">
-        <sc-if value="{{ detHasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ detPhotoUrl }}" alt="{{ detName }}" class="ob-vehicle-photo"></sc-if>
-        <sc-if value="{{ detNoPhoto }}" hint-placeholder-val="{{ true }}"><image-slot id="{{ detPhotoId }}" shape="rect" fit="cover" placeholder="{{ detName }}" style="position:absolute; inset:0; width:100%; height:100%;"></image-slot></sc-if>
+        <image-slot id="{{ detPhotoId }}" shape="rect" fit="cover" placeholder="{{ detName }}" style="position:absolute; inset:0; width:100%; height:100%;"></image-slot>
       </div>
       <!-- thumbnail rail -->
       <div style="display:flex; gap:10px; margin-top:10px;">
         <sc-for list="{{ detThumbs }}" as="t" hint-placeholder-count="2">
-          <div style="flex:1; aspect-ratio:16/10; border-radius:8px; overflow:hidden; background:{{ detSwatch }};"><sc-if value="{{ t.hasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ t.url }}" alt="{{ t.ph }}" class="ob-thumb-photo"></sc-if><sc-if value="{{ t.noPhoto }}" hint-placeholder-val="{{ true }}"><image-slot id="{{ t.id }}" shape="rect" fit="cover" placeholder="{{ t.ph }}" style="width:100%; height:100%;"></image-slot></sc-if></div>
+          <div style="flex:1; aspect-ratio:16/10; border-radius:8px; overflow:hidden; background:{{ detSwatch }};"><image-slot id="{{ t.id }}" shape="rect" fit="cover" placeholder="{{ t.ph }}" style="width:100%; height:100%;"></image-slot></div>
         </sc-for>
       </div>
 
@@ -144,7 +140,7 @@
 
       <sc-if value="{{ hasSelected }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex; align-items:center; gap:14px; border:1px solid rgba(184,155,94,.32); border-radius:12px; background:rgba(184,155,94,.06); padding:13px 16px; margin-bottom:22px;">
-          <span style="width:52px; height:33px; flex:0 0 auto; border-radius:6px; overflow:hidden; background:{{ selSwatch }};"><sc-if value="{{ selHasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ selPhotoUrl }}" alt="{{ selName }}" class="ob-thumb-photo"></sc-if><sc-if value="{{ selNoPhoto }}" hint-placeholder-val="{{ true }}"><image-slot id="{{ selPhotoId }}" shape="rect" fit="cover" placeholder="{{ selName }}" style="width:100%; height:100%;"></image-slot></sc-if></span>
+          <span style="width:52px; height:33px; flex:0 0 auto; border-radius:6px; overflow:hidden; background:{{ selSwatch }};"><image-slot id="{{ selPhotoId }}" shape="rect" fit="cover" placeholder="{{ selName }}" style="width:100%; height:100%;"></image-slot></span>
           <span style="flex:1; min-width:0;"><span style="display:block; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#b89b5e;">Applying for</span><span style="display:block; font-size:15px; font-weight:600; margin-top:2px;">{{ selName }}</span></span>
           <button onClick="{{ clearSelected }}" style="font-size:11px; color:rgba(245,240,230,.5);" style-hover="color:#b89b5e;">Change</button>
         </div>
@@ -268,27 +264,29 @@ class Component extends DCLogic {
     detailId: null, selected: null, appStarted: false, step: 0, inquiryDone: false,
     answers: { intent: [], name: "", timeline: "", delivery: "", age: "", license: "", insurance: "", card: "", texas: "", record: "", phone: "" } };
 
-  SEED = [];
+  SEED = [
+    { id: "v-camry", unit: "Unit 01", year: 2021, make: "Toyota", model: "Camry SE", color: "Silver", tier: "Standard", rate: 350 },
+    { id: "v-sonata", unit: "Unit 05", year: 2019, make: "Hyundai", model: "Sonata", color: "Pearl", tier: "Standard", rate: 350 },
+    { id: "v-accord", unit: "Unit 04", year: 2020, make: "Honda", model: "Accord", color: "Graphite", tier: "Reserve", rate: 480 },
+    { id: "v-sclass", unit: "Unit 06", year: 2023, make: "Mercedes-Benz", model: "S 580", color: "Obsidian", tier: "Noir", rate: 1950 }
+  ];
   SWATCH = { Standard: "linear-gradient(135deg,#2c3744,#1b2430)", Reserve: "linear-gradient(135deg,#3a2e20,#26201a)", Noir: "linear-gradient(135deg,#2c2113,#0a0a0b)" };
 
   componentDidMount(){
+    var fleet = null, ags = [], status = {};
+    try { fleet = JSON.parse(localStorage.getItem("obavia_fleet") || "null"); } catch(e){}
+    try { ags = JSON.parse(localStorage.getItem("obavia_agreements") || "[]"); } catch(e){}
+    try { status = JSON.parse(localStorage.getItem("obavia_fleet_status") || "{}"); } catch(e){}
+    var list = (fleet && fleet.length) ? fleet : this.SEED;
+    var rented = {}; (ags || []).forEach(function(a){ if (a.state === "active" || a.state === "executed") rented[a.vehicleId] = 1; });
+    var cars = list.map(function(v){
+      var st = status[v.id] === "in-shop" ? "service" : (rented[v.id] ? "rented" : "available");
+      return { id: v.id, name: v.year ? (v.make + " " + v.model) : v.model, model: v.model, year: v.year || "", color: v.color || "", tier: v.tier, rate: v.rate, avail: st };
+    });
     var saved = null; try { saved = JSON.parse(localStorage.getItem("obavia_application") || "null"); } catch(e){}
-    var patch = { fleet: [] };
+    var patch = { fleet: cars };
     if (saved && saved.answers) { patch.answers = Object.assign(this.state.answers, saved.answers); patch.step = saved.step || 0; patch.appStarted = !!saved.appStarted; patch.selected = saved.selected || null; if (saved.appStarted) patch.view = "apply"; }
     this.setState(patch);
-    this.loadFleet();
-  }
-  normalizeFleet(list){
-    return (list || []).map(function(v){
-      var name = v.name || (v.year ? (v.make + " " + v.model) : (v.model || v.unit || "OBAVIA vehicle"));
-      return { id: v.id, unit: v.unit || "", name: name, model: v.model || "", year: v.year || "", color: v.color || "", tier: v.tier || "Standard", rate: v.rate || 0, avail: v.avail || "available", photoUrl: v.photoUrl || "", hasPhoto: !!v.photoUrl, description: v.description || "", mileagePolicy: v.mileagePolicy || "Unlimited within Texas", term: v.term || "Weekly, open-ended" };
-    });
-  }
-  loadFleet(){
-    var self = this;
-    fetch("/api/vehicles/public", { cache: "no-store" }).then(function(res){ return res.ok ? res.json() : { vehicles: [] }; }).then(function(data){
-      self.setState({ fleet: self.normalizeFleet(data.vehicles || []) });
-    }).catch(function(){ self.setState({ fleet: [] }); });
   }
   persistApp(extra){ try { localStorage.setItem("obavia_application", JSON.stringify(Object.assign({ answers: this.state.answers, step: this.state.step, appStarted: this.state.appStarted, selected: this.state.selected }, extra || {}))); } catch(e){} }
   money(n){ return "$" + (n || 0).toLocaleString("en-US"); }
@@ -313,7 +311,7 @@ class Component extends DCLogic {
   toggleAvail(){ this.setState({ availOnly: !this.state.availOnly }); }
   openDetail(id){ this.setState({ view: "detail", detailId: id }); this.toTop(); }
   backToBrowse(){ if (this.state.view === "apply" && this.state.detailId) { this.setState({ view: "detail" }); } else { this.setState({ view: "browse" }); } this.toTop(); }
-  applyFor(v){ this.setState({ view: "apply", selected: { id: v.id, name: v.name, tier: v.tier, photoUrl: v.photoUrl || "" }, appStarted: false }); this.toTop(); this.persistApp({ selected: { id: v.id, name: v.name, tier: v.tier, photoUrl: v.photoUrl || "" } }); }
+  applyFor(v){ this.setState({ view: "apply", selected: { id: v.id, name: v.name, tier: v.tier }, appStarted: false }); this.toTop(); this.persistApp({ selected: { id: v.id, name: v.name, tier: v.tier } }); }
   clearSelected(){ this.setState({ selected: null }); this.persistApp({ selected: null }); }
   beginApp(){ this.setState({ appStarted: true, step: 0 }); var self = this; setTimeout(function(){ self.scrollActive(); self.persistApp({ appStarted: true }); }, 20); }
 
@@ -349,7 +347,6 @@ class Component extends DCLogic {
     var vehicles = f.map(function(v){ var av = availMap[v.avail] || availMap.available;
       return { id: v.id, name: v.name, rate: self.money(v.rate), tier: v.tier, sub: (v.year ? v.year + " · " : "") + v.color,
         photoId: "veh-" + v.id + "-listing-1", placeholder: v.name, swatch: self.SWATCH[v.tier],
-        photoUrl: v.photoUrl || "", hasPhoto: !!v.photoUrl, noPhoto: !v.photoUrl,
         badge: av.t, badgeFg: av.fg, badgeBg: av.bg, badgeBorder: av.bd,
         open: function(){ self.openDetail(v.id); } };
     });
@@ -363,10 +360,9 @@ class Component extends DCLogic {
     if (dv){
       det = { detName: dv.name, detTier: dv.tier, detRate: this.money(dv.rate), detSwatch: this.SWATCH[dv.tier],
         detPhotoId: "veh-" + dv.id + "-listing-1", detSub: (dv.year ? dv.year + " · " : "") + dv.color + " · " + dv.unit,
-        detPhotoUrl: dv.photoUrl || "", detHasPhoto: !!dv.photoUrl, detNoPhoto: !dv.photoUrl,
         detAccess: dv.tier === "Noir" ? "Black Key access" : (dv.tier === "Reserve" ? "Reserve & up" : "No deposit"),
-        detThumbs: dv.photoUrl ? [{ id: "veh-" + dv.id + "-listing-1", ph: dv.name, url: dv.photoUrl, hasPhoto: true, noPhoto: false }] : [{ id: "veh-" + dv.id + "-listing-2", ph: "Rear", hasPhoto: false, noPhoto: true }, { id: "veh-" + dv.id + "-listing-3", ph: "Interior", hasPhoto: false, noPhoto: true }],
-        detFacts: [{ k: "Rate", v: this.money(dv.rate) + "/wk" }, { k: "Miles", v: dv.mileagePolicy || "Unlimited within Texas" }, { k: "Term", v: dv.term || "Weekly, open-ended" }],
+        detThumbs: [{ id: "veh-" + dv.id + "-listing-2", ph: "Rear" }, { id: "veh-" + dv.id + "-listing-3", ph: "Interior" }],
+        detFacts: [{ k: "Rate", v: this.money(dv.rate) + "/wk" }, { k: "Miles", v: "Unlimited · TX" }, { k: "Term", v: "Weekly, open-ended" }],
         detApplyLabel: dv.avail === "available" ? "Apply for this car" : "Apply & get notified",
         applyDetail: function(){ self.applyFor(dv); } };
     }
@@ -462,10 +458,9 @@ class Component extends DCLogic {
       classChips: classChips, toggleAvail: function(){ self.toggleAvail(); },
       availBorder: s.availOnly ? "#b89b5e" : "rgba(245,240,230,.18)", availBg: s.availOnly ? "rgba(184,155,94,.14)" : "transparent", availFg: s.availOnly ? "#d8b66a" : "rgba(245,240,230,.65)", availDot: s.availOnly ? "#8fbf7d" : "rgba(245,240,230,.4)",
       clearFilter: function(){ self.setState({ classFilter: "all", availOnly: false }); },
-      startGeneral: function(){ self.setState({ view: "apply", selected: null, detailId: null, appStarted: false }); self.toTop(); },
 
       // application
-      hasSelected: !!sel, selName: sel ? sel.name : "", selSwatch: sel ? this.SWATCH[sel.tier] : "", selPhotoId: sel ? ("veh-" + sel.id + "-listing-1") : "", selPhotoUrl: sel ? (sel.photoUrl || "") : "", selHasPhoto: !!(sel && sel.photoUrl), selNoPhoto: !(sel && sel.photoUrl), clearSelected: function(){ self.clearSelected(); },
+      hasSelected: !!sel, selName: sel ? sel.name : "", selSwatch: sel ? this.SWATCH[sel.tier] : "", selPhotoId: sel ? ("veh-" + sel.id + "-listing-1") : "", clearSelected: function(){ self.clearSelected(); },
       appStarted: s.appStarted, showBegin: !s.appStarted, beginApp: function(){ self.beginApp(); },
       progressLabel: "Question " + Math.min(s.step + 1, stepKeys.length) + " of " + stepKeys.length, progressPct: Math.round((Math.min(s.step, stepKeys.length) / stepKeys.length) * 100) + "%",
       hasAnswered: answered.length > 0, answered: answered,
