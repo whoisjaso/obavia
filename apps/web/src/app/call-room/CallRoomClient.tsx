@@ -2,13 +2,14 @@
 
 import { useMemo, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { z } from 'zod';
-import type { ScriptNode, ScriptVersion, Transcript } from '@apohenia/domain/schemas';
-import { PinState } from '@apohenia/domain/schemas';
+import type { ReferenceSuggestion, ScriptNode, ScriptVersion, Transcript } from '@apohenia/domain/schemas';
+import { ListenerCallState, PinState } from '@apohenia/domain/schemas';
 import {
   EMPTY_PIN_STATE,
   PIN_MAX,
   analyzeCall,
   correctionLines,
+  listenerFromTurns,
   missingFields,
   pinCountLabel,
   pinPhrase,
@@ -16,6 +17,7 @@ import {
   provenanceLabel,
   resolvePins,
   slotLabel,
+  suggestPrimary,
   unpinPhrase,
   type Fact,
   type RankedCandidate,
@@ -23,6 +25,7 @@ import {
 import { Badge, Button, Card, Inline, KeyboardHint, Select, Stack, VisuallyHidden } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import styles from './callroom.module.css';
+import { ReferencesPanel, type CardAction } from './ReferencesPanel';
 
 const SIZE_MIN = 24;
 const SIZE_MAX = 40;
@@ -39,6 +42,12 @@ const RoomState = z.object({
 });
 type RoomState = z.infer<typeof RoomState>;
 const EMPTY_ROOM: RoomState = { pins: EMPTY_PIN_STATE, node_id: null, stage_pinned: false, hide_assistance: false, clarified: [] };
+const EMPTY_REFS: ListenerCallState = { actions: [] };
+
+interface OverlayRequest {
+  kind: 'use' | 'clarify';
+  reference_id: string;
+}
 
 const PERMISSIONS = ['Contact purpose', 'Recording', 'Live transcription / AI processing', 'Voicemail', 'SMS', 'Email'];
 const STATE_CHIPS: { label: string; value: string }[] = [
@@ -78,6 +87,11 @@ export function CallRoomClient({ transcripts, nodes, versions, nodesPlaceholder 
   const [message, setMessage] = useState('');
   const [size, setSize] = useStoredState('callroom.their_words_size', TheirWordsSize, DEFAULT_SIZE);
   const [room, setRoom, roomHydrated] = useStoredState(`callroom.${callId}`, RoomState, EMPTY_ROOM);
+  const [refsState, setRefsState] = useStoredState(`callroom.refs.${callId}`, ListenerCallState, EMPTY_REFS);
+  const [expandedRef, setExpandedRef] = useState<string | null>(null);
+  const [overlayRequest, setOverlayRequest] = useState<OverlayRequest | null>(null);
+  const [lastSuggestedRef, setLastSuggestedRef] = useState<string | null>(null);
+  const [refMessage, setRefMessage] = useState('');
 
   const transcript = transcripts.find((t) => t.call_id === callId) ?? transcripts[0];
   const rawTurns = useMemo(() => transcript?.turns ?? [], [transcript]);
@@ -85,6 +99,8 @@ export function CallRoomClient({ transcripts, nodes, versions, nodesPlaceholder 
   const analysis = useMemo(() => analyzeCall(played.length > 0 ? played : [], { clarified: room.clarified }), [played, room.clarified]);
   const resolved = useMemo(() => resolvePins(room.pins, analysis.ranked), [room.pins, analysis.ranked]);
   const prospect = useMemo(() => prospectRows().find((r) => r.contact.call_id === callId) ?? null, [callId]);
+  // Personal Meaning Listener: same function for live and mock — turns + actions in, references out.
+  const listener = useMemo(() => listenerFromTurns(played, { call_id: callId, actions: refsState.actions }), [played, callId, refsState.actions]);
 
   // ---- script navigation ----
   const version = versions[0];
@@ -99,6 +115,56 @@ export function CallRoomClient({ transcripts, nodes, versions, nodesPlaceholder 
     setRoom((prev) => ({ ...prev, node_id: nodeId }));
   }
 
+  // ---- Personal Meaning Listener: suggestion policy (at most one, optional overlay) ----
+  const currentTurn = useMemo(() => {
+    const t = [...listener.normalized.turns].reverse().find((x) => x.speaker_role === 'prospect');
+    return t ? { utterance_id: t.utterance_id, text: t.text, speaker_role: t.speaker_role, is_final: t.is_final } : null;
+  }, [listener]);
+  const notNow = refsState.actions.filter((a) => a.type === 'suggestion_not_now' && a.event_version === listener.event_version).map((a) => a.reference_id);
+  const decision = useMemo(
+    () =>
+      suggestPrimary({
+        references: listener.references,
+        current_turn: currentTurn,
+        node: currentNode ? { id: currentNode.id, script_version_id: currentNode.script_version_id, stage: currentNode.stage, why_this_now: currentNode.why_this_now, intended_answer_type: currentNode.intended_answer_type } : null,
+        event_version: listener.event_version,
+        last_suggestion_reference_id: lastSuggestedRef,
+        not_now: notNow,
+        forced_reference_id: overlayRequest?.kind === 'use' ? overlayRequest.reference_id : null,
+        clarify_reference_id: overlayRequest?.kind === 'clarify' ? overlayRequest.reference_id : null,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- notNow is derived from refsState.actions (a dependency below)
+    [listener, currentTurn, currentNode, lastSuggestedRef, overlayRequest, refsState.actions],
+  );
+  const suggestion: ReferenceSuggestion | null = decision.suggestion;
+  const suggestedReference = suggestion ? listener.references.find((r) => r.id === suggestion.reference_id) ?? null : null;
+
+  function dispatchRef(action: CardAction, note?: string) {
+    const full = { ...action, event_version: listener.event_version } as ListenerCallState['actions'][number];
+    setRefsState((prev) => ({ actions: [...prev.actions, full] }));
+    const label = listener.references.find((r) => r.id === action.reference_id)?.label ?? 'reference';
+    setRefMessage(note ?? `${action.type.replace(/_/g, ' ')}: ${label}.`);
+  }
+
+  function useSuggestionNow() {
+    if (!suggestion || !currentTurn) return;
+    dispatchRef({ type: 'use', reference_id: suggestion.reference_id, turn_id: currentTurn.utterance_id }, `Used the ${suggestedReference?.label ?? 'reference'} line. Record the prospect's reaction when you hear it.`);
+    setLastSuggestedRef(suggestion.reference_id);
+    setOverlayRequest(null);
+  }
+
+  function suggestionNotNow() {
+    if (!suggestion) return;
+    dispatchRef({ type: 'suggestion_not_now', reference_id: suggestion.reference_id }, 'Not now — the script line stays as it is.');
+    setOverlayRequest(null);
+  }
+
+  function suggestionNeverAgain() {
+    if (!suggestion || !currentTurn) return;
+    dispatchRef({ type: 'reaction', reference_id: suggestion.reference_id, turn_id: currentTurn.utterance_id, reaction: 'rejected' }, `${suggestedReference?.label ?? 'Reference'} will not be suggested again.`);
+    setOverlayRequest(null);
+  }
+
   // ---- player ----
   function advance(to: number) {
     const next = Math.max(0, Math.min(rawTurns.length, to));
@@ -106,12 +172,17 @@ export function CallRoomClient({ transcripts, nodes, versions, nodesPlaceholder 
     const nextPins = resolvePins(room.pins, nextAnalysis.ranked).state;
     setRoom((prev) => ({ ...prev, pins: nextPins }));
     setCursor(next);
+    setOverlayRequest(null);
   }
 
   function selectCall(id: string) {
     setCallId(id);
     setCursor(0);
     setMessage('');
+    setRefMessage('');
+    setExpandedRef(null);
+    setOverlayRequest(null);
+    setLastSuggestedRef(null);
   }
 
   // ---- pins ----
@@ -264,6 +335,30 @@ export function CallRoomClient({ transcripts, nodes, versions, nodesPlaceholder 
                     <p className={styles.bridge}>Bridge: {currentNode.bridge_template}</p>
                   </>
                 )}
+                {suggestion ? (
+                  <aside className={styles.suggestion} data-suggestion-overlay aria-labelledby="suggested-line-heading">
+                    <h3 id="suggested-line-heading" className={styles.suggestionTitle}>
+                      Suggested line (optional) — grounded in their reference
+                    </h3>
+                    <p className={styles.suggestionText} data-suggestion-text>
+                      {suggestion.text}
+                    </p>
+                    <p className={styles.suggestionMeta} data-suggestion-evidence>
+                      From {suggestedReference?.label ?? suggestion.reference_id} · evidence {suggestion.evidence_turn_id}
+                      {suggestedReference ? ` · “${suggestedReference.evidence.exact_expression}”` : ''} · purpose: {suggestion.purpose.replace(/_/g, ' ')} · node {suggestion.script_node_id} · event v{suggestion.input_event_version}
+                    </p>
+                    <div className={styles.controls}>
+                      <Button variant="primary" onClick={useSuggestionNow}>
+                        Use this line now
+                      </Button>
+                      <Button onClick={suggestionNotNow}>Not now</Button>
+                      <Button variant="quiet" onClick={suggestionNeverAgain}>
+                        Not this reference again
+                      </Button>
+                    </div>
+                    <p className={styles.note}>The script line above is unchanged. This is an optional overlay; a reaction is recorded only when you say so.</p>
+                  </aside>
+                ) : null}
                 <div className={styles.controls}>
                   <Button onClick={() => goTo(orderedIds[currentIndex - 1] ?? null)} disabled={currentIndex <= 0 || room.stage_pinned}>
                     Previous
@@ -319,8 +414,25 @@ export function CallRoomClient({ transcripts, nodes, versions, nodesPlaceholder 
         </div>
 
         {/* ---------------- RIGHT ---------------- */}
-        <div className={styles.column} onKeyDown={onStripKeyDown}>
-          <section className={styles.strip} style={stripStyle} aria-labelledby="their-words-heading" data-their-words>
+        <div className={styles.column}>
+          <ReferencesPanel
+            references={listener.references}
+            sizePx={size}
+            expandedId={expandedRef}
+            onExpand={setExpandedRef}
+            onAction={(a) => dispatchRef(a)}
+            onUseNow={(id) => {
+              setOverlayRequest({ kind: 'use', reference_id: id });
+              setRefMessage('Use now: the line appears under the script as an optional overlay.');
+            }}
+            onClarify={(id) => {
+              dispatchRef({ type: 'clarify', reference_id: id }, 'Clarify meaning: the question appears under the script as an optional overlay.');
+              setOverlayRequest({ kind: 'clarify', reference_id: id });
+            }}
+            played={played.length}
+            message={refMessage}
+          />
+          <section className={styles.strip} style={stripStyle} aria-labelledby="their-words-heading" data-their-words onKeyDown={onStripKeyDown}>
             <div className={styles.stripHead}>
               <h2 id="their-words-heading" className={styles.stripTitle}>
                 Their words

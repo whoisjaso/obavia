@@ -117,7 +117,7 @@ export const DOMAIN_WORDS: Record<string, string[]> = {
   'car repair': ['mechanic', 'tune-up', 'check engine light'],
   weather: ['storm', 'hurricane', 'drought'],
   plumbing: ['burst pipe', 'plumber', 'faucet'],
-  relay: ['relay race', 'baton'],
+  'relay race': ['relay race', 'baton'],
   monster: ['frankenstein'],
 };
 

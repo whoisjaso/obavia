@@ -57,6 +57,8 @@ export const ReferenceSemantics = z.object({
   kind: ReferenceKind,
   /** Analogy domain when one is recognisable ("hockey", "jazz", "cooking"); open vocabulary. */
   source_domain: z.string().optional(),
+  /** The word to say when reusing the reference ("hockey", "soufflé") — taken from the prospect's own head noun. */
+  domain_word: z.string().optional(),
   /** The business thing the reference describes ("how the team handles inquiries"). */
   business_target: z.string(),
   /** The comparison relationship, not the noun ("individual style vs lack of coordination"). */

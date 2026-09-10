@@ -18,3 +18,6 @@ export * from './facts';
 export * from './analyze';
 export * from './review';
 export * from './crm';
+
+/** Additive (M-listener): the Personal Meaning Listener shares this subpath so the web app can import it without a package.json change. */
+export * from '../listener';
