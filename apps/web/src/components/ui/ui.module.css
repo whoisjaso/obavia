@@ -1,0 +1,263 @@
+/* ---- Button ---- */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.3;
+  transition: background-color var(--duration), border-color var(--duration);
+}
+.button:hover {
+  background: var(--color-surface-sunken);
+}
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.buttonPrimary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+.buttonPrimary:hover {
+  background: #183d5e;
+}
+.buttonDanger {
+  border-color: var(--color-danger-ink);
+  color: var(--color-danger-ink);
+}
+.buttonDanger:hover {
+  background: #fbf0f0;
+}
+.buttonQuiet {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* ---- Card ---- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+}
+.cardTitle {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--space-3);
+}
+
+/* ---- PageHeader ---- */
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-line);
+}
+.pageHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.pagePurpose {
+  color: var(--color-muted);
+  max-width: 72ch;
+}
+
+/* ---- Badge ---- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.badgeNeutral {
+  background: var(--color-surface-sunken);
+  color: var(--color-muted);
+}
+.badgeInfo {
+  background: var(--color-info-surface);
+  color: var(--color-info-ink);
+  border-color: #c9d8e6;
+}
+.badgeWarning {
+  background: var(--color-warning-surface);
+  color: var(--color-warning-ink);
+  border-color: #e6d3a0;
+}
+.badgeSuccess {
+  background: var(--color-success-surface);
+  color: var(--color-success-ink);
+  border-color: #bcd9c3;
+}
+.badgeIcon {
+  font-weight: 700;
+}
+
+/* ---- Field / Select ---- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: 480px;
+}
+.fieldLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.fieldHelp {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+.fieldError {
+  font-size: var(--font-size-xs);
+  color: var(--color-danger-ink);
+  font-weight: 600;
+}
+.select {
+  appearance: auto;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+}
+.selectInvalid {
+  border-color: var(--color-danger-ink);
+}
+
+/* ---- EmptyState ---- */
+.empty {
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 72ch;
+}
+.emptyTitle {
+  font-size: var(--font-size-lg);
+}
+.emptyBody {
+  color: var(--color-muted);
+}
+.emptyMeta {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+/* ---- Dialog ---- */
+.dialog {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: 0;
+  width: min(520px, calc(100vw - var(--space-8)));
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.dialog::backdrop {
+  background: rgba(27, 27, 27, 0.45);
+}
+.dialogInner {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* ---- Tabs ---- */
+.tabList {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-line);
+}
+.tab {
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  margin-bottom: -1px;
+}
+.tab[aria-selected='true'] {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-accent);
+  font-weight: 600;
+}
+.tabPanel {
+  padding-top: var(--space-4);
+}
+
+/* ---- KeyboardHint ---- */
+.kbd {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid var(--color-line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--color-surface-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+}
+.kbdHint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+/* ---- Layout helpers ---- */
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+.inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ---- VisuallyHidden ---- */
+.visuallyHidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

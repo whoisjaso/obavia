@@ -1,0 +1,28 @@
+{
+  "name": "@apohenia/domain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure TypeScript domain package: zod schemas, seed loaders, source index. No React, no browser APIs.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas": "./src/schemas/index.ts",
+    "./seeds": "./src/seeds.ts",
+    "./sources": "./src/sources/index.ts",
+    "./interview": "./src/interview/index.ts",
+    "./scripts": "./src/scripts/index.ts",
+    "./offers": "./src/offers/index.ts",
+    "./practice": "./src/practice/index.ts",
+    "./vocabulary": "./src/vocabulary/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.6.1"
+  }
+}
