@@ -61,7 +61,7 @@ function OfferView({ offer, status, onTransition, practice }: { offer: OfferVers
   const next = nextOfferStatus(status);
   const readOnly = isOfferImmutable({ status });
   return (
-    <Card data-offer={offer.id} data-offer-kind={practice ? 'practice' : 'live'}>
+    <Card data-offer={offer.id} data-offer-kind={practice ? 'practice' : 'live'} data-offer-status={status}>
       {offer.fictional ? (
         <p className={styles.banner} role="note" data-fictional-banner>
           {offer.fictional_banner}

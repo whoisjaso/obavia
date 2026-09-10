@@ -18,7 +18,8 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "e2e": "playwright test",
-    "seed:validate": "node scripts/parse-question-bank.mjs"
+    "seed:validate": "node scripts/parse-question-bank.mjs",
+    "verify:offsets": "node scripts/verify-source-offsets.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

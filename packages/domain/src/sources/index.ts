@@ -8,18 +8,15 @@
  * Skeleton exports (buildSourceIndex, getSourceIndex, searchRecords, recordsForSection,
  * recordsCitedBy, classificationCounts) keep their original behaviour.
  */
-import { z } from 'zod';
 import type { ScriptNode } from '../schemas/scripts';
 import {
-  MissingResourceRegister,
   type MissingResource,
   type SourceId,
   type SourceQuestionRecord,
   type SourceSection,
   type UseClassification,
 } from '../schemas/sources';
-import { loadPackageValidation, loadScriptNodes, loadSourceQuestionRecords, loadSourceSections } from '../seeds';
-import missingResourcesJson from '../../../../data/source_missing_resources.json';
+import { loadMissingResourceRegister, loadPackageValidation, loadScriptNodes, loadSourceQuestionRecords, loadSourceSections } from '../seeds';
 import {
   containsTimestampPattern,
   FAMILY_ORDER,
@@ -220,17 +217,8 @@ export function neighbours(
 // Named-but-missing register
 // ---------------------------------------------------------------------------
 
-let cachedMissing: MissingResourceRegister | undefined;
-
-/** The register at data/source_missing_resources.json, validated (throws on invalid data). */
-export function loadMissingResourceRegister(): MissingResourceRegister {
-  if (!cachedMissing) {
-    const result = MissingResourceRegister.safeParse(missingResourcesJson);
-    if (!result.success) throw new Error(`Seed source_missing_resources.json is invalid:\n${z.prettifyError(result.error)}`);
-    cachedMissing = result.data;
-  }
-  return cachedMissing;
-}
+/** The register at data/source_missing_resources.json, validated in seeds.ts (throws on invalid data). */
+export { loadMissingResourceRegister };
 
 /** Named-but-missing or unverifiable resources. Each is marked missing — not reconstructed. */
 export function listMissingResources(): MissingResource[] {

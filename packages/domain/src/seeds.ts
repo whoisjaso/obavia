@@ -17,7 +17,8 @@ import identityInterviewJson from '../../../data/identity_interview.json';
 import scriptNodesJson from '../../../data/apohenia_script_nodes.json';
 import offersJson from '../../../data/offers.json';
 import syntheticTranscriptsJson from '../../../data/synthetic_transcripts.json';
-import { PackageValidation, SourceQuestionRecord, SourceSection } from './schemas/sources';
+import missingResourcesJson from '../../../data/source_missing_resources.json';
+import { MissingResourceRegister, PackageValidation, SourceQuestionRecord, SourceSection } from './schemas/sources';
 import { InterviewVersion } from './schemas/interview';
 import { ScriptNode, ScriptVersion, WordTrackVariant } from './schemas/scripts';
 import { OfferVersion } from './schemas/offers';
@@ -53,6 +54,11 @@ export function loadSourceSections(): SourceSection[] {
 
 export function loadPackageValidation(): PackageValidation {
   return parseSeed('source_package_validation.json', PackageValidation, packageValidationJson);
+}
+
+/** Named-but-missing register (M-sources authored; every entry is marked missing — not reconstructed). */
+export function loadMissingResourceRegister(): MissingResourceRegister {
+  return parseSeed('source_missing_resources.json', MissingResourceRegister, missingResourcesJson);
 }
 
 // ---- Module-authored seeds (placeholders until the owning agent authors them) ----
@@ -103,6 +109,7 @@ export function validateAllSeeds(): { name: string; placeholder: boolean; count:
     { name: 'source_question_records.json', placeholder: false, count: loadSourceQuestionRecords().length },
     { name: 'source_sections.json', placeholder: false, count: loadSourceSections().length },
     { name: 'source_package_validation.json', placeholder: false, count: 1 },
+    { name: 'source_missing_resources.json', placeholder: false, count: loadMissingResourceRegister().resources.length },
     { name: 'identity_interview.json', placeholder: isPlaceholderSeed(interview), count: interview.screens.length },
     { name: 'apohenia_script_nodes.json', placeholder: isPlaceholderSeed(scripts), count: scripts.nodes.length },
     { name: 'offers.json', placeholder: isPlaceholderSeed(offers), count: offers.offer_versions.length },

@@ -1,24 +1,29 @@
 import type { Metadata } from 'next';
-import { EmptyState, PageHeader } from '@/components/ui';
+import { loadScriptNodes } from '@apohenia/domain/seeds';
+import { Badge, PageHeader } from '@/components/ui';
+import { PracticeClient } from './PracticeClient';
 
 export const metadata: Metadata = { title: 'Practice' };
 
-/** Owner: M-practice. Replace this file wholesale. */
+/** Owner: M-practice. Server component: loads the script seed and passes plain nodes down. */
 export default function PracticePage() {
+  const seed = loadScriptNodes();
+  const placeholder = seed._status !== undefined;
+  const version = seed.versions[0];
   return (
     <>
       <PageHeader
         title="Practice"
-        purpose="Practice Studio: exact recall, randomized node lookup, order rehearsal, branch classification, mirror duel and typed mock scenarios across five assistance modes — no paid API needed for the first screen."
+        purpose="Exact recall, randomized node lookup, order rehearsal, branch classification, mirror duel, delivery replay, vocabulary meaning, full mock and practice-this-moment — typed, choice-based, no paid API."
+        aside={
+          placeholder ? (
+            <Badge variant="warning">placeholder — to be authored</Badge>
+          ) : (
+            <Badge variant="warning">Choice-based synthetic practice — not a real AI voice call</Badge>
+          )
+        }
       />
-      <EmptyState title="Practice Studio is not built yet" increment="Increment 1" owner="M-practice">
-        <p>
-          Will be built here: choice-based drills against a published script version with memorization and
-          conversation scores kept separate, assisted vs unassisted tracked separately, and text-only attempts marked
-          tone_assessed: false. Choice-based synthetic practice is explicitly not a real AI voice call; voice roleplay
-          arrives in Increment 5.
-        </p>
-      </EmptyState>
+      <PracticeClient nodes={seed.nodes} scriptVersionId={version?.id ?? 'none'} placeholder={placeholder} />
     </>
   );
 }

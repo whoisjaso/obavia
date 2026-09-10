@@ -24,8 +24,7 @@ test.describe('offers', () => {
     await expect(live.locator('[data-price-setup]')).toHaveText('Not set');
     await expect(live.locator('[data-price-recurring]')).toHaveText('Not set');
     await expect(live.locator('[data-blank-price-note]')).toContainText('A blank price is not $0');
-    await expect(live).not.toContainText('$0');
-    await expect(live).toContainText('draft');
+    await expect(live).toHaveAttribute('data-offer-status', 'draft');
     // Every field section is present.
     for (const name of ['Buyer type', 'Problem', 'Prerequisites', 'Deliverables', 'Exclusions', 'Implementation dependencies', 'Supported proof', 'Approved claims', 'Three pillars', 'Price', 'Timing', 'Acceptance criteria', 'Decision roles', 'Support', 'Cancellation, exit and handoff']) {
       await expect(live.getByRole('region', { name }).first()).toBeVisible();
@@ -58,23 +57,23 @@ test.describe('offers', () => {
     await page.goto('/offers');
     const live = page.locator('[data-offer="draft-research-offer-v0"]');
     await live.locator('[data-transition="reviewed"]').click();
-    await expect(live).toContainText('reviewed');
+    await expect(live).toHaveAttribute('data-offer-status', 'reviewed');
     await live.locator('[data-transition="published"]').click();
     const dialog = page.getByRole('dialog', { name: 'Publish this offer version?' });
     await expect(dialog).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    await expect(live).toContainText('reviewed');
+    await expect(live).toHaveAttribute('data-offer-status', 'reviewed');
     await live.locator('[data-transition="published"]').click();
     await dialog.locator('[data-confirm-transition]').click();
     await expect(dialog).toBeHidden();
-    await expect(live).toContainText('published');
+    await expect(live).toHaveAttribute('data-offer-status', 'published');
     await expect(live).toContainText('read-only');
     await expect(live.locator('[data-transition="reviewed"]')).toHaveCount(0);
     // Price is still Not set: publishing does not invent one.
     await expect(live.locator('[data-price-setup]')).toHaveText('Not set');
     // Persisted.
     await page.reload();
-    await expect(page.locator('[data-offer="draft-research-offer-v0"]')).toContainText('published');
+    await expect(page.locator('[data-offer="draft-research-offer-v0"]')).toHaveAttribute('data-offer-status', 'published');
   });
 });

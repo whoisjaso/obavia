@@ -12,7 +12,7 @@ something from a shared file, request it in your report — do not edit it.
 |---|---|
 | **M-interview** | `data/identity_interview.json`, `packages/domain/src/interview/**`, `apps/web/src/app/onboarding/**`, `apps/web/src/app/profile/**`, `apps/web/src/app/today/**`, `docs/04-identity-interview.md`, `INTERVIEW_FLOW.md` |
 | **M-script** | `data/apohenia_script_nodes.json`, `data/offers.json`, `packages/domain/src/scripts/**`, `packages/domain/src/offers/**`, `apps/web/src/app/scripts/**`, `apps/web/src/app/offers/**`, `docs/03-apohenia-draft-scripts.md`, `SCRIPT_APPROVALS.md` |
-| **M-sources** | `packages/domain/src/sources/**` (extend — keep existing exports working), `apps/web/src/app/sources/**`, `data/source_missing_resources.json`, `SOURCE_COVERAGE.md` |
+| **M-sources** | `packages/domain/src/sources/**` (extend — keep existing exports working), `apps/web/src/app/sources/**`, `data/source_missing_resources.json`, `scripts/verify-source-offsets.mjs`, `packages/domain/test/sources-library.test.ts`, `tests/e2e/sources.spec.ts`, `SOURCE_COVERAGE.md` |
 | **M-practice** | `packages/domain/src/practice/**`, `apps/web/src/app/practice/**` |
 | **M-vocab** | `packages/domain/src/vocabulary/**`, `data/synthetic_transcripts.json`, `apps/web/src/app/call-room/**`, `apps/web/src/app/calls/**`, `apps/web/src/app/prospects/**`, `apps/web/src/app/pipeline/**`, `apps/web/src/app/insights/**` |
 

@@ -2,7 +2,19 @@
  * Vocabulary / THEIR WORDS — owning module agent: M-vocab.
  * Owns: this folder, data/synthetic_transcripts.json, apps/web/src/app/call-room/**, /calls/**,
  * /prospects/**, /pipeline/**, /insights/**.
- * Planned here: vocabulary event extraction from finalized turns, negation/correction handling,
- * revision invalidation, provenance labelling, pin management, tentative decision lenses.
+ *
+ * Pure TypeScript, no model calls (Increment 1): transcript normalization, rule-based candidate
+ * extraction, provenance, ranking, pins, facts, post-call review, synthetic CRM records.
  */
 export const MODULE = 'vocabulary' as const;
+
+export * from './normalize';
+export * from './text';
+export * from './provenance';
+export * from './extract';
+export * from './rank';
+export * from './pins';
+export * from './facts';
+export * from './analyze';
+export * from './review';
+export * from './crm';

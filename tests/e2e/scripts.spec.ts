@@ -13,6 +13,19 @@ function trackErrors(page: Page): string[] {
 const HEX64 = /^[0-9a-f]{64}$/;
 
 test.describe('scripts', () => {
+  test('?node=<id> opens that node (Source Library counterpart links) and ignores unknown ids', async ({ page }) => {
+    const errors = trackErrors(page);
+    await page.goto('/scripts?node=logical-process');
+    const card = page.locator('[data-node-card]');
+    await expect(card).toHaveAttribute('data-current-node', 'logical-process');
+    await expect(page.locator('[data-node-id="logical-process"]')).toHaveAttribute('aria-current', 'true');
+    await page.waitForLoadState('networkidle');
+    expect(errors).toEqual([]);
+
+    await page.goto('/scripts?node=no-such-node');
+    await expect(card).toHaveAttribute('data-current-node', 'inbound-callback-open');
+  });
+
   test('opens on the inbound entry node and shows the six-part card', async ({ page }) => {
     const errors = trackErrors(page);
     await page.goto('/scripts');

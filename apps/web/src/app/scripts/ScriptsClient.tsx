@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import {
   AssistanceMode,
@@ -45,6 +45,8 @@ interface Props {
   citations: Record<string, CitationInfo>;
   validations: { version_id: string; result: GraphValidation }[];
   placeholder: boolean;
+  /** Node to open on first render (from `/scripts?node=<id>`, e.g. Source Library counterpart links). */
+  initialNodeId?: string | null;
 }
 
 const Variants = z.array(WordTrackVariant);
@@ -98,15 +100,18 @@ function withCues(text: string): ReactNode {
   );
 }
 
-export function ScriptsClient({ versions, nodes, seedVariants, offers, citations, validations, placeholder }: Props) {
-  const [versionId, setVersionId] = useState(versions[0]?.id ?? '');
+export function ScriptsClient({ versions, nodes, seedVariants, offers, citations, validations, placeholder, initialNodeId = null }: Props) {
+  // Deep link: `?node=<id>` selects that node (and its owning version) on first render; ignored when unknown.
+  const linkedNode = initialNodeId ? nodes.find((n) => n.id === initialNodeId) ?? null : null;
+  const linkedVersion = linkedNode ? versions.find((v) => v.node_ids.includes(linkedNode.id)) : undefined;
+  const [versionId, setVersionId] = useState(linkedVersion?.id ?? versions[0]?.id ?? '');
   const version = versions.find((v) => v.id === versionId) ?? versions[0];
   const graph = useMemo(() => (version ? loadVersionGraph(version, nodes) : null), [version, nodes]);
   const offer = useMemo(() => offers.find((o) => o.id === version?.offer_version_id) ?? null, [offers, version]);
   const validation = validations.find((v) => v.version_id === version?.id)?.result;
 
   const [entrypoint, setEntrypoint] = useState<string>('inbound');
-  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [currentId, setCurrentId] = useState<string | null>(linkedNode?.id ?? null);
   const [facts, setFacts] = useState<Record<string, boolean>>({});
   const [revealed, setRevealed] = useState(false);
   const [path, setPath] = useState<string[]>([]);
@@ -122,6 +127,12 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
 
   const entry = version ? entryNode(version, nodes, entrypoint) : undefined;
   const current = (currentId ? graph?.byId.get(currentId) : undefined) ?? entry ?? graph?.nodes[0];
+
+  // Scroll the deep-linked node's list entry into view once after mount (no state changes here).
+  useEffect(() => {
+    if (!linkedNode) return;
+    document.querySelector(`[data-node-id="${CSS.escape(linkedNode.id)}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [linkedNode]);
 
   const knownFacts: KnownFacts = useMemo(() => {
     const out: Record<string, string> = {};

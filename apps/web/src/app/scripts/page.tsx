@@ -7,7 +7,10 @@ import { ScriptsClient, type CitationInfo } from './ScriptsClient';
 export const metadata: Metadata = { title: 'Scripts' };
 
 /** Owner: M-script. Server component: loads seeds, validates the graph, passes plain data down. */
-export default function ScriptsPage() {
+export default async function ScriptsPage({ searchParams }: { searchParams: Promise<{ node?: string | string[] }> }) {
+  // `/scripts?node=<id>` (Source Library counterpart links) opens that node. Next 16: searchParams is a Promise.
+  const { node } = await searchParams;
+  const initialNodeId = typeof node === 'string' && node.length > 0 ? node : null;
   const seed = loadScriptNodes();
   const offers = loadOffers().offer_versions;
   const records = loadSourceQuestionRecords();
@@ -38,6 +41,7 @@ export default function ScriptsPage() {
         citations={citations}
         validations={validations}
         placeholder={placeholder}
+        initialNodeId={initialNodeId}
       />
     </>
   );
