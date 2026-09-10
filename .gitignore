@@ -19,4 +19,4 @@ apps/web/CLAUDE.md
 # Written by scripts/verify-source-offsets.mjs when raw transcripts are supplied
 data/source_offset_verification.json
 # Raw private Source A/B transcripts (sources/source_a.txt, sources/source_b.txt) — private archive, never committed
-sources/
+/sources/
