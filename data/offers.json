@@ -1,4 +1,161 @@
 {
-  "_status": "placeholder — to be authored",
-  "offer_versions": []
+  "offer_versions": [
+    {
+      "id": "draft-research-offer-v0",
+      "offer_id": "dealership-inquiry-follow-through",
+      "version": 0,
+      "name": "Dealership website inquiry follow-through",
+      "buyer_type": "Decision-maker at a single-location franchise or independent dealership (general manager, dealer principal, or the internet/BDC manager with authority to change how website inquiries are handled).",
+      "problem": "Inquiries submitted through the dealership's own website land in a shared inbox or CRM queue where nobody owns them: response is slow or inconsistent, the handoff to a salesperson is informal, and the manager cannot see what happened to each inquiry without asking around.",
+      "prerequisites": [
+        "One existing website inquiry form that already delivers submissions to an inbox, CRM or lead router the dealership controls",
+        "One named staff member (or rotation) who will accept the handoff and update a status",
+        "Delegated, least-privilege access to the existing channel (inbox rule, CRM user, or webhook) — never a shared password",
+        "A written list of the fields the inquiry form collects, so consumer-sensitive fields can be excluded",
+        "A decision-maker available for a 30-minute acceptance walkthrough"
+      ],
+      "deliverables": [
+        "One dealership: the follow-through is configured for exactly one rooftop",
+        "One existing channel: every website inquiry is acknowledged and routed through the channel the dealership already uses (no new inbox, no new app for customers)",
+        "One staff handoff: each inquiry is assigned to one named person with a visible status (new → contacted → appointment/closed/no-response)",
+        "One reporting view: a single view of arrival time, first-response time, owner and current status, exportable weekly"
+      ],
+      "exclusions": [
+        "Not a lender or credit-application integration",
+        "Not a new DMS or a replacement for the dealership's CRM",
+        "Not a sales guarantee — no promised vehicle sales, appointments or gross",
+        "Not a claim that every dealer needs it; fit is decided per store after discovery",
+        "No outbound texting or calling of consumers on the dealership's behalf",
+        "No handling of credit, SSN, driver-licence or other sensitive consumer data"
+      ],
+      "implementation_dependencies": [
+        "Dealership grants delegated access to the existing channel before the schedule starts (milestone does not start without it)",
+        "The named handoff staff attend one 20-minute walkthrough",
+        "Hosting and model/telephony providers stay available (provider outage → manual contingency, documented in the deal-control sheet)",
+        "The inquiry form keeps delivering submissions to the agreed channel; a form change is a change order"
+      ],
+      "supported_proof": [],
+      "supported_proof_note": "none yet — no customer results, references or case studies exist for this offer; nothing may be implied",
+      "approved_claims": [],
+      "approved_claims_note": "none approved — the script may describe deliverables and acceptance criteria only",
+      "pillars": [
+        {
+          "name": "Same-day inquiry response",
+          "connects_to_problem": "Inquiries sit unanswered in a shared inbox or queue with no owner and no clock.",
+          "delivery": "Every website inquiry is acknowledged and routed through the dealership's existing channel inside an agreed response window, with the arrival time recorded."
+        },
+        {
+          "name": "One named handoff",
+          "connects_to_problem": "Nobody owns the lead, so it is worked twice or not at all and the handoff to sales is informal.",
+          "delivery": "Each inquiry is assigned to one named staff member with a visible status that they update as they work it; unclaimed inquiries are surfaced, not lost."
+        },
+        {
+          "name": "One honest reporting view",
+          "connects_to_problem": "The manager cannot see what happened to an inquiry without asking around.",
+          "delivery": "One view — arrival, first response, owner, status — for one rooftop, exported as a weekly summary; numbers are counts of recorded events, not projections."
+        }
+      ],
+      "price": {
+        "setup_minor_units": null,
+        "recurring_minor_units": null,
+        "currency": "USD",
+        "payment_schedule": "not set"
+      },
+      "timing": {
+        "estimated": "Estimated (not committed): configuration inside two weeks of access being granted; acceptance walkthrough in week three.",
+        "committed": "No committed dates exist for this draft. Committed timing is set only in a signed scope after access prerequisites are met."
+      },
+      "acceptance_criteria": [
+        "Test inquiries submitted through the live form appear in the reporting view with arrival time recorded",
+        "Each test inquiry is assigned to a named handoff person and its status can be changed by that person",
+        "The weekly summary exports for one full week without manual correction",
+        "No excluded consumer-sensitive field appears anywhere in the view or export"
+      ],
+      "support": "Email support during business hours for the configured rooftop; defects in the delivered configuration are fixed within the scope at no extra charge; new requests are change orders.",
+      "cancellation_exit_handoff": "Either side may end the recurring service with 30 days' notice. The dealership's inquiries, staff records and existing channel remain theirs; the reporting data is exported to them on exit; delegated access is revoked by the dealership. Nonpayment leads to an agreed prospective pause, never withholding of the dealership's own data.",
+      "decision_roles": [
+        "Economic decision: dealer principal or general manager",
+        "Operational owner: internet/BDC manager or sales manager who accepts the handoff",
+        "Access grantor: whoever administers the existing inbox/CRM",
+        "Apohenia: scoped implementation and support (Jason)"
+      ],
+      "status": "draft",
+      "fictional": false
+    },
+    {
+      "id": "fictional-demo-inquiry-pilot",
+      "offer_id": "demo-inquiry-follow-through-pilot",
+      "version": 0,
+      "name": "Demo Inquiry Follow-Through Pilot",
+      "buyer_type": "FICTIONAL: the general manager of 'Northgate Motors' — a fictional single-location dealership used only for practice scenarios. No such customer exists.",
+      "problem": "FICTIONAL scenario: Northgate Motors receives web inquiries through one website form; they land in a shared inbox, response is inconsistent and the manager cannot see status. Used to rehearse discovery, pillars and a bounded pilot conversation.",
+      "prerequisites": [
+        "Fictional customer provides delegated test access to a sandbox inbox (no real credentials)",
+        "One synthetic web inquiry form that generates test submissions",
+        "One named fictional staff member assigned to the handoff"
+      ],
+      "deliverables": [
+        "One web inquiry form connected for the 30-day scenario",
+        "Deterministic staff handoff: every synthetic inquiry is assigned by a fixed rule to the named fictional staff member",
+        "Status board showing each inquiry's owner and status",
+        "Weekly summary of arrivals, response times and statuses"
+      ],
+      "exclusions": [
+        "No promised vehicle sales, appointments or profit",
+        "No auto-renewal after the 30-day period",
+        "No real consumer data of any kind; sensitive consumer data is excluded from the fixture",
+        "Not a real quote — never to be shown as live pricing"
+      ],
+      "implementation_dependencies": [
+        "Sandbox access granted before the scenario clock starts",
+        "Synthetic inquiries generated by the practice tool, not by real people"
+      ],
+      "supported_proof": [],
+      "supported_proof_note": "none — fictional fixture; there is nothing to prove",
+      "approved_claims": [],
+      "approved_claims_note": "none — fictional fixture",
+      "pillars": [
+        {
+          "name": "Inquiry intake",
+          "connects_to_problem": "Synthetic inquiries arrive in a shared inbox with no arrival record.",
+          "delivery": "Each of the synthetic inquiries is captured with an arrival timestamp from the single form."
+        },
+        {
+          "name": "Deterministic staff handoff",
+          "connects_to_problem": "Nobody in the fictional store owns an inquiry.",
+          "delivery": "A fixed rule assigns every inquiry to the named fictional staff member, who can view and update status."
+        },
+        {
+          "name": "Status board and weekly summary",
+          "connects_to_problem": "The fictional manager cannot see what happened.",
+          "delivery": "One status board plus a weekly summary that can be exported."
+        }
+      ],
+      "price": {
+        "setup_minor_units": 75000,
+        "recurring_minor_units": 15000,
+        "currency": "USD",
+        "payment_schedule": "FICTIONAL: setup at scenario start; one recurring amount for the single 30-day service period; no auto-renewal"
+      },
+      "timing": {
+        "estimated": "FICTIONAL: 30-day scenario clock starting when sandbox access is granted.",
+        "committed": "FICTIONAL: none — practice fixture only."
+      },
+      "acceptance_criteria": [
+        "10 synthetic inquiries arrive correctly with arrival timestamps",
+        "Authorized fictional staff can view inquiry status",
+        "The weekly report and export work"
+      ],
+      "support": "FICTIONAL: practice-scenario support only; nothing is delivered to anyone.",
+      "cancellation_exit_handoff": "FICTIONAL: the scenario ends after 30 days with no renewal; sandbox data is discarded.",
+      "decision_roles": [
+        "Fictional general manager (economic decision)",
+        "Fictional internet manager (operational owner)"
+      ],
+      "status": "draft",
+      "fictional": true,
+      "fictional_banner": "FICTIONAL TRAINING OFFER — NOT A REAL QUOTE",
+      "practice_only": true
+    }
+  ]
 }

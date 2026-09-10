@@ -1,7 +1,1560 @@
 {
-  "_status": "placeholder — to be authored",
   "id": "identity-interview",
-  "version": 0,
-  "title": "Identity interview (placeholder — M-interview authors 30 base + 3 conditional screens)",
-  "screens": []
+  "version": 1,
+  "title": "Identity interview",
+  "screens": [
+    {
+      "id": "goal_meaning",
+      "order": 0,
+      "prompt": "What is the billion-dollar ambition for?",
+      "help": "Your own words for the purpose behind the number. This is context you describe, not something the app infers. Choose up to 3.",
+      "summary_label": "What the ambition is for",
+      "kind": "multi",
+      "max_select": 3,
+      "options": [
+        {
+          "id": "goal_durable",
+          "label": "Building something that outlasts me",
+          "description": "A company that keeps working without my hands on it."
+        },
+        {
+          "id": "goal_provide",
+          "label": "Providing for the people I am responsible for",
+          "description": "Family, team, community."
+        },
+        {
+          "id": "goal_freedom",
+          "label": "Freedom to choose how I spend my time",
+          "description": "Ownership of my calendar and my attention."
+        },
+        {
+          "id": "goal_proof",
+          "label": "Proof of what is possible",
+          "description": "Showing what can be built from where I started."
+        },
+        {
+          "id": "goal_purpose",
+          "label": "Serving a purpose larger than the business",
+          "description": "The number is a means, not the point."
+        },
+        {
+          "id": "goal_fund",
+          "label": "Funding work I believe in",
+          "description": "Capital for causes, people or projects that matter to me."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "goal_meaning.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "goal_meaning.none",
+        "label": "None of these"
+      },
+      "profile_field": "success_definitions",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "success_business",
+      "order": 1,
+      "prompt": "This year, business success looks like which of these?",
+      "help": "Pick the one that would most clearly tell you the year worked.",
+      "summary_label": "Business success this year",
+      "kind": "single",
+      "options": [
+        {
+          "id": "biz_repeatable_conversation",
+          "label": "A repeatable sales conversation I can run from memory",
+          "description": "The script is internalized, transitions are smooth."
+        },
+        {
+          "id": "biz_first_approved_sale",
+          "label": "A first approved offer sold to a real dealership",
+          "description": "Real scope, real terms, delivered as promised."
+        },
+        {
+          "id": "biz_pipeline",
+          "label": "A steady pipeline of real conversations",
+          "description": "Enough at-bats to learn from, every week."
+        },
+        {
+          "id": "biz_revenue_figure",
+          "label": "A specific revenue figure I have set for myself",
+          "description": "A number you already know; the app does not need it."
+        },
+        {
+          "id": "biz_team_sells",
+          "label": "A team that can sell without me",
+          "description": "The process works in other hands."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "success_business.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "success_business.none",
+        "label": "None of these"
+      },
+      "profile_field": "success_definitions",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "success_personal",
+      "order": 2,
+      "prompt": "Personal success this year looks like which of these?",
+      "summary_label": "Personal success this year",
+      "kind": "multi",
+      "max_select": 2,
+      "options": [
+        {
+          "id": "pers_presence",
+          "label": "Being present with the people I love",
+          "description": "Work stays in its lane."
+        },
+        {
+          "id": "pers_health",
+          "label": "Health and energy that hold up",
+          "description": "Sustainable pace, ordinary rest."
+        },
+        {
+          "id": "pers_integrity",
+          "label": "Doing what I said I would do",
+          "description": "Word and action match."
+        },
+        {
+          "id": "pers_growth",
+          "label": "Learning a skill I did not have before",
+          "description": "Selling, specifically."
+        },
+        {
+          "id": "pers_peace",
+          "label": "A calmer mind",
+          "description": "Fewer open loops, clearer days."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "success_personal.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "success_personal.none",
+        "label": "None of these"
+      },
+      "profile_field": "success_definitions",
+      "base_or_conditional": "base",
+      "help": "Choose up to 2."
+    },
+    {
+      "id": "faith_context",
+      "order": 3,
+      "prompt": "How does your faith relate to this work?",
+      "help": "Self-described context only. Nothing here is interpreted or scored.",
+      "summary_label": "Faith as context",
+      "kind": "single",
+      "options": [
+        {
+          "id": "faith_reason",
+          "label": "It is the reason behind the goal",
+          "description": "The purpose comes first; the business serves it."
+        },
+        {
+          "id": "faith_people",
+          "label": "It shapes how I treat people",
+          "description": "Including prospects who say no."
+        },
+        {
+          "id": "faith_identity",
+          "label": "It is part of who I am and hard to separate from work",
+          "description": "It shows up whether I plan it or not."
+        },
+        {
+          "id": "faith_private",
+          "label": "It is a private practice, separate from work",
+          "description": "Important to me, kept apart from the business."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "faith_context.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "faith_context.none",
+        "label": "None of these"
+      },
+      "profile_field": "success_definitions",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "faith_practice_standard",
+      "order": 4,
+      "prompt": "How does your faith show up as a practice standard?",
+      "help": "A standard you choose for yourself. It becomes part of your training plan only if you endorse it.",
+      "summary_label": "Faith as a practice standard",
+      "kind": "single",
+      "options": [
+        {
+          "id": "faithstd_keep_word",
+          "label": "I keep my word: the drill I said I would do is the drill I do",
+          "description": "Faithfulness in small, repeated things."
+        },
+        {
+          "id": "faithstd_dignity",
+          "label": "I treat every prospect with dignity, including when the answer is no",
+          "description": "A no-fit case is handled with the same respect."
+        },
+        {
+          "id": "faithstd_truth",
+          "label": "I tell the truth about what I can deliver",
+          "description": "No claim goes out that I cannot back."
+        },
+        {
+          "id": "faithstd_rest",
+          "label": "I rest one day a week",
+          "description": "Practice pauses without erasing anything."
+        },
+        {
+          "id": "faithstd_quiet",
+          "label": "I start each session with a moment of quiet",
+          "description": "A short pause before the first line."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "faith_practice_standard.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "faith_practice_standard.none",
+        "label": "None of these"
+      },
+      "condition": {
+        "screen_id": "faith_context",
+        "any_of": [
+          "faith_reason",
+          "faith_people",
+          "faith_identity"
+        ]
+      },
+      "profile_field": "chosen_standards",
+      "base_or_conditional": "conditional"
+    },
+    {
+      "id": "beliefs_selling",
+      "order": 5,
+      "prompt": "What do you currently believe about selling?",
+      "help": "Current beliefs, not the beliefs you think you should have. Choose up to 3.",
+      "summary_label": "Current beliefs about selling",
+      "kind": "multi",
+      "max_select": 3,
+      "options": [
+        {
+          "id": "bel_helping_decide",
+          "label": "It is helping someone decide",
+          "description": "Questions that bring the real situation into view."
+        },
+        {
+          "id": "bel_numbers",
+          "label": "It is mostly a numbers game",
+          "description": "Enough attempts and the results follow."
+        },
+        {
+          "id": "bel_right_order",
+          "label": "It is asking the right questions in the right order",
+          "description": "Sequence matters as much as words."
+        },
+        {
+          "id": "bel_still_learning_trust",
+          "label": "It is something I am still learning to trust",
+          "description": "The process works for others; I am proving it for myself."
+        },
+        {
+          "id": "bel_performance",
+          "label": "It is a performance I put on",
+          "description": "A role that is not quite me yet."
+        },
+        {
+          "id": "bel_repetition_skill",
+          "label": "It is a skill built by repetition",
+          "description": "Like call-center work: reps first, fluency after."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "beliefs_selling.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "beliefs_selling.none",
+        "label": "None of these"
+      },
+      "profile_field": "beliefs",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "beliefs_self",
+      "order": 6,
+      "prompt": "What do you believe about yourself as a seller right now?",
+      "summary_label": "Belief about myself as a seller",
+      "kind": "single",
+      "options": [
+        {
+          "id": "self_learn_like_before",
+          "label": "I can learn this the way I learned call-center work",
+          "description": "Repetition got me fluent before; it will again."
+        },
+        {
+          "id": "self_know_freeze",
+          "label": "I know the material but freeze at transitions",
+          "description": "The words are there; the bridge is not yet."
+        },
+        {
+          "id": "self_strong_live_underprepared",
+          "label": "I am strong live but under-prepared",
+          "description": "Good in the moment, thin on rehearsal."
+        },
+        {
+          "id": "self_builder",
+          "label": "I am better at building than talking",
+          "description": "The tool gets built before the call gets made."
+        },
+        {
+          "id": "self_steady",
+          "label": "I am steady and just need the reps",
+          "description": "No drama; the work is the work."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "beliefs_self.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "beliefs_self.none",
+        "label": "None of these"
+      },
+      "profile_field": "beliefs",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "identity_statements",
+      "order": 7,
+      "prompt": "Which of these statements do you choose as yours?",
+      "help": "These are standards you set for yourself. Each one you endorse later becomes a training-plan item. Choose up to 4.",
+      "summary_label": "Chosen standards",
+      "kind": "multi",
+      "max_select": 4,
+      "options": [
+        {
+          "id": "std_prepare",
+          "label": "I prepare",
+          "description": "I rehearse the approved opening and one branch before I talk to anyone."
+        },
+        {
+          "id": "std_one_question",
+          "label": "I ask one clear question at a time",
+          "description": "One question, then I stop and wait."
+        },
+        {
+          "id": "std_listen_first",
+          "label": "I listen before I answer",
+          "description": "I let the answer finish before the next line."
+        },
+        {
+          "id": "std_follow_script",
+          "label": "I follow the script until I have earned the right to vary it",
+          "description": "Exact words first; variation later."
+        },
+        {
+          "id": "std_respect_no_fit",
+          "label": "I respect a no-fit case",
+          "description": "Ending politely is a good outcome when there is no gap."
+        },
+        {
+          "id": "std_call_before_build",
+          "label": "I make the call before I build the tool",
+          "description": "Conversations first; software after."
+        },
+        {
+          "id": "std_keep_word",
+          "label": "I keep my word to myself",
+          "description": "The drill I said I would do is the drill I do."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "identity_statements.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "identity_statements.none",
+        "label": "None of these"
+      },
+      "profile_field": "chosen_standards",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "identity_primary",
+      "order": 8,
+      "prompt": "Which one statement comes first this month?",
+      "help": "The one you would keep if you could keep only one.",
+      "summary_label": "Primary identity statement this month",
+      "kind": "single",
+      "options": [
+        {
+          "id": "primary_prepare",
+          "label": "I prepare",
+          "description": "First this month."
+        },
+        {
+          "id": "primary_one_question",
+          "label": "I ask one clear question at a time",
+          "description": "First this month."
+        },
+        {
+          "id": "primary_listen_first",
+          "label": "I listen before I answer",
+          "description": "First this month."
+        },
+        {
+          "id": "primary_follow_script",
+          "label": "I follow the script until I have earned the right to vary it",
+          "description": "First this month."
+        },
+        {
+          "id": "primary_respect_no_fit",
+          "label": "I respect a no-fit case",
+          "description": "First this month."
+        },
+        {
+          "id": "primary_call_before_build",
+          "label": "I make the call before I build the tool",
+          "description": "First this month."
+        },
+        {
+          "id": "primary_keep_word",
+          "label": "I keep my word to myself",
+          "description": "First this month."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "identity_primary.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "identity_primary.none",
+        "label": "None of these"
+      },
+      "profile_field": "identity",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "standards_evidence",
+      "order": 9,
+      "prompt": "What counts as evidence that you kept your standard today?",
+      "help": "Observable things, not feelings about the day. Choose up to 3.",
+      "summary_label": "Evidence of a kept standard",
+      "kind": "multi",
+      "max_select": 3,
+      "options": [
+        {
+          "id": "ev_completed_drill",
+          "label": "A completed drill",
+          "description": "Finished, not just opened."
+        },
+        {
+          "id": "ev_transition_no_pause",
+          "label": "A transition I made without a pause",
+          "description": "Answer ended, next question followed."
+        },
+        {
+          "id": "ev_clarified_vague",
+          "label": "A vague answer I clarified without assuming",
+          "description": "I asked instead of guessing."
+        },
+        {
+          "id": "ev_respected_no_fit",
+          "label": "A no-fit case I respected",
+          "description": "I ended it politely and cleanly."
+        },
+        {
+          "id": "ev_call_made",
+          "label": "A real conversation I had",
+          "description": "Later increment; still counts when it happens."
+        },
+        {
+          "id": "ev_one_change",
+          "label": "One behavior I changed on purpose",
+          "description": "Named before, done after."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "standards_evidence.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "standards_evidence.none",
+        "label": "None of these"
+      },
+      "profile_field": "chosen_standards",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "friction_current",
+      "order": 10,
+      "prompt": "What gets in the way right now?",
+      "summary_label": "Current friction",
+      "kind": "multi",
+      "max_select": 3,
+      "options": [
+        {
+          "id": "fr_no_script",
+          "label": "No script I own yet",
+          "description": "Nothing internalized, nothing to fall back on."
+        },
+        {
+          "id": "fr_transitions",
+          "label": "Unclear answer-to-next-question transitions",
+          "description": "I know the questions, not the bridges."
+        },
+        {
+          "id": "fr_unapproved_offer",
+          "label": "No approved offer",
+          "description": "Price, scope and evidence are not settled."
+        },
+        {
+          "id": "fr_few_reps",
+          "label": "Too few focused repetitions",
+          "description": "I study more than I drill."
+        },
+        {
+          "id": "fr_building",
+          "label": "Building software instead of having conversations",
+          "description": "Preparation that replaces the call."
+        },
+        {
+          "id": "fr_vocab",
+          "label": "Vocabulary reminders are not at hand when I need them",
+          "description": "The words are somewhere else."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "friction_current.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "friction_current.none",
+        "label": "None of these"
+      },
+      "profile_field": "current_friction",
+      "base_or_conditional": "base",
+      "help": "Choose up to 3."
+    },
+    {
+      "id": "friction_biggest",
+      "order": 11,
+      "prompt": "Which one blocks you the most today?",
+      "summary_label": "Biggest single blocker",
+      "kind": "single",
+      "options": [
+        {
+          "id": "big_no_script",
+          "label": "No script I own yet"
+        },
+        {
+          "id": "big_transitions",
+          "label": "Unclear transitions"
+        },
+        {
+          "id": "big_unapproved_offer",
+          "label": "No approved offer"
+        },
+        {
+          "id": "big_few_reps",
+          "label": "Too few focused repetitions"
+        },
+        {
+          "id": "big_building",
+          "label": "Building instead of calling"
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "friction_biggest.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "friction_biggest.none",
+        "label": "None of these"
+      },
+      "profile_field": "current_friction",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "friction_when",
+      "order": 12,
+      "prompt": "When does the friction show up most?",
+      "summary_label": "When friction shows up",
+      "kind": "single",
+      "options": [
+        {
+          "id": "when_before_start",
+          "label": "Before I start",
+          "description": "I delay the session or the call."
+        },
+        {
+          "id": "when_after_answer",
+          "label": "Right after a prospect answers",
+          "description": "The pause before the next question."
+        },
+        {
+          "id": "when_price",
+          "label": "When a price question comes early",
+          "description": "Nothing approved to say."
+        },
+        {
+          "id": "when_off_script",
+          "label": "When I am asked something the script does not cover",
+          "description": "I lose the thread."
+        },
+        {
+          "id": "when_after_no",
+          "label": "After a declined call",
+          "description": "I want to change the process instead of repeating it."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "friction_when.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "friction_when.none",
+        "label": "None of these"
+      },
+      "profile_field": "current_friction",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "desired_behavior",
+      "order": 13,
+      "prompt": "What do you want to be doing instead, most days?",
+      "summary_label": "Desired behavior",
+      "kind": "multi",
+      "max_select": 3,
+      "options": [
+        {
+          "id": "want_opening_memory",
+          "label": "Running the exact opening from memory",
+          "description": "No screen, no notes."
+        },
+        {
+          "id": "want_transition_flow",
+          "label": "Moving from an answer to the next question without a pause",
+          "description": "Acknowledge, refer back, ask."
+        },
+        {
+          "id": "want_reps_before_build",
+          "label": "Completing focused reps before building anything",
+          "description": "Drill first, tool second."
+        },
+        {
+          "id": "want_review_change",
+          "label": "Reviewing one conversation and changing one thing",
+          "description": "One correction at a time."
+        },
+        {
+          "id": "want_permission",
+          "label": "Asking permission before presenting",
+          "description": "Earning the pitch instead of forcing it."
+        },
+        {
+          "id": "want_calling_block",
+          "label": "Running an approved calling block on schedule",
+          "description": "Not available until a later increment; still a goal."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "desired_behavior.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "desired_behavior.none",
+        "label": "None of these"
+      },
+      "profile_field": "desired_behavior",
+      "base_or_conditional": "base",
+      "help": "Choose up to 3."
+    },
+    {
+      "id": "desired_first_change",
+      "order": 14,
+      "prompt": "Which one behavior do you want to change first?",
+      "summary_label": "First behavior to change",
+      "kind": "single",
+      "options": [
+        {
+          "id": "first_opening",
+          "label": "Say the opening from memory",
+          "description": "Exact words, out loud."
+        },
+        {
+          "id": "first_transition",
+          "label": "Bridge one answer to the next question",
+          "description": "The transition that trips me."
+        },
+        {
+          "id": "first_drill_before_build",
+          "label": "Do the drill before I open the editor",
+          "description": "Order of operations."
+        },
+        {
+          "id": "first_review",
+          "label": "Review one conversation before the next",
+          "description": "When there is one to review."
+        },
+        {
+          "id": "first_one_question",
+          "label": "Ask one question and stop",
+          "description": "No stacking questions."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "desired_first_change.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "desired_first_change.none",
+        "label": "None of these"
+      },
+      "profile_field": "desired_behavior",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "phrases_ack",
+      "order": 15,
+      "prompt": "Which acknowledgment phrases sound like you?",
+      "help": "The first five are proposed defaults from the framework, not your selections until you pick them. Choose up to 5.",
+      "summary_label": "Preferred acknowledgment phrases",
+      "kind": "multi",
+      "max_select": 5,
+      "options": [
+        {
+          "id": "ack_right",
+          "label": "Right",
+          "description": "Proposed default."
+        },
+        {
+          "id": "ack_okay",
+          "label": "Okay",
+          "description": "Proposed default."
+        },
+        {
+          "id": "ack_i_see",
+          "label": "I see",
+          "description": "Proposed default."
+        },
+        {
+          "id": "ack_makes_sense",
+          "label": "That makes sense",
+          "description": "Proposed default."
+        },
+        {
+          "id": "ack_go_on",
+          "label": "Go on",
+          "description": "Proposed default."
+        },
+        {
+          "id": "ack_got_it",
+          "label": "Got it",
+          "description": "Alternative."
+        },
+        {
+          "id": "ack_understood",
+          "label": "Understood",
+          "description": "Alternative."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "phrases_ack.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "phrases_ack.none",
+        "label": "None of these"
+      },
+      "profile_field": "preferred_phrases",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "phrases_bridge",
+      "order": 16,
+      "prompt": "How do you prefer to bridge from their answer to your next question?",
+      "summary_label": "Preferred bridge pattern",
+      "kind": "single",
+      "options": [
+        {
+          "id": "bridge_ack_refer_ask",
+          "label": "Acknowledge, refer to what they said, then ask",
+          "description": "The framework interjection bridge."
+        },
+        {
+          "id": "bridge_ack_ask",
+          "label": "Acknowledge, then ask directly",
+          "description": "Short and quick."
+        },
+        {
+          "id": "bridge_echo_ask",
+          "label": "Repeat their key word, then ask",
+          "description": "A one-word mirror before the question."
+        },
+        {
+          "id": "bridge_summary_ask",
+          "label": "Give a brief summary, then ask",
+          "description": "Two sentences at most."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "phrases_bridge.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "phrases_bridge.none",
+        "label": "None of these"
+      },
+      "profile_field": "preferred_phrases",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "learning_style",
+      "order": 17,
+      "prompt": "How have you learned best before?",
+      "help": "Your call-center and AutoZone experience counts here. Choose up to 3.",
+      "summary_label": "Learning style",
+      "kind": "multi",
+      "max_select": 3,
+      "options": [
+        {
+          "id": "repetition_blocks",
+          "label": "Repetition blocks",
+          "description": "The call-center / AutoZone model: the same lines, many times, until they are automatic."
+        },
+        {
+          "id": "learn_whole_then_parts",
+          "label": "Reading the whole script first, then drilling parts",
+          "description": "See the map, then walk the roads."
+        },
+        {
+          "id": "learn_one_correction",
+          "label": "Being corrected on one thing at a time",
+          "description": "A single focus per drill."
+        },
+        {
+          "id": "learn_hear_then_say",
+          "label": "Hearing it out loud, then saying it",
+          "description": "Ear first, mouth second."
+        },
+        {
+          "id": "learn_write_out",
+          "label": "Writing it out by hand",
+          "description": "Slow, but it sticks."
+        },
+        {
+          "id": "learn_live_pressure",
+          "label": "Learning live under pressure",
+          "description": "Real stakes teach fastest."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "learning_style.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "learning_style.none",
+        "label": "None of these"
+      },
+      "profile_field": "learning_style",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "repetition_block_length",
+      "order": 18,
+      "prompt": "How long is one repetition block for you?",
+      "help": "A block is one uninterrupted run at the same material.",
+      "summary_label": "Repetition block length",
+      "kind": "single",
+      "options": [
+        {
+          "id": "block_5",
+          "label": "About 5 minutes",
+          "description": "Short bursts, several a day."
+        },
+        {
+          "id": "block_10",
+          "label": "About 10 minutes",
+          "description": "One focused run."
+        },
+        {
+          "id": "block_20",
+          "label": "About 20 minutes",
+          "description": "Long enough to get warm."
+        },
+        {
+          "id": "block_30",
+          "label": "30 minutes or more",
+          "description": "A full sitting."
+        },
+        {
+          "id": "block_until_done",
+          "label": "However long the drill takes",
+          "description": "Count drills, not minutes."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "repetition_block_length.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "repetition_block_length.none",
+        "label": "None of these"
+      },
+      "condition": {
+        "screen_id": "learning_style",
+        "any_of": [
+          "repetition_blocks"
+        ]
+      },
+      "profile_field": "learning_style",
+      "base_or_conditional": "conditional"
+    },
+    {
+      "id": "learning_feedback",
+      "order": 19,
+      "prompt": "How do you want feedback during practice?",
+      "summary_label": "Feedback preference",
+      "kind": "single",
+      "options": [
+        {
+          "id": "fb_one_at_a_time",
+          "label": "One correction at a time",
+          "description": "Fix one thing, then the next."
+        },
+        {
+          "id": "fb_short_list",
+          "label": "A short list after each drill",
+          "description": "Two or three notes, no more."
+        },
+        {
+          "id": "fb_on_request",
+          "label": "Only when I ask",
+          "description": "Let me finish the run first."
+        },
+        {
+          "id": "fb_demo_then_copy",
+          "label": "Show me, then I copy",
+          "description": "Demonstration first."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "learning_feedback.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "learning_feedback.none",
+        "label": "None of these"
+      },
+      "profile_field": "learning_style",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "next_drill",
+      "order": 20,
+      "prompt": "Which drill do you want to run first?",
+      "summary_label": "Next drill",
+      "kind": "single",
+      "options": [
+        {
+          "id": "drill_opening_recall",
+          "label": "Exact opening recall",
+          "description": "Say the approved opening word for word."
+        },
+        {
+          "id": "drill_transition",
+          "label": "One answer-to-question transition",
+          "description": "Acknowledge, refer back, ask the next one."
+        },
+        {
+          "id": "drill_random_node",
+          "label": "Random node lookup",
+          "description": "Any node, exact line, no hesitation."
+        },
+        {
+          "id": "drill_mirror_duel",
+          "label": "Mirror duel",
+          "description": "Different questions seeking the same answer type."
+        },
+        {
+          "id": "drill_answer_category",
+          "label": "Answer-category recognition",
+          "description": "Hear the answer, name the category, choose the branch."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "next_drill.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "next_drill.none",
+        "label": "None of these"
+      },
+      "profile_field": "next_drill",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "practice_duration",
+      "order": 21,
+      "prompt": "How long is a normal practice session for you?",
+      "help": "You choose the duration; it becomes the plan’s duration. It can be changed later.",
+      "summary_label": "Practice duration",
+      "kind": "single",
+      "options": [
+        {
+          "id": "dur_10",
+          "label": "10 minutes"
+        },
+        {
+          "id": "dur_15",
+          "label": "15 minutes"
+        },
+        {
+          "id": "dur_20",
+          "label": "20 minutes"
+        },
+        {
+          "id": "dur_30",
+          "label": "30 minutes"
+        },
+        {
+          "id": "dur_45",
+          "label": "45 minutes"
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "practice_duration.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "practice_duration.none",
+        "label": "None of these"
+      },
+      "profile_field": "practice_duration",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "practice_frequency",
+      "order": 22,
+      "prompt": "How often do you intend to practice?",
+      "summary_label": "Practice frequency",
+      "kind": "single",
+      "options": [
+        {
+          "id": "freq_daily",
+          "label": "Every day"
+        },
+        {
+          "id": "freq_weekdays",
+          "label": "Weekdays"
+        },
+        {
+          "id": "freq_five_chosen",
+          "label": "Five sessions a week, days I choose"
+        },
+        {
+          "id": "freq_three",
+          "label": "Three sessions a week"
+        },
+        {
+          "id": "freq_twice_daily_short",
+          "label": "Twice a day, short sessions"
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "practice_frequency.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "practice_frequency.none",
+        "label": "None of these"
+      },
+      "profile_field": "practice_duration",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "practice_cue",
+      "order": 23,
+      "prompt": "What starts a practice session?",
+      "help": "The cue that tells you it is time. The plan attaches each standard to it.",
+      "summary_label": "Session cue",
+      "kind": "single",
+      "options": [
+        {
+          "id": "cue_first_thing",
+          "label": "First thing in the morning",
+          "description": "Before anything else opens."
+        },
+        {
+          "id": "cue_before_build",
+          "label": "Before I open the code editor",
+          "description": "Drill, then build."
+        },
+        {
+          "id": "cue_after_lunch",
+          "label": "After lunch",
+          "description": "A fixed midday slot."
+        },
+        {
+          "id": "cue_end_of_day",
+          "label": "End of the workday",
+          "description": "Close the day with reps."
+        },
+        {
+          "id": "cue_calendar_block",
+          "label": "A calendar block I set",
+          "description": "Whatever time I put on the calendar."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "practice_cue.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "practice_cue.none",
+        "label": "None of these"
+      },
+      "profile_field": "practice_duration",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "difficult_day_minimum",
+      "order": 24,
+      "prompt": "On a difficult day, what is the minimum that still counts?",
+      "help": "A minimum-action day keeps your progress. Nothing is deleted for missing more.",
+      "summary_label": "Difficult-day minimum",
+      "kind": "single",
+      "options": [
+        {
+          "id": "min_opening_once",
+          "label": "Say the opening once, out loud"
+        },
+        {
+          "id": "min_one_transition",
+          "label": "One transition drill, about three minutes"
+        },
+        {
+          "id": "min_read_primary",
+          "label": "Read the primary line of one node"
+        },
+        {
+          "id": "min_open_cue",
+          "label": "Open Today and read the cue"
+        },
+        {
+          "id": "min_one_evidence",
+          "label": "Write one line of evidence"
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "difficult_day_minimum.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "difficult_day_minimum.none",
+        "label": "None of these"
+      },
+      "profile_field": "difficult_day_minimum",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "recovery_rule",
+      "order": 25,
+      "prompt": "When a practice is missed, what is your recovery rule?",
+      "help": "A missed practice does not erase previous work.",
+      "summary_label": "Recovery rule",
+      "kind": "single",
+      "options": [
+        {
+          "id": "rec_resume_next",
+          "label": "Resume the next day with the normal plan, no make-up"
+        },
+        {
+          "id": "rec_minimum_then_resume",
+          "label": "Do the difficult-day minimum, then resume"
+        },
+        {
+          "id": "rec_shorten",
+          "label": "Shorten the next session and resume"
+        },
+        {
+          "id": "rec_review_adjust",
+          "label": "Review the plan and adjust duration or frequency"
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "recovery_rule.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "recovery_rule.none",
+        "label": "None of these"
+      },
+      "profile_field": "recovery_rule",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "offer_hypothesis",
+      "order": 26,
+      "prompt": "Which offer are you working from right now?",
+      "help": "No offer is approved yet. The dealership follow-through script is a draft research hypothesis, not a live offer.",
+      "summary_label": "Offer hypothesis",
+      "kind": "single",
+      "options": [
+        {
+          "id": "dealership_follow_through",
+          "label": "Dealership inquiry follow-through (hypothesis)",
+          "description": "Draft, unapproved. Used for practice only."
+        },
+        {
+          "id": "offer_different",
+          "label": "I have a different offer in mind",
+          "description": "Not in the app yet; to be written in Offer Studio."
+        },
+        {
+          "id": "offer_not_decided",
+          "label": "Not decided; I want conversations first",
+          "description": "Discovery before commitment."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "offer_hypothesis.unsure",
+        "label": "I'm not sure yet"
+      },
+      "profile_field": "offer_hypothesis",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "offer_least_control",
+      "order": 27,
+      "prompt": "For dealership follow-through, which dependency is least in your control?",
+      "summary_label": "Least-controlled dependency",
+      "kind": "single",
+      "options": [
+        {
+          "id": "lc_crm_access",
+          "label": "Dealership CRM access",
+          "description": "Permissions and integrations on their side."
+        },
+        {
+          "id": "lc_lead_quality",
+          "label": "Lead data quality",
+          "description": "What arrives in the inbox."
+        },
+        {
+          "id": "lc_staff_follow_up",
+          "label": "Dealership staff following up",
+          "description": "Human behavior after the handoff."
+        },
+        {
+          "id": "lc_decision_timeline",
+          "label": "The dealership decision timeline",
+          "description": "Owners, partners, budget cycles."
+        },
+        {
+          "id": "lc_my_build_time",
+          "label": "My own build time",
+          "description": "Closest to my control, still finite."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "offer_least_control.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "offer_least_control.none",
+        "label": "None of these"
+      },
+      "condition": {
+        "screen_id": "offer_hypothesis",
+        "any_of": [
+          "dealership_follow_through"
+        ]
+      },
+      "profile_field": "delivery_dependencies",
+      "base_or_conditional": "conditional"
+    },
+    {
+      "id": "offer_materials",
+      "order": 28,
+      "prompt": "What do you have for the offer today?",
+      "help": "Unapproved drafts count as drafts, not as evidence. Choose up to 3.",
+      "summary_label": "Offer materials on hand",
+      "kind": "multi",
+      "max_select": 3,
+      "options": [
+        {
+          "id": "mat_problem_statement",
+          "label": "A problem statement",
+          "description": "What the offer is supposed to fix."
+        },
+        {
+          "id": "mat_draft_price",
+          "label": "A draft price (unapproved)",
+          "description": "A number you are testing, not quoting."
+        },
+        {
+          "id": "mat_capability_list",
+          "label": "A draft capability list",
+          "description": "What it could do, not what is promised."
+        },
+        {
+          "id": "mat_past_evidence",
+          "label": "Evidence from past work, not verified for this offer",
+          "description": "Usable as study, not as a claim."
+        },
+        {
+          "id": "mat_delivery_plan",
+          "label": "A rough delivery plan",
+          "description": "Who does what after a yes."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "offer_materials.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "offer_materials.none",
+        "label": "None of these"
+      },
+      "profile_field": "offer_hypothesis",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "delivery_dependencies",
+      "order": 29,
+      "prompt": "What does delivering the offer depend on?",
+      "summary_label": "Delivery dependencies",
+      "kind": "multi",
+      "max_select": 4,
+      "options": [
+        {
+          "id": "dep_crm_access",
+          "label": "Dealership CRM or system access"
+        },
+        {
+          "id": "dep_lead_quality",
+          "label": "Lead data quality"
+        },
+        {
+          "id": "dep_staff_follow_up",
+          "label": "Dealership staff following the process"
+        },
+        {
+          "id": "dep_build_time",
+          "label": "My own build time"
+        },
+        {
+          "id": "dep_partner",
+          "label": "A partner or contractor"
+        },
+        {
+          "id": "dep_telephony_compliance",
+          "label": "Telephony and compliance setup"
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "delivery_dependencies.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "delivery_dependencies.none",
+        "label": "None of these"
+      },
+      "profile_field": "delivery_dependencies",
+      "base_or_conditional": "base",
+      "help": "Choose up to 4."
+    },
+    {
+      "id": "needs_current",
+      "order": 30,
+      "prompt": "Optional lens: which of these needs most drive you right now?",
+      "help": "Optional lens, not a validated test. The six human needs are one instructor’s framework; picking one proves nothing about you. Choose up to 2.",
+      "summary_label": "Needs that drive me now (optional lens)",
+      "kind": "multi",
+      "max_select": 2,
+      "options": [
+        {
+          "id": "now_certainty",
+          "label": "Certainty",
+          "description": "Stability, predictability, knowing what comes next."
+        },
+        {
+          "id": "now_variety",
+          "label": "Uncertainty / variety",
+          "description": "Change, novelty, surprise."
+        },
+        {
+          "id": "now_connection",
+          "label": "Love / connection",
+          "description": "Closeness with people."
+        },
+        {
+          "id": "now_growth",
+          "label": "Growth",
+          "description": "Getting better at something."
+        },
+        {
+          "id": "now_significance",
+          "label": "Significance",
+          "description": "Mattering, being seen as capable."
+        },
+        {
+          "id": "now_contribution",
+          "label": "Contribution",
+          "description": "Giving beyond yourself."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "needs_current.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "needs_current.none",
+        "label": "None of these"
+      },
+      "profile_field": "needs_current",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "needs_desired",
+      "order": 31,
+      "prompt": "Optional lens: which needs would you like to lead in the coming year?",
+      "help": "Optional lens, not a validated test. Desired priorities are kept separate from current needs. Choose up to 2.",
+      "summary_label": "Needs I want to lead (optional lens)",
+      "kind": "multi",
+      "max_select": 2,
+      "options": [
+        {
+          "id": "want_certainty",
+          "label": "Certainty",
+          "description": "Stability, predictability, knowing what comes next."
+        },
+        {
+          "id": "want_variety",
+          "label": "Uncertainty / variety",
+          "description": "Change, novelty, surprise."
+        },
+        {
+          "id": "want_connection",
+          "label": "Love / connection",
+          "description": "Closeness with people."
+        },
+        {
+          "id": "want_growth",
+          "label": "Growth",
+          "description": "Getting better at something."
+        },
+        {
+          "id": "want_significance",
+          "label": "Significance",
+          "description": "Mattering, being seen as capable."
+        },
+        {
+          "id": "want_contribution",
+          "label": "Contribution",
+          "description": "Giving beyond yourself."
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "needs_desired.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "needs_desired.none",
+        "label": "None of these"
+      },
+      "profile_field": "needs_desired",
+      "base_or_conditional": "base"
+    },
+    {
+      "id": "unknowns",
+      "order": 32,
+      "prompt": "What do you not know yet?",
+      "help": "Naming an unknown is progress; it becomes an explicit item on your profile. Choose up to 4.",
+      "summary_label": "Explicit unknowns",
+      "kind": "multi",
+      "max_select": 4,
+      "options": [
+        {
+          "id": "unk_offer_right",
+          "label": "Whether the offer hypothesis is right"
+        },
+        {
+          "id": "unk_price",
+          "label": "What the price should be"
+        },
+        {
+          "id": "unk_who_first",
+          "label": "Which dealerships to talk to first"
+        },
+        {
+          "id": "unk_how_long",
+          "label": "How long internalizing the script will take"
+        },
+        {
+          "id": "unk_keep_routine",
+          "label": "Whether I will keep the routine"
+        },
+        {
+          "id": "unk_opening_reaction",
+          "label": "How prospects will react to the opening"
+        }
+      ],
+      "allow_skip": true,
+      "uncertainty_option": {
+        "id": "unknowns.unsure",
+        "label": "I'm not sure yet"
+      },
+      "none_option": {
+        "id": "unknowns.none",
+        "label": "None of these"
+      },
+      "profile_field": "unknowns",
+      "base_or_conditional": "base"
+    }
+  ]
 }

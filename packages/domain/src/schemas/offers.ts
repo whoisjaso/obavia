@@ -57,6 +57,15 @@ export const OfferVersion = z
     fictional: z.boolean(),
     /** Required when fictional, e.g. "FICTIONAL TRAINING OFFER — NOT A REAL QUOTE". */
     fictional_banner: z.string().optional(),
+    /**
+     * Additive (M-script): true = practice fixture. Structurally excluded from the live offer list
+     * (see offers/liveOffers) even if `fictional` were ever false.
+     */
+    practice_only: z.boolean().optional(),
+    /** Additive (M-script): free-text note beside supported_proof, e.g. "none yet". */
+    supported_proof_note: z.string().optional(),
+    /** Additive (M-script): free-text note beside approved_claims. */
+    approved_claims_note: z.string().optional(),
   })
   .refine((o) => !o.fictional || (o.fictional_banner ?? '').length > 0, {
     message: 'fictional offers must carry a fictional_banner',

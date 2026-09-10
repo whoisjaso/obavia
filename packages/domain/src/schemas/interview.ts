@@ -28,6 +28,8 @@ export const InterviewScreen = z
     order: z.number().int().nonnegative(),
     prompt: z.string(),
     help: z.string().optional(),
+    /** Short noun phrase used to build the profile summary sentence (added by M-interview, optional). */
+    summary_label: z.string().optional(),
     kind: z.enum(['single', 'multi']),
     /** Required when kind is 'multi'; the UI must state the limit to the user. */
     max_select: z.number().int().positive().optional(),
@@ -102,6 +104,8 @@ export const IdentityProfile = z.object({
   session_id: z.string(),
   version: z.number().int().nonnegative(),
   endorsed: z.boolean(),
+  /** ISO-8601 UTC timestamp set by endorseProfile (added by M-interview, optional). */
+  endorsed_at: z.string().optional(),
   sections: z.array(IdentityProfileSection),
   /** Explicit unknowns — things the interview did not establish. */
   unknowns: z.array(z.string()),

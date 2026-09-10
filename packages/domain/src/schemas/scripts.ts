@@ -74,8 +74,42 @@ export const ScriptNode = z.object({
   approval: Approval,
   /** e.g. "Apohenia addition — not in source". */
   source_note: z.string().optional(),
+  /**
+   * Additive (M-script): fact keys that, when ALL present in the known-facts map, make this node
+   * evidence-satisfied (brief §5: offer a transition instead of asking twice). Optional.
+   */
+  satisfied_by_facts: z.array(z.string()).optional(),
+  /**
+   * Additive (M-script): true marks a study/practice-only node (e.g. the optional identity frame).
+   * Such a node may cite private_training records; it is never a live recommendation.
+   */
+  practice_only: z.boolean().optional(),
 });
 export type ScriptNode = z.infer<typeof ScriptNode>;
+
+/** Additive (M-script): canonical stage names in display order. */
+export const ScriptStage = z.enum([
+  'entry',
+  'intent',
+  'logical_certainty',
+  'setter_transition',
+  'emotional_certainty',
+  'future',
+  'consequence',
+  'commitment',
+  'pitch',
+  'decision',
+  'concern',
+  'exit',
+  'follow_up',
+  'referral',
+  'upsell',
+]);
+export type ScriptStage = z.infer<typeof ScriptStage>;
+
+/** Additive (M-script): the six entrypoints a version must expose. */
+export const ScriptEntrypoint = z.enum(['cold', 'inbound', 'handoff', 'follow_up', 'referral', 'upsell']);
+export type ScriptEntrypoint = z.infer<typeof ScriptEntrypoint>;
 
 export const PricePlacement = z.enum(['after_pillars', 'price_first']);
 export type PricePlacement = z.infer<typeof PricePlacement>;

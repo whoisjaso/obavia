@@ -1,0 +1,101 @@
+/* /offers — Offer Studio. Tokens only. */
+.banner {
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--color-warning-ink);
+  border-radius: var(--radius);
+  background: var(--color-warning-surface);
+  color: var(--color-warning-ink);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: var(--font-size-md);
+}
+.offerHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+@media (max-width: 900px) {
+  .sections {
+    grid-template-columns: 1fr;
+  }
+}
+.section {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  min-width: 0;
+}
+.sectionWide {
+  grid-column: 1 / -1;
+}
+.sectionTitle {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0 0 var(--space-2);
+}
+.list {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+.emptyList {
+  color: var(--color-muted);
+  font-style: italic;
+}
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+@media (max-width: 900px) {
+  .pillars {
+    grid-template-columns: 1fr;
+  }
+}
+.pillar {
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-surface-sunken);
+}
+.pillarName {
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+.priceRow {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--font-size-md);
+}
+.priceValue {
+  font-weight: 600;
+}
+.notSet {
+  color: var(--color-warning-ink);
+  font-weight: 600;
+}
+.note {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+.readOnly {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+.timing {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+}

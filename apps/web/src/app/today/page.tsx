@@ -1,24 +1,22 @@
 import type { Metadata } from 'next';
-import { EmptyState, PageHeader } from '@/components/ui';
+import { PageHeader } from '@/components/ui';
+import { TodayClient } from './TodayClient';
 
 export const metadata: Metadata = { title: 'Today' };
 
-/** Owner: M-interview. Replace this file wholesale. */
+/** Rendered per request so the date is today's, not the build's. */
+export const dynamic = 'force-dynamic';
+
+/** Owner: M-interview. Server page: passes today's date (UTC, yyyy-mm-dd) so the client's day key matches on both renders. */
 export default function TodayPage() {
+  const today = new Date().toISOString().slice(0, 10);
   return (
     <>
       <PageHeader
         title="Today"
         purpose="Your one next drill from the endorsed training plan, today's practice minimum, and what to review from recent calls."
       />
-      <EmptyState title="Today's plan is not built yet" increment="Increment 1" owner="M-interview">
-        <p>
-          This screen will show the single next drill derived from your endorsed standards (cue → exact action →
-          chosen duration → completion evidence), the difficult-day minimum, and recovery after a missed session. It
-          appears only after the identity interview is completed and the profile is endorsed. A missed practice never
-          erases previous work.
-        </p>
-      </EmptyState>
+      <TodayClient today={today} />
     </>
   );
 }

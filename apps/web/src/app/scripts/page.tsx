@@ -1,24 +1,44 @@
 import type { Metadata } from 'next';
-import { EmptyState, PageHeader } from '@/components/ui';
+import { loadOffers, loadScriptNodes, loadSourceQuestionRecords } from '@apohenia/domain/seeds';
+import { validateGraph } from '@apohenia/domain/scripts';
+import { Badge, PageHeader } from '@/components/ui';
+import { ScriptsClient, type CitationInfo } from './ScriptsClient';
 
 export const metadata: Metadata = { title: 'Scripts' };
 
-/** Owner: M-script. Replace this file wholesale. */
+/** Owner: M-script. Server component: loads seeds, validates the graph, passes plain data down. */
 export default function ScriptsPage() {
+  const seed = loadScriptNodes();
+  const offers = loadOffers().offer_versions;
+  const records = loadSourceQuestionRecords();
+
+  const validations = seed.versions.map((v) => ({ version_id: v.id, result: validateGraph(v, seed.nodes, records) }));
+
+  // Only the cited records travel to the client (never the whole 200 KB source package).
+  const cited = new Set(seed.nodes.flatMap((n) => n.source_question_ids));
+  const citations: Record<string, CitationInfo> = {};
+  for (const r of records) {
+    if (cited.has(r.id)) citations[r.id] = { id: r.id, title: r.title, classification: r.use_classification, purpose: r.purpose };
+  }
+
+  const placeholder = seed._status !== undefined;
+
   return (
     <>
       <PageHeader
         title="Scripts"
         purpose="Own-script editor: exact primary word tracks (stable within a version), source question ids, answer objectives, mirror variants, bridges, branches and approval state — with immutable published versions."
+        aside={placeholder ? <Badge variant="warning">placeholder — to be authored</Badge> : <Badge variant="warning">All nodes draft · owner review required before live use</Badge>}
       />
-      <EmptyState title="The script editor is not built yet" increment="Increment 1" owner="M-script">
-        <p>
-          Will be built here: the 51-node draft graph from <code>data/apohenia_script_nodes.json</code> (currently a
-          placeholder) shown as Say this / Why this now / What to listen for / Mirror if unclear / Tone and pacing /
-          Next likely branches; Jason&apos;s own-words track kept separate from the primary line; version publish with a
-          content hash. Every node stays labelled draft until owner review; nothing here is live sales policy.
-        </p>
-      </EmptyState>
+      <ScriptsClient
+        versions={seed.versions}
+        nodes={seed.nodes}
+        seedVariants={seed.word_track_variants}
+        offers={offers}
+        citations={citations}
+        validations={validations}
+        placeholder={placeholder}
+      />
     </>
   );
 }
