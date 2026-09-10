@@ -1,0 +1,586 @@
+[
+  {
+    "id": "A01",
+    "source": "A",
+    "title": "Setting: intent",
+    "heading_line": 5,
+    "record_ids": [
+      "I01",
+      "I02",
+      "I03",
+      "I04"
+    ],
+    "record_count": 4,
+    "records_supplied": true
+  },
+  {
+    "id": "A02",
+    "source": "A",
+    "title": "Setting: logical certainty",
+    "heading_line": 137,
+    "record_ids": [
+      "L01",
+      "L02",
+      "L03",
+      "L04",
+      "L05",
+      "L06",
+      "L07",
+      "L08",
+      "L09",
+      "L10",
+      "L11",
+      "L12",
+      "L13",
+      "L14"
+    ],
+    "record_count": 14,
+    "records_supplied": true
+  },
+  {
+    "id": "A03",
+    "source": "A",
+    "title": "Setting: transition",
+    "heading_line": 363,
+    "record_ids": [
+      "S01",
+      "S02",
+      "S03",
+      "S04",
+      "S05"
+    ],
+    "record_count": 5,
+    "records_supplied": true
+  },
+  {
+    "id": "A04",
+    "source": "A",
+    "title": "Closing: entry routes and intent",
+    "heading_line": 71,
+    "record_ids": [
+      "I05",
+      "I06",
+      "I07",
+      "I08"
+    ],
+    "record_count": 4,
+    "records_supplied": true
+  },
+  {
+    "id": "A05",
+    "source": "A",
+    "title": "Closing: emotional certainty and decision history",
+    "heading_line": 445,
+    "record_ids": [
+      "E01",
+      "E02",
+      "E03",
+      "E04",
+      "E05",
+      "E06",
+      "E07",
+      "E08"
+    ],
+    "record_count": 8,
+    "records_supplied": true
+  },
+  {
+    "id": "A06",
+    "source": "A",
+    "title": "Closing: future pace and consequence",
+    "heading_line": 575,
+    "record_ids": [
+      "F01",
+      "F02",
+      "F03",
+      "F04",
+      "F05",
+      "F06",
+      "F07",
+      "F08",
+      "F09",
+      "F10",
+      "F11",
+      "F12",
+      "C01",
+      "C02",
+      "C03",
+      "C04",
+      "C05"
+    ],
+    "record_count": 17,
+    "records_supplied": true
+  },
+  {
+    "id": "A07",
+    "source": "A",
+    "title": "Closing: commitment, pillars and price",
+    "heading_line": 867,
+    "record_ids": [
+      "P01",
+      "P02",
+      "P03",
+      "P04",
+      "P05",
+      "P06",
+      "P07",
+      "P08",
+      "P09",
+      "P10"
+    ],
+    "record_count": 10,
+    "records_supplied": true
+  },
+  {
+    "id": "A08",
+    "source": "A",
+    "title": "Verbal cueing and interjection bridge (named in framework; no records supplied)",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "A09",
+    "source": "A",
+    "title": "Mirror questions",
+    "heading_line": 1063,
+    "record_ids": [
+      "M01",
+      "M02",
+      "M03"
+    ],
+    "record_count": 3,
+    "records_supplied": true
+  },
+  {
+    "id": "A10",
+    "source": "A",
+    "title": "Alpha/beta buying pocket",
+    "heading_line": 1663,
+    "record_ids": [
+      "D01",
+      "D02"
+    ],
+    "record_count": 2,
+    "records_supplied": true
+  },
+  {
+    "id": "A11",
+    "source": "A",
+    "title": "Objection handling",
+    "heading_line": 1163,
+    "record_ids": [
+      "O01",
+      "O02",
+      "O03",
+      "O04",
+      "O05",
+      "O06",
+      "O07",
+      "O08",
+      "O09",
+      "O10",
+      "O11",
+      "O12",
+      "O13",
+      "O14",
+      "O15",
+      "O16",
+      "O17",
+      "O18",
+      "O19",
+      "O20",
+      "O21",
+      "O22",
+      "O23",
+      "O24",
+      "O25",
+      "O26"
+    ],
+    "record_count": 26,
+    "records_supplied": true
+  },
+  {
+    "id": "A12",
+    "source": "A",
+    "title": "Identity: present, past and future",
+    "heading_line": 1697,
+    "record_ids": [
+      "D03",
+      "D04",
+      "D05"
+    ],
+    "record_count": 3,
+    "records_supplied": true
+  },
+  {
+    "id": "A13",
+    "source": "A",
+    "title": "Reviewed Yosh call and instructor commentary",
+    "heading_line": 2599,
+    "record_ids": [
+      "V01",
+      "V02",
+      "V03",
+      "V04",
+      "V05",
+      "V06",
+      "V07",
+      "V08",
+      "V09",
+      "V10",
+      "V11",
+      "V12",
+      "V13",
+      "V14",
+      "V15",
+      "V16",
+      "V17",
+      "V18",
+      "V19",
+      "V20",
+      "V21",
+      "V22",
+      "V23",
+      "V24",
+      "V25",
+      "V26",
+      "V27",
+      "V28",
+      "V29",
+      "V30",
+      "V31",
+      "V32",
+      "V33",
+      "V34",
+      "V35",
+      "V36",
+      "V37",
+      "V38",
+      "V39",
+      "V40",
+      "V41",
+      "V42",
+      "V43",
+      "V44",
+      "V45",
+      "V46",
+      "V47",
+      "V48"
+    ],
+    "record_count": 48,
+    "records_supplied": true
+  },
+  {
+    "id": "B00",
+    "source": "B",
+    "title": "Course overview and four phases (named in framework; no records supplied)",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B01",
+    "source": "B",
+    "title": "Intent and logical certainty overview (named in framework; no records supplied)",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B02",
+    "source": "B",
+    "title": "Setting call structure (named in framework; no records supplied)",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B03",
+    "source": "B",
+    "title": "Closing: emotional certainty",
+    "heading_line": 849,
+    "record_ids": [
+      "C06"
+    ],
+    "record_count": 1,
+    "records_supplied": true
+  },
+  {
+    "id": "B04",
+    "source": "B",
+    "title": "Closing: pitch",
+    "heading_line": 1029,
+    "record_ids": [
+      "P11",
+      "P12"
+    ],
+    "record_count": 2,
+    "records_supplied": true
+  },
+  {
+    "id": "B05",
+    "source": "B",
+    "title": "Objection formula and beach analogy",
+    "heading_line": 1581,
+    "record_ids": [
+      "O27",
+      "O28",
+      "O29",
+      "O30",
+      "O31"
+    ],
+    "record_count": 5,
+    "records_supplied": true
+  },
+  {
+    "id": "B06",
+    "source": "B",
+    "title": "Process orientation and repetition (named in framework; no records supplied)",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B07",
+    "source": "B",
+    "title": "Diary and calendar management",
+    "heading_line": 1913,
+    "record_ids": [
+      "T03",
+      "T04"
+    ],
+    "record_count": 2,
+    "records_supplied": true
+  },
+  {
+    "id": "B08",
+    "source": "B",
+    "title": "Adapting scripts",
+    "heading_line": 1879,
+    "record_ids": [
+      "T01",
+      "T02"
+    ],
+    "record_count": 2,
+    "records_supplied": true
+  },
+  {
+    "id": "B09",
+    "source": "B",
+    "title": "Mirror-question design and drills",
+    "heading_line": 1113,
+    "record_ids": [
+      "M04",
+      "M05",
+      "M06"
+    ],
+    "record_count": 3,
+    "records_supplied": true
+  },
+  {
+    "id": "B10",
+    "source": "B",
+    "title": "Identity shifting frame",
+    "heading_line": 1747,
+    "record_ids": [
+      "D06",
+      "D07",
+      "D08",
+      "D09",
+      "D10",
+      "D11"
+    ],
+    "record_count": 6,
+    "records_supplied": true
+  },
+  {
+    "id": "B11",
+    "source": "B",
+    "title": "Six human needs",
+    "heading_line": 1845,
+    "record_ids": [
+      "D12",
+      "D13"
+    ],
+    "record_count": 2,
+    "records_supplied": true
+  },
+  {
+    "id": "B12",
+    "source": "B",
+    "title": "Named in framework range B12–B16 (delivery/tonality); no records supplied",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B13",
+    "source": "B",
+    "title": "Named in framework range B13–B16 (verbal cueing); no records supplied",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B14",
+    "source": "B",
+    "title": "Named in framework range B13–B16 (delivery); no records supplied",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B15",
+    "source": "B",
+    "title": "Named in framework range B13–B16 (delivery); no records supplied",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B16",
+    "source": "B",
+    "title": "Pacing (named in framework; internal wording ambiguity noted); no records supplied",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B17",
+    "source": "B",
+    "title": "Setter follow-up",
+    "heading_line": 1981,
+    "record_ids": [
+      "U01",
+      "U02",
+      "U03",
+      "U04",
+      "U05",
+      "U06"
+    ],
+    "record_count": 6,
+    "records_supplied": true
+  },
+  {
+    "id": "B18",
+    "source": "B",
+    "title": "Closer follow-up",
+    "heading_line": 2079,
+    "record_ids": [
+      "U07",
+      "U08",
+      "U09"
+    ],
+    "record_count": 3,
+    "records_supplied": true
+  },
+  {
+    "id": "B19",
+    "source": "B",
+    "title": "Referrals and success points",
+    "heading_line": 2129,
+    "record_ids": [
+      "R01",
+      "R02",
+      "R03",
+      "R04",
+      "R05",
+      "R06",
+      "R07"
+    ],
+    "record_count": 7,
+    "records_supplied": true
+  },
+  {
+    "id": "B20",
+    "source": "B",
+    "title": "Upsell setting",
+    "heading_line": 2243,
+    "record_ids": [
+      "X01",
+      "X02",
+      "X03",
+      "X04",
+      "X05",
+      "X06",
+      "X07",
+      "X08",
+      "X09",
+      "X10",
+      "X11"
+    ],
+    "record_count": 11,
+    "records_supplied": true
+  },
+  {
+    "id": "B21",
+    "source": "B",
+    "title": "Upsell closing",
+    "heading_line": 2421,
+    "record_ids": [
+      "Y01",
+      "Y02",
+      "Y03",
+      "Y04",
+      "Y05",
+      "Y06",
+      "Y07",
+      "Y08",
+      "Y09",
+      "Y10",
+      "Y11"
+    ],
+    "record_count": 11,
+    "records_supplied": true
+  },
+  {
+    "id": "B22",
+    "source": "B",
+    "title": "Physiology/anchors claims (named in framework; not validated); no records supplied",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B23",
+    "source": "B",
+    "title": "Sleep/isolation/burnout claims (named in framework; not validated); no records supplied",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  },
+  {
+    "id": "B24",
+    "source": "B",
+    "title": "Self-esteem",
+    "heading_line": 1947,
+    "record_ids": [
+      "T05",
+      "T06"
+    ],
+    "record_count": 2,
+    "records_supplied": true
+  },
+  {
+    "id": "B25",
+    "source": "B",
+    "title": "Named in framework range B22–B25; no records supplied",
+    "heading_line": null,
+    "record_ids": [],
+    "record_count": 0,
+    "records_supplied": false
+  }
+]

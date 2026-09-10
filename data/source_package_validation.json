@@ -1,0 +1,43 @@
+{
+  "generated_from": "docs/02-organized-question-bank.md",
+  "package_sha256": "99bd74bdc164b6e9fd849d83cc27b0c0e4b81a2755c9fc86f9c4d622c8c9749a",
+  "offset_convention": "half-open [start, end) Unicode code-point offsets into the original single-line transcript for the named source (A or B)",
+  "raw_sources_supplied": false,
+  "hash_verification": "pending — raw Source A / Source B transcripts are not in the supplied package; excerpts recorded as supplied",
+  "expected_record_count": 207,
+  "record_count": 207,
+  "section_count_with_records": 26,
+  "section_count_named_only": 13,
+  "brief_claims_section_count": 41,
+  "section_count_note": "The brief states 41 source sections. Only 26 sections carry records in the supplied bank; 13 more are named in the framework. The remaining IDs cannot be reconciled from supplied files and are not invented.",
+  "by_classification": {
+    "adapt": 160,
+    "study_only": 33,
+    "private_training": 14
+  },
+  "by_family": {
+    "I": 8,
+    "L": 14,
+    "S": 5,
+    "E": 8,
+    "F": 12,
+    "C": 6,
+    "P": 12,
+    "M": 6,
+    "O": 31,
+    "D": 13,
+    "T": 6,
+    "U": 9,
+    "R": 7,
+    "X": 11,
+    "Y": 11,
+    "V": 48
+  },
+  "by_source": {
+    "A": 144,
+    "B": 63
+  },
+  "excerpt_length_mismatches": [],
+  "errors": [],
+  "ok": true
+}
