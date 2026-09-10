@@ -36,7 +36,7 @@ scripts/             Import validators (e.g. parse-question-bank.mjs)
 tests/e2e/           Playwright browser tests (Chromium is pre-installed; never run `playwright install`)
 legacy/obavia/       Frozen previous site — do not touch
 ```
-Routes: `/onboarding/identity`, `/profile`, `/today`, `/offers`, `/sources`, `/scripts`, `/practice`, `/prospects`, `/call-room`, `/calls`, `/pipeline`, `/insights`, `/settings`.
+Routes: `/` (Dial + in-call), `/practice` (Train), `/scripts` (+ `/sources`, `/offers`), `/today` (Me; + `/onboarding/identity`, `/profile`, `/settings`, `/insights`), `/prospects` (Queue), `/calls` (History), `/pipeline` (Follow-ups). `/call-room` redirects to `/`.
 
 ## Data provenance (keep this table true)
 | File | Origin | Status |
@@ -55,7 +55,7 @@ Routes: `/onboarding/identity`, `/profile`, `/today`, `/offers`, `/sources`, `/s
 - Pinned stable lines: Next 16.x, React 19.x, TypeScript 5.9.x (not 7), zod 4.x, vitest 4.x, @playwright/test 1.63.x. Do not add dependencies casually; if one is truly required, add it at the root of the owning workspace and note it in your report.
 - Domain logic lives in `packages/domain` with zod schemas as the single source of shape truth; the web app imports `@apohenia/domain`. Engines are pure functions over plain data so they are testable without React.
 - Increment 1 persistence is browser-local (`apps/web/src/lib/storage.ts`, namespace `apohenia.v1.*`), always labeled "Local demo mode · stored in this browser". Real-data mode (Increment 2) must never silently fall back to it.
-- UI: calm, readable, desktop-first, strong text hierarchy, restrained decoration; system font stack (no runtime font fetch); keyboard navigation and visible focus everywhere; state never conveyed by color alone; respect `prefers-reduced-motion`. Shared primitives live in `apps/web/src/components/ui/`. The Call Room is an operating tool, not a landing page: big script line center, THEIR WORDS strip right, transcript secondary.
+- **UI = `docs/DESIGN_SYSTEM.md` (v2 "Arena") — authoritative.** Game-like, iOS-feel, visual-first: dark stage, one hero control per screen, 97% visual / 3% words (labels ≤3 words, explanations behind ⓘ sheets), rings not bars, sheets not modals, tiles not dropdowns, bottom tab bar (Dial · Train · Script · Me), no sidebars, no tables, no paragraphs on screens. The front door `/` is the **Dial** screen: one tap arms a cancellable countdown, the session then dials record after record (demo = simulator over synthetic prospects; live only when telephony + reviewed policy + the sequential-session flag exist), and the in-call screen is the script line (huge, never re-flowed) with THEIR WORDS / THEIR REFERENCES beside it and an outcome sheet after End. Honesty glyphs stay (`◐ Demo`, `✦ Fictional`, `—` not assessed) with full accessible names. Keyboard operability, visible focus, live regions, reduced motion, and ≥4.5:1 contrast are the floor. Shared kit in `apps/web/src/components/ui/`.
 - Tests: vitest for `packages/domain` (`*.test.ts` beside the code) and Playwright for flows in `tests/e2e/`. The brief's §21 mandatory scenarios that apply to the current increment should each map to at least one test.
 - Money is stored as integer minor units or fixed-point strings, never floats. Timestamps in UTC ISO strings.
 
