@@ -20,3 +20,6 @@ apps/web/CLAUDE.md
 data/source_offset_verification.json
 # Raw private Source A/B transcripts (sources/source_a.txt, sources/source_b.txt) — private archive, never committed
 /sources/
+
+# Visual-critic walkthrough shots (review scratch, regenerated each round)
+docs/screenshots/v2/critic-round*/
