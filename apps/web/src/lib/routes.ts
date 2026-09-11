@@ -1,4 +1,4 @@
-import type { IconName } from '@/components/ui/icons';
+import type { IconName } from '../components/ui/icons';
 
 /** One of the four bottom tabs (DESIGN_SYSTEM §2 TabBar). */
 export interface TabRoute {

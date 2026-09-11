@@ -89,7 +89,6 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
   const storedOrderKey = st.pins.order.join('|');
   useEffect(() => {
     if (orderKey === storedOrderKey) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- persist the slot order computed from new evidence
     update({ pins: resolved.state });
   }, [orderKey, storedOrderKey, resolved.state, update]);
 
@@ -173,7 +172,6 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
     prevPinned.current = resolved.state.order;
     if (added.length === 0) return;
     const words = added.map((id) => byId.get(id)?.event.exact_text).filter(Boolean).join(', ');
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- announce new pins to assistive tech
     if (words) setLiveText(`Pinned: ${words}`);
   }, [resolved.state.order, byId]);
 
