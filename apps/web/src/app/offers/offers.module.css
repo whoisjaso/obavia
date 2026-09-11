@@ -1,101 +1,227 @@
-/* /offers — Offer Studio. Tokens only. */
-.banner {
-  padding: var(--space-3) var(--space-4);
-  border: 2px solid var(--color-warning-ink);
-  border-radius: var(--radius);
-  background: var(--color-warning-surface);
-  color: var(--color-warning-ink);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  font-size: var(--font-size-md);
+/* ---- Offers (DESIGN_SYSTEM §3.5) ---- */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeIn var(--dur) var(--ease);
 }
-.offerHeader {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.filters {
+  display: flex;
+  gap: var(--s-2);
+}
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+/* card */
+.offerHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+.offerName {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+}
+.offerPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.priceRow {
+  display: flex;
+  gap: var(--s-6);
+  margin-bottom: var(--s-4);
+}
+.money {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 64px;
+}
+.moneyValue {
+  font-size: var(--fs-large);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.moneyUnset {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+.moneyKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pillarRow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.pillarChip {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.pillarIndex {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  color: var(--ink);
+  font-size: var(--fs-micro);
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* sheet */
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.sheetHead {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  gap: var(--s-2);
 }
-.sections {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
+.mono {
+  font-family: var(--font-mono);
 }
-@media (max-width: 900px) {
-  .sections {
-    grid-template-columns: 1fr;
-  }
+.banner {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  border: 1px solid rgba(191, 90, 242, 0.45);
+  background: rgba(191, 90, 242, 0.12);
+  color: var(--purple);
+  font-size: var(--fs-caption);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
 }
-.section {
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  min-width: 0;
-}
-.sectionWide {
-  grid-column: 1 / -1;
-}
-.sectionTitle {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+.caption {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-muted);
-  margin: 0 0 var(--space-2);
+  color: var(--ink-3);
+}
+.body {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
+}
+.small {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+  line-height: var(--lh-body);
+}
+.emptyNote {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+  font-style: italic;
 }
 .list {
   margin: 0;
-  padding-left: var(--space-5);
-}
-.emptyList {
-  color: var(--color-muted);
-  font-style: italic;
-}
-.pillars {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-@media (max-width: 900px) {
-  .pillars {
-    grid-template-columns: 1fr;
-  }
-}
-.pillar {
-  padding: var(--space-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius);
-  background: var(--color-surface-sunken);
-}
-.pillarName {
-  font-weight: 600;
-  margin-bottom: var(--space-1);
-}
-.priceRow {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--space-1) var(--space-4);
-  font-size: var(--font-size-md);
-}
-.priceValue {
-  font-weight: 600;
-}
-.notSet {
-  color: var(--color-warning-ink);
-  font-weight: 600;
-}
-.note {
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
-}
-.readOnly {
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
+  padding: 0 0 0 var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
 }
 .timing {
   display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--space-1) var(--space-4);
+  grid-template-columns: auto 1fr;
+  gap: var(--s-2) var(--s-4);
+  align-items: start;
+}
+.timingKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-top: 5px;
+}
+.pillars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.pillar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+}
+.pillarName {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.confirmCaption {
+  text-align: center;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* empty */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-8) 0;
+}
+.emptyGlyph {
+  font-size: 96px;
+  line-height: 1;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+.emptyLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
 }

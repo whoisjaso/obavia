@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { loadOffers } from '../src/seeds';
 import {
   BLANK_PRICE_NOTE,
+  EMPTY_OFFER_STATUS_MAP,
+  OFFER_STATUS_STORAGE_KEY,
+  OfferStatusMap,
+  PRICE_NOT_SET_NAME,
+  applyOfferStatuses,
   assertOfferEditable,
   canQuotePrice,
   canTransitionOffer,
@@ -13,7 +18,9 @@ import {
   nextOfferStatus,
   practiceOffers,
   quotedPriceSentence,
+  statusGlyph,
   transitionOffer,
+  withStoredStatus,
 } from '../src/offers';
 
 const seed = loadOffers();
@@ -104,5 +111,32 @@ describe('status guard', () => {
     expect(() => assertOfferEditable(published)).toThrow(/immutable/);
     expect(() => editOffer(published, { name: 'x' })).toThrow(/immutable/);
     expect(editOffer(draft, { name: 'Renamed' }).name).toBe('Renamed');
+  });
+});
+
+describe('B-12 — one store of truth for offer status', () => {
+  it('the Studio key is shared and the map schema accepts only legal statuses', () => {
+    expect(OFFER_STATUS_STORAGE_KEY).toBe('offers.status');
+    expect(OfferStatusMap.safeParse({ [draft.id]: 'reviewed' }).success).toBe(true);
+    expect(OfferStatusMap.safeParse({ [draft.id]: 'approved' }).success).toBe(false);
+    expect(EMPTY_OFFER_STATUS_MAP).toEqual({});
+  });
+  it('a stored forward status wins; backwards, unknown and fixture statuses are ignored', () => {
+    expect(withStoredStatus(draft, { [draft.id]: 'published' }).status).toBe('published');
+    expect(withStoredStatus(draft, { [draft.id]: 'reviewed' }).status).toBe('reviewed');
+    expect(withStoredStatus({ ...draft, status: 'published' }, { [draft.id]: 'draft' }).status).toBe('published');
+    expect(withStoredStatus(draft, {}).status).toBe('draft');
+    expect(withStoredStatus(fictional, { [fictional.id]: 'published' }).status).toBe('draft');
+    expect(applyOfferStatuses(offers, { [draft.id]: 'published' }).map((o) => o.status)).toEqual(['published', 'draft']);
+    // Publishing through the store does not invent a price.
+    const published = withStoredStatus(draft, { [draft.id]: 'published' });
+    expect(canQuotePrice(published)).toBe(false);
+    expect(quotedPriceSentence(published)).toBeNull();
+  });
+  it('status glyphs carry the whole truth and the blank price has an accessible name', () => {
+    expect(statusGlyph('draft')).toMatchObject({ glyph: '◔', word: 'Draft' });
+    expect(statusGlyph('draft').name).toMatch(/never live/);
+    expect(statusGlyph('published').name).toMatch(/frozen/);
+    expect(PRICE_NOT_SET_NAME).toBe('Price not set — a blank price is not $0');
   });
 });

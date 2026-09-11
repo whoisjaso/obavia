@@ -7,6 +7,8 @@
 > Slots in braces (`{dealership_name}`, `{stated_problem}`, `{pillar_1_name}`, `{approved_price}` …) are filled only from confirmed prospect facts or approved offer attributes. An unfilled slot renders a visible missing-information cue; a null price renders "Price not approved yet — route to scope conversation" and never a number.
 >
 > Delivery cues are **instructor-described** (framework §11) — text descriptions from the transcripts, not audio-verified.
+>
+> **Global stop rule.** Every node has an implicit `Asks to stop → exit-stop` branch added by the engine (`stop_node_id: "exit-stop"` on the version); the branch lists below show only the branches written on the node. An opt-out therefore reaches the stop node from every one of the 51 nodes, and `validateGraph` asserts it.
 
 This file is generated from `data/apohenia_script_nodes.json` by the M-script authoring pass; the JSON is the source of truth.
 
@@ -341,7 +343,7 @@ Price: setup Not set · recurring Not set (not set). A blank price is not $0.
 - **Say this:** “What got in the way then — and what's different now that has you looking at it?”
 - **Cites:** E03 (adapt), E04 (adapt)
 - **Seeks:** The prior barrier and what has changed (or an honest statement that the constraint still exists).
-- **Slots:** none
+- **Slots:** none · **satisfied by:** `{shift_reason}` (the transition “You mentioned {shift_reason} — …” is spoken only once that fact is known)
 - **Mirrors:** “Was there a specific reason it did not go ahead before, and is that reason gone or still here?” · “What would have to be true now for this to actually happen, that was not true then?”
 - **Why now:** What prevented / what shifted is the source's way to hear the future objection before the pitch (E03–E04); when the reason is plausible, the reviewed call moves on instead of insisting (A13).
 - **Listen for:** A constraint that is still present (budget, staffing, authority) — route to diagnosis, not to a pep talk.
@@ -562,7 +564,7 @@ Price: setup Not set · recurring Not set (not set). A blank price is not $0.
 - **Say this:** “Based on what we've covered, do you feel this would get {dealership_name} to {stated_goal}? Why — and which part would help most?”
 - **Cites:** P07 (adapt), P08 (adapt), P09 (adapt)
 - **Seeks:** The prospect's own fit assessment, their reason, and the pillar they value most (their words).
-- **Slots:** `{dealership_name}`, `{stated_goal}`
+- **Slots:** `{dealership_name}`, `{stated_goal}`, `{key_pillar}` (the mirror's slot is declared; unfilled it renders a missing cue)
 - **Mirrors:** “Which of the three pieces would you actually use on a Monday morning?” · “What would having {key_pillar} do for you personally, day to day?”
 - **Why now:** After the pillars the source asks fit, why, and the most helpful part (P07–P09); their answer tells you what to write into the scope.
 - **Listen for:** The pillar they name — it is the value driver; a gap they name — it is the next scope conversation.
@@ -661,7 +663,7 @@ Price: setup Not set · recurring Not set (not set). A blank price is not $0.
 - **Cites:** O22 (adapt), O25 (adapt), O26 (adapt), O30 (adapt)
 - **Seeks:** Confirmation (or correction) that certainty is the concern, and the evidence or structure that would resolve it.
 - **Slots:** none
-- **Mirrors:** “What would you need to see in writing to feel this was a safe first step?” · “Could that be why this has not been fixed before now — waiting for certainty that never comes?”
+- **Mirrors:** “What would you need to see in writing to feel this was a safe first step?” · “Is it certainty that this would work here that you'd want first — and what would show you that: a bounded pilot, or the acceptance tests written down before anything starts?” (the source's certainty-seeking pushback was replaced by a mirror that seeks the same answer type)
 - **Why now:** The source reframes a fit concern as seeking certainty (O22) and links it to prior inaction (O25/O26/O30); Apohenia keeps only the diagnostic questions and answers with approved proof and bounded structure (framework §10).
 - **Listen for:** Whether it is certainty or simply no need; the exact evidence they would accept.
 - **Complete when:** The concern is confirmed or corrected in their words, and a concrete evidence/structure request is captured. No analogy is performed; no guarantee of results is offered.

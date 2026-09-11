@@ -34,9 +34,9 @@ export function GlyphPill({ glyph, label, name, tone = 'neutral', className, ...
   );
 }
 
-/** `◐ Demo` — always visible while no real telephony exists. Accessible name says the whole truth. */
-export function DemoPill(props: Omit<GlyphPillProps, 'glyph' | 'name' | 'label'>) {
-  return <GlyphPill glyph="◐" label="Demo" name={DEMO_PILL_NAME} tone="orange" data-demo-pill {...props} />;
+/** `◐ Demo` — always visible while no real telephony exists. Accessible name says the whole truth. `compact` = glyph only. */
+export function DemoPill({ compact, ...props }: Omit<GlyphPillProps, 'glyph' | 'name' | 'label'> & { compact?: boolean }) {
+  return <GlyphPill glyph="◐" label={compact ? undefined : 'Demo'} name={DEMO_PILL_NAME} tone="orange" data-demo-pill {...props} />;
 }
 
 /** `✦ Fictional` — fictional training content (offers, prospects). */

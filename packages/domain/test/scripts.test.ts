@@ -1,21 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { loadOffers, loadScriptNodes, loadSourceQuestionRecords } from '../src/seeds';
 import {
+  DEFAULT_STOP_NODE_ID,
   ENTRYPOINTS,
   EXPECTED_NODE_COUNT,
+  GLOBAL_STOP_BRANCH_LABEL,
+  OFFER_NOT_APPROVED_CUE,
   PRICE_NOT_APPROVED_CUE,
+  STOP_ANSWER_CATEGORY,
   canonicalJson,
   contentHash,
   editPrimaryWordTrack,
+  effectiveBranches,
   entryNode,
   isEvidenceSatisfied,
+  isOfferSlot,
   loadVersionGraph,
   nextNodeForBranch,
   nodeById,
+  publicationApproval,
   publishVersion,
   renderNodeCard,
+  resolveSlots,
   sha256Hex,
+  slotsIn,
   stageOrder,
+  stopNode,
+  transitionLineOf,
   upsertWordTrackVariant,
   validateGraph,
   verifyPublication,
@@ -149,6 +160,40 @@ describe('scenario 3 — evidence-satisfied skip', () => {
     expect(card.evidence.satisfied).toBe(true);
     expect(card.routing_notes.join(' ')).toMatch(/Evidence-satisfied/);
   });
+
+  it('B-11: the transition is the quoted line of the rule, never the rule sentence itself', () => {
+    const node = nodeById(nodes, 'logical-process')!;
+    const check = isEvidenceSatisfied(node, { current_process: 'the sales@ inbox' });
+    expect(check.transition).toBe('You said the inquiries go to the sales@ inbox — how long has it worked that way?');
+    expect(check.transition).not.toMatch(/^If the /);
+    expect(check.rule).toBe(node.facts_already_known_rule);
+    expect(transitionLineOf(node.facts_already_known_rule)).toBe('You said the inquiries go to {current_process} — how long has it worked that way?');
+    // A rule with guidance but no spoken line: satisfied, rule shown, no transition invented.
+    const fit = nodeById(nodes, 'pitch-fit')!;
+    const fitCheck = isEvidenceSatisfied(fit, { fit_assessment: 'the named handoff is the piece' });
+    expect(fitCheck.satisfied).toBe(true);
+    expect(fitCheck.transition).toBeNull();
+    expect(fitCheck.rule).toMatch(/do not re-ask/);
+    // Every quoted transition in the seed resolves fully once its satisfying facts are known (B-6 class of fault).
+    for (const n of nodes) {
+      const quoted = transitionLineOf(n.facts_already_known_rule);
+      if (!quoted) continue;
+      const facts = Object.fromEntries((n.satisfied_by_facts ?? []).map((k) => [k, `<${k}>`]));
+      const check2 = isEvidenceSatisfied(n, facts);
+      expect(check2.satisfied, n.id).toBe(true);
+      expect(check2.transition, n.id).not.toMatch(/\[missing:/);
+    }
+  });
+
+  it('B-6: emotional-prevented-shifted can actually be satisfied by its transition slot', () => {
+    const node = nodeById(nodes, 'emotional-prevented-shifted')!;
+    expect(node.satisfied_by_facts).toEqual(['shift_reason']);
+    expect(isEvidenceSatisfied(node, {}).satisfied).toBe(false);
+    const check = isEvidenceSatisfied(node, { shift_reason: 'the new GM owns the internet desk now' });
+    expect(check.satisfied).toBe(true);
+    expect(check.transition).toContain('the new GM owns the internet desk now');
+    expect(check.transition).not.toContain('{shift_reason}');
+  });
 });
 
 describe('scenarios 6 and 38 — null / fictional price never becomes a number', () => {
@@ -176,28 +221,107 @@ describe('scenarios 6 and 38 — null / fictional price never becomes a number',
     expect(card.say_this).toContain('$300.00');
   });
 
-  it('pillar slots come from the offer and unknown facts render a missing cue', () => {
-    const card = renderNodeCard(nodeById(nodes, 'pitch-pillar-1')!, { offer: draftOffer });
-    expect(card.say_this).toContain(draftOffer.pillars[0]!.name);
+  it('B-2: a draft offer\'s pillar wording is NOT spoken — the cue shows until the offer is published', () => {
+    const node = nodeById(nodes, 'pitch-pillar-1')!;
+    const card = renderNodeCard(node, { offer: draftOffer });
+    expect(card.say_this).not.toContain(draftOffer.pillars[0]!.name);
+    expect(card.say_this).toContain(`[${OFFER_NOT_APPROVED_CUE}: pillar 1 name]`);
     expect(card.say_this).toContain('[missing: stated problem]');
-    expect(card.missing_slots).toEqual(['stated_problem']);
+    expect(card.missing_slots).toEqual(['pillar_1_name', 'stated_problem', 'pillar_1_delivery']);
+    expect(card.routing_notes.join(' ')).toMatch(/is draft — pillar wording is not spoken/);
+    // reviewed is still not approved
+    expect(renderNodeCard(node, { offer: { ...draftOffer, status: 'reviewed' } }).say_this).not.toContain(draftOffer.pillars[0]!.name);
+    // published: the offer object supplies the pillar exactly
+    const published = renderNodeCard(node, { offer: { ...draftOffer, status: 'published' } });
+    expect(published.say_this).toContain(draftOffer.pillars[0]!.name);
+    expect(published.say_this).toContain(draftOffer.pillars[0]!.delivery);
+    expect(published.missing_slots).toEqual(['stated_problem']);
+  });
+
+  it('B-3: known facts named like offer slots never bypass the offer-approval gate', () => {
+    const facts = { approved_price: '$99 a month', pillar_1_name: 'Magic pillar', pillar_1_delivery: 'we just do it', stated_problem: 'evening inquiries sit' };
+    expect(isOfferSlot('approved_price')).toBe(true);
+    expect(isOfferSlot('pillar_2_delivery')).toBe(true);
+    expect(isOfferSlot('stated_problem')).toBe(false);
+    const price = renderNodeCard(nodeById(nodes, 'decision-price')!, { knownFacts: facts, offer: draftOffer });
+    expect(price.say_this).not.toContain('$99');
+    expect(price.say_this).toContain(PRICE_NOT_APPROVED_CUE);
+    const noOffer = renderNodeCard(nodeById(nodes, 'decision-price')!, { knownFacts: facts });
+    expect(noOffer.say_this).not.toContain('$99');
+    const pillar = renderNodeCard(nodeById(nodes, 'pitch-pillar-1')!, { knownFacts: facts, offer: draftOffer });
+    expect(pillar.say_this).not.toContain('Magic pillar');
+    expect(pillar.say_this).not.toContain('we just do it');
+    expect(pillar.say_this).toContain('evening inquiries sit'); // ordinary facts still fill
+    expect(resolveSlots('{pillar_3_name}', { knownFacts: { pillar_3_name: 'x' } }).text).toBe('[missing: pillar 3 name]');
   });
 });
 
-describe('scenario 40 — refusal / opt-out reaches the stop node everywhere', () => {
-  it('every node with an opt_out branch routes to exit-stop and exit-stop is terminal', () => {
-    let optOutNodes = 0;
-    for (const n of nodes) {
-      const res = nextNodeForBranch(n, 'opt_out', nodes);
-      if (res) {
-        optOutNodes += 1;
-        expect(res.next?.id, n.id).toBe('exit-stop');
-      }
-    }
-    expect(optOutNodes).toBeGreaterThan(8);
-    const stop = nodeById(nodes, 'exit-stop')!;
+describe('scenario 40 / B-1 — refusal / opt-out reaches the stop node from EVERY node', () => {
+  it('the version names its stop node; exit-stop is terminal, in the exit stage, not practice-only', () => {
+    expect(version.stop_node_id).toBe(DEFAULT_STOP_NODE_ID);
+    const stop = stopNode(version, nodes)!;
+    expect(stop.id).toBe('exit-stop');
+    expect(stop.stage).toBe('exit');
+    expect(stop.practice_only).toBeFalsy();
     expect(stop.branches.every((b) => b.next_node_id === null)).toBe(true);
-    expect(nextNodeForBranch(nodeById(nodes, 'cold-open')!, 'opt_out', nodes)?.next?.stage).toBe('exit');
+  });
+
+  it('opt_out resolves to exit-stop from every one of the 51 nodes, explicit or implicit', () => {
+    let explicit = 0;
+    let implicit = 0;
+    for (const n of nodes) {
+      if (n.id === 'exit-stop') {
+        expect(effectiveBranches(n, version).some((b) => b.answer_category === STOP_ANSWER_CATEGORY)).toBe(false);
+        continue;
+      }
+      const res = nextNodeForBranch(n, STOP_ANSWER_CATEGORY, nodes, version);
+      expect(res, n.id).toBeDefined();
+      expect(res!.next?.id, n.id).toBe('exit-stop');
+      if (res!.branch.implicit) {
+        implicit += 1;
+        expect(res!.branch.label).toBe(GLOBAL_STOP_BRANCH_LABEL);
+      } else explicit += 1;
+      // The rendered card shows the route too, marked implicit when synthesised.
+      const card = renderNodeCard(n, { version });
+      const shown = card.next_branches.find((b) => b.answer_category === STOP_ANSWER_CATEGORY)!;
+      expect(shown.next_node_id, n.id).toBe('exit-stop');
+      expect(Boolean(shown.implicit)).toBe(Boolean(res!.branch.implicit));
+    }
+    expect(explicit).toBeGreaterThan(8);
+    expect(implicit).toBeGreaterThan(30);
+    expect(explicit + implicit).toBe(50);
+    // Without a version the "exit-stop" convention applies; the node's own data is untouched.
+    expect(nextNodeForBranch(nodeById(nodes, 'logical-process')!, 'opt_out', nodes)?.next?.id).toBe('exit-stop');
+    expect(nodeById(nodes, 'logical-process')!.branches.some((b) => b.answer_category === 'opt_out')).toBe(false);
+  });
+
+  it('validateGraph asserts the global stop rule', () => {
+    const noStop = validateGraph({ ...version, stop_node_id: 'no-such-node' }, nodes, records);
+    expect(noStop.ok).toBe(false);
+    expect(noStop.errors.join('\n')).toMatch(/stop node no-such-node is missing/);
+    const notTerminal = nodes.map((n) => (n.id === 'exit-stop' ? { ...n, branches: [{ label: 'Loop', answer_category: 'end', next_node_id: 'exit-no-sale' }] } : n));
+    expect(validateGraph(version, notTerminal, records).errors.join('\n')).toMatch(/must be terminal/);
+    const misrouted = nodes.map((n) => (n.id === 'cold-open' ? { ...n, branches: n.branches.map((b) => (b.answer_category === 'opt_out' ? { ...b, next_node_id: 'exit-no-sale' } : b)) } : n));
+    expect(validateGraph(version, misrouted, records).errors.join('\n')).toMatch(/cold-open routes opt_out to exit-no-sale/);
+  });
+
+  it('B-10 / B-6: validateGraph rejects undeclared spoken slots and unsatisfiable transitions', () => {
+    const fit = nodeById(nodes, 'pitch-fit')!;
+    expect(fit.required_context).toContain('{key_pillar}');
+    expect(slotsIn(fit.mirror_variants.join(' '))).toContain('key_pillar');
+    const undeclared = nodes.map((n) => (n.id === 'pitch-fit' ? { ...n, required_context: n.required_context.filter((r) => r !== '{key_pillar}') } : n));
+    expect(validateGraph(version, undeclared, records).errors.join('\n')).toMatch(/pitch-fit speaks undeclared slot \{key_pillar\}/);
+    const unsatisfiable = nodes.map((n) => (n.id === 'emotional-prevented-shifted' ? { ...n, satisfied_by_facts: [] } : n));
+    expect(validateGraph(version, unsatisfiable, records).errors.join('\n')).toMatch(/emotional-prevented-shifted.*can never be/);
+  });
+
+  it('B-4: the concern-certainty mirrors seek the same answer type (certainty + the evidence that resolves it)', () => {
+    const node = nodeById(nodes, 'concern-certainty')!;
+    for (const m of node.mirror_variants) {
+      expect(m, m).toMatch(/\?$/);
+      expect(m.toLowerCase(), m).not.toMatch(/why this has not been fixed|never comes/);
+      expect(m.toLowerCase(), m).toMatch(/certainty|in writing|safe first step|pilot|acceptance/);
+    }
   });
 
   it('declined is an accepted branch on the decision-history and price nodes', () => {
@@ -269,5 +393,18 @@ describe('publication + hash', () => {
     expect(version.immutable).toBe(false); // input untouched
     const tampered = { ...p1, nodes: p1.nodes.map((n, i) => (i === 0 ? { ...n, primary_word_track: 'x' } : n)) };
     expect(verifyPublication(tampered)).toBe(false);
+  });
+
+  it('B-5: publishing freezes wording only — 51 draft nodes stay draft and the snapshot is a "frozen draft"', () => {
+    const pub = publishVersion(version, nodes, { publishedAt: '2026-09-10T00:00:00.000Z' });
+    expect(pub.nodes.every((n) => n.approval.status === 'draft')).toBe(true);
+    const approval = publicationApproval(pub);
+    expect(approval.label).toBe('frozen draft');
+    expect(approval.counts).toEqual({ draft: 51, reviewed: 0, published: 0, retired: 0 });
+    expect(approval.name).toMatch(/^Frozen draft: wording is frozen but nodes are not approved/);
+    const allPublished = { ...pub, nodes: pub.nodes.map((n) => ({ ...n, approval: { status: 'published' as const } })) };
+    expect(publicationApproval(allPublished).label).toBe('published');
+    const mixed = { ...pub, nodes: pub.nodes.map((n, i) => (i === 0 ? { ...n, approval: { status: 'reviewed' as const } } : n)) };
+    expect(publicationApproval(mixed).label).toBe('frozen mixed');
   });
 });

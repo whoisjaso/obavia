@@ -127,6 +127,12 @@ export const ScriptVersion = z.object({
   published_at: z.string().optional(),
   immutable: z.boolean(),
   price_placement: PricePlacement,
+  /**
+   * Additive (M-script, review finding B-1): the node every opt-out routes to. The engine adds an
+   * implicit `opt_out` branch to EVERY node of the version (global stop rule); `validateGraph`
+   * asserts the node exists, is terminal and sits in the exit stage. Defaults to "exit-stop".
+   */
+  stop_node_id: z.string().optional(),
 });
 export type ScriptVersion = z.infer<typeof ScriptVersion>;
 

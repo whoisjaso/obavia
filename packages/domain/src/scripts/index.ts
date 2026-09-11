@@ -11,7 +11,7 @@
  * - immutable publication with a real SHA-256 content hash (pure implementation, no deps);
  * - own-words WordTrackVariant helpers that never touch primary_word_track (scenario 29).
  */
-import type { SourceQuestionRecord } from '../schemas/sources';
+import type { SourceQuestionRecord, UseClassification } from '../schemas/sources';
 import type { OfferVersion } from '../schemas/offers';
 import type { AssistanceMode } from '../schemas/practice';
 import {
@@ -61,6 +61,33 @@ export function stageLabel(stage: string): string {
 
 export const ENTRYPOINTS: readonly ScriptEntrypoint[] = ScriptEntrypoint.options;
 
+// ------------------------------------------------------------------ classification glyphs
+
+export interface ClassificationGlyph {
+  glyph: string;
+  /** ≤2 visible words. */
+  word: string;
+  /** The whole truth, for the accessible name (DESIGN_SYSTEM §0.6). */
+  name: string;
+  tone: 'teal' | 'orange' | 'purple';
+  /** True only for `adapt` — the only classification a live node may cite. */
+  liveEligible: boolean;
+}
+
+/** Glyph + accessible meaning for a source record's use classification (never an approval). */
+export function classificationGlyph(c: UseClassification): ClassificationGlyph {
+  switch (c) {
+    case 'adapt':
+      return { glyph: '◔', word: 'Adapt', name: 'Adapt — study material a live node may cite in its own words; not live approval', tone: 'teal', liveEligible: true };
+    case 'study_only':
+      return { glyph: '⊘', word: 'Study only', name: 'Study only — readable for study; never a live recommendation and never cited by a live node', tone: 'orange', liveEligible: false };
+    case 'private_training':
+      return { glyph: '◌', word: 'Private', name: 'Private training — may be cited only by a practice-only node; never live', tone: 'purple', liveEligible: false };
+    default:
+      return { glyph: '?', word: String(c), name: `Unknown classification ${String(c)}`, tone: 'orange', liveEligible: false };
+  }
+}
+
 // ------------------------------------------------------------------ graph
 
 export interface VersionGraph {
@@ -101,18 +128,58 @@ export function entryNode(version: ScriptVersion, nodes: readonly ScriptNode[], 
 }
 
 export interface BranchResolution {
-  branch: ScriptBranch;
+  branch: EffectiveBranch;
   /** Null = end of sequence / hand back to human. */
   next: ScriptNode | null;
 }
 
-/** Resolve a branch by answer category. Undefined when the node has no such branch. */
+// ------------------------------------------------------------------ global stop rule (B-1)
+
+/** The answer category that always means "stop now". */
+export const STOP_ANSWER_CATEGORY = 'opt_out' as const;
+/** Node id used when a version does not declare `stop_node_id`. */
+export const DEFAULT_STOP_NODE_ID = 'exit-stop' as const;
+/** Label of the implicit branch the engine adds to every node. */
+export const GLOBAL_STOP_BRANCH_LABEL = 'Asks to stop' as const;
+export const GLOBAL_STOP_BRANCH_NOTE = 'Global stop rule: an opt-out from any node goes straight to the stop node and the call ends.' as const;
+
+/** A node branch plus whether the engine synthesised it (the global opt-out route). */
+export interface EffectiveBranch extends ScriptBranch {
+  implicit?: boolean;
+}
+
+export function stopNodeId(version?: Pick<ScriptVersion, 'stop_node_id'> | null): string {
+  return version?.stop_node_id ?? DEFAULT_STOP_NODE_ID;
+}
+
+/** The stop node of a version (undefined only on an invalid graph — validateGraph reports it). */
+export function stopNode(version: Pick<ScriptVersion, 'stop_node_id'> | null | undefined, nodes: readonly ScriptNode[]): ScriptNode | undefined {
+  return nodeById(nodes, stopNodeId(version));
+}
+
+/**
+ * The branches a node really offers: its own, plus — unless the node IS the stop node or already
+ * routes `opt_out` explicitly — an implicit `opt_out → stop node` branch (brief scenario 40:
+ * "caller asks to stop: stop immediately", from EVERY node).
+ */
+export function effectiveBranches(node: ScriptNode, version?: Pick<ScriptVersion, 'stop_node_id'> | null): EffectiveBranch[] {
+  const stopId = stopNodeId(version);
+  const own: EffectiveBranch[] = node.branches.map((b) => ({ ...b }));
+  if (node.id === stopId || own.some((b) => b.answer_category === STOP_ANSWER_CATEGORY)) return own;
+  return [...own, { label: GLOBAL_STOP_BRANCH_LABEL, answer_category: STOP_ANSWER_CATEGORY, next_node_id: stopId, note: GLOBAL_STOP_BRANCH_NOTE, implicit: true }];
+}
+
+/**
+ * Resolve a branch by answer category. `opt_out` resolves from every node (global stop rule).
+ * Undefined when the node has no such branch.
+ */
 export function nextNodeForBranch(
   node: ScriptNode,
   answerCategory: string,
   nodes: readonly ScriptNode[],
+  version?: Pick<ScriptVersion, 'stop_node_id'> | null,
 ): BranchResolution | undefined {
-  const branch = node.branches.find((b) => b.answer_category === answerCategory);
+  const branch = effectiveBranches(node, version).find((b) => b.answer_category === answerCategory);
   if (!branch) return undefined;
   const next = branch.next_node_id === null ? null : (nodeById(nodes, branch.next_node_id) ?? null);
   return { branch, next };
@@ -135,23 +202,40 @@ export interface EvidenceCheck {
   satisfied: boolean;
   matched: string[];
   missing: string[];
-  /** Transition sentence offered instead of asking twice; null when not satisfied. */
+  /**
+   * The line to SAY instead of asking twice — the quoted sentence inside `facts_already_known_rule`,
+   * with slots resolved. Null when the node is not satisfied, or when the rule gives guidance but no
+   * spoken line (then `rule` is the instruction to follow).
+   */
   transition: string | null;
+  /** The node's full facts-already-known rule (instruction for the rep), null when not satisfied. */
+  rule: string | null;
+}
+
+const DEFAULT_KNOWN_RULE = 'Already answered — offer a transition instead of asking again.';
+
+/** The spoken transition inside a facts-already-known rule: the first double-quoted sentence, if any. */
+export function transitionLineOf(rule: string | undefined): string | null {
+  if (!rule) return null;
+  const m = /[“"]([^”"]{8,})[”"]/.exec(rule);
+  return m?.[1]?.trim() ?? null;
 }
 
 /**
  * A node is evidence-satisfied when every key in `satisfied_by_facts` has a non-empty value in
- * `knownFacts`. Nodes without `satisfied_by_facts` are never auto-satisfied.
+ * `knownFacts`. Nodes without `satisfied_by_facts` are never auto-satisfied. When satisfied, the
+ * spoken transition is the quoted line of the rule (never the rule sentence itself — B-11).
  */
 export function isEvidenceSatisfied(node: ScriptNode, knownFacts: KnownFacts): EvidenceCheck {
   const keys = node.satisfied_by_facts ?? [];
-  if (keys.length === 0) return { satisfied: false, matched: [], missing: [], transition: null };
+  if (keys.length === 0) return { satisfied: false, matched: [], missing: [], transition: null, rule: null };
   const matched = keys.filter((k) => (knownFacts[k] ?? '').trim().length > 0);
   const missing = keys.filter((k) => !matched.includes(k));
-  if (missing.length > 0) return { satisfied: false, matched, missing, transition: null };
-  const rule = node.facts_already_known_rule ?? 'Already answered — offer a transition instead of asking again.';
-  const { text } = resolveSlots(rule, { knownFacts });
-  return { satisfied: true, matched, missing, transition: text };
+  if (missing.length > 0) return { satisfied: false, matched, missing, transition: null, rule: null };
+  const rule = node.facts_already_known_rule ?? DEFAULT_KNOWN_RULE;
+  const quoted = transitionLineOf(node.facts_already_known_rule);
+  const transition = quoted ? resolveSlots(quoted, { knownFacts }).text : null;
+  return { satisfied: true, matched, missing, transition, rule };
 }
 
 // ------------------------------------------------------------------ slots
@@ -162,12 +246,26 @@ export function slotName(slot: string): string {
   return slot.replace(/^\{|\}$/g, '');
 }
 
+/** Slot names (without braces or `|` modifiers) used in a template, in order of appearance. */
+export function slotsIn(template: string): string[] {
+  return [...template.matchAll(SLOT_RE)].map((m) => (m[1] ?? '').split('|')[0] ?? '');
+}
+
 export function slotLabel(name: string): string {
   return name.replace(/\|.*$/, '').replace(/_/g, ' ');
 }
 
 export const PRICE_NOT_APPROVED_CUE = 'Price not approved yet — route to scope conversation' as const;
 export const FICTIONAL_PRICE_CUE = 'Fictional offer — not a real quote; no price may be spoken' as const;
+/** Prefix of the cue shown for a pillar slot while the linked offer is not published (B-2). */
+export const OFFER_NOT_APPROVED_CUE = 'Offer not approved' as const;
+
+/** Slot names only the offer object may fill — never a confirmed "fact" (B-3). */
+export const OFFER_SLOT_RE = /^(approved_price|pillar_[123]_(name|delivery))$/;
+
+export function isOfferSlot(name: string): boolean {
+  return OFFER_SLOT_RE.test(name);
+}
 
 export interface SlotResolution {
   text: string;
@@ -184,9 +282,10 @@ export interface SlotContext {
 
 /**
  * Resolve `{slot}` placeholders. Facts come only from `knownFacts`; offer attributes
- * (pillar_N_name, pillar_N_delivery, approved_price) come only from the offer, and the price only
- * from a PUBLISHED, non-fictional offer with a complete price. Everything else renders a visible
- * "[missing: …]" cue. Never invents a value.
+ * (pillar_N_name, pillar_N_delivery, approved_price) come ONLY from a PUBLISHED offer — a known
+ * fact under an offer slot name is ignored (B-3), and a draft/reviewed offer's pillar wording is
+ * never spoken (B-2). The price additionally needs a non-fictional offer with a complete price.
+ * Everything else renders a visible "[missing: …]" cue. Never invents a value.
  */
 export function resolveSlots(template: string, ctx: SlotContext): SlotResolution {
   const facts = ctx.knownFacts ?? {};
@@ -195,8 +294,6 @@ export function resolveSlots(template: string, ctx: SlotContext): SlotResolution
   const notes: string[] = [];
   const text = template.replace(SLOT_RE, (_m, raw: string) => {
     const name = raw.split('|')[0] ?? raw;
-    const fact = facts[name];
-    if (fact !== undefined && fact.trim().length > 0) return fact;
 
     if (name === 'approved_price') {
       if (offer && (offer.fictional || offer.practice_only)) {
@@ -214,13 +311,19 @@ export function resolveSlots(template: string, ctx: SlotContext): SlotResolution
     }
 
     const pillar = /^pillar_([123])_(name|delivery)$/.exec(name);
-    if (pillar && offer) {
-      const p = offer.pillars[Number(pillar[1]) - 1];
-      if (p) {
-        if (offer.status !== 'published') notes.push(`Offer "${offer.name}" is ${offer.status} — pillar wording is unapproved.`);
-        return pillar[2] === 'name' ? p.name : p.delivery;
+    if (pillar) {
+      const p = offer?.pillars[Number(pillar[1]) - 1];
+      if (offer && p && offer.status === 'published') return pillar[2] === 'name' ? p.name : p.delivery;
+      missing.push(name);
+      if (offer && p) {
+        notes.push(`${OFFER_NOT_APPROVED_CUE}: "${offer.name}" is ${offer.status} — pillar wording is not spoken until the offer is published.`);
+        return `[${OFFER_NOT_APPROVED_CUE}: ${slotLabel(name)}]`;
       }
+      return `[missing: ${slotLabel(name)}]`;
     }
+
+    const fact = facts[name];
+    if (fact !== undefined && fact.trim().length > 0) return fact;
 
     missing.push(name);
     return `[missing: ${slotLabel(name)}]`;
@@ -235,6 +338,8 @@ export interface NodeCardBranch {
   answer_category: string;
   next_node_id: string | null;
   note?: string;
+  /** True for the engine-added global opt-out route (B-1). */
+  implicit?: boolean;
 }
 
 export interface NodeCard {
@@ -264,6 +369,8 @@ export interface RenderOptions extends SlotContext {
   assistanceMode?: AssistanceMode;
   /** For recall_with_reveal: true once the user has chosen to reveal the line. */
   revealed?: boolean;
+  /** The owning version (for its `stop_node_id`); defaults to the "exit-stop" convention. */
+  version?: Pick<ScriptVersion, 'stop_node_id'> | null;
 }
 
 /**
@@ -298,7 +405,13 @@ export function renderNodeCard(node: ScriptNode, opts: RenderOptions = {}): Node
     what_to_listen_for: node.what_to_listen_for,
     mirror_if_unclear: mirrors.map((m) => m.text),
     tone_pacing: { label: 'instructor-described', ...node.delivery_overlay },
-    next_branches: node.branches.map((b) => ({ label: b.label, answer_category: b.answer_category, next_node_id: b.next_node_id, ...(b.note ? { note: b.note } : {}) })),
+    next_branches: effectiveBranches(node, opts.version).map((b) => ({
+      label: b.label,
+      answer_category: b.answer_category,
+      next_node_id: b.next_node_id,
+      ...(b.note ? { note: b.note } : {}),
+      ...(b.implicit ? { implicit: true } : {}),
+    })),
     missing_slots: say.missing,
     routing_notes: [...new Set(routing)],
     evidence,
@@ -349,7 +462,11 @@ export interface GraphValidation {
  * Validate a version against its nodes and the source records:
  * exactly 51 nodes, unique ids, node_ids ↔ nodes agree, citations resolve, no study_only in
  * primary citations, private_training only on practice_only nodes, closed graph, all six
- * entrypoints present, no orphan nodes, everything reachable from an entry, known stages.
+ * entrypoints present, no orphan nodes, everything reachable from an entry, known stages,
+ * the global stop rule (stop node exists, is terminal, sits in the exit stage, is not practice-only,
+ * and every explicit opt_out branch routes to it — B-1), and slot hygiene: every slot spoken in the
+ * primary line or a mirror is declared in required_context (B-10), and every slot in a
+ * facts-already-known transition line is declared or is one of the satisfying facts (B-6).
  */
 export function validateGraph(
   version: ScriptVersion,
@@ -412,6 +529,40 @@ export function validateGraph(
     for (const b of n.branches) if (b.next_node_id && !reachable.has(b.next_node_id)) stack.push(b.next_node_id);
   }
   for (const id of ids) if (!reachable.has(id)) errors.push(`node ${id} is unreachable from every entrypoint`);
+
+  // Global stop rule (B-1).
+  const stopId = stopNodeId(version);
+  const stop = nodeById(own, stopId);
+  if (!stop) errors.push(`stop node ${stopId} is missing — opt-out cannot reach a stop from every node`);
+  else {
+    if (stop.stage !== 'exit') errors.push(`stop node ${stopId} must be in the exit stage (found "${stop.stage}")`);
+    if (stop.practice_only) errors.push(`stop node ${stopId} must not be practice_only`);
+    if (stop.branches.some((b) => b.next_node_id !== null)) errors.push(`stop node ${stopId} must be terminal (every branch → null)`);
+  }
+  for (const n of own) {
+    for (const b of n.branches) {
+      if (b.answer_category === STOP_ANSWER_CATEGORY && b.next_node_id !== stopId) errors.push(`node ${n.id} routes opt_out to ${b.next_node_id ?? 'null'} instead of the stop node ${stopId}`);
+    }
+    if (stop && n.id !== stopId) {
+      const res = nextNodeForBranch(n, STOP_ANSWER_CATEGORY, own, version);
+      if (res?.next?.id !== stopId) errors.push(`node ${n.id} cannot reach the stop node on opt_out`);
+    }
+  }
+
+  // Slot hygiene (B-6, B-10).
+  for (const n of own) {
+    const declared = new Set(n.required_context.map(slotName));
+    const satisfying = new Set(n.satisfied_by_facts ?? []);
+    const spoken = [n.primary_word_track, ...n.mirror_variants].flatMap(slotsIn);
+    for (const slot of new Set(spoken)) if (!declared.has(slot)) errors.push(`node ${n.id} speaks undeclared slot {${slot}} (add it to required_context)`);
+    const transition = transitionLineOf(n.facts_already_known_rule);
+    if (transition) {
+      for (const slot of new Set(slotsIn(transition))) {
+        if (!declared.has(slot) && !satisfying.has(slot)) errors.push(`node ${n.id} transition uses {${slot}} which is neither declared nor a satisfying fact — the transition can never be spoken`);
+      }
+      if (satisfying.size === 0) errors.push(`node ${n.id} declares a transition line but no satisfied_by_facts — it can never be evidence-satisfied`);
+    }
+  }
 
   return {
     ok: errors.length === 0,
@@ -562,6 +713,34 @@ export function publishVersion(
     content_hash: hash,
     published_at: publishedAt,
   });
+}
+
+/** How a publication should be labelled: wording is frozen, but approval is whatever the nodes say (B-5). */
+export type PublicationLabel = 'frozen draft' | 'published' | 'frozen mixed';
+
+export interface PublicationApproval {
+  label: PublicationLabel;
+  /** Nodes by approval status inside the snapshot. */
+  counts: Record<ScriptNode['approval']['status'], number>;
+  /** The whole truth for an accessible name. */
+  name: string;
+}
+
+/**
+ * A publication freezes WORDING only. Nodes keep their recorded approval: when every node is still
+ * draft the snapshot is a "frozen draft"; only when every node is published is it "published".
+ */
+export function publicationApproval(pub: Pick<ScriptPublication, 'nodes' | 'content_hash'>): PublicationApproval {
+  const counts: PublicationApproval['counts'] = { draft: 0, reviewed: 0, published: 0, retired: 0 };
+  for (const n of pub.nodes) counts[n.approval.status] += 1;
+  const total = pub.nodes.length;
+  const label: PublicationLabel = counts.draft === total ? 'frozen draft' : counts.published === total ? 'published' : 'frozen mixed';
+  const parts = (Object.keys(counts) as (keyof typeof counts)[]).filter((k) => counts[k] > 0).map((k) => `${counts[k]} ${k}`);
+  const name =
+    label === 'published'
+      ? `Published: wording frozen and every node approved (${total} nodes) · ${pub.content_hash.slice(0, 12)}`
+      : `${label === 'frozen draft' ? 'Frozen draft' : 'Frozen, mixed approval'}: wording is frozen but nodes are not approved for live use (${parts.join(', ')}) · ${pub.content_hash.slice(0, 12)}`;
+  return { label, counts, name };
 }
 
 /** True when a publication's stored hash matches its content (tamper check). */

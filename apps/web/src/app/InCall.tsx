@@ -5,7 +5,7 @@ import type { Attempt, ListenerAction, QueueItem, ScriptNode, ScriptVersion, Tra
 import { loadVersionGraph, stageLabel } from '@apohenia/domain/scripts';
 import { analyzeCall, pinPhrase, resolvePins, unpinPhrase } from '@apohenia/domain/vocabulary';
 import { formatClock, knownFactsFor, nextScriptNodeHint } from '@apohenia/domain/dialer';
-import { Avatar, Card, Chip, IconButton, LineCard, RefCard, Sheet, Tile, TileGrid, WordCard } from '@/components/ui';
+import { Avatar, Card, Chip, DemoPill, IconButton, LineCard, RefCard, Sheet, Tile, TileGrid, WordCard } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import {
   EMPTY_IN_CALL,
@@ -81,7 +81,8 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
   const analysis = useMemo(() => analyzeCall(played, { clarified: st.clarified }), [played, st.clarified]);
   const resolved = useMemo(() => resolvePins(st.pins, analysis.ranked), [st.pins, analysis.ranked]);
   const listener = useMemo(() => listenerOver(played, transcript?.call_id ?? attempt.id, st.ref_actions), [played, transcript?.call_id, attempt.id, st.ref_actions]);
-  const facts = useMemo(() => ({ ...recordFacts, ...toKnownFacts(analysis.facts) }), [recordFacts, analysis.facts]);
+  // Record facts (first name, dealership) win — they are what you say on the phone; transcript facts fill the rest (their word, stated problem…).
+  const facts = useMemo(() => ({ ...toKnownFacts(analysis.facts), ...recordFacts }), [recordFacts, analysis.facts]);
   const byId = useMemo(() => candidateById(analysis.ranked), [analysis.ranked]);
 
   // Persist stable pin slots as turns arrive (slots never reshuffle; the resolved order is the truth).
@@ -294,7 +295,8 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
       </div>
 
       {/* header */}
-      <div className={styles.callHead}>
+      <div className={styles.callHead} data-topbar>
+        <DemoPill compact />
         <Avatar name={item.contact} size={40} />
         <div className={styles.callWho}>
           <span className={styles.callName}>{item.contact}</span>

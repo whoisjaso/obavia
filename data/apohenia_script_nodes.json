@@ -68,7 +68,8 @@
       ],
       "status": "draft",
       "immutable": false,
-      "price_placement": "after_pillars"
+      "price_placement": "after_pillars",
+      "stop_node_id": "exit-stop"
     }
   ],
   "nodes": [
@@ -1404,7 +1405,10 @@
         "Skip when {shift_reason} is already known."
       ],
       "why_this_now": "What prevented / what shifted is the source's way to hear the future objection before the pitch (E03–E04); when the reason is plausible, the reviewed call moves on instead of insisting (A13).",
-      "what_to_listen_for": "A constraint that is still present (budget, staffing, authority) — route to diagnosis, not to a pep talk."
+      "what_to_listen_for": "A constraint that is still present (budget, staffing, authority) — route to diagnosis, not to a pep talk.",
+      "satisfied_by_facts": [
+        "shift_reason"
+      ]
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -2333,7 +2337,8 @@
       "intended_answer_type": "The prospect's own fit assessment, their reason, and the pillar they value most (their words).",
       "required_context": [
         "{dealership_name}",
-        "{stated_goal}"
+        "{stated_goal}",
+        "{key_pillar}"
       ],
       "sufficient_answer_examples": [
         "Yes — the named handoff is the piece; the rest we could almost do ourselves.",
@@ -2791,7 +2796,7 @@
       "facts_already_known_rule": "If the prospect already named what evidence would satisfy them, offer exactly that and nothing more.",
       "mirror_variants": [
         "What would you need to see in writing to feel this was a safe first step?",
-        "Could that be why this has not been fixed before now — waiting for certainty that never comes?"
+        "Is it certainty that this would work here that you’d want first — and what would show you that: a bounded pilot, or the acceptance tests written down before anything starts?"
       ],
       "bridge_template": "{ack} — you mentioned {referent}. {question}",
       "delivery_overlay": {

@@ -8,7 +8,6 @@ import {
   OFFSET_CONVENTION,
   SOURCE_ONLY_NOTICE,
   TEMPLATE_LABEL,
-  classificationLabel,
   counterpartsFor,
   deliveryCueNote,
   excerptLabel,
@@ -20,8 +19,11 @@ import {
   ownScriptCounterparts,
   sourceLabel,
 } from '@apohenia/domain/sources';
-import { Badge, Card, PageHeader, Stack } from '@/components/ui';
+import { classificationGlyph } from '@apohenia/domain/scripts';
+import { statusGlyph } from '@apohenia/domain/offers';
+import { Card, Chip, GlyphPill, IconButton, TopBar } from '@/components/ui';
 import styles from '../sources.module.css';
+import { RecordInfo } from './RecordInfo';
 
 interface Params {
   id: string;
@@ -39,8 +41,10 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 }
 
 /**
- * Owner: M-sources. One curated source study record. Server component; no client state is
- * needed — every control is a link, so the page is keyboard operable by construction.
+ * Owner: M-script (v2). One curated source study record as a full-screen card: the unchanged
+ * excerpt is the hero text; offsets, the verification-pending glyph, the classification glyph
+ * (study_only = ⊘ with its full accessible text), the normalized template, purpose, delivery cue,
+ * own-script counterparts and prev/next. Server component — every control is a link.
  */
 export default async function SourceRecordPage({ params }: { params: Promise<Params> }) {
   const { id } = await params;
@@ -52,197 +56,106 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
   const { prev, next } = neighbours(record.id, index);
   const counterparts = counterpartsFor(record.id, ownScriptCounterparts(undefined, index));
   const liveEligible = isLiveEligibleForCitation(record);
-  const classificationVariant = liveEligible ? 'neutral' : 'warning';
+  const g = classificationGlyph(record.use_classification);
+  const definition = CLASSIFICATION_DEFINITIONS[record.use_classification];
 
   return (
-    <>
-      <p className={styles.crumb}>
-        <Link href="/sources">← Source library</Link> · {sourceLabel(record.source)} · {record.section_id} {record.section_title}
-      </p>
-      <PageHeader
-        title={`${record.id} — ${record.title}`}
-        purpose="One curated study record: normalized template, instructor's intended purpose, described delivery cue, use classification, exact reference and the unchanged excerpt — study material, never live approval."
-        aside={
-          <Badge variant={classificationVariant} title={CLASSIFICATION_DEFINITIONS[record.use_classification]}>
-            {classificationLabel(record.use_classification)}
-          </Badge>
+    <div className={styles.root} data-record={record.id} data-live-eligible={liveEligible ? 'yes' : 'no'}>
+      <h1 className="sr-only">
+        {record.id} — {record.title}
+      </h1>
+      <TopBar
+        left={<IconButton icon="arrow-left" label="Back to the Source Library" href="/sources" data-back />}
+        center={<Chip static label={record.id} name={`Record ${record.id}`} className={styles.mono} />}
+        right={
+          <>
+            <RecordInfo rows={[...DELIVERY_OVERLAY_TABLE]} note={DELIVERY_OVERLAY_NOTE} />
+          </>
         }
       />
 
-      <Stack gap={5}>
-        {liveEligible ? null : (
-          <p className={`${styles.notice} ${styles.sourceOnly}`} role="note" data-source-only-notice>
-            <span className={styles.noticeGlyph} aria-hidden="true">
-              !
-            </span>
-            <span>
-              <span className={styles.noticeStrong}>{SOURCE_ONLY_NOTICE}.</span> {CLASSIFICATION_DEFINITIONS[record.use_classification]}
-            </span>
-          </p>
-        )}
+      <div className={styles.row}>
+        <GlyphPill glyph={g.glyph} label={g.word} tone={g.tone} name={liveEligible ? `${g.name}. ${definition}` : `${SOURCE_ONLY_NOTICE}. ${definition}`} data-classification={record.use_classification} {...(liveEligible ? {} : { 'data-source-only-notice': '' })} />
+        <Chip static label={sourceLabel(record.source)} name={sourceLabel(record.source)} />
+        <Chip static label={record.section_id} name={`Section ${record.section_id} — ${record.section_title}${section && !section.records_supplied ? ' (named only; no records supplied)' : ''}`} className={styles.mono} />
+        <Chip static label={record.family} name={`Family ${record.family} — ${familyLabel(record.family)}`} className={styles.mono} />
+      </div>
 
-        <div className={styles.detailGrid}>
-          <Stack gap={5}>
-            <Card title="Normalized template">
-              <div className={styles.templateLabel} style={{ marginBottom: 'var(--space-2)' }}>
-                {TEMPLATE_LABEL}
-              </div>
-              <p className={styles.templateLarge} data-template>
-                {record.template}
-              </p>
-            </Card>
+      <p className={styles.recordHeading}>{record.title}</p>
 
-            <Card title="Instructor's intended purpose">
-              <p>{record.purpose}</p>
-            </Card>
-
-            <Card title="Unchanged source excerpt">
-              <p className={styles.excerptLabel} data-excerpt-label>
-                {excerptLabel(record)}
-              </p>
-              <blockquote className={styles.excerpt} data-excerpt lang="en">
-                {record.excerpt}
-              </blockquote>
-              <p className={styles.muted} style={{ marginTop: 'var(--space-3)' }}>
-                Copied unchanged from the supplied question bank (markdown line {record.markdown_line}); {record.excerpt_length} code points, claimed{' '}
-                {record.claimed_length}
-                {record.length_matches_offsets ? ' — lengths agree with the offsets.' : ' — length does not match the offsets; shown as supplied.'}
-                {record.source === 'A' && record.family === 'V'
-                  ? ' The reviewed call uses ">>" turn markers; speakers are not diarized and none is named here.'
-                  : ''}
-              </p>
-            </Card>
-
-            <Card title="Own-script counterpart">
-              {counterparts.length === 0 ? (
-                <p className={styles.muted} data-counterparts="none">
-                  None yet. No own-script node cites {record.id}
-                  {liveEligible ? '.' : ' — and a live node must not, because it is not live-eligible.'}
-                </p>
-              ) : (
-                <ol className={styles.counterpartList} data-counterparts={counterparts.length}>
-                  {counterparts.map((c) => (
-                    <li key={c.node_id}>
-                      <Link href={`/scripts?node=${encodeURIComponent(c.node_id)}`}>{c.node_id}</Link> · stage {c.stage} ·{' '}
-                      <Badge variant={c.approval_status === 'published' ? 'success' : 'warning'}>{c.approval_status}</Badge>
-                      {c.practice_only ? <> <Badge variant="info">practice only</Badge></> : null}
-                      {c.citation_warning ? (
-                        <>
-                          {' '}
-                          <Badge variant="warning">{c.citation_warning}</Badge>
-                        </>
-                      ) : null}
-                    </li>
-                  ))}
-                </ol>
-              )}
-              <p className={styles.muted} style={{ marginTop: 'var(--space-3)' }}>
-                Own-script lines are Apohenia&apos;s original wording citing this record id; they are never shown as source quotes.
-              </p>
-            </Card>
-          </Stack>
-
-          <Stack gap={5}>
-            <Card title="Use classification">
-              <p>
-                <Badge variant={classificationVariant}>{classificationLabel(record.use_classification)}</Badge>
-              </p>
-              <p style={{ marginTop: 'var(--space-2)' }}>{CLASSIFICATION_DEFINITIONS[record.use_classification]}</p>
-              <p className={styles.muted} style={{ marginTop: 'var(--space-2)' }} data-live-eligible={liveEligible ? 'yes' : 'no'}>
-                Live-eligible for citation: {liveEligible ? 'yes (adapt — still requires an approved own-script line)' : 'no'}
-              </p>
-            </Card>
-
-            <Card title="Delivery described in source">
-              <p>
-                <span className={styles.mono}>{record.delivery}</span>
-              </p>
-              <p className={styles.muted} style={{ marginTop: 'var(--space-2)' }}>
-                {deliveryCueNote(record.delivery)}
-              </p>
-            </Card>
-
-            <Card title="Reference">
-              <dl className={styles.dl}>
-                <dt>Source</dt>
-                <dd>{sourceLabel(record.source)}</dd>
-                <dt>Section</dt>
-                <dd>
-                  {record.section_id} · {record.section_title}
-                  {section && !section.records_supplied ? (
-                    <>
-                      {' '}
-                      <Badge variant="warning">no records supplied</Badge>
-                    </>
-                  ) : null}
-                </dd>
-                <dt>Family</dt>
-                <dd>
-                  {record.family} · {familyLabel(record.family)}
-                </dd>
-                <dt>Original characters</dt>
-                <dd>
-                  <span className={styles.mono} data-offsets>
-                    {formatOffsets(record)}
-                  </span>{' '}
-                  — code-point offsets
-                </dd>
-                <dt>Convention</dt>
-                <dd>{OFFSET_CONVENTION}</dd>
-                <dt>Hash verified</dt>
-                <dd>{record.hash_verified ? 'yes' : 'no — raw source not supplied'}</dd>
-              </dl>
-            </Card>
-          </Stack>
+      {/* the excerpt is the hero */}
+      <Card data-excerpt-card>
+        <div className={styles.row} style={{ marginBottom: 'var(--s-3)' }}>
+          <GlyphPill glyph={record.hash_verified ? '✓' : '◔'} label={record.hash_verified ? 'Verified' : 'Pending'} tone={record.hash_verified ? 'green' : 'orange'} name={excerptLabel(record)} data-excerpt-label />
+          <Chip static label={formatOffsets(record)} name={`Original characters ${formatOffsets(record)} — ${OFFSET_CONVENTION}`} className={styles.mono} data-offsets-chip />
+          <span className="sr-only" data-offsets>
+            {formatOffsets(record)}
+          </span>
         </div>
+        <blockquote className={styles.excerpt} data-excerpt lang="en">
+          {record.excerpt}
+        </blockquote>
+        <p className={styles.small} style={{ marginTop: 'var(--s-3)' }}>
+          {record.excerpt_length} code points{record.length_matches_offsets ? '' : ' — length does not match the offsets; shown as supplied'} · line {record.markdown_line}
+          {record.source === 'A' && record.family === 'V' ? ' · reviewed call, ">>" turn markers, speakers not diarized' : ''}
+        </p>
+      </Card>
 
-        <nav className={styles.pager} aria-label="Record pager">
-          <span>
-            {prev ? (
-              <Link href={`/sources/${prev.id}`} rel="prev">
-                ← Previous: {prev.id} — {prev.title}
-              </Link>
-            ) : (
-              <span className={styles.muted}>First record</span>
-            )}
-          </span>
-          <span>
-            {next ? (
-              <Link href={`/sources/${next.id}`} rel="next">
-                Next: {next.id} — {next.title} →
-              </Link>
-            ) : (
-              <span className={styles.muted}>Last record</span>
-            )}
-          </span>
-        </nav>
+      <Card data-template-card>
+        <h2 className={styles.caption}>
+          Template <GlyphPill glyph="≈" label="Normalized" tone="neutral" name={`${TEMPLATE_LABEL} — an editorial reconstruction; the unchanged excerpt is above`} data-template-label />
+        </h2>
+        <p className={styles.templateLarge} data-template>
+          {record.template}
+        </p>
+      </Card>
 
-        <Card title="Delivery overlay (framework §11) — static reference">
-          <p className={styles.muted} style={{ marginBottom: 'var(--space-3)' }}>
-            {DELIVERY_OVERLAY_NOTE}
-          </p>
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th scope="col">Element</th>
-                  <th scope="col">A / Andrés-described emphasis</th>
-                  <th scope="col">B / Yosh-described emphasis</th>
-                </tr>
-              </thead>
-              <tbody>
-                {DELIVERY_OVERLAY_TABLE.map((row) => (
-                  <tr key={row.element}>
-                    <th scope="row">{row.element}</th>
-                    <td>{row.a_described}</td>
-                    <td>{row.b_described}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <Card>
+        <h2 className={styles.caption}>Purpose</h2>
+        <p className={styles.body}>{record.purpose}</p>
+      </Card>
+
+      <Card>
+        <h2 className={styles.caption}>
+          Delivery <GlyphPill glyph="◔" label="Described" tone="neutral" name={deliveryCueNote(record.delivery)} />
+        </h2>
+        <Chip static label={record.delivery} name={`Delivery described in source: ${record.delivery}`} className={styles.mono} />
+      </Card>
+
+      <Card data-counterparts={counterparts.length === 0 ? 'none' : counterparts.length}>
+        <h2 className={styles.caption}>
+          Own lines <GlyphPill glyph="✦" tone="purple" name="Own-script lines are Apohenia's original wording citing this record id; they are never shown as source quotes" />
+        </h2>
+        {counterparts.length === 0 ? (
+          <GlyphPill glyph="∅" label="None yet" tone="neutral" name={`No own-script node cites ${record.id}${liveEligible ? '' : ' — and a live node must not, because it is not live-eligible'}`} />
+        ) : (
+          <div className={styles.row}>
+            {counterparts.map((c) => {
+              const s = statusGlyph(c.approval_status);
+              return (
+                <Link
+                  key={c.node_id}
+                  href={`/scripts?node=${encodeURIComponent(c.node_id)}`}
+                  className={[styles.chipLink, styles.mono].join(' ')}
+                  aria-label={`${c.node_id}, stage ${c.stage}. ${s.name}.${c.practice_only ? ' Practice only.' : ''}${c.citation_warning ? ` ${c.citation_warning}` : ''} Open in the script.`}
+                  data-counterpart={c.node_id}
+                >
+                  <span aria-hidden="true">{s.glyph}</span>
+                  <span>{c.node_id}</span>
+                </Link>
+              );
+            })}
           </div>
-        </Card>
-      </Stack>
-    </>
+        )}
+      </Card>
+
+      <nav className={styles.pager} aria-label="Record pager">
+        {prev ? <IconButton icon="arrow-left" label={`Previous: ${prev.id} — ${prev.title}`} href={`/sources/${encodeURIComponent(prev.id)}`} size={56} /> : <span className={styles.pagerEnd} aria-hidden="true" />}
+        <span className={styles.pagerMid} aria-hidden="true">
+          {record.id}
+        </span>
+        {next ? <IconButton icon="arrow-right" label={`Next: ${next.id} — ${next.title}`} href={`/sources/${encodeURIComponent(next.id)}`} size={56} /> : <span className={styles.pagerEnd} aria-hidden="true" />}
+      </nav>
+    </div>
   );
 }

@@ -45,6 +45,7 @@ div.lineButton {
 .text {
   display: block;
   font-size: var(--fs-display);
+  --fs-display-long: clamp(26px, 2.6vw, 34px);
   font-weight: 700;
   line-height: var(--lh-tight);
   letter-spacing: -0.015em;
@@ -55,4 +56,10 @@ div.lineButton {
   font-size: var(--fs-body);
   color: var(--ink-2);
   line-height: var(--lh-body);
+}
+
+/* Long lines (> 24 words) step down one size so the whole line stays on one screen. */
+.long .text {
+  font-size: var(--fs-display-long);
+  letter-spacing: -0.01em;
 }

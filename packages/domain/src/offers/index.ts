@@ -7,7 +7,8 @@
  * - Status moves draft → reviewed → published → retired; a published offer is immutable.
  * - Only a published, non-fictional offer with a complete price may be quoted.
  */
-import type { ApprovalStatus } from '../schemas/scripts';
+import { z } from 'zod';
+import { ApprovalStatus } from '../schemas/scripts';
 import type { OfferPrice, OfferVersion } from '../schemas/offers';
 
 export const MODULE = 'offers' as const;
@@ -116,3 +117,64 @@ export function editOffer(offer: OfferVersion, patch: Partial<Omit<OfferVersion,
 /** Text shown wherever a blank price appears (CONVENTIONS §8). */
 export const BLANK_PRICE_NOTE =
   'A blank price is not $0. Live price and proposal actions are blocked until an offer is approved.' as const;
+
+// ------------------------------------------------------------------ single store of truth for status (B-12)
+
+/**
+ * Storage key (namespace added by `useStoredState`) under which the Offer Studio persists status
+ * changes. `/scripts` reads the SAME key so the linked offer's status (and therefore the pillar /
+ * price slot gate) is never decided by two stores.
+ */
+export const OFFER_STATUS_STORAGE_KEY = 'offers.status' as const;
+
+/** offer version id → status, as persisted by the Offer Studio. */
+export const OfferStatusMap = z.record(z.string(), ApprovalStatus);
+export type OfferStatusMap = z.infer<typeof OfferStatusMap>;
+
+export const EMPTY_OFFER_STATUS_MAP: OfferStatusMap = {};
+
+/**
+ * The offer as the Studio currently has it: the stored status wins over the seed status when it is
+ * a legal forward move (or equal); anything else is ignored so a stale/tampered store cannot move
+ * an offer backwards. Fictional / practice-only fixtures never take a stored status.
+ */
+export function withStoredStatus(offer: OfferVersion, map: Readonly<OfferStatusMap>): OfferVersion {
+  if (offer.fictional || offer.practice_only) return offer;
+  const stored = map[offer.id];
+  if (!stored || stored === offer.status) return offer;
+  return OFFER_STATUS_ORDER.indexOf(stored) > OFFER_STATUS_ORDER.indexOf(offer.status) ? { ...offer, status: stored } : offer;
+}
+
+export function applyOfferStatuses(offers: readonly OfferVersion[], map: Readonly<OfferStatusMap>): OfferVersion[] {
+  return offers.map((o) => withStoredStatus(o, map));
+}
+
+// ------------------------------------------------------------------ status glyphs (honesty pills)
+
+export interface StatusGlyph {
+  glyph: string;
+  /** ≤2 visible words. */
+  word: string;
+  /** The whole truth, for the accessible name. */
+  name: string;
+  tone: 'orange' | 'teal' | 'green' | 'neutral';
+}
+
+/** Glyph + accessible truth for an approval status, shared by offers and script nodes. */
+export function statusGlyph(status: ApprovalStatus): StatusGlyph {
+  switch (status) {
+    case 'draft':
+      return { glyph: '◔', word: 'Draft', name: 'Draft — written, not reviewed; never rendered as approved and never live', tone: 'orange' };
+    case 'reviewed':
+      return { glyph: '◑', word: 'Reviewed', name: 'Reviewed — the owner accepts the wording as a candidate; still not live', tone: 'teal' };
+    case 'published':
+      return { glyph: '✓', word: 'Published', name: 'Published — approved for live use and frozen; a change means a new version', tone: 'green' };
+    case 'retired':
+      return { glyph: '—', word: 'Retired', name: 'Retired — no longer used; kept for history, read-only', tone: 'neutral' };
+    default:
+      return { glyph: '?', word: String(status), name: `Unknown status ${String(status)}`, tone: 'neutral' };
+  }
+}
+
+/** Accessible truth behind the `—` shown for an unset price (never $0). */
+export const PRICE_NOT_SET_NAME = 'Price not set — a blank price is not $0' as const;

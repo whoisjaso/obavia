@@ -1,5 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 
+/**
+ * Offers (DESIGN_SYSTEM §3.5): cards; price `—` with the accessible name "Price not set — a blank
+ * price is not $0"; the fictional fixture carries `✦ Fictional` and lives behind the Practice
+ * chip, never in the default list (B-9: the default chip is "Offers"); status moves through a
+ * confirm sheet and is the one store /scripts reads (B-12).
+ */
+
 function trackErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('console', (msg) => {
@@ -9,71 +16,121 @@ function trackErrors(page: Page): string[] {
   return errors;
 }
 
+async function prime(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      if (sessionStorage.getItem('e2e.primed')) return;
+      sessionStorage.setItem('e2e.primed', '1');
+      for (const k of Object.keys(localStorage)) if (k.startsWith('apohenia.v1.')) localStorage.removeItem(k);
+    } catch {
+      // storage unavailable: the page still renders
+    }
+  });
+}
+
 const BANNER = 'FICTIONAL TRAINING OFFER — NOT A REAL QUOTE';
+const LIVE = '[data-offer="draft-research-offer-v0"]';
+const FIXTURE = '[data-offer="fictional-demo-inquiry-pilot"]';
 
 test.describe('offers', () => {
-  test('live list shows the draft research offer with "Not set" price and the blank-price note', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    await prime(page);
+  });
+
+  test('default list is "Offers": the draft research offer with a — price and its accessible truth; the fixture is absent', async ({ page }) => {
     const errors = trackErrors(page);
     await page.goto('/offers');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Offers');
-    await expect(page.getByRole('tab', { name: /Live offers \(1\)/ })).toHaveAttribute('aria-selected', 'true');
+    const h1 = page.locator('h1');
+    await expect(h1).toHaveText('Offers');
+    const box = await h1.boundingBox();
+    expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1);
+    const offersChip = page.locator('[data-filter="offers"]');
+    await expect(offersChip).toHaveText('Offers');
+    await expect(offersChip).toHaveAttribute('aria-pressed', 'true');
 
-    const live = page.locator('[data-offer="draft-research-offer-v0"]');
+    const live = page.locator(LIVE);
     await expect(live).toBeVisible();
     await expect(live).toHaveAttribute('data-offer-kind', 'live');
-    await expect(live.locator('[data-price-setup]')).toHaveText('Not set');
-    await expect(live.locator('[data-price-recurring]')).toHaveText('Not set');
-    await expect(live.locator('[data-blank-price-note]')).toContainText('A blank price is not $0');
     await expect(live).toHaveAttribute('data-offer-status', 'draft');
-    // Every field section is present.
-    for (const name of ['Buyer type', 'Problem', 'Prerequisites', 'Deliverables', 'Exclusions', 'Implementation dependencies', 'Supported proof', 'Approved claims', 'Three pillars', 'Price', 'Timing', 'Acceptance criteria', 'Decision roles', 'Support', 'Cancellation, exit and handoff']) {
-      await expect(live.getByRole('region', { name }).first()).toBeVisible();
-    }
-    await expect(live.getByRole('region', { name: 'Supported proof' })).toContainText('none yet');
+    await expect(live.locator('[data-status-pill="draft"]')).toHaveAttribute('aria-label', /Draft — written, not reviewed/);
+    const setup = live.locator('[data-price="setup"]');
+    await expect(setup).toHaveText('—');
+    await expect(setup).toHaveAttribute('aria-label', 'Setup: Price not set — a blank price is not $0');
+    await expect(live.locator('[data-price="recurring"]')).toHaveAttribute('aria-label', 'Recurring: Price not set — a blank price is not $0');
+    await expect(live.getByRole('list', { name: 'Three pillars' }).getByRole('listitem')).toHaveCount(3);
 
-    // The fictional fixture is not in the live tab at all.
-    await expect(page.locator('[data-offer="fictional-demo-inquiry-pilot"]')).toBeHidden();
-    await expect(page.getByText(BANNER)).toBeHidden();
+    await expect(page.locator(FIXTURE)).toHaveCount(0);
+    await expect(page.getByText(BANNER)).toHaveCount(0);
+    await expect(page.locator('table')).toHaveCount(0);
+    await expect(page.locator('[data-demo-pill]:visible')).toHaveCount(1);
     await page.waitForLoadState('networkidle');
     expect(errors).toEqual([]);
   });
 
-  test('fictional offer appears only under Practice fixtures with its banner', async ({ page }) => {
+  test('the offer sheet shows every field with h3 captions and the blank-price glyph', async ({ page }) => {
     await page.goto('/offers');
-    await page.getByRole('tab', { name: /Practice fixtures \(1\)/ }).click();
-    const fixture = page.locator('[data-offer="fictional-demo-inquiry-pilot"]');
-    await expect(fixture).toBeVisible();
-    await expect(fixture).toHaveAttribute('data-offer-kind', 'practice');
-    await expect(fixture.locator('[data-fictional-banner]')).toHaveText(BANNER);
-    await expect(fixture).toContainText('practice only · excluded from live');
-    await expect(fixture.locator('[data-price-setup]')).toHaveText('$750.00');
-    await expect(fixture.locator('[data-price-recurring]')).toHaveText('$150.00');
-    await expect(fixture).toContainText('canQuotePrice: false');
-    // No status controls on a fixture.
-    await expect(fixture.locator('[data-transition]')).toHaveCount(0);
+    await page.locator(LIVE).click();
+    const sheet = page.locator('dialog[data-sheet="offer"]');
+    await expect(sheet.locator('[data-offer-sheet="draft-research-offer-v0"]')).toBeVisible();
+    for (const name of ['Price', 'Timing', 'Pillars', 'Buyer', 'Problem', 'Prerequisites', 'Deliverables', 'Exclusions', 'Dependencies', 'Proof', 'Claims', 'Acceptance', 'Roles', 'Support', 'Exit']) {
+      await expect(sheet.getByRole('heading', { level: 3, name })).toBeVisible();
+    }
+    await expect(sheet.getByRole('heading', { level: 2 })).toHaveCount(1);
+    await expect(sheet.locator('[data-blank-price-note]')).toHaveAttribute('aria-label', /a blank price is not \$0/);
+    await expect(sheet.locator('[data-price="sheet-setup"]')).toHaveText('—');
+    await expect(sheet.getByRole('region', { name: 'Proof' })).toContainText('none yet');
   });
 
-  test('status moves draft → reviewed → published with confirmation, then is read-only', async ({ page }) => {
+  test('the fictional fixture appears only under Practice, with ✦ Fictional, its banner and no status controls', async ({ page }) => {
     await page.goto('/offers');
-    const live = page.locator('[data-offer="draft-research-offer-v0"]');
-    await live.locator('[data-transition="reviewed"]').click();
-    await expect(live).toHaveAttribute('data-offer-status', 'reviewed');
-    await live.locator('[data-transition="published"]').click();
-    const dialog = page.getByRole('dialog', { name: 'Publish this offer version?' });
-    await expect(dialog).toBeVisible();
+    await page.locator('[data-filter="practice"]').click();
+    const fixture = page.locator(FIXTURE);
+    await expect(fixture).toBeVisible();
+    await expect(fixture).toHaveAttribute('data-offer-kind', 'practice');
+    await expect(fixture.locator('[data-fictional-pill]')).toHaveAttribute('aria-label', /Fictional training content/);
+    await expect(fixture.locator('[data-price="setup"]')).toHaveText('$750.00');
+    await expect(fixture.locator('[data-price="setup"]')).toHaveAttribute('aria-label', /fictional fixture \$750\.00 — never quoted live/);
+    await expect(fixture.locator('[data-price="recurring"]')).toHaveText('$150.00');
+    await expect(page.locator(LIVE)).toHaveCount(0);
+    await fixture.click();
+    const sheet = page.locator('dialog[data-sheet="offer"]');
+    await expect(sheet.locator('[data-fictional-banner]')).toHaveText(BANNER);
+    await expect(sheet.locator('[data-practice-only]')).toBeVisible();
+    await expect(sheet.locator('[data-never-quoted]')).toHaveAttribute('aria-label', /quotable: no/);
+    await expect(sheet.locator('[data-transition]')).toHaveCount(0);
+  });
+
+  test('status moves draft → reviewed → published through a confirm sheet, then is read-only, persists, and /scripts reads it (B-12)', async ({ page }) => {
+    await page.goto('/offers');
+    await page.locator(LIVE).click();
+    const sheet = page.locator('dialog[data-sheet="offer"]');
+    await sheet.locator('[data-transition="reviewed"]').click();
+    await expect(sheet.locator('[data-sheet-status="reviewed"]')).toBeVisible();
+    await sheet.locator('[data-transition="published"]').click();
+    const confirm = page.locator('dialog[data-sheet="confirm"]');
+    await expect(confirm).toBeVisible();
+    await expect(confirm.locator('[data-confirm-caption]')).toContainText('price stays unset');
     await page.keyboard.press('Escape');
-    await expect(dialog).toBeHidden();
-    await expect(live).toHaveAttribute('data-offer-status', 'reviewed');
-    await live.locator('[data-transition="published"]').click();
-    await dialog.locator('[data-confirm-transition]').click();
-    await expect(dialog).toBeHidden();
-    await expect(live).toHaveAttribute('data-offer-status', 'published');
-    await expect(live).toContainText('read-only');
-    await expect(live.locator('[data-transition="reviewed"]')).toHaveCount(0);
-    // Price is still Not set: publishing does not invent one.
-    await expect(live.locator('[data-price-setup]')).toHaveText('Not set');
-    // Persisted.
+    await expect(confirm).toBeHidden();
+    await expect(sheet.locator('[data-sheet-status="reviewed"]')).toBeVisible();
+    await sheet.locator('[data-transition="published"]').click();
+    await confirm.locator('[data-confirm-transition]').click();
+    await expect(confirm).toBeHidden();
+    await expect(sheet.locator('[data-sheet-status="published"]')).toBeVisible();
+    await expect(sheet.locator('[data-read-only]')).toBeVisible();
+    await expect(sheet.locator('[data-transition="reviewed"]')).toHaveCount(0);
+    await expect(sheet.locator('[data-transition="retired"]')).toHaveCount(1);
+    // Publishing does not invent a price.
+    await expect(sheet.locator('[data-price="sheet-setup"]')).toHaveText('—');
+    await page.keyboard.press('Escape');
+    await expect(page.locator(LIVE)).toHaveAttribute('data-offer-status', 'published');
     await page.reload();
-    await expect(page.locator('[data-offer="draft-research-offer-v0"]')).toHaveAttribute('data-offer-status', 'published');
+    await expect(page.locator(LIVE)).toHaveAttribute('data-offer-status', 'published');
+
+    // The script screen reads the same store: the offer pill is published and pillar wording now speaks.
+    await page.goto('/scripts');
+    await expect(page.locator('[data-offer-pill="published"]')).toBeVisible();
+    await page.locator('[data-stage-rail] [data-stage="pitch"]').click();
+    await expect(page.locator('[data-node-card][data-node-id="pitch-pillar-1"] [data-primary-line]')).toContainText('Same-day inquiry response');
   });
 });

@@ -1,14 +1,17 @@
 import type { Metadata } from 'next';
 import { loadOffers, loadScriptNodes, loadSourceQuestionRecords } from '@apohenia/domain/seeds';
 import { validateGraph } from '@apohenia/domain/scripts';
-import { Badge, PageHeader } from '@/components/ui';
 import { ScriptsClient, type CitationInfo } from './ScriptsClient';
 
-export const metadata: Metadata = { title: 'Scripts' };
+export const metadata: Metadata = { title: 'Script' };
 
-/** Owner: M-script. Server component: loads seeds, validates the graph, passes plain data down. */
+/**
+ * Owner: M-script. Script stage (DESIGN_SYSTEM §3.5): a horizontal stage rail, the node lines of
+ * that stage as LineCards, a sheet per node, a publish tile. Server component: loads the seeds,
+ * validates the graph once, passes plain data down. Only the CITED records travel to the client.
+ */
 export default async function ScriptsPage({ searchParams }: { searchParams: Promise<{ node?: string | string[] }> }) {
-  // `/scripts?node=<id>` (Source Library counterpart links) opens that node. Next 16: searchParams is a Promise.
+  // `/scripts?node=<id>` (Source Library counterpart links) selects that node. Next 16: searchParams is a Promise.
   const { node } = await searchParams;
   const initialNodeId = typeof node === 'string' && node.length > 0 ? node : null;
   const seed = loadScriptNodes();
@@ -17,22 +20,26 @@ export default async function ScriptsPage({ searchParams }: { searchParams: Prom
 
   const validations = seed.versions.map((v) => ({ version_id: v.id, result: validateGraph(v, seed.nodes, records) }));
 
-  // Only the cited records travel to the client (never the whole 200 KB source package).
   const cited = new Set(seed.nodes.flatMap((n) => n.source_question_ids));
   const citations: Record<string, CitationInfo> = {};
   for (const r of records) {
-    if (cited.has(r.id)) citations[r.id] = { id: r.id, title: r.title, classification: r.use_classification, purpose: r.purpose };
+    if (!cited.has(r.id)) continue;
+    citations[r.id] = {
+      id: r.id,
+      title: r.title,
+      classification: r.use_classification,
+      purpose: r.purpose,
+      template: r.template,
+      source: r.source,
+      section_id: r.section_id,
+      section_title: r.section_title,
+      delivery: r.delivery,
+    };
   }
-
-  const placeholder = seed._status !== undefined;
 
   return (
     <>
-      <PageHeader
-        title="Scripts"
-        purpose="Own-script editor: exact primary word tracks (stable within a version), source question ids, answer objectives, mirror variants, bridges, branches and approval state — with immutable published versions."
-        aside={placeholder ? <Badge variant="warning">placeholder — to be authored</Badge> : <Badge variant="warning">All nodes draft · owner review required before live use</Badge>}
-      />
+      <h1 className="sr-only">Scripts</h1>
       <ScriptsClient
         versions={seed.versions}
         nodes={seed.nodes}
@@ -40,7 +47,7 @@ export default async function ScriptsPage({ searchParams }: { searchParams: Prom
         offers={offers}
         citations={citations}
         validations={validations}
-        placeholder={placeholder}
+        placeholder={seed._status !== undefined}
         initialNodeId={initialNodeId}
       />
     </>

@@ -33,10 +33,12 @@ function overlaps(a: Box, b: Box): boolean {
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
-/** Fresh storage + fast playback before every navigation. */
+/** Fresh storage + fast playback on the FIRST load of the page (reloads keep what the app persisted). */
 async function prime(page: Page, extra: Record<string, unknown> = {}): Promise<void> {
   await page.addInitScript((entries: Record<string, unknown>) => {
     try {
+      if (sessionStorage.getItem('e2e.primed')) return;
+      sessionStorage.setItem('e2e.primed', '1');
       for (const k of Object.keys(localStorage)) if (k.startsWith('apohenia.v1.')) localStorage.removeItem(k);
       localStorage.setItem('apohenia.v1.dial.prefs', JSON.stringify({ playback_rate: 8 }));
       for (const [k, v] of Object.entries(entries)) localStorage.setItem(`apohenia.v1.${k}`, JSON.stringify(v));
@@ -81,12 +83,16 @@ for (const vp of VIEWPORTS) {
       await expect(page.locator('[data-dial]')).toHaveAttribute('data-hydrated', 'true');
       await expectStatus(page, 'idle');
 
-      // Hero is the largest single element on the stage (by area) among visible non-container elements.
+      // Hero is the largest object on the stage: taller than the next-up strip and bigger than every other control.
       const heroBox = (await hero.boundingBox())!;
       expect(heroBox.width).toBeGreaterThanOrEqual(vp.width < 480 ? 160 : 200);
       const cardBox = (await page.locator('[data-next-up]').boundingBox())!;
-      expect(heroBox.width * heroBox.height).toBeGreaterThan(cardBox.height * cardBox.width * 0.9 || 0);
-      expect(heroBox.height).toBeGreaterThan(cardBox.height);
+      expect(heroBox.height).toBeGreaterThan(cardBox.height * 1.5);
+      for (const other of await page.locator('main button:not([data-hero]):visible, main a:visible, [data-stat]:visible, [data-avatar]:visible').all()) {
+        const b = (await other.boundingBox())!;
+        if (b.width > heroBox.width) continue; // the full-width next-up strip
+        expect(b.width * b.height).toBeLessThan(heroBox.width * heroBox.height);
+      }
 
       // Word budget: fewer than 15 visible words on the Dial idle screen (alphabetic tokens; numbers and glyphs are not words).
       const words = await page.evaluate(() => {
@@ -139,13 +145,26 @@ for (const vp of VIEWPORTS) {
       const firstContact = (await nextUp.getAttribute('data-contact-id'))!;
       expect(firstContact).toBe('ct-dana');
 
+      // Record every status transition in-page (dialing lasts ~1 s; polling could miss it).
+      await page.evaluate(() => {
+        const el = document.querySelector('[data-dial]')!;
+        const statuses: string[] = [el.getAttribute('data-status') ?? ''];
+        const captions: string[] = [];
+        new MutationObserver(() => {
+          const st = el.getAttribute('data-status') ?? '';
+          if (statuses[statuses.length - 1] !== st) statuses.push(st);
+          const cap = document.querySelector('[data-hero-caption]')?.textContent?.trim() ?? '';
+          if (cap && captions[captions.length - 1] !== cap) captions.push(cap);
+        }).observe(el, { attributes: true, subtree: true, childList: true, characterData: true });
+        (window as unknown as { __dial: { statuses: string[]; captions: string[] } }).__dial = { statuses, captions };
+      });
       await page.locator('[data-hero]').click();
       await expectStatus(page, 'arming', 3000);
       await expect(page.locator('[data-hero-caption]')).toHaveText('Cancel');
-      await expectStatus(page, 'dialing', 6000);
-      await expect(page.locator('[data-hero-caption]')).toHaveText('Dialing');
-      await expectStatus(page, 'ringing', 4000);
-      await expectStatus(page, 'connected', 6000);
+      await expectStatus(page, 'connected', 20_000);
+      const seen = await page.evaluate(() => (window as unknown as { __dial: { statuses: string[]; captions: string[] } }).__dial);
+      expect(seen.statuses).toEqual(['idle', 'arming', 'dialing', 'ringing', 'connected']);
+      expect(seen.captions.slice(0, 3)).toEqual(['Cancel', 'Dialing', 'Ringing']);
 
       // In-call appears with the entry node's primary line (slots from the record; never re-flows).
       const incall = page.locator('[data-incall]');
@@ -164,7 +183,7 @@ for (const vp of VIEWPORTS) {
       await expect(line).toHaveText(expectedEntryLine(firstContact));
       const lineAfter = (await page.locator('[data-line-card]').boundingBox())!;
       expect(Math.abs(lineAfter.y - lineBefore.y), 'the line did not move while words arrived').toBeLessThanOrEqual(1);
-      expect(lineAfter.height).toBe(lineBefore.height);
+      expect(Math.abs(lineAfter.height - lineBefore.height), 'the line card did not grow').toBeLessThanOrEqual(1);
 
       const lineBox = (await page.locator('[data-line-card]').boundingBox())!;
       const cards = [...(await wordCards.all()), ...(await refCards.all())];

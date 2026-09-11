@@ -1,205 +1,226 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { AssistanceMode, DEFAULT_ASSISTANCE_MODE, PracticeAttempt, type DrillKind, type DrillResult, type ScriptNode } from '@apohenia/domain/schemas';
-import { MODE_COPY, MODE_DESCRIPTIONS, MODE_LABELS, TONE_NOTE, attemptFromResult, isAssisted, summarizeAttempts, type BucketSummary } from '@apohenia/domain/practice';
-import { Badge, Button, Card, EmptyState, Field, Inline, Select, Stack } from '@/components/ui';
+import { MODE_COPY, NOT_A_VOICE_CALL, TONE_NOTE, attemptFromResult, summarizeAttempts, type BucketSummary } from '@apohenia/domain/practice';
+import { Chip, FictionalPill, GlyphPill, IconButton, NotAssessedGlyph, Ring, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
-import { DrillPanel, type NodeDrillKind } from './DrillPanel';
-import { MockPanel } from './MockPanel';
-import { CONVERSATION_LABEL, MEMORIZATION_LABEL, pct } from './shared';
+import { DrillScreen, type NodeDrillKind } from './DrillScreen';
+import { MockScreen } from './MockScreen';
+import { ModeControl } from './ModeControl';
+import { EmptyGlyph, TONE_NAME } from './parts';
+import { DRILLS, drillRing, modeName, pct } from './practice-lib';
 import styles from './practice.module.css';
 
 const Attempts = z.array(PracticeAttempt);
 const EMPTY_ATTEMPTS: PracticeAttempt[] = [];
 
-interface Props {
+export interface PracticeClientProps {
   nodes: ScriptNode[];
   scriptVersionId: string;
   placeholder: boolean;
 }
 
-const DRILLS: { kind: DrillKind; name: string; hint: string }[] = [
-  { kind: 'exact_recall', name: 'Exact recall', hint: 'Type the primary line word for word.' },
-  { kind: 'recall_with_reveal', name: 'Recall with reveal', hint: 'Same, with a reveal you can use.' },
-  { kind: 'order_rehearsal', name: 'Order rehearsal', hint: 'Put a stage back in sequence.' },
-  { kind: 'random_node_lookup', name: 'Random node lookup', hint: 'From the cue, find the line.' },
-  { kind: 'branch_classification', name: 'Branch classification', hint: 'Sufficient? Which branch? Or mirror?' },
-  { kind: 'mirror_duel', name: 'Mirror duel', hint: 'Same answer type, different words.' },
-  { kind: 'vocabulary_meaning', name: 'Vocabulary meaning', hint: 'Their definition or ask — never a synonym.' },
-  { kind: 'delivery_replay', name: 'Delivery replay', hint: 'Self-rated against the cues. Not measured.' },
-  { kind: 'full_mock', name: 'Full mock', hint: 'Choice-based simulation, not an AI voice call.' },
-  { kind: 'practice_this_moment', name: 'Practice this moment', hint: 'Retry a weak transition and compare.' },
-];
+/**
+ * Train (DESIGN_SYSTEM §3.4): a 5-glyph assistance control, a 2-column grid of ten drill tiles
+ * with two rings each (assisted / unassisted, from stored attempts), and one drill at a time on
+ * the same route. Attempts persist to `practice.attempts`; the mode default comes from
+ * `settings.assistance_mode` and changing it here is for this visit only (reversible).
+ */
+export function PracticeClient({ nodes, scriptVersionId, placeholder }: PracticeClientProps) {
+  const [settingsMode] = useStoredState<AssistanceMode>('settings.assistance_mode', AssistanceMode, DEFAULT_ASSISTANCE_MODE);
+  const [override, setOverride] = useState<AssistanceMode | null>(null);
+  const mode: AssistanceMode = override ?? settingsMode;
 
-export function PracticeClient({ nodes, scriptVersionId, placeholder }: Props) {
-  const [settingsMode, , settingsHydrated] = useStoredState<AssistanceMode>('settings.assistance_mode', AssistanceMode, DEFAULT_ASSISTANCE_MODE);
-  const [modeOverride, setModeOverride] = useState<AssistanceMode | null>(null);
-  const mode: AssistanceMode = modeOverride ?? settingsMode;
-
-  const [attempts, setAttempts, attemptsHydrated] = useStoredState('practice.attempts', Attempts, EMPTY_ATTEMPTS);
-  const [kind, setKind] = useState<DrillKind>('branch_classification');
-  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [attempts, setAttempts, hydrated] = useStoredState('practice.attempts', Attempts, EMPTY_ATTEMPTS);
+  const [drill, setDrill] = useState<DrillKind | null>(null);
+  const [sheet, setSheet] = useState<'none' | 'info' | 'history'>('none');
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [live, setLive] = useState('');
+  const [toast, showToast] = useToast();
 
   const summary = useMemo(() => summarizeAttempts(attempts), [attempts]);
 
-  function recordResult(result: DrillResult, nodeId?: string) {
-    const now = new Date().toISOString();
-    const attempt = attemptFromResult({
-      id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
-      mode,
-      script_version_id: scriptVersionId,
-      result,
-      started_at: now,
-      node_id: nodeId,
-    });
-    setAttempts((prev) => [...prev, attempt].slice(-200));
-    setLastSaved(`Saved attempt (${isAssisted(mode) ? 'assisted' : 'unassisted'}, ${result.kind.replace(/_/g, ' ')}).`);
+  const record = useCallback(
+    (result: DrillResult, nodeId?: string) => {
+      const now = new Date().toISOString();
+      const attempt = attemptFromResult({
+        id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+        mode,
+        script_version_id: scriptVersionId,
+        result,
+        started_at: now,
+        node_id: nodeId,
+      });
+      setAttempts((prev) => [...prev, attempt].slice(-200));
+    },
+    [mode, scriptVersionId, setAttempts],
+  );
+
+  const close = useCallback(() => setDrill(null), []);
+
+  function changeMode(next: AssistanceMode) {
+    setOverride(next);
+    setLive(`Assistance mode: ${modeName(next)}`);
   }
 
   if (nodes.length === 0) {
     return (
-      <EmptyState title="The script seed is not authored yet" increment="Increment 1" owner="M-script">
-        <p>
-          Practice drills are built from script nodes (primary lines, answer examples, branches, mirrors). Once
-          {placeholder ? ' the placeholder seed is replaced with' : ''} real nodes exist in the script seed, every drill on this page lights up. Nothing is
-          imagined in the meantime.
-        </p>
-      </EmptyState>
+      <div className={styles.screen}>
+        <TopBar title="Train" left={placeholder ? <GlyphPill glyph="◔" label="Placeholder" name="Placeholder script seed — to be authored; nothing is imagined in the meantime" tone="orange" /> : null} />
+        <EmptyGlyph glyph="∅" label="No script">
+          <Tile icon="script" label="Script" href="/scripts" />
+        </EmptyGlyph>
+      </div>
     );
   }
 
   return (
-    <div className={styles.layout}>
-      {/* ---------------- left: mode + drill picker ---------------- */}
-      <div className={styles.column}>
-        <Card title="Assistance mode" headingLevel="h2">
-          <Field
-            id="practice-mode"
-            label="Mode for this session"
-            help={settingsHydrated && modeOverride === null ? 'Default from Settings.' : 'Changed for this page only; Settings keeps its default.'}
-          >
-            {(control) => (
-              <Select {...control} value={mode} onChange={(e) => setModeOverride(AssistanceMode.parse(e.target.value))} options={AssistanceMode.options.map((m) => ({ value: m, label: MODE_LABELS[m] }))} />
-            )}
-          </Field>
-          <p className={styles.modeCopy}>{MODE_DESCRIPTIONS[mode]}</p>
-          <p className={styles.modeCopy} data-mode-copy>
-            {MODE_COPY}
-          </p>
-          <Inline gap={2} style={{ marginTop: 'var(--space-2)' }}>
-            <Badge variant="neutral">{isAssisted(mode) ? 'tracked as assisted' : 'tracked as unassisted'}</Badge>
-          </Inline>
-        </Card>
-
-        <Card title="Drills" headingLevel="h2">
-          <ul className={styles.picker} aria-label="Drill picker">
-            {DRILLS.map((d) => (
-              <li key={d.kind}>
-                <button type="button" className={styles.pickerButton} aria-pressed={kind === d.kind} onClick={() => setKind(d.kind)} data-drill-pick={d.kind}>
-                  <span className={styles.pickerName}>{d.name}</span>
-                  <span className={styles.pickerHint}>{d.hint}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Card>
+    <div className={styles.root} data-practice data-hydrated={hydrated ? 'true' : 'false'} data-mode={mode}>
+      <div className="sr-only" aria-live="polite" aria-atomic="true" data-practice-live>
+        {live}
       </div>
 
-      {/* ---------------- right: drill + history ---------------- */}
-      <div className={styles.column}>
-        <div className={styles.status} role="status" data-practice-status>
-          <Inline gap={2}>
-            <Badge variant="neutral">{nodes.length} nodes · version {scriptVersionId}</Badge>
-            <Badge variant="warning">all nodes draft — training only</Badge>
-            <Badge variant="neutral">{TONE_NOTE}</Badge>
-            {lastSaved ? <span className={styles.muted}>{lastSaved}</span> : null}
-          </Inline>
-        </div>
-
-        {kind === 'full_mock' ? (
-          <MockPanel nodes={nodes} mode={mode} onResult={recordResult} />
-        ) : (
-          <DrillPanel key={kind} kind={kind as NodeDrillKind} nodes={nodes} mode={mode} scriptVersionId={scriptVersionId} onResult={recordResult} />
-        )}
-
-        <Card title="History" headingLevel="h2">
-          <Stack gap={3}>
-            <p className={styles.muted}>
-              Assisted and unassisted attempts are summarised separately and never mixed. {MEMORIZATION_LABEL} and {CONVERSATION_LABEL} are separate scores. {TONE_NOTE}.
-            </p>
-            {!attemptsHydrated ? (
-              <p className={styles.muted}>Reading local history…</p>
-            ) : (
-              <div className={styles.summaryGrid} data-history-summary>
-                <SummaryColumn title="Assisted" bucket={summary.assisted} />
-                <SummaryColumn title="Unassisted" bucket={summary.unassisted} />
-              </div>
-            )}
-            {attemptsHydrated && attempts.length > 0 ? (
+      {drill === null ? (
+        <div className={styles.screen} data-drill-grid-screen>
+          <TopBar
+            title="Train"
+            left={placeholder ? <GlyphPill glyph="◔" label="Placeholder" name="Placeholder script seed — to be authored" tone="orange" /> : null}
+            right={
               <>
-                <table className={styles.historyTable}>
-                  <caption className={styles.muted} style={{ textAlign: 'left' }}>
-                    Last {Math.min(attempts.length, 10)} of {attempts.length} attempts (stored locally)
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">When</th>
-                      <th scope="col">Drill</th>
-                      <th scope="col">Mode</th>
-                      <th scope="col">{MEMORIZATION_LABEL}</th>
-                      <th scope="col">{CONVERSATION_LABEL}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attempts
-                      .slice(-10)
-                      .reverse()
-                      .map((a) => (
-                        <tr key={a.id}>
-                          <td>{a.started_at.slice(0, 16).replace('T', ' ')}</td>
-                          <td>{a.drill_kind.replace(/_/g, ' ')}</td>
-                          <td>{a.assisted ? 'assisted' : 'unassisted'}</td>
-                          <td>{a.memorization_score ? `${pct(a.memorization_score.exact_match_ratio)} / ${pct(a.memorization_score.word_order_ratio)}` : '—'}</td>
-                          <td>{a.conversation_score ? (a.conversation_score.objective_satisfied ? 'satisfied' : 'not satisfied') : '—'}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-                <div>
-                  <Button variant="danger" onClick={() => setAttempts([])}>
-                    Clear practice history
-                  </Button>
-                </div>
+                <IconButton icon="history" label="History — assisted and unassisted attempts, summarised separately" onClick={() => setSheet('history')} data-history-open />
+                <IconButton icon="info" label={`About Train: ${NOT_A_VOICE_CALL}. ${TONE_NOTE}. ${MODE_COPY}`} onClick={() => setSheet('info')} data-info-open />
               </>
-            ) : attemptsHydrated ? (
-              <p className={styles.muted}>No attempts yet.</p>
-            ) : null}
-          </Stack>
-        </Card>
-      </div>
+            }
+          />
+
+          <ModeControl value={mode} onChange={changeMode} />
+
+          <TileGrid columns={2} data-drill-grid>
+            {DRILLS.map((d) => {
+              const a = drillRing(attempts, d, true);
+              const u = drillRing(attempts, d, false);
+              return (
+                <Tile key={d.kind} icon={d.icon} label={d.label} name={`${d.label}: ${d.hint} ${a.name}. ${u.name}.`} size="lg" onClick={() => setDrill(d.kind)} data-drill-tile={d.kind} className={styles.drillTile}>
+                  <span className={styles.tileRings} aria-hidden="true">
+                    <span data-tile-ring="assisted" data-count={a.count} data-scored={a.scored ? 'true' : 'false'} data-value={a.value.toFixed(2)}>
+                      <Ring value={a.value} size={26} stroke={4} color="var(--green)">
+                        <span className={styles.ringGlyph}>≡</span>
+                      </Ring>
+                    </span>
+                    <span data-tile-ring="unassisted" data-count={u.count} data-scored={u.scored ? 'true' : 'false'} data-value={u.value.toFixed(2)}>
+                      <Ring value={u.value} size={26} stroke={4} color="var(--blue)">
+                        <span className={styles.ringDot}>○</span>
+                      </Ring>
+                    </span>
+                  </span>
+                </Tile>
+              );
+            })}
+          </TileGrid>
+        </div>
+      ) : drill === 'full_mock' ? (
+        <MockScreen key="mock" nodes={nodes} mode={mode} onResult={record} onClose={close} onLive={setLive} />
+      ) : (
+        <DrillScreen key={drill} kind={drill as NodeDrillKind} nodes={nodes} mode={mode} onResult={record} onClose={close} onLive={setLive} />
+      )}
+
+      {/* History: two buckets, never mixed. */}
+      <Sheet open={sheet === 'history'} onClose={() => { setSheet('none'); setConfirmClear(false); }} title="History" data-sheet="history">
+        <div className={styles.history} data-history-summary>
+          <BucketCard title="Assisted" glyph="≡" bucket={summary.assisted} color="var(--green)" />
+          <BucketCard title="Unassisted" glyph="○" bucket={summary.unassisted} color="var(--blue)" />
+        </div>
+        <div className={styles.historyFoot}>
+          <NotAssessedGlyph name={TONE_NAME} />
+          <Chip static label={`${attempts.length} stored`} name={`${attempts.length} attempts stored locally (last 200)`} />
+        </div>
+        {attempts.length > 0 ? (
+          confirmClear ? (
+            <TileGrid columns={2}>
+              <Tile
+                icon="x"
+                label="Clear"
+                name="Clear practice history for good"
+                tone="red"
+                onClick={() => {
+                  setAttempts([]);
+                  setConfirmClear(false);
+                  showToast('History cleared');
+                }}
+                data-clear-confirm
+              />
+              <Tile icon="check" label="Keep" onClick={() => setConfirmClear(false)} />
+            </TileGrid>
+          ) : (
+            <Tile icon="x" label="Clear" name="Clear practice history (asks once more)" tone="red" onClick={() => setConfirmClear(true)} data-clear-history />
+          )
+        ) : null}
+      </Sheet>
+
+      {/* ⓘ — the honest labels, in full sentences, off the stage. */}
+      <Sheet open={sheet === 'info'} onClose={() => setSheet('none')} title="Train" data-sheet="train-info">
+        <div className={styles.sheetStack}>
+          <div className={styles.chipRow}>
+            <FictionalPill />
+            <Chip static label={`${nodes.length} nodes`} name={`${nodes.length} script nodes, version ${scriptVersionId}`} />
+            <Chip static glyph="◔" label="draft" name="All nodes are draft — training only" tone="teal" />
+          </div>
+          <p className={styles.sheetBig}>{NOT_A_VOICE_CALL}.</p>
+          <p className={styles.sheetText}>{TONE_NOTE}. Memory and Conversation are separate scores and never mixed.</p>
+          <p className={styles.sheetText}>Assisted and unassisted attempts are summarised separately. {MODE_COPY} Nothing here ranks you.</p>
+          <p className={styles.sheetMuted}>Mode now: {modeName(mode)}</p>
+        </div>
+      </Sheet>
+
+      <Toast message={toast} />
     </div>
   );
 }
 
-function SummaryColumn({ title, bucket }: { title: string; bucket: BucketSummary }) {
+function BucketCard({ title, glyph, bucket, color }: { title: string; glyph: string; bucket: BucketSummary; color: string }) {
+  const mem = bucket.memorization;
+  const conv = bucket.conversation;
+  const memValue = mem.mean_exact_match_ratio ?? 0;
+  const convValue = conv.attempts > 0 ? conv.objective_satisfied / conv.attempts : 0;
   return (
-    <div className={styles.summaryCol}>
-      <span className={styles.summaryHead}>{title}</span>
-      <span>{bucket.attempts} attempt(s)</span>
-      <span>
-        <strong>{MEMORIZATION_LABEL}:</strong>{' '}
-        {bucket.memorization.attempts > 0
-          ? `${bucket.memorization.attempts} scored · mean exact ${pct(bucket.memorization.mean_exact_match_ratio ?? 0)} · mean order ${pct(bucket.memorization.mean_word_order_ratio ?? 0)}`
-          : 'none scored'}
+    <div className={styles.bucket} role="group" aria-label={`${title}: ${bucket.attempts} attempts`} data-bucket={title.toLowerCase()}>
+      <span className={styles.bucketHead}>
+        <span aria-hidden="true" className={styles.bucketGlyph} style={{ color }}>
+          {glyph}
+        </span>
+        {title}
       </span>
-      <span>
-        <strong>{CONVERSATION_LABEL}:</strong>{' '}
-        {bucket.conversation.attempts > 0
-          ? `${bucket.conversation.attempts} scored · ${bucket.conversation.objective_satisfied} objective satisfied · ${bucket.conversation.branch_choices_correct}/${bucket.conversation.branch_choices} branch choices · ${bucket.conversation.accurate_disqualifications} accurate disqualification(s)`
-          : 'none scored'}
-      </span>
+      <Stat value={bucket.attempts} icon="target" name="Attempts" />
+      <div className={styles.bucketRings}>
+        <div className={styles.score} data-scored={mem.attempts > 0 ? 'true' : 'false'}>
+          <Ring value={memValue} size={64} stroke={6} color={mem.attempts > 0 ? color : 'var(--ink-3)'} label={mem.attempts > 0 ? `Memory: ${mem.attempts} scored, mean exact match ${pct(memValue)}, mean word order ${pct(mem.mean_word_order_ratio ?? 0)}` : 'Memory: none scored'}>
+            <span className={styles.scoreCenterSmall} aria-hidden="true">
+              {mem.attempts > 0 ? Math.round(memValue * 100) : '—'}
+            </span>
+          </Ring>
+          <span className={styles.scoreLabel} aria-hidden="true">
+            Memory
+          </span>
+        </div>
+        <div className={styles.score} data-scored={conv.attempts > 0 ? 'true' : 'false'}>
+          <Ring
+            value={convValue}
+            size={64}
+            stroke={6}
+            color={conv.attempts > 0 ? 'var(--teal)' : 'var(--ink-3)'}
+            label={conv.attempts > 0 ? `Conversation: ${conv.attempts} scored, ${conv.objective_satisfied} objective satisfied, ${conv.branch_choices_correct} of ${conv.branch_choices} branch choices, ${conv.accurate_disqualifications} accurate disqualifications` : 'Conversation: none scored'}
+          >
+            <span className={styles.scoreCenterSmall} aria-hidden="true">
+              {conv.attempts > 0 ? Math.round(convValue * 100) : '—'}
+            </span>
+          </Ring>
+          <span className={styles.scoreLabel} aria-hidden="true">
+            Conversation
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

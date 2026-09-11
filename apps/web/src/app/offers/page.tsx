@@ -1,22 +1,20 @@
 import type { Metadata } from 'next';
 import { loadOffers } from '@apohenia/domain/seeds';
-import { Badge, PageHeader } from '@/components/ui';
 import { OffersClient } from './OffersClient';
 
 export const metadata: Metadata = { title: 'Offers' };
 
-/** Owner: M-script. Server component: loads the offers seed and passes plain data down. */
+/**
+ * Owner: M-script. Offer Studio as cards (DESIGN_SYSTEM §3.5): price shows `—` with the accessible
+ * name "Price not set — a blank price is not $0"; the fictional fixture carries `✦ Fictional` and
+ * sits behind the Practice chip, never in the default list. Server component: loads the seed.
+ */
 export default function OffersPage() {
   const seed = loadOffers();
-  const placeholder = seed._status !== undefined;
   return (
     <>
-      <PageHeader
-        title="Offers"
-        purpose="Offer Studio: versioned offers with buyer type, problem, prerequisites, deliverables, exclusions, three genuine pillars, price (null until set — never 0), estimated vs committed timing, and draft/reviewed/published/retired status."
-        aside={placeholder ? <Badge variant="warning">placeholder — to be authored</Badge> : <Badge variant="warning">Draft offers · nothing here is live sales policy</Badge>}
-      />
-      <OffersClient offers={seed.offer_versions} placeholder={placeholder} />
+      <h1 className="sr-only">Offers</h1>
+      <OffersClient offers={seed.offer_versions} placeholder={seed._status !== undefined} />
     </>
   );
 }
