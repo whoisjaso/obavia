@@ -1,0 +1,130 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--h-chip);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--ink);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.chip:hover {
+  background: var(--bg-3);
+}
+.chip:active {
+  transform: scale(0.96);
+  background: var(--bg-3);
+}
+.chip:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+.static {
+  cursor: default;
+  min-height: 28px;
+  padding: 0 var(--s-3);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-2);
+  background: transparent;
+}
+.static:hover,
+.static:active {
+  background: transparent;
+  transform: none;
+}
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.glyph {
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+}
+.glyph [data-glyph-text] {
+  font-size: 12px;
+}
+.check {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--ink-on-blue);
+}
+.kbd {
+  margin-left: 2px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink-2);
+  font-size: var(--fs-micro);
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.selected {
+  background: rgba(10, 132, 255, 0.18);
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 1px var(--blue);
+  color: var(--ink);
+}
+.selected:hover,
+.selected:active {
+  background: rgba(10, 132, 255, 0.26);
+}
+.selected .kbd {
+  color: var(--ink);
+  background: rgba(10, 132, 255, 0.3);
+}
+.teal {
+  color: var(--teal);
+}
+.purple {
+  color: var(--purple);
+}
+.gold {
+  color: var(--gold);
+}
+.green {
+  color: var(--green);
+}
+.red {
+  color: var(--red);
+}
+.blue {
+  color: var(--blue);
+}
+.selected.teal,
+.selected.purple,
+.selected.gold,
+.selected.green,
+.selected.red,
+.selected.blue {
+  color: var(--ink);
+}

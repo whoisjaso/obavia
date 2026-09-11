@@ -1,0 +1,33 @@
+{
+  "name": "apohenia-sales-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Apohenia Sales OS — Increment 1 skeleton (local demo mode, synthetic data, no credentials).",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web",
+    "start": "npm run start -w apps/web",
+    "typecheck": "tsc --noEmit -p packages/domain/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json && tsc --noEmit -p tests/tsconfig.json",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "seed:validate": "node scripts/parse-question-bank.mjs",
+    "verify:offsets": "node scripts/verify-source-offsets.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.2",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.4",
+    "next": "16.3.4",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

@@ -1,0 +1,306 @@
+.wrap {
+  --hero-size: 200px;
+  --hero-tint: 48, 209, 88;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+}
+@media (max-width: 479px) {
+  .wrap {
+    --hero-size: 160px;
+  }
+}
+.stage {
+  position: relative;
+  width: var(--hero-size);
+  height: var(--hero-size);
+  display: grid;
+  place-items: center;
+}
+
+/* ---- ground: a soft radial wash and three translucent rings, never a box-shadow halo ---- */
+.wash {
+  position: absolute;
+  inset: -56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--hero-tint), 0.18) 0%, rgba(var(--hero-tint), 0.06) 46%, transparent 68%);
+  pointer-events: none;
+  animation: breathe 3.6s var(--ease) infinite;
+  transition:
+    opacity var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--hero-tint), 0.34);
+  pointer-events: none;
+  animation: breathe 3.6s var(--ease) infinite;
+  transition:
+    opacity var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.orbit1 {
+  inset: -14px;
+}
+.orbit2 {
+  inset: -30px;
+  border-color: rgba(var(--hero-tint), 0.18);
+  animation-delay: 0.25s;
+}
+.orbit3 {
+  inset: -48px;
+  border-color: rgba(var(--hero-tint), 0.09);
+  animation-delay: 0.5s;
+}
+
+/* Dialing: rings leave the disc outward every 900 ms. Ringing: two slower halos. */
+.pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(var(--hero-tint), 0.7);
+  pointer-events: none;
+  animation: pulseOut 1.2s var(--ease-out) infinite;
+}
+.pulse2 {
+  animation-delay: 0.45s;
+}
+.ringHalo {
+  border-width: 2px;
+  animation: pulseOut 1.6s var(--ease-out) infinite;
+}
+.ringHalo2 {
+  animation-delay: 0.8s;
+}
+
+/* ---- the disc ---- */
+.hero {
+  position: relative;
+  width: var(--hero-size);
+  height: var(--hero-size);
+  border-radius: var(--r-hero);
+  border: none;
+  background: radial-gradient(120% 120% at 32% 22%, #57e585 0%, var(--green) 48%, #25b84c 100%);
+  color: var(--ink-on-green);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  box-shadow: var(--shadow-hero);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+  will-change: transform;
+}
+.hero:hover {
+  filter: brightness(1.04);
+}
+.hero:active {
+  transform: scale(0.96);
+  filter: brightness(0.97);
+}
+.hero:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 6px;
+}
+.hero:disabled {
+  cursor: not-allowed;
+  filter: none;
+}
+.glyph {
+  position: relative;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+.stack {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+}
+.count {
+  font-size: calc(var(--hero-size) * 0.44);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: currentColor;
+}
+.countSmall {
+  font-size: calc(var(--hero-size) * 0.34);
+}
+.countMicro {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+.subIcon {
+  color: var(--ink-2);
+}
+.caption {
+  min-height: 1.4em;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  text-align: center;
+}
+.aside {
+  position: absolute;
+  right: calc(-1 * var(--s-8));
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  z-index: 1;
+}
+@media (max-width: 479px) {
+  .aside {
+    right: calc(-1 * var(--s-7));
+  }
+}
+
+/* ---- states ---- */
+[data-hero-state='arming'] .wash,
+[data-hero-state='arming'] .orbit {
+  animation: none;
+  opacity: 0.55;
+}
+[data-hero-state='arming'] .hero {
+  background: radial-gradient(120% 120% at 32% 22%, #45d874 0%, #2bc553 48%, #21ad47 100%);
+}
+[data-hero-state='dialing'] .hero {
+  animation: pulse 0.9s var(--ease) infinite;
+}
+[data-hero-state='dialing'] .wash {
+  animation: breathe 0.9s var(--ease) infinite;
+}
+[data-hero-state='dialing'] .orbit {
+  animation: none;
+  opacity: 0.4;
+}
+[data-hero-state='ringing'] .hero {
+  animation: ringing 1.4s var(--ease) infinite;
+}
+[data-hero-state='ringing'] .wash {
+  animation: breathe 1.4s var(--ease) infinite;
+}
+[data-hero-state='ringing'] .orbit {
+  animation: none;
+  opacity: 0.4;
+}
+.wrap[data-hero-state='active'] {
+  --hero-tint: 255, 69, 58;
+}
+[data-hero-state='active'] .hero {
+  background: radial-gradient(120% 120% at 32% 22%, #ff6b61 0%, var(--red) 48%, #e0352b 100%);
+  color: var(--ink-on-red);
+  box-shadow: var(--shadow-hero-red);
+}
+.wrap[data-hero-state='cooldown'],
+.wrap[data-hero-state='paused'],
+.wrap[data-hero-state='off'] {
+  --hero-tint: 245, 245, 247;
+}
+[data-hero-state='cooldown'] .hero,
+[data-hero-state='paused'] .hero {
+  background: var(--bg-2);
+  color: var(--ink);
+  box-shadow:
+    inset 0 0 0 1px var(--line-strong),
+    var(--shadow-raised);
+}
+[data-hero-state='cooldown'] .wash,
+[data-hero-state='paused'] .wash,
+[data-hero-state='off'] .wash {
+  opacity: 0;
+  animation: none;
+}
+[data-hero-state='cooldown'] .orbit,
+[data-hero-state='paused'] .orbit,
+[data-hero-state='off'] .orbit {
+  animation: none;
+  opacity: 0.35;
+}
+[data-hero-state='paused'] .orbit {
+  border-style: dashed;
+}
+[data-hero-state='off'] .hero {
+  background: var(--bg-2);
+  color: var(--ink-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.035);
+    opacity: 1;
+  }
+}
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+@keyframes pulseOut {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+@keyframes ringing {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  15% {
+    transform: rotate(-4deg);
+  }
+  30% {
+    transform: rotate(4deg);
+  }
+  45% {
+    transform: rotate(-2deg);
+  }
+  60% {
+    transform: rotate(2deg);
+  }
+}
+/* Reduced motion: nothing moves or scales; the outward rings become one static faint ring. */
+@media (prefers-reduced-motion: reduce) {
+  .wash,
+  .orbit,
+  .hero {
+    animation: none !important;
+  }
+  .pulse {
+    animation: none;
+    transform: scale(1.18);
+    opacity: 0.35;
+  }
+  .pulse2,
+  .ringHalo2 {
+    display: none;
+  }
+}

@@ -1,0 +1,205 @@
+.sheet {
+  position: fixed;
+  inset: 0;
+  margin: auto 0 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 85dvh;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+  background: var(--bg-1);
+  color: var(--ink);
+  overflow: hidden;
+  box-shadow: var(--shadow-sheet);
+}
+.tall {
+  max-height: 92dvh;
+}
+.sheet[open] {
+  animation: slideUp var(--dur) var(--ease-out);
+}
+.sheet::backdrop {
+  background: rgba(11, 11, 15, 0.6);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  animation: fade var(--dur) var(--ease);
+}
+@media (min-width: 640px) {
+  .sheet {
+    margin: auto;
+    width: 560px;
+    max-height: 80dvh;
+    border-radius: var(--r-sheet);
+    border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow-raised);
+  }
+  .sheet[open] {
+    animation: pop var(--dur) var(--ease-out);
+  }
+}
+.inner {
+  display: flex;
+  flex-direction: column;
+  max-height: 85dvh;
+  height: 100%;
+}
+.tall .inner {
+  max-height: 92dvh;
+}
+@media (min-width: 640px) {
+  .inner,
+  .tall .inner {
+    max-height: 80dvh;
+  }
+}
+.grabber {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.grabber span {
+  display: block;
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.grabber:hover span {
+  background: var(--ink-3);
+}
+.grabber:focus-visible {
+  outline: none;
+}
+.grabber:focus-visible span {
+  box-shadow: var(--focus-ring);
+}
+.grabber:disabled {
+  cursor: default;
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: 0 var(--s-4) var(--s-2) var(--s-5);
+  flex-shrink: 0;
+}
+.headHidden {
+  justify-content: flex-end;
+  padding-bottom: 0;
+}
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-left: auto;
+}
+.title {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.close {
+  margin-left: 0;
+}
+.scroll {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.body {
+  padding: var(--s-2) var(--s-5) calc(var(--s-6) + var(--safe-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-height: 0;
+  scrollbar-width: thin;
+}
+/* Bottom fade: a scroll affordance that never covers the last line for long. */
+.fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  background: linear-gradient(180deg, transparent, var(--bg-1));
+  pointer-events: none;
+}
+.footer {
+  flex-shrink: 0;
+  padding: var(--s-3) var(--s-5) calc(var(--s-4) + var(--safe-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--bg-1);
+}
+/* Action rows: direct children share the row as equal tiles (never 13px chips); three or more stack on a phone. */
+.footer {
+  display: flex;
+  gap: var(--s-3);
+}
+.footer > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.footer > :is(button, a),
+.footer [data-tile-grid] > * {
+  min-height: var(--h-tile);
+}
+@media (max-width: 479px) {
+  .footer:has(> :nth-child(3)) {
+    flex-direction: column;
+  }
+  .footer [data-tile-grid]:has(> :nth-child(3)) {
+    grid-template-columns: 1fr;
+  }
+  .footer [data-tile-grid]:has(> :nth-child(3)) > * {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    text-align: left;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes pop {
+  from {
+    transform: scale(0.98) translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,365 @@
+/* ---- Script stage (DESIGN_SYSTEM §3.5) ---- */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeIn var(--dur) var(--ease);
+  /* the docked Publish band (89px incl. its line) sits above the tab bar; the list keeps that much clear */
+  padding-bottom: calc(89px + var(--s-2));
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* horizontal stage rail: bleeds to the column edges, snaps per chip */
+.rail {
+  display: flex;
+  gap: var(--s-2);
+  margin: 0 calc(-1 * var(--s-4));
+  padding: var(--s-1) var(--s-6) var(--s-1) var(--s-4);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* the right edge fades: a clipped chip reads as "more", never as a cut */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.railChip {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.lineWrap {
+  border-radius: var(--r-card);
+  transition: box-shadow var(--dur-fast) var(--ease);
+}
+.lineCurrent {
+  box-shadow: 0 0 0 2px var(--blue);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+  flex-wrap: wrap;
+}
+.cardLineBox {
+  min-width: 0;
+}
+/* two-line preview at 22px; the whole line lives in the sheet (and in the DOM, unclipped for readers) */
+.cardLine {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+/* ---- publish: a glass bar docked flush to the tab bar (same chrome), one hero tile inside ---- */
+.publishDock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom));
+  z-index: 20;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border-top: 1px solid var(--line);
+}
+.publishInner {
+  max-width: var(--col);
+  margin: 0 auto;
+  padding: var(--s-3) var(--s-4);
+}
+.publishTile {
+  width: 100%;
+  min-height: 64px;
+  flex-direction: row;
+  gap: var(--s-3);
+  padding: 0 var(--s-5);
+  border-color: rgba(48, 209, 88, 0.35);
+  box-shadow: var(--shadow-raised);
+}
+.publishTile > span:last-of-type {
+  font-size: var(--fs-body);
+}
+.publications {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.pubRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.pubIcon {
+  color: var(--ink-2);
+}
+.pubLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+.pubWhen {
+  margin-left: auto;
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.citationChip {
+  white-space: normal;
+  text-align: left;
+  min-height: 40px;
+  padding-top: var(--s-2);
+  padding-bottom: var(--s-2);
+}
+.citationChip > span:last-child {
+  white-space: normal;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+.hash {
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+/* ---- sheets ---- */
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.sheetHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.factsChip {
+  margin-left: auto;
+}
+.caption {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.draftMark {
+  color: var(--ink-2);
+  border-color: var(--line);
+  background: transparent;
+}
+.draftNote {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.sayThis {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+.transition {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--green);
+  line-height: var(--lh-body);
+}
+.body {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
+}
+.body + .body {
+  margin-top: var(--s-2);
+}
+.note {
+  margin-top: var(--s-2);
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+  line-height: var(--lh-body);
+}
+.notes {
+  margin: 0;
+  padding: 0 0 0 var(--s-4);
+  font-size: var(--fs-caption);
+  color: var(--orange);
+  line-height: var(--lh-body);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.mirrors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.mirror {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  border: 1px solid rgba(100, 210, 255, 0.3);
+  background: rgba(100, 210, 255, 0.06);
+  color: var(--teal);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  line-height: var(--lh-body);
+}
+.branches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.branchChip {
+  white-space: normal;
+  text-align: left;
+  min-height: 40px;
+  padding-top: var(--s-2);
+  padding-bottom: var(--s-2);
+}
+.locked {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-body);
+  margin-bottom: var(--s-2);
+}
+.lockIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--ink-3);
+}
+.textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  resize: vertical;
+}
+.textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-color: var(--blue);
+}
+
+/* source sheet */
+.sourceTitle {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+}
+.template {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  line-height: var(--lh-body);
+}
+
+/* publish confirm */
+.confirmCaption {
+  text-align: center;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* publication detail */
+.countRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--s-3) 0;
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+}
+.countValue {
+  font-size: var(--fs-large);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.countKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* empty */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-8) 0;
+}
+.emptyGlyph {
+  font-size: 96px;
+  line-height: 1;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+.emptyLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}

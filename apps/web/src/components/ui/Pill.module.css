@@ -1,0 +1,97 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+.pill:has(> .label:only-child) {
+  padding: 0 10px;
+}
+.glyph {
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+}
+.glyph [data-glyph-text] {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.label {
+  line-height: 1;
+}
+.neutral {
+  color: var(--ink-2);
+}
+.orange {
+  color: var(--orange);
+  border-color: rgba(255, 159, 10, 0.4);
+  background: rgba(255, 159, 10, 0.1);
+}
+.purple {
+  color: var(--purple);
+  border-color: rgba(191, 90, 242, 0.4);
+  background: rgba(191, 90, 242, 0.1);
+}
+.gold {
+  color: var(--gold);
+  border-color: rgba(255, 214, 10, 0.4);
+  background: rgba(255, 214, 10, 0.1);
+}
+.green {
+  color: var(--green);
+  border-color: rgba(48, 209, 88, 0.4);
+  background: rgba(48, 209, 88, 0.1);
+}
+.red {
+  color: var(--red);
+  border-color: rgba(255, 69, 58, 0.4);
+  background: rgba(255, 69, 58, 0.1);
+}
+.teal {
+  color: var(--teal);
+  border-color: rgba(100, 210, 255, 0.4);
+  background: rgba(100, 210, 255, 0.1);
+}
+
+/* "Not assessed" / "Not set" / "None yet": a quiet caption, never a dash. */
+.absent {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* row-edge status mark: 20px icon in the tone color, no pill box */
+.statusGlyph {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  line-height: 1;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.statusGlyph [data-glyph-text] {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}

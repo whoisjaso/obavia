@@ -1,0 +1,93 @@
+{
+  "register_note": "Register of resources named in docs/01-source-framework.md or docs/00-codex-master-v2.md that the supplied package does not contain or cannot verify. Every entry is marked missing, not reconstructed. Nothing in this register is filled from imagination or attributed to the instructors. Owner: M-sources.",
+  "resources": [
+    {
+      "id": "raw_source_a",
+      "name": "Raw Source A transcript (sources/source_a.txt)",
+      "named_in": "framework 'How to read this package'; brief §3 (keep raw sources immutable, retain hashes and exact Unicode character offsets)",
+      "what_is_supplied": "144 curated records with unchanged excerpts copied from docs/02-organized-question-bank.md, each with claimed [start, end) code-point offsets into Source A; package SHA-256 of the markdown only.",
+      "what_is_missing": "The single-line untimed Source A transcript itself, so no SHA-256 of the raw text and no slice(start, end) === excerpt check has been possible.",
+      "handling": "marked missing, not reconstructed. Every Source A record carries hash_verified: false. When sources/source_a.txt arrives run `node scripts/verify-source-offsets.mjs`; the excerpt is never edited to fit an offset."
+    },
+    {
+      "id": "raw_source_b",
+      "name": "Raw Source B transcript (sources/source_b.txt)",
+      "named_in": "framework 'How to read this package'; brief §3",
+      "what_is_supplied": "63 curated records with unchanged excerpts and claimed offsets into Source B; the multi-instructor course is otherwise only present through the organized question bank.",
+      "what_is_missing": "The single-line untimed Source B transcript itself; no raw hash, no offset verification.",
+      "handling": "marked missing, not reconstructed. Every Source B record carries hash_verified: false until `node scripts/verify-source-offsets.mjs` finds sources/source_b.txt and the slice matches."
+    },
+    {
+      "id": "punctuation_audit_1449",
+      "name": "1,449-occurrence punctuation audit (527 in A, 922 in B)",
+      "named_in": "framework 'How to read this package'; brief §3 (the 1,449 punctuation records are an audit, not a ready-to-use sales script)",
+      "what_is_supplied": "The counts (1,449 / 527 / 922) as stated in the framework, and the 207 curated records that were selected from that audit.",
+      "what_is_missing": "The audit table itself (every literal question-mark occurrence with its offset). It is not in data/ or docs/.",
+      "handling": "marked missing, not reconstructed. The library shows the count as a claim from the framework, never as 1,449 approved unique prospect questions, and never lists audit rows it does not have."
+    },
+    {
+      "id": "package_validation_report_original",
+      "name": "Original package validation report",
+      "named_in": "brief §20 (read the package validation report; rerun its verifier)",
+      "what_is_supplied": "data/source_package_validation.json regenerated locally by scripts/parse-question-bank.mjs from the markdown bank (207 records, 26 + 13 sections, raw_sources_supplied: false).",
+      "what_is_missing": "Any earlier or upstream validation report that hashed the raw transcripts; the local report hashes only docs/02-organized-question-bank.md.",
+      "handling": "marked missing, not reconstructed. The local report states hash_verification: pending; scripts/verify-source-offsets.mjs writes a sibling data/source_offset_verification.json and never overwrites the parser output structure."
+    },
+    {
+      "id": "four_frame_fear_set",
+      "name": "Complete four-frame fear reframe set (island / what's riskier / fat person / $4,000)",
+      "named_in": "framework §10 'Missing material' and §16 gaps register (Four fear frames); brief §3 (do not invent … the missing four-frame set)",
+      "what_is_supplied": "Two fragmentary study_only analogies, neither of them a member of the named set: A11: O23 and O24, the two halves of the worker-with-stable-pay versus entrepreneur analogy; B05: O27, O28 and O29, three questions from the beach/weather certainty analogy. Around them, O22, O25, O26 and O30 are adapt diagnostic lines and O31 is a private_training mindset CTA. None of the 207 supplied records, and no line of the organized question bank, contains the words island, what's riskier, fat person or $4,000; those four names are known only from the framework's own description (docs/01 §10, §16).",
+      "what_is_missing": "All four named frames (island / what's riskier / fat person / $4,000) as scripts, and any complete four-frame set. Not one of the four is present even in fragment form in the supplied records; the two analogies that are supplied are different examples.",
+      "handling": "marked missing, not reconstructed. Records O22 to O31 preserve what the source actually says; no member of the set is written from imagination or attributed to Andrés or Yosh."
+    },
+    {
+      "id": "screen_only_slides",
+      "name": "Screen-only slides and on-screen resources",
+      "named_in": "framework 'How to read this package' (no screen-only slides … verified by inspecting video); brief §3 (do not invent … full screen-only resources)",
+      "what_is_supplied": "Instructor speech that refers to slides and on-screen material, as transcribed text only.",
+      "what_is_missing": "The slides themselves and any diagram, table or text that was only shown on screen.",
+      "handling": "marked missing, not reconstructed. Where a record's excerpt refers to something on screen, the library shows the spoken text only and does not describe the slide."
+    },
+    {
+      "id": "video_timestamps",
+      "name": "Video timestamps",
+      "named_in": "framework 'How to read this package' (both uploaded texts are single-line, untimed transcripts); brief §3 (do not invent video timestamps); scenario 35",
+      "what_is_supplied": "Code-point character offsets into the untimed transcripts.",
+      "what_is_missing": "Any timing data. There are no hh:mm:ss or mm:ss markers in the sources, and video-to-transcript pairing is unverified.",
+      "handling": "marked missing, not reconstructed. The library never renders a timestamp; a domain test asserts no record template or excerpt contains a timestamp pattern."
+    },
+    {
+      "id": "speaker_diarization",
+      "name": "Speaker diarization",
+      "named_in": "framework 'How to read this package' and §14 (reviewed call); brief §3 (do not invent … speaker diarization)",
+      "what_is_supplied": "The reviewed Yosh call (A13, records V01 to V48) uses '>>' turn markers in the transcript text; elsewhere speakers are inferred only from context.",
+      "what_is_missing": "Verified speaker labels for every turn. The '>>' markers do not name the speaker and instructor commentary is interleaved with call speech.",
+      "handling": "marked missing, not reconstructed. Reviewed-call records carry delivery 'not_audio_verified'; the library shows the '>>' markers unchanged and never attaches a speaker name it cannot verify."
+    },
+    {
+      "id": "named_only_sections",
+      "name": "13 named-only sections (A08, B00, B01, B02, B06, B12, B13, B14, B15, B16, B22, B23, B25)",
+      "named_in": "framework §1, §11, §15 (bracketed section citations); data/source_sections.json (records_supplied: false)",
+      "what_is_supplied": "Section ids and titles as named in the framework; the framework's prose summary of what each teaches.",
+      "what_is_missing": "Curated records with excerpts and offsets for these sections. B22 to B25 also contain physiology/sleep/isolation claims that are not validated.",
+      "handling": "marked missing, not reconstructed. The section index lists each one with a 'no records supplied' badge and an empty record list; no record is written to fill them."
+    },
+    {
+      "id": "narrator_10000_paid_in_full",
+      "name": "Narrator-claimed $10,000 paid-in-full outcome of the reviewed call",
+      "named_in": "framework §14 and §16 gaps register (Payment in reviewed call); brief §3",
+      "what_is_supplied": "The narrator's statement that the reviewed call closed for $10,000 paid in full.",
+      "what_is_missing": "The full pitch, the payment event, or any observed transcript evidence of the close. The supplied excerpt ends before that.",
+      "handling": "marked missing, not reconstructed. Reported as a claim, not an observed outcome, and never used as evidence for Apohenia's effectiveness."
+    },
+    {
+      "id": "section_count_41_vs_39",
+      "name": "41-section count claimed by the brief versus 39 sections in the supplied bank",
+      "named_in": "brief §20 Increment 1 (41 source sections); data/source_package_validation.json section_count_note",
+      "what_is_supplied": "26 sections with records plus 13 named-only sections = 39 section ids (A01 to A13, B00 to B25).",
+      "what_is_missing": "The two further section ids that would make 41. They cannot be reconciled from the supplied files.",
+      "handling": "marked missing, not reconstructed. The library prints 26 + 13 = 39 and shows the brief's 41 as a claim beside it; no section id is invented to close the gap."
+    }
+  ]
+}

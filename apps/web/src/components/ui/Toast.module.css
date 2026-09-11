@@ -1,0 +1,42 @@
+.host {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--s-3));
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.toast {
+  max-width: min(var(--col), calc(100vw - var(--s-6)));
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-3);
+  color: var(--ink);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: rise var(--dur) var(--ease);
+}
+.red {
+  color: var(--red);
+  border-color: rgba(255, 69, 58, 0.4);
+}
+.green {
+  color: var(--green);
+  border-color: rgba(48, 209, 88, 0.4);
+}
+@keyframes rise {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

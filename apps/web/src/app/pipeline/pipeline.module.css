@@ -1,0 +1,236 @@
+/* ---- Follow-ups (§3.7) ---- */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeIn var(--dur) var(--ease);
+}
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-7);
+  padding: var(--s-3) 0 0;
+}
+@media (max-width: 479px) {
+  .stats {
+    gap: var(--s-6);
+  }
+}
+.filters {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.filters > :last-child {
+  margin-left: auto;
+}
+
+/* segmented lane control: one row of chips that scrolls sideways on a phone */
+.lanes {
+  display: flex;
+  gap: var(--s-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  margin: 0 calc(-1 * var(--s-4));
+  padding: 2px var(--s-6) 2px var(--s-4);
+  scrollbar-width: none;
+  /* the right edge fades: a clipped chip reads as "more", never as a cut */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+@media (min-width: 1024px) {
+  .lanes {
+    flex-wrap: wrap;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+    padding-right: var(--s-4);
+  }
+}
+.lanes::-webkit-scrollbar {
+  display: none;
+}
+.laneChip {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+.laneList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+/* tools row under the segmented control: examples toggle + lane info, trailing edge */
+.laneHead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  min-height: 44px;
+}
+.examplesPill {
+  cursor: pointer;
+}
+.examplesPill:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.laneBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-height: 140px;
+}
+.laneEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 140px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.cardRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.company {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.contact {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cardChips {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: var(--s-2);
+}
+.day {
+  margin-left: auto;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.example {
+  border-style: dashed;
+}
+
+/* weeks sheet */
+.weeks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  text-align: center;
+}
+.weekChips {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.week {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.weekNumber {
+  font-size: var(--fs-large);
+  font-weight: 800;
+  line-height: 1;
+}
+.weekUnit {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.weekNote {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  max-width: 36ch;
+}
+.weekLine {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+/* lane / card sheets */
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  text-align: center;
+}
+.sheetGlyph {
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+.sheetName {
+  font-size: var(--fs-title);
+  font-weight: 700;
+}
+.sheetRole {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+.sheetLine {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  max-width: 40ch;
+}
+.sheetCue {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  max-width: 40ch;
+}
+.linkRow {
+  display: inline-flex;
+  gap: var(--s-2);
+  align-items: center;
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

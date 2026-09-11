@@ -1,0 +1,224 @@
+/* ---- Queue (§3.7) ---- */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeIn var(--dur) var(--ease);
+}
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-7);
+  padding: var(--s-3) 0 0;
+}
+@media (max-width: 479px) {
+  .stats {
+    gap: var(--s-6);
+  }
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+/* the name never truncates: it wraps to a second line at phone width */
+.contact {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.2;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* second line: the role, with the policy pill (only when it deviates from OK) at the trailing edge */
+.roleLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.role {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  min-width: 0;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+/* company and city wrap rather than clip; the clock keeps its width */
+.place {
+  min-width: 0;
+  flex: 1;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.inHours {
+  color: var(--green);
+}
+.dnc .contact {
+  text-decoration: line-through;
+  text-decoration-color: var(--red);
+  text-decoration-thickness: 2px;
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  text-align: center;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  padding: var(--s-6) 0;
+}
+
+/* search sheet */
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.searchInput {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--s-4);
+  border-radius: 16px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--ink);
+  font-size: var(--fs-body);
+}
+.searchInput::placeholder {
+  color: var(--ink-3);
+}
+
+/* record sheet */
+.record {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.recordHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.recordName {
+  font-size: var(--fs-title);
+  font-weight: 700;
+}
+.recordRole {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+.recordWho {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.recordCompany {
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+.recordPlace {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+/* one fact row: local time, number, line; the tz id and E.164 live in the accessible names */
+.recordMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+}
+.recordFact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.recordFactGlyph {
+  display: inline-grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+.recordChips {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+.linkRow {
+  display: inline-flex;
+  gap: var(--s-2);
+  align-items: center;
+  font-weight: 600;
+}
+
+/* import sheet */
+.importBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  text-align: center;
+}
+.importGlyph {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.importLine {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  max-width: 32ch;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

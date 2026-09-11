@@ -1,0 +1,206 @@
+/* /profile: reviewable identity profile (DESIGN_SYSTEM §3.6). Cards per section, endorse hero tile, sheets. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-height: calc(100dvh - var(--tabbar-h) - var(--safe-bottom) - var(--s-5));
+  animation: fadeIn var(--dur) var(--ease);
+}
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-5);
+  padding: var(--s-7) 0;
+}
+.empty > a {
+  width: min(100%, 240px);
+}
+.emptyGlyph {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.emptyLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-7);
+  padding: var(--s-2) 0;
+}
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.sectionLabel {
+  margin: 0;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: var(--s-2) var(--s-2) 0;
+}
+.answerCaption {
+  display: block;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: var(--s-1);
+}
+.answerBig {
+  display: block;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+.answerMuted {
+  color: var(--ink-2);
+}
+.answerChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: 2px;
+}
+.answerChip {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  background: var(--bg-2);
+  white-space: normal;
+  text-align: left;
+  min-height: 32px;
+  padding: 4px var(--s-3);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+.answerEmpty {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  min-height: 32px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.unknownChip {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  background: var(--bg-2);
+  white-space: normal;
+  text-align: left;
+  min-height: 32px;
+  padding: 4px var(--s-3);
+}
+
+/* ---- sheets ---- */
+.sheetStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.sheetText {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.sheetMuted {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+.gate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+.privacy {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+}
+.exportPre {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: var(--s-3);
+  border-radius: 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: var(--fs-micro);
+  color: var(--ink-2);
+}
+.plan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.planItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.planStandard {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  margin-bottom: var(--s-1);
+}
+.planRow {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: var(--s-3);
+  align-items: start;
+}
+.planKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-top: 3px;
+}
+.planValue {
+  font-size: var(--fs-caption);
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,92 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) 20px 20px;
+  border-radius: var(--r-card);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  min-width: 0;
+}
+.fill {
+  flex: 1;
+  min-height: 0;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.info {
+  margin-left: auto;
+  color: var(--ink-3);
+  background: transparent;
+  border-color: transparent;
+}
+.lineBox {
+  display: flex;
+  align-items: flex-start;
+}
+.fill .lineBox {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(180deg, var(--bg) calc(100% - 24px), transparent);
+  mask-image: linear-gradient(180deg, var(--bg) calc(100% - 24px), transparent);
+}
+.fill .lineBox::-webkit-scrollbar {
+  display: none;
+}
+.lineButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+}
+.lineButton:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 8px;
+}
+button.lineButton:hover .text {
+  color: var(--ink);
+}
+button.lineButton:active {
+  transform: scale(0.995);
+}
+div.lineButton {
+  cursor: default;
+}
+.text {
+  display: block;
+  font-size: var(--fs-display);
+  --fs-display-long: clamp(26px, 2.6vw, 34px);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.fill .text {
+  padding-bottom: 24px;
+}
+.bridge {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
+  flex-shrink: 0;
+}
+
+/* Long lines (> 24 words) step down one size so the whole line stays on one screen. */
+.long .text {
+  font-size: var(--fs-display-long);
+  letter-spacing: -0.01em;
+}

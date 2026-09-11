@@ -1,0 +1,242 @@
+/* ---- Offers (DESIGN_SYSTEM §3.5) ---- */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeIn var(--dur) var(--ease);
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.filters {
+  display: flex;
+  gap: var(--s-2);
+}
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+/* card */
+.offerHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+.offerName {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+}
+.offerPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.priceRow {
+  display: flex;
+  gap: var(--s-6);
+  margin-bottom: var(--s-4);
+}
+.money {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 64px;
+}
+.moneyValue {
+  font-size: var(--fs-large);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* a blank price: a quiet caption, never a dash and never $0 */
+.moneyUnset {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+  line-height: 1;
+  padding-top: calc(var(--fs-large) - var(--fs-caption));
+}
+.moneyKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pillarRow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.pillarChip {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.pillarIndex {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  color: var(--ink);
+  font-size: var(--fs-micro);
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* sheet */
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.sheetHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.banner {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  border: 1px solid rgba(191, 90, 242, 0.45);
+  background: rgba(191, 90, 242, 0.12);
+  color: var(--purple);
+  font-size: var(--fs-caption);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: pre-line;
+  text-align: center;
+}
+.draftNote {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.actionRow {
+  display: flex;
+  flex-direction: column;
+}
+.actionRow > * {
+  width: 100%;
+}
+.caption {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.body {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
+}
+.small {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+  line-height: var(--lh-body);
+}
+.emptyNote {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+  font-style: italic;
+}
+.list {
+  margin: 0;
+  padding: 0 0 0 var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
+}
+.timing {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--s-2) var(--s-4);
+  align-items: start;
+}
+.timingKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-top: 5px;
+}
+.pillars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.pillar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+}
+.pillarName {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.confirmCaption {
+  text-align: center;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* empty */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-8) 0;
+}
+.emptyGlyph {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.emptyLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}

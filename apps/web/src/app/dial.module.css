@@ -1,0 +1,1006 @@
+/* ---- Dial stage (§3.1) ---- */
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - var(--tabbar-h) - var(--safe-bottom) - var(--s-5));
+}
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  flex: 1;
+  animation: fadeIn var(--dur) var(--ease);
+}
+.timer {
+  font-size: var(--fs-title);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-7);
+  padding: var(--s-3) 0 0;
+}
+@media (max-width: 479px) {
+  .stats {
+    gap: var(--s-6);
+  }
+}
+.heroArea {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 300px;
+  padding: var(--s-4) 0;
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+}
+.emptyGlyph {
+  font-size: 96px;
+  line-height: 1;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+.emptyLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* last session: one quiet row under the hero, the numbers of the session that just ended */
+.lastSession {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.lastLabel {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.lastStats {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  margin-left: auto;
+  color: var(--ink-2);
+}
+.lastStat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-body);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.lastStat svg {
+  color: var(--ink-3);
+}
+.lastLength {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.nextRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.nextText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.nextCompany {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nextContact {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* one caption: "Round Rock · 3:42 pm" */
+.nextMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.metaDot {
+  color: var(--ink-3);
+}
+.inHours {
+  color: var(--green);
+}
+
+/* record sheet */
+.record {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.recordHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.recordName {
+  font-size: var(--fs-title);
+  font-weight: 700;
+}
+.recordRole {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+.recordHead > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.recordCompany {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+.recordPlace {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+/* one fact row: local time · number (formatted once) */
+.recordMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.recordFact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.recordFact svg {
+  color: var(--ink-2);
+}
+.recordFact.inHours svg {
+  color: var(--green);
+}
+.recordChips {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+.chipIcon {
+  display: inline-grid;
+  place-items: center;
+}
+
+/* summary sheet */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  align-items: stretch;
+}
+.summaryStats,
+.summaryRow {
+  display: flex;
+  justify-content: space-around;
+  gap: var(--s-4);
+}
+
+.pickRow {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pickInput {
+  flex: 1;
+  min-width: 200px;
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--ink);
+  color-scheme: dark;
+  caret-color: var(--blue);
+}
+.pickInput:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* ---- outcome tiles (§3.3): nine choices, the simulated result marked "Suggested", never chosen ---- */
+.outcomeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.whenGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.outcomeTile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 108px;
+  padding: var(--s-4) var(--s-2) var(--s-3);
+  border-radius: var(--r-tile);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.outcomeTile:hover {
+  background: var(--bg-2);
+}
+.outcomeTile:active {
+  background: var(--bg-3);
+  transform: scale(0.97);
+}
+.outcomeTile:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.outcomeTile:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.outcomeTile[aria-pressed='true'] {
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+.outcomeIcon {
+  color: var(--ink);
+}
+.outcomeLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  line-height: 1.2;
+}
+/* suggested: a tinted edge and a caption, nothing like the blue focus ring */
+.suggestedTile {
+  border-color: rgba(100, 210, 255, 0.45);
+  background: linear-gradient(180deg, rgba(100, 210, 255, 0.08), transparent 70%), var(--bg-1);
+}
+.outcomeCap {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  line-height: 1;
+}
+.toneGreen .outcomeIcon {
+  color: var(--green);
+}
+.toneRed .outcomeIcon {
+  color: var(--red);
+}
+.toneBlue .outcomeIcon {
+  color: var(--blue);
+}
+.toneOrange .outcomeIcon {
+  color: var(--orange);
+}
+
+/* ---- In-call (§3.2): a fixed, non-scrolling stage ---- */
+.incall {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  animation: connect var(--dur-slow) cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity var(--dur) var(--ease);
+}
+.dimmed {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.callHead {
+  flex-shrink: 0;
+  height: calc(60px + var(--safe-top));
+  padding-top: var(--safe-top);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border-bottom: 1px solid var(--line);
+}
+.callHeadInner {
+  height: 60px;
+  max-width: calc(var(--col) + var(--rail) + var(--s-6));
+  margin: 0 auto;
+  padding: 0 var(--s-4);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.callWho {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.callName {
+  font-weight: 700;
+  font-size: var(--fs-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.callCompany {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.callTimer {
+  font-size: var(--fs-title);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* the one status chip: icon + "Demo call"; tap opens the four-row status sheet */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px 0 9px;
+  border-radius: var(--r-chip);
+  border: 1px solid rgba(255, 159, 10, 0.4);
+  background: rgba(255, 159, 10, 0.1);
+  color: var(--orange);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.status:hover {
+  background: rgba(255, 159, 10, 0.16);
+}
+.status:active {
+  transform: scale(0.96);
+}
+.status:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.statusRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.statusRow {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--s-3);
+  row-gap: 2px;
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.statusIcon {
+  grid-row: 1 / span 2;
+  color: var(--ink-2);
+}
+.statusOn .statusIcon {
+  color: var(--green);
+}
+.statusLabel {
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.statusState {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding: 4px 8px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line-strong);
+}
+.statusOn .statusState {
+  color: var(--green);
+  border-color: rgba(48, 209, 88, 0.4);
+}
+.statusDetail {
+  grid-column: 2 / span 2;
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
+}
+
+/* body: the line column (+ rail on wide) fills the space between header and foot */
+.body {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: calc(var(--col) + var(--rail) + var(--s-6));
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-5);
+}
+.lineCol {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--s-3) var(--s-4) 0;
+}
+
+/* narrow words strip: two compact rows that snap per column, the next column peeks through a
+   right-edge fade; simply dark while empty (no placeholder glyph). Meaning lines live in the sheet
+   for words; a real reference (an analogy) takes a full column so its relationship line shows. */
+.strip {
+  --strip-row: 84px;
+  display: grid;
+  grid-auto-flow: column dense;
+  grid-template-rows: repeat(2, var(--strip-row));
+  grid-auto-columns: minmax(168px, 47%);
+  gap: var(--s-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  /* no scroll snapping: the browser re-snaps to a newly inserted card and yanks the first column
+     off screen; the right-edge fade is the scroll cue */
+  scroll-padding-inline: var(--s-4);
+  margin: 0 calc(-1 * var(--s-4));
+  padding: 0 var(--s-6) 0 var(--s-4);
+  scrollbar-width: none;
+  height: calc(2 * var(--strip-row) + var(--s-2));
+  flex-shrink: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+.strip[data-empty] {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.strip::-webkit-scrollbar {
+  display: none;
+}
+.strip > * {
+  height: var(--strip-row);
+  min-width: 0;
+  overflow: hidden;
+  padding: 6px 12px;
+  gap: 2px;
+  justify-content: center;
+  animation: none;
+}
+.strip [data-word-text],
+.strip [data-ref-label] {
+  font-size: 24px;
+  line-height: 1;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.strip [data-ref-meaning] {
+  display: none;
+}
+/* a real reference (not a merged word) takes a full panel (both rows, two columns) so its term stays
+   on one line and its relationship line shows */
+.strip > [data-ref-card]:not([data-word-card]) {
+  grid-row: 1 / span 2;
+  grid-column: span 2;
+  height: calc(2 * var(--strip-row) + var(--s-2));
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+}
+.strip > [data-ref-card]:not([data-word-card]) [data-ref-label] {
+  overflow-wrap: normal;
+  -webkit-line-clamp: 1;
+}
+/* the relationship line wraps inside the part of the card that is visible before the fade when the
+   card sits in the second column (words first), so it reads without a scroll */
+.strip > [data-ref-card]:not([data-word-card]) [data-ref-meaning] {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 184px;
+  font-size: 15px;
+  line-height: 1.25;
+}
+.strip [data-word-correction] {
+  font-size: 13px;
+  line-height: 1.1;
+}
+.strip [data-word-meta],
+.strip [data-ref-meta] {
+  font-size: var(--fs-micro);
+  gap: 5px;
+}
+/* a card with a correction line keeps three rows readable: word · correction · meta */
+.strip [data-word-correction] + [data-word-meta] {
+  margin-top: -1px;
+}
+.noneYet {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  padding: var(--s-4) 0;
+}
+
+/* the line: a grid where the real card and a hidden ghost of the version's longest line share one
+   cell, so the card is as tall as the longest line at this width and nothing below it ever moves.
+   On a short viewport the cell shrinks and the card scrolls its text inside. */
+.lineWrap {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  flex: 0 1 auto;
+  min-height: 0;
+}
+.lineWrap > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.ghost {
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) 20px 20px;
+  border: 1px solid transparent;
+  max-height: 52dvh;
+}
+.ghostHead {
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.ghostText {
+  display: block;
+  font-size: var(--fs-display);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  padding-bottom: 24px;
+}
+.ghostLong {
+  font-size: var(--fs-display-long, clamp(26px, 2.6vw, 34px));
+  letter-spacing: -0.01em;
+}
+/* the resolved bridge: one quiet italic line, only when every slot resolved */
+.lineCol [data-bridge-text] {
+  font-style: italic;
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+
+/* one row of chips: 2 (+more) on a phone, 3 (+more) on a wide stage. Labels are ≤3 words and never
+   shrink or clip; if a row is ever too narrow the chips wrap into the free space below. */
+.chips {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 2px 0;
+}
+.chip {
+  flex: 0 0 auto;
+}
+.backButton {
+  justify-self: end;
+}
+.backButton:disabled {
+  opacity: 0.35;
+}
+
+/* wide: rail — the full height between header and the bottom of the stage, scrolls on its own */
+.rail {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr) var(--rail);
+  }
+  .rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--s-3) var(--s-4) var(--s-5) 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .railHead {
+    display: flex;
+    flex-shrink: 0;
+  }
+  .railLabel {
+    font-size: var(--fs-caption);
+    letter-spacing: 0.06em;
+  }
+  .railList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+  }
+  .railList:empty {
+    min-height: 0;
+  }
+}
+
+/* suggestion overlay: sits above the docked bar, never inside the line card */
+.suggestWrap {
+  position: absolute;
+  left: var(--s-4);
+  right: var(--s-4);
+  bottom: var(--s-2);
+  z-index: 3;
+  animation: fadeIn var(--dur) var(--ease);
+}
+.suggest {
+  box-shadow: 0 -12px 40px rgba(11, 11, 15, 0.7);
+}
+.suggestHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+}
+.suggestTag {
+  font-size: var(--fs-micro);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--purple);
+}
+.suggestRef {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.suggestText {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: var(--s-3);
+}
+.suggestActions {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+/* docked bottom bar: ↑ transcript · End · ← previous (an iOS call has no tab bar). At least 32px of
+   stage stays under the End control, more where the home indicator lives; nothing glows. */
+.callFoot {
+  flex-shrink: 0;
+  padding: var(--s-3) 0 max(32px, calc(var(--safe-bottom) + 16px));
+  background: linear-gradient(180deg, transparent, var(--bg) 40%);
+}
+.callFootInner {
+  max-width: calc(var(--col) + var(--rail) + var(--s-6));
+  margin: 0 auto;
+  padding: 0 var(--s-4);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  justify-items: center;
+}
+.callFootInner > :first-child {
+  justify-self: start;
+}
+/* depth by offset and soft blur, never a colored halo */
+.callFootInner .endButton[data-end-call] {
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.callFootInner .endButton[data-end-call]:hover {
+  filter: brightness(1.05);
+}
+.callFootInner .endButton[data-end-call]:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 4px;
+}
+@media (min-width: 1024px) {
+  .callFootInner {
+    padding-right: calc(var(--rail) + var(--s-5) + var(--s-4));
+  }
+}
+
+/* sheets */
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.infoBig {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  line-height: 1.3;
+  padding-bottom: var(--s-2);
+}
+.infoNote {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+.infoRow {
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: var(--fs-body);
+}
+.infoSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 52px;
+  padding: 0 var(--s-4);
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--ink);
+}
+.infoSummary::-webkit-details-marker {
+  display: none;
+}
+.infoSummary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+  border-radius: var(--r-tile);
+}
+.infoIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  color: var(--ink-2);
+}
+.infoTeal .infoIcon {
+  color: var(--teal);
+}
+.infoPurple .infoIcon {
+  color: var(--purple);
+}
+.infoChevron {
+  margin-left: auto;
+  color: var(--ink-3);
+  display: inline-grid;
+  place-items: center;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.infoRow[open] .infoChevron {
+  transform: rotate(90deg);
+}
+.infoBody {
+  padding: 0 var(--s-4) var(--s-4);
+  line-height: var(--lh-body);
+}
+.infoList {
+  margin: 0;
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.detailWord {
+  font-size: var(--fs-their-words);
+  font-weight: 800;
+  color: var(--gold);
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+.detailRef {
+  font-size: var(--fs-their-words);
+  font-weight: 800;
+  color: var(--purple);
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+.detailChips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.detailAside {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-chip);
+  border: 1px solid rgba(255, 69, 58, 0.45);
+  background: rgba(255, 69, 58, 0.1);
+  color: var(--red);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+.detailAside s {
+  text-decoration-thickness: 2px;
+}
+.detailUse {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--purple);
+}
+.detailQuote {
+  font-size: var(--fs-body);
+  color: var(--ink);
+  font-style: italic;
+}
+.detailLine {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+}
+.detailCorrection {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--red);
+}
+.detailCue {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+.detailActions {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  padding-top: var(--s-2);
+}
+.transcript {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.turn {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: var(--s-2);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.turnWho {
+  display: inline-grid;
+  place-items: center;
+  height: 24px;
+  color: var(--ink-3);
+}
+.turnProspect .turnWho {
+  color: var(--gold);
+}
+.turnProspect .turnText {
+  color: var(--ink);
+}
+.turnRep .turnText {
+  color: var(--ink-2);
+}
+.turnInterim {
+  grid-column: 2;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* connect: the one authored moment. A crossfade from the already-visible dialing stage with an
+   exponential ease-out; a plain fade under reduced motion. */
+@keyframes connect {
+  /* opacity only: the line the rep reads never moves, not even by the settle of an entrance */
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .incall {
+    animation: fade var(--dur) linear;
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

@@ -1,0 +1,14 @@
+.shell {
+  position: relative;
+  min-height: 100dvh;
+}
+/* Shell-provided demo pill for screens without their own TopBar; hidden once a TopBar exists. */
+.fallbackPill {
+  position: fixed;
+  top: calc(var(--safe-top) + 9px);
+  left: var(--s-4);
+  z-index: 31;
+}
+.shell:has([data-topbar]) .fallbackPill {
+  display: none;
+}

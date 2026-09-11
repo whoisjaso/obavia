@@ -1,0 +1,47 @@
+{
+  "_note": "FICTIONAL synthetic CRM records (brief §9) for demo mode. Cities are real Texas towns used as fictional settings; every company, contact and number is invented. Companies, locations, contacts and phone endpoints are separate; a dealer group keeps two locations on one switchboard and two contacts may share one number. Numbers are fake (+1 555-01xx), unverified, jurisdiction unknown, contact policy requires_review. Nothing here authorizes a call.",
+  "companies": [
+    { "id": "co-riverbend", "name": "Riverbend Motors", "kind": "single_store" },
+    { "id": "co-copper-ridge", "name": "Copper Ridge Auto Group", "kind": "dealer_group" },
+    { "id": "co-harbor-lane", "name": "Harbor Lane Motors", "kind": "single_store" },
+    { "id": "co-northgate", "name": "Northgate Auto Plaza", "kind": "single_store" },
+    { "id": "co-summit-trail", "name": "Summit Trail Motors", "kind": "single_store" },
+    { "id": "co-blue-heron", "name": "Blue Heron Autos", "kind": "single_store" },
+    { "id": "co-prairie-wind", "name": "Prairie Wind Motorcars", "kind": "single_store" },
+    { "id": "co-ironwood", "name": "Ironwood Auto Mall", "kind": "single_store" }
+  ],
+  "locations": [
+    { "id": "loc-riverbend", "company_id": "co-riverbend", "name": "Riverbend Motors", "city": "Round Rock", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-copper-north", "company_id": "co-copper-ridge", "name": "Copper Ridge North", "city": "Georgetown", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": "ep-002" },
+    { "id": "loc-copper-south", "company_id": "co-copper-ridge", "name": "Copper Ridge South", "city": "San Marcos", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": "ep-002" },
+    { "id": "loc-harbor-lane", "company_id": "co-harbor-lane", "name": "Harbor Lane Motors", "city": "Conroe", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-northgate", "company_id": "co-northgate", "name": "Northgate Auto Plaza", "city": "Waco", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-summit-trail", "company_id": "co-summit-trail", "name": "Summit Trail Motors", "city": "Killeen", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-blue-heron", "company_id": "co-blue-heron", "name": "Blue Heron Autos", "city": "Temple", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-prairie-wind", "company_id": "co-prairie-wind", "name": "Prairie Wind Motorcars", "city": "Tyler", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-ironwood", "company_id": "co-ironwood", "name": "Ironwood Auto Mall", "city": "Longview", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null }
+  ],
+  "endpoints": [
+    { "id": "ep-001", "e164": "+15550100001", "label": "Riverbend Motors main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
+    { "id": "ep-002", "e164": "+15550100002", "label": "Copper Ridge switchboard (shared by two locations)", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
+    { "id": "ep-003", "e164": "+15550100003", "label": "Harbor Lane Motors internet desk (shared by two contacts)", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
+    { "id": "ep-004", "e164": "+15550100004", "label": "Northgate Auto Plaza main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
+    { "id": "ep-005", "e164": "+15550100005", "label": "Summit Trail Motors main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
+    { "id": "ep-006", "e164": "+15550100006", "label": "Blue Heron Autos main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
+    { "id": "ep-007", "e164": "+15550100007", "label": "Prairie Wind Motorcars main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
+    { "id": "ep-008", "e164": "+15550100008", "label": "Ironwood Auto Mall main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
+    { "id": "ep-009", "e164": "+15550100009", "label": "Copper Ridge, Marcus Ferreira direct", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" }
+  ],
+  "contacts": [
+    { "id": "ct-dana", "location_id": "loc-riverbend", "name": "Dana Whitlock", "role": "General manager", "endpoint_ids": ["ep-001"], "call_id": "syn-a-profit-not-revenue", "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 0 },
+    { "id": "ct-copper-south-gm", "location_id": "loc-copper-south", "name": "Unknown (switchboard only)", "role": "General manager, not identified", "endpoint_ids": ["ep-002"], "call_id": null, "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 1 },
+    { "id": "ct-elena", "location_id": "loc-summit-trail", "name": "Elena Marsh", "role": "General manager", "endpoint_ids": ["ep-005"], "call_id": "syn-e-basketball", "entrypoint": "inbound", "inbound_action": "asked for a call back through the website form", "suppression": null, "queue_order": 2 },
+    { "id": "ct-harbor-internet", "location_id": "loc-harbor-lane", "name": "Internet director (name not confirmed)", "role": "Internet director", "endpoint_ids": ["ep-003"], "call_id": null, "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 3 },
+    { "id": "ct-tom", "location_id": "loc-northgate", "name": "Tom Okafor", "role": "Owner", "endpoint_ids": ["ep-004"], "call_id": "syn-d-gratification", "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 4 },
+    { "id": "ct-ray", "location_id": "loc-blue-heron", "name": "Ray Delgado", "role": "Owner", "endpoint_ids": ["ep-006"], "call_id": "syn-f-revenue-rejected-quoted-other", "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 5 },
+    { "id": "ct-priya", "location_id": "loc-harbor-lane", "name": "Priya Natarajan", "role": "General manager", "endpoint_ids": ["ep-003"], "call_id": "syn-c-efficiency-confirmed", "entrypoint": "inbound", "inbound_action": "requested a callback on the website on Tuesday", "suppression": null, "queue_order": 6 },
+    { "id": "ct-marcus", "location_id": "loc-copper-north", "name": "Marcus Ferreira", "role": "Dealer principal", "endpoint_ids": ["ep-002", "ep-009"], "call_id": "syn-b-staff-time", "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 7 },
+    { "id": "ct-simone", "location_id": "loc-prairie-wind", "name": "Simone Achterberg", "role": "General manager", "endpoint_ids": ["ep-007"], "call_id": "syn-g-profit-prophet-revision", "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 8 },
+    { "id": "ct-victor", "location_id": "loc-ironwood", "name": "Victor Lindqvist", "role": "Owner", "endpoint_ids": ["ep-008"], "call_id": "syn-h-opt-out", "entrypoint": "cold", "inbound_action": null, "suppression": "opt_out_requested", "queue_order": 9 }
+  ]
+}

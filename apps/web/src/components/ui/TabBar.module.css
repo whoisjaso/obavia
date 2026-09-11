@@ -1,0 +1,88 @@
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  height: calc(var(--tabbar-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border-top: 1px solid var(--line);
+}
+.list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0 var(--s-2);
+  height: var(--tabbar-h);
+  max-width: var(--col);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.item {
+  min-width: 0;
+}
+.tab {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--ink-2);
+  text-decoration: none;
+  border-radius: var(--r-tile);
+  margin: var(--s-2) var(--s-1) 0;
+  transition:
+    color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+.tab:hover {
+  color: var(--ink);
+}
+.tab:active {
+  transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.04);
+}
+.tab[aria-current='page'] {
+  color: var(--ink);
+}
+.iconSlot {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
+}
+.icon {
+  transition: transform var(--dur) var(--ease);
+}
+.tab[aria-current='page'] .icon {
+  transform: translateY(-1px);
+}
+.label {
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+.tab[aria-current='page'] .label {
+  font-weight: 700;
+}
+.tab:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .icon {
+    transition: none;
+  }
+}
+
+/* Immersive screens (in-call, interview) own the viewport: no tab bar. */
+.hidden,
+:global(:root[data-immersive]) .bar {
+  display: none;
+}

@@ -1,0 +1,365 @@
+/* /onboarding/identity: identity interview (DESIGN_SYSTEM §3.6). One question per screen. Tokens only. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-height: calc(100dvh - var(--tabbar-h) - var(--safe-bottom) - var(--s-5));
+}
+
+/* ---- top bar progress ---- */
+.progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.progressText {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.progressSep {
+  color: var(--ink-3);
+  padding: 0 2px;
+}
+
+/* ---- dependents note ---- */
+.noteRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.noteGlyph {
+  display: inline-grid;
+  place-items: center;
+  color: var(--orange);
+  line-height: 1;
+}
+.noteText {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- one question ---- */
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  flex: 1;
+  animation: fadeIn var(--dur) var(--ease);
+}
+.cueRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.prompt {
+  font-size: var(--fs-large);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.015em;
+  padding: var(--s-2) 0;
+  text-wrap: balance;
+}
+.options {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--s-2);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.options > li {
+  min-width: 0;
+  display: flex;
+}
+.option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 104px;
+  padding: var(--s-4) var(--s-3);
+  border-radius: var(--r-tile);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--ink);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.option:hover {
+  background: var(--bg-2);
+}
+.option:active {
+  background: var(--bg-3);
+  transform: scale(0.97);
+}
+.optionSelected {
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 2px var(--blue);
+  background: var(--bg-2);
+}
+.optionLabel {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.25;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.optionCheck {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--ink-on-blue);
+  display: grid;
+  place-items: center;
+}
+.exclusiveItem {
+  min-width: 0;
+}
+.optionExclusive {
+  min-height: 64px;
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  color: var(--ink-2);
+}
+.optionExclusive .optionLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+.optionExclusive.optionSelected {
+  border-style: solid;
+  color: var(--ink);
+  background: var(--bg-2);
+}
+
+/* ---- actions: an opaque bar docked at the bottom (no tab bar during the interview) ---- */
+.actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  max-width: var(--col);
+  margin: 0 auto;
+  padding: var(--s-2) var(--s-4) calc(var(--s-3) + var(--safe-bottom));
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+}
+/* the controls: Back, Skip, then Next; none of them ever shrinks (the cue has its own line above) */
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.skipChip {
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+/* reserve the bar's height so the last tiles are always reachable */
+.screen {
+  padding-bottom: calc(124px + var(--safe-bottom));
+}
+.spacer {
+  flex: 1;
+}
+.reason {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  min-width: 0;
+  overflow: hidden;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+.reasonChip {
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.reasonClear {
+  opacity: 0.9;
+}
+.reasonLimit {
+  opacity: 1;
+}
+.nextHero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-width: 128px;
+  flex-shrink: 0;
+  height: 56px;
+  padding: 0 var(--s-4) 0 var(--s-5);
+  border: none;
+  border-radius: var(--r-chip);
+  background: var(--blue-fill);
+  color: var(--ink-on-blue);
+  font-size: 20px; /* large text on the filled blue: 3:1 floor applies, 4.8:1 met */
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+.nextHero:hover {
+  background: var(--blue);
+}
+.nextHero:active {
+  transform: scale(0.96);
+}
+.nextHero:disabled {
+  background: var(--bg-2);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+/* ---- review ---- */
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeIn var(--dur) var(--ease);
+}
+.reviewHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-2) var(--s-2);
+}
+.reviewRingCenter {
+  font-size: var(--fs-title);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+}
+.reviewChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.reviewList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.reviewCard {
+  padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4);
+}
+.reviewCardMuted {
+  opacity: 0.55;
+}
+.reviewRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.reviewIndex {
+  width: 28px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+.reviewBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.reviewTitle {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.reviewCond {
+  color: var(--teal);
+}
+.reviewMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.answerChip {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  background: var(--bg-2);
+  white-space: normal;
+  text-align: left;
+  min-height: 28px;
+  padding: 3px var(--s-3);
+}
+
+/* ---- sheets ---- */
+.sheetStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.sheetBig {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+}
+.sheetText {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.sheetMuted {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+.sheetOptions {
+  margin: 0;
+  padding-left: 1.1em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-body);
+}
+.sheetOptionLabel {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* opacity only: a transform here would become the containing block of the fixed action bar */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,239 @@
+/* /insights: rings + numbers with "n of N" captions, an empty mark where nothing is counted. Tokens only. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-height: calc(100dvh - var(--tabbar-h) - var(--safe-bottom) - var(--s-5));
+  animation: fadeIn var(--dur) var(--ease);
+}
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.kicker {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-4) 0 var(--s-5);
+}
+.empty > a {
+  width: min(100%, 200px);
+}
+.emptyGlyph {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.emptyLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ---- calls ---- */
+.callsRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--s-3);
+  align-items: stretch;
+}
+.emptyTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 132px;
+  border-radius: var(--r-tile);
+  border: 1px dashed var(--line-strong);
+}
+.callsSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  align-items: stretch;
+  min-width: 132px;
+}
+.stageGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.stageTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 116px;
+  padding: var(--s-3) var(--s-2);
+  border-radius: var(--r-tile);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+}
+.stageTile:hover {
+  background: var(--bg-3);
+}
+.stageTileLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stageRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.stageLabel {
+  flex: 1;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  min-width: 0;
+}
+.ringDash {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.ratio {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.ratioSep {
+  color: var(--ink-3);
+  padding: 0 1px;
+}
+
+/* ---- rings ---- */
+.rings {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-6);
+  flex-wrap: wrap;
+  padding: var(--s-2) 0;
+}
+.ringStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 96px;
+}
+.ringCenter {
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-title);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.ringCenterEmpty {
+  color: var(--ink-3);
+}
+.ringLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+/* ---- sheets ---- */
+.sheetStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.sheetBig {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+}
+.sheetText {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.sheetMuted {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+.sheetRow {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: var(--s-3);
+  align-items: start;
+}
+.sheetKey {
+  font-size: var(--fs-title);
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+}
+.criteria {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.criterion {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.weight {
+  font-size: var(--fs-body);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.criterionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.criterionLabel {
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.criterionDesc {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

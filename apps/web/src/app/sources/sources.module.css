@@ -1,0 +1,444 @@
+/* ---- Source Library (DESIGN_SYSTEM §3.5) ---- */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeIn var(--dur) var(--ease);
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.privateChip {
+  min-height: 26px;
+  font-size: var(--fs-micro);
+}
+/* reference rows (the record sheet): key on the left, value on the right, ids quiet */
+.refRows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.refRow {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: var(--s-3);
+  align-items: baseline;
+}
+.refKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.refValue {
+  margin: 0;
+  font-size: var(--fs-body);
+  color: var(--ink);
+  line-height: var(--lh-body);
+  overflow-wrap: anywhere;
+}
+.refId {
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  margin-right: 2px;
+}
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* search */
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.searchIcon {
+  position: absolute;
+  left: var(--s-4);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+.searchInput {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--s-7) 0 calc(var(--s-4) + 28px);
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-1);
+  color: var(--ink);
+  font-size: var(--fs-body);
+}
+.searchInput::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.searchInput:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-color: var(--blue);
+}
+.clear {
+  position: absolute;
+  right: 2px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.row > :global([data-stat]) {
+  margin-left: auto;
+}
+
+.rowEnd {
+  margin-left: auto;
+}
+
+/* section tiles: glyph · ≤2-word name · count ring */
+.sectionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+@media (max-width: 379px) {
+  .sectionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.sectionGridCollapsed {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+.sectionTile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 112px;
+  padding: var(--s-3) var(--s-2);
+  border-radius: var(--r-tile);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.sectionTile:hover {
+  background: var(--bg-2);
+}
+.sectionTile:active {
+  background: var(--bg-3);
+  transform: scale(0.97);
+}
+.sectionSelected {
+  box-shadow: inset 0 0 0 2px var(--blue);
+  border-color: var(--blue);
+}
+.sectionGridCollapsed .sectionTile {
+  min-height: 72px;
+  min-width: 96px;
+}
+.sectionGlyph {
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+.sectionName {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.sectionCount {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+.namedOnly {
+  cursor: default;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: transparent;
+  color: var(--ink-3);
+}
+.namedOnly .sectionGlyph,
+.namedOnly .sectionName {
+  color: var(--ink-3);
+}
+.listHead {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+  padding-left: var(--s-2);
+}
+
+/* cards */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.recordRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.recordGlyph {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-2);
+  color: var(--teal);
+}
+.recordTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.recordTemplate {
+  margin-top: var(--s-1);
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* sheets */
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.sheetTitle {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+}
+.caption {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.body {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
+}
+.small {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+  line-height: var(--lh-body);
+}
+.hash {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.missingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.missingName {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+}
+.statRow {
+  display: flex;
+  justify-content: space-around;
+  gap: var(--s-4);
+}
+.glyphStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 64px;
+}
+.glyphStatValue {
+  font-size: var(--fs-large);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.glyphStatKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.ringRow {
+  display: flex;
+  justify-content: space-around;
+  gap: var(--s-4);
+}
+.ringItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+}
+.ringText {
+  font-size: var(--fs-caption);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.ringKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* record page */
+.recordHeading {
+  font-size: var(--fs-large);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+}
+.excerpt {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  user-select: text;
+  text-wrap: pretty;
+}
+.templateLarge {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  line-height: var(--lh-body);
+}
+.chipLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--ink);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.chipLink:hover {
+  background: var(--bg-3);
+}
+.chipLink:active {
+  transform: scale(0.96);
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-4) 0;
+}
+.pagerEnd {
+  width: 56px;
+  height: 56px;
+}
+.pagerMid {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.overlay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.overlayRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.overlayCols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.overlayKey {
+  display: inline-block;
+  margin-bottom: var(--s-1);
+  font-size: var(--fs-micro);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+/* empty */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-8) 0;
+}
+.emptyGlyph {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.emptyLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
