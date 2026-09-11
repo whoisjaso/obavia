@@ -44,8 +44,9 @@ export interface InCallProps {
 
 type SheetKind = { kind: 'info' } | { kind: 'more' } | { kind: 'word'; id: string } | { kind: 'ref'; id: string } | { kind: 'transcript' };
 
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 /** A rep/UI listener action before it is stamped with the event version. */
-type CardAction = Omit<ListenerAction, 'event_version'>;
+type CardAction = DistributiveOmit<ListenerAction, 'event_version'>;
 
 const MAX_CHIPS = 4;
 
