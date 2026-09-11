@@ -22,7 +22,7 @@ archive is **private to this project** by default.
 | Sections total | | **39** (the brief claims 41 — see §2) |
 | Package hash | SHA-256 of `docs/02-organized-question-bank.md` in `data/source_package_validation.json` | 1 (this is *not* a hash of the raw transcripts) |
 | Named-but-missing register | `data/source_missing_resources.json` | 11 entries |
-| Own-script counterparts | `data/apohenia_script_nodes.json` (`source_question_ids`), mapped by `ownScriptCounterparts()` | read live; a placeholder seed yields "None yet" |
+| Own-script counterparts | `data/apohenia_script_nodes.json` (`source_question_ids`), mapped by `ownScriptCounterparts()` | read live from the authored 51-node draft seed |
 
 ### Per-family table
 
@@ -104,8 +104,8 @@ that source, and writes a **sibling** report `data/source_offset_verification.js
 pending counts). It never overwrites the parser's `data/source_package_validation.json` and
 never edits an excerpt to fit an offset. Exit codes: 0 with
 "raw sources not supplied — verification pending" when neither file exists; 0 when every
-supplied source verifies; 1 listing each mismatching record otherwise. (No `package.json`
-script was added — that file is shared; the command above is the documented entry point.)
+supplied source verifies; 1 listing each mismatching record otherwise. The root
+`package.json` exposes it as `npm run verify:offsets`.
 
 ## 5. The four-representation rule (brief §3)
 
@@ -135,8 +135,8 @@ Each question exists in four distinct representations that are never collapsed i
   situation exists.
 - `adapt` is labelled as *not live approval* in its one-line definition everywhere it is
   shown; approval lives on the script node, never on the source record.
-- Source A and Source B are separate tab panels with separate section indexes and separate
-  counts; results are split by `record.source` and never merged into one list.
+- Source A and Source B are two source chips with separate section tiles and separate
+  counts (Design System v2); results are split by `record.source` and never merged into one list.
 - The raw excerpt is rendered unchanged, the template is labelled normalized, no timestamp
   pattern appears in any template or excerpt (tested), and speaker turns in the reviewed
   call keep their `>>` markers without an invented speaker name.

@@ -1,65 +1,44 @@
 # Apohenia Sales OS
 
-A private, desktop-first application that develops Jason's ability to sell through a
-self-directed identity interview, a specific approved offer, an exact repeatable script,
-branch practice, human-led calling, prominent prospect-language reminders and
-evidence-based review. The authoritative specification is
-[`docs/00-codex-master-v2.md`](docs/00-codex-master-v2.md).
+A private, desktop-first app that develops Jason's ability to sell: a click-only identity interview, one
+approved offer, an exact repeatable script, branch practice, human-led calling, prominent prospect-language
+reminders (THEIR WORDS / THEIR REFERENCES) and evidence-based review. The specification is
+[`docs/00-codex-master-v2.md`](docs/00-codex-master-v2.md); the UI follows
+[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) (v2 "Arena": dark stage, one hero, tab bar Dial · Train · Script · Me).
 
-This repository is at **Increment 1 — skeleton**. It runs with **no credentials**.
+**State: Increment 1, local demo mode.** Synthetic data only, stored in this browser under `apohenia.v1.*`.
+The dialer is a **simulator** over fictional prospects; it cannot dial, transcribe, record or call a model, and
+every screen carries the `◐ Demo` pill that says so. Live sequential dialing is intentionally disabled pending
+telephony, a reviewed contact policy and the sequential-session flag. Nothing has been deployed.
 
-## Demo mode statement
-
-Everything in this build is **local demo mode**: synthetic data only, stored in your
-browser's `localStorage` under the `apohenia.v1.` namespace. It **cannot dial** a phone
-number, cannot transcribe audio, and calls no model API. No integration in this repository
-has been live-tested; none exists yet. The header badge says so on every screen.
-
-## Setup
-
-Requires Node 22 and npm 10. Chromium for E2E is expected pre-installed at
-`PLAYWRIGHT_BROWSERS_PATH` (`/opt/pw-browsers`); the Playwright config falls back to the
-pinned binary automatically. Never run `playwright install` in this environment.
+## Run it
 
 ```bash
-npm install            # workspaces: apps/web, packages/domain (lockfile committed)
-npm run seed:validate  # re-parse docs/02-organized-question-bank.md → data/*.json, verify 207 records
-npm run typecheck      # tsc --noEmit for packages/domain, apps/web, tests
-npm run lint           # eslint . --max-warnings 0 (eslint-config-next flat config)
-npm test               # vitest: domain schemas/index/seeds + storage lib
-npm run build          # next build (Turbopack) for apps/web
-npm run e2e            # playwright: builds + starts apps/web, visits every route
-npm run dev            # next dev on http://localhost:3000
+npm install
+npm run dev            # http://localhost:3000 — the Dial front door
 ```
 
-If `npm install` ever fails with `Cannot read properties of null (reading 'edgesOut')`
-that is an npm arborist bug triggered while resolving vitest 4.1's optional peer set
-without a lockfile. Keep `package-lock.json`; with it present, plain `npm install` and
-`npm ci` both work. (The lockfile was generated once with `--legacy-peer-deps`.)
+Gates, in order: `npm run seed:validate` · `npm run typecheck` · `npm run lint` · `npm test` · `npm run build` ·
+`npm run e2e`. Full commands, prerequisites and the last real results: [`docs/SETUP.md`](docs/SETUP.md) and
+[`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
 
-## Layout
+## Where things are
 
 ```
-apps/web/            Next 16 App Router app (src/app routes, src/components/ui, src/lib/storage.ts, src/styles)
-packages/domain/     @apohenia/domain — zod schemas, seed loaders, source index (pure TS, no React)
-data/                JSON seeds. 3 real (source package) + 4 placeholders awaiting module agents
-docs/                Brief, source framework, question bank, CONVENTIONS.md for module agents
-scripts/             parse-question-bank.mjs (validator; `npm run seed:validate`)
-tests/e2e/           Playwright smoke tests
-legacy/obavia/       Frozen previous project. Never touch.
+apps/web/            Next 16 App Router — screens (src/app), kit (src/components/ui), storage (src/lib), tokens (src/styles)
+packages/domain/     @apohenia/domain — zod schemas + pure engines: sources, interview, scripts, offers, practice, vocabulary, listener, dialer
+data/                JSON seeds (provenance table in CLAUDE.md; hashes in docs/SOURCE_REGISTER.md)
+docs/                Brief, source framework, question bank, addendum, design system, ARCHITECTURE, SETUP, THREAT_MODEL, CONVENTIONS
+scripts/             parse-question-bank.mjs (seed:validate), verify-source-offsets.mjs (verify:offsets)
+tests/e2e/           Playwright specs (9 files) + reference screenshots in docs/screenshots/v2
+legacy/obavia/       Frozen previous project — never touched
 ```
 
-## Increment plan
-
-Section 20 of the brief defines seven increments. This skeleton is the ground for
-Increment 1 (working source, interview and exact-script training core), which five parallel
-module agents fill in per [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md). Increment 2 adds
-secure persistence; 3 the first consented real call; 4 consented transcription and grounded
-coaching; 5 voice simulation and metrics; 6 permissioned sources and sequencing; 7 hardening.
-`.env.example` lists the variables later increments will need — Increment 1 needs none.
+Status documents kept truthful after every slice: `IMPLEMENTATION_STATUS.md`, `SOURCE_COVERAGE.md`,
+`SCRIPT_APPROVALS.md`, `INTERVIEW_FLOW.md`.
 
 ## Honesty rules (short form)
 
-Study records are not live approval. A placeholder is labelled a placeholder. A draft is
-labelled a draft. The fictional practice offer is banded "FICTIONAL TRAINING OFFER — NOT A
-REAL QUOTE". Nothing claims to have been tested unless it actually ran.
+Study records are not live approval. Every script node and offer is a labelled draft. The fictional practice
+offer is banded "FICTIONAL TRAINING OFFER — NOT A REAL QUOTE" and never enters live pricing. A blank price is
+`null`. Text-only practice marks tone "not assessed". No test is claimed unless it ran.

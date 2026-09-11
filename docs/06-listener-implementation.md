@@ -220,11 +220,15 @@ topic · L13 revision retracts "ambushed" (same utterance, revision 1) · L14 ga
 
 ## 8. Open items
 
-- `packages/domain/package.json` (shared) has no `"./listener"` subpath export; the app imports the listener
-  through `@apohenia/domain/vocabulary` (additive re-export) until the skeleton adds
-  `"./listener": "./src/listener/index.ts"`.
-- `packages/domain/src/index.ts` (shared) does not re-export `MODULE as LISTENER_MODULE`.
+- `packages/domain/package.json` now exports `"./listener"`; the app imports the listener from
+  `@apohenia/domain/listener` (`apps/web/src/app/calls/CallDetailClient.tsx`, `apps/web/src/app/dial-lib.ts`).
+  The earlier note that it went through `/vocabulary` is resolved.
+- `packages/domain/src/index.ts` (shared) still does not re-export `MODULE as LISTENER_MODULE`; consumers use the
+  subpath, so nothing depends on it.
 - Live provider wiring, tenant/RLS, consent stopping, deletion and model-outage fallback are Increments 2–4;
   the two `it.todo` entries mark them.
 - Model-dependent quality evaluation (inference beyond the rule set) is deliberately separate from these
   deterministic evidence/lifecycle tests and is not claimed.
+- Item 16's UI half is asserted by `tests/e2e/dial.spec.ts` (≥1 reference card at ≥24 px beside a line that never
+  moves); the visual critic's open finding R3-03 (merged references read as a duplicate keyword list; the Dana
+  transcript carries no true analogy) is recorded in `IMPLEMENTATION_STATUS.md` §7.

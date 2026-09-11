@@ -47,8 +47,10 @@ Routes: `/` (Dial + in-call), `/practice` (Train), `/scripts` (+ `/sources`, `/o
 | `data/identity_interview.json` | **Authored in this repo** from brief §4 (the package's original JSON was not supplied) | draft seed; replace when Jason's package version arrives |
 | `data/apohenia_script_nodes.json` | **Authored in this repo** from brief §5–6 and the framework | original draft content, unapproved, cites record IDs |
 | `data/offers.json` | Authored from brief §5 | draft research offer (price `null`) + fictional practice offer |
-| `data/synthetic_transcripts.json` | Authored from brief §7 and addendum §7/§10 cases | synthetic only |
-| 1,449-occurrence audit, raw Source A/B, package validation report | **Not supplied** | marked missing in `SOURCE_COVERAGE.md` |
+| `data/synthetic_transcripts.json` | Authored from brief §7 (8 vocabulary calls `syn-a…syn-h`) and addendum §7/§10 (15 listener fixtures `syn-l-*`) | 23 synthetic calls, `provider: "synthetic"`, no hidden mock facts; fixtures documented in `docs/06-listener-implementation.md` §6 |
+| `data/synthetic_prospects.json` | Authored from brief §9 | fictional CRM (8 companies · 9 locations · 9 endpoints · 10 contacts), `+1 555-01xx` numbers, jurisdiction `unknown`, contact policy `requires_review`, one opt-out; drives the demo dialer only |
+| `data/source_missing_resources.json` | Authored in this repo (named-but-missing register) | 11 entries, each marked missing — never reconstructed |
+| 1,449-occurrence audit, raw Source A/B, package validation report | **Not supplied** | marked missing in `SOURCE_COVERAGE.md`; hashes of what *is* supplied are in `docs/SOURCE_REGISTER.md` |
 
 ## Conventions
 - npm workspaces; Node 22. Commands from the root: `npm install`, `npm run dev`, `npm run build`, `npm run typecheck`, `npm run lint`, `npm test` (vitest), `npm run e2e` (Playwright), `npm run seed:validate` (parser).
