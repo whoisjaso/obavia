@@ -980,16 +980,15 @@
     opacity: 1;
   }
 }
-/* connect: the one authored moment. Starts from the already-visible dialing stage, settles with an
-   exponential ease-out (opacity only under reduced motion). */
+/* connect: the one authored moment. A crossfade from the already-visible dialing stage with an
+   exponential ease-out; a plain fade under reduced motion. */
 @keyframes connect {
+  /* opacity only: the line the rep reads never moves, not even by the settle of an entrance */
   0% {
     opacity: 0;
-    transform: scale(0.985) translateY(6px);
   }
   100% {
     opacity: 1;
-    transform: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
