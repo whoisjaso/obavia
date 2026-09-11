@@ -16,9 +16,17 @@
   white-space: nowrap;
   cursor: default;
 }
+.pill:has(> .label:only-child) {
+  padding: 0 10px;
+}
 .glyph {
-  font-size: 13px;
+  display: inline-grid;
+  place-items: center;
   line-height: 1;
+}
+.glyph [data-glyph-text] {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 .label {
   line-height: 1;
@@ -57,17 +65,33 @@
   background: rgba(100, 210, 255, 0.1);
 }
 
-/* row-edge status glyph: 20px, tone color, no pill box */
+/* "Not assessed" / "Not set" / "None yet": a quiet caption, never a dash. */
+.absent {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* row-edge status mark: 20px icon in the tone color, no pill box */
 .statusGlyph {
   display: inline-grid;
   place-items: center;
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  font-size: 20px;
   line-height: 1;
   border-radius: 50%;
   background: transparent;
   border: none;
   padding: 0;
+}
+.statusGlyph [data-glyph-text] {
+  font-size: var(--fs-caption);
+  font-weight: 700;
 }

@@ -44,7 +44,7 @@
 .title {
   font-size: var(--fs-caption);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--track-caps);
   text-transform: uppercase;
   color: var(--ink-2);
 }

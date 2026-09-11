@@ -15,7 +15,7 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
   name?: string;
   /** Raised variant (`--bg-2`). */
   raised?: boolean;
-  /** Tinted border/glow for THEIR WORDS (gold), THEIR REFERENCES (purple), suggestions (purple), attention (orange). */
+  /** Tinted border for THEIR WORDS (gold), THEIR REFERENCES (purple), suggestions (purple), attention (orange). */
   tone?: 'neutral' | 'gold' | 'purple' | 'orange' | 'green' | 'red';
   /** Tighter padding (12px) for list rows. */
   dense?: boolean;
@@ -43,7 +43,7 @@ export function Card({ children, onPress, href, name, raised, tone = 'neutral', 
     return (
       <Link href={href} className={[cls, styles.pressable].join(' ')} aria-label={name} data-card {...(rest as HTMLAttributes<HTMLAnchorElement>)}>
         <div className={styles.body}>{body}</div>
-        <Icon name="chevron" size={20} className={styles.chevron} />
+        <Icon name="chevron" size={20} weight="bold" className={styles.chevron} />
       </Link>
     );
   }
@@ -51,7 +51,7 @@ export function Card({ children, onPress, href, name, raised, tone = 'neutral', 
     return (
       <button type="button" className={[cls, styles.pressable].join(' ')} onClick={onPress} aria-label={name} data-card {...(rest as HTMLAttributes<HTMLButtonElement>)}>
         <div className={styles.body}>{body}</div>
-        <Icon name="chevron" size={20} className={styles.chevron} />
+        <Icon name="chevron" size={20} weight="bold" className={styles.chevron} />
       </button>
     );
   }

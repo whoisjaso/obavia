@@ -22,7 +22,7 @@ import {
   type VocabularyItemInput,
 } from '@apohenia/domain/practice';
 import { stageLabel } from '@apohenia/domain/scripts';
-import { Card, Chip, FictionalPill, GlyphPill, IconButton, LineCard, Sheet, SlotLine, Tile, TileGrid, TopBar, WordCard } from '@/components/ui';
+import { Card, Chip, FictionalPill, GlyphPill, Icon, IconButton, LineCard, Sheet, SlotLine, Tile, TileGrid, TopBar, WordCard } from '@/components/ui';
 import { AssistCard, ChoiceTile, PracticeHero, ProspectCard, QuestionCard, ResultCard, type ChoiceState } from './parts';
 import { DEFAULT_MOMENT, drillMeta, itemWithFacts, lines, resolveForPractice, resultAnnouncement, shortChoices } from './practice-lib';
 import styles from './practice.module.css';
@@ -157,7 +157,7 @@ export function DrillScreen({ kind, nodes, mode, facts, practiceLabel, onResult,
       {!node || !item ? (
         <div className={styles.center}>
           <span className={styles.emptyGlyph} aria-hidden="true">
-            ∅
+            <Icon name="empty" size={72} />
           </span>
           <span className={styles.emptyLabel}>Nothing here</span>
         </div>
@@ -169,7 +169,7 @@ export function DrillScreen({ kind, nodes, mode, facts, practiceLabel, onResult,
           mode={mode}
           facts={facts}
           moment={kind === 'practice_this_moment' ? moment : undefined}
-          stageChip={kind === 'order_rehearsal' ? <Chip static label={stageLabel(currentStage)} tone="teal" glyph="◎" name={`Stage ${stageLabel(currentStage)}`} data-stage-chip /> : null}
+          stageChip={kind === 'order_rehearsal' ? <Chip static label={stageLabel(currentStage)} tone="teal" icon="target" name={`Stage ${stageLabel(currentStage)}`} data-stage-chip /> : null}
           lookupNode={kind === 'random_node_lookup' ? nodes.find((n) => n.id === item.node_id) : undefined}
           onJump={() => setSheet('stage')}
           cue={meta.cue}
@@ -207,7 +207,7 @@ export function DrillScreen({ kind, nodes, mode, facts, practiceLabel, onResult,
               <ul className={styles.sheetList}>
                 {mirrors.map((m) => (
                   <li key={m} className={styles.mirror} data-mirror>
-                    <span aria-hidden="true">⇄</span> <SlotLine text={m} />
+                    <Icon name="swap" size={14} weight="bold" className={styles.mirrorIcon} /> <SlotLine text={m} />
                   </li>
                 ))}
               </ul>
@@ -217,11 +217,11 @@ export function DrillScreen({ kind, nodes, mode, facts, practiceLabel, onResult,
             <div className={styles.sheetChips}>
               {item.cited_node_ids.map((id) => {
                 const cited = nodes.find((n) => n.id === id);
-                return <Chip key={id} static glyph="≡" label={(cited?.substage ?? id).replace(/[_-]+/g, ' ')} name={`Cites node ${id}${cited ? ` (${stageLabel(cited.stage)})` : ''}`} />;
+                return <Chip key={id} static icon="script" label={(cited?.substage ?? id).replace(/[_-]+/g, ' ')} name={`Cites node ${id}${cited ? ` (${stageLabel(cited.stage)})` : ''}`} />;
               })}
             </div>
           ) : null}
-          <p className={styles.sheetMuted}>Tone: not assessed (text-only). Reducing assistance is optional and reversible.</p>
+          <p className={styles.sheetMuted}>Tone: Not assessed (text-only). Reducing assistance is optional and reversible.</p>
         </div>
       </Sheet>
 
@@ -389,7 +389,7 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
       </div>
 
       {/* --- context: the line (mode-masked) or what the drill shows --- */}
-      {node && !isText ? <AssistCard node={node} mode={mode} facts={facts} revealed={revealed} onReveal={() => setRevealed(true)} hideMirrors={item.kind === 'mirror_duel' || item.kind === 'practice_this_moment'} onInfo={onInfo} /> : null}
+      {node && !isText ? <AssistCard node={node} mode={mode} facts={facts} revealed={revealed} onReveal={() => setRevealed(true)} hideMirrors={item.kind === 'mirror_duel' || item.kind === 'practice_this_moment'} onInfo={onInfo} preview={isChoice} /> : null}
       {node && isText ? (
         showLine ? (
           <LineCard stage={stageLabel(node.stage)} line={item.target_text ?? ''} nodeId={node.id} locked minLines={2} onInfo={onInfo} />
@@ -403,7 +403,7 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
           <span className={styles.cardKey}>Stage</span>
           <p className={styles.lookupStage}>
             {stageLabel(lookupNode.stage)}
-            {lookupNode.substage ? <span className={styles.lookupSub}> · {lookupNode.substage.replace(/_/g, ' ')}</span> : null}
+            {lookupNode.substage ? <span className={styles.lookupSub}>{lookupNode.substage.replace(/_/g, ' ')}</span> : null}
           </p>
           <span className={styles.cardKey}>Why this now</span>
           <p className={styles.cardText}>{lookupNode.why_this_now}</p>
@@ -472,13 +472,15 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
         <div className={styles.cues}>
           <Card dense data-cue-card="tone">
             <span className={styles.cardKey}>
-              <span aria-hidden="true">♪ </span>Tone
+              <Icon name="music" size={14} weight="bold" />
+              Tone
             </span>
             <p className={styles.cardText}>{item.delivery_cues.tone_cue}</p>
           </Card>
           <Card dense data-cue-card="pacing">
             <span className={styles.cardKey}>
-              <span aria-hidden="true">⏱ </span>Pacing
+              <Icon name="timer" size={14} weight="bold" />
+              Pacing
             </span>
             <p className={styles.cardText}>{item.delivery_cues.pacing_cue}</p>
           </Card>
@@ -492,13 +494,15 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
             <div className={styles.compare} data-moment-compare>
               <Card tone="gold" dense data-compare="original">
                 <span className={styles.cardKey}>
-                  <span aria-hidden="true">● </span>Original
+                  <Icon name="circle" size={12} weight="fill" />
+                  Original
                 </span>
-                <ul className={styles.compareList}>{comparison.original.length > 0 ? comparison.original.map((l, i) => <li key={i}>{l}</li>) : <li className={styles.muted}>∅</li>}</ul>
+                <ul className={styles.compareList}>{comparison.original.length > 0 ? comparison.original.map((l, i) => <li key={i}>{l}</li>) : <li className={styles.muted}>None recorded</li>}</ul>
               </Card>
               <Card tone="purple" dense data-compare="simulated" aria-label="Simulated: taken from the node's sufficient-answer examples, never from a real prospect">
                 <span className={styles.cardKey}>
-                  <span aria-hidden="true">✦ </span>Simulated
+                  <Icon name="spark" size={12} weight="fill" />
+                  Simulated
                 </span>
                 <ul className={styles.compareList}>
                   {comparison.simulated.map((l, i) => (
@@ -514,8 +518,8 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
       {/* --- input --- */}
       {isText && !checked ? (
         <div className={styles.typeBox}>
-          {item.kind === 'recall_with_reveal' && !revealed && !checked ? <Chip glyph="◑" label="Reveal" name="Reveal the line before typing (counts as revealed)" tone="teal" onClick={() => setRevealed(true)} data-reveal /> : null}
-          <textarea className={styles.textarea} aria-label="Type the line from memory" placeholder="…" value={text} onChange={(e) => setText(e.target.value)} disabled={checked} rows={4} autoFocus data-recall-input />
+          {item.kind === 'recall_with_reveal' && !revealed && !checked ? <Chip icon="eye" label="Reveal" name="Reveal the line before typing (counts as revealed)" tone="teal" onClick={() => setRevealed(true)} data-reveal /> : null}
+          <textarea className={styles.textarea} aria-label="Type the line from memory" placeholder="Type the line" value={text} onChange={(e) => setText(e.target.value)} disabled={checked} rows={4} autoFocus data-recall-input />
         </div>
       ) : null}
 
@@ -550,7 +554,7 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
       {item.input === 'none' ? (
         <div className={styles.center} data-nothing>
           <span className={styles.emptyGlyph} aria-hidden="true">
-            ∅
+            <Icon name="empty" size={72} />
           </span>
           <span className={styles.emptyLabel}>No data yet</span>
         </div>

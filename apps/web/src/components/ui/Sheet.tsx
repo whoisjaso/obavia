@@ -11,14 +11,14 @@ export interface SheetProps {
   /** Accessible name. Shown as a small uppercase word row unless `hideTitle`. */
   title: string;
   hideTitle?: boolean;
-  /** A required sheet cannot be dismissed — one of its tiles must be chosen (e.g. the outcome). */
+  /** A required sheet cannot be dismissed: one of its tiles must be chosen (e.g. the outcome). */
   required?: boolean;
   children: ReactNode;
   /** Tall sheet (up to 92dvh) for long lists like a transcript. */
   tall?: boolean;
-  /** Icon buttons in the header (left of the close button) — e.g. pin / dismiss. */
+  /** Icon buttons in the header (left of the close button), e.g. pin / dismiss. */
   actions?: ReactNode;
-  /** Fixed at the bottom of the sheet, above the scrolling body (e.g. three equal action tiles). */
+  /** Fixed at the bottom of the sheet, above the scrolling body: an action row of tiles. Stacks to full-width tiles on narrow screens. */
   footer?: ReactNode;
   /** Test/automation hook. */
   'data-sheet'?: string;
@@ -28,7 +28,7 @@ export interface SheetProps {
  * Bottom sheet on native `<dialog>`: `showModal()` makes the rest of the page inert and traps
  * focus; a grabber, `--r-sheet` top corners, slide-up over `--dur`, blurred backdrop, Esc closes,
  * focus returns to the opener. Max 85dvh: the body scrolls under a bottom fade; the footer stays
- * put. Wide screens (≥640px) center it at 560px.
+ * put. Wide screens (at least 640px) center it at 560px.
  */
 export function Sheet({ open, onClose, title, hideTitle, required, children, tall, actions, footer, 'data-sheet': dataSheet }: SheetProps) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -65,7 +65,7 @@ export function Sheet({ open, onClose, title, hideTitle, required, children, tal
       }}
     >
       <div className={styles.inner}>
-        <button type="button" className={styles.grabber} aria-label={required ? `${title} — choose one` : `Close ${title}`} onClick={() => !required && onClose()} disabled={required}>
+        <button type="button" className={styles.grabber} aria-label={required ? `${title}: choose one` : `Close ${title}`} onClick={() => !required && onClose()} disabled={required}>
           <span aria-hidden="true" />
         </button>
         <div className={[styles.head, hideTitle ? styles.headHidden : ''].join(' ').trim()}>

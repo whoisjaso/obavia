@@ -17,18 +17,33 @@
   transition:
     background-color var(--dur-fast) var(--ease),
     transform var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease);
+    box-shadow var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
 }
 .tile:hover {
   background: var(--bg-2);
+  border-color: var(--line-strong);
 }
 .tile:active {
   background: var(--bg-3);
   transform: scale(0.97);
 }
+.tile:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
 .tile:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+  transform: none;
+}
+.sm {
+  min-height: var(--h-tile);
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  text-align: left;
 }
 .lg {
   min-height: 132px;
@@ -41,6 +56,11 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.2;
+  text-wrap: balance;
+}
+.sm .label {
+  font-size: var(--fs-body);
+  font-weight: 600;
 }
 .lg .label {
   font-size: var(--fs-body);
@@ -53,6 +73,10 @@
 .selected {
   box-shadow: inset 0 0 0 2px var(--blue);
   border-color: var(--blue);
+  background: rgba(10, 132, 255, 0.1);
+}
+.selected:hover {
+  background: rgba(10, 132, 255, 0.16);
 }
 .suggested {
   box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.7);
@@ -62,7 +86,6 @@
   position: absolute;
   top: 8px;
   right: 10px;
-  font-size: 13px;
   color: var(--blue);
   line-height: 1;
 }
@@ -74,9 +97,14 @@
   height: 20px;
   border-radius: 50%;
   background: var(--blue);
-  color: #fff;
+  color: var(--ink-on-blue);
   display: grid;
   place-items: center;
+}
+.sm .check,
+.sm .spark {
+  position: static;
+  margin-left: auto;
 }
 .green .icon {
   color: var(--green);

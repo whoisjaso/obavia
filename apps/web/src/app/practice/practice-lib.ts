@@ -126,7 +126,7 @@ export function resultAnnouncement(result: DrillResult): string {
 }
 
 export function verdictText(result: DrillResult): string {
-  return result.correct === null ? 'Self-rated — no right answer' : result.correct ? 'Correct' : 'Not correct';
+  return result.correct === null ? 'Self-rated: no right answer' : result.correct ? 'Correct' : 'Not correct';
 }
 
 // ---------------------------------------------------------------------------------------
@@ -148,6 +148,28 @@ export const SCENARIO_META: Record<string, { label: string; icon: IconName }> = 
 
 export function scenarioMeta(id: string): { label: string; icon: IconName } {
   return SCENARIO_META[id] ?? { label: 'Scenario', icon: 'phone' };
+}
+
+/** Entry point of a scenario as a two-word chip (the whole truth stays in the accessible name). */
+export function entrypointMeta(entrypoint: string): { label: string; icon: IconName; name: string } {
+  if (entrypoint === 'inbound') return { label: 'Inbound', icon: 'arrow-down', name: 'Entry point: inbound. The prospect reached out first (fictional scenario).' };
+  if (entrypoint === 'cold') return { label: 'Cold call', icon: 'phone', name: 'Entry point: cold call. No prior contact (fictional scenario).' };
+  return { label: entrypoint.replace(/_/g, ' '), icon: 'phone', name: `Entry point: ${entrypoint.replace(/_/g, ' ')} (fictional scenario).` };
+}
+
+/** Icons for the brief's sentences, in order: who, the moment, what is in place, anything else. */
+const BRIEF_ICONS: readonly IconName[] = ['person', 'clock', 'list', 'info'];
+
+/**
+ * The public brief is authored as three or four short sentences. On the stage each sentence is
+ * one icon row (a fact), never a paragraph; the sentence text itself is unchanged.
+ */
+export function briefFacts(brief: string): { icon: IconName; text: string }[] {
+  const sentences = brief
+    .split(/(?<=[.!?])\s+(?=[A-Z"“])/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+  return sentences.map((text, i) => ({ icon: BRIEF_ICONS[Math.min(i, BRIEF_ICONS.length - 1)] as IconName, text }));
 }
 
 export const OUTCOME_META: Record<LegitimateOutcome, { label: string; icon: IconName; tone: TileTone }> = {

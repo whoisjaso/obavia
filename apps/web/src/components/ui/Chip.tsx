@@ -1,16 +1,19 @@
 'use client';
 
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { Glyph, Icon, type IconName } from './Icon';
 import styles from './Chip.module.css';
 
 export type ChipTone = 'neutral' | 'blue' | 'teal' | 'purple' | 'gold' | 'green' | 'red';
 
 export interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
-  /** ≤3 words. */
+  /** At most 3 words. */
   label: string;
-  /** Leading glyph or small element (decorative). */
+  /** Leading mark: a status character or icon name (drawn as an icon from the set) or a small element. Decorative. */
   glyph?: ReactNode;
-  /** Selected state (blue). Sets `aria-pressed` when `toggle` is true. */
+  /** Leading icon from the set (wins over `glyph`). */
+  icon?: IconName;
+  /** Selected state: blue ring, blue tint and a check mark. Sets `aria-pressed` when `toggle` is true. */
   selected?: boolean;
   /** Treat as a toggle (`aria-pressed`) rather than an action. */
   toggle?: boolean;
@@ -23,14 +26,19 @@ export interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>,
   kbd?: string;
 }
 
-/** Pill button for branches and filters. Selected state is blue; static chips are plain spans. */
-export function Chip({ label, glyph, selected, toggle, tone = 'neutral', name, static: isStatic, kbd, className, type = 'button', ...rest }: ChipProps) {
+/** 44px pill button for branches and filters. Selected = blue ring + check; static chips are plain spans. */
+export function Chip({ label, glyph, icon, selected, toggle, tone = 'neutral', name, static: isStatic, kbd, className, type = 'button', ...rest }: ChipProps) {
   const cls = [styles.chip, styles[tone], selected ? styles.selected : '', className ?? ''].join(' ').trim();
+  const lead = icon ? <Icon name={icon} size={16} weight="bold" /> : typeof glyph === 'string' ? <Glyph glyph={glyph} size={14} /> : glyph;
   const inner = (
     <>
-      {glyph ? (
+      {selected ? (
+        <span className={styles.check} aria-hidden="true">
+          <Icon name="check" size={14} weight="bold" />
+        </span>
+      ) : lead ? (
         <span className={styles.glyph} aria-hidden="true">
-          {glyph}
+          {lead}
         </span>
       ) : null}
       <span className={styles.label}>{label}</span>
@@ -49,7 +57,7 @@ export function Chip({ label, glyph, selected, toggle, tone = 'neutral', name, s
     );
   }
   return (
-    <button type={type} className={cls} aria-label={name} aria-pressed={toggle ? Boolean(selected) : undefined} data-chip={label} {...rest}>
+    <button type={type} className={cls} aria-label={name} aria-pressed={toggle ? Boolean(selected) : undefined} data-chip={label} data-selected={selected ? 'true' : undefined} {...rest}>
       {inner}
     </button>
   );

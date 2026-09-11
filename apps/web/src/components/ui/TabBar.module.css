@@ -14,7 +14,7 @@
 .list {
   list-style: none;
   margin: 0 auto;
-  padding: 0;
+  padding: 0 var(--s-2);
   height: var(--tabbar-h);
   max-width: var(--col);
   display: grid;
@@ -29,20 +29,31 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  color: var(--ink-3);
+  gap: 3px;
+  color: var(--ink-2);
   text-decoration: none;
   border-radius: var(--r-tile);
-  margin: var(--s-2) var(--s-2) 0;
+  margin: var(--s-2) var(--s-1) 0;
   transition:
     color var(--dur-fast) var(--ease),
-    transform var(--dur-fast) var(--ease);
+    transform var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+.tab:hover {
+  color: var(--ink);
 }
 .tab:active {
   transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.04);
 }
 .tab[aria-current='page'] {
   color: var(--ink);
+}
+.iconSlot {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
 }
 .icon {
   transition: transform var(--dur) var(--ease);
@@ -52,9 +63,12 @@
 }
 .label {
   font-size: var(--fs-micro);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.01em;
   line-height: 1;
+}
+.tab[aria-current='page'] .label {
+  font-weight: 700;
 }
 .tab:focus-visible {
   outline: 2px solid var(--blue);

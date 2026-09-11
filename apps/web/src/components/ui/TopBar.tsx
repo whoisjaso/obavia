@@ -3,7 +3,7 @@ import { DemoPill } from './Pill';
 import styles from './TopBar.module.css';
 
 export interface TopBarProps {
-  /** Extra glyph pills after the demo pill (e.g. `✦ Fictional`). */
+  /** Extra glyph pills after the demo pill (e.g. the Fictional pill). */
   left?: ReactNode;
   /** One word, optional. Rendered as plain text (the route's h1 is elsewhere, visually hidden). */
   title?: string;
@@ -11,12 +11,12 @@ export interface TopBarProps {
   center?: ReactNode;
   /** At most two `IconButton`s. */
   right?: ReactNode;
-  /** Render the `◐ Demo` pill in the left slot (default true — it is always visible without real telephony). */
+  /** Render the Demo pill in the left slot (default true: it is always visible without real telephony). */
   demo?: boolean;
 }
 
 /**
- * Fixed, full-width glass row (44px + safe area) with its content centered in the `--col` column —
+ * Fixed, full-width glass row (44px + safe area) with its content centered in the `--col` column,
  * the same chrome as the tab bar. Its height never changes with state. A spacer keeps the stage
  * layout below it. Marked `data-topbar` so the shell's fallback demo pill hides itself.
  */

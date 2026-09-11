@@ -56,6 +56,48 @@
   text-transform: uppercase;
   color: var(--ink-2);
 }
+
+/* last session: one quiet row under the hero, the numbers of the session that just ended */
+.lastSession {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.lastLabel {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.lastStats {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  margin-left: auto;
+  color: var(--ink-2);
+}
+.lastStat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-body);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.lastStat svg {
+  color: var(--ink-3);
+}
+.lastLength {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
 .nextRow {
   display: flex;
   align-items: center;
@@ -82,15 +124,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* one caption: "Round Rock · 3:42 pm" */
 .nextMeta {
   display: flex;
-  gap: var(--s-3);
+  align-items: center;
+  gap: 6px;
   font-size: var(--fs-caption);
   font-weight: 600;
   color: var(--ink-2);
-}
-.localTime {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
+}
+.metaDot {
+  color: var(--ink-3);
 }
 .inHours {
   color: var(--green);
@@ -130,7 +178,7 @@
   font-size: var(--fs-caption);
   color: var(--ink-2);
 }
-/* one glyph row: ◑ local time · ☏ number — the tz id and E.164 live in the accessible names */
+/* one fact row: local time · number (formatted once) */
 .recordMeta {
   display: flex;
   flex-wrap: wrap;
@@ -149,14 +197,20 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.recordFactGlyph {
+.recordFact svg {
   color: var(--ink-2);
-  font-size: 15px;
+}
+.recordFact.inHours svg {
+  color: var(--green);
 }
 .recordChips {
   display: flex;
   gap: var(--s-2);
   flex-wrap: wrap;
+}
+.chipIcon {
+  display: inline-grid;
+  place-items: center;
 }
 
 /* summary sheet */
@@ -189,6 +243,95 @@
   background: var(--bg-2);
   color: var(--ink);
   color-scheme: dark;
+  caret-color: var(--blue);
+}
+.pickInput:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* ---- outcome tiles (§3.3): nine choices, the simulated result marked "Suggested", never chosen ---- */
+.outcomeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.whenGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.outcomeTile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 108px;
+  padding: var(--s-4) var(--s-2) var(--s-3);
+  border-radius: var(--r-tile);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.outcomeTile:hover {
+  background: var(--bg-2);
+}
+.outcomeTile:active {
+  background: var(--bg-3);
+  transform: scale(0.97);
+}
+.outcomeTile:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.outcomeTile:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.outcomeTile[aria-pressed='true'] {
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+.outcomeIcon {
+  color: var(--ink);
+}
+.outcomeLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  line-height: 1.2;
+}
+/* suggested: a tinted edge and a caption, nothing like the blue focus ring */
+.suggestedTile {
+  border-color: rgba(100, 210, 255, 0.45);
+  background: linear-gradient(180deg, rgba(100, 210, 255, 0.08), transparent 70%), var(--bg-1);
+}
+.outcomeCap {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  line-height: 1;
+}
+.toneGreen .outcomeIcon {
+  color: var(--green);
+}
+.toneRed .outcomeIcon {
+  color: var(--red);
+}
+.toneBlue .outcomeIcon {
+  color: var(--blue);
+}
+.toneOrange .outcomeIcon {
+  color: var(--orange);
 }
 
 /* ---- In-call (§3.2): a fixed, non-scrolling stage ---- */
@@ -199,7 +342,7 @@
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  animation: connect var(--dur-slow) var(--ease);
+  animation: connect var(--dur-slow) cubic-bezier(0.16, 1, 0.3, 1);
   transition: opacity var(--dur) var(--ease);
 }
 .dimmed {
@@ -250,24 +393,87 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
-.dots {
+
+/* the one status chip: icon + "Demo call"; tap opens the four-row status sheet */
+.status {
   display: inline-flex;
+  align-items: center;
   gap: 6px;
-  margin-left: var(--s-2);
+  height: 30px;
+  padding: 0 11px 0 9px;
+  border-radius: var(--r-chip);
+  border: 1px solid rgba(255, 159, 10, 0.4);
+  background: rgba(255, 159, 10, 0.1);
+  color: var(--orange);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
 }
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
+.status:hover {
+  background: rgba(255, 159, 10, 0.16);
 }
-.dotGreen {
-  background: var(--green);
-  box-shadow: 0 0 8px rgba(48, 209, 88, 0.6);
+.status:active {
+  transform: scale(0.96);
 }
-.dotOff {
-  background: transparent;
-  border: 1.5px solid var(--ink-3);
+.status:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.statusRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.statusRow {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--s-3);
+  row-gap: 2px;
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.statusIcon {
+  grid-row: 1 / span 2;
+  color: var(--ink-2);
+}
+.statusOn .statusIcon {
+  color: var(--green);
+}
+.statusLabel {
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.statusState {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding: 4px 8px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line-strong);
+}
+.statusOn .statusState {
+  color: var(--green);
+  border-color: rgba(48, 209, 88, 0.4);
+}
+.statusDetail {
+  grid-column: 2 / span 2;
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
 }
 
 /* body: the line column (+ rail on wide) fills the space between header and foot */
@@ -292,18 +498,20 @@
 }
 
 /* narrow words strip: two compact rows that snap per column, the next column peeks through a
-   right-edge fade; simply dark while empty (no placeholder glyph). Meaning lines live in the sheet. */
+   right-edge fade; simply dark while empty (no placeholder glyph). Meaning lines live in the sheet
+   for words; a real reference (an analogy) takes a full column so its relationship line shows. */
 .strip {
   --strip-row: 84px;
   display: grid;
-  grid-auto-flow: column;
+  grid-auto-flow: column dense;
   grid-template-rows: repeat(2, var(--strip-row));
   grid-auto-columns: minmax(168px, 47%);
   gap: var(--s-2);
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
+  /* no scroll snapping: the browser re-snaps to a newly inserted card and yanks the first column
+     off screen; the right-edge fade is the scroll cue */
   scroll-padding-inline: var(--s-4);
   margin: 0 calc(-1 * var(--s-4));
   padding: 0 var(--s-6) 0 var(--s-4);
@@ -324,7 +532,6 @@
   height: var(--strip-row);
   min-width: 0;
   overflow: hidden;
-  scroll-snap-align: start;
   padding: 6px 12px;
   gap: 2px;
   justify-content: center;
@@ -343,6 +550,31 @@
 .strip [data-ref-meaning] {
   display: none;
 }
+/* a real reference (not a merged word) takes a full panel (both rows, two columns) so its term stays
+   on one line and its relationship line shows */
+.strip > [data-ref-card]:not([data-word-card]) {
+  grid-row: 1 / span 2;
+  grid-column: span 2;
+  height: calc(2 * var(--strip-row) + var(--s-2));
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+}
+.strip > [data-ref-card]:not([data-word-card]) [data-ref-label] {
+  overflow-wrap: normal;
+  -webkit-line-clamp: 1;
+}
+/* the relationship line wraps inside the part of the card that is visible before the fade when the
+   card sits in the second column (words first), so it reads without a scroll */
+.strip > [data-ref-card]:not([data-word-card]) [data-ref-meaning] {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 184px;
+  font-size: 15px;
+  line-height: 1.25;
+}
 .strip [data-word-correction] {
   font-size: 13px;
   line-height: 1.1;
@@ -356,27 +588,76 @@
 .strip [data-word-correction] + [data-word-meta] {
   margin-top: -1px;
 }
-.railEmpty {
-  color: var(--ink-3);
-  font-size: var(--fs-large);
-  padding: var(--s-4);
+.noneYet {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  padding: var(--s-4) 0;
 }
 
-/* one row of chips: 2 (+more) on a phone, 3 (+more) on a wide stage. Nothing scrolls or clips:
-   every chip may shrink (its label ellipsizes) so the row always fits the column. */
+/* the line: a grid where the real card and a hidden ghost of the version's longest line share one
+   cell, so the card is as tall as the longest line at this width and nothing below it ever moves.
+   On a short viewport the cell shrinks and the card scrolls its text inside. */
+.lineWrap {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  flex: 0 1 auto;
+  min-height: 0;
+}
+.lineWrap > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.ghost {
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) 20px 20px;
+  border: 1px solid transparent;
+  max-height: 52dvh;
+}
+.ghostHead {
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.ghostText {
+  display: block;
+  font-size: var(--fs-display);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  padding-bottom: 24px;
+}
+.ghostLong {
+  font-size: var(--fs-display-long, clamp(26px, 2.6vw, 34px));
+  letter-spacing: -0.01em;
+}
+/* the resolved bridge: one quiet italic line, only when every slot resolved */
+.lineCol [data-bridge-text] {
+  font-style: italic;
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+
+/* one row of chips: 2 (+more) on a phone, 3 (+more) on a wide stage. Labels are ≤3 words and never
+   shrink or clip; if a row is ever too narrow the chips wrap into the free space below. */
 .chips {
   display: flex;
   gap: var(--s-2);
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
-  overflow: hidden;
   flex-shrink: 0;
   min-height: 44px;
   padding: 2px 0;
 }
 .chip {
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
 }
 .backButton {
   justify-self: end;
@@ -402,6 +683,7 @@
     overscroll-behavior: contain;
     padding: var(--s-3) var(--s-4) var(--s-5) 0;
     scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
   }
   .railHead {
     display: flex;
@@ -419,17 +701,6 @@
   .railList:empty {
     min-height: 0;
   }
-}
-/* references that live on a word card, indexed in the purple lane (one panel system, no duplicate cards) */
-.refIndex {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
-}
-.refIndexChip {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: var(--fs-caption);
 }
 
 /* suggestion overlay: sits above the docked bar, never inside the line card */
@@ -479,11 +750,11 @@
   flex-wrap: wrap;
 }
 
-/* docked bottom bar: ↑ transcript · End · ← previous (an iOS call has no tab bar). The bar keeps
-   at least 24px of stage under the End halo — more where the home indicator lives. */
+/* docked bottom bar: ↑ transcript · End · ← previous (an iOS call has no tab bar). At least 32px of
+   stage stays under the End control, more where the home indicator lives; nothing glows. */
 .callFoot {
   flex-shrink: 0;
-  padding: var(--s-3) 0 max(24px, calc(var(--safe-bottom) + 12px));
+  padding: var(--s-3) 0 max(32px, calc(var(--safe-bottom) + 16px));
   background: linear-gradient(180deg, transparent, var(--bg) 40%);
 }
 .callFootInner {
@@ -498,8 +769,18 @@
 .callFootInner > :first-child {
   justify-self: start;
 }
-.footSpacer {
-  width: 44px;
+/* depth by offset and soft blur, never a colored halo */
+.callFootInner .endButton[data-end-call] {
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.callFootInner .endButton[data-end-call]:hover {
+  filter: brightness(1.05);
+}
+.callFootInner .endButton[data-end-call]:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 4px;
 }
 @media (min-width: 1024px) {
   .callFootInner {
@@ -518,6 +799,10 @@
   font-weight: 600;
   line-height: 1.3;
   padding-bottom: var(--s-2);
+}
+.infoNote {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
 }
 .infoRow {
   border-radius: var(--r-tile);
@@ -546,17 +831,23 @@
   outline-offset: -2px;
   border-radius: var(--r-tile);
 }
-.infoGlyph {
+.infoIcon {
+  display: inline-grid;
+  place-items: center;
   width: 24px;
-  text-align: center;
   color: var(--ink-2);
 }
-.infoTeal .infoGlyph {
+.infoTeal .infoIcon {
   color: var(--teal);
+}
+.infoPurple .infoIcon {
+  color: var(--purple);
 }
 .infoChevron {
   margin-left: auto;
   color: var(--ink-3);
+  display: inline-grid;
+  place-items: center;
   transition: transform var(--dur-fast) var(--ease);
 }
 .infoRow[open] .infoChevron {
@@ -619,9 +910,6 @@
   font-weight: 700;
   color: var(--purple);
 }
-.infoPurple .infoGlyph {
-  color: var(--purple);
-}
 .detailQuote {
   font-size: var(--fs-body);
   color: var(--ink);
@@ -656,12 +944,15 @@
 }
 .turn {
   display: grid;
-  grid-template-columns: 16px 1fr;
+  grid-template-columns: 20px 1fr;
   gap: var(--s-2);
   font-size: var(--fs-body);
   line-height: var(--lh-body);
 }
 .turnWho {
+  display: inline-grid;
+  place-items: center;
+  height: 24px;
   color: var(--ink-3);
 }
 .turnProspect .turnWho {
@@ -689,14 +980,12 @@
     opacity: 1;
   }
 }
-/* connect: one quick scale-up, then the crossfade (opacity only under reduced motion) */
+/* connect: the one authored moment. Starts from the already-visible dialing stage, settles with an
+   exponential ease-out (opacity only under reduced motion). */
 @keyframes connect {
   0% {
     opacity: 0;
-    transform: scale(0.98);
-  }
-  25% {
-    transform: scale(1);
+    transform: scale(0.985) translateY(6px);
   }
   100% {
     opacity: 1;

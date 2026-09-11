@@ -17,13 +17,19 @@
 }
 .button:hover {
   background: var(--bg-3);
+  border-color: var(--line-strong);
 }
 .button:active {
   transform: scale(0.92);
 }
+.button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
 .button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
 }
 .neutral {
   color: var(--ink);
@@ -43,13 +49,17 @@
 .solid.green {
   background: var(--green);
   border-color: var(--green);
-  color: #062b12;
+  color: var(--ink-on-green);
+  box-shadow: var(--shadow-raised);
+}
+.solid.green:hover {
+  background: #45dc6c;
 }
 .solid.red {
   background: var(--red);
   border-color: var(--red);
-  color: #fff;
-  box-shadow: var(--glow-red);
+  color: var(--ink-on-red);
+  box-shadow: var(--shadow-raised);
 }
 .solid.red:hover {
   background: #ff5f55;
@@ -57,5 +67,9 @@
 .solid.blue {
   background: var(--blue);
   border-color: var(--blue);
-  color: #fff;
+  color: var(--ink-on-blue);
+  box-shadow: var(--shadow-raised);
+}
+.solid.blue:hover {
+  background: #2a94ff;
 }

@@ -16,8 +16,8 @@ import {
 } from '@apohenia/domain/practice';
 import { stageLabel } from '@apohenia/domain/scripts';
 import { Card, Chip, FictionalPill, GlyphPill, Icon, IconButton, Sheet, Tile, TileGrid, TopBar } from '@/components/ui';
-import { AssistCard, ChoiceTile, EmptyGlyph, PracticeHero, ProspectCard, ResultCard } from './parts';
-import { FACT_LABELS, OUTCOME_META, resultAnnouncement, scenarioMeta } from './practice-lib';
+import { AssistCard, ChoiceTile, EmptyGlyph, FactRows, PracticeHero, ProspectCard, ResultCard } from './parts';
+import { FACT_LABELS, OUTCOME_META, briefFacts, entrypointMeta, resultAnnouncement, scenarioMeta } from './practice-lib';
 import styles from './practice.module.css';
 
 export interface MockScreenProps {
@@ -149,15 +149,13 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
       {/* --- brief (coach view: public brief only) --- */}
       {scenario && coach && !run ? (
         <>
-          <Card data-coach-view data-drill-kind="full_mock">
+          <Card data-coach-view data-drill-kind="full_mock" aria-label={`${scenario.title}. ${coach.public_brief}`}>
             <div className={styles.briefHead}>
-              <Icon name={scenarioMeta(scenario.id).icon} size={32} className={styles.briefIcon} />
+              <Icon name={scenarioMeta(scenario.id).icon} size={28} weight="fill" className={styles.briefIcon} />
               <span className={styles.briefTitle}>{scenarioMeta(scenario.id).label}</span>
+              <Chip static icon={entrypointMeta(coach.entrypoint).icon} label={entrypointMeta(coach.entrypoint).label} name={entrypointMeta(coach.entrypoint).name} className={styles.briefEntry} />
             </div>
-            <p className={styles.cardText}>{coach.public_brief}</p>
-            <div className={styles.chipRow}>
-              <Chip static glyph={coach.entrypoint === 'inbound' ? '↙' : '↗'} label={coach.entrypoint.replace(/_/g, ' ')} name={`Entry point: ${coach.entrypoint.replace(/_/g, ' ')}`} />
-            </div>
+            <FactRows facts={briefFacts(coach.public_brief)} hook="brief" />
           </Card>
           <PracticeHero action="start" label="Start mock — choice-based simulation, not an AI voice call" onClick={start} />
         </>
@@ -165,7 +163,7 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
 
       {/* --- running: card-by-card conversation --- */}
       {scenario && run && run.empty ? (
-        <EmptyGlyph glyph="∅" label="No entry">
+        <EmptyGlyph label="No entry">
           <Tile icon="list" label="Scenarios" onClick={back} />
         </EmptyGlyph>
       ) : null}
@@ -179,11 +177,11 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
               <li key={`${s.node_id}-${s.index}`} className={styles.pastStep} data-past-step={s.index}>
                 <span className={styles.pastStage}>{stageLabel(s.stage)}</span>
                 <span className={styles.pastLine}>
-                  <span aria-hidden="true">✦ </span>
+                  <Icon name="spark" size={12} weight="fill" className={styles.pastMark} />
                   <span className="sr-only">Synthetic prospect said: </span>
                   {s.prospect_line}
                 </span>
-                {branchLabel ? <Chip static glyph="→" label={branchLabel} name={`You chose: ${branchLabel}`} tone="blue" /> : null}
+                {branchLabel ? <Chip static icon="arrow-right" label={branchLabel} name={`You chose: ${branchLabel}`} tone="blue" /> : null}
               </li>
             );
           })}
@@ -201,7 +199,7 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
                 <ChoiceTile key={c.id} choice={c} index={i} state={choice === c.id ? 'selected' : 'idle'} onPress={() => setChoice(c.id)} />
               ))}
           </div>
-          <PracticeHero action="advance" label="Next — take the chosen branch" disabled={choice === null} onClick={() => choice && applyChoice(choice)} right={<IconButton icon="phone-off" label="End the mock with an outcome" tone="red" solid size={56} onClick={() => setSheet('end')} data-mock-end />} />
+          <PracticeHero action="advance" label="Next: take the chosen branch" disabled={choice === null} onClick={() => choice && applyChoice(choice)} right={<IconButton icon="phone-off" label="End the mock with an outcome" tone="red" solid size={56} onClick={() => setSheet('end')} data-mock-end />} />
         </div>
       ) : null}
 
@@ -213,12 +211,13 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
               {outcomeMeta && run.outcome ? (
                 <Chip static glyph={<Icon name={outcomeMeta.icon} size={14} />} label={outcomeMeta.label} name={`Outcome: ${run.outcome.replace(/_/g, ' ')}`} tone={outcomeMeta.tone === 'green' ? 'green' : outcomeMeta.tone === 'red' ? 'red' : outcomeMeta.tone === 'orange' ? 'gold' : 'blue'} />
               ) : (
-                <Chip static glyph="∅" label="No outcome" name="The scripted sequence ended without an exit choice — run again and choose how you end" />
+                <Chip static icon="empty" label="No outcome" name="The scripted sequence ended without an exit choice. Run again and choose how you end." />
               )}
             </span>
             <span className={styles.path} aria-label={`Path: ${[...new Set(run.path.map((id) => stageLabel(nodes.find((n) => n.id === id)?.stage ?? id)))].join(', ')}`}>
-              {[...new Set(run.path.map((id) => nodes.find((n) => n.id === id)?.stage ?? id))].map((s) => (
+              {[...new Set(run.path.map((id) => nodes.find((n) => n.id === id)?.stage ?? id))].map((s, i) => (
                 <span key={s} className={styles.pathStage} aria-hidden="true">
+                  {i > 0 ? <Icon name="chevron" size={10} weight="bold" className={styles.pathSep} /> : null}
                   {stageLabel(s)}
                 </span>
               ))}
@@ -226,7 +225,7 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
           </div>
           {scenarioResult ? <ResultCard result={scenarioResult} /> : null}
           <TileGrid columns={3}>
-            <Tile icon="lock" label="Evaluator" name="Evaluator view — post-session hidden fact sheet, not available during the run" onClick={() => setSheet('evaluator')} aria-expanded={sheet === 'evaluator'} data-evaluator-toggle />
+            <Tile icon="lock" label="Evaluator" name="Evaluator view: the post-session hidden fact sheet, not available during the run" onClick={() => setSheet('evaluator')} aria-expanded={sheet === 'evaluator'} data-evaluator-toggle />
             <Tile icon="refresh" label="Again" name="Run this scenario again" onClick={start} data-mock-again />
             <Tile icon="list" label="Scenarios" name="Back to scenarios" onClick={back} />
           </TileGrid>
@@ -293,7 +292,7 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
               ) : null}
             </>
           ) : null}
-          <p className={styles.sheetMuted}>Tone: not assessed (text-only).</p>
+          <p className={styles.sheetMuted}>Tone: Not assessed (text-only).</p>
         </div>
       </Sheet>
     </div>

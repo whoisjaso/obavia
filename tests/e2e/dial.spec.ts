@@ -172,7 +172,22 @@ for (const vp of VIEWPORTS) {
       const line = page.locator('[data-line-card] [data-primary-line]');
       await expect(line).toHaveText(expectedEntryLine(firstContact));
       const lineBefore = (await page.locator('[data-line-card]').boundingBox())!;
-      await expect(page.locator('[data-state-dot="call"]')).toHaveAttribute('aria-label', /simulated/);
+      // One status chip carries the whole truth (simulated call, transcription/recording/coach off); its sheet lists the four states.
+      const status = page.locator('[data-call-status]');
+      await expect(status).toHaveAttribute('aria-label', /simulated/);
+      await expect(status).toContainText('Demo call');
+      await expect(page.locator('[data-state-dot]')).toHaveCount(0);
+      await status.click();
+      const statusSheet = page.locator('dialog[data-sheet="status"]');
+      await expect(statusSheet).toBeVisible();
+      await expect(statusSheet.locator('[data-status-row]')).toHaveCount(4);
+      await expect(statusSheet.locator('[data-status-row="call"]')).toHaveAttribute('data-status-on', 'true');
+      await expect(statusSheet.locator('[data-status-row="transcription"]')).toHaveAttribute('data-status-on', 'false');
+      await expect(statusSheet.locator('[data-status-row="recording"]')).toHaveAttribute('data-status-on', 'false');
+      await expect(statusSheet.locator('[data-status-row="coach"]')).toHaveAttribute('data-status-on', 'false');
+      await page.keyboard.press('Escape');
+      await expect(page.locator('dialog[open]')).toHaveCount(0);
+      await expectStatus(page, 'connected', 1000);
       await expect(page.locator('[data-call-timer]')).toBeVisible();
 
       // Play out (8×): ≥3 THEIR WORDS and ≥1 THEIR REFERENCE at ≥24px, none overlapping the line card.
@@ -216,16 +231,25 @@ for (const vp of VIEWPORTS) {
       await expect(page.getByRole('navigation', { name: 'Primary' })).toBeHidden();
       expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(0);
 
-      // Branch chips: one row (2 on a phone, 4 on a wide stage) plus "more"; nothing renders under the End control.
+      // Branch chips: one row (2 on a phone, 4 on a wide stage) plus "more"; ≤3 words each, never clipped,
+      // nothing renders under the End control. The End control keeps ≥24px of stage under it.
       const chips = page.locator('[data-branch]');
       expect(await chips.count()).toBeLessThanOrEqual(vp.width >= 1024 ? 4 : 2);
       const endBox = (await page.locator('[data-end-call]').boundingBox())!;
+      expect(vp.height - (endBox.y + endBox.height), 'End control clears the bottom edge').toBeGreaterThanOrEqual(24);
+      const transcriptBox = (await page.locator('[data-transcript-button]').boundingBox())!;
+      expect(vp.height - (transcriptBox.y + transcriptBox.height), 'Transcript control clears the bottom edge').toBeGreaterThanOrEqual(24);
       for (const chip of await chips.all()) {
         const b = (await chip.boundingBox())!;
         expect(overlaps(b, endBox), 'chip overlaps the End control').toBe(false);
         expect(b.y + b.height, 'chip is inside the viewport').toBeLessThanOrEqual(vp.height);
+        const label = (await chip.textContent())!.replace(/\d+$/, '').trim();
+        expect(label.split(/\s+/).length, `chip label "${label}" is at most 3 words`).toBeLessThanOrEqual(3);
+        expect(await chip.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `chip "${label}" is not clipped`).toBe(true);
       }
-      await expect(page.locator('[data-bridge-line]')).not.toContainText('⟨');
+      // The line card carries no bridge cue chips, developer vocabulary or angle tokens (the line itself is exact content).
+      const card = page.locator('[data-line-card]');
+      await expect(card).not.toContainText(/[⟨⟩{}]|\back\b|referent/);
       expect(await line.textContent()).not.toMatch(/\[missing:|[{}⟨⟩]/);
       await chips.first().click();
       await expect(line).not.toHaveText(expectedEntryLine(firstContact));

@@ -10,9 +10,29 @@ import { decideSuggestion, listenerFromTurns, meaningStatusText, shortMeaning, t
 import { provenanceLabel, type Fact, type RankedCandidate } from '@apohenia/domain/vocabulary';
 import { resolveSlots, type KnownFacts } from '@apohenia/domain/scripts';
 import { ListenerAction, PinState } from '@apohenia/domain/schemas';
-import type { Reference, ReferenceSuggestion, ScriptNode, TranscriptTurn, VocabularyEvent } from '@apohenia/domain/schemas';
+import type { Reference, ReferenceSuggestion, ScriptNode, SessionHistoryEntry, TranscriptTurn, VocabularyEvent } from '@apohenia/domain/schemas';
 import type { IconName, RefMeaningStatus, WordProvenance } from '@/components/ui';
-import { bridgeParts, type BridgePart } from '@/lib/line-parts';
+
+// ---------------------------------------------------------------------------------------------
+// Copy hygiene: chrome and explanations never show a dash as a separator. Quotes and the primary
+// script line are content and pass through untouched (see the callers).
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * "Proceeded — bad result" → "Proceeded, bad result". Spaced em/en dashes become commas; a trailing
+ * one is dropped. Parenthetical asides that cite record or node ids ("(I06 for improvement)") are
+ * study cross-references, not stage copy, and are removed; a leading "this:" target is dropped.
+ */
+export function plain(text: string): string {
+  return text
+    .replace(/\s*\((?=[^)]*\b[A-Z]{1,2}-?\d{1,3}\b)[^)]*\)/g, '')
+    .replace(/^this:\s*/i, '')
+    .replace(/\s*[—–]\s*/g, ', ')
+    .replace(/,\s*,/g, ',')
+    .replace(/,\s*([.;:!?)])/g, '$1')
+    .replace(/[,\s]+$/g, '')
+    .trim();
+}
 
 // ---------------------------------------------------------------------------------------------
 // THEIR WORDS
@@ -100,7 +120,7 @@ export function guidanceLine(r: Reference): string | null {
   const { title, aside } = splitRefLabel(r.label);
   if (aside) return `Use their word: ${title.toLowerCase()}, ${aside}`;
   if (r.semantics.prohibited_inferences.length === 0) return null;
-  return 'Use their example — never their biography';
+  return 'Use their example, never their biography';
 }
 
 /** E.164 → a readable NANP number "(555) 010-0001"; anything else is returned unchanged. */
@@ -170,9 +190,94 @@ export function resolveLine(node: ScriptNode, knownFacts: KnownFacts): string {
   return resolveSlots(node.primary_word_track, { knownFacts }).text;
 }
 
-/** The bridge template as glyph cues (◐ ack · ● their word · ? question) — a shape, never words to say. */
-export function bridgeShape(template: string): BridgePart[] {
-  return bridgeParts(template);
+/**
+ * The bridge template ("{ack}, you mentioned {referent}. {question}") rendered as ONE quiet line,
+ * only when every slot resolves from confirmed facts (`referent` = their word). Any unresolved slot
+ * means nothing renders: no cue chips, no developer vocabulary, nothing invented.
+ */
+export function resolveBridge(template: string, knownFacts: KnownFacts): string | null {
+  if (!template.trim()) return null;
+  const facts: Record<string, string> = { ...knownFacts };
+  if (facts['their_word'] && !facts['referent']) facts['referent'] = facts['their_word'];
+  const text = resolveSlots(template, { knownFacts: facts }).text;
+  if (/\[[^\]]+\]|\{[a-z0-9_|]+\}/i.test(text)) return null;
+  return plain(text);
+}
+
+/**
+ * The longest primary line in the current version, resolved with the same facts as the live line.
+ * The in-call card reserves this much height so the chips and End control never move between nodes.
+ */
+export function longestPrimaryLine(nodes: readonly ScriptNode[], versionId: string | null, knownFacts: KnownFacts): string {
+  let best = '';
+  for (const n of nodes) {
+    if (versionId && n.script_version_id !== versionId) continue;
+    const text = resolveLine(n, knownFacts);
+    if (text.length > best.length) best = text;
+  }
+  return best;
+}
+
+/** Card title for a reference: an analogy shows its domain word ("BASKETBALL"); the relationship is the meaning line. */
+export function refTitle(r: Reference): string {
+  const kind = r.semantics.kind;
+  if ((kind === 'analogy' || kind === 'image' || kind === 'comparison') && r.label.includes(' / ')) {
+    const head = r.label.split(' / ')[0]!.trim();
+    if (head) return head;
+  }
+  return r.label;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Call status (the one chip in the in-call header; the whole truth lives in its sheet)
+// ---------------------------------------------------------------------------------------------
+
+export interface CallStatusRow {
+  id: 'call' | 'transcription' | 'recording' | 'coach';
+  label: string;
+  /** ≤2 words. */
+  state: string;
+  on: boolean;
+  /** One plain sentence. */
+  detail: string;
+}
+
+export const CALL_STATUS_ROWS: readonly CallStatusRow[] = [
+  { id: 'call', label: 'Call', state: 'Simulated', on: true, detail: 'Demo mode: a synthetic prospect on a synthetic transcript. No phone line, no real call.' },
+  { id: 'transcription', label: 'Transcription', state: 'Off', on: false, detail: 'Nothing is transcribed. The words come from the authored synthetic transcript, not a microphone.' },
+  { id: 'recording', label: 'Recording', state: 'Off', on: false, detail: 'Nothing is recorded or stored beyond this browser.' },
+  { id: 'coach', label: 'Coach', state: 'Off', on: false, detail: 'No model runs. Suggestions are rule-based templates over what the prospect said.' },
+];
+
+/** Full accessible name for the status chip: the whole truth in one breath. */
+export const CALL_STATUS_NAME = `Demo call: simulated connection, no real call is placed. Transcription off, recording off, coach off. Open call status.`;
+
+// ---------------------------------------------------------------------------------------------
+// Last session (the front door after Done: numbers stay visible; the archive lives in History)
+// ---------------------------------------------------------------------------------------------
+
+export interface LastSession {
+  id: string;
+  dials: number;
+  talks: number;
+  nextSteps: number;
+  /** mm:ss */
+  length: string;
+  name: string;
+}
+
+export function lastSessionOf(history: readonly SessionHistoryEntry[], formatClock: (ms: number) => string): LastSession | null {
+  const h = history[0];
+  if (!h) return null;
+  const length = formatClock(h.stats.session_ms);
+  return {
+    id: h.id,
+    dials: h.stats.dials,
+    talks: h.stats.talked,
+    nextSteps: h.stats.next_steps,
+    length,
+    name: `Last session: ${h.stats.dials} dials, ${h.stats.talked} talks, ${h.stats.next_steps} next steps, ${length} long. Open History.`,
+  };
 }
 
 /** Resolve a mirror variant against the record (never invents; unfilled slots stay as chips). */
@@ -216,10 +321,10 @@ const CHIP_LABELS: Record<string, string> = {
   specific_problem: 'Specific',
   label_only: 'Label only',
   nothing_to_change: 'Nothing',
-  impact_described_setter: 'Impact · setter',
-  impact_described_closer: 'Impact · closer',
+  impact_described_setter: 'Setter impact',
+  impact_described_closer: 'Closer impact',
   no_impact: 'No impact',
-  target_and_gap: 'Target · gap',
+  target_and_gap: 'Target and gap',
   unqualified_signal: 'Too small',
   would_invest: 'Would fund',
   would_not: 'Not now',
@@ -258,18 +363,71 @@ const CHIP_LABELS: Record<string, string> = {
   mine: 'Their decision',
   someone_else: 'Someone else',
   yes: 'Yes',
-  yes_upsell_compare: 'Yes · compare',
+  yes_upsell_compare: 'Yes, compare',
   not_yet: 'Not yet',
   makes_sense: 'Makes sense',
   question: 'Question',
   end: 'End',
+  fit_yes: 'Fits',
+  fit_no: 'No fit',
+  unsure: 'Unsure',
+  proceed: 'Proceed',
+  concern: 'Concern',
+  price_not_approved: 'Price not approved',
+  needs_time: 'Needs time',
+  budget: 'Budget',
+  time: 'Timing',
+  authority: 'Authority',
+  fit: 'Certainty',
+  no_blocker: 'No blocker',
+  staging_works: 'Staging works',
+  smaller_scope: 'Smaller scope',
+  no_budget: 'No budget',
+  intro_partner: 'Joint walkthrough',
+  will_discuss: 'Will discuss',
+  sole_authority: 'Sole authority',
+  certainty_named: 'Evidence named',
+  wants_pilot: 'Wants pilot',
+  not_convinced: 'Not certainty',
+  agreed_follow_up: 'Accepts resource',
+  still_interested: 'Still interested',
+  found_something: 'Found another',
+  changed: 'Situation changed',
+  reviewed_takeaway: 'Reviewed',
+  not_reviewed: 'Not reviewed',
+  not_useful: 'Not useful',
+  satisfied: 'Satisfied',
+  unfulfilled: 'Promise unfulfilled',
+  unfulfilled_promise: 'Promise unfulfilled',
+  mixed: 'Mixed',
+  names_given: 'Names given',
+  no_one: 'No one',
+  results_delivered: 'Results delivered',
+  gap_named_handoff: 'Gap, hand off',
+  gap_named_continue: 'Gap, continue',
+  no_new_goal: 'No new goal',
+  issue_named: 'Issue named',
+  resolved_now: 'Resolved now',
+  positives_named: 'Positives named',
+  nothing_positive: 'Nothing positive',
+  new_goal: 'New goal',
+  unclear: 'Unclear',
+  no_added_value: 'No added value',
 };
 
-/** ≤3 visible words for a branch chip: the curated label, else the first three words of the label. */
+/**
+ * ≤3 visible words for a branch chip: the curated display label, else the label cut at its first
+ * aside (parenthesis, dash, slash, colon, arrow) and trimmed to three words. Never edits the seed.
+ */
 export function chipLabel(branch: { answer_category: string; label: string }): string {
   const known = CHIP_LABELS[branch.answer_category];
   if (known) return known;
-  const words = branch.label.replace(/\s*\([^)]*\)/g, '').replace(/[—–].*$/, '').trim().split(/\s+/);
+  const words = branch.label
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/\s*(?:[—–]|\/|:|→).*$/, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   return words.slice(0, 3).join(' ');
 }
 
@@ -313,7 +471,7 @@ export function localTimeIn(timezone: string, now: number): LocalTime | null {
     const hour24 = (hourPart % 12) + (dayPeriod.toUpperCase() === 'PM' ? 12 : 0);
     const text = fmt.format(new Date(now)).replace(/\s?(AM|PM)$/i, (m) => m.trim().toLowerCase());
     const withinHours = hour24 >= 9 && hour24 < 18;
-    return { text, hour: hour24, withinHours, name: `Local time ${fmt.format(new Date(now))} (${timezone}) — ${withinHours ? 'within' : 'outside'} calling hours` };
+    return { text, hour: hour24, withinHours, name: `Local time ${fmt.format(new Date(now))}, ${withinHours ? 'within' : 'outside'} calling hours` };
   } catch {
     return null;
   }

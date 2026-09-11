@@ -22,9 +22,10 @@ import {
   type DialContext,
   type DialEvent,
 } from '@apohenia/domain/dialer';
-import { Avatar, Card, Chip, FictionalPill, HeroButton, IconButton, Sheet, Stat, Tile, Toast, TopBar, useToast, type HeroState } from '@/components/ui';
+import { ArrowRight, Check, Clock, ClockAfternoon, Phone, PhoneIncoming, PhoneOutgoing, Prohibit, Target } from '@phosphor-icons/react';
+import { Avatar, Card, Chip, FictionalPill, HeroButton, IconButton, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast, type HeroState } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
-import { formatPhone, localTimeIn } from './dial-lib';
+import { formatPhone, lastSessionOf, localTimeIn, plain } from './dial-lib';
 import { InCall } from './InCall';
 import { OutcomeSheet } from './OutcomeSheet';
 import styles from './dial.module.css';
@@ -70,7 +71,7 @@ function useNow(): number | null {
 export function DialClient({ nodes, versions, transcripts, prospects }: DialClientProps) {
   const [session, setSession, hydrated] = useStoredState('dial.session', DialSession, EMPTY_SESSION, { throttleMs: 500 });
   const [suppression, setSuppression] = useStoredState('dial.suppression', DialSuppressionList, EMPTY_LIST);
-  const [, setHistory] = useStoredState('dial.history', DialHistory, EMPTY_HISTORY);
+  const [history, setHistory] = useStoredState('dial.history', DialHistory, EMPTY_HISTORY);
   const [prefs] = useStoredState('dial.prefs', DialPrefs, DEFAULT_PREFS);
   const [toast, showToast] = useToast();
   const [summary, setSummary] = useState<SessionHistoryEntry | null>(null);
@@ -182,7 +183,7 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
   const heroLabel: string =
     view.status === 'idle'
       ? queueEmpty
-        ? 'Queue empty — nothing to dial'
+        ? 'Queue empty. Nothing to dial'
         : `Start session: countdown, then a simulated call to ${nextName}. Demo mode; no real call is placed.`
       : view.status === 'arming'
         ? `Countdown ${armingCount(view)} to ${nextName}. Tap again or press Escape to cancel.`
@@ -262,6 +263,10 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
 
   const localTime = next && now !== null ? localTimeIn(next.timezone, now) : null;
   const policy = next ? policyGlyph(next.policy_status) : null;
+  const PolicyIcon = next?.policy_status === 'allow' ? Check : next?.policy_status === 'suppressed' ? Prohibit : ClockAfternoon;
+  const EntryIcon = next?.entrypoint === 'inbound' ? PhoneIncoming : PhoneOutgoing;
+  // The session that just ended stays on the front door as one quiet row (the archive lives in History).
+  const last = view.status === 'idle' ? lastSessionOf(history, formatClock) : null;
 
   return (
     <div className={styles.root} data-dial data-status={view.status} data-hydrated={hydrated ? 'true' : 'false'}>
@@ -329,6 +334,31 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
             )}
           </div>
 
+          {last ? (
+            <Card href="/calls" name={last.name} dense data-last-session data-session-id={last.id}>
+              <div className={styles.lastSession}>
+                <span className={styles.lastLabel} aria-hidden="true">
+                  Last session
+                </span>
+                <span className={styles.lastStats} aria-hidden="true">
+                  <span className={styles.lastStat} data-last-stat="dials">
+                    <Phone size={14} weight="fill" />
+                    {last.dials}
+                  </span>
+                  <span className={styles.lastStat} data-last-stat="talks">
+                    <Target size={14} weight="fill" />
+                    {last.talks}
+                  </span>
+                  <span className={styles.lastStat} data-last-stat="next">
+                    <ArrowRight size={14} weight="bold" />
+                    {last.nextSteps}
+                  </span>
+                  <span className={styles.lastLength}>{last.length}</span>
+                </span>
+              </div>
+            </Card>
+          ) : null}
+
           {next ? (
             <Card onPress={() => setPeek(true)} name={`Next up: ${next.contact}, ${next.company}, ${next.city}. Open record.`} dense data-next-up data-contact-id={next.contact_id}>
               <div className={styles.nextRow}>
@@ -340,12 +370,17 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
                   <span className={styles.nextContact} data-next-contact>
                     {next.contact}
                   </span>
-                  <span className={styles.nextMeta}>
+                  <span className={styles.nextMeta} data-next-meta>
                     <span>{next.city}</span>
                     {localTime ? (
-                      <span className={[styles.localTime, localTime.withinHours ? styles.inHours : ''].join(' ').trim()} role="img" aria-label={localTime.name}>
-                        <span aria-hidden="true">{localTime.withinHours ? '◔' : '◑'}</span> <span aria-hidden="true">{localTime.text}</span>
-                      </span>
+                      <>
+                        <span className={styles.metaDot} aria-hidden="true">
+                          ·
+                        </span>
+                        <span className={localTime.withinHours ? styles.inHours : undefined} role="img" aria-label={localTime.name}>
+                          {localTime.text}
+                        </span>
+                      </>
                     ) : null}
                   </span>
                 </div>
@@ -363,7 +398,7 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
           suggested={call.dial_result}
           onChoose={(kind, callbackAt) => {
             dispatch({ type: 'DISPOSITION', kind, at: nowIso(), ...(callbackAt ? { callback_at: callbackAt } : {}) });
-            if (kind === 'do_not_call') showToast('Suppressed · never dialed again', 'red');
+            if (kind === 'do_not_call') showToast('Suppressed. Never dialed again', 'red');
           }}
         />
       ) : null}
@@ -376,7 +411,7 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
               <Avatar name={next.contact} size={72} />
               <div>
                 <span className={styles.recordName}>{next.contact}</span>
-                <span className={styles.recordRole}>{next.role}</span>
+                <span className={styles.recordRole}>{plain(next.role)}</span>
                 <span className={styles.recordCompany}>{next.location !== next.company ? `${next.company} · ${next.location}` : next.company}</span>
                 <span className={styles.recordPlace}>
                   {next.city}, {next.state}
@@ -384,23 +419,42 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
               </div>
             </div>
             <div className={styles.recordMeta} role="group" aria-label="Local time and number">
-              <span className={styles.recordFact} role="img" aria-label={localTime ? localTime.name : `Time zone ${next.timezone}`} data-record-local>
-                <span className={styles.recordFactGlyph} aria-hidden="true">
-                  {localTime?.withinHours ? '◔' : '◑'}
+              {localTime ? (
+                <span className={[styles.recordFact, localTime.withinHours ? styles.inHours : ''].join(' ').trim()} role="img" aria-label={localTime.name} data-record-local>
+                  <Clock size={18} weight="regular" aria-hidden="true" />
+                  <span aria-hidden="true">{localTime.text}</span>
                 </span>
-                <span aria-hidden="true">{localTime ? localTime.text : '—'}</span>
-              </span>
-              <span className={styles.recordFact} role="img" aria-label={`Number ${next.phone} (fictional)`} data-record-phone={next.phone}>
-                <span className={styles.recordFactGlyph} aria-hidden="true">
-                  ☏
-                </span>
+              ) : null}
+              <span className={styles.recordFact} role="img" aria-label={`Number ${formatPhone(next.phone)}, fictional`} data-record-phone={next.phone}>
+                <Phone size={18} weight="regular" aria-hidden="true" />
                 <span aria-hidden="true">{formatPhone(next.phone)}</span>
               </span>
             </div>
             <div className={styles.recordChips}>
               <FictionalPill />
-              {policy ? <Chip static glyph={policy.glyph} label={policy.word} name={policy.name} tone={next.policy_status === 'allow' ? 'green' : next.policy_status === 'suppressed' ? 'red' : 'teal'} /> : null}
-              <Chip static glyph={next.entrypoint === 'inbound' ? '↙' : '↗'} label={next.entrypoint} name={next.entrypoint === 'inbound' ? `Inbound: ${next.inbound_action ?? 'the prospect acted first'}` : 'Cold: no prior action from the prospect'} />
+              {policy ? (
+                <Chip
+                  static
+                  glyph={
+                    <span className={styles.chipIcon}>
+                      <PolicyIcon size={12} weight="bold" aria-hidden="true" />
+                    </span>
+                  }
+                  label={policy.word}
+                  name={plain(policy.name)}
+                  tone={next.policy_status === 'allow' ? 'green' : next.policy_status === 'suppressed' ? 'red' : 'teal'}
+                />
+              ) : null}
+              <Chip
+                static
+                glyph={
+                  <span className={styles.chipIcon}>
+                    <EntryIcon size={12} weight="bold" aria-hidden="true" />
+                  </span>
+                }
+                label={next.entrypoint}
+                name={next.entrypoint === 'inbound' ? `Inbound: ${next.inbound_action ?? 'the prospect acted first'}` : 'Cold: no prior action from the prospect'}
+              />
             </div>
           </div>
         ) : null}
@@ -419,7 +473,10 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
               <Stat value={formatClock(summary.stats.talk_ms)} icon="wave" name="Talk time" />
               <Stat value={formatClock(summary.stats.session_ms)} icon="clock" name="Session time" />
             </div>
-            <Tile icon="check" label="Done" tone="green" onClick={() => setSummary(null)} />
+            <TileGrid columns={2}>
+              <Tile icon="check" label="Done" tone="green" onClick={() => setSummary(null)} name="Done. The session stays in History" />
+              <Tile icon="history" label="History" href="/calls" name="Open History: every session and call" />
+            </TileGrid>
           </div>
         ) : null}
       </Sheet>

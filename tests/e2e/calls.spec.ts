@@ -100,7 +100,7 @@ test.describe('Queue /prospects', () => {
     await expect(cards.first().locator('[data-avatar]')).toBeVisible();
     await expect(cards.first()).toContainText('Riverbend Motors');
     await expect(cards.first()).toContainText('Dana Whitlock');
-    await expect(cards.first()).toContainText('Fictional City');
+    await expect(cards.first()).toContainText('Round Rock');
 
     // Status glyph chips: the seed's opt-out AND the durable suppression both read ⊘ DNC; the rest ✓ ok (demo).
     await expect(page.locator('[data-prospect-list] [data-prospect-card][data-policy="suppressed"]')).toHaveCount(2);

@@ -1,5 +1,5 @@
 {
-  "_note": "FICTIONAL synthetic CRM records (brief §9) for demo mode. Companies, locations, contacts and phone endpoints are separate; a dealer group keeps two locations on one switchboard and two contacts may share one number. Numbers are fake (+1 555-01xx), unverified, jurisdiction unknown, contact policy requires_review. Nothing here authorizes a call.",
+  "_note": "FICTIONAL synthetic CRM records (brief §9) for demo mode. Cities are real Texas towns used as fictional settings; every company, contact and number is invented. Companies, locations, contacts and phone endpoints are separate; a dealer group keeps two locations on one switchboard and two contacts may share one number. Numbers are fake (+1 555-01xx), unverified, jurisdiction unknown, contact policy requires_review. Nothing here authorizes a call.",
   "companies": [
     { "id": "co-riverbend", "name": "Riverbend Motors", "kind": "single_store" },
     { "id": "co-copper-ridge", "name": "Copper Ridge Auto Group", "kind": "dealer_group" },
@@ -11,15 +11,15 @@
     { "id": "co-ironwood", "name": "Ironwood Auto Mall", "kind": "single_store" }
   ],
   "locations": [
-    { "id": "loc-riverbend", "company_id": "co-riverbend", "name": "Riverbend Motors", "city": "Fictional City", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
-    { "id": "loc-copper-north", "company_id": "co-copper-ridge", "name": "Copper Ridge North", "city": "Fictional City", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": "ep-002" },
-    { "id": "loc-copper-south", "company_id": "co-copper-ridge", "name": "Copper Ridge South", "city": "Fictional City", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": "ep-002" },
-    { "id": "loc-harbor-lane", "company_id": "co-harbor-lane", "name": "Harbor Lane Motors", "city": "Fictional Harbor", "state": "WA", "timezone": "America/Los_Angeles", "switchboard_endpoint_id": null },
-    { "id": "loc-northgate", "company_id": "co-northgate", "name": "Northgate Auto Plaza", "city": "Fictional Heights", "state": "OH", "timezone": "America/New_York", "switchboard_endpoint_id": null },
-    { "id": "loc-summit-trail", "company_id": "co-summit-trail", "name": "Summit Trail Motors", "city": "Fictional Ridge", "state": "CO", "timezone": "America/Denver", "switchboard_endpoint_id": null },
-    { "id": "loc-blue-heron", "company_id": "co-blue-heron", "name": "Blue Heron Autos", "city": "Fictional Bay", "state": "FL", "timezone": "America/New_York", "switchboard_endpoint_id": null },
-    { "id": "loc-prairie-wind", "company_id": "co-prairie-wind", "name": "Prairie Wind Motorcars", "city": "Fictional Plains", "state": "KS", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
-    { "id": "loc-ironwood", "company_id": "co-ironwood", "name": "Ironwood Auto Mall", "city": "Fictional Grove", "state": "MI", "timezone": "America/Detroit", "switchboard_endpoint_id": null }
+    { "id": "loc-riverbend", "company_id": "co-riverbend", "name": "Riverbend Motors", "city": "Round Rock", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-copper-north", "company_id": "co-copper-ridge", "name": "Copper Ridge North", "city": "Georgetown", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": "ep-002" },
+    { "id": "loc-copper-south", "company_id": "co-copper-ridge", "name": "Copper Ridge South", "city": "San Marcos", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": "ep-002" },
+    { "id": "loc-harbor-lane", "company_id": "co-harbor-lane", "name": "Harbor Lane Motors", "city": "Conroe", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-northgate", "company_id": "co-northgate", "name": "Northgate Auto Plaza", "city": "Waco", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-summit-trail", "company_id": "co-summit-trail", "name": "Summit Trail Motors", "city": "Killeen", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-blue-heron", "company_id": "co-blue-heron", "name": "Blue Heron Autos", "city": "Temple", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-prairie-wind", "company_id": "co-prairie-wind", "name": "Prairie Wind Motorcars", "city": "Tyler", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null },
+    { "id": "loc-ironwood", "company_id": "co-ironwood", "name": "Ironwood Auto Mall", "city": "Longview", "state": "TX", "timezone": "America/Chicago", "switchboard_endpoint_id": null }
   ],
   "endpoints": [
     { "id": "ep-001", "e164": "+15550100001", "label": "Riverbend Motors main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },

@@ -5,7 +5,7 @@ export interface StatProps {
   /** The big number (or a short numeric string like "02:14"). */
   value: number | string;
   icon: IconName;
-  /** Accessible name for the whole stat ("Dials"). Required — the icon is the only visible label. */
+  /** Accessible name for the whole stat ("Dials"). Required: the icon is the only visible label. */
   name: string;
   /** Optional one-word visible label. Never a sentence. */
   label?: string;
@@ -22,7 +22,7 @@ export function Stat({ value, icon, name, label, color, size = 'md' }: StatProps
         {value}
       </span>
       <span className={styles.meta} aria-hidden="true">
-        <Icon name={icon} size={16} />
+        <Icon name={icon} size={16} weight="bold" />
         {label ? <span className={styles.label}>{label}</span> : null}
       </span>
     </div>

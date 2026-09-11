@@ -1,9 +1,11 @@
 'use client';
 
+import { Glyph, Icon } from './Icon';
 import styles from './RefCard.module.css';
 
 export type RefMeaningStatus = 'observed' | 'inferred' | 'confirmed' | 'unknown';
 
+/** Meaning-status marks as status characters (drawn as icons on the stage; kept as data for screens and tests). */
 export const REF_MEANING_GLYPH: Record<RefMeaningStatus, string> = {
   observed: '◉',
   inferred: '◌',
@@ -17,9 +19,9 @@ export interface RefCardProps {
   /** One meaning line (`--fs-body`). */
   meaning: string;
   status: RefMeaningStatus;
-  /** Full accessible name of the status glyph. */
+  /** Full accessible name of the status mark. */
   statusName: string;
-  /** Invalidated: struck through with ⊘. */
+  /** Invalidated: struck through with a prohibit mark. */
   invalidated?: boolean;
   /** Rejected/dismissed: muted. */
   muted?: boolean;
@@ -30,21 +32,20 @@ export interface RefCardProps {
   tabIndex?: number;
 }
 
-/**
- * THEIR REFERENCES card: label at `--fs-their-words` in purple, one meaning line, a meaning-status
- * glyph + one word. Invalidated references strike through with ⊘. Tap → Sheet (Keep · Use · Clarify).
- */
-/** "PROFIT (NOT REVENUE)" → title "PROFIT" + aside "revenue" (the word they set aside). */
+/** "PROFIT (NOT REVENUE)" splits into title "PROFIT" + aside "revenue" (the word they set aside). */
 export function splitReferenceLabel(label: string): { title: string; aside: string | null } {
   const m = /^(.*?)\s*\(not\s+([^)]+)\)\s*$/i.exec(label);
   return m ? { title: m[1]!.trim(), aside: m[2]!.trim().toLowerCase() } : { title: label, aside: null };
 }
 
+/**
+ * THEIR REFERENCES card: label at `--fs-their-words` in purple, one meaning line, a meaning-status
+ * mark + one word. Invalidated references strike through. Tap opens the Sheet (Keep, Use, Clarify).
+ */
 export function RefCard({ label, meaning, status, statusName, invalidated, muted, pinned, kept, onPress, referenceId, tabIndex }: RefCardProps) {
-  const glyph = invalidated ? '⊘' : REF_MEANING_GLYPH[status];
   const { title, aside } = splitReferenceLabel(label);
   const word = invalidated ? 'invalidated' : status;
-  const name = `${label}. ${meaning}. ${invalidated ? 'Invalidated — evidence retracted' : statusName}${pinned ? '; pinned' : ''}${kept ? '; kept for later' : ''}`;
+  const name = `${label}. ${meaning}. ${invalidated ? 'Invalidated: evidence retracted' : statusName}${pinned ? '; pinned' : ''}${kept ? '; kept for later' : ''}`;
   return (
     <button
       type="button"
@@ -68,10 +69,10 @@ export function RefCard({ label, meaning, status, statusName, invalidated, muted
         {meaning}
       </span>
       <span className={styles.meta} aria-hidden="true" data-ref-meta>
-        <span className={styles.glyph}>{glyph}</span>
+        <span className={styles.glyph}>{invalidated ? <Icon name="ban" size={13} weight="bold" /> : <Glyph glyph={REF_MEANING_GLYPH[status]} size={13} />}</span>
         <span>{word}</span>
-        {pinned ? <span className={styles.pin}>⌖</span> : null}
-        {kept ? <span className={styles.kept}>◇</span> : null}
+        {pinned ? <Icon name="pin" size={13} weight="fill" className={styles.pin} /> : null}
+        {kept ? <Icon name="bookmark" size={13} weight="fill" className={styles.kept} /> : null}
       </span>
     </button>
   );

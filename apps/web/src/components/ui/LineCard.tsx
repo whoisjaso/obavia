@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import type { BridgePart } from '@/lib/line-parts';
 import { Chip } from './Chip';
+import { Glyph } from './Icon';
 import { IconButton } from './IconButton';
 import { SlotLine } from './SlotLine';
 import styles from './LineCard.module.css';
@@ -14,17 +15,17 @@ export interface LineCardProps {
   line: string;
   /** A plain sentence under the line (`--fs-body --ink-2`), e.g. a purpose cue in Train. */
   bridge?: string;
-  /** The bridge *shape* as glyph cues (◐ ack · ● their word · ? question) — never angle tokens. */
+  /** The bridge *shape* as cue chips (acknowledge, their word, question), never angle tokens. */
   shape?: readonly BridgePart[];
   /** Tap on the line = next. Omit to make the line non-interactive (e.g. read-only replay). */
   onNext?: () => void;
-  /** ⓘ opens the explanation sheet (why now, listen for, mirrors, tone). */
+  /** The info button opens the explanation sheet (why now, listen for, mirrors, tone). */
   onInfo?: () => void;
   /** Accessible name for the tap-to-advance control. */
   nextName?: string;
-  /** Lock glyph: the primary line is frozen (published/immutable). */
+  /** Lock mark: the primary line is frozen (published/immutable). */
   locked?: boolean;
-  /** Extra chip(s) next to the stage (draft badge as a glyph chip, etc.). */
+  /** Extra chip(s) next to the stage. */
   meta?: ReactNode;
   /** Minimum number of display lines reserved so arriving words never move the text. */
   minLines?: number;
@@ -38,8 +39,8 @@ export interface LineCardProps {
 export const LONG_LINE_WORDS = 24;
 
 /**
- * The script line: stage chip, the primary line at `--fs-display` weight 700, a subtle ⓘ, and the
- * bridge shape below. The card reserves `minLines` lines (or fills its parent) so nothing shifts
+ * The script line: stage chip, the primary line at `--fs-display` weight 700, a quiet info button,
+ * and the bridge shape below. The card reserves `minLines` lines (or fills its parent) so nothing shifts
  * when words arrive; slots render as chips, never as brackets.
  */
 export function LineCard({ stage, line, bridge, shape, onNext, onInfo, nextName, locked, meta, minLines = 4, fill, nodeId }: LineCardProps) {
@@ -52,13 +53,13 @@ export function LineCard({ stage, line, bridge, shape, onNext, onInfo, nextName,
   return (
     <section className={[styles.card, long ? styles.long : '', fill ? styles.fill : ''].join(' ').trim()} data-line-card data-node-id={nodeId} data-line-length={long ? 'long' : 'short'} aria-label={`Script line, stage ${stage}`}>
       <div className={styles.head}>
-        <Chip static label={stage} tone="teal" glyph={locked ? '🔒' : undefined} name={locked ? `Stage ${stage}, line locked` : `Stage ${stage}`} />
+        <Chip static label={stage} tone="teal" icon={locked ? 'lock' : undefined} name={locked ? `Stage ${stage}, line locked` : `Stage ${stage}`} />
         {meta}
         {onInfo ? <IconButton icon="info" label="Why this line now" onClick={onInfo} className={styles.info} /> : null}
       </div>
       <div className={styles.lineBox} style={fill ? undefined : { minHeight: `calc(${minLines} * ${long ? 'var(--fs-display-long)' : 'var(--fs-display)'} * var(--lh-tight))` }}>
         {onNext ? (
-          <button type="button" className={styles.lineButton} onClick={onNext} aria-label={nextName ?? `${line} — next line`} data-line-next>
+          <button type="button" className={styles.lineButton} onClick={onNext} aria-label={nextName ?? `${line}. Next line`} data-line-next>
             {text}
           </button>
         ) : (
@@ -69,7 +70,9 @@ export function LineCard({ stage, line, bridge, shape, onNext, onInfo, nextName,
         <div className={styles.shape} role="group" aria-label="Bridge shape" data-bridge-line>
           {shape.map((p, i) => (
             <span key={`${p.word}-${i}`} className={styles.shapeChip} role="img" aria-label={p.name} title={p.name}>
-              <span className={styles.shapeGlyph}>{p.glyph}</span>
+              <span className={styles.shapeGlyph}>
+                <Glyph glyph={p.glyph} size={13} />
+              </span>
               <span>{p.word}</span>
             </span>
           ))}

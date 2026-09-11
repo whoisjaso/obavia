@@ -1,6 +1,6 @@
 @import './tokens.css';
 
-/* Dark stage. No shadows on dark; depth comes from --bg-1/2/3 steps and a 1px --line border. */
+/* Dark stage. Depth comes from --bg-1/2/3 steps, a 1px --line border and offset shadows; never a colored halo. */
 
 *,
 *::before,
@@ -13,6 +13,10 @@ html {
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  scrollbar-color: var(--bg-3) transparent;
+  scrollbar-width: thin;
+  accent-color: var(--blue);
+  caret-color: var(--blue);
 }
 
 body {
@@ -25,6 +29,7 @@ body {
   line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
 }
 
@@ -36,10 +41,12 @@ h4 {
   font-weight: 700;
   line-height: var(--lh-tight);
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 h1 {
   font-size: var(--fs-large);
+  letter-spacing: var(--track-tight);
 }
 h2 {
   font-size: var(--fs-title);
@@ -50,6 +57,7 @@ h3 {
 
 p {
   margin: 0;
+  text-wrap: pretty;
 }
 
 a {
@@ -77,6 +85,12 @@ button {
   touch-action: manipulation;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-2); /* 4.5:1 on the card surface; --ink-3 is decoration only */
+  opacity: 1;
+}
+
 img,
 svg {
   display: block;
@@ -94,6 +108,25 @@ svg {
   color: var(--ink);
 }
 
+/* Scrollbars belong to the stage, not to the platform. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-3);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Numbers that change (timers, stats, rings) keep their width. */
+.tnum,
+[data-tnum] {
+  font-variant-numeric: tabular-nums;
+}
+
 /* Skip link: visually hidden until focused. */
 .skip-link {
   position: fixed;
@@ -103,7 +136,7 @@ svg {
   padding: var(--s-2) var(--s-4);
   border-radius: var(--r-chip);
   background: var(--blue);
-  color: #fff;
+  color: var(--ink-on-blue);
   font-weight: 600;
   transform: translateY(-300%);
   transition: transform var(--dur-fast) var(--ease);

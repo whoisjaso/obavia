@@ -4,11 +4,11 @@ export interface AvatarProps {
   /** Full name; initials and hue derive from it. */
   name: string;
   size?: 32 | 40 | 48 | 56 | 72;
-  /** Announce the name (defaults to decorative — the name is usually printed beside it). */
+  /** Announce the name (defaults to decorative: the name is usually printed beside it). */
   labelled?: boolean;
 }
 
-/** Stable 0–359 hue from a string (djb2). */
+/** Stable 0 to 359 hue from a string (djb2). */
 export function hueFromName(name: string): number {
   let h = 5381;
   for (let i = 0; i < name.length; i += 1) h = ((h << 5) + h + name.charCodeAt(i)) | 0;

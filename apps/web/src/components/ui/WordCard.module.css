@@ -55,12 +55,12 @@
   color: var(--ink-2);
 }
 .glyph {
+  display: inline-grid;
+  place-items: center;
   color: var(--gold);
-  font-size: 13px;
 }
 .pin {
   color: var(--blue);
-  font-size: 13px;
 }
 .kept {
   color: var(--teal);
@@ -88,13 +88,13 @@
 .refGlyph {
   color: var(--purple);
 }
-/* the lane identity of a merged word: a small purple "◆ ref" chip, never a bare dot */
+/* the lane identity of a merged word: a small purple diamond chip, never a bare dot */
 .refChip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   min-height: 20px;
-  padding: 0 8px;
+  padding: 0 7px;
   border-radius: var(--r-chip);
   border: 1px solid rgba(191, 90, 242, 0.45);
   background: rgba(191, 90, 242, 0.14);
@@ -110,11 +110,7 @@
   background: rgba(255, 69, 58, 0.12);
 }
 .refStatus {
-  font-size: 11px;
-  letter-spacing: 0;
-}
-.refStatus:empty {
-  display: none;
+  opacity: 0.9;
 }
 @keyframes slideIn {
   from {

@@ -3,6 +3,7 @@
 import { useId, useRef, type KeyboardEvent } from 'react';
 import type { AssistanceMode } from '@apohenia/domain/schemas';
 import { MODE_COPY } from '@apohenia/domain/practice';
+import { Glyph } from '@/components/ui';
 import { MODES, modeName } from './practice-lib';
 import styles from './practice.module.css';
 
@@ -53,7 +54,7 @@ export function ModeControl({ value, onChange }: ModeControlProps) {
             data-mode-option={m.mode}
           >
             <span className={styles.segGlyph} aria-hidden="true">
-              {m.glyph}
+              <Glyph glyph={m.glyph} size={22} />
             </span>
             <span className={styles.segWord} aria-hidden="true">
               {m.word}

@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { AssistanceMode, DEFAULT_ASSISTANCE_MODE, PracticeAttempt, type DrillKind, type DrillResult, type ScriptNode } from '@apohenia/domain/schemas';
 import { MODE_COPY, NOT_A_VOICE_CALL, TONE_NOTE, attemptFromResult, summarizeAttempts, type BucketSummary } from '@apohenia/domain/practice';
-import { Chip, FictionalPill, GlyphPill, IconButton, NotAssessedGlyph, Ring, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
+import { Chip, FictionalPill, Glyph, GlyphPill, Icon, IconButton, NotAssessedLabel, Ring, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { DrillScreen, type NodeDrillKind } from './DrillScreen';
 import { MockScreen } from './MockScreen';
@@ -72,8 +72,8 @@ export function PracticeClient({ nodes, scriptVersionId, placeholder, practiceFa
   if (nodes.length === 0) {
     return (
       <div className={styles.screen}>
-        <TopBar title="Train" left={placeholder ? <GlyphPill glyph="◔" label="Placeholder" name="Placeholder script seed — to be authored; nothing is imagined in the meantime" tone="orange" /> : null} />
-        <EmptyGlyph glyph="∅" label="No script">
+        <TopBar title="Train" left={placeholder ? <GlyphPill glyph="◔" label="Placeholder" name="Placeholder script seed, still to be authored; nothing is imagined in the meantime" tone="orange" /> : null} />
+        <EmptyGlyph label="No script">
           <Tile icon="script" label="Script" href="/scripts" />
         </EmptyGlyph>
       </div>
@@ -90,10 +90,10 @@ export function PracticeClient({ nodes, scriptVersionId, placeholder, practiceFa
         <div className={styles.screen} data-drill-grid-screen>
           <TopBar
             title="Train"
-            left={placeholder ? <GlyphPill glyph="◔" label="Placeholder" name="Placeholder script seed — to be authored" tone="orange" /> : null}
+            left={placeholder ? <GlyphPill glyph="◔" label="Placeholder" name="Placeholder script seed, still to be authored" tone="orange" /> : null}
             right={
               <>
-                <IconButton icon="history" label="History — assisted and unassisted attempts, summarised separately" onClick={() => setSheet('history')} data-history-open />
+                <IconButton icon="history" label="History: assisted and unassisted attempts, summarised separately" onClick={() => setSheet('history')} data-history-open />
                 <IconButton icon="info" label={`About Train: ${NOT_A_VOICE_CALL}. ${TONE_NOTE}. ${MODE_COPY}`} onClick={() => setSheet('info')} data-info-open />
               </>
             }
@@ -108,12 +108,12 @@ export function PracticeClient({ nodes, scriptVersionId, placeholder, practiceFa
               return (
                 <Tile key={d.kind} icon={d.icon} label={d.label} name={`${d.label}: ${d.hint} ${a.name}. ${u.name}.`} size="lg" onClick={() => setDrill(d.kind)} data-drill-tile={d.kind} className={styles.drillTile}>
                   <span className={styles.tileRings} aria-hidden="true">
-                    <span data-tile-ring="assisted" data-count={a.count} data-scored={a.scored ? 'true' : 'false'} data-value={a.value.toFixed(2)}>
-                      <Ring value={a.value} size={28} stroke={3} color="var(--ink-2)" track="rgba(255,255,255,0.12)" />
+                    <span data-tile-ring="assisted" data-count={a.count} data-scored={a.scored ? 'true' : 'false'} data-value={a.value.toFixed(2)} className={styles.tileRing}>
+                      <Ring value={a.value} size={36} stroke={4} color={a.scored ? 'var(--green)' : 'var(--ink-2)'} track="var(--line-strong)">
+                        {a.count > 0 ? <span className={styles.tileRingValue}>{a.scored ? Math.round(a.value * 100) : a.count}</span> : null}
+                      </Ring>
                     </span>
-                    <span data-tile-ring="unassisted" data-count={u.count} data-scored={u.scored ? 'true' : 'false'} data-value={u.value.toFixed(2)}>
-                      <Ring value={u.value} size={28} stroke={3} color="var(--green)" track="rgba(255,255,255,0.12)" />
-                    </span>
+                    <span data-tile-ring="unassisted" data-count={u.count} data-scored={u.scored ? 'true' : 'false'} data-value={u.value.toFixed(2)} className={[styles.tileDot, u.count > 0 ? styles.tileDotOn : ''].join(' ').trim()} />
                   </span>
                 </Tile>
               );
@@ -133,7 +133,7 @@ export function PracticeClient({ nodes, scriptVersionId, placeholder, practiceFa
           <BucketCard title="Unassisted" glyph="○" bucket={summary.unassisted} color="var(--blue)" />
         </div>
         <div className={styles.historyFoot}>
-          <NotAssessedGlyph name={TONE_NAME} />
+          <NotAssessedLabel name={TONE_NAME} label="Tone: Not assessed" />
           <Chip static label={`${attempts.length} stored`} name={`${attempts.length} attempts stored locally (last 200)`} />
         </div>
         {attempts.length > 0 ? (
@@ -165,7 +165,7 @@ export function PracticeClient({ nodes, scriptVersionId, placeholder, practiceFa
           <div className={styles.chipRow}>
             <FictionalPill />
             <Chip static label={`${nodes.length} nodes`} name={`${nodes.length} script nodes, version ${scriptVersionId}`} />
-            <Chip static glyph="◔" label="draft" name="All nodes are draft — training only" tone="teal" />
+            <Chip static icon="hourglass" label="Draft" name="All nodes are draft: training only" tone="teal" />
           </div>
           <p className={styles.sheetBig}>{NOT_A_VOICE_CALL}.</p>
           <p className={styles.sheetText}>{TONE_NOTE}. Memory and Conversation are separate scores and never mixed.</p>
@@ -188,7 +188,7 @@ function BucketCard({ title, glyph, bucket, color }: { title: string; glyph: str
     <div className={styles.bucket} role="group" aria-label={`${title}: ${bucket.attempts} attempts`} data-bucket={title.toLowerCase()}>
       <span className={styles.bucketHead}>
         <span aria-hidden="true" className={styles.bucketGlyph} style={{ color }}>
-          {glyph}
+          <Glyph glyph={glyph} size={16} />
         </span>
         {title}
       </span>
@@ -197,7 +197,7 @@ function BucketCard({ title, glyph, bucket, color }: { title: string; glyph: str
         <div className={styles.score} data-scored={mem.attempts > 0 ? 'true' : 'false'}>
           <Ring value={memValue} size={64} stroke={6} color={mem.attempts > 0 ? color : 'var(--ink-3)'} label={mem.attempts > 0 ? `Memory: ${mem.attempts} scored, mean exact match ${pct(memValue)}, mean word order ${pct(mem.mean_word_order_ratio ?? 0)}` : 'Memory: none scored'}>
             <span className={styles.scoreCenterSmall} aria-hidden="true">
-              {mem.attempts > 0 ? Math.round(memValue * 100) : '—'}
+              {mem.attempts > 0 ? Math.round(memValue * 100) : <Icon name="empty" size={16} weight="bold" className={styles.scoreEmpty} />}
             </span>
           </Ring>
           <span className={styles.scoreLabel} aria-hidden="true">
@@ -213,7 +213,7 @@ function BucketCard({ title, glyph, bucket, color }: { title: string; glyph: str
             label={conv.attempts > 0 ? `Conversation: ${conv.attempts} scored, ${conv.objective_satisfied} objective satisfied, ${conv.branch_choices_correct} of ${conv.branch_choices} branch choices, ${conv.accurate_disqualifications} accurate disqualifications` : 'Conversation: none scored'}
           >
             <span className={styles.scoreCenterSmall} aria-hidden="true">
-              {conv.attempts > 0 ? Math.round(convValue * 100) : '—'}
+              {conv.attempts > 0 ? Math.round(convValue * 100) : <Icon name="empty" size={16} weight="bold" className={styles.scoreEmpty} />}
             </span>
           </Ring>
           <span className={styles.scoreLabel} aria-hidden="true">
