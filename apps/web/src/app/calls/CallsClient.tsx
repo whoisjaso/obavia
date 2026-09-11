@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { DialHistory, type SessionHistoryEntry } from '@apohenia/domain/schemas';
 import { formatClock, isDial } from '@apohenia/domain/dialer';
 import { DISPOSITION_GLYPHS, outcomeGlyph } from '@apohenia/domain/vocabulary';
-import { Avatar, Card, Chip, FictionalPill, Icon, IconButton, Ring, Sheet, Stat, StatusGlyph, TopBar, type IconName } from '@/components/ui';
+import { Avatar, Card, Chip, FictionalPill, Icon, IconButton, NotAssessedLabel, Ring, Sheet, Stat, StatusGlyph, TopBar, type IconName } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { formatDuration, formatWhen, historyTotals, type CallRow } from './review-lib';
 import styles from './calls.module.css';
@@ -103,13 +103,19 @@ export function CallsClient({ calls }: CallsClientProps) {
         }
       />
 
-      <div className={styles.stats} data-history-stats>
-        <Stat value={totals.sessions} icon="history" name="Sessions" />
-        <Stat value={totals.dials} icon="phone" name="Dials" />
-        <Stat value={totals.talks} icon="target" name="Talks" />
-      </div>
+      {/* session numbers appear only once a session ended in this browser; until then one quiet caption, never a row of zeros */}
+      {history.length > 0 ? (
+        <div className={styles.stats} data-history-stats>
+          <Stat value={totals.sessions} icon="history" name="Sessions" />
+          <Stat value={totals.dials} icon="phone" name="Dials" />
+          <Stat value={totals.talks} icon="target" name="Talks" />
+        </div>
+      ) : (
+        <div className={styles.stats} data-history-stats data-history-empty>
+          <NotAssessedLabel label="No sessions yet" name={hydrated ? 'No demo sessions have ended in this browser yet' : 'Reading sessions'} />
+        </div>
+      )}
 
-      {/* sessions: only once at least one ended in this browser; the stat row already says zero */}
       {history.length > 0 ? (
         <>
           <div className={styles.sectionHead}>

@@ -71,7 +71,7 @@ export function pinPhrase(state: PinState, eventId: string): PinResult {
     return { state: { ...state, manual, unpinned }, ok: true };
   }
   if (state.order.length >= PIN_MAX) {
-    return { state, ok: false, reason: `Maximum of ${PIN_MAX} pins — unpin one first` };
+    return { state, ok: false, reason: `Maximum of ${PIN_MAX} pins: unpin one first` };
   }
   return { state: { order: [...state.order, eventId], manual, unpinned }, ok: true };
 }

@@ -164,17 +164,17 @@ export interface StatusGlyph {
 export function statusGlyph(status: ApprovalStatus): StatusGlyph {
   switch (status) {
     case 'draft':
-      return { glyph: '◔', word: 'Draft', name: 'Draft — written, not reviewed; never rendered as approved and never live', tone: 'orange' };
+      return { glyph: '◔', word: 'Draft', name: 'Draft: written, not reviewed; never rendered as approved and never live', tone: 'orange' };
     case 'reviewed':
-      return { glyph: '◑', word: 'Reviewed', name: 'Reviewed — the owner accepts the wording as a candidate; still not live', tone: 'teal' };
+      return { glyph: '◑', word: 'Reviewed', name: 'Reviewed: the owner accepts the wording as a candidate; still not live', tone: 'teal' };
     case 'published':
-      return { glyph: '✓', word: 'Published', name: 'Published — approved for live use and frozen; a change means a new version', tone: 'green' };
+      return { glyph: '✓', word: 'Published', name: 'Published: approved for live use and frozen; a change means a new version', tone: 'green' };
     case 'retired':
-      return { glyph: '—', word: 'Retired', name: 'Retired — no longer used; kept for history, read-only', tone: 'neutral' };
+      return { glyph: '○', word: 'Retired', name: 'Retired: no longer used; kept for history, read-only', tone: 'neutral' };
     default:
       return { glyph: '?', word: String(status), name: `Unknown status ${String(status)}`, tone: 'neutral' };
   }
 }
 
-/** Accessible truth behind the `—` shown for an unset price (never $0). */
-export const PRICE_NOT_SET_NAME = 'Price not set — a blank price is not $0' as const;
+/** Accessible truth behind the "Not set" caption for an unset price (never $0). */
+export const PRICE_NOT_SET_NAME = 'Price not set: a blank price is not $0' as const;

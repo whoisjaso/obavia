@@ -73,7 +73,6 @@
 }
 .correction s {
   text-decoration-thickness: 2px;
-  opacity: 0.85;
 }
 .meaning {
   font-size: var(--fs-body);

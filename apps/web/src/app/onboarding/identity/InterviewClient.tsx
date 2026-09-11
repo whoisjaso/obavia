@@ -363,13 +363,11 @@ function ScreenView({ screen, index, total, initialSelection, needsReanswer, has
       </ul>
 
       <div className={styles.actions}>
-        <IconButton icon="arrow-left" label="Back" size={56} disabled={!canGoBack} onClick={onBack} data-back />
-        <Chip label="Skip" icon="arrow-right" name="Skip this question" onClick={onSkip} data-skip />
-        <span className={styles.spacer} />
         {/*
-          The one place the select mode is stated: a fixed slot so the cue changes without moving Next.
-          Blocked: "Pick up to 3" / "Pick one" with the full sentence for assistive tech. Clear: a check
-          and the running count ("2 of 3"). The mark never disappears mid-flow.
+          The one place the select mode is stated: its own line above the controls, so the cue can change
+          or wrap without ever squeezing Skip or Next. Blocked: "Pick up to 3" / "Pick one" with the full
+          sentence for assistive tech. Clear: a check and the running count ("2 of 3"). The mark never
+          disappears mid-flow.
         */}
         <span
           id={reasonId}
@@ -393,10 +391,15 @@ function ScreenView({ screen, index, total, initialSelection, needsReanswer, has
             <Chip static icon="check" label={max !== undefined ? `${chosen} of ${max}` : 'Chosen'} tone="green" name={max !== undefined ? `Multi-select: choose up to ${max}. Selected ${chosen} of ${max}.` : 'Choose one.'} className={styles.reasonChip} />
           )}
         </span>
-        <button type="button" className={styles.nextHero} onClick={() => onNext(selection)} disabled={problem !== null} aria-describedby={problem !== null ? reasonId : undefined} data-next>
-          <span>Next</span>
-          <Icon name="arrow-right" size={22} weight="bold" />
-        </button>
+        <div className={styles.actionRow}>
+          <IconButton icon="arrow-left" label="Back" size={56} disabled={!canGoBack} onClick={onBack} data-back />
+          <Chip label="Skip" icon="arrow-right" name="Skip this question" onClick={onSkip} data-skip className={styles.skipChip} />
+          <span className={styles.spacer} />
+          <button type="button" className={styles.nextHero} onClick={() => onNext(selection)} disabled={problem !== null} aria-describedby={problem !== null ? reasonId : undefined} data-next>
+            <span>Next</span>
+            <Icon name="arrow-right" size={24} weight="bold" />
+          </button>
+        </div>
       </div>
     </section>
   );

@@ -6,7 +6,7 @@
     {
       "id": "goal_meaning",
       "order": 0,
-      "prompt": "What is the billion-dollar ambition for?",
+      "prompt": "What is the billion‑dollar ambition for?",
       "help": "Your own words for the purpose behind the number. This is context you describe, not something the app infers. Choose up to 3.",
       "summary_label": "What the ambition is for",
       "kind": "multi",

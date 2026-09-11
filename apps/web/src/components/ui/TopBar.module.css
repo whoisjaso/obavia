@@ -23,6 +23,7 @@
   padding: 0 var(--s-4);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
+  column-gap: var(--s-3);
   align-items: center;
 }
 .left,
@@ -47,4 +48,13 @@
   letter-spacing: var(--track-caps);
   text-transform: uppercase;
   color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* phone width: when two pills sit at the left, the centre word yields (the route's h1 still names the screen) */
+@media (max-width: 479px) {
+  .inner:has(.left > :nth-child(2)) .title {
+    display: none;
+  }
 }

@@ -626,7 +626,8 @@
   gap: var(--s-2);
 }
 .scoreCenter {
-  font-size: var(--fs-title);
+  font-size: var(--fs-body);
+  letter-spacing: -0.01em;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
@@ -634,7 +635,7 @@
   place-items: center;
 }
 .scoreCenterSmall {
-  font-size: var(--fs-body);
+  font-size: var(--fs-caption);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }

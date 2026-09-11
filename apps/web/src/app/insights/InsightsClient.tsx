@@ -115,7 +115,7 @@ export function InsightsClient({ funnel, rubric }: InsightsClientProps) {
         <div className={styles.chips}>
           <Chip static icon="list" label={`${summary.assisted.attempts} assisted`} tone="green" name={`${summary.assisted.attempts} assisted attempts`} />
           <Chip static icon="circle" label={`${summary.unassisted.attempts} unassisted`} tone="blue" name={`${summary.unassisted.attempts} unassisted attempts`} />
-          <NotAssessedLabel label="Tone: not assessed" name={TONE_NAME} />
+          <NotAssessedLabel label="Tone: Not assessed" name={TONE_NAME} />
         </div>
       </section>
 

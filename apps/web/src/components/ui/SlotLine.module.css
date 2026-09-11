@@ -1,9 +1,8 @@
+/* One inline run: `display: inline` + `white-space: nowrap` keeps the whole chip on one line and lets a
+   -webkit-line-clamp treat it as a single word; the brackets are pseudo-elements, never separate boxes. */
 .slot {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.15em;
-  vertical-align: baseline;
-  padding: 0 0.32em;
+  display: inline;
+  padding: 0.06em 0.32em;
   margin: 0 0.04em;
   border-radius: 0.45em;
   font-size: 0.72em;
@@ -11,18 +10,28 @@
   line-height: 1.5;
   letter-spacing: 0;
   white-space: nowrap;
-  transform: translateY(-0.08em);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
-.bracket {
-  opacity: 0.6;
+.slot::before {
+  content: '‹';
+  opacity: 0.9;
+  margin-right: 0.12em;
+}
+.slot::after {
+  content: '›';
+  opacity: 0.9;
+  margin-left: 0.12em;
 }
 .glyph {
+  display: inline-block;
   width: 0.9em;
   height: 0.9em;
-  flex-shrink: 0;
+  margin-right: 0.15em;
+  vertical-align: -0.1em;
 }
 .missing {
-  color: var(--blue);
+  color: #4da3ff; /* 5.4:1 on the blue tint */
   background: rgba(10, 132, 255, 0.16);
   border: 1px solid rgba(10, 132, 255, 0.35);
 }

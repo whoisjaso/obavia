@@ -126,7 +126,7 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
   return (
     <div className={styles.screen} data-drill-screen="full_mock" data-mock-phase={!scenario ? 'pick' : !run ? 'brief' : ended ? 'ended' : 'run'}>
       <TopBar
-        left={<GlyphPill glyph="✦" name="Fictional training content — every scenario is fictional, not a real record" tone="purple" data-fictional-pill />}
+        left={<FictionalPill name="Fictional training content: every scenario is fictional, not a real record" />}
         title="Mock"
         right={
           <>
@@ -245,9 +245,9 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
       {/* Evaluator (post-session only). Content exists only while open. */}
       <Sheet open={sheet === 'evaluator'} onClose={() => setSheet('none')} title="Evaluator" tall data-sheet="evaluator">
         {evaluator ? (
-          <div className={styles.sheetStack} data-evaluator-view aria-label="Post-session evaluator view — hidden fact sheet">
+          <div className={styles.sheetStack} data-evaluator-view aria-label="Post-session evaluator view: hidden fact sheet">
             <div className={styles.chipRow}>
-              <GlyphPill glyph="⊘" label="Post-session" name="Post-session evaluator view — hidden fact sheet, not available during the run" tone="orange" data-evaluator-pill />
+              <GlyphPill glyph="⊘" label="Post-session" name="Post-session evaluator view: hidden fact sheet, not available during the run" tone="orange" data-evaluator-pill />
               <FictionalPill />
               {evaluator.never_converts ? <GlyphPill glyph="∅" label="Never converts" name="This scenario never converts: a respectful exit is the correct result" tone="purple" data-never-converts /> : null}
             </div>

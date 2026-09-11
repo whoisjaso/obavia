@@ -210,9 +210,24 @@ const ICONS: Record<IconName, PhosphorIcon> = {
 
 export const ICON_NAMES: readonly IconName[] = Object.keys(ICONS) as IconName[];
 
+/**
+ * The kit's icon scale. Every icon renders at one of these sizes; a stray value snaps to the nearest
+ * step so the set reads as one system (12 marks in pills, 16 in chips, 20 in rows, 24 in sheets,
+ * 28 on cards, 32 on tiles, 48 on hero tiles, 72 for empty states, 200 never (the hero draws its own).
+ */
+export const ICON_SIZES = [12, 16, 20, 24, 28, 32, 48, 72] as const;
+export type IconSize = (typeof ICON_SIZES)[number];
+
+/** Snap any requested size to the scale (13 → 12, 14 → 16, 18 → 20, 22 → 24, 26 → 28, 30 → 32, 36 to 44 → 48, 52 and up → 72). */
+export function iconSize(size: number): IconSize {
+  let best: IconSize = ICON_SIZES[0];
+  for (const s of ICON_SIZES) if (Math.abs(s - size) < Math.abs(best - size) || (Math.abs(s - size) === Math.abs(best - size) && s > best)) best = s;
+  return best;
+}
+
 export interface IconProps extends Omit<SVGAttributes<SVGSVGElement>, 'name'> {
   name: IconName;
-  /** Rendered size in px. The kit uses 20 / 24 / 28 / 72. */
+  /** Rendered size in px, snapped to `ICON_SIZES`. */
   size?: number;
   /** Accessible name; omit for decorative icons (rendered `aria-hidden`). */
   label?: string;
@@ -235,7 +250,7 @@ export function Icon({ name, size = 24, label, weight, strokeWidth, className, s
   const merged: CSSProperties = { flexShrink: 0, ...style };
   return (
     <Component
-      size={size}
+      size={iconSize(size)}
       weight={resolvedWeight}
       role={label ? 'img' : undefined}
       aria-label={label}
@@ -341,7 +356,7 @@ export interface GlyphProps {
  * Dash placeholders render nothing (the caller prints the word). Always `aria-hidden`: the meaning
  * lives in the parent's accessible name.
  */
-export function Glyph({ glyph, size = 14, weight, className }: GlyphProps) {
+export function Glyph({ glyph, size = 16, weight, className }: GlyphProps) {
   if (isDashGlyph(glyph)) return null;
   const spec = Object.hasOwn(ICONS, glyph) ? { name: glyph as IconName, weight: weight ?? 'bold' } : glyphIcon(glyph);
   if (spec) return <Icon name={spec.name} weight={weight ?? spec.weight} size={size} className={className} />;

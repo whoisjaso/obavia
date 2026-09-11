@@ -114,7 +114,7 @@ const X_IS_WHAT_MATTERS = /\b([A-Za-z][a-z-]+(?:\s[a-z-]+){0,2})\s+is\s+what\s+m
 const WHAT_MATTERS_IS = /\bwhat\s+matters(?:\s+(?:to|for)\s+(?:me|us))?(?:\s+most)?\s+is\s+(?:the\s+)?([a-z-]+(?:\s[a-z-]+){0,3})/gi;
 const BY_X_I_MEAN = /\bby\s+([a-z-]+(?:\s[a-z-]+){0,2})\s+(?:I|we)\s+mean\s+([^.;!?]+)/gi;
 const WE_CALL_IT = /\b(?:what I call|what we call|I call it|we call it|I call that|we call that)\s+(?:the\s+)?[“"]?([A-Za-z][a-z-]+(?:\s[a-z-]+){0,2})[”"]?/gi;
-const CORRECTION = /(?:^|[,;—-]\s*|\b(?:is|it's|its|about|want|wants|on|need|needs)\s+)([A-Za-z][a-z-]+(?:\s[a-z-]+)?),\s*not\s+(?:the\s+)?([A-Za-z][a-z-]+(?:\s[a-z-]+)?)(?=\s*[.,;!?—-]|$)/gi;
+const CORRECTION = /(?:^|[,;:—-]\s*|\b(?:is|it's|its|about|want|wants|on|need|needs)\s+)([A-Za-z][a-z-]+(?:\s[a-z-]+)?),\s*not\s+(?:the\s+)?([A-Za-z][a-z-]+(?:\s[a-z-]+)?)(?=\s*[.,;:!?—-]|$)/gi;
 const SET_ASIDE = /^([A-Za-z][a-z-]+(?:\s[a-z-]+){0,2})\s+(?:is|are)\s+(?:fine|okay|ok|not the (?:point|issue|problem)|secondary|not it|not what I watch|not the number)/i;
 const THIRD_PARTY =
   /\b(?:(?:my|our|his|her|their)\s+(?:partner|wife|husband|brother|sister|son|daughter|GM|accountant|consultant|buddy|friend|cousin|boss|manager|dad|father|mom|mother|kids?|nephew|niece|uncle|aunt)|another\s+(?:owner|dealer|guy|store|GM|manager)|(?:a|some)\s+(?:friend|buddy|guy|colleague|consultant|vendor|rep)|the last\s+(?:guy|vendor|company)|someone|somebody|she|he|they)\b[^.!?]*?\b(?:follows|says|said|told|tells|calls|called|likes|loves|is into|watches|plays|played|put it|puts it|described|describes|thinks|swears|keeps saying|kept saying|would say|compares|compared)\b/i;
@@ -158,7 +158,7 @@ function trimTargetPrefix(prefix: string): string {
 function valenceObjectFor(conceptIds: readonly string[], target: string, negative: boolean): string {
   if (conceptIds.includes('effort_then_failure')) return 'the result after the effort (not cooking or the activity itself)';
   if (conceptIds.includes('role_ownership')) return 'the lack of clear ownership (not the sport or activity)';
-  if (conceptIds.includes('coordination_vs_individuality')) return 'the lack of coordination — not the individual style, not the activity';
+  if (conceptIds.includes('coordination_vs_individuality')) return 'the lack of coordination, not the individual style, not the activity';
   if (conceptIds.includes('setback')) return 'the setback';
   if (conceptIds.includes('hidden_costs_commitment_lockin')) return 'the unexpected charges and the difficulty leaving';
   return negative ? `${target} (the situation described, not the domain)` : target;
@@ -213,7 +213,7 @@ function likeCandidates(sentenceOffset: number, sentence: string): { candidates:
     const before = sentence.slice(0, m.index);
     if (LIKE_VERB_BEFORE.test(before) && !/\bfeels?\s*$/i.test(before)) continue; // "I like", "would like"
     if (NEGATED_BEFORE.test(before)) {
-      skipped.push('negated comparison ("not like …") — not a reference');
+      skipped.push('negated comparison ("not like …"): not a reference');
       continue;
     }
     const restStart = m.index + m[0].length;
@@ -222,14 +222,14 @@ function likeCandidates(sentenceOffset: number, sentence: string): { candidates:
     const conn = CONNECTOR.exec(rest);
     if (!conn || conn.index === undefined) {
       const head = rest.replace(/[,.;:!?]+$/g, '').trim();
-      if (head.length > 0 && (domainFor(head) || /^[A-Z]/.test(head))) skipped.push(`"like ${head}" has no relationship clause — not eligible`);
+      if (head.length > 0 && (domainFor(head) || /^[A-Z]/.test(head))) skipped.push(`"like ${head}" has no relationship clause: not eligible`);
       continue;
     }
     const head = rest.slice(0, conn.index).trim();
     const relationship = rest.slice(conn.index + conn[0].length).trim();
     if (head.length === 0 || relationship.length === 0 || wordCount(relationship) < 2) continue;
     if (containsIdiom(head) && !domainFor(head)) {
-      skipped.push(`commonplace idiom "${head}" — not a reference`);
+      skipped.push(`commonplace idiom "${head}": not a reference`);
       continue;
     }
     candidates.push(comparisonCandidate('analogy', sentenceOffset, sentence, m.index, restStart + rest.length, head, relationship, before));
@@ -247,7 +247,7 @@ function asXAsCandidates(sentenceOffset: number, sentence: string): Candidate[] 
     const c = comparisonCandidate('comparison', sentenceOffset, sentence, m.index, m.index + m[0].length, target, `as ${degree.toLowerCase()} as ${target}`, before);
     c.label = `${(c.source_domain ? (domainWordIn(target, c.source_domain) ?? headNoun(target)) : headNoun(target)).toUpperCase()} / AS ${degree.toUpperCase()} AS ${shortLabel(target)}`;
     c.meaning_status = 'inferred';
-    c.relationship = `${c.business_target}: as ${degree.toLowerCase()} as ${target} — the ${degree.toLowerCase() === 'bad' || c.painful ? 'negative' : ''} comparison attaches to ${c.business_target}, not to the domain`.replace(/\s+/g, ' ');
+    c.relationship = `${c.business_target}: as ${degree.toLowerCase()} as ${target}; the ${degree.toLowerCase() === 'bad' || c.painful ? 'negative' : ''} comparison attaches to ${c.business_target}, not to the domain`.replace(/\s+/g, ' ');
     if (!c.painful) c.valence.polarity = /^(good|better)$/i.test(degree) ? 'positive' : 'negative';
     out.push(c);
   }
@@ -285,7 +285,7 @@ function situationCandidates(sentenceOffset: number, sentence: string): { candid
     if (!(domainFor(x) || /^[A-Z]/.test(x))) continue;
     const rest = m[4]?.trim();
     if (!rest) {
-      skipped.push(`"a ${x} ${m[2]}" names a comparison without a relationship clause — low priority`);
+      skipped.push(`"a ${x} ${m[2]}" names a comparison without a relationship clause: low priority`);
       continue;
     }
     const start = m.index + m[0].indexOf(x);
@@ -304,7 +304,7 @@ function rareNounCandidates(sentenceOffset: number, sentence: string, knownNames
     const before = sentence.slice(0, m.index);
     if (NEGATED_BEFORE.test(before)) continue;
     if (!modifier) {
-      skipped.push(`rare noun "${noun}" with no comparison relationship — low priority, not a card`);
+      skipped.push(`rare noun "${noun}" with no comparison relationship: low priority, not a card`);
       continue;
     }
     const c = comparisonCandidate('image', sentenceOffset, sentence, m.index, m.index + m[0].length, noun, modifier, before);
@@ -344,9 +344,9 @@ function emotionalCandidates(sentenceOffset: number, sentence: string): Candidat
       label: exact.toUpperCase(),
       business_target: object ?? 'not stated',
       relationship,
-      valence: { polarity, object: object ? `${object} — the explicit description, not an explanation of why` : 'the situation described (unexplained)' },
+      valence: { polarity, object: object ? `${object}: the explicit description, not an explanation of why` : 'the situation described (unexplained)' },
       painful: false,
-      prohibited: ['no assumption about the cause — ask what made it feel that way', 'no trauma narrative', `not flattened to a generic label (e.g. "price objection")`],
+      prohibited: ['no assumption about the cause: ask what made it feel that way', 'no trauma narrative', `not flattened to a generic label (e.g. "price objection")`],
       meaning_status: 'unknown',
       clarify: `When you say "${exact.toLowerCase()}," ${lex?.clarify ?? 'what made it feel that way?'}`,
       head: exact,
@@ -373,10 +373,10 @@ function emotionalCandidates(sentenceOffset: number, sentence: string): Candidat
       business_target: 'not stated',
       relationship,
       valence: negated
-        ? { polarity: lex.polarity === 'positive' ? 'negative' : lex.polarity, object: `the absence of ${exact.toLowerCase()} — the explicit description, not an explanation of why` }
-        : { polarity: lex.polarity, object: 'the situation described — the explicit description, not an explanation of why' },
+        ? { polarity: lex.polarity === 'positive' ? 'negative' : lex.polarity, object: `the absence of ${exact.toLowerCase()}: the explicit description, not an explanation of why` }
+        : { polarity: lex.polarity, object: 'the situation described: the explicit description, not an explanation of why' },
       painful: false,
-      prohibited: ['no assumption about the cause — ask what made it feel that way', 'no trauma narrative'],
+      prohibited: ['no assumption about the cause: ask what made it feel that way', 'no trauma narrative'],
       meaning_status: 'unknown',
       clarify: `When you say "${exact.toLowerCase()}," ${lex.clarify ?? 'what does that look like day to day?'}`,
       head: exact,
@@ -389,9 +389,9 @@ function outcomeCandidates(sentenceOffset: number, sentence: string, previousSen
   const out: Candidate[] = [];
   const setAside = previousSentence ? SET_ASIDE.exec(previousSentence)?.[1]?.toLowerCase() : undefined;
   const push = (kind: ReferenceKind, start: number, exact: string, relationship: string, explained?: string, distinct?: string) => {
-    const prohibited = [`keep the prospect's word "${exact}" — no synonym`];
+    const prohibited = [`keep the prospect's word "${exact}", no synonym`];
     if (distinct) prohibited.push(`do not relabel ${distinct} amounts as ${exact.toLowerCase()}`, `do not promise improved ${exact.toLowerCase()} without evidence`);
-    const rel = distinct ? `${relationship} — distinct from ${distinct} ("${previousSentence?.trim() ?? distinct}")` : relationship;
+    const rel = distinct && kind !== 'correction' ? `${relationship}, distinct from ${distinct}` : relationship;
     out.push({
       kind,
       start: sentenceOffset + start,
@@ -432,7 +432,7 @@ function outcomeCandidates(sentenceOffset: number, sentence: string, previousSen
     const x = m[1]!;
     const y = m[2]!;
     if (WHAT_MATTERS_STOP.has(x.toLowerCase()) || wordCount(x) > 2) continue;
-    push('correction', m.index + m[0].indexOf(x), x, `${x.toLowerCase()}, not ${y.toLowerCase()} (explicit correction)`, undefined, y.toLowerCase());
+    push('correction', m.index + m[0].indexOf(x), x, `${x.toLowerCase()}, not ${y.toLowerCase()}: an explicit correction`, undefined, y.toLowerCase());
   }
   return out;
 }
@@ -503,8 +503,8 @@ export function extractTurn(turn: NormalizedTurn, knownNames: ReadonlySet<string
     if (candidates.length === before && skipped.length === 0) {
       const idiom = containsIdiom(s.text);
       const domain = domainFor(s.text);
-      if (idiom) not_eligible.push({ turn_id: turn.utterance_id, text: s.text, reason: `commonplace idiom "${idiom}" — not a reference, no domain interest implied`, priority: 'none' });
-      else if (domain) not_eligible.push({ turn_id: turn.utterance_id, text: s.text, reason: `"${domainWordIn(s.text, domain) ?? domain}" appears without a comparison relationship or emotional marker — not eligible`, priority: 'none' });
+      if (idiom) not_eligible.push({ turn_id: turn.utterance_id, text: s.text, reason: `commonplace idiom "${idiom}": not a reference, no domain interest implied`, priority: 'none' });
+      else if (domain) not_eligible.push({ turn_id: turn.utterance_id, text: s.text, reason: `"${domainWordIn(s.text, domain) ?? domain}" appears without a comparison relationship or emotional marker: not eligible`, priority: 'none' });
     }
   });
   // Drop overlapping candidates: keep the earliest-starting, longest span per overlap group.
@@ -602,7 +602,7 @@ export function extractReferences(normalized: NormalizedTranscript, raw: readonl
           origin,
           meaning_status: c.meaning_status,
           explained_meaning: c.explained ? { text: c.explained.text, evidence_turn_id: turn.utterance_id } : undefined,
-          prohibited_inferences: [...c.prohibited, ...(thirdParty ? ["someone else's frame — do not present it as the prospect's"] : []), ...(origin === 'seller_introduced_prospect_confirmed' ? ['seller-introduced: label it as a shared term, never as the prospect\'s spontaneous choice'] : [])],
+          prohibited_inferences: [...c.prohibited, ...(thirdParty ? ["someone else's frame: do not present it as the prospect's"] : []), ...(origin === 'seller_introduced_prospect_confirmed' ? ['seller-introduced: label it as a shared term, never as the prospect\'s spontaneous choice'] : [])],
           concept_ids: conceptIds,
           painful: c.painful,
         },
@@ -617,7 +617,7 @@ export function extractReferences(normalized: NormalizedTranscript, raw: readonl
         },
         reuse: {
           candidate_purposes: [...stagesForConcepts(conceptIds), ...conceptIds],
-          relevance_explanation: conceptIds.length > 0 ? `Raises ${conceptIds.map((id) => CONCEPT_BY_ID.get(id)?.label ?? id).join('; ')} — retrievable when that concept comes up later, even without the same words.` : 'No concept tag yet — hold it; reuse only if the same topic returns.',
+          relevance_explanation: conceptIds.length > 0 ? `Raises ${conceptIds.map((id) => CONCEPT_BY_ID.get(id)?.label ?? id).join('; ')}; retrievable when that concept comes up later, even without the same words.` : 'No concept tag yet: hold it; reuse only if the same topic returns.',
           allowed_mapping: allowedMapping(c, domainWord),
           disallowed_mapping_examples: disallowedMappings(c, domainWord),
           proposed_clarification: c.clarify,
@@ -640,10 +640,10 @@ export function extractReferences(normalized: NormalizedTranscript, raw: readonl
 }
 
 function allowedMapping(c: Candidate, domainWord: string): string {
-  if (c.painful) return `Neutral acknowledgment only: "You described that setback in strong terms earlier." Then a business-level question — never elaborate the ${c.source_domain ?? 'painful'} image, never an upbeat same-domain line.`;
-  if (c.kind === 'emotional_descriptor') return `Use their word as they said it: "When you say '${c.exact.toLowerCase()}' …" — ask, do not explain it for them.`;
+  if (c.painful) return `Neutral acknowledgment only: "You described that setback in strong terms earlier." Then a business-level question; never elaborate the ${c.source_domain ?? 'painful'} image, never an upbeat same-domain line.`;
+  if (c.kind === 'emotional_descriptor') return `Use their word as they said it: "When you say '${c.exact.toLowerCase()}' …" Ask; do not explain it for them.`;
   if (c.kind === 'outcome_label' || c.kind === 'correction' || c.kind === 'defined_term') return `Use "${c.exact.toLowerCase()}" exactly where that is the actual subject; never substitute a synonym or a neighbouring metric.`;
-  return `"Using your ${domainWord} example, …" — justified by the example alone.`;
+  return `"Using your ${domainWord} example, …" is justified by the example alone.`;
 }
 
 function disallowedMappings(c: Candidate, domainWord: string): string[] {
@@ -653,8 +653,8 @@ function disallowedMappings(c: Candidate, domainWord: string): string[] {
 }
 
 function bridgeText(c: Candidate, domainWord: string): string | undefined {
-  if (c.kind === 'analogy' || c.kind === 'comparison' || c.kind === 'image') return `Going back to your ${domainWord} example —`;
-  if (c.kind === 'outcome_label' || c.kind === 'correction') return `You said ${c.exact.toLowerCase()} —`;
+  if (c.kind === 'analogy' || c.kind === 'comparison' || c.kind === 'image') return `Going back to your ${domainWord} example,`;
+  if (c.kind === 'outcome_label' || c.kind === 'correction') return `You said ${c.exact.toLowerCase()},`;
   return undefined;
 }
 

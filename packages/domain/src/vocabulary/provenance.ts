@@ -78,7 +78,7 @@ export function classifyProvenance(key: string, occurrences: readonly Occurrence
     return {
       provenance: 'prospect_said',
       source_role: 'prospect',
-      reason: first.is_final ? 'a prospect turn originates the term' : 'a prospect turn originates the term (interim — provisional)',
+      reason: first.is_final ? 'a prospect turn originates the term' : 'a prospect turn originates the term (interim, provisional)',
     };
   }
   if (first.speaker_role !== 'representative') {
@@ -105,14 +105,14 @@ export function classifyProvenance(key: string, occurrences: readonly Occurrence
 
 /** Visible label for a pin — provenance is always shown next to the phrase (CONVENTIONS §8). */
 export function provenanceLabel(ev: Pick<VocabularyEvent, 'provenance' | 'attribution' | 'stability' | 'rejected_by' | 'meaning_status'>): string {
-  if (ev.rejected_by) return 'rejected by the prospect — not their priority';
-  if (ev.attribution === 'quoted_other') return 'quoted someone else — not their priority';
-  if (ev.meaning_status === 'invalidated') return 'invalidated by transcript revision — clarify';
+  if (ev.rejected_by) return 'rejected by the prospect: not their priority';
+  if (ev.attribution === 'quoted_other') return 'quoted someone else: not their priority';
+  if (ev.meaning_status === 'invalidated') return 'invalidated by transcript revision: clarify';
   const base: Record<Provenance, string> = {
     prospect_said: 'prospect said',
     seller_proposed_prospect_confirmed: 'confirmed shared term (seller proposed, prospect confirmed)',
-    seller_only: 'seller only — not pinned',
-    model_hypothesis: 'hypothesis — not a quote',
+    seller_only: 'seller only: not pinned',
+    model_hypothesis: 'hypothesis: not a quote',
   };
   const label = base[ev.provenance];
   return ev.stability === 'interim' ? `${label} · provisional (interim)` : label;

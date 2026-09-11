@@ -32,11 +32,11 @@ export const DRILLS: readonly DrillMeta[] = [
   { kind: 'recall_with_reveal', label: 'Reveal', icon: 'sun', hint: 'Type the primary line; reveal it first if you need to.', cue: 'Type the line', scoring: 'memory' },
   { kind: 'order_rehearsal', label: 'Order', icon: 'list', hint: 'Put a stage back in the order the script asks it.', cue: 'Put in order', scoring: 'memory' },
   { kind: 'random_node_lookup', label: 'Lookup', icon: 'search', hint: 'From the stage cue, find the primary line among four.', cue: 'Which line?', scoring: 'memory' },
-  { kind: 'branch_classification', label: 'Branches', icon: 'flag', hint: 'Sufficient answer? Choose the branch — or ask a mirror.', cue: 'Which branch?', scoring: 'conversation' },
+  { kind: 'branch_classification', label: 'Branches', icon: 'flag', hint: 'Sufficient answer? Choose the branch, or ask a mirror.', cue: 'Which branch?', scoring: 'conversation' },
   { kind: 'mirror_duel', label: 'Mirror', icon: 'refresh', hint: 'Which question seeks the same answer type in different words?', cue: 'Same answer?', scoring: 'conversation' },
-  { kind: 'vocabulary_meaning', label: 'Meaning', icon: 'bookmark', hint: 'Their definition or ask what it means — never a synonym.', cue: 'What it means?', scoring: 'conversation' },
+  { kind: 'vocabulary_meaning', label: 'Meaning', icon: 'bookmark', hint: 'Their definition, or ask what it means. Never a synonym.', cue: 'What it means?', scoring: 'conversation' },
   { kind: 'delivery_replay', label: 'Delivery', icon: 'mic', hint: 'Say the line aloud and rate yourself against the cues. Nothing is recorded or measured.', cue: 'Say it aloud', scoring: 'self' },
-  { kind: 'full_mock', label: 'Mock', icon: 'phone', hint: 'Choice-based simulation against a fictional scenario — not an AI voice call.', cue: 'Choose a branch', scoring: 'conversation' },
+  { kind: 'full_mock', label: 'Mock', icon: 'phone', hint: 'Choice-based simulation against a fictional scenario, not an AI voice call.', cue: 'Choose a branch', scoring: 'conversation' },
   { kind: 'practice_this_moment', label: 'Moment', icon: 'history', hint: 'Retry a weak transition with an alternative question and compare what each obtains.', cue: 'Try another', scoring: 'self' },
 ];
 

@@ -230,7 +230,7 @@ merge. `screenshots.spec.ts` regenerates `docs/screenshots/v2/*.png` — add you
 - **Draft** script nodes and offers show their `approval.status` / `status` glyph on every
   render. `draft` is never rendered as if approved. `adapt` (source classification) is not
   live approval; `study_only` never becomes a live recommendation.
-- **Fictional** offers always render `fictional_banner` ("FICTIONAL TRAINING OFFER — NOT A
+- **Fictional** offers always render `fictional_banner` ("FICTIONAL TRAINING OFFER / NOT A
   REAL QUOTE") and never populate the live offer list.
 - **Unapproved / unknown** values render as a missing-information cue — never a fabricated
   slot value, never a default price of 0 (`null` means unset).

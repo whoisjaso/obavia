@@ -128,7 +128,20 @@
   font-size: var(--fs-caption);
   font-weight: 800;
   letter-spacing: 0.08em;
+  white-space: pre-line;
   text-align: center;
+}
+.draftNote {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.actionRow {
+  display: flex;
+  flex-direction: column;
+}
+.actionRow > * {
+  width: 100%;
 }
 .caption {
   display: flex;

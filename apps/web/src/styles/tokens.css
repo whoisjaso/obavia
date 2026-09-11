@@ -17,7 +17,7 @@
   /* ink */
   --ink: #f5f5f7;
   --ink-2: #a1a1aa;
-  --ink-3: #6b6b75;
+  --ink-3: #8a8a94; /* captions and kickers: 5.3:1 on --bg-1, 4.8:1 on --bg-2 */
 
   /* signal (iOS system colors) */
   --green: #30d158; /* call, success, connected */
@@ -27,6 +27,7 @@
   --blue: #0a84ff; /* selection, links, focus ring */
   --orange: #ff9f0a; /* attention, requires review */
   --teal: #64d2ff; /* mirrors / clarify */
+  --blue-fill: #0a6fe0; /* filled blue controls with white text (4.8:1); --blue stays for rings, links, tints */
 
   /* tinted secondary ink for colored surfaces (never gray on a tinted card) */
   --ink-on-green: #062b12;

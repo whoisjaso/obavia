@@ -52,7 +52,7 @@ export const CONCEPTS: readonly Concept[] = [
     relationship_cues: ['extra charges', 'extra fees', 'hidden fees', 'surprise', 'after we signed', 'already committed', "couldn't leave", "couldn't easily leave", 'could not leave', 'had our website', 'held hostage', 'locked in', 'lock-in', 'ambushed', 'nickel', 'add-on', 'add on', 'renewal'],
     turn_cues: ['fees', 'fee', 'charges', 'charge', 'extra cost', 'extra costs', 'full cost', 'full costs', 'total cost', 'exit terms', 'all-in', 'exit', 'cancel', 'cancellation', 'termination', 'ownership', 'own the data', 'who owns the', 'lock-in', 'locked in', 'contract length', 'commitment', 'renewal', 'change order', 'change approval', 'account ownership', 'get out', 'leave'],
     stages: ['pitch', 'decision', 'concern', 'emotional_certainty'],
-    question: 'which of those requirements — full costs, change approval, account ownership, exit terms — should we review before anything else?',
+    question: 'which of those requirements (full costs, change approval, account ownership, exit terms) should we review before anything else?',
   },
   {
     id: 'setback',

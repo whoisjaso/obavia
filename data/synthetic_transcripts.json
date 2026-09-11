@@ -2,7 +2,7 @@
   "transcripts": [
     {
       "call_id": "syn-a-profit-not-revenue",
-      "title": "Synthetic call A — “Profit, not revenue” then “net, not gross” (Riverbend Motors, fictional)",
+      "title": "Synthetic call A: “Profit, not revenue” then “net, not gross” (Riverbend Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -18,7 +18,7 @@
           "revision": 0,
           "started_at": "2026-09-01T14:00:00.000Z",
           "ended_at": "2026-09-01T14:00:12.400Z",
-          "text": "Hi Dana, this is Jason with Apohenia. I'm calling because I work on what happens after someone submits an inquiry on a dealership website — is this a bad time, or can I take sixty seconds to say why I called Riverbend Motors specifically?",
+          "text": "Hi Dana, this is Jason with Apohenia. I'm calling because I work on what happens after someone submits an inquiry on a dealership website. Is this a bad time, or can I take sixty seconds to say why I called Riverbend Motors specifically?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -94,7 +94,7 @@
           "revision": 0,
           "started_at": "2026-09-01T14:00:32.950Z",
           "ended_at": "2026-09-01T14:00:37.970Z",
-          "text": "Uneven — what does uneven look like on a normal Tuesday?",
+          "text": "Uneven. What does uneven look like on a normal Tuesday?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -227,7 +227,7 @@
           "revision": 0,
           "started_at": "2026-09-01T14:01:20.330Z",
           "ended_at": "2026-09-01T14:01:26.070Z",
-          "text": "Fewer leads going cold. That's really the main thing — leads going cold.",
+          "text": "Fewer leads going cold. That's really the main thing: leads going cold.",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -275,7 +275,7 @@
     },
     {
       "call_id": "syn-b-staff-time",
-      "title": "Synthetic call B — representative repeats “profit”, prospect emphasizes “staff time” (Copper Ridge Auto Group, fictional)",
+      "title": "Synthetic call B: representative repeats “profit”, prospect emphasizes “staff time” (Copper Ridge Auto Group, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -548,7 +548,7 @@
     },
     {
       "call_id": "syn-c-efficiency-confirmed",
-      "title": "Synthetic call C — seller proposes “efficiency”, prospect explicitly confirms it (Harbor Lane Motors, fictional)",
+      "title": "Synthetic call C: seller proposes “efficiency”, prospect explicitly confirms it (Harbor Lane Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -640,7 +640,7 @@
           "revision": 0,
           "started_at": "2026-09-01T16:00:31.780Z",
           "ended_at": "2026-09-01T16:00:39.860Z",
-          "text": "So the lag costs you the conversation. If I'm hearing you right, the thing you'd want back is efficiency — is that the word?",
+          "text": "So the lag costs you the conversation. If I'm hearing you right, the thing you'd want back is efficiency, is that the word?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -783,7 +783,7 @@
     },
     {
       "call_id": "syn-d-gratification",
-      "title": "Synthetic call D — prospect says “gratification” and later defines it (Northgate Auto Plaza, fictional)",
+      "title": "Synthetic call D: prospect says “gratification” and later defines it (Northgate Auto Plaza, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -894,7 +894,7 @@
           "revision": 0,
           "started_at": "2026-09-01T17:00:35.450Z",
           "ended_at": "2026-09-01T17:00:45.375Z",
-          "text": "Gratification means I open the CRM on Monday and every lead from the weekend has a real reply, not a template. That's gratification for me — the weekend was handled.",
+          "text": "Gratification means I open the CRM on Monday and every lead from the weekend has a real reply, not a template. That's gratification for me: the weekend was handled.",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -1056,7 +1056,7 @@
     },
     {
       "call_id": "syn-e-basketball",
-      "title": "Synthetic call E — repeated basketball analogy (Summit Trail Motors, fictional)",
+      "title": "Synthetic call E: repeated basketball analogy (Summit Trail Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -1129,7 +1129,7 @@
           "revision": 0,
           "started_at": "2026-09-01T18:00:23.025Z",
           "ended_at": "2026-09-01T18:00:30.565Z",
-          "text": "It's like basketball — whoever's closest to the ball grabs it, and sometimes two people go for the same rebound.",
+          "text": "It's like basketball: whoever's closest to the ball grabs it, and sometimes two people go for the same rebound.",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -1243,7 +1243,7 @@
           "revision": 0,
           "started_at": "2026-09-01T18:01:05.790Z",
           "ended_at": "2026-09-01T18:01:14.365Z",
-          "text": "Fewer double calls. Honestly the main thing is fewer double calls. Like a good pick and roll — one person sets it, one person finishes.",
+          "text": "Fewer double calls. Honestly the main thing is fewer double calls. Like a good pick and roll: one person sets it, one person finishes.",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -1291,7 +1291,7 @@
     },
     {
       "call_id": "syn-f-revenue-rejected-quoted-other",
-      "title": "Synthetic call F — revenue mentioned only to reject it; another owner’s goal quoted (Blue Heron Autos, fictional)",
+      "title": "Synthetic call F: revenue mentioned only to reject it; another owner’s goal quoted (Blue Heron Autos, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -1364,7 +1364,7 @@
           "revision": 0,
           "started_at": "2026-09-01T19:00:23.115Z",
           "ended_at": "2026-09-01T19:00:34.390Z",
-          "text": "Everyone wants to talk revenue. I don't care about revenue. Another owner told me his goal is doubling volume, and good for him. My goal is retention — customers who come back for the second car.",
+          "text": "Everyone wants to talk revenue. I don't care about revenue. Another owner told me his goal is doubling volume, and good for him. My goal is retention: customers who come back for the second car.",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -1402,7 +1402,7 @@
           "revision": 0,
           "started_at": "2026-09-01T19:00:41.435Z",
           "ended_at": "2026-09-01T19:00:46.950Z",
-          "text": "We don't, really. That's the problem — we don't know who came back.",
+          "text": "We don't, really. That's the problem: we don't know who came back.",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -1488,7 +1488,7 @@
     },
     {
       "call_id": "syn-g-profit-prophet-revision",
-      "title": "Synthetic call G — interim “profit” revised to “Prophet”; duplicate and out-of-order provider events (Prairie Wind Motorcars, fictional)",
+      "title": "Synthetic call G: interim “profit” revised to “Prophet”; duplicate and out-of-order provider events (Prairie Wind Motorcars, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -1637,7 +1637,7 @@
           "revision": 0,
           "started_at": "2026-09-01T20:00:28.360Z",
           "ended_at": "2026-09-01T20:00:32.390Z",
-          "text": "The Prophet — say more about that?",
+          "text": "The Prophet. Say more about that?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -1751,7 +1751,7 @@
           "revision": 0,
           "started_at": "2026-09-01T20:00:40.695Z",
           "ended_at": "2026-09-01T20:00:46.345Z",
-          "text": "Got it. What's the forecast tied to — units, gross, or something else?",
+          "text": "Got it. What's the forecast tied to: units, gross, or something else?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -1799,7 +1799,7 @@
     },
     {
       "call_id": "syn-h-opt-out",
-      "title": "Synthetic call H — clear opt-out mid-call, representative stops immediately (Ironwood Auto Mall, fictional)",
+      "title": "Synthetic call H: clear opt-out mid-call, representative stops immediately (Ironwood Auto Mall, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -1901,7 +1901,7 @@
     },
     {
       "call_id": "syn-l-hockey-responsibilities",
-      "title": "Listener fixture L1 — hockey on first mention, responsibilities question five turns later (Cedar Hollow Motors, fictional)",
+      "title": "Listener fixture L1: hockey on first mention, responsibilities question five turns later (Cedar Hollow Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -1917,7 +1917,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:14.428571Z",
-          "text": "Hi Morgan, this is Jason with Apohenia. I work on what happens after someone submits an inquiry on a dealership website — do you have two minutes?",
+          "text": "Hi Morgan, this is Jason with Apohenia. I work on what happens after someone submits an inquiry on a dealership website. Do you have two minutes?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -2098,7 +2098,7 @@
     },
     {
       "call_id": "syn-l-jazz-robotic",
-      "title": "Listener fixture L2 — jazz band on first mention, \"robotic\" question seven turns later (Lakeshore Auto Exchange, fictional)",
+      "title": "Listener fixture L2: jazz band on first mention, \"robotic\" question seven turns later (Lakeshore Auto Exchange, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -2114,7 +2114,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:10.857143Z",
-          "text": "Hi Priya, Jason with Apohenia. I work on the follow-up after a web inquiry — is this a bad time?",
+          "text": "Hi Priya, Jason with Apohenia. I work on the follow-up after a web inquiry. Is this a bad time?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -2333,7 +2333,7 @@
     },
     {
       "call_id": "syn-l-souffle-rollout",
-      "title": "Listener fixture L3 — soufflé on first mention, rollout and testing question later (Foxglove Motors, fictional)",
+      "title": "Listener fixture L3: soufflé on first mention, rollout and testing question later (Foxglove Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -2349,7 +2349,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:13.214286Z",
-          "text": "Hi Elena, Jason with Apohenia. You mentioned on the form that the last website project did not go well — can I ask what happened?",
+          "text": "Hi Elena, Jason with Apohenia. You mentioned on the form that the last website project did not go well. Can I ask what happened?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -2530,7 +2530,7 @@
     },
     {
       "call_id": "syn-l-ambushed-explained",
-      "title": "Listener fixture L4 — \"ambushed\" held as unresolved, explained after a clarification, full costs and exit terms later (Bluebell Autos, fictional)",
+      "title": "Listener fixture L4: \"ambushed\" held as unresolved, explained after a clarification, full costs and exit terms later (Bluebell Autos, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -2546,7 +2546,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:10.857143Z",
-          "text": "Hi Tom, Jason with Apohenia. I work on inquiry follow-up for dealerships — do you have a minute?",
+          "text": "Hi Tom, Jason with Apohenia. I work on inquiry follow-up for dealerships. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -2727,7 +2727,7 @@
     },
     {
       "call_id": "syn-l-basketball-injury",
-      "title": "Listener fixture L5 — basketball injury comparison held without reuse; no injury history, no \"slam dunk\" (Ridgeview Motors, fictional)",
+      "title": "Listener fixture L5: basketball injury comparison held without reuse; no injury history, no \"slam dunk\" (Ridgeview Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -2743,7 +2743,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:10.285714Z",
-          "text": "Hi Derek, Jason with Apohenia. You said the CRM migration set you back — how bad was it?",
+          "text": "Hi Derek, Jason with Apohenia. You said the CRM migration set you back. How bad was it?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -2886,7 +2886,7 @@
     },
     {
       "call_id": "syn-l-profit-vs-revenue",
-      "title": "Listener fixture L6 — \"Revenue is fine. Profit is what matters to me.\" kept distinct in wording and calculation (Silver Birch Auto, fictional)",
+      "title": "Listener fixture L6: \"Revenue is fine. Profit is what matters to me.\" kept distinct in wording and calculation (Silver Birch Auto, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -2902,7 +2902,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:11.642857Z",
-          "text": "Hi Hannah, Jason with Apohenia. I work on what happens after a web inquiry comes in — do you have a minute?",
+          "text": "Hi Hannah, Jason with Apohenia. I work on what happens after a web inquiry comes in. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -3045,7 +3045,7 @@
     },
     {
       "call_id": "syn-l-seller-repeats-profit",
-      "title": "Listener fixture L7 — seller says \"profit\" three times, prospect never does (Oakmont Auto Center, fictional)",
+      "title": "Listener fixture L7: seller says \"profit\" three times, prospect never does (Oakmont Auto Center, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -3061,7 +3061,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:10.285714Z",
-          "text": "Hi Sam, Jason with Apohenia. I work on profit from web inquiries — do you have a minute?",
+          "text": "Hi Sam, Jason with Apohenia. I work on profit from web inquiries. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -3166,7 +3166,7 @@
     },
     {
       "call_id": "syn-l-partner-hockey",
-      "title": "Listener fixture L8 — \"My partner follows hockey; I don't understand it\" — third-party frame, never recommended (Harborview Auto, fictional)",
+      "title": "Listener fixture L8: \"My partner follows hockey; I don't understand it\"; third-party frame, never recommended (Harborview Auto, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -3182,7 +3182,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:09.785714Z",
-          "text": "Hi Lisa, Jason with Apohenia. I work on inquiry follow-up — do you have a minute?",
+          "text": "Hi Lisa, Jason with Apohenia. I work on inquiry follow-up. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -3325,7 +3325,7 @@
     },
     {
       "call_id": "syn-l-seller-introduced-relay",
-      "title": "Listener fixture L9 — seller introduces a relay-race analogy, prospect endorses it (labelled shared, not spontaneous) (Pinecrest Motors, fictional)",
+      "title": "Listener fixture L9: seller introduces a relay-race analogy, prospect endorses it (labelled shared, not spontaneous) (Pinecrest Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -3341,7 +3341,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:09.928571Z",
-          "text": "Hi Victor, Jason with Apohenia. I work on inquiry follow-up — do you have a minute?",
+          "text": "Hi Victor, Jason with Apohenia. I work on inquiry follow-up. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -3484,7 +3484,7 @@
     },
     {
       "call_id": "syn-l-touch-base",
-      "title": "Listener fixture L10 — \"Let's touch base tomorrow\" and \"ballpark\": idioms, no sports reference (Willow Creek Motors, fictional)",
+      "title": "Listener fixture L10: \"Let's touch base tomorrow\" and \"ballpark\": idioms, no sports reference (Willow Creek Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -3567,7 +3567,7 @@
     },
     {
       "call_id": "syn-l-frankenstein",
-      "title": "Listener fixture L11 — \"our CRM is a Frankenstein\" (no relationship, low priority) vs \"the Frankenstein of three tools nobody owns\" (Maple Street Autos, fictional)",
+      "title": "Listener fixture L11: \"our CRM is a Frankenstein\" (no relationship, low priority) vs \"the Frankenstein of three tools nobody owns\" (Maple Street Autos, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -3583,7 +3583,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:09.785714Z",
-          "text": "Hi Owen, Jason with Apohenia. I work on inquiry follow-up — do you have a minute?",
+          "text": "Hi Owen, Jason with Apohenia. I work on inquiry follow-up. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -3726,7 +3726,7 @@
     },
     {
       "call_id": "syn-l-jazz-rejected",
-      "title": "Listener fixture L12 — prospect rejects the jazz analogy; a later coordination topic gets no jazz suggestion (Driftwood Motors, fictional)",
+      "title": "Listener fixture L12: prospect rejects the jazz analogy; a later coordination topic gets no jazz suggestion (Driftwood Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -3742,7 +3742,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:09.714286Z",
-          "text": "Hi Ana, Jason with Apohenia. I work on inquiry follow-up — do you have a minute?",
+          "text": "Hi Ana, Jason with Apohenia. I work on inquiry follow-up. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -3885,7 +3885,7 @@
     },
     {
       "call_id": "syn-l-revision-retracts",
-      "title": "Listener fixture L13 — a transcript revision retracts \"ambushed\" (same utterance, revision 1); the card is invalidated (Stonebridge Auto, fictional)",
+      "title": "Listener fixture L13: a transcript revision retracts \"ambushed\" (same utterance, revision 1); the card is invalidated (Stonebridge Auto, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -3901,7 +3901,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:09.714286Z",
-          "text": "Hi Ben, Jason with Apohenia. I work on inquiry follow-up — do you have a minute?",
+          "text": "Hi Ben, Jason with Apohenia. I work on inquiry follow-up. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -4025,7 +4025,7 @@
     },
     {
       "call_id": "syn-l-unseen-domains",
-      "title": "Listener fixture L14 — gardening, chess and construction comparisons with relationships (paraphrased, unseen domains) (Fernbank Motors, fictional)",
+      "title": "Listener fixture L14: gardening, chess and construction comparisons with relationships (paraphrased, unseen domains) (Fernbank Motors, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -4041,7 +4041,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:09.857143Z",
-          "text": "Hi Grace, Jason with Apohenia. I work on inquiry follow-up — do you have a minute?",
+          "text": "Hi Grace, Jason with Apohenia. I work on inquiry follow-up. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,
@@ -4222,7 +4222,7 @@
     },
     {
       "call_id": "syn-l-prompted-kitchen",
-      "title": "Listener fixture L15 — seller asks for a comparison; the prospect supplies a kitchen analogy (origin: prompted) (Copperfield Autos, fictional)",
+      "title": "Listener fixture L15: seller asks for a comparison; the prospect supplies a kitchen analogy (origin: prompted) (Copperfield Autos, fictional)",
       "synthetic": true,
       "turns": [
         {
@@ -4238,7 +4238,7 @@
           "revision": 0,
           "started_at": "2026-09-08T15:00:00Z",
           "ended_at": "2026-09-08T15:00:09.714286Z",
-          "text": "Hi Ray, Jason with Apohenia. I work on inquiry follow-up — do you have a minute?",
+          "text": "Hi Ray, Jason with Apohenia. I work on inquiry follow-up. Do you have a minute?",
           "is_final": true,
           "confidence_if_provided": null,
           "consent_epoch": 1,

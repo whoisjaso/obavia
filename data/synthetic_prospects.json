@@ -30,11 +30,11 @@
     { "id": "ep-006", "e164": "+15550100006", "label": "Blue Heron Autos main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
     { "id": "ep-007", "e164": "+15550100007", "label": "Prairie Wind Motorcars main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
     { "id": "ep-008", "e164": "+15550100008", "label": "Ironwood Auto Mall main line", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" },
-    { "id": "ep-009", "e164": "+15550100009", "label": "Copper Ridge — Marcus Ferreira direct", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" }
+    { "id": "ep-009", "e164": "+15550100009", "label": "Copper Ridge, Marcus Ferreira direct", "source": "synthetic", "verified_at": null, "contact_policy": "requires_review", "jurisdiction": "unknown" }
   ],
   "contacts": [
     { "id": "ct-dana", "location_id": "loc-riverbend", "name": "Dana Whitlock", "role": "General manager", "endpoint_ids": ["ep-001"], "call_id": "syn-a-profit-not-revenue", "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 0 },
-    { "id": "ct-copper-south-gm", "location_id": "loc-copper-south", "name": "Unknown (switchboard only)", "role": "General manager — not identified", "endpoint_ids": ["ep-002"], "call_id": null, "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 1 },
+    { "id": "ct-copper-south-gm", "location_id": "loc-copper-south", "name": "Unknown (switchboard only)", "role": "General manager, not identified", "endpoint_ids": ["ep-002"], "call_id": null, "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 1 },
     { "id": "ct-elena", "location_id": "loc-summit-trail", "name": "Elena Marsh", "role": "General manager", "endpoint_ids": ["ep-005"], "call_id": "syn-e-basketball", "entrypoint": "inbound", "inbound_action": "asked for a call back through the website form", "suppression": null, "queue_order": 2 },
     { "id": "ct-harbor-internet", "location_id": "loc-harbor-lane", "name": "Internet director (name not confirmed)", "role": "Internet director", "endpoint_ids": ["ep-003"], "call_id": null, "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 3 },
     { "id": "ct-tom", "location_id": "loc-northgate", "name": "Tom Okafor", "role": "Owner", "endpoint_ids": ["ep-004"], "call_id": "syn-d-gratification", "entrypoint": "cold", "inbound_action": null, "suppression": null, "queue_order": 4 },

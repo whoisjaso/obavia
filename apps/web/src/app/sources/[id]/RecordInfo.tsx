@@ -32,13 +32,13 @@ export interface RecordMeta {
 
 /**
  * The info control opens the record's reference (source, section, family, character offsets, hash
- * status) and the delivery-overlay reference (framework §11) as a sheet. Ids and offsets are data, not stage UI.
+ * status) and the delivery-overlay reference as a sheet. Offsets and section ids are provenance data, not stage UI.
  */
 export function RecordInfo({ meta, rows, note }: { meta: RecordMeta; rows: OverlayRow[]; note: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <IconButton icon="info" label="Record provenance: source, section, offsets, verification status, and the delivery overlay reference (framework §11)" onClick={() => setOpen(true)} data-open-overlay />
+      <IconButton icon="info" label="Record provenance: source, section, offsets, verification status, and the delivery overlay reference (framework, delivery cues)" onClick={() => setOpen(true)} data-open-overlay />
       <Sheet open={open} onClose={() => setOpen(false)} title="Record" data-sheet="overlay" tall>
         <div className={styles.sheetBody}>
           <section aria-labelledby="ref-caption" data-record-provenance>
@@ -59,9 +59,7 @@ export function RecordInfo({ meta, rows, note }: { meta: RecordMeta; rows: Overl
               </div>
               <div className={styles.refRow}>
                 <dt className={styles.refKey}>Family</dt>
-                <dd className={styles.refValue}>
-                  <span className={styles.refId}>{meta.family}</span> {meta.familyLabel}
-                </dd>
+                <dd className={styles.refValue}>{meta.familyLabel}</dd>
               </div>
               <div className={styles.refRow}>
                 <dt className={styles.refKey}>Characters</dt>

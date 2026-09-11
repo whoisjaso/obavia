@@ -1,9 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import type { BridgePart } from '@/lib/line-parts';
 import { Chip } from './Chip';
-import { Glyph } from './Icon';
 import { IconButton } from './IconButton';
 import { SlotLine } from './SlotLine';
 import styles from './LineCard.module.css';
@@ -13,10 +11,8 @@ export interface LineCardProps {
   stage: string;
   /** The exact primary line (resolved). Rendered verbatim through SlotLine; never re-flows while visible. */
   line: string;
-  /** A plain sentence under the line (`--fs-body --ink-2`), e.g. a purpose cue in Train. */
+  /** A plain sentence under the line (`--fs-body --ink-2`): the resolved bridge, or a purpose cue in Train. */
   bridge?: string;
-  /** The bridge *shape* as cue chips (acknowledge, their word, question), never angle tokens. */
-  shape?: readonly BridgePart[];
   /** Tap on the line = next. Omit to make the line non-interactive (e.g. read-only replay). */
   onNext?: () => void;
   /** The info button opens the explanation sheet (why now, listen for, mirrors, tone). */
@@ -40,10 +36,10 @@ export const LONG_LINE_WORDS = 24;
 
 /**
  * The script line: stage chip, the primary line at `--fs-display` weight 700, a quiet info button,
- * and the bridge shape below. The card reserves `minLines` lines (or fills its parent) so nothing shifts
- * when words arrive; slots render as chips, never as brackets.
+ * and one plain bridge line below when it resolves. The card reserves `minLines` lines (or fills its
+ * parent) so nothing shifts when words arrive; slots render as chips, never as brackets.
  */
-export function LineCard({ stage, line, bridge, shape, onNext, onInfo, nextName, locked, meta, minLines = 4, fill, nodeId }: LineCardProps) {
+export function LineCard({ stage, line, bridge, onNext, onInfo, nextName, locked, meta, minLines = 4, fill, nodeId }: LineCardProps) {
   const long = line.trim().split(/\s+/).length > LONG_LINE_WORDS;
   const text = (
     <span className={styles.text} data-primary-line data-node-id={nodeId}>
@@ -66,18 +62,6 @@ export function LineCard({ stage, line, bridge, shape, onNext, onInfo, nextName,
           <div className={styles.lineButton}>{text}</div>
         )}
       </div>
-      {shape && shape.length > 0 ? (
-        <div className={styles.shape} role="group" aria-label="Bridge shape" data-bridge-line>
-          {shape.map((p, i) => (
-            <span key={`${p.word}-${i}`} className={styles.shapeChip} role="img" aria-label={p.name} title={p.name}>
-              <span className={styles.shapeGlyph}>
-                <Glyph glyph={p.glyph} size={13} />
-              </span>
-              <span>{p.word}</span>
-            </span>
-          ))}
-        </div>
-      ) : null}
       {bridge ? (
         <p className={styles.bridge} data-bridge-text>
           {bridge}

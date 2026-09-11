@@ -48,9 +48,9 @@ export function callOutcome(analysis: CallAnalysis): CallOutcome {
 
 export function outcomeLabel(outcome: CallOutcome): string {
   const labels: Record<CallOutcome, string> = {
-    do_not_call: 'Opt-out recorded — do not call',
+    do_not_call: 'Opt-out recorded: do not call',
     agreed_follow_up: 'Agreed follow-up',
-    deferral: 'Deferral — prospect will decide after receiving material',
+    deferral: 'Deferral: prospect will decide after receiving material',
     no_agreed_next_step: 'No agreed next step',
   };
   return labels[outcome];
@@ -73,7 +73,7 @@ export function postCallReview(transcript: Transcript | readonly TranscriptTurn[
     const optIndex = finals.findIndex((t) => t.utterance_id === analysis.opt_out!.turn_id);
     const after = finals.slice(optIndex + 1).filter((t) => t.speaker_role === 'representative');
     if (after.length === 1 && REMOVAL.test(after[0]!.text)) {
-      strength = { text: `Stopped immediately on the opt-out and confirmed removal — no reframe: "${after[0]!.text}"`, quote_turn_id: after[0]!.utterance_id };
+      strength = { text: `Stopped immediately on the opt-out and confirmed removal, no reframe: "${after[0]!.text}"`, quote_turn_id: after[0]!.utterance_id };
     }
   }
   if (!strength) {
@@ -111,7 +111,7 @@ export function postCallReview(transcript: Transcript | readonly TranscriptTurn[
   const pushed = analysis.excluded.find((c) => c.event.provenance === 'seller_only' && (c.event.repetition_by_speaker?.representative ?? 0) >= 3);
   if (!correction && pushed && top) {
     correction = {
-      text: `Kept saying "${pushed.event.exact_text}" (${pushed.event.repetition_by_speaker?.representative}×) while the prospect's word was "${top.exact_text}" — use theirs.`,
+      text: `Kept saying "${pushed.event.exact_text}" (${pushed.event.repetition_by_speaker?.representative}×) while the prospect's word was "${top.exact_text}". Use theirs.`,
       quote_turn_id: pushed.event.turn_id,
     };
   }
@@ -131,20 +131,20 @@ export function postCallReview(transcript: Transcript | readonly TranscriptTurn[
   const netGross = analysis.events.find((e) => e.correction_or_negation && /\b(net|gross)\b/.test(`${e.normalized_key} ${e.correction_or_negation.rejects}`));
   const undefinedEmphasis = analysis.ranked.find((r) => r.event.provenance === 'prospect_said' && r.event.explicit_emphasis && r.event.meaning_status === 'unknown');
   let better_question: string;
-  if (analysis.opt_out) better_question = 'None — after an opt-out there is no better question; the only correct move is to stop.';
-  else if (netGross) better_question = `When you say ${netGross.exact_text.toLowerCase()}, which costs come off first — pack, payroll, anything else?`;
-  else if (missing.includes('{stated_problem}')) better_question = 'Where exactly does the current process break down — what happens, and when?';
+  if (analysis.opt_out) better_question = 'None. After an opt-out there is no better question; the only correct move is to stop.';
+  else if (netGross) better_question = `When you say ${netGross.exact_text.toLowerCase()}, which costs come off first: pack, payroll, anything else?`;
+  else if (missing.includes('{stated_problem}')) better_question = 'Where exactly does the current process break down? What happens, and when?';
   else if (missing.includes('{stated_goal}')) better_question = 'In your words, what are you trying to get to?';
   else if (undefinedEmphasis) better_question = `When you say "${undefinedEmphasis.event.exact_text}", what does that mean for you here?`;
-  else if (top) better_question = `You said "${top.exact_text}" — what would that look like day to day?`;
+  else if (top) better_question = `You said "${top.exact_text}". What would that look like day to day?`;
   else better_question = 'What would need to be true for this to be worth your time?';
 
   // ---- drill ----
   let drill: string;
-  if (analysis.opt_out) drill = 'Exit rehearsal: say the stop-immediately line three times — no reframe, no second question.';
+  if (analysis.opt_out) drill = 'Exit rehearsal: say the stop-immediately line three times, with no reframe and no second question.';
   else if (pushed && top) drill = `Vocabulary accuracy: replay the prospect turns and restate each one using only their word ("${top.exact_text}"), five repetitions.`;
-  else if (missing.length > 0) drill = `Question recall: rehearse the node that establishes ${slotLabel(missing[0]!)} and one bridge into it.`;
-  else drill = 'Mirror drill: after each vague answer, mirror the last two words as a question — ten repetitions.';
+  else if (missing.length > 0) drill = `Question recall: rehearse the line that establishes ${slotLabel(missing[0]!)} and one bridge into it.`;
+  else drill = 'Mirror drill: after each vague answer, mirror the last two words as a question, ten repetitions.';
 
   // ---- next step ----
   const outcome = callOutcome(analysis);
@@ -153,9 +153,9 @@ export function postCallReview(transcript: Transcript | readonly TranscriptTurn[
     outcome === 'agreed_follow_up' && reconnect ? `Agreed follow-up: "${reconnect.value}" (prospect's words).` : outcomeLabel(outcome) + '.';
 
   // ---- uncertainties ----
-  const uncertainties = ['Synthetic transcript — no real prospect, no audio.'];
+  const uncertainties = ['Synthetic transcript: no real prospect, no audio.'];
   const interim = analysis.turns.filter((t) => !t.is_final).length;
-  if (interim > 0) uncertainties.push(`${interim} interim turn(s) present — provisional text, not quotable.`);
+  if (interim > 0) uncertainties.push(`${interim} interim turn(s) present: provisional text, not quotable.`);
   for (const r of analysis.revisions) uncertainties.push(`Utterance ${r.utterance_id} was revised (${r.from_revision}→${r.to_revision}); dependent interpretations were invalidated.`);
   if (analysis.dropped.length > 0) uncertainties.push(`${analysis.dropped.length} duplicate provider event(s) dropped before counting.`);
   uncertainties.push('Speaker roles come from provider tracks and were not independently verified.');
@@ -181,7 +181,7 @@ export interface RubricCriterion {
 }
 
 export interface RubricDefinition {
-  label: 'internal training rubric — not validated';
+  label: 'internal training rubric, not validated';
   total: 100;
   criteria: RubricCriterion[];
   /** Any of these fails the review regardless of score. */
@@ -191,7 +191,7 @@ export interface RubricDefinition {
 
 export function rubricDefinition(): RubricDefinition {
   return {
-    label: 'internal training rubric — not validated',
+    label: 'internal training rubric, not validated',
     total: 100,
     criteria: [
       { key: 'relevance_permission', label: 'Relevance and permission', weight: 10, description: 'A specific, relevant reason to call and explicit permission to continue.' },
@@ -235,12 +235,12 @@ export function funnelDefinitions(): FunnelStage[] {
 export function outcomeGlyph(outcome: CallOutcome): { glyph: '⊘' | '✓' | '◔' | '○'; word: string; name: string } {
   switch (outcome) {
     case 'do_not_call':
-      return { glyph: '⊘', word: 'DNC', name: `${outcomeLabel(outcome)} — derived from the prospect's own words` };
+      return { glyph: '⊘', word: 'DNC', name: `${outcomeLabel(outcome)}, derived from the prospect's own words` };
     case 'agreed_follow_up':
-      return { glyph: '✓', word: 'follow-up', name: `${outcomeLabel(outcome)} — derived from the prospect's own words` };
+      return { glyph: '✓', word: 'follow-up', name: `${outcomeLabel(outcome)}, derived from the prospect's own words` };
     case 'deferral':
-      return { glyph: '◔', word: 'deferral', name: `${outcomeLabel(outcome)} — derived from the prospect's own words` };
+      return { glyph: '◔', word: 'deferral', name: `${outcomeLabel(outcome)}, derived from the prospect's own words` };
     default:
-      return { glyph: '○', word: 'no step', name: `${outcomeLabel(outcome)} — derived from the prospect's own words` };
+      return { glyph: '○', word: 'no step', name: `${outcomeLabel(outcome)}, derived from the prospect's own words` };
   }
 }

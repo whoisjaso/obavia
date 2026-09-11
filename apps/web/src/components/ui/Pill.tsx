@@ -36,7 +36,7 @@ export function GlyphPill({ glyph, icon, weight, label, name, tone = 'neutral', 
     <span role="status" aria-label={name} title={name} className={[styles.pill, styles[tone], className ?? ''].join(' ').trim()} data-pill-tone={tone} {...rest}>
       {mark ? (
         <span className={styles.glyph} aria-hidden="true">
-          <Glyph glyph={mark} size={13} weight={weight} />
+          <Glyph glyph={mark} size={12} weight={weight} />
         </span>
       ) : null}
       {text ? (
@@ -53,9 +53,9 @@ export function DemoPill({ compact, ...props }: Omit<GlyphPillProps, 'glyph' | '
   return <GlyphPill icon="circle-half" weight="fill" label={compact ? undefined : 'Demo'} name={DEMO_PILL_NAME} tone="orange" data-demo-pill {...props} />;
 }
 
-/** The Fictional mark: fictional training content (offers, prospects). */
-export function FictionalPill(props: Omit<GlyphPillProps, 'glyph' | 'icon' | 'name' | 'label'>) {
-  return <GlyphPill icon="spark" weight="fill" label="Fictional" name="Fictional training content, not a real record" tone="purple" data-fictional-pill {...props} />;
+/** The Fictional mark: fictional training content (offers, prospects). Always shows the word; `name` may carry a fuller truth. */
+export function FictionalPill({ name, ...props }: Omit<GlyphPillProps, 'glyph' | 'icon' | 'name' | 'label'> & { name?: string }) {
+  return <GlyphPill icon="spark" weight="fill" label="Fictional" name={name ?? 'Fictional training content, not a real record'} tone="purple" data-fictional-pill {...props} />;
 }
 
 export interface NotAssessedLabelProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {

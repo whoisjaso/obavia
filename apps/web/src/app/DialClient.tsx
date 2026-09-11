@@ -23,7 +23,7 @@ import {
   type DialEvent,
 } from '@apohenia/domain/dialer';
 import { ArrowRight, Check, Clock, ClockAfternoon, Phone, PhoneIncoming, PhoneOutgoing, Prohibit, Target } from '@phosphor-icons/react';
-import { Avatar, Card, Chip, FictionalPill, HeroButton, IconButton, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast, type HeroState } from '@/components/ui';
+import { Avatar, Card, Chip, FictionalPill, HeroButton, Icon, IconButton, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast, type HeroState } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { formatPhone, lastSessionOf, localTimeIn, plain } from './dial-lib';
 import { InCall } from './InCall';
@@ -310,7 +310,7 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
             {queueEmpty ? (
               <div className={styles.empty} data-queue-empty>
                 <span className={styles.emptyGlyph} aria-hidden="true">
-                  ∅
+                  <Icon name="empty" size={72} />
                 </span>
                 <span className={styles.emptyLabel}>Queue empty</span>
                 <Tile icon="plus" label="Add prospects" href="/prospects" />

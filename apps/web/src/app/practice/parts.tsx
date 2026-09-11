@@ -201,7 +201,7 @@ function ScoreRing({ label, scored, value, name, color, kind }: { label: string;
     <div className={styles.score} data-score={label.toLowerCase()} data-scored={scored ? 'true' : 'false'} data-score-value={scored ? value.toFixed(2) : undefined}>
       <Ring value={scored ? value : 0} size={72} stroke={7} color={scored ? color : 'var(--ink-3)'} label={name}>
         <span className={styles.scoreCenter} aria-hidden="true">
-          {!scored ? <Icon name="empty" size={20} weight="bold" className={styles.scoreEmpty} /> : kind === 'check' ? <Icon name={value >= 1 ? 'check' : 'x'} size={26} weight="bold" /> : Math.round(value * 100)}
+          {!scored ? <Icon name="empty" size={20} weight="bold" className={styles.scoreEmpty} /> : kind === 'check' ? <Icon name={value >= 1 ? 'check' : 'x'} size={28} weight="bold" /> : `${Math.round(value * 100)}%`}
         </span>
       </Ring>
       <span className={styles.scoreLabel} aria-hidden="true">

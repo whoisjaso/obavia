@@ -11,7 +11,7 @@ import type { ScriptNode } from '../schemas/scripts';
 import { exactRecallScore, orderScore, seededRandom, seededShuffle } from './scoring';
 
 export const MIRROR_CHOICE_ID = 'ask_mirror' as const;
-export const MIRROR_CHOICE_LABEL = 'Ask a mirror question — the answer is not yet sufficient' as const;
+export const MIRROR_CHOICE_LABEL = 'Ask a mirror question: the answer is not yet sufficient' as const;
 export const ASK_MEANING_CHOICE_ID = 'ask_meaning' as const;
 export const ASK_MEANING_CHOICE_LABEL = 'Ask what it means' as const;
 export const TONE_NOTE = 'Tone: not assessed (text-only)' as const;
@@ -169,7 +169,7 @@ export interface BranchPromptSource {
 
 function branchChoices(node: ScriptNode): DrillChoice[] {
   return [
-    ...node.branches.map<DrillChoice>((b) => ({ id: `branch:${b.answer_category}`, label: b.label, note: b.note ?? `answer category: ${b.answer_category}` })),
+    ...node.branches.map<DrillChoice>((b) => ({ id: `branch:${b.answer_category}`, label: b.label, ...(b.note ? { note: b.note } : {}) })),
     { id: MIRROR_CHOICE_ID, label: MIRROR_CHOICE_LABEL, note: 'Use when the answer does not yet meet the completion criteria.' },
   ];
 }
@@ -247,7 +247,7 @@ export function branchClassification(node: ScriptNode, seed = 1): DrillItem {
       input: 'none',
       node_id: node.id,
       stage: node.stage,
-      prompt: 'This node has no answer examples or branches authored yet.',
+      prompt: 'This line has no answer examples or branches authored yet.',
       cited_node_ids: [node.id],
     });
   }
@@ -264,7 +264,7 @@ export function mirrorDuel(node: ScriptNode, allNodes: readonly ScriptNode[], se
   const distractorPool = allNodes.filter((n) => n.id !== node.id && n.primary_word_track !== node.primary_word_track);
   const distractors = seededShuffle(distractorPool, seed)
     .slice(0, Math.max(2, correct.length))
-    .map<DrillChoice>((n) => ({ id: `distractor:${n.id}`, label: n.primary_word_track, note: `Seeks a different answer type (${n.stage}).` }));
+    .map<DrillChoice>((n) => ({ id: `distractor:${n.id}`, label: n.primary_word_track, note: `Seeks a different answer type (${n.stage.replace(/_/g, ' ')}).` }));
   const choices = seededShuffle([...correct, ...distractors], seed + 1);
   return item({
     id: `mirror_duel:${node.id}:${seed}`,
@@ -272,7 +272,7 @@ export function mirrorDuel(node: ScriptNode, allNodes: readonly ScriptNode[], se
     input: 'single_choice',
     node_id: node.id,
     stage: node.stage,
-    prompt: correct.length > 0 ? `Which question seeks the same answer as this line, in different words?` : 'This node has no mirror variants authored yet — every option seeks a different answer.',
+    prompt: correct.length > 0 ? `Which question seeks the same answer as this line, in different words?` : 'This line has no mirror variants authored yet; every option seeks a different answer.',
     context: `Line: ${node.primary_word_track}\nSeeks: ${node.intended_answer_type}`,
     choices,
     correct_choice_ids: correct.map((c) => c.id),

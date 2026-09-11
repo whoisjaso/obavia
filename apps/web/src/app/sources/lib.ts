@@ -39,7 +39,7 @@ export function namedOnlyTitle(title: string): string {
 export function sectionShortName(title: string): string {
   if (/^reviewed\b/i.test(title)) return 'Reviewed Call';
   const clean = namedOnlyTitle(title)
-    .replace(/^Named in framework range\s+[A-Z0-9–-]+\s*\(([^)]*)\).*$/i, '$1')
+    .replace(/^Named in framework range\s+[A-Z0-9]+(?:\s+to\s+[A-Z0-9]+)?\s*\(([^)]*)\).*$/i, '$1')
     .replace(/^[^:]+:\s*/, '')
     .replace(/\s*\([^)]*\)/g, '')
     .replace(/[^A-Za-z0-9/ ]+/g, ' ')

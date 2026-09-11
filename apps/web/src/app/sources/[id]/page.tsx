@@ -70,7 +70,7 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
       </h1>
       <TopBar
         left={<IconButton icon="arrow-left" label="Back to the Source Library" href="/sources" data-back />}
-        center={<Chip static label={sectionShortName(record.section_title)} name={`Record ${record.id} — ${record.section_title}`} data-record-section />}
+        center={<Chip static label={sectionShortName(record.section_title)} name={`Record ${record.id}, ${record.section_title}`} data-record-section />}
         right={
           <RecordInfo
             meta={{

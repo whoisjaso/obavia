@@ -22,7 +22,7 @@ import {
   type VocabularyItemInput,
 } from '@apohenia/domain/practice';
 import { stageLabel } from '@apohenia/domain/scripts';
-import { Card, Chip, FictionalPill, GlyphPill, Icon, IconButton, LineCard, Sheet, SlotLine, Tile, TileGrid, TopBar, WordCard } from '@/components/ui';
+import { Card, Chip, FictionalPill, Icon, IconButton, LineCard, Sheet, SlotLine, Tile, TileGrid, TopBar, WordCard } from '@/components/ui';
 import { AssistCard, ChoiceTile, PracticeHero, ProspectCard, QuestionCard, ResultCard, type ChoiceState } from './parts';
 import { DEFAULT_MOMENT, drillMeta, itemWithFacts, lines, resolveForPractice, resultAnnouncement, shortChoices } from './practice-lib';
 import styles from './practice.module.css';
@@ -30,7 +30,7 @@ import styles from './practice.module.css';
 /** FICTIONAL vocabulary items for the meaning-fidelity drill (brief §7 examples, synthetic). */
 const VOCAB_ITEMS: VocabularyItemInput[] = [
   { phrase: 'gratification', definition_given: null, candidate_synonyms: ['satisfaction', 'pleasure', 'reward'] },
-  { phrase: 'profit', definition_given: 'what is left after floorplan interest and recon — net, not gross', candidate_synonyms: ['revenue', 'margin', 'turnover'] },
+  { phrase: 'profit', definition_given: 'what is left after floorplan interest and recon, net, not gross', candidate_synonyms: ['revenue', 'margin', 'turnover'] },
   { phrase: 'control', definition_given: null, candidate_synonyms: ['oversight', 'management', 'authority'] },
   { phrase: 'a real lead', definition_given: 'someone who has picked a car and asked for an out-the-door number', candidate_synonyms: ['a hot lead', 'a qualified buyer', 'an inquiry'] },
 ];
@@ -144,7 +144,7 @@ export function DrillScreen({ kind, nodes, mode, facts, practiceLabel, onResult,
   return (
     <div className={styles.screen} data-drill-screen={kind} data-done={done}>
       <TopBar
-        left={<GlyphPill glyph="✦" name={fictional ? `Fictional training content — synthetic prospect lines, not a real record. Slots filled from the fictional practice prospect ${practiceLabel}.` : `Fictional practice prospect: ${practiceLabel} fills the name and dealership slots — not a real record`} tone="purple" data-fictional-pill />}
+        left={<FictionalPill name={fictional ? `Fictional training content: synthetic prospect lines, not a real record. Slots filled from the fictional practice prospect ${practiceLabel}.` : `Fictional practice prospect: ${practiceLabel} fills the name and dealership slots; not a real record`} />}
         title={meta.label}
         right={
           <>
@@ -555,7 +555,7 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
       ) : null}
 
       {isSelf ? (
-        <div role="group" aria-label="Self-rating — your own judgement, nothing is measured" data-self-rating>
+        <div role="group" aria-label="Self-rating: your own judgement, nothing is measured" data-self-rating>
           <TileGrid columns={2}>
             <Tile icon="wave" label="Tone cue" name="I followed the tone cue (my own judgement)" selected={tone} onClick={() => setTone((v) => !v)} disabled={checked} data-self="tone" />
             <Tile icon="clock" label="Pacing cue" name="I followed the pacing cue (my own judgement)" selected={pacing} onClick={() => setPacing((v) => !v)} disabled={checked} data-self="pacing" />

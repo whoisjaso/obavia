@@ -127,6 +127,8 @@ test.describe('train', () => {
 
     const result = page.locator('[data-result-panel]');
     await expect(result).toBeVisible();
+    // No developer vocabulary under the choices: no snake_case answer categories, no "answer category:" notes.
+    await expect(drill.getByRole('group', { name: 'Choices' })).not.toContainText(/answer category|_/);
     await expect(result.locator('[data-verdict-text]')).toHaveText(/^(Correct|Not correct)$/);
     await expect(result.locator('[data-score="memory"]').getByText('Memory', { exact: true })).toBeVisible();
     await expect(result.locator('[data-score="conversation"]').getByText('Conversation', { exact: true })).toBeVisible();
@@ -195,6 +197,7 @@ test.describe('train', () => {
     await expect(screen).toHaveAttribute('data-mock-phase', 'pick');
     await expect(page.locator('[data-scenario]')).toHaveCount(10);
     await expect(page.locator('[data-fictional-pill]:visible')).toHaveCount(1);
+    await expect(page.locator('[data-fictional-pill]:visible')).toContainText('Fictional'); // the honesty word, never icon-only
 
     await page.getByRole('button', { name: SCENARIO_TITLE }).click();
     await expect(screen).toHaveAttribute('data-mock-phase', 'brief');
@@ -215,8 +218,8 @@ test.describe('train', () => {
     await page.getByRole('button', { name: 'End the mock with an outcome' }).click();
     const endSheet = page.locator('dialog[data-sheet="mock-end"]');
     await expect(endSheet).toBeVisible();
-    await expect(endSheet.getByRole('button', { name: 'End respectfully — no fit' })).toBeVisible();
-    await endSheet.getByRole('button', { name: 'End respectfully — no fit' }).click();
+    await expect(endSheet.getByRole('button', { name: 'End respectfully: no fit' })).toBeVisible();
+    await endSheet.getByRole('button', { name: 'End respectfully: no fit' }).click();
 
     const ended = page.locator('[data-mock-ended]');
     await expect(ended).toBeVisible();
@@ -239,7 +242,7 @@ test.describe('train', () => {
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     const evaluator = page.locator('[data-evaluator-view]');
     await expect(evaluator).toBeVisible();
-    await expect(evaluator.getByRole('status', { name: 'Post-session evaluator view — hidden fact sheet, not available during the run' })).toBeVisible();
+    await expect(evaluator.getByRole('status', { name: 'Post-session evaluator view: hidden fact sheet, not available during the run' })).toBeVisible();
     await expect(evaluator.getByRole('status', { name: /never converts/ })).toBeVisible();
     await expect(evaluator.getByText(HIDDEN_FACT)).toBeVisible();
     await page.keyboard.press('Escape');
@@ -262,6 +265,7 @@ test.describe('train', () => {
     await expect(result.locator('[data-score="memory"]')).toHaveAttribute('data-scored', 'true');
     await expect(result.locator('[data-score="conversation"]')).toHaveAttribute('data-scored', 'false');
     await expect(result.getByRole('progressbar', { name: /^Memory: exact match \d+%, word order \d+%$/ })).toBeVisible();
+    await expect(result.locator('[data-score="memory"]')).toContainText(/\d+%/); // the ring centre carries its unit
     await expect(result.locator('[data-missing-words] span').nth(2)).toBeVisible();
     await expect(box).toHaveCount(0);
     // The result rings sit where the textarea was — above the docked hero, never under the tab bar.

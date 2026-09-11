@@ -40,5 +40,5 @@ Status documents kept truthful after every slice: `IMPLEMENTATION_STATUS.md`, `S
 ## Honesty rules (short form)
 
 Study records are not live approval. Every script node and offer is a labelled draft. The fictional practice
-offer is banded "FICTIONAL TRAINING OFFER — NOT A REAL QUOTE" and never enters live pricing. A blank price is
+offer is banded "FICTIONAL TRAINING OFFER / NOT A REAL QUOTE" (two lines on the stage) and never enters live pricing. A blank price is
 `null`. Text-only practice marks tone "not assessed". No test is claimed unless it ran.

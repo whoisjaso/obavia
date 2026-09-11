@@ -21,11 +21,14 @@
   display: flex;
   gap: var(--s-2);
   margin: 0 calc(-1 * var(--s-4));
-  padding: var(--s-1) var(--s-4);
+  padding: var(--s-1) var(--s-6) var(--s-1) var(--s-4);
   overflow-x: auto;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  /* the right edge fades: a clipped chip reads as "more", never as a cut */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
 }
 .rail::-webkit-scrollbar {
   display: none;
@@ -180,6 +183,16 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-3);
+}
+.draftMark {
+  color: var(--ink-2);
+  border-color: var(--line);
+  background: transparent;
+}
+.draftNote {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
 }
 .sayThis {
   font-size: var(--fs-title);

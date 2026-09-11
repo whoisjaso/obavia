@@ -272,7 +272,11 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
               <Card onPress={() => openNode(n.id)} name={`${substageLabel(n)}. Open.`} data-line-next>
                 <div className={styles.cardHead}>
                   <Chip static label={substageLabel(n)} tone="teal" name={`Stage ${substageLabel(n)}`} />
-                  <GlyphPill glyph={approval.glyph} tone={approval.tone} name={`${approval.name} (node ${n.id})`} data-approval={card.approval_status} />
+                  {card.approval_status === 'draft' ? (
+                    <GlyphPill icon="edit" weight="regular" tone="neutral" name={approval.name} data-approval={card.approval_status} className={styles.draftMark} />
+                  ) : (
+                    <GlyphPill glyph={approval.glyph} label={approval.word} tone={approval.tone} name={approval.name} data-approval={card.approval_status} />
+                  )}
                   {card.practice_only ? <GlyphPill glyph="⊘" tone="purple" name="Study/practice only: never a live recommendation" data-practice-only /> : null}
                   {card.evidence.satisfied ? <GlyphPill glyph="✓" tone="teal" name="Already answered from known facts: offer the transition instead of asking twice" data-evidence-pill /> : null}
                 </div>
@@ -374,7 +378,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
             </div>
           </div>
           <TileGrid columns={2}>
-            <Tile icon="star" label="Offers" href="/offers" name="Offer Studio — the only place an offer status comes from" />
+            <Tile icon="star" label="Offers" href="/offers" name="Offer Studio: the only place an offer status comes from" />
             <Tile icon="bookmark" label="Sources" href="/sources" name="Source Library" />
           </TileGrid>
         </div>
@@ -386,7 +390,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
           <div className={styles.sheetBody} data-node-sheet={sheetNode.id}>
             <div className={styles.sheetHead}>
               <Chip static label={sheetCard.stage_label} tone="teal" name={`Stage ${sheetCard.stage_label}`} />
-              <GlyphPill glyph={statusGlyph(sheetCard.approval_status).glyph} label={statusGlyph(sheetCard.approval_status).word} tone={statusGlyph(sheetCard.approval_status).tone} name={statusGlyph(sheetCard.approval_status).name} data-sheet-approval={sheetCard.approval_status} />
+              {sheetCard.approval_status !== 'draft' ? <GlyphPill glyph={statusGlyph(sheetCard.approval_status).glyph} label={statusGlyph(sheetCard.approval_status).word} tone={statusGlyph(sheetCard.approval_status).tone} name={statusGlyph(sheetCard.approval_status).name} data-sheet-approval={sheetCard.approval_status} /> : null}
               {sheetCard.practice_only ? <GlyphPill glyph="⊘" label="Study" tone="purple" name="Study/practice only: never a live recommendation" /> : null}
               <Chip label="Facts" glyph="✦" toggle selected={sampleFacts} tone="purple" name={SAMPLE_FACTS_NAME} onClick={() => setView((v) => ({ ...v, sample_facts: !v.sample_facts }))} data-sample-facts className={styles.factsChip} />
             </div>
@@ -394,6 +398,11 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
             <p className={styles.sayThis} data-say-this>
               {withCues(sheetCard.say_this ?? '')}
             </p>
+            {sheetCard.approval_status === 'draft' ? (
+              <p className={styles.draftNote} role="status" aria-label={statusGlyph('draft').name} data-sheet-approval="draft">
+                Draft script. Not approved for live use.
+              </p>
+            ) : null}
 
             {sheetCard.evidence.satisfied ? (
               <Card tone="green" dense data-evidence-transition>
@@ -496,7 +505,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
                         label={c ? sentenceCase(c.title) : 'Not supplied'}
                         glyph={g?.glyph ?? '?'}
                         tone={g ? (g.tone === 'orange' ? 'gold' : g.tone) : 'gold'}
-                        name={c && g ? `${id} — ${c.title}. ${g.name}. Open record.` : `${id} — not in the source package`}
+                        name={c && g ? `${sentenceCase(c.title)}. ${g.name}. Open record.` : 'Not in the source package'}
                         onClick={() => setSheet({ kind: 'source', id, from: sheetNode.id })}
                         data-citation={id}
                         className={styles.citationChip}
@@ -511,8 +520,10 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
             <section aria-labelledby="your-words">
               <Caption id="your-words">Your words</Caption>
               <div className={styles.locked} data-primary-unchanged>
-                <Icon name="lock" size={16} label="Primary line, locked — your words never change it" className={styles.lockIcon} />
-                <span>{sheetNode.primary_word_track}</span>
+                <Icon name="lock" size={16} label="Primary line, locked: your words never change it" className={styles.lockIcon} />
+                <span>
+                  <SlotLine text={sheetNode.primary_word_track} />
+                </span>
               </div>
               <textarea
                 className={styles.textarea}

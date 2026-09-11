@@ -33,8 +33,20 @@
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
   margin: 0 calc(-1 * var(--s-4));
-  padding: 2px var(--s-4);
+  padding: 2px var(--s-6) 2px var(--s-4);
   scrollbar-width: none;
+  /* the right edge fades: a clipped chip reads as "more", never as a cut */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+@media (min-width: 1024px) {
+  .lanes {
+    flex-wrap: wrap;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+    padding-right: var(--s-4);
+  }
 }
 .lanes::-webkit-scrollbar {
   display: none;
@@ -202,11 +214,10 @@
   max-width: 40ch;
 }
 .sheetCue {
-  font-size: var(--fs-micro);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  max-width: 40ch;
 }
 .linkRow {
   display: inline-flex;

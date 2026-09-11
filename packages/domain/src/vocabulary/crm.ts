@@ -52,7 +52,7 @@ export const CALL_STATUSES: { key: string; label: string; definition: string }[]
   { key: 'meeting_scheduled', label: 'Meeting scheduled', definition: 'A mutually agreed meeting with a date and timezone.' },
   { key: 'qualified', label: 'Qualified', definition: 'Relevant problem, fit and authority established from what the prospect said.' },
   { key: 'proposal_authorized', label: 'Proposal authorized', definition: 'The prospect explicitly asked for a proposal.' },
-  { key: 'won', label: 'Won', definition: 'User-confirmed business outcome — never an LLM judgment.' },
+  { key: 'won', label: 'Won', definition: 'User-confirmed business outcome, never an LLM judgment.' },
   { key: 'lost', label: 'Lost', definition: 'User-confirmed: the prospect declined.' },
   { key: 'no_fit', label: 'No fit', definition: 'Respectful disqualification; a good outcome when honest.' },
   { key: 'do_not_call', label: 'Do not call', definition: 'Explicit opt-out. Persists through re-import and future scheduling.' },
@@ -115,15 +115,15 @@ export type PipelineLaneKey = 'agreed_follow_up' | 'budget' | 'authority' | 'imp
 
 /** Glyph chip for a wrap-up disposition (DESIGN_SYSTEM §3.3 tiles, rendered small). */
 export const DISPOSITION_GLYPHS: Record<DispositionKind, { glyph: string; word: string; name: string }> = {
-  no_answer: { glyph: '○', word: 'no answer', name: 'No answer — attempted, nobody picked up' },
-  voicemail: { glyph: '◍', word: 'voicemail', name: 'Voicemail — reached a mailbox; no message left' },
-  gatekeeper: { glyph: '◈', word: 'gatekeeper', name: 'Gatekeeper — spoke to someone who is not the decision maker' },
-  callback: { glyph: '↻', word: 'callback', name: 'Callback requested — a time the prospect asked for' },
-  talked: { glyph: '◎', word: 'talked', name: 'Talked — decision-maker conversation, no next step agreed' },
-  meeting: { glyph: '▣', word: 'meeting', name: 'Meeting scheduled — a mutually agreed time' },
-  qualified: { glyph: '★', word: 'qualified', name: 'Qualified — relevant problem, fit and authority established from what they said' },
-  no_fit: { glyph: '✕', word: 'no fit', name: 'No fit — respectful disqualification' },
-  do_not_call: { glyph: '⊘', word: 'DNC', name: 'Do not call — explicit opt-out; the number is suppressed for good' },
+  no_answer: { glyph: '○', word: 'no answer', name: 'No answer: attempted, nobody picked up' },
+  voicemail: { glyph: '◍', word: 'voicemail', name: 'Voicemail: reached a mailbox; no message left' },
+  gatekeeper: { glyph: '◈', word: 'gatekeeper', name: 'Gatekeeper: spoke to someone who is not the decision maker' },
+  callback: { glyph: '↻', word: 'callback', name: 'Callback requested: a time the prospect asked for' },
+  talked: { glyph: '◎', word: 'talked', name: 'Talked: decision-maker conversation, no next step agreed' },
+  meeting: { glyph: '▣', word: 'meeting', name: 'Meeting scheduled: a mutually agreed time' },
+  qualified: { glyph: '★', word: 'qualified', name: 'Qualified: relevant problem, fit and authority established from what they said' },
+  no_fit: { glyph: '✕', word: 'no fit', name: 'No fit: respectful disqualification' },
+  do_not_call: { glyph: '⊘', word: 'DNC', name: 'Do not call: explicit opt-out; the number is suppressed for good' },
 };
 
 /**

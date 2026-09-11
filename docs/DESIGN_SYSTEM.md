@@ -11,7 +11,7 @@
 3. **Stage, not page.** No page titles as headings you read. No sidebars. No tables. Content sits on a dark stage inside a phone-width column (max 520px) on any device; the in-call screen is the one exception that spreads to two columns on wide screens.
 4. **Progress is a ring, detail is a sheet, choice is a tile.** Never a progress bar with a caption, never a modal with paragraphs, never a dropdown when 3–9 tiles will do.
 5. **Motion rewards, never nags.** Springy, purposeful, ≤560ms. Halos breathe, rings fill, sheets slide. Nothing flashes, nothing bounces forever, nothing moves the line the rep is reading. `prefers-reduced-motion` turns every animation into a fade or a static state.
-6. **Honesty stays, shrinks to a glyph.** Demo mode is a small `◐ Demo` pill with a full accessible name. Fictional is a `✦ Fictional` pill. "Not assessed" is a `—` with an accessible name. Nothing claims to be live.
+6. **Honesty stays, shrinks to a pill.** Demo mode is a small `Demo` pill (a half-circle icon from the kit set, never a unicode glyph) with a full accessible name. Fictional is a `Fictional` pill with the spark icon. "Not assessed", "Not set" and "None yet" are caption-size words with an accessible name, never a dash. No em or en dash ever appears on the stage. Nothing claims to be live.
 
 ## 1. Tokens (`apps/web/src/styles/tokens.css` — replace the v1 palette)
 
@@ -29,7 +29,7 @@
   /* ink */
   --ink: #F5F5F7;
   --ink-2: #A1A1AA;
-  --ink-3: #6B6B75;
+  --ink-3: #8A8A94;          /* captions and kickers: 5.3:1 on --bg-1; never lower */
 
   /* signal (iOS system colors) */
   --green: #30D158;   /* call, success, connected */

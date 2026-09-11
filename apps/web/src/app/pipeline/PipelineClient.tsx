@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { z } from 'zod';
 import { DialHistory } from '@apohenia/domain/schemas';
 import { DISPOSITION_GLYPHS, FOLLOW_UP_WEEK_NOTE, FOLLOW_UP_WEEK_VIEW, PIPELINE_LANES, SYNTHETIC_PIPELINE_CARDS, groupByLane, pipelineCardsFromHistory, type HistoryPipelineCard, type PipelineCard, type PipelineLane } from '@apohenia/domain/vocabulary';
-import { Avatar, Card, Chip, FictionalPill, GlyphPill, Icon, IconButton, Sheet, Stat, TopBar, type IconName } from '@/components/ui';
+import { Avatar, Card, Chip, FictionalPill, GlyphPill, Icon, IconButton, NotAssessedLabel, Sheet, Stat, TopBar, type IconName } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { laneIcon, laneTone, shortDay, whenChip } from './pipeline-lib';
 import styles from './pipeline.module.css';
@@ -103,11 +103,18 @@ export function PipelineClient() {
         }
       />
 
-      <div className={styles.stats} data-pipeline-stats>
-        <Stat value={historyCards.length} icon="flag" name="Cards from sessions" />
-        <Stat value={agreed} icon="check" name="Agreed follow-ups" color="var(--green)" />
-        <Stat value={callbacks} icon="calendar" name="Callbacks with a time" color="var(--blue)" />
-      </div>
+      {/* session numbers only once a session has produced a card; until then one quiet caption, never zeros beside example cards */}
+      {historyCards.length > 0 ? (
+        <div className={styles.stats} data-pipeline-stats>
+          <Stat value={historyCards.length} icon="flag" name="Cards from sessions" />
+          <Stat value={agreed} icon="check" name="Agreed follow-ups" color="var(--green)" />
+          <Stat value={callbacks} icon="calendar" name="Callbacks with a time" color="var(--blue)" />
+        </div>
+      ) : (
+        <div className={styles.stats} data-pipeline-stats data-pipeline-empty>
+          <NotAssessedLabel label="No sessions yet" name={hydrated ? 'No demo session has produced a follow-up yet; the cards below are fictional examples' : 'Reading sessions'} />
+        </div>
+      )}
 
       {/* segmented control: one chip per lane (icon, label, count); scrolls sideways on a phone */}
       <div className={styles.lanes} data-lanes role="group" aria-label="Lanes">
@@ -257,7 +264,7 @@ function CardSheet({ item }: { item: LaneCard }) {
           </span>
         </Card>
       ) : null}
-      {h.lane === 'agreed_follow_up' ? <p className={styles.sheetCue}>the only lane with an agreed touch, still a view, not a send</p> : <p className={styles.sheetCue}>a view, not permission to message</p>}
+      {h.lane === 'agreed_follow_up' ? <p className={styles.sheetCue}>The only lane with an agreed touch. Still a view, not a send.</p> : <p className={styles.sheetCue}>A view, not permission to message.</p>}
     </div>
   );
 }

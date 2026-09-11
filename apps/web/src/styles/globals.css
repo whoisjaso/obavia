@@ -135,7 +135,7 @@ svg {
   z-index: 100;
   padding: var(--s-2) var(--s-4);
   border-radius: var(--r-chip);
-  background: var(--blue);
+  background: var(--blue-fill);
   color: var(--ink-on-blue);
   font-weight: 600;
   transform: translateY(-300%);

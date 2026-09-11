@@ -311,7 +311,7 @@ export function reduce(state: DialSession, event: DialEvent, ctx: DialContext): 
     }
     case 'END_CALL': {
       if (state.status !== 'connected') return state;
-      return withStats({ ...state, status: 'wrapup', elapsed_ms: 0, attempts: updateAttempt(state, { status: 'wrapup', ended_at: event.at }), log: log(state, event.at, 'end_call', 'Call ended — disposition required') });
+      return withStats({ ...state, status: 'wrapup', elapsed_ms: 0, attempts: updateAttempt(state, { status: 'wrapup', ended_at: event.at }), log: log(state, event.at, 'end_call', 'Call ended: disposition required') });
     }
     case 'DISPOSITION': {
       if (state.status !== 'wrapup') return state;
@@ -328,7 +328,7 @@ export function reduce(state: DialSession, event: DialEvent, ctx: DialContext): 
         s = {
           ...s,
           suppression: [...s.suppression, { phone: a.phone, item_id: a.item_id, contact: a.contact, at: event.at, reason: 'do_not_call', session_id: s.id }],
-          log: log(s, event.at, 'suppress', `Suppressed ${a.phone} (${a.contact}) — never dialed again`),
+          log: log(s, event.at, 'suppress', `Suppressed ${a.phone} (${a.contact}); never dialed again`),
         };
       }
       if (s.end_requested) return endSession(s, event.at, 'user');
@@ -355,7 +355,7 @@ export function reduce(state: DialSession, event: DialEvent, ctx: DialContext): 
         case 'connected':
         case 'wrapup':
           // Never drop an active call: sequencing pauses after the disposition.
-          return { ...state, pause_requested: event.reason, log: log(state, event.at, 'pause', `Pause requested (${event.reason}) — applies after the disposition`) };
+          return { ...state, pause_requested: event.reason, log: log(state, event.at, 'pause', `Pause requested (${event.reason}); applies after the disposition`) };
         default:
           return state;
       }
@@ -367,7 +367,7 @@ export function reduce(state: DialSession, event: DialEvent, ctx: DialContext): 
     case 'END_SESSION': {
       if (state.status === 'idle' || state.status === 'ended') return state;
       if (state.status === 'connected') {
-        return withStats({ ...state, status: 'wrapup', elapsed_ms: 0, end_requested: true, attempts: updateAttempt(state, { status: 'wrapup', ended_at: event.at }), log: log(state, event.at, 'end_call', 'Call ended — disposition required before the session ends') });
+        return withStats({ ...state, status: 'wrapup', elapsed_ms: 0, end_requested: true, attempts: updateAttempt(state, { status: 'wrapup', ended_at: event.at }), log: log(state, event.at, 'end_call', 'Call ended: disposition required before the session ends') });
       }
       if (state.status === 'wrapup') return { ...state, end_requested: true };
       return endSession(state, event.at, event.reason ?? 'user');

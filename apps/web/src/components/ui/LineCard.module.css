@@ -84,31 +84,6 @@ div.lineButton {
   line-height: var(--lh-body);
   flex-shrink: 0;
 }
-.shape {
-  display: flex;
-  gap: var(--s-2);
-  align-items: center;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-.shapeChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 26px;
-  padding: 0 10px;
-  border-radius: var(--r-chip);
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  color: var(--ink-2);
-  font-size: var(--fs-caption);
-  font-weight: 600;
-}
-.shapeGlyph {
-  display: inline-grid;
-  place-items: center;
-  color: var(--ink);
-}
 
 /* Long lines (> 24 words) step down one size so the whole line stays on one screen. */
 .long .text {

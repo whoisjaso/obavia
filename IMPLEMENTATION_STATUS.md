@@ -210,7 +210,7 @@ E2E spec inventory (9): `tests/e2e/{calls,dial,interview,offers,practice,screens
 | 31 | taxonomy modules distinct; source-only never live | `sources-library.test.ts`; `sources.spec.ts` study_only test | Verified |
 | 32 | "efficiency" confirmed ≠ prospect-originated | `vocabulary.test.ts` → scenario 32 | Verified |
 | 33 | "gratification" keeps its definition | `vocabulary.test.ts` → scenario 33 (3 tests) | Verified |
-| 34 | ASR question without punctuation → normalization label | `sources.spec.ts` line 177 (`normalized template — not verbatim`) | Verified |
+| 34 | ASR question without punctuation → normalization label | `sources.spec.ts` line 177 (`normalized template, not verbatim`) | Verified |
 | 35 | every excerpt matches hash/range; no timestamps without timing | `sources-library.test.ts` → *no record template or excerpt contains an hh:mm:ss or mm:ss pattern*; hash: `verify:offsets` pending | **Partial**: timestamps verified; hash match pending raw sources |
 | 36 | ≥3 phrases pinned without overlap at 1440×900 and 1280×800 | `dial.spec.ts` full loop (1440×900 and 430×932) | **Partial**: 1280×800 is not a tested viewport |
 | 37 | no budget / needs another owner → not relabelled as fear | `scripts.test.ts` → *declined is an accepted branch…*, *completion criteria contain no required feeling word*; no fear label exists in the node data | Verified (by absence + tests) |

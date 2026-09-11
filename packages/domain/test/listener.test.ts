@@ -163,7 +163,7 @@ describe('§10 item 2 — first-mention jazz produces the comparison, not only t
     expect(j.label).toMatch(/^JAZZ \/ EVERYBODY WANTS TO PLAY A SOLO$/);
     expect(j.semantics.relationship).toContain('everybody wants to play a solo');
     expect(j.semantics.concept_ids).toEqual(['coordination_vs_individuality']);
-    expect(j.semantics.valence).toEqual({ polarity: 'negative', object: 'the lack of coordination — not the individual style, not the activity' });
+    expect(j.semantics.valence).toEqual({ polarity: 'negative', object: 'the lack of coordination, not the individual style, not the activity' });
     expect(j.semantics.prohibited_inferences.join(' ')).not.toMatch(/musician/);
     expect(JSON.stringify(j)).not.toMatch(/is a musician|plays in a band/i);
   });
@@ -215,7 +215,7 @@ describe('§10 item 5 — "ambushed" remains an unresolved term until clarificat
     expect(a.semantics.kind).toBe('emotional_descriptor');
     expect(a.semantics.meaning_status).toBe('unknown');
     expect(a.semantics.explained_meaning).toBeUndefined();
-    expect(a.semantics.valence).toEqual({ polarity: 'negative', object: 'the extra charges — the explicit description, not an explanation of why' });
+    expect(a.semantics.valence).toEqual({ polarity: 'negative', object: 'the extra charges: the explicit description, not an explanation of why' });
     expect(a.reuse.proposed_clarification).toBe(`When you say "ambushed," was it that the charges weren't disclosed, or that you were already committed before they appeared?`);
     expect(`${a.label} ${a.semantics.relationship} ${a.semantics.business_target}`).not.toMatch(/price objection/i);
     // Unknown meaning → only a clarification is offered, never an explanation invented for them.
@@ -810,7 +810,7 @@ describe('frozen API — toCards', () => {
       pinned: false,
       evidence: { quote: 'I felt ambushed by the extra charges.', turn_id: 'syn-l-ambushed-explained-u04', exact_expression: 'ambushed', status: 'final' },
       confirmed_meaning: { text: "By then they had our website and we couldn't easily leave.", evidence_turn_id: 'syn-l-ambushed-explained-u08' },
-      valence: { polarity: 'negative', object: 'the extra charges — the explicit description, not an explanation of why' },
+      valence: { polarity: 'negative', object: 'the extra charges: the explicit description, not an explanation of why' },
     });
     expect(a.glyph_name).toMatch(/^meaning confirmed/);
     expect(a.useful_when).toMatch(/unexpected charges after commitment/);
@@ -834,8 +834,8 @@ describe('frozen API — toCards', () => {
     expect(painful.prohibited_inferences).toContain('no upbeat same-domain line (no "slam dunk")');
     const rejected = toCards(listenerFromTurns(fixture('syn-l-jazz-rejected').turns))[0]!;
     expect(rejected.state).toBe('rejected');
-    expect(rejected.meaning_line).toBe('Rejected by the prospect — not used again');
-    expect(rejected.state_line).toBe('Rejected by the prospect — not used again');
+    expect(rejected.meaning_line).toBe('Rejected by the prospect, not used again');
+    expect(rejected.state_line).toBe('Rejected by the prospect, not used again');
   });
   it('visibleCards keeps first-appearance order, caps held cards, never drops a pinned one, never shows dismissed', () => {
     const lines: Line[] = [['R', 'Go on.']];

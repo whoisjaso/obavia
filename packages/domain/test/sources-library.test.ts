@@ -121,12 +121,12 @@ describe('filtered search', () => {
 });
 
 describe('named-but-missing register', () => {
-  it('validates against the schema, has no placeholder marker, and every handling says marked missing — not reconstructed', () => {
+  it('validates against the schema, has no placeholder marker, and every handling says marked missing, not reconstructed', () => {
     expect(MissingResourceRegister.safeParse(missingJson).success).toBe(true);
     expect(missingJson).not.toHaveProperty('_status');
     const list = listMissingResources();
     expect(list.length).toBeGreaterThanOrEqual(10);
-    for (const m of list) expect(m.handling).toContain('marked missing — not reconstructed');
+    for (const m of list) expect(m.handling).toContain('marked missing, not reconstructed');
     expect(new Set(list.map((m) => m.id)).size).toBe(list.length);
     expect(loadMissingResourceRegister().resources).toEqual(list);
   });

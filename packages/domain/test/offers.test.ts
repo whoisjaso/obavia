@@ -50,7 +50,7 @@ describe('offers seed', () => {
   it('fictional pilot carries the banner, the practice flag and the fixture price', () => {
     expect(fictional.fictional).toBe(true);
     expect(fictional.practice_only).toBe(true);
-    expect(fictional.fictional_banner).toBe('FICTIONAL TRAINING OFFER — NOT A REAL QUOTE');
+    expect(fictional.fictional_banner).toBe('FICTIONAL TRAINING OFFER\nNOT A REAL QUOTE');
     expect(fictional.price).toMatchObject({ setup_minor_units: 75000, recurring_minor_units: 15000, currency: 'USD' });
     expect(fictional.exclusions.join(' ')).toMatch(/auto-renewal/i);
     expect(fictional.acceptance_criteria.join(' ')).toMatch(/10 synthetic inquiries/);
@@ -137,6 +137,6 @@ describe('B-12 — one store of truth for offer status', () => {
     expect(statusGlyph('draft')).toMatchObject({ glyph: '◔', word: 'Draft' });
     expect(statusGlyph('draft').name).toMatch(/never live/);
     expect(statusGlyph('published').name).toMatch(/frozen/);
-    expect(PRICE_NOT_SET_NAME).toBe('Price not set — a blank price is not $0');
+    expect(PRICE_NOT_SET_NAME).toBe('Price not set: a blank price is not $0');
   });
 });

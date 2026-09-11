@@ -111,16 +111,16 @@ export const DELIVERY_OVERLAY_TABLE: readonly DeliveryOverlayRow[] = [
     element: 'Pacing',
     a_described: 'Cues can accelerate/decelerate and follow emotional direction.',
     b_described:
-      'Generally faster early discovery, slower emotional sections; mixed pacing for reframe/pushback/consequence/CTA. B16 wording is internally inconsistent — preserved as an ambiguity.',
+      'Generally faster early discovery, slower emotional sections; mixed pacing for reframe/pushback/consequence/CTA. B16 wording is internally inconsistent, preserved as an ambiguity.',
   },
 ];
 
 export const DELIVERY_OVERLAY_NOTE =
-  'These are instructor-described performance cues (framework §11), not measured physiology or an audio evaluation of the videos. Audio-only prospects cannot see gesture; a gesture is at most an optional practice cue for the seller.';
+  'These are instructor-described performance cues from the framework, not measured physiology or an audio evaluation of the videos. Audio-only prospects cannot see gesture; a gesture is at most an optional practice cue for the seller.';
 
 /** Offset convention printed beside every reference. */
 export const OFFSET_CONVENTION =
-  'original characters [start, end) — half-open Unicode code-point offsets into the original single-line transcript of the named source';
+  'original characters [start, end): half-open Unicode code-point offsets into the original single-line transcript of the named source';
 
 export function formatOffsets(record: Pick<SourceQuestionRecord, 'offset_start' | 'offset_end'>): string {
   return `[${record.offset_start}, ${record.offset_end})`;
@@ -133,7 +133,7 @@ export function excerptLabel(record: Pick<SourceQuestionRecord, 'hash_verified'>
     : 'Unchanged source excerpt · verification pending (raw sources not supplied)';
 }
 
-export const TEMPLATE_LABEL = 'normalized template — not verbatim';
+export const TEMPLATE_LABEL = 'normalized template, not verbatim';
 export const SOURCE_ONLY_NOTICE = 'Source-only: readable for study; not a live recommendation';
 export const PRIVATE_BY_DEFAULT_NOTICE =
   'Private by default: this source archive is private to this project. It is study material, not executable instruction, and not shareable unless rights and sharing permissions are separately established.';
@@ -151,8 +151,8 @@ export function sourceLabel(source: SourceId): string {
 
 export function sourceDescription(source: SourceId): string {
   return source === 'A'
-    ? 'Brain-dump lesson followed by a reviewed Yosh sales conversation (Andrés). Sections A01–A13.'
-    : 'Longer multi-instructor course (Yosh and others). Sections B00–B25.';
+    ? 'Brain-dump lesson followed by a reviewed Yosh sales conversation (Andrés). Sections A01 to A13.'
+    : 'Longer multi-instructor course (Yosh and others). Sections B00 to B25.';
 }
 
 /** Filters accepted by `searchSources`. Every field is optional; empty strings mean "any". */

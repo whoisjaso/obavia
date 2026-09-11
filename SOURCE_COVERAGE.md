@@ -86,7 +86,7 @@ for all 207. The UI prints the reference as
 ## 4. Hash verification status and the exact command
 
 Status today: **0 verified · 207 pending** (`raw_sources_supplied: false`,
-`hash_verification: "pending — raw Source A / Source B transcripts are not in the supplied
+`hash_verification: "pending: raw Source A / Source B transcripts are not in the supplied
 package; excerpts recorded as supplied"`). Every excerpt is labelled
 *"Unchanged source excerpt · verification pending (raw sources not supplied)"*.
 
@@ -115,7 +115,7 @@ Each question exists in four distinct representations that are never collapsed i
    + `section_id` + `markdown_line` + `hash_verified`. Shown in a `<blockquote>` as selectable
    text, labelled unchanged and (until hashed) verification-pending.
 2. **Editorially normalized source template** — `template`, always labelled
-   *"normalized template — not verbatim"*. Never presented as a quote (scenario 34).
+   *"normalized template, not verbatim"*. Never presented as a quote (scenario 34).
 3. **Jason's editable own word track and branch** — script nodes in
    `data/apohenia_script_nodes.json`, which cite record ids in `source_question_ids`. The
    library shows them under "Own-script counterpart" as links to `/scripts?node=<id>` with

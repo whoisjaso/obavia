@@ -164,10 +164,10 @@ describe('scenario 3 — evidence-satisfied skip', () => {
   it('B-11: the transition is the quoted line of the rule, never the rule sentence itself', () => {
     const node = nodeById(nodes, 'logical-process')!;
     const check = isEvidenceSatisfied(node, { current_process: 'the sales@ inbox' });
-    expect(check.transition).toBe('You said the inquiries go to the sales@ inbox — how long has it worked that way?');
+    expect(check.transition).toBe('You said the inquiries go to the sales@ inbox. How long has it worked that way?');
     expect(check.transition).not.toMatch(/^If the /);
     expect(check.rule).toBe(node.facts_already_known_rule);
-    expect(transitionLineOf(node.facts_already_known_rule)).toBe('You said the inquiries go to {current_process} — how long has it worked that way?');
+    expect(transitionLineOf(node.facts_already_known_rule)).toBe('You said the inquiries go to {current_process}. How long has it worked that way?');
     // A rule with guidance but no spoken line: satisfied, rule shown, no transition invented.
     const fit = nodeById(nodes, 'pitch-fit')!;
     const fitCheck = isEvidenceSatisfied(fit, { fit_assessment: 'the named handoff is the piece' });
@@ -228,7 +228,7 @@ describe('scenarios 6 and 38 — null / fictional price never becomes a number',
     expect(card.say_this).toContain(`[${OFFER_NOT_APPROVED_CUE}: pillar 1 name]`);
     expect(card.say_this).toContain('[missing: stated problem]');
     expect(card.missing_slots).toEqual(['pillar_1_name', 'stated_problem', 'pillar_1_delivery']);
-    expect(card.routing_notes.join(' ')).toMatch(/is draft — pillar wording is not spoken/);
+    expect(card.routing_notes.join(' ')).toMatch(/is draft; pillar wording is not spoken/);
     // reviewed is still not approved
     expect(renderNodeCard(node, { offer: { ...draftOffer, status: 'reviewed' } }).say_this).not.toContain(draftOffer.pillars[0]!.name);
     // published: the offer object supplies the pillar exactly

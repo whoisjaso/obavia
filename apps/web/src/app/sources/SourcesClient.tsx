@@ -162,7 +162,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
       {/* A / B — two chips, two lists; the missing register chip; the matching count */}
       <div className={styles.row} role="group" aria-label="Source">
         {SOURCES.map((s) => (
-          <Chip key={s} label={`Source ${s}`} kbd={String(perSource[s].length)} toggle selected={source === s} onClick={() => update({ source: s })} name={`Source ${s}, ${perSource[s].length} matching of ${coverage.by_source[s]} — ${sourceDescriptions[s]}`} data-source-chip={s} data-source-count={perSource[s].length} />
+          <Chip key={s} label={`Source ${s}`} kbd={String(perSource[s].length)} toggle selected={source === s} onClick={() => update({ source: s })} name={`Source ${s}, ${perSource[s].length} matching of ${coverage.by_source[s]}. ${sourceDescriptions[s]}`} data-source-chip={s} data-source-count={perSource[s].length} />
         ))}
         <Chip label={String(missing.length)} icon="ban" tone="gold" name={`Named but missing resources (${missing.length}): marked missing, never reconstructed. Open the register.`} onClick={() => setSheet({ kind: 'missing' })} data-open-missing />
       </div>
@@ -188,7 +188,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
           if (listOpen && !selected) return null;
           if (!s.records_supplied) {
             return (
-              <span key={s.id} className={[styles.sectionTile, styles.namedOnly].join(' ')} role="img" aria-label={`${s.id} — ${namedOnlyTitle(s.title)}: named in the framework; no records supplied`} data-section-id={s.id} data-named-only>
+              <span key={s.id} className={[styles.sectionTile, styles.namedOnly].join(' ')} role="img" aria-label={`${namedOnlyTitle(s.title)}: named in the framework; no records supplied (section ${s.id})`} data-section-id={s.id} data-named-only>
                 <span className={styles.sectionGlyph} aria-hidden="true">
                   <Icon name="empty" size={20} weight="bold" />
                 </span>
@@ -204,7 +204,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
               type="button"
               className={[styles.sectionTile, selected ? styles.sectionSelected : ''].join(' ').trim()}
               aria-pressed={selected}
-              aria-label={`${s.id} — ${s.title}: ${count} of ${s.record_count} records${selected ? '. Selected; tap to show all sections' : ''}`}
+              aria-label={`${s.title}: ${count} of ${s.record_count} records (section ${s.id})${selected ? '. Selected; tap to show all sections' : ''}`}
               onClick={() => toggleSection(s.id)}
               data-section-id={s.id}
             >
@@ -243,7 +243,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
             list.map((r) => {
               const g = classificationGlyph(r.use_classification);
               return (
-                <Card key={r.id} href={`/sources/${encodeURIComponent(r.id)}`} name={`${r.id} — ${r.title}. ${g.name}. Open record.`} dense data-record-id={r.id}>
+                <Card key={r.id} href={`/sources/${encodeURIComponent(r.id)}`} name={`Record ${r.id}, ${r.title}. ${g.name}. Open record.`} dense data-record-id={r.id}>
                   <div className={styles.recordRow}>
                     <span className={styles.recordGlyph} aria-hidden="true">
                       <Icon name={sectionIcon(r.section_title)} size={16} weight="bold" />
@@ -262,7 +262,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
       <Sheet open={sheet?.kind === 'missing'} onClose={() => setSheet(null)} title="Missing" data-sheet="missing" tall>
         <div className={styles.sheetBody} data-missing-register>
           {missing.map((m) => (
-            <Card key={m.id} dense onPress={() => setSheet({ kind: 'missing-item', id: m.id })} name={`${m.name} — marked missing, not reconstructed. Open.`} data-missing-id={m.id}>
+            <Card key={m.id} dense onPress={() => setSheet({ kind: 'missing-item', id: m.id })} name={`${m.name}: marked missing, not reconstructed. Open.`} data-missing-id={m.id}>
               <div className={styles.missingRow}>
                 <GlyphPill glyph="⊘" tone="orange" name="Marked missing, not reconstructed; nothing is filled from imagination" />
                 <span className={styles.missingName}>{m.name}</span>
@@ -276,7 +276,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
         {missingItem ? (
           <div className={styles.sheetBody} data-missing-item={missingItem.id}>
             <div className={styles.row}>
-              <GlyphPill glyph="⊘" label="Missing" tone="orange" name="Marked missing — not reconstructed" data-missing-marker />
+              <GlyphPill glyph="⊘" label="Missing" tone="orange" name="Marked missing, not reconstructed" data-missing-marker />
             </div>
             <p className={styles.sheetTitle}>{missingItem.name}</p>
             <section aria-labelledby="m-named">
@@ -313,7 +313,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
             {CLASSIFICATIONS.map((c) => {
               const g = classificationGlyph(c);
               return (
-                <div key={c} className={styles.glyphStat} role="group" aria-label={`${g.word}: ${coverage.by_classification[c]} records — ${classificationDefinitions[c]}`}>
+                <div key={c} className={styles.glyphStat} role="group" aria-label={`${g.word}: ${coverage.by_classification[c]} records. ${classificationDefinitions[c]}`}>
                   <span className={styles.glyphStatValue} aria-hidden="true">
                     {coverage.by_classification[c]}
                   </span>

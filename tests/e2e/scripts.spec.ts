@@ -79,8 +79,9 @@ test.describe('scripts', () => {
     await expect(rail.locator('[data-stage]')).toHaveCount(15);
     await expect(page.locator('[data-stage-lines] [data-node-card]')).toHaveCount(5);
     await expect(page.locator('[data-node-card][data-node-id="inbound-callback-open"] [data-primary-line]')).toContainText('Jason with Apohenia');
-    // Draft is a glyph with the whole truth in its name — never rendered as approved.
-    await expect(page.locator('[data-node-card][data-node-id="cold-open"] [data-approval="draft"]')).toHaveAttribute('aria-label', /Draft — written, not reviewed/);
+    // Draft is a quiet mark with the whole truth in its name, never a DRAFT chip and never rendered as approved.
+    await expect(page.locator('[data-node-card][data-node-id="cold-open"] [data-approval="draft"]')).toHaveAttribute('aria-label', /Draft: written, not reviewed/);
+    await expect(page.locator('[data-node-card][data-node-id="cold-open"] [data-approval="draft"]')).not.toContainText(/draft/i);
     // Version · graph · offer status live behind ⓘ (developer vocabulary never sits on the stage).
     await expect(page.locator('[data-status-pills]:visible')).toHaveCount(0);
     await page.locator('[data-status-open]').click();
@@ -118,6 +119,7 @@ test.describe('scripts', () => {
       await expect(sheet.getByRole('heading', { level: 3, name })).toBeVisible();
     }
     await expect(sheet.locator('[data-sheet-approval="draft"]')).toBeVisible();
+    await expect(sheet.locator('[data-sheet-approval="draft"]')).toContainText('Draft script. Not approved for live use.');
     await expect(sheet.locator('[data-mirror]')).toHaveCount(2);
     const say = sheet.locator('[data-say-this]');
     // A missing slot is a visible cue — a ‹dealership name› chip whose name says what fills it — never an invented value or a bracket.
@@ -172,6 +174,7 @@ test.describe('scripts', () => {
     await expect(textarea).toBeEnabled();
     await textarea.fill('Hey, is this Dana? Jason here — you grabbed the checklist, right?');
     await expect(sheet.locator('[data-primary-unchanged]')).toContainText('Jason with Apohenia');
+    expect(await sheet.locator('[data-primary-unchanged]').textContent()).not.toMatch(/[{}]/); // the locked line renders slot chips, never braces
     await expect(sheet.locator('[data-say-this]')).not.toContainText('grabbed the checklist');
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-node-card][data-node-id="inbound-callback-open"] [data-primary-line]')).toHaveText(primaryBefore);
@@ -185,7 +188,7 @@ test.describe('scripts', () => {
     await page.goto('/scripts');
     await page.locator('[data-stage-rail] [data-stage="decision"]').click();
     const priceLine = page.locator('[data-node-card][data-node-id="decision-price"] [data-primary-line]');
-    await expect(priceLine.locator('[data-slot-status="price"]')).toHaveAttribute('aria-label', /Price not approved yet — route to scope conversation/);
+    await expect(priceLine.locator('[data-slot-status="price"]')).toHaveAttribute('aria-label', /Price not approved yet: route to scope conversation/);
     expect(await priceLine.textContent()).not.toMatch(/\$|\d/);
     await page.locator('[data-stage-rail] [data-stage="pitch"]').click();
     const pillarLine = page.locator('[data-node-card][data-node-id="pitch-pillar-1"] [data-primary-line]');
@@ -246,7 +249,7 @@ test.describe('scripts', () => {
     await page.goto('/scripts');
     await openNode(page, 'inbound-callback-open');
     const chip = nodeSheet(page).locator('[data-citation="I01"]');
-    await expect(chip).toHaveAttribute('aria-label', /Adapt — study material/);
+    await expect(chip).toHaveAttribute('aria-label', /Adapt: study material/);
     await chip.click();
     const source = page.locator('dialog[data-sheet="source"]');
     await expect(source.locator('[data-source-sheet="I01"]')).toBeVisible();

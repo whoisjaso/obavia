@@ -67,9 +67,9 @@ test.describe('source library list', () => {
     await expect(page.locator('[data-source-panel="A"] [data-record-id="I01"]')).toBeVisible();
     await expect(page.locator('[data-source-panel="B"]')).toHaveCount(0);
     const i01 = page.locator('[data-record-id="I01"]');
-    await expect(i01).toHaveAttribute('aria-label', /^I01 — /); // the id lives in the accessible name, not on the stage
+    await expect(i01).toHaveAttribute('aria-label', /^Record I01, /); // the id lives in the accessible name, not on the stage
     await expect(i01).not.toContainText('I01');
-    await expect(i01.locator('[data-classification="adapt"]')).toHaveAttribute('aria-label', /Adapt — study material.*not live approval/);
+    await expect(i01.locator('[data-classification="adapt"]')).toHaveAttribute('aria-label', /Adapt: study material.*not live approval/);
     await expect(i01.locator('p')).toHaveCount(0);
 
     await chipB.click();
@@ -97,10 +97,10 @@ test.describe('source library list', () => {
     await expect(page.locator('[data-results-status]')).toContainText('Source A 21, Source B 12');
     await expect(page.locator('[data-source-chip="A"]')).toHaveAttribute('data-source-count', '21');
     // Section counts follow the filter; D01 sits in A10 (alpha/beta buying pocket).
-    await expect(page.locator('[data-section-rail="A"] [data-section-id="A10"]')).toHaveAttribute('aria-label', /^A10 — .*: [12] of 2 records/);
+    await expect(page.locator('[data-section-rail="A"] [data-section-id="A10"]')).toHaveAttribute('aria-label', /: [12] of 2 records \(section A10\)/);
     await page.locator('[data-search-open]').click();
     await page.locator('[data-search]').fill('D01');
-    await expect(page.locator('[data-source-panel="A"] [data-record-id="D01"] [data-classification="study_only"]')).toHaveAttribute('aria-label', /Study only — readable for study; never a live recommendation/);
+    await expect(page.locator('[data-source-panel="A"] [data-record-id="D01"] [data-classification="study_only"]')).toHaveAttribute('aria-label', /Study only: readable for study; never a live recommendation/);
     await page.locator('[data-clear-filters]').click();
     await expect(chip).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('[data-results-status]')).toContainText('Source A 144, Source B 63');
@@ -146,7 +146,7 @@ test.describe('source library list', () => {
     await register.locator('[data-missing-id="four_frame_fear_set"]').click();
     const item = page.locator('dialog[data-sheet="missing-item"]');
     await expect(item.locator('[data-missing-item="four_frame_fear_set"]')).toBeVisible();
-    await expect(item.locator('[data-missing-marker]')).toHaveAttribute('aria-label', 'Marked missing — not reconstructed');
+    await expect(item.locator('[data-missing-marker]')).toHaveAttribute('aria-label', 'Marked missing, not reconstructed');
     const supplied = item.locator('[data-what-is-supplied]');
     await expect(supplied).toContainText('Two fragmentary study_only analogies');
     await expect(supplied).toContainText('None of the 207 supplied records');
@@ -174,7 +174,7 @@ test.describe('source record detail', () => {
     await expect(glyph).toHaveAttribute('aria-label', /Source-only: readable for study; not a live recommendation/);
     await expect(glyph).toHaveAttribute('data-classification', 'study_only');
     await expect(page.locator('[data-offsets]')).toHaveText('[80241, 80817)');
-    await expect(page.locator('[data-template-label]')).toHaveAttribute('aria-label', /normalized template — not verbatim/);
+    await expect(page.locator('[data-template-label]')).toHaveAttribute('aria-label', /normalized template, not verbatim/);
     // Offsets, hash status and section ids are data: they live in the record sheet's Reference rows, never as stage chips.
     await expect(page.locator('[data-offsets-chip]:visible')).toHaveCount(0);
     await page.locator('[data-open-overlay]').click();

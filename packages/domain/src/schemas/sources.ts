@@ -95,8 +95,8 @@ export const MissingResource = z.strictObject({
   named_in: z.string(),
   what_is_supplied: z.string(),
   what_is_missing: z.string(),
-  /** Must contain the phrase "marked missing — not reconstructed". */
-  handling: z.string().includes('marked missing — not reconstructed'),
+  /** Must contain the phrase "marked missing, not reconstructed". */
+  handling: z.string().includes('marked missing, not reconstructed'),
 });
 export type MissingResource = z.infer<typeof MissingResource>;
 

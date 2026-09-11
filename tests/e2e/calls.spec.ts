@@ -168,6 +168,9 @@ test.describe('History /calls', () => {
     await expect(page.locator('[data-history]')).toHaveAttribute('data-hydrated', 'true');
     await expect(page.locator('[data-session-list]')).toHaveCount(0);
     await expect(page.locator('[data-session-card]')).toHaveCount(0);
+    // No session yet: one quiet caption, never a row of zeros beside the synthetic calls.
+    await expect(page.locator('[data-history-stats][data-history-empty]')).toBeVisible();
+    await expect(page.locator('[data-stat="dials"]')).toHaveCount(0);
 
     const calls = page.locator('[data-call-list] [data-call-card]');
     await expect(calls).toHaveCount(loadSyntheticTranscripts().transcripts.length);
@@ -175,7 +178,7 @@ test.describe('History /calls', () => {
     await expect(first).toContainText('Dana Whitlock');
     await expect(first).toContainText('Riverbend Motors');
     await expect(first).toContainText(/\d:\d\d/);
-    await expect(page.locator('[data-call-card][data-call-id="syn-h-opt-out"] [data-chip]')).toHaveAttribute('aria-label', /Opt-out recorded — do not call/); // the domain's outcome label
+    await expect(page.locator('[data-call-card][data-call-id="syn-h-opt-out"] [data-chip]')).toHaveAttribute('aria-label', /Opt-out recorded: do not call/); // the domain's outcome label
     await expect(page.locator('[data-call-card][data-call-id="syn-h-opt-out"]')).toHaveAttribute('data-outcome', 'do_not_call');
     await expect(page.locator('table')).toHaveCount(0);
     await page.waitForLoadState('networkidle');
@@ -227,6 +230,8 @@ test.describe('History /calls', () => {
     await expect(page.locator('[data-review-tone]')).toHaveAttribute('aria-label', 'Tone not assessed (text-only)');
     await expect(page.locator('[data-review-tone]')).toContainText('Not assessed');
     for (const key of ['strength', 'fix', 'ask', 'drill']) await expect(page.locator(`[data-review="${key}"]`)).toBeVisible();
+    // The line card carries no bridge cue chips or developer vocabulary (the bridge is one plain line or nothing).
+    await expect(page.locator('[data-line-card]')).not.toContainText(/\back\b|referent|[⟨⟩{}]/);
     await expect(page.locator('[data-review="drill"]')).toHaveAttribute('href', '/practice');
     await expect(page.locator('table')).toHaveCount(0);
     // A Fix card that names a missing field quotes the last question asked, never an unrelated closing turn.

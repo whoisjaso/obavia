@@ -28,14 +28,14 @@ Not hashed here (repo-authored drafts, not authority): `docs/03-apohenia-draft-s
 | File | Bytes | SHA-256 | Origin | Contents |
 |---|---|---|---|---|
 | `data/source_question_records.json` | 250,399 | `80ed9d2180e4feaeee17b9a97711a5edadd218c683397f5e24719e87f64ac9a1` | parsed losslessly from doc 3 by `scripts/parse-question-bank.mjs` | 207 records; Source A 144 · B 63; adapt 160 · study_only 33 · private_training 14; every record `hash_verified: false` |
-| `data/source_sections.json` | 10,723 | `a8b3e6941d33bf6320238dad948bdf288e1de7c6b90099f144667dc15469deef` | same parser | 26 sections with records + 13 named-only = 39 (brief says 41; not reconciled, not invented) |
-| `data/source_package_validation.json` | 1,292 | `4427b983bdea8e867cf71aba95f3a88b8131f26f4fcae2afd46474a3c52abd70` | same parser | counts, offset convention, `raw_sources_supplied: false` |
-| `data/source_missing_resources.json` | 9,220 | `53f3d94e89f8b4874ebe061051faee81736a731fc0e3418c4e855b634c05c1a7` | authored in this repo (M-sources) | 11 named-but-missing resources, each "marked missing — not reconstructed" |
-| `data/identity_interview.json` | 48,723 | `dbc294d7ca2dd2f93071883f951895fb915c0d17dfea3cede1dac0ecab8cf85e` | authored in this repo from brief §4 (package JSON not supplied) | 33 screens (30 base + 3 conditional) |
-| `data/apohenia_script_nodes.json` | 173,084 | `8500417b0f973319e1d6e4ba8c2fc9fed5464a53f1721c8de1f7b7ca11bcb93a` | authored in this repo from brief §5–§6 and doc 2 | 1 draft version, 51 nodes, six entrypoints, `exit-stop`; cites record ids; all `draft` |
-| `data/offers.json` | 10,188 | `07434544270830be1a2bdfacd8d76f56db8a005c3f139bd5a94c9fce4c65fceb` | authored from brief §5 | draft research offer (price `null`) + fictional practice pilot (USD 750 + 150, bannered) |
-| `data/synthetic_transcripts.json` | 185,648 | `c325283d0de26d920371b4705ecd2232b2133d73d0ca2bb5f07ec835036f8477` | authored from brief §7 and addendum §7/§10 | 23 synthetic calls: `syn-a…syn-h` (8, vocabulary cases) + `syn-l-*` (15, listener fixtures); `provider: "synthetic"`, no hidden mock facts |
-| `data/synthetic_prospects.json` | 7,541 | `270bc25bb72f1b56e677f7101c8c5ba0ca57b4709948dad1be357b32a410baee` | authored from brief §9 | fictional CRM: 8 companies, 9 locations, 9 endpoints, 10 contacts; `+1 555-01xx` numbers, jurisdiction `unknown`, contact policy `requires_review`, one opt-out contact |
+| `data/source_sections.json` | 10,728 | `3631f8e55881f7b66a3494d9c47109cd8180b29a7358c5cdf0876c5a4859ac53` | same parser | 26 sections with records + 13 named-only = 39 (brief says 41; not reconciled, not invented) |
+| `data/source_package_validation.json` | 1,289 | `ceed2baf50c130a8279da42ab5f792d0eaf0cbda58db3dc28b0de181e5df2f5a` | same parser | counts, offset convention, `raw_sources_supplied: false` |
+| `data/source_missing_resources.json` | 9,180 | `426c06fada1c60eab68ac5577b91ebdf7aa55e6fba823f0ba03cca20eb36352a` | authored in this repo (M-sources) | 11 named-but-missing resources, each "marked missing — not reconstructed" |
+| `data/identity_interview.json` | 48,725 | `a78b94bbe5e9478e2b2abe6b7ca37c725fd1b70af9aa40562f79782e31658ac2` | authored in this repo from brief §4 (package JSON not supplied) | 33 screens (30 base + 3 conditional) |
+| `data/apohenia_script_nodes.json` | 171,073 | `5ba64731417e9caa71781942b6e9a5fefa87268e9aa6e820a67d73a59601ab31` | authored in this repo from brief §5–§6 and doc 2 | 1 draft version, 51 nodes, six entrypoints, `exit-stop`; cites record ids; all `draft` |
+| `data/offers.json` | 10,157 | `1bef9ab1d2c1126703ec884969b7ede40ed37235067b7b785eecf84251e80904` | authored from brief §5 | draft research offer (price `null`) + fictional practice pilot (USD 750 + 150, bannered) |
+| `data/synthetic_transcripts.json` | 185,501 | `ea11073f5bc735e9ddac315dd987b32b944e4acdb7535d36f37bcaa8506f87ad` | authored from brief §7 and addendum §7/§10 | 23 synthetic calls: `syn-a…syn-h` (8, vocabulary cases) + `syn-l-*` (15, listener fixtures); `provider: "synthetic"`, no hidden mock facts |
+| `data/synthetic_prospects.json` | 7,565 | `6a1d4230a0ff08570dc92e95912f825fc9ce565b36f657ae882a8b6a084ce4f8` | authored from brief §9 | fictional CRM: 8 companies, 9 locations, 9 endpoints, 10 contacts; `+1 555-01xx` numbers, jurisdiction `unknown`, contact policy `requires_review`, one opt-out contact |
 
 ## 3. Not in the repository (never reconstructed)
 

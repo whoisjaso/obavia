@@ -14,12 +14,12 @@ export const MAX_MOCK_STEPS = 40 as const;
 
 /** Exit choices available at every step; the outcome they map to is evaluated by `mockOutcomeScore`. */
 export const EXIT_CHOICES: readonly { id: string; label: string; outcome: LegitimateOutcome }[] = [
-  { id: 'exit:no_fit', label: 'End respectfully — no fit', outcome: 'no_fit' },
-  { id: 'exit:defer', label: 'Agree a later reconnect — defer', outcome: 'defer' },
+  { id: 'exit:no_fit', label: 'End respectfully: no fit', outcome: 'no_fit' },
+  { id: 'exit:defer', label: 'Agree a later reconnect: defer', outcome: 'defer' },
   { id: 'exit:needs_second_decision_maker', label: 'Schedule with the second decision-maker', outcome: 'needs_second_decision_maker' },
-  { id: 'exit:gatekeeper', label: 'Ask for the right person or a good time — gatekeeper', outcome: 'gatekeeper' },
-  { id: 'exit:opt_out', label: 'Stop immediately — opt-out', outcome: 'opt_out' },
-  { id: 'exit:qualified', label: 'Proceed to close — qualified', outcome: 'qualified' },
+  { id: 'exit:gatekeeper', label: 'Ask for the right person or a good time: gatekeeper', outcome: 'gatekeeper' },
+  { id: 'exit:opt_out', label: 'Stop immediately: opt-out', outcome: 'opt_out' },
+  { id: 'exit:qualified', label: 'Proceed to close: qualified', outcome: 'qualified' },
 ];
 
 export function outcomeForExitChoice(choiceId: string): LegitimateOutcome | undefined {

@@ -81,7 +81,7 @@ describe('scenario 1 — profit, not revenue; net, not gross', () => {
     const revenue = a.events.find((e) => e.normalized_key === 'revenue');
     expect(revenue?.rejected_by).toBe('profit');
     expect(a.ranked.some((r) => r.event.normalized_key === 'revenue')).toBe(false);
-    expect(correctionLines(a.events).map((c) => c.line)).toContain('PROFIT — rejected: revenue');
+    expect(correctionLines(a.events).map((c) => c.line)).toContain('PROFIT, rejected: revenue');
   });
   it('retains the net-not-gross correction and surfaces the "ask what costs are included" cue', () => {
     const net = a.events.find((e) => e.normalized_key === 'net');
@@ -107,7 +107,7 @@ describe('scenario 2 — the representative says profit; the prospect emphasizes
     const profit = b.events.find((e) => e.normalized_key === 'profit');
     expect(profit?.provenance).toBe('seller_only');
     expect(profit?.repetition_by_speaker).toEqual({ representative: 4, prospect: 0 });
-    expect(provenanceLabel(profit!)).toBe('seller only — not pinned');
+    expect(provenanceLabel(profit!)).toBe('seller only: not pinned');
   });
   it('never promotes profit into the top pins; staff time is the pin', () => {
     expect(b.ranked.some((r) => r.event.normalized_key === 'profit')).toBe(false);
@@ -382,7 +382,7 @@ describe('post-call review and definitions', () => {
   });
   it('rubric is labelled internal and not validated, sums to 100, with automatic fails', () => {
     const rubric = rubricDefinition();
-    expect(rubric.label).toBe('internal training rubric — not validated');
+    expect(rubric.label).toBe('internal training rubric, not validated');
     expect(rubric.criteria.reduce((s, c) => s + c.weight, 0)).toBe(100);
     expect(rubric.automatic_fail).toContain('explicit opt-out violation');
   });

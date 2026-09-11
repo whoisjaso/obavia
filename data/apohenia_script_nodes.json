@@ -2,7 +2,7 @@
   "versions": [
     {
       "id": "dealership-inquiry-follow-through-v0.1",
-      "name": "Dealership website inquiry follow-through — draft v0.1 (price after pillars)",
+      "name": "Dealership website inquiry follow-through, draft v0.1 (price after pillars)",
       "version": 1,
       "offer_version_id": "draft-research-offer-v0",
       "entry_node_ids": {
@@ -85,7 +85,7 @@
         "cold",
         "setter"
       ],
-      "primary_word_track": "Hi {prospect_name}, this is Jason with Apohenia. I'm calling because I work on what happens after someone submits an inquiry on a dealership website — is this a bad time, or can I take sixty seconds to say why I called {dealership_name} specifically?",
+      "primary_word_track": "Hi {prospect_name}, this is Jason with Apohenia. I'm calling because I work on what happens after someone submits an inquiry on a dealership website. Is this a bad time, or can I take sixty seconds to say why I called {dealership_name} specifically?",
       "source_question_ids": [],
       "intended_answer_type": "Permission to continue (yes / not now / no), or a redirect to the right person.",
       "required_context": [
@@ -94,20 +94,20 @@
       ],
       "sufficient_answer_examples": [
         "Go ahead, you have a minute.",
-        "I'm not the right person — you want Dana, she runs the internet desk."
+        "I'm not the right person. You want Dana, she runs the internet desk."
       ],
       "insufficient_answer_examples": [
-        "Silence or an unclear grunt — ask again plainly, do not assume permission.",
-        "What is this about? (permission not yet given — answer the question, then re-ask)."
+        "Silence or an unclear grunt. Ask again plainly, do not assume permission.",
+        "What is this about? (permission not yet given: answer the question, then re-ask)."
       ],
       "facts_already_known_rule": "If the person has already confirmed who they are and that they have a minute, skip the permission ask and move to the reason for the call.",
       "mirror_variants": [
         "Is now workable for a quick one, or would a scheduled fifteen minutes be easier?",
         "Do I have you at a reasonable moment, {prospect_name}, or should I try another time?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "The person has explicitly said go ahead, named a better time, redirected to a colleague, or declined. Silence is not permission.",
@@ -139,12 +139,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out or do-not-call request at any point → exit-stop immediately.",
-        "Number is suppressed or jurisdiction unknown → do not place the call at all (dialing policy, not this node)."
+        "Opt-out or do-not-call request at any point: stop immediately.",
+        "Number suppressed or jurisdiction unknown: do not place the call at all (dialing policy, not this line)."
       ],
       "why_this_now": "Permission first: a cold call has no lead action to lean on, so the only honest opening is to ask for a minute and state a specific, relevant reason.",
       "what_to_listen_for": "A clear yes versus a polite non-answer; who actually owns web inquiries at this store; any sign they want to end the call.",
-      "source_note": "Apohenia addition — the source explains a warm-lead opener only (I01–I03) and does not supply a permission-first cold dealership script (framework §2, §16)."
+      "source_note": "Apohenia addition: the source explains a warm-lead opener only (I01 to I03) and does not supply a permission-first cold dealership script."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -158,28 +158,28 @@
         "cold",
         "setter"
       ],
-      "primary_word_track": "Understood. Who looks after the website inquiries at {dealership_name} — the general manager or the internet manager? I'd rather ask them directly than leave a message that misses.",
+      "primary_word_track": "Understood. Who looks after the website inquiries at {dealership_name}, the general manager or the internet manager? I'd rather ask them directly than leave a message that misses.",
       "source_question_ids": [],
       "intended_answer_type": "The name or role of the person who owns web inquiries, and how to reach them.",
       "required_context": [
         "{dealership_name}"
       ],
       "sufficient_answer_examples": [
-        "That's Marcus, our BDC manager — he's in after two.",
+        "That's Marcus, our BDC manager. He's in after two.",
         "Hold on, I can put you through to the GM."
       ],
       "insufficient_answer_examples": [
-        "Just send an email to info@ (no owner named — ask once who reads that inbox, then accept the answer).",
+        "Just send an email to info@ (no owner named: ask once who reads that inbox, then accept the answer).",
         "We are not interested (treat as decline, not as a redirect)."
       ],
-      "facts_already_known_rule": "If the owner of web inquiries has already been named, do not ask again — ask for the best way to reach that person.",
+      "facts_already_known_rule": "If the owner of web inquiries has already been named, do not ask again; ask for the best way to reach that person.",
       "mirror_variants": [
         "If a web inquiry came in right now, whose desk would it land on?",
         "Who would you point a customer to if they asked about an inquiry they'd sent through the site?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "A named owner or role is obtained, a transfer happens, a message is accepted, or the gatekeeper declines.",
@@ -206,12 +206,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Any request not to call again → exit-stop.",
-        "If transferred, re-open with permission (cold-open) — do not assume the new person has agreed to anything."
+        "Any request not to call again: stop immediately.",
+        "If transferred, re-open with permission from the cold opener; do not assume the new person has agreed to anything."
       ],
       "why_this_now": "The gatekeeper controls the route; asking for the actual owner respects their role and avoids pitching the wrong person.",
       "what_to_listen_for": "A real name and role; whether the gatekeeper is screening or genuinely unsure; an implicit no.",
-      "source_note": "Apohenia addition — no gatekeeper route exists in the source (framework §2)."
+      "source_note": "Apohenia addition: no gatekeeper route exists in the source."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -227,7 +227,7 @@
       ],
       "primary_word_track": "No problem. Would fifteen minutes at a time you pick be easier? I'd show you one thing about how {dealership_name}'s web inquiries are handled today, and you decide whether it's worth more than that.",
       "source_question_ids": [],
-      "intended_answer_type": "Agreement to a short, scheduled meeting with a chosen time — or a decline.",
+      "intended_answer_type": "Agreement to a short, scheduled meeting with a chosen time, or a decline.",
       "required_context": [
         "{dealership_name}"
       ],
@@ -236,17 +236,17 @@
         "Actually, go ahead now, I've got a few minutes."
       ],
       "insufficient_answer_examples": [
-        "Maybe, send me something (no time chosen — offer two options, then accept a no).",
-        "Call back sometime (no commitment — ask which week, or accept)."
+        "Maybe, send me something (no time chosen: offer two options, then accept a no).",
+        "Call back sometime (no commitment: ask which week, or accept)."
       ],
       "facts_already_known_rule": "If a time has already been proposed by the prospect, confirm it and move to the follow-up agreement instead of re-offering.",
       "mirror_variants": [
         "Would a short scheduled call be less disruptive than me catching you cold?",
         "Is there a day this week or next when fifteen minutes would not be a nuisance?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "A specific time is agreed, the person chooses to continue now, or they decline.",
@@ -273,12 +273,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "A second \"not now\" without a time → exit-no-sale; do not push a third time."
+        "Opt-out: stop immediately.",
+        "A second \"not now\" without a time: end with no sale; do not push a third time."
       ],
       "why_this_now": "A short-meeting alternative respects a bad moment without losing the thread; it gives the person control over when.",
       "what_to_listen_for": "Whether the \"bad time\" is real or a polite no; a concrete day or hour.",
-      "source_note": "Apohenia addition — the short-meeting alternative is not in the source (framework §2)."
+      "source_note": "Apohenia addition: the short-meeting alternative is not in the source."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -292,7 +292,7 @@
         "inbound",
         "setter"
       ],
-      "primary_word_track": "Hi, is this {prospect_name}? It's Jason with Apohenia — you {documented_action} about how {dealership_name} handles website inquiries. Did I get that right?",
+      "primary_word_track": "Hi, is this {prospect_name}? It's Jason with Apohenia. You {documented_action} about how {dealership_name} handles website inquiries. Did I get that right?",
       "source_question_ids": [
         "I01",
         "I02"
@@ -304,21 +304,21 @@
         "{dealership_name}"
       ],
       "sufficient_answer_examples": [
-        "Yes, that's me — I filled in the form after reading your checklist.",
+        "Yes, that's me. I filled in the form after reading your checklist.",
         "That's right, though it was my sales manager who asked me to look."
       ],
       "insufficient_answer_examples": [
-        "I don't remember doing that (do not insist — ask what they were looking at, and use the new-activity intent variant).",
-        "Who is this? (identity not confirmed — restate name and reason once)."
+        "I don't remember doing that (do not insist: ask what they were looking at, and use the new-activity intent variant).",
+        "Who is this? (identity not confirmed: restate name and reason once)."
       ],
       "facts_already_known_rule": "If the person has already identified themselves and named the action, skip confirmation and go straight to the intent question.",
       "mirror_variants": [
-        "Am I speaking with {prospect_name}? I have a note that you {documented_action} — is that correct?",
-        "Before I go on — you're the person who {documented_action}, is that right, or did someone else at {dealership_name} send it in?"
+        "Am I speaking with {prospect_name}? I have a note that you {documented_action}. Is that correct?",
+        "Before I go on: you're the person who {documented_action}, is that right, or did someone else at {dealership_name} send it in?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "Both the identity and the lead action are confirmed, corrected, or explicitly unknown.",
@@ -332,7 +332,7 @@
           "label": "Doesn't recall the action",
           "answer_category": "doesnt_recall",
           "next_node_id": "intent-tangible",
-          "note": "Use the new-activity intent wording (I07) rather than the improvement wording."
+          "note": "Use the new-activity intent wording rather than the improvement wording."
         },
         {
           "label": "Wrong person",
@@ -346,11 +346,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "Wrong person → apologise and stop; do not pitch whoever answered."
+        "Opt-out: stop immediately.",
+        "Wrong person: apologise and stop; do not pitch whoever answered."
       ],
-      "why_this_now": "The source ties the call back to the action that created the lead so the conversation starts from something real the person did (I01–I02).",
-      "what_to_listen_for": "Whether they own the action or were delegated; the words they use for the inquiry problem — those become {their_word} later."
+      "why_this_now": "The source ties the call back to the action that created the lead so the conversation starts from something real the person did.",
+      "what_to_listen_for": "Whether they own the action or were delegated; the words they use for the inquiry problem; those become {their_word} later."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -364,7 +364,7 @@
         "handoff",
         "closer"
       ],
-      "primary_word_track": "Before we go on — my colleague's notes say: {setter_notes}. Is that about right, or did anything get lost between the two conversations?",
+      "primary_word_track": "Before we go on, my colleague's notes say: {setter_notes}. Is that about right, or did anything get lost between the two conversations?",
       "source_question_ids": [
         "I08"
       ],
@@ -374,20 +374,20 @@
       ],
       "sufficient_answer_examples": [
         "That's right, and it's mostly weekends where things fall through.",
-        "Mostly — but I never said we lose deals, I said we don't know."
+        "Mostly, but I never said we lose deals, I said we don't know."
       ],
       "insufficient_answer_examples": [
-        "Sure, whatever you have (no engagement — read back the three parts one at a time).",
-        "I told your colleague all this (confirmation not given — ask which part is right)."
+        "Sure, whatever you have (no engagement: read back the three parts one at a time).",
+        "I told your colleague all this (confirmation not given: ask which part is right)."
       ],
-      "facts_already_known_rule": "If the notes already contain goal, problem and impact and the prospect confirms them, mark intent and logical certainty evidence-satisfied and move to the rationale question. Missing or disputed parts route back to the specific missing question — never past it.",
+      "facts_already_known_rule": "If the notes already contain goal, problem and impact and the prospect confirms them, mark intent and logical certainty evidence-satisfied and move to the rationale question. Missing or disputed parts route back to the specific missing question, never past it.",
       "mirror_variants": [
         "Let me read back what I have, and you correct me where I'm wrong: {setter_notes}.",
         "What did you want to make sure I already knew before we start?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "The prospect has confirmed or corrected each of goal, problem and impact; missing items are identified by name.",
@@ -415,12 +415,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "If no notes exist, skip the recap entirely and start at intent."
       ],
       "why_this_now": "The source avoids repeating the setting call by recapping and confirming; Apohenia adds the evidence check so disputed or missing notes are not skipped over.",
       "what_to_listen_for": "Corrections in the prospect's own words; hesitation on a specific item; the setter's paraphrase being mistaken for the prospect's statement.",
-      "source_note": "Source lineage I08; the missing-or-disputed routing is an Apohenia addition (framework §2)."
+      "source_note": "Source lineage I08; the missing-or-disputed routing is an Apohenia addition."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -436,7 +436,7 @@
         "setter",
         "closer"
       ],
-      "primary_word_track": "What had you looking at this — specifically, what would you want to be different about how {dealership_name} handles website inquiries?",
+      "primary_word_track": "What had you looking at this? Specifically, what would you want to be different about how {dealership_name} handles website inquiries?",
       "source_question_ids": [
         "I03",
         "I06",
@@ -448,20 +448,20 @@
       ],
       "sufficient_answer_examples": [
         "I want every inquiry answered the same day, and I want to know it happened.",
-        "More of those form leads should turn into appointments — right now most just die."
+        "More of those form leads should turn into appointments. Right now most just die."
       ],
       "insufficient_answer_examples": [
-        "We've been here twenty years and things are fine (no desired change stated — ask what, if anything, they would change).",
-        "Just seeing what you do (exploring, no tangible — accept it; offer the checklist and a follow-up rather than manufacturing a goal)."
+        "We've been here twenty years and things are fine (no desired change stated: ask what, if anything, they would change).",
+        "Just seeing what you do (exploring, no tangible: accept it; offer the checklist and a follow-up rather than manufacturing a goal)."
       ],
-      "facts_already_known_rule": "If the prospect already stated the desired result (e.g. in the inquiry form or the recap), mark satisfied and say: \"You mentioned {stated_goal} — let me ask about what you have seen so far.\"",
+      "facts_already_known_rule": "If the prospect already stated the desired result (e.g. in the inquiry form or the recap), mark satisfied and say: \"You mentioned {stated_goal}. Let me ask about what you have seen so far.\"",
       "mirror_variants": [
         "If this went well, what would you want it to change for the store?",
         "What would you need to see on inquiries for you to say this was worth it?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "One desired future result about inquiries is stated in the prospect's words, or the prospect states they have no goal (accepted).",
@@ -475,7 +475,7 @@
           "label": "Already described the problem too",
           "answer_category": "experience_included",
           "next_node_id": "logical-process",
-          "note": "Do not ask the experience question again (scenario 3)."
+          "note": "Do not ask the experience question again."
         },
         {
           "label": "Just exploring / no goal",
@@ -489,11 +489,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when the tangible is already on record (evidence-satisfied)."
       ],
-      "why_this_now": "The tangible is the anchor everything later refers back to; the source asks one intent question, not both variants (I06 for improvement, I07 for a new activity).",
-      "what_to_listen_for": "A result versus a wish; the exact noun they use for the problem (inquiries, leads, forms) — keep their word.",
+      "why_this_now": "The tangible is the anchor everything later refers back to; the source asks one intent question, not both variants (one for improvement, one for a new activity).",
+      "what_to_listen_for": "A result versus a wish; the exact noun they use for the problem (inquiries, leads, forms); keep their word.",
       "satisfied_by_facts": [
         "stated_goal"
       ]
@@ -518,7 +518,7 @@
         "M02",
         "M03"
       ],
-      "intended_answer_type": "The past or present experience behind the goal — an observed gap, not a restatement of the goal.",
+      "intended_answer_type": "The past or present experience behind the goal: an observed gap, not a restatement of the goal.",
       "required_context": [
         "{stated_goal}"
       ],
@@ -527,17 +527,17 @@
         "Customers tell us on the phone that they already filled in the form and heard nothing."
       ],
       "insufficient_answer_examples": [
-        "I just want more appointments (goal repeated — use a mirror).",
-        "Everyone has this problem (generic claim — ask what they have seen at this store)."
+        "I just want more appointments (goal repeated: use a mirror).",
+        "Everyone has this problem (generic claim: ask what they have seen at this store)."
       ],
-      "facts_already_known_rule": "If the inquiry text or setter notes already contain a specific observed experience, mark satisfied and transition: \"You mentioned {stated_problem} — walk me through what happens today.\"",
+      "facts_already_known_rule": "If the inquiry text or setter notes already contain a specific observed experience, mark satisfied and transition: \"You mentioned {stated_problem}. Walk me through what happens today.\"",
       "mirror_variants": [
         "What would fixing that let the store do that it cannot do now?",
-        "How is the current situation showing up week to week — what do you actually notice?"
+        "How is the current situation showing up week to week? What do you actually notice?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "One concrete observation about the current inquiry handling is stated; \"I do not have that problem\" counts as a complete, accepted answer.",
@@ -565,10 +565,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when an experience is already on record."
       ],
-      "why_this_now": "The source distinguishes the tangible (want) from the experience (what they have seen); the mirror switches to what the goal would allow when only the goal comes back (framework §3).",
+      "why_this_now": "The source distinguishes the tangible (want) from the experience (what they have seen); the mirror switches to what the goal would allow when only the goal comes back.",
       "what_to_listen_for": "An observed event with a rough number or date; whether they are guessing or reporting.",
       "satisfied_by_facts": [
         "stated_problem"
@@ -588,7 +588,7 @@
         "setter",
         "closer"
       ],
-      "primary_word_track": "Walk me through what happens today when someone sends an inquiry through the website — who sees it first, and what happens next?",
+      "primary_word_track": "Walk me through what happens today when someone sends an inquiry through the website. Who sees it first, and what happens next?",
       "source_question_ids": [
         "L01"
       ],
@@ -599,17 +599,17 @@
         "The CRM assigns it round-robin, but half the guys ignore the task."
       ],
       "insufficient_answer_examples": [
-        "It's a mess (a label, not a process — ask who sees it first).",
-        "The CRM handles it (a tool, not a process — ask what a person does after the CRM notifies them)."
+        "It's a mess (a label, not a process: ask who sees it first).",
+        "The CRM handles it (a tool, not a process: ask what a person does after the CRM notifies them)."
       ],
-      "facts_already_known_rule": "If the current process was already described (recap or earlier answer), mark satisfied: \"You said the inquiries go to {current_process} — how long has it worked that way?\"",
+      "facts_already_known_rule": "If the current process was already described (recap or earlier answer), mark satisfied: \"You said the inquiries go to {current_process}. How long has it worked that way?\"",
       "mirror_variants": [
         "If I sent a test inquiry through your site right now, what would happen to it in the first hour?",
         "Who would be the first human to see a web inquiry, and how would they know it arrived?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "The path of an inquiry from arrival to first human action is described, or the prospect says they do not know (accepted).",
@@ -637,11 +637,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {current_process} is already known."
       ],
-      "why_this_now": "Logical certainty starts with the current process because every later question (what they like, what they would change, the impact) refers back to it (L01).",
-      "what_to_listen_for": "Handoffs with no owner; steps that depend on one person; the tool they name — it becomes the \"one existing channel\".",
+      "why_this_now": "Logical certainty starts with the current process because every later question (what they like, what they would change, the impact) refers back to it.",
+      "what_to_listen_for": "Handoffs with no owner; steps that depend on one person; the tool they name; it becomes the \"one existing channel\".",
       "satisfied_by_facts": [
         "current_process"
       ]
@@ -660,7 +660,7 @@
         "setter",
         "closer"
       ],
-      "primary_word_track": "How long has it worked that way — and what led you to set it up like that in the first place?",
+      "primary_word_track": "How long has it worked that way, and what led you to set it up like that in the first place?",
       "source_question_ids": [
         "L02",
         "L03"
@@ -669,20 +669,20 @@
       "required_context": [],
       "sufficient_answer_examples": [
         "Since we switched CRMs two years ago; the vendor set the routing and nobody changed it.",
-        "Forever — the previous GM ran it from his inbox and we kept going."
+        "Forever. The previous GM ran it from his inbox and we kept going."
       ],
       "insufficient_answer_examples": [
-        "A while (no duration — ask whether it is months or years).",
-        "Because it works (no origin — ask who decided it)."
+        "A while (no duration: ask whether it is months or years).",
+        "Because it works (no origin: ask who decided it)."
       ],
-      "facts_already_known_rule": "If duration and origin are already known, transition: \"You said it has been {process_duration} — is there anything about it worth keeping?\"",
+      "facts_already_known_rule": "If duration and origin are already known, transition: \"You said it has been {process_duration}. Is there anything about it worth keeping?\"",
       "mirror_variants": [
         "Was this set up on purpose, or did it just settle into place?",
         "Roughly when did the current way of handling inquiries start?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "A rough duration and an origin are stated, or the prospect declines (accepted).",
@@ -699,11 +699,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {process_duration} is already known."
       ],
-      "why_this_now": "The source treats the origin question as a gentle doubt question: hearing themselves explain an inherited process is what opens them to a different one (L02–L03).",
-      "what_to_listen_for": "\"Nobody decided\" — the process was never chosen; a vendor default; a person who has since left.",
+      "why_this_now": "The source treats the origin question as a gentle doubt question: hearing themselves explain an inherited process is what opens them to a different one.",
+      "what_to_listen_for": "\"Nobody decided\": the process was never chosen; a vendor default; a person who has since left.",
       "satisfied_by_facts": [
         "process_duration"
       ]
@@ -722,29 +722,29 @@
         "setter",
         "closer"
       ],
-      "primary_word_track": "Setting the follow-through problem aside for a second — is there anything about the current setup you'd want to keep, whatever changes?",
+      "primary_word_track": "Setting the follow-through problem aside for a second: is there anything about the current setup you'd want to keep, whatever changes?",
       "source_question_ids": [
         "L04",
         "L05"
       ],
-      "intended_answer_type": "What the prospect values in the present approach, or an explicit \"nothing\" — accepted as is.",
+      "intended_answer_type": "What the prospect values in the present approach, or an explicit \"nothing\": accepted as is.",
       "required_context": [],
       "sufficient_answer_examples": [
         "The CRM itself is fine; I do not want another login for the team.",
-        "Honestly, nothing — I'd start over."
+        "Honestly, nothing. I'd start over."
       ],
       "insufficient_answer_examples": [
-        "It's all fine, we just need more leads (contradicts the stated problem — ask which part is fine).",
+        "It's all fine, we just need more leads (contradicts the stated problem: ask which part is fine).",
         "What do you mean keep? (clarify: which parts should survive a change)."
       ],
-      "facts_already_known_rule": "If the prospect already said what must stay (e.g. \"keep the CRM\"), transition: \"You mentioned keeping {preserved_element} — if you could change one thing, what would it be?\"",
+      "facts_already_known_rule": "If the prospect already said what must stay (e.g. \"keep the CRM\"), transition: \"You mentioned keeping {preserved_element}. If you could change one thing, what would it be?\"",
       "mirror_variants": [
         "If the process changed tomorrow, what would the team be upset to lose?",
         "Which part of the current handling is actually working for you?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "A valued element is named, or the prospect states there is nothing they like. Do NOT push a \"nothing\" back into a positive.",
@@ -758,7 +758,7 @@
           "label": "Nothing liked",
           "answer_category": "nothing_liked",
           "next_node_id": "logical-change",
-          "note": "Accepted as is — no forced positive."
+          "note": "Accepted as is: no forced positive."
         },
         {
           "label": "Declines",
@@ -767,12 +767,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {preserved_element} is already known."
       ],
       "why_this_now": "Asking what should be preserved keeps the conversation fair and tells you what the offer must not break (the one existing channel, the one handoff).",
       "what_to_listen_for": "Tools or people that must stay; a \"nothing\" said with relief versus with frustration.",
-      "source_note": "Adaptation: the source (L06, study_only) forces a no-answer back into a positive to appear unbiased. Apohenia asks what should be preserved but accepts that nothing is liked (framework §4). L06 is cited here only as a note and is not a live node.",
+      "source_note": "Adaptation: the source (L06, study only) forces a no-answer back into a positive to appear unbiased. Apohenia asks what should be preserved but accepts that nothing is liked. L06 is cited here only as a note and is not a live line.",
       "satisfied_by_facts": [
         "preserved_element"
       ]
@@ -805,17 +805,17 @@
         "Nobody knows who owns a lead, so two people call the same customer or nobody does."
       ],
       "insufficient_answer_examples": [
-        "Accountability (a label — ask \"what do you mean by that?\").",
+        "Accountability (a label: ask \"what do you mean by that?\").",
         "Everything (ask for the one thing they would fix first)."
       ],
-      "facts_already_known_rule": "If a specific problem is already on record, transition: \"You mentioned {stated_problem} — how long has that been going on?\"",
+      "facts_already_known_rule": "If a specific problem is already on record, transition: \"You mentioned {stated_problem}. How long has that been going on?\"",
       "mirror_variants": [
-        "What do you mean by that — can you give me an example from last week?",
-        "How do you mean — what does that look like on an actual inquiry?"
+        "What do you mean by that? Can you give me an example from last week?",
+        "How do you mean? What does that look like on an actual inquiry?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "A specific, concrete problem is stated (or clarified via the probe), or the prospect says there is nothing to change (accepted).",
@@ -829,13 +829,13 @@
           "label": "Label only",
           "answer_category": "label_only",
           "next_node_id": "logical-change",
-          "note": "Use the \"what do you mean\" probe (L08/L09) once."
+          "note": "Use the \"what do you mean\" probe once."
         },
         {
           "label": "Nothing to change",
           "answer_category": "nothing_to_change",
           "next_node_id": "exit-no-sale",
-          "note": "No actual problem — respectful exit."
+          "note": "No actual problem: respectful exit."
         },
         {
           "label": "Declines",
@@ -844,11 +844,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {stated_problem} is already known."
       ],
-      "why_this_now": "After positives, the source asks for the specific problem and immediately clarifies labels (L07–L09); the clarified problem becomes {stated_problem} for every later node.",
-      "what_to_listen_for": "The prospect's own word for the problem — pin it; a number or time-of-day pattern; a person-dependency.",
+      "why_this_now": "After positives, the source asks for the specific problem and immediately clarifies labels; the clarified problem becomes {stated_problem} for every later node.",
+      "what_to_listen_for": "The prospect's own word for the problem; pin it; a number or time-of-day pattern; a person-dependency.",
       "satisfied_by_facts": [
         "stated_problem"
       ]
@@ -867,33 +867,33 @@
         "setter",
         "closer"
       ],
-      "primary_word_track": "How long has {stated_problem} been going on — and has it affected anything downstream, like appointments kept or what your staff spend their time on?",
+      "primary_word_track": "How long has {stated_problem} been going on, and has it affected anything downstream, like appointments kept or what your staff spend their time on?",
       "source_question_ids": [
         "L10",
         "L12",
         "L13",
         "L14"
       ],
-      "intended_answer_type": "The problem duration (distinct from process duration) and a downstream impact — operational, economic or personal — in their words.",
+      "intended_answer_type": "The problem duration (distinct from process duration) and a downstream impact (operational, economic or personal) in their words.",
       "required_context": [
         "{stated_problem}"
       ],
       "sufficient_answer_examples": [
         "Since we lost our BDC person in March. We've probably missed a dozen appointments a month, and I spend Monday mornings chasing.",
-        "About a year. Honestly it hasn't cost us much that I can prove — it just annoys me."
+        "About a year. Honestly it hasn't cost us much that I can prove, it just annoys me."
       ],
       "insufficient_answer_examples": [
-        "Yes, it has (no how — ask \"how so, just so I understand?\").",
-        "It's bad for business (generic — ask what they have actually seen change)."
+        "Yes, it has (no how: ask \"how so, just so I understand?\").",
+        "It's bad for business (generic: ask what they have actually seen change)."
       ],
-      "facts_already_known_rule": "If duration and impact are already on record, transition: \"You mentioned {stated_impact} — in six months, where would you want to be on this?\"",
+      "facts_already_known_rule": "If duration and impact are already on record, transition: \"You mentioned {stated_impact}. In six months, where would you want to be on this?\"",
       "mirror_variants": [
-        "How so, just so I understand — what has it changed for the store?",
+        "How so, just so I understand? What has it changed for the store?",
         "When did you first notice it, and what has it cost you that you can point to?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Skeptical / probing (instructor-described: A — lean back, brow cue; B — leaning out, used in the first half of emotional certainty). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Skeptical / probing (instructor-described; A: lean back, brow cue; B: leaning out, used in the first half of emotional certainty). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: slow down slightly; let the question sit rather than filling the gap."
       },
       "completion_criteria": "A duration and at least one concrete impact are stated, OR the prospect says the impact is small or unknown (accepted; not escalated).",
@@ -921,11 +921,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {stated_impact} is already known."
       ],
-      "why_this_now": "Impact ties the process to a cost the prospect states themselves; in the reviewed call (A13) this was quantified rather than emotionalised (framework §4).",
-      "what_to_listen_for": "Verified counts versus estimates versus feelings — keep them labelled separately; who pays the cost (staff time, the manager, the customer).",
+      "why_this_now": "Impact ties the process to a cost the prospect states themselves; in the reviewed call this was quantified rather than emotionalised.",
+      "what_to_listen_for": "Verified counts versus estimates versus feelings; keep them labelled separately; who pays the cost (staff time, the manager, the customer).",
       "satisfied_by_facts": [
         "stated_impact"
       ]
@@ -943,7 +943,7 @@
         "cold",
         "inbound"
       ],
-      "primary_word_track": "In six months, where would you want {dealership_name} to be on this — say, what share of inquiries answered the same day, or how many turning into appointments? And where is it now?",
+      "primary_word_track": "In six months, where would you want {dealership_name} to be on this? Say, what share of inquiries answered the same day, or how many turning into appointments? And where is it now?",
       "source_question_ids": [
         "S01",
         "S02"
@@ -957,17 +957,17 @@
         "I'd want ten appointments a month from web leads; I genuinely don't know what we get now."
       ],
       "insufficient_answer_examples": [
-        "Better (no target — ask for a number or a description they could recognise).",
+        "Better (no target: ask for a number or a description they could recognise).",
         "A lot more (ask \"when you say a lot, is that two, five, ten?\")."
       ],
-      "facts_already_known_rule": "If a target and baseline are already on record, transition: \"You mentioned {target_metric} — would it make sense to go through this properly on a longer call?\"",
+      "facts_already_known_rule": "If a target and baseline are already on record, transition: \"You mentioned {target_metric}. Would it make sense to go through this properly on a longer call?\"",
       "mirror_variants": [
         "If this were working, what number would you look at each Monday to know?",
         "What would \"fixed\" look like in six months, in terms you could check?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "A target and a baseline (or an explicit unknown baseline) are stated. Neither establishes budget or affordability.",
@@ -981,7 +981,7 @@
           "label": "Signals this may be too small a priority to fund",
           "answer_category": "unqualified_signal",
           "next_node_id": "setter-spend-conditional",
-          "note": "Conditional branch only (A03); never asked of everyone."
+          "note": "Conditional branch only; never asked of everyone."
         },
         {
           "label": "Unknown",
@@ -995,10 +995,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {target_metric} is already known."
       ],
-      "why_this_now": "The setter needs a target and a gap to judge whether a longer conversation is relevant (S01–S02); it is a relevance check, not an affordability test.",
+      "why_this_now": "The setter needs a target and a gap to judge whether a longer conversation is relevant; it is a relevance check, not an affordability test.",
       "what_to_listen_for": "Whether the number is a wish or a plan; whether they can measure it today.",
       "satisfied_by_facts": [
         "target_metric"
@@ -1017,33 +1017,33 @@
         "cold",
         "inbound"
       ],
-      "primary_word_track": "If there were a bounded way to close that gap, is this something {dealership_name} would put budget toward this year — or is it more of a look-around for now?",
+      "primary_word_track": "If there were a bounded way to close that gap, is this something {dealership_name} would put budget toward this year, or is it more of a look-around for now?",
       "source_question_ids": [
         "S03"
       ],
-      "intended_answer_type": "Whether the store would fund a bounded fix at all — a priority signal, not a budget figure.",
+      "intended_answer_type": "Whether the store would fund a bounded fix at all: a priority signal, not a budget figure.",
       "required_context": [
         "{dealership_name}"
       ],
       "sufficient_answer_examples": [
         "If it's bounded and I can see the numbers, yes, there's a line for it.",
-        "Honestly a look-around — we're mid-CRM-migration and nothing gets approved until Q1."
+        "Honestly a look-around. We're mid-CRM-migration and nothing gets approved until Q1."
       ],
       "insufficient_answer_examples": [
-        "Depends on the price (fair — say the price is set only after scope, and ask whether the problem is worth funding at all).",
-        "We always invest in growth (generic — ask whether this specific problem has a budget owner)."
+        "Depends on the price (fair: say the price is set only after scope, and ask whether the problem is worth funding at all).",
+        "We always invest in growth (generic: ask whether this specific problem has a budget owner)."
       ],
-      "facts_already_known_rule": "If the prospect already stated a budget line or a freeze, do not ask — reflect it and move to permission or nurture.",
+      "facts_already_known_rule": "If the prospect already stated a budget line or a freeze, do not ask; reflect it and move to permission or nurture.",
       "mirror_variants": [
         "Is fixing inquiry follow-through something with a budget owner at the store, or is it not there yet?",
         "Would this be a this-quarter decision or a someday one?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
-      "completion_criteria": "A yes / not now / not my call is stated. Theoretical willingness never establishes affordability (framework §5).",
+      "completion_criteria": "A yes / not now / not my call is stated. Theoretical willingness never establishes affordability.",
       "branches": [
         {
           "label": "Would fund a bounded fix",
@@ -1059,7 +1059,7 @@
           "label": "Not their call",
           "answer_category": "lack_authority",
           "next_node_id": "followup-agree",
-          "note": "Ask who the budget owner is for a later conversation; never relabel as fear (scenario 37)."
+          "note": "Ask who the budget owner is for a later conversation; never relabel as fear."
         },
         {
           "label": "Declines",
@@ -1069,11 +1069,11 @@
       ],
       "stop_or_skip_conditions": [
         "Only reached via the conditional branch of setter-target-gap; never asked universally.",
-        "Opt-out → exit-stop."
+        "Opt-out: stop immediately."
       ],
       "why_this_now": "A03 makes the spend question conditional on a low-qualification signal; Apohenia keeps it as a branch, not a gate, so nobody is means-tested by default.",
-      "what_to_listen_for": "A budget owner other than the speaker; a freeze with a date; \"depends on price\" (legitimate — price is not yet approved).",
-      "source_note": "Source S03 is conditional in A and broader in B (framework §16); Apohenia keeps the conditional form only."
+      "what_to_listen_for": "A budget owner other than the speaker; a freeze with a date; \"depends on price\" (legitimate: price is not yet approved).",
+      "source_note": "Source S03 is conditional in A and broader in B; Apohenia keeps the conditional form only."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -1100,7 +1100,7 @@
       "intended_answer_type": "Permission to schedule the deeper conversation (with a time), a preference to be nurtured first, or a decline.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Sure — Tuesday afternoon is open.",
+        "Sure. Tuesday afternoon is open.",
         "Send me something first and let's talk next week."
       ],
       "insufficient_answer_examples": [
@@ -1112,12 +1112,12 @@
         "Would it be useful to book thirty minutes to look at this properly, or would you rather have the one-page checklist first?",
         "Is a longer look at this something you would want, or is now not the time?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
-      "completion_criteria": "A yes with a time, a nurture-first preference, or a decline. \"Would that be awful?\" (S05) is a source alternate, not required.",
+      "completion_criteria": "A yes with a time, a nurture-first preference, or a decline. \"Would that be awful?\" is a source alternate, not required.",
       "branches": [
         {
           "label": "Agreed",
@@ -1141,10 +1141,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "In an upsell setting, this is the transition to advanced help (X09/X10); never imply a credit or \"no extra money\" that is not in an approved offer."
+        "Opt-out: stop immediately.",
+        "In an upsell setting, this is the transition to advanced help; never imply a credit or \"no extra money\" that is not in an approved offer."
       ],
-      "why_this_now": "The setter call ends with permission to connect, not a pitch (S04); the nurture-first option (B17) is offered without guilt.",
+      "why_this_now": "The setter call ends with permission to connect, not a pitch; the nurture-first option is offered without guilt.",
       "what_to_listen_for": "A concrete time; who else should be on the call; whether \"send me something\" is interest or a soft no."
     },
     {
@@ -1169,24 +1169,24 @@
         "{stated_problem}"
       ],
       "sufficient_answer_examples": [
-        "We've tried assigning it twice and it drifts back within a month — nobody here owns the process.",
+        "We've tried assigning it twice and it drifts back within a month. Nobody here owns the process.",
         "Honestly I'd rather fix it in-house; I just want to know what good looks like."
       ],
       "insufficient_answer_examples": [
-        "You're the experts (flattery, not a rationale — ask what they have already tried).",
-        "Why not? (no reason — ask what in-house attempts looked like)."
+        "You're the experts (flattery, not a rationale: ask what they have already tried).",
+        "Why not? (no reason: ask what in-house attempts looked like)."
       ],
-      "facts_already_known_rule": "If the rationale is already on record (e.g. \"we tried in-house twice\"), transition: \"You mentioned {rationale} — before we spoke, had you looked at other ways to fix this?\"",
+      "facts_already_known_rule": "If the rationale is already on record (e.g. \"we tried in-house twice\"), transition: \"You mentioned {rationale}. Before we spoke, had you looked at other ways to fix this?\"",
       "mirror_variants": [
         "What has stopped this from getting fixed with the people and tools you already have?",
         "If you did it in-house, what would get in the way?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Skeptical / probing (instructor-described: A — lean back, brow cue; B — leaning out, used in the first half of emotional certainty). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Skeptical / probing (instructor-described; A: lean back, brow cue; B: leaning out, used in the first half of emotional certainty). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: slow down slightly; let the question sit rather than filling the gap."
       },
-      "completion_criteria": "A reason for seeking outside help is stated in their words, or a preference for in-house is stated (accepted — no rhetorical contrast with \"the average person\").",
+      "completion_criteria": "A reason for seeking outside help is stated in their words, or a preference for in-house is stated (accepted: no rhetorical contrast with \"the average person\").",
       "branches": [
         {
           "label": "Rationale given",
@@ -1206,10 +1206,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {rationale} is already known."
       ],
-      "why_this_now": "The source prehandles the DIY objection by letting the prospect state why outside help; Apohenia drops the source's negative contrast with \"the average person\" (framework §6).",
+      "why_this_now": "The source prehandles the DIY objection by letting the prospect state why outside help; Apohenia drops the source's negative contrast with \"the average person\".",
       "what_to_listen_for": "Prior in-house attempts and why they drifted; whether the real reason is time, skill or ownership.",
       "satisfied_by_facts": [
         "rationale"
@@ -1227,7 +1227,7 @@
         "closer",
         "handoff"
       ],
-      "primary_word_track": "Before we spoke, had you looked at other ways to fix this — and if so, did you go ahead with anything, and how did it turn out?",
+      "primary_word_track": "Before we spoke, had you looked at other ways to fix this? And if so, did you go ahead with anything, and how did it turn out?",
       "source_question_ids": [
         "E02",
         "E05",
@@ -1235,24 +1235,24 @@
         "V27",
         "V28"
       ],
-      "intended_answer_type": "Decision history: never looked / looked but did not proceed / proceeded with a good, bad or mixed result / still using a provider — plus the Apohenia additions (changed priorities, no actual problem, no authority or budget, unknown, declined).",
+      "intended_answer_type": "Decision history: never looked / looked but did not proceed / proceeded with a good, bad or mixed result / still using a provider, plus the Apohenia additions (changed priorities, no actual problem, no authority or budget, unknown, declined).",
       "required_context": [],
       "sufficient_answer_examples": [
         "We paid for a lead-response service last year; it answered fast but sent nonsense replies, so we cancelled.",
-        "Never looked — it wasn't a priority until we lost our BDC person."
+        "Never looked. It wasn't a priority until we lost our BDC person."
       ],
       "insufficient_answer_examples": [
         "We've looked at lots of stuff (ask whether they went ahead with any of it).",
-        "It was fine (ask what result they actually got — good, bad, or mixed)."
+        "It was fine (ask what result they actually got: good, bad, or mixed)."
       ],
-      "facts_already_known_rule": "If decision history is already on record, transition: \"You mentioned {decision_history} — given that, what would you need to see this time?\" and route by the known outcome.",
+      "facts_already_known_rule": "If decision history is already on record, transition: \"You mentioned {decision_history}. Given that, what would you need to see this time?\" and route by the known outcome.",
       "mirror_variants": [
         "Is this the first time you have looked at fixing inquiry follow-through, or have you been down this road before?",
-        "What have you already tried on this, paid or unpaid — and what happened?"
+        "What have you already tried on this, paid or unpaid, and what happened?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Skeptical / probing (instructor-described: A — lean back, brow cue; B — leaning out, used in the first half of emotional certainty). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Skeptical / probing (instructor-described; A: lean back, brow cue; B: leaning out, used in the first half of emotional certainty). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: slow down slightly; let the question sit rather than filling the gap."
       },
       "completion_criteria": "One decision-history branch is identifiable from their answer; unknown and declined are complete answers.",
@@ -1268,17 +1268,17 @@
           "next_node_id": "emotional-prevented-shifted"
         },
         {
-          "label": "Proceeded — bad result",
+          "label": "Proceeded, bad result",
           "answer_category": "proceeded_bad",
           "next_node_id": "emotional-criteria"
         },
         {
-          "label": "Proceeded — good result",
+          "label": "Proceeded, good result",
           "answer_category": "proceeded_good",
           "next_node_id": "emotional-good-why"
         },
         {
-          "label": "Proceeded — mixed result",
+          "label": "Proceeded, mixed result",
           "answer_category": "mixed_result",
           "next_node_id": "emotional-criteria",
           "note": "Apohenia addition."
@@ -1299,13 +1299,13 @@
           "label": "No actual problem",
           "answer_category": "no_actual_problem",
           "next_node_id": "exit-no-sale",
-          "note": "Apohenia addition — accepted, not argued."
+          "note": "Apohenia addition: accepted, not argued."
         },
         {
           "label": "No authority or budget",
           "answer_category": "lack_authority_budget",
           "next_node_id": "concern-authority",
-          "note": "Apohenia addition — a real constraint, never relabelled as fear (scenario 37)."
+          "note": "Apohenia addition: a real constraint, never relabelled as fear."
         },
         {
           "label": "Unknown",
@@ -1317,17 +1317,17 @@
           "label": "Declines to answer",
           "answer_category": "declined",
           "next_node_id": "future-tangible",
-          "note": "Apohenia addition — refusal accepted."
+          "note": "Apohenia addition: refusal accepted."
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {decision_history} is already known.",
         "Do not walk every buyer through every branch."
       ],
-      "why_this_now": "The A05 decision tree surfaces the reason most likely to return as an objection; the extra branches are explicit Apohenia additions so real situations are not forced into the four source outcomes (framework §6).",
+      "why_this_now": "The A05 decision tree surfaces the reason most likely to return as an objection; the extra branches are explicit Apohenia additions so real situations are not forced into the four source outcomes.",
       "what_to_listen_for": "Who made the previous decision; what \"bad\" actually meant (speed, quality, cost); whether a provider is still under contract.",
-      "source_note": "Source tree E02/E05/E06; the mixed-result, still-active-provider, changed-priorities, no-actual-problem, no-authority/budget, unknown and declined branches are Apohenia additions (brief §6).",
+      "source_note": "Source tree E02/E05/E06; the mixed-result, still-active-provider, changed-priorities, no-actual-problem, no-authority/budget, unknown and declined branches are Apohenia additions.",
       "satisfied_by_facts": [
         "decision_history"
       ]
@@ -1344,7 +1344,7 @@
         "closer",
         "handoff"
       ],
-      "primary_word_track": "What got in the way then — and what's different now that has you looking at it?",
+      "primary_word_track": "What got in the way then, and what's different now that has you looking at it?",
       "source_question_ids": [
         "E03",
         "E04"
@@ -1353,20 +1353,20 @@
       "required_context": [],
       "sufficient_answer_examples": [
         "Money and the migration. Now the migration is done and the owner asked me why web leads are flat.",
-        "Nothing has changed really — I'm still short-staffed; I'm just tired of it."
+        "Nothing has changed really. I'm still short-staffed; I'm just tired of it."
       ],
       "insufficient_answer_examples": [
         "Just timing (ask what specifically made then the wrong time and now different).",
-        "I don't know (accepted — move on rather than pressing for a shift that may not exist)."
+        "I don't know (accepted: move on rather than pressing for a shift that may not exist)."
       ],
-      "facts_already_known_rule": "If the barrier and the shift are already on record, transition: \"You mentioned {shift_reason} — if this were handled the way you want, what would be different?\"",
+      "facts_already_known_rule": "If the barrier and the shift are already on record, transition: \"You mentioned {shift_reason}. If this were handled the way you want, what would be different?\"",
       "mirror_variants": [
         "Was there a specific reason it did not go ahead before, and is that reason gone or still here?",
         "What would have to be true now for this to actually happen, that was not true then?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Skeptical / probing (instructor-described: A — lean back, brow cue; B — leaning out, used in the first half of emotional certainty). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Skeptical / probing (instructor-described; A: lean back, brow cue; B: leaning out, used in the first half of emotional certainty). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: slow down slightly; let the question sit rather than filling the gap."
       },
       "completion_criteria": "A barrier and a shift are stated, OR the prospect states the constraint remains. A stated shift is not treated as permanent removal of a real constraint.",
@@ -1377,7 +1377,7 @@
           "next_node_id": "future-tangible"
         },
         {
-          "label": "Plausible reason for the timing — move to criteria",
+          "label": "Plausible reason for the timing, move to criteria",
           "answer_category": "plausible_reason_accepted",
           "next_node_id": "emotional-criteria",
           "note": "A13 variation: do not keep insisting on a different reason."
@@ -1386,7 +1386,7 @@
           "label": "Still constrained",
           "answer_category": "still_constrained",
           "next_node_id": "concern-diagnose",
-          "note": "Apohenia addition — diagnose the actual constraint."
+          "note": "Apohenia addition; diagnose the actual constraint."
         },
         {
           "label": "Optional identity frame (study/practice only)",
@@ -1401,11 +1401,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {shift_reason} is already known."
       ],
-      "why_this_now": "What prevented / what shifted is the source's way to hear the future objection before the pitch (E03–E04); when the reason is plausible, the reviewed call moves on instead of insisting (A13).",
-      "what_to_listen_for": "A constraint that is still present (budget, staffing, authority) — route to diagnosis, not to a pep talk.",
+      "why_this_now": "What prevented / what shifted is the source's way to hear the future objection before the pitch; when the reason is plausible, the reviewed call moves on instead of insisting.",
+      "what_to_listen_for": "A constraint that is still present (budget, staffing, authority); route to diagnosis, not to a pep talk.",
       "satisfied_by_facts": [
         "shift_reason"
       ]
@@ -1433,20 +1433,20 @@
       "required_context": [],
       "sufficient_answer_examples": [
         "It has to use our CRM, not another inbox, and I want to see response times without asking anyone.",
-        "A short trial with a clear stop — last time we were locked in for a year."
+        "A short trial with a clear stop. Last time we were locked in for a year."
       ],
       "insufficient_answer_examples": [
         "Results (ask what result they would check, and by when).",
         "Something that works (ask what \"works\" would look like on a Monday morning)."
       ],
-      "facts_already_known_rule": "If criteria are already on record, transition: \"You mentioned {ideal_criteria} — if it met that, what would tangibly be different for the store?\"",
+      "facts_already_known_rule": "If criteria are already on record, transition: \"You mentioned {ideal_criteria}. If it met that, what would tangibly be different for the store?\"",
       "mirror_variants": [
         "What did the last attempt get wrong that a new one would have to get right?",
         "If you were writing the acceptance test yourself, what would be on it?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "At least one checkable criterion is stated; only deliverable, approved matches may later be fed into the pitch.",
@@ -1468,11 +1468,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {ideal_criteria} is already known."
       ],
-      "why_this_now": "After a bad or mixed result the source asks for ideal criteria (E07); these become the acceptance criteria in the scope, so only deliverable matches are promised.",
-      "what_to_listen_for": "Criteria the draft offer cannot meet (e.g. a lender integration) — say so plainly rather than nodding.",
+      "why_this_now": "After a bad or mixed result the source asks for ideal criteria; these become the acceptance criteria in the scope, so only deliverable matches are promised.",
+      "what_to_listen_for": "Criteria the draft offer cannot meet (e.g. a lender integration); say so plainly rather than nodding.",
       "satisfied_by_facts": [
         "ideal_criteria"
       ]
@@ -1493,27 +1493,27 @@
       "source_question_ids": [
         "E08"
       ],
-      "intended_answer_type": "The remaining bottleneck or new reason to change a previously working approach — or confirmation that no gap exists.",
+      "intended_answer_type": "The remaining bottleneck or new reason to change a previously working approach, or confirmation that no gap exists.",
       "required_context": [],
       "sufficient_answer_examples": [
         "It answers fast, but the handoff to sales is still manual and nobody sees status.",
-        "It's fine — I'm only here because my owner asked me to compare."
+        "It's fine. I'm only here because my owner asked me to compare."
       ],
       "insufficient_answer_examples": [
         "Just curious (ask what, if anything, the current provider does not do).",
         "Wanted a second opinion (ask on which part)."
       ],
-      "facts_already_known_rule": "If the remaining bottleneck is already on record, transition: \"You mentioned {remaining_bottleneck} — what would be different if that were handled?\"",
+      "facts_already_known_rule": "If the remaining bottleneck is already on record, transition: \"You mentioned {remaining_bottleneck}. What would be different if that were handled?\"",
       "mirror_variants": [
         "What does the current setup not do that you wish it did?",
         "Where does it still fall short, if anywhere?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
-      "completion_criteria": "A remaining bottleneck is named, or the prospect confirms the current provider covers it (accepted → respectful exit).",
+      "completion_criteria": "A remaining bottleneck is named, or the prospect confirms the current provider covers it (accepted: respectful exit).",
       "branches": [
         {
           "label": "Bottleneck named",
@@ -1521,7 +1521,7 @@
           "next_node_id": "future-tangible"
         },
         {
-          "label": "Current provider covers it — no gap",
+          "label": "Current provider covers it, no gap",
           "answer_category": "still_active_no_gap",
           "next_node_id": "exit-no-sale"
         },
@@ -1532,10 +1532,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {remaining_bottleneck} is already known."
       ],
-      "why_this_now": "A good prior result needs a new bottleneck to justify change (E08); if there is none, the honest route is to say so and leave.",
+      "why_this_now": "A good prior result needs a new bottleneck to justify change; if there is none, the honest route is to say so and leave.",
       "what_to_listen_for": "An unfulfilled promise from the existing provider versus a genuinely new need.",
       "satisfied_by_facts": [
         "remaining_bottleneck"
@@ -1552,20 +1552,20 @@
       "role_applicability": [
         "closer"
       ],
-      "primary_word_track": "Study frame, not for live use: Where do you want the store to be on inquiries — and where is it today? Is the way it's run now worth keeping, given it got you here but isn't getting you there? Are you committed to doing what it takes to get there?",
+      "primary_word_track": "Study frame, not for live use: Where do you want the store to be on inquiries, and where is it today? Is the way it's run now worth keeping, given it got you here but isn't getting you there? Are you committed to doing what it takes to get there?",
       "source_question_ids": [
         "D06",
         "D07",
         "D11"
       ],
-      "intended_answer_type": "Study only: a target, a baseline, and a bounded commitment — used to understand the source frame, never as a live recommendation.",
+      "intended_answer_type": "Study only: a target, a baseline, and a bounded commitment: used to understand the source frame, never as a live recommendation.",
       "required_context": [],
       "sufficient_answer_examples": [
         "(practice) Same-day on everything; today about half; yes, within what the budget allows.",
         "(practice) I am not committing to anything until I see a scope."
       ],
       "insufficient_answer_examples": [
-        "(practice) Any answer that the drill treats as a moral verdict on the prospect — that is the source pattern this frame exists to study, not to reproduce.",
+        "(practice) Any answer that the drill treats as a moral verdict on the prospect. That is the source pattern this frame exists to study, not to reproduce.",
         "(practice) 'I guess so' taken as commitment."
       ],
       "facts_already_known_rule": "Not applicable live. In practice, if target and baseline are known from setter-target-gap, the drill skips to the commitment line.",
@@ -1573,15 +1573,15 @@
         "(practice) Is the current approach one you would choose again today, knowing what you know?",
         "(practice) What would you be prepared to change to reach that target?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Concern / empathy (instructor-described: A — lean toward, raised eyebrows; B — slow pacing, and B dislikes the hand-on-heart gesture). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Concern / empathy (instructor-described; A: lean toward, raised eyebrows; B: slow pacing, and B dislikes the hand-on-heart gesture). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: the slowest pacing of the call; follow the prospect's emotional direction, never lead it."
       },
-      "completion_criteria": "Practice only: the trainee can name the three moves of the frame (target/baseline, contrast, bounded commitment) and explain why the shame variants (D03–D05) are excluded.",
+      "completion_criteria": "Practice only: the trainee can name the three moves of the frame (target and baseline, contrast, bounded commitment) and explain why the source's shame variants are excluded.",
       "branches": [
         {
-          "label": "Practice complete → future",
+          "label": "Practice complete, then future",
           "answer_category": "practice_complete",
           "next_node_id": "future-tangible"
         },
@@ -1595,9 +1595,9 @@
         "ALWAYS skipped in a live call.",
         "Only reachable via the explicitly labelled optional branch in practice mode."
       ],
-      "why_this_now": "The source (B10) places an optional identity frame between \"what shifted\" and future pacing; Apohenia keeps it as a study/practice exercise so the pattern is understood, not deployed.",
-      "what_to_listen_for": "(practice) Whether the drill drifts into making the purchase a test of the person's worth — that is the failure mode.",
-      "source_note": "Study/practice only. Cites private_training records D06/D07/D11. Source contrast questions D08–D10 and the shame/identity questions D03–D05 are study_only and are deliberately NOT part of this node or any live node (framework §7).",
+      "why_this_now": "The source places an optional identity frame between \"what shifted\" and future pacing; Apohenia keeps it as a study/practice exercise so the pattern is understood, not deployed.",
+      "what_to_listen_for": "(practice) Whether the drill drifts into making the purchase a test of the person's worth; that is the failure mode.",
+      "source_note": "Study and practice only. Cites private-training records D06, D07 and D11. Source contrast questions D08 to D10 and the shame and identity questions D03 to D05 are study only and are deliberately not part of this line or any live line.",
       "practice_only": true
     },
     {
@@ -1613,7 +1613,7 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "If the inquiry follow-through were handled the way you want, what would tangibly be different for {dealership_name} — two or three specific things?",
+      "primary_word_track": "If the inquiry follow-through were handled the way you want, what would tangibly be different for {dealership_name}? Two or three specific things.",
       "source_question_ids": [
         "F03",
         "F05",
@@ -1629,23 +1629,23 @@
       ],
       "sufficient_answer_examples": [
         "Saturday inquiries get answered Saturday; I stop doing Monday-morning archaeology; and I could tell the owner an actual number.",
-        "The BDC person could handle the volume without a second hire — and I'd get my Mondays back."
+        "The BDC person could handle the volume without a second hire, and I'd get my Mondays back."
       ],
       "insufficient_answer_examples": [
-        "More sales (ask which situation, with whom, and what practical difference — F05).",
-        "It'd be great (ask what 'great' means to them — route to the word probe)."
+        "More sales (ask which situation, with whom, and what practical difference).",
+        "It'd be great (ask what 'great' means to them: route to the word probe)."
       ],
-      "facts_already_known_rule": "If specific future outcomes are already on record, transition: \"You mentioned {future_outcomes} — and if nothing changes, what does the next six months look like?\"",
+      "facts_already_known_rule": "If specific future outcomes are already on record, transition: \"You mentioned {future_outcomes}. And if nothing changes, what does the next six months look like?\"",
       "mirror_variants": [
-        "In which situations would the difference show up most — a Saturday, a Monday, a month-end?",
+        "In which situations would the difference show up most: a Saturday, a Monday, a month-end?",
         "How would that change what you do on a normal week, practically?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
-      "completion_criteria": "Two or three specific outcomes are stated for the business; owner-level meaning is welcome but not required (personal probing is not mandatory — framework §8).",
+      "completion_criteria": "Two or three specific outcomes are stated for the business; owner-level meaning is welcome but not required (personal probing is not mandatory).",
       "branches": [
         {
           "label": "Specific outcomes",
@@ -1665,12 +1665,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {future_outcomes} is already known.",
-        "In an upsell, the future concerns the NEW goal (Y05/Y06), not a replay of the solved one."
+        "In an upsell, the future concerns the NEW goal, not a replay of the solved one."
       ],
-      "why_this_now": "For B2B the source future-paces the business first (F10/F11) and only then the owner, and asks for details behind any vague word (framework §8).",
-      "what_to_listen_for": "A word that clearly matters to them (their 'gratification') — pin it and probe its meaning rather than swapping in a synonym.",
+      "why_this_now": "For B2B the source future-paces the business first and only then the owner, and asks for details behind any vague word.",
+      "what_to_listen_for": "A word that clearly matters to them (their 'gratification'); pin it and probe its meaning rather than swapping in a synonym.",
       "satisfied_by_facts": [
         "future_outcomes"
       ]
@@ -1688,7 +1688,7 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "When you say {their_word} — what does {their_word} mean to you here?",
+      "primary_word_track": "When you say {their_word}, what does {their_word} mean to you here?",
       "source_question_ids": [
         "F04",
         "F09",
@@ -1699,24 +1699,24 @@
         "{their_word}"
       ],
       "sufficient_answer_examples": [
-        "'Control' means I can open one screen and see every inquiry and who has it — without asking.",
+        "'Control' means I can open one screen and see every inquiry and who has it, without asking.",
         "'Peace of mind' is not getting the call from the owner about a lead we dropped."
       ],
       "insufficient_answer_examples": [
-        "You know, control (repeat of the word — ask for an example of a day with it and a day without).",
+        "You know, control (repeat of the word: ask for an example of a day with it and a day without).",
         "Same as everybody (ask what it would look like for them specifically)."
       ],
-      "facts_already_known_rule": "If the word has already been defined by the prospect, do not ask again — reflect the definition and continue.",
+      "facts_already_known_rule": "If the word has already been defined by the prospect, do not ask again; reflect the definition and continue.",
       "mirror_variants": [
         "What would a week with {their_word} look like, compared with a week without it?",
         "If I asked your sales manager what {their_word} means to you, what would they say?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
-      "completion_criteria": "A definition in the prospect's words is captured with provenance 'prospect said'; a seller-proposed label counts only if the prospect explicitly confirms it (V25 pattern).",
+      "completion_criteria": "A definition in the prospect's words is captured with provenance 'prospect said'; a seller-proposed label counts only if the prospect explicitly confirms it (the reviewed call's confirmation pattern).",
       "branches": [
         {
           "label": "Meaning given",
@@ -1736,10 +1736,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when the word is already defined."
       ],
-      "why_this_now": "The word must mean something to this person (A13 'gratification'); asking what it means keeps their vocabulary intact for the pitch (framework §8).",
+      "why_this_now": "The word must mean something to this person (the reviewed call's 'gratification'); asking what it means keeps their vocabulary intact for the pitch.",
       "what_to_listen_for": "The concrete scene behind the word; whether they accept or correct any paraphrase you offer."
     },
     {
@@ -1755,7 +1755,7 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "And if nothing changes — same process for the next two months, six months, a year — what does that look like for the store, and for you?",
+      "primary_word_track": "And if nothing changes, same process for the next two months, six months, a year, what does that look like for the store, and for you?",
       "source_question_ids": [
         "C01",
         "C02",
@@ -1763,27 +1763,27 @@
         "Y07",
         "V45"
       ],
-      "intended_answer_type": "One or two specific stated consequences of the current trajectory (operational, economic or personal), in their words — or \"not much\" (accepted).",
+      "intended_answer_type": "One or two specific stated consequences of the current trajectory (operational, economic or personal), in their words, or \"not much\" (accepted).",
       "required_context": [],
       "sufficient_answer_examples": [
         "We keep paying for web leads we don't work, and I keep getting the Monday call from the owner.",
-        "Honestly, not much changes — it's an irritation, not a crisis."
+        "Honestly, not much changes. It's an irritation, not a crisis."
       ],
       "insufficient_answer_examples": [
-        "It'd be bad (ask what specifically — a number, a person, a day of the week).",
+        "It'd be bad (ask what specifically: a number, a person, a day of the week).",
         "Same as now (ask what \"now\" costs that they can point to)."
       ],
-      "facts_already_known_rule": "If the consequence is already on record, transition: \"You mentioned {stated_consequence} — is that something you are willing to leave as it is?\"",
+      "facts_already_known_rule": "If the consequence is already on record, transition: \"You mentioned {stated_consequence}. Is that something you are willing to leave as it is?\"",
       "mirror_variants": [
         "What would be the day-to-day ramifications of staying where you are on this?",
         "What might that mean for you as the manager, a year from now, if it stays the same?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Concern / empathy (instructor-described: A — lean toward, raised eyebrows; B — slow pacing, and B dislikes the hand-on-heart gesture). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Concern / empathy (instructor-described; A: lean toward, raised eyebrows; B: slow pacing, and B dislikes the hand-on-heart gesture). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: the slowest pacing of the call; follow the prospect's emotional direction, never lead it."
       },
-      "completion_criteria": "One or two concrete consequences are stated OR the prospect says the consequence is minor. No specific emotional word is required — 'regret' or any feeling word is never a completion condition.",
+      "completion_criteria": "One or two concrete consequences are stated OR the prospect says the consequence is minor. No specific emotional word is required: 'regret' or any feeling word is never a completion condition.",
       "branches": [
         {
           "label": "Consequences stated",
@@ -1803,13 +1803,13 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {stated_consequence} is already known.",
-        "B2B: the extra feeling question (C05) is optional and skipped by default."
+        "B2B: the extra feeling question is optional and skipped by default."
       ],
-      "why_this_now": "The source contrasts the positive future with the cost of inaction (C01); Apohenia records an accurate comparison of options and never scores distress (framework §8).",
+      "why_this_now": "The source contrasts the positive future with the cost of inaction; Apohenia records an accurate comparison of options and never scores distress.",
       "what_to_listen_for": "Consequences they state versus ones you are tempted to supply; a calm \"not much\" is data, not resistance.",
-      "source_note": "Calm consequence only. The source's regret-directed second question (C06) is study_only and is not part of this node or any live node.",
+      "source_note": "Calm consequence only. The source's regret-directed second question (C06) is study only and is not part of this line or any live line.",
       "satisfied_by_facts": [
         "stated_consequence"
       ]
@@ -1827,7 +1827,7 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "Is that something you're willing to leave as it is — or not?",
+      "primary_word_track": "Is that something you're willing to leave as it is, or not?",
       "source_question_ids": [
         "P01",
         "V47"
@@ -1835,21 +1835,21 @@
       "intended_answer_type": "A plain statement of whether they accept the current trajectory.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "No — that's why I'm on this call.",
+        "No. That's why I'm on this call.",
         "Honestly, for this year, yes; it's not the top problem."
       ],
       "insufficient_answer_examples": [
-        "Depends (ask on what — then route to the constraint).",
+        "Depends (ask on what, then route to the constraint).",
         "Well, nobody wants that (ask them directly: are you willing to leave it?)."
       ],
-      "facts_already_known_rule": "If the prospect has already said they will not leave it as is, transition: \"You said you are not willing to leave it — why now rather than next quarter?\"",
+      "facts_already_known_rule": "If the prospect has already said they will not leave it as is, transition: \"You said you are not willing to leave it. Why now rather than next quarter?\"",
       "mirror_variants": [
         "Is the current way of handling inquiries acceptable to you for another year?",
         "Who has to make the call about whether this stays as it is?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Concern / empathy (instructor-described: A — lean toward, raised eyebrows; B — slow pacing, and B dislikes the hand-on-heart gesture). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Concern / empathy (instructor-described; A: lean toward, raised eyebrows; B: slow pacing, and B dislikes the hand-on-heart gesture). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: the slowest pacing of the call; follow the prospect's emotional direction, never lead it."
       },
       "completion_criteria": "A yes or no about settling is stated; \"yes, I will leave it\" is accepted and routes to a respectful exit.",
@@ -1871,11 +1871,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {not_settling} is already on record."
       ],
-      "why_this_now": "The first source commitment is not accepting the trajectory (P01); asked plainly, without theatre.",
-      "what_to_listen_for": "A \"no\" that is actually \"not my decision\" — route to authority, not commitment.",
+      "why_this_now": "The first source commitment is not accepting the trajectory; asked plainly, without theatre.",
+      "what_to_listen_for": "A \"no\" that is actually \"not my decision\"; route to authority, not commitment.",
       "satisfied_by_facts": [
         "not_settling"
       ]
@@ -1908,17 +1908,17 @@
         "Why not (ask what changes if it waits a quarter).",
         "Because you're offering (ask what in their situation makes now right)."
       ],
-      "facts_already_known_rule": "If a reason for now is already on record, transition: \"You mentioned {why_now} — would it be useful if I laid out how I would approach this?\"",
+      "facts_already_known_rule": "If a reason for now is already on record, transition: \"You mentioned {why_now}. Would it be useful if I laid out how I would approach this?\"",
       "mirror_variants": [
         "What happens between now and next quarter if this waits?",
         "Is there a date this needs to be working by?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Concern / empathy (instructor-described: A — lean toward, raised eyebrows; B — slow pacing, and B dislikes the hand-on-heart gesture). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Concern / empathy (instructor-described; A: lean toward, raised eyebrows; B: slow pacing, and B dislikes the hand-on-heart gesture). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: the slowest pacing of the call; follow the prospect's emotional direction, never lead it."
       },
-      "completion_criteria": "A reason for now is stated, or the prospect says later is fine (accepted → agreed follow-up date).",
+      "completion_criteria": "A reason for now is stated, or the prospect says later is fine (accepted: agreed follow-up date).",
       "branches": [
         {
           "label": "Reason given",
@@ -1929,7 +1929,7 @@
           "label": "Optional: whose responsibility",
           "answer_category": "responsibility_optional",
           "next_node_id": "commit-responsibility",
-          "note": "Optional branch only (B03 caveat: inappropriate for some owners)."
+          "note": "Optional branch only (source caveat: inappropriate for some owners)."
         },
         {
           "label": "No reason for now",
@@ -1943,10 +1943,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {why_now} is already known."
       ],
-      "why_this_now": "The second source commitment is timing (P02); a genuine \"later\" is a scheduling answer, not an objection to be broken.",
+      "why_this_now": "The second source commitment is timing; a genuine \"later\" is a scheduling answer, not an objection to be broken.",
       "what_to_listen_for": "A real date or trigger versus politeness; who set the deadline.",
       "satisfied_by_facts": [
         "why_now"
@@ -1968,24 +1968,24 @@
       "source_question_ids": [
         "P03"
       ],
-      "intended_answer_type": "Who holds the decision — the speaker, or another named role.",
+      "intended_answer_type": "Who holds the decision: the speaker, or another named role.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Mine — I run the store day to day.",
+        "Mine. I run the store day to day.",
         "The dealer principal signs anything over a couple of thousand."
       ],
       "insufficient_answer_examples": [
         "Everyone's (ask who would sign a scope).",
         "Good question (ask who they would need to bring in)."
       ],
-      "facts_already_known_rule": "If the decision-maker is already known, do not ask; route by that fact (sole authority → pitch; other role → authority concern).",
+      "facts_already_known_rule": "If the decision-maker is already known, do not ask; route by that fact (sole authority: pitch; other role: authority concern).",
       "mirror_variants": [
         "If you wanted this changed next week, who would need to say yes?",
         "Is this a decision you can make, or one you would take to someone?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "The decision role is identified. This node is optional and never used to shame a delegated decision.",
@@ -2008,12 +2008,12 @@
       ],
       "stop_or_skip_conditions": [
         "Only reached via the optional branch from commit-why-now.",
-        "Skip for owners where it would be inappropriate (B03 caveat).",
-        "Opt-out → exit-stop."
+        "Skip for owners where it would be inappropriate (source caveat).",
+        "Opt-out: stop immediately."
       ],
-      "why_this_now": "The source asks whose responsibility the change is (P03); B03 warns it is inappropriate for some owners, so Apohenia keeps it optional and uses it only to learn the decision role.",
-      "what_to_listen_for": "A named second decision-maker — that is a fact for the deal-control sheet, not fear.",
-      "source_note": "P03 kept as an optional branch only; B03 caveat applies (framework §9).",
+      "why_this_now": "The source asks whose responsibility the change is; B03 warns it is inappropriate for some owners, so Apohenia keeps it optional and uses it only to learn the decision role.",
+      "what_to_listen_for": "A named second decision-maker; that is a fact for the deal-control sheet, not fear.",
+      "source_note": "P03 kept as an optional branch only; B03 caveat applies.",
       "satisfied_by_facts": [
         "decision_maker"
       ]
@@ -2031,7 +2031,7 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "Would it be useful if I laid out how I'd approach this for {dealership_name} — or what would you like to do from here?",
+      "primary_word_track": "Would it be useful if I laid out how I'd approach this for {dealership_name}, or what would you like to do from here?",
       "source_question_ids": [
         "P04",
         "Y08"
@@ -2042,10 +2042,10 @@
       ],
       "sufficient_answer_examples": [
         "Yes, go ahead.",
-        "Send it in writing first — I want my sales manager to see it."
+        "Send it in writing first. I want my sales manager to see it."
       ],
       "insufficient_answer_examples": [
-        "Sure, I guess (confirm they actually want it now — offer the written option).",
+        "Sure, I guess (confirm they actually want it now: offer the written option).",
         "How much is it? (answer honestly, then ask whether they want the approach first or the number first)."
       ],
       "facts_already_known_rule": "If permission was already given, do not re-ask; begin the first pillar.",
@@ -2053,20 +2053,20 @@
         "Do you want me to walk through what I would do, or would you rather see it written down first?",
         "Is it worth me explaining the three pieces, or have you heard enough?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "Explicit permission or an explicit alternative is stated.",
       "branches": [
         {
-          "label": "Yes — present pillars",
+          "label": "Yes, present pillars",
           "answer_category": "yes",
           "next_node_id": "pitch-pillar-1"
         },
         {
-          "label": "Yes (upsell) — compare previous and new offer",
+          "label": "Yes (upsell), compare previous and new offer",
           "answer_category": "yes_upsell_compare",
           "next_node_id": "upsell-closer-compare"
         },
@@ -2087,10 +2087,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when permission is already on record."
       ],
-      "why_this_now": "The pitch is presented with permission (P04); the prospect can choose the written route instead and nothing is lost.",
+      "why_this_now": "The pitch is presented with permission; the prospect can choose the written route instead and nothing is lost.",
       "what_to_listen_for": "Who else they want to see it; whether they want price first (a version-level variant, not a mid-call switch).",
       "satisfied_by_facts": [
         "pitch_permission"
@@ -2108,37 +2108,37 @@
         "closer",
         "handoff"
       ],
-      "primary_word_track": "The first piece is {pillar_1_name}. You said {stated_problem} — this is the part that deals with that directly: {pillar_1_delivery}. Does that make sense so far?",
+      "primary_word_track": "The first piece is {pillar_1_name}. You said {stated_problem}. This is the part that deals with that directly: {pillar_1_delivery}. Does that make sense so far?",
       "source_question_ids": [
         "P05",
         "P06",
         "P11"
       ],
-      "intended_answer_type": "Confirmation that the first pillar is understood and relevant to their stated problem — or a question or a \"not relevant\" (recorded, not argued).",
+      "intended_answer_type": "Confirmation that the first pillar is understood and relevant to their stated problem, or a question or a \"not relevant\" (recorded, not argued).",
       "required_context": [
         "{pillar_1_name}",
         "{pillar_1_delivery}",
         "{stated_problem}"
       ],
       "sufficient_answer_examples": [
-        "Yes — that is exactly the Saturday problem.",
+        "Yes. That is exactly the Saturday problem.",
         "Makes sense; how does the team update the status?"
       ],
       "insufficient_answer_examples": [
         "Mm-hm (check understanding with one plain question).",
-        "We already have that (ask what they have — it may be true; record it and move on)."
+        "We already have that (ask what they have: it may be true; record it and move on)."
       ],
       "facts_already_known_rule": "If the prospect already knows and accepts this pillar (e.g. from a written scope), name it in one sentence and move to the next pillar.",
       "mirror_variants": [
         "Is that the part that would matter for you, or is it something else?",
         "Does that match what you said the problem was, or have I missed it?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual-confident for the pitch (instructor-described: A — confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual-confident for the pitch (instructor-described; A: confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: steady and even; pause after each check; do not race toward the price."
       },
-      "completion_criteria": "A comprehension or relevance check is answered for pillar 1. Pillar names come from the approved offer's pillars via slots — never from the source's portal/coaching/consistency examples.",
+      "completion_criteria": "A comprehension or relevance check is answered for pillar 1. Pillar names come from the approved offer's pillars via slots, never from the source's portal/coaching/consistency examples.",
       "branches": [
         {
           "label": "Makes sense",
@@ -2164,11 +2164,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "If the offer has no approved pillar in this slot, show the missing cue and do not improvise one."
       ],
-      "why_this_now": "Name the pillar → connect it to their stated problem → explain the delivery → check (P05/P06). The first of three, in the order the offer defines.",
-      "what_to_listen_for": "Whether they connect the pillar to their own words; \"we already have that\" — may be true."
+      "why_this_now": "Name the pillar, connect it to their stated problem, explain the delivery, then check. The first of three, in the order the offer defines.",
+      "what_to_listen_for": "Whether they connect the pillar to their own words; \"we already have that\"; may be true."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -2187,31 +2187,31 @@
         "P06",
         "P12"
       ],
-      "intended_answer_type": "Confirmation that the second pillar is understood and relevant to their stated problem — or a question or a \"not relevant\" (recorded, not argued).",
+      "intended_answer_type": "Confirmation that the second pillar is understood and relevant to their stated problem, or a question or a \"not relevant\" (recorded, not argued).",
       "required_context": [
         "{pillar_2_name}",
         "{pillar_2_delivery}",
         "{stated_problem}"
       ],
       "sufficient_answer_examples": [
-        "Yes — that is exactly the Saturday problem.",
+        "Yes. That is exactly the Saturday problem.",
         "Makes sense; how does the team update the status?"
       ],
       "insufficient_answer_examples": [
         "Mm-hm (check understanding with one plain question).",
-        "We already have that (ask what they have — it may be true; record it and move on)."
+        "We already have that (ask what they have: it may be true; record it and move on)."
       ],
       "facts_already_known_rule": "If the prospect already knows and accepts this pillar (e.g. from a written scope), name it in one sentence and move to the next pillar.",
       "mirror_variants": [
         "Is that the part that would matter for you, or is it something else?",
         "Does that match what you said the problem was, or have I missed it?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual-confident for the pitch (instructor-described: A — confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual-confident for the pitch (instructor-described; A: confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: steady and even; pause after each check; do not race toward the price."
       },
-      "completion_criteria": "A comprehension or relevance check is answered for pillar 2. Pillar names come from the approved offer's pillars via slots — never from the source's portal/coaching/consistency examples.",
+      "completion_criteria": "A comprehension or relevance check is answered for pillar 2. Pillar names come from the approved offer's pillars via slots, never from the source's portal/coaching/consistency examples.",
       "branches": [
         {
           "label": "Makes sense",
@@ -2237,11 +2237,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "If the offer has no approved pillar in this slot, show the missing cue and do not improvise one."
       ],
-      "why_this_now": "Name the pillar → connect it to their stated problem → explain the delivery → check (P05/P06). The second of three, in the order the offer defines.",
-      "what_to_listen_for": "Whether they connect the pillar to their own words; \"we already have that\" — may be true."
+      "why_this_now": "Name the pillar, connect it to their stated problem, explain the delivery, then check. The second of three, in the order the offer defines.",
+      "what_to_listen_for": "Whether they connect the pillar to their own words; \"we already have that\"; may be true."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -2260,31 +2260,31 @@
         "P05",
         "P06"
       ],
-      "intended_answer_type": "Confirmation that the third pillar is understood and relevant to their stated problem — or a question or a \"not relevant\" (recorded, not argued).",
+      "intended_answer_type": "Confirmation that the third pillar is understood and relevant to their stated problem, or a question or a \"not relevant\" (recorded, not argued).",
       "required_context": [
         "{pillar_3_name}",
         "{pillar_3_delivery}",
         "{stated_problem}"
       ],
       "sufficient_answer_examples": [
-        "Yes — that is exactly the Saturday problem.",
+        "Yes. That is exactly the Saturday problem.",
         "Makes sense; how does the team update the status?"
       ],
       "insufficient_answer_examples": [
         "Mm-hm (check understanding with one plain question).",
-        "We already have that (ask what they have — it may be true; record it and move on)."
+        "We already have that (ask what they have: it may be true; record it and move on)."
       ],
       "facts_already_known_rule": "If the prospect already knows and accepts this pillar (e.g. from a written scope), name it in one sentence and move to the fit question.",
       "mirror_variants": [
         "Is that the part that would matter for you, or is it something else?",
         "Does that match what you said the problem was, or have I missed it?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual-confident for the pitch (instructor-described: A — confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual-confident for the pitch (instructor-described; A: confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: steady and even; pause after each check; do not race toward the price."
       },
-      "completion_criteria": "A comprehension or relevance check is answered for pillar 3. Pillar names come from the approved offer's pillars via slots — never from the source's portal/coaching/consistency examples.",
+      "completion_criteria": "A comprehension or relevance check is answered for pillar 3. Pillar names come from the approved offer's pillars via slots, never from the source's portal/coaching/consistency examples.",
       "branches": [
         {
           "label": "Makes sense",
@@ -2310,11 +2310,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "If the offer has no approved pillar in this slot, show the missing cue and do not improvise one."
       ],
-      "why_this_now": "Name the pillar → connect it to their stated problem → explain the delivery → check (P05/P06). The third of three, in the order the offer defines.",
-      "what_to_listen_for": "Whether they connect the pillar to their own words; \"we already have that\" — may be true."
+      "why_this_now": "Name the pillar, connect it to their stated problem, explain the delivery, then check. The third of three, in the order the offer defines.",
+      "what_to_listen_for": "Whether they connect the pillar to their own words; \"we already have that\"; may be true."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -2328,7 +2328,7 @@
         "closer",
         "handoff"
       ],
-      "primary_word_track": "Based on what we've covered, do you feel this would get {dealership_name} to {stated_goal}? Why — and which part would help most?",
+      "primary_word_track": "Based on what we've covered, do you feel this would get {dealership_name} to {stated_goal}? Why, and which part would help most?",
       "source_question_ids": [
         "P07",
         "P08",
@@ -2341,21 +2341,21 @@
         "{key_pillar}"
       ],
       "sufficient_answer_examples": [
-        "Yes — the named handoff is the piece; the rest we could almost do ourselves.",
+        "Yes. The named handoff is the piece; the rest we could almost do ourselves.",
         "Not sure. The reporting is good but I don't see how it fixes evenings."
       ],
       "insufficient_answer_examples": [
         "Sounds good (ask which part, and why).",
         "You tell me (hand it back gently: what would they need to see?)."
       ],
-      "facts_already_known_rule": "If the prospect has already stated fit and the key pillar, do not re-ask — reflect it and move to the price or the decision.",
+      "facts_already_known_rule": "If the prospect has already stated fit and the key pillar, do not re-ask; reflect it and move to the price or the decision.",
       "mirror_variants": [
         "Which of the three pieces would you actually use on a Monday morning?",
         "What would having {key_pillar} do for you personally, day to day?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual-confident for the pitch (instructor-described: A — confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual-confident for the pitch (instructor-described; A: confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: steady and even; pause after each check; do not race toward the price."
       },
       "completion_criteria": "A fit judgement with a reason is stated; an \"unsure\" or \"no\" is routed to diagnosis, not argued.",
@@ -2382,11 +2382,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {fit_assessment} is already on record."
       ],
-      "why_this_now": "After the pillars the source asks fit, why, and the most helpful part (P07–P09); their answer tells you what to write into the scope.",
-      "what_to_listen_for": "The pillar they name — it is the value driver; a gap they name — it is the next scope conversation.",
+      "why_this_now": "After the pillars the source asks fit, why, and the most helpful part; their answer tells you what to write into the scope.",
+      "what_to_listen_for": "The pillar they name (it is the value driver; a gap they name) it is the next scope conversation.",
       "satisfied_by_facts": [
         "fit_assessment"
       ]
@@ -2408,29 +2408,29 @@
       "source_question_ids": [
         "P10"
       ],
-      "intended_answer_type": "A decision or a named concern in response to the approved price — or, when no price is approved, agreement to a scope conversation.",
+      "intended_answer_type": "A decision or a named concern in response to the approved price, or, when no price is approved, agreement to a scope conversation.",
       "required_context": [
         "{approved_price}"
       ],
       "sufficient_answer_examples": [
-        "Let's do it — send the scope.",
+        "Let's do it. Send the scope.",
         "That's more than I expected; can it be staged?"
       ],
       "insufficient_answer_examples": [
         "Hmm (wait; then ask what they are weighing).",
-        "Any number invented by the seller when the offer price is null — this is never acceptable."
+        "Any number invented by the seller when the offer price is null. This is never acceptable."
       ],
-      "facts_already_known_rule": "If the prospect has already seen and accepted the approved price in writing, do not restate it as news — ask how they would like to proceed.",
+      "facts_already_known_rule": "If the prospect has already seen and accepted the approved price in writing, do not restate it as news; ask how they would like to proceed.",
       "mirror_variants": [
         "Given how you see the value, how would you like to move forward?",
         "What would you need from me to make that decision?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual-confident for the pitch (instructor-described: A — confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual-confident for the pitch (instructor-described; A: confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: steady and even; pause after each check; do not race toward the price."
       },
-      "completion_criteria": "The APPROVED price is stated exactly as the offer defines it (setup, recurring, schedule) and a decision or concern is heard. When the offer price is null, this node renders \"Price not approved yet — route to scope conversation\" and no number is spoken.",
+      "completion_criteria": "The APPROVED price is stated exactly as the offer defines it (setup, recurring, schedule) and a decision or concern is heard. When the offer price is not set, this line renders \"Price not approved yet: route to scope conversation\" and no number is spoken.",
       "branches": [
         {
           "label": "Proceed",
@@ -2443,7 +2443,7 @@
           "next_node_id": "concern-diagnose"
         },
         {
-          "label": "Price not approved — scope conversation",
+          "label": "Price not approved, scope conversation",
           "answer_category": "price_not_approved",
           "next_node_id": "followup-agree",
           "note": "Agree a scoping follow-up; never invent a number."
@@ -2460,12 +2460,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "If the offer version is not published/approved or its price is null → do not quote; route to scope."
+        "Opt-out: stop immediately.",
+        "If the offer version is not published or its price is not set: do not quote; route to scope."
       ],
-      "why_this_now": "This version places price after the pillars (A07). A price-first variant exists as a separate version choice (B04) and is never switched mid-call.",
-      "what_to_listen_for": "Whether the reaction is to the amount, the timing, the authority, or the fit — diagnose before responding.",
-      "source_note": "Price placement is a version-level variant: this version = after_pillars (A07); a price_first version (B04) would be a separate ScriptVersion, locked for a cohort (framework §9, §16)."
+      "why_this_now": "This version places price after the pillars. A price-first variant exists as a separate version choice and is never switched mid-call.",
+      "what_to_listen_for": "Whether the reaction is to the amount, the timing, the authority, or the fit; diagnose before responding.",
+      "source_note": "Price placement is a version-level variant: this version = after_pillars (A07); a price_first version (B04) would be a separate ScriptVersion, locked for a cohort."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -2480,7 +2480,7 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "Given how you see the value and that the plan fits, how would you like to proceed — should I send the written scope and acceptance criteria today so you can check them?",
+      "primary_word_track": "Given how you see the value and that the plan fits, how would you like to proceed? Should I send the written scope and acceptance criteria today so you can check them?",
       "source_question_ids": [
         "O07",
         "P10"
@@ -2495,20 +2495,20 @@
         "We'll see (ask what they need to see, or agree a date to reconnect).",
         "Sure (confirm what exactly is being sent and to whom)."
       ],
-      "facts_already_known_rule": "If the next step is already agreed, confirm the date and end — do not re-ask for the decision.",
+      "facts_already_known_rule": "If the next step is already agreed, confirm the date and end; do not re-ask for the decision.",
       "mirror_variants": [
         "What is the next step from your side, and when?",
         "What would you need in writing before you could say yes or no?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual-confident for the pitch (instructor-described: A — confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual-confident for the pitch (instructor-described; A: confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: steady and even; pause after each check; do not race toward the price."
       },
       "completion_criteria": "A next step and a date are agreed, or a concern is named, or the prospect declines.",
       "branches": [
         {
-          "label": "Yes — send scope",
+          "label": "Yes, send scope",
           "answer_category": "yes",
           "next_node_id": "followup-agree"
         },
@@ -2529,10 +2529,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "No proposal or invoice is generated by this node; the deal-control sheet and access prerequisites gate the schedule (brief §18)."
+        "Opt-out: stop immediately.",
+        "No proposal or invoice is generated by this node; the deal-control sheet and access prerequisites gate the schedule."
       ],
-      "why_this_now": "The source re-asks for the decision after concerns are handled (O07); Apohenia makes the next step concrete — a written scope with acceptance tests, not pressure.",
+      "why_this_now": "The source re-asks for the decision after concerns are handled; Apohenia makes the next step concrete: a written scope with acceptance tests, not pressure.",
       "what_to_listen_for": "Access prerequisites and dates; anyone else who must approve; a deferral that needs a real date."
     },
     {
@@ -2548,34 +2548,34 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "Fair enough. Set the money and the timing aside for a second — is this the right thing for the store, and is it the right time? And what's actually holding you back: the budget, the timing, who decides, or whether it fits?",
+      "primary_word_track": "Fair enough. Set the money and the timing aside for a second: is this the right thing for the store, and is it the right time? And what's actually holding you back: the budget, the timing, who decides, or whether it fits?",
       "source_question_ids": [
         "O01",
         "O02",
         "O08",
         "O22"
       ],
-      "intended_answer_type": "The actual constraint, named by the prospect: budget, time, authority, fit — or none.",
+      "intended_answer_type": "The actual constraint, named by the prospect: budget, time, authority, fit, or none.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "It's the right thing; it's the budget — nothing gets approved until the new year.",
+        "It's the right thing; it's the budget. Nothing gets approved until the new year.",
         "It fits, but I need my owner in the room before I sign anything."
       ],
       "insufficient_answer_examples": [
         "I just need to think (ask what specifically they'd be thinking about).",
         "All of the above (ask which one would stop it on its own)."
       ],
-      "facts_already_known_rule": "If the constraint is already known (e.g. \"no budget until Q1\"), do not diagnose again — go to that constraint's node or the agreed follow-up.",
+      "facts_already_known_rule": "If the constraint is already known (e.g. \"no budget until Q1\"), do not diagnose again: go to that constraint's node or the agreed follow-up.",
       "mirror_variants": [
-        "If money and timing were not part of it, would you do this — and if so, what is the part that's in the way?",
-        "What would have to be true for this to be a yes — and which of those is not true today?"
+        "If money and timing were not part of it, would you do this? And if so, what is the part that's in the way?",
+        "What would have to be true for this to be a yes, and which of those is not true today?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Mixed (instructor-described: B — mixed pacing across reframe / pushback / consequence / CTA; Apohenia uses only the diagnostic parts). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Mixed (instructor-described; B: mixed pacing across reframe / pushback / consequence / CTA; Apohenia uses only the diagnostic parts). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: slower on the concern itself, plain and even when listing options."
       },
-      "completion_criteria": "One constraint is named (or none). Budget, time, authority and fit are independent blockers; none is relabelled as fear (scenario 37).",
+      "completion_criteria": "One constraint is named (or none). Budget, time, authority and fit are independent blockers; none is relabelled as fear.",
       "branches": [
         {
           "label": "Budget",
@@ -2583,10 +2583,10 @@
           "next_node_id": "concern-budget"
         },
         {
-          "label": "Timing — deliberate deferral",
+          "label": "Timing, deliberate deferral",
           "answer_category": "time",
           "next_node_id": "followup-agree",
-          "note": "Agree a real date; no two-people identity ritual (O09–O11 excluded)."
+          "note": "Agree a real date; the source's two-person identity ritual is excluded."
         },
         {
           "label": "Authority",
@@ -2615,10 +2615,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "A clear no after diagnosis → exit-no-sale; there is no minimum number of reframes."
+        "Opt-out: stop immediately.",
+        "A clear no after diagnosis: end with no sale; there is no minimum number of reframes."
       ],
-      "why_this_now": "The source isolates value before money logistics (O01/O02/O08); Apohenia diagnoses the actual constraint first and keeps budget, time, authority and fit as independent blockers (framework §10).",
+      "why_this_now": "The source isolates value before money logistics; Apohenia diagnoses the actual constraint first and keeps budget, time, authority and fit as independent blockers.",
       "what_to_listen_for": "The word they use for the blocker; a constraint that is real and should be respected rather than reframed.",
       "source_note": "Commercial reframe of the O01/O02/O08/O22 lineage. The source treats every objection as having a money component and routes \"fear\" through four reframes; Apohenia does not.",
       "satisfied_by_facts": [
@@ -2638,15 +2638,15 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "Is it the setup amount itself, or would staging it — a smaller first milestone, then the rest on acceptance — make it workable within what you've got budgeted?",
+      "primary_word_track": "Is it the setup amount itself, or would staging it, a smaller first milestone and then the rest on acceptance, make it workable within what you've got budgeted?",
       "source_question_ids": [
         "O04",
         "O06"
       ],
-      "intended_answer_type": "Whether the blocker is the total, the timing of payment, or the absence of any budget — and whether staging would work.",
+      "intended_answer_type": "Whether the blocker is the total, the timing of payment, or the absence of any budget, and whether staging would work.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Staged would work — a small first milestone I can sign off myself.",
+        "Staged would work. A small first milestone I can sign off myself.",
         "There's no budget line at all this year; it's not the amount."
       ],
       "insufficient_answer_examples": [
@@ -2658,9 +2658,9 @@
         "Would a bounded first milestone make this decidable at your level?",
         "Is this a \"not this amount\" or a \"not this year\"?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Mixed (instructor-described: B — mixed pacing across reframe / pushback / consequence / CTA; Apohenia uses only the diagnostic parts). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Mixed (instructor-described; B: mixed pacing across reframe / pushback / consequence / CTA; Apohenia uses only the diagnostic parts). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: slower on the concern itself, plain and even when listing options."
       },
       "completion_criteria": "The budget constraint is understood; the response is a staged milestone, a smaller scope, or an agreed later date. No savings question is asked.",
@@ -2688,12 +2688,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "Never ask about personal savings (O05 study_only) — use the business's stated budget position only."
+        "Opt-out: stop immediately.",
+        "Never ask about personal savings (study only in the source); use the business's stated budget position only."
       ],
-      "why_this_now": "The source tests upfront versus instalment logistics (O04/O06); Apohenia offers staging and narrow scope as the practical alternatives (brief §18).",
+      "why_this_now": "The source tests upfront versus instalment logistics; Apohenia offers staging and narrow scope as the practical alternatives.",
       "what_to_listen_for": "Whether the amount or the budget cycle is the problem; the sign-off threshold they can approve alone.",
-      "source_note": "O05 (cash-on-hand/savings) is study_only and excluded; business budget position replaces it."
+      "source_note": "O05 (cash-on-hand/savings) is study only and excluded; business budget position replaces it."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -2708,28 +2708,28 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "Who else needs to be part of this decision — and would it help if I walked them through the same thing with you, so you are not carrying it second-hand?",
+      "primary_word_track": "Who else needs to be part of this decision, and would it help if I walked them through the same thing with you, so you are not carrying it second-hand?",
       "source_question_ids": [
         "O13"
       ],
       "intended_answer_type": "The other decision-maker(s) and the practical way to include them.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "The dealer principal — set up thirty minutes with both of us next week.",
+        "The dealer principal. Set up thirty minutes with both of us next week.",
         "I'll take it to him myself; send me the written scope."
       ],
       "insufficient_answer_examples": [
         "It's complicated (ask who would sign a scope of this size).",
-        "Nobody really, I just want to think (then it is not authority — return to diagnosis)."
+        "Nobody really, I just want to think (then it is not authority: return to diagnosis)."
       ],
       "facts_already_known_rule": "If the second decision-maker is already known, offer the joint walkthrough directly.",
       "mirror_variants": [
         "If it were a yes from you, who else would still need to say yes?",
         "What would the other person want to see before agreeing?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Mixed (instructor-described: B — mixed pacing across reframe / pushback / consequence / CTA; Apohenia uses only the diagnostic parts). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Mixed (instructor-described; B: mixed pacing across reframe / pushback / consequence / CTA; Apohenia uses only the diagnostic parts). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: slower on the concern itself, plain and even when listing options."
       },
       "completion_criteria": "The additional decision role is named and a way to include them is agreed, or the prospect confirms sole authority. Delegated decisions are never treated as fear.",
@@ -2756,12 +2756,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "Never use the crown / responsibility / \"would you do it anyway\" sequence (O14–O21 study_only)."
+        "Opt-out: stop immediately.",
+        "Never use the crown, responsibility or \"would you do it anyway\" sequence (study only in the source)."
       ],
       "why_this_now": "Authority is a real constraint in a dealership (owner, dealer principal); the honest move is to include them, not to argue the prospect out of consulting them.",
       "what_to_listen_for": "Whether the other person is a real approver or a polite deferral; what they will want to see.",
-      "source_note": "Apohenia addition. Only O13 (value isolation) is cited; the source partner sequence O14–O21 is study_only and excluded (framework §10)."
+      "source_note": "Apohenia addition. Only O13 (value isolation) is cited; the source partner sequence O14 to O21 is study only and excluded."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -2776,7 +2776,7 @@
         "handoff",
         "upsell"
       ],
-      "primary_word_track": "It sounds like what you'd want is more certainty that this would work here. Is that fair — and what would give you that: a smaller pilot, or the acceptance tests in writing?",
+      "primary_word_track": "It sounds like what you'd want is more certainty that this would work here. Is that fair, and what would give you that: a smaller pilot, or the acceptance tests in writing?",
       "source_question_ids": [
         "O22",
         "O25",
@@ -2786,21 +2786,21 @@
       "intended_answer_type": "Confirmation (or correction) that certainty is the concern, and the evidence or structure that would resolve it.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Fair — a pilot on one form with a clear stop date would do it.",
+        "Fair. A pilot on one form with a clear stop date would do it.",
         "It's not certainty, it's that I don't think we need it."
       ],
       "insufficient_answer_examples": [
         "I guess (confirm what specifically would need to be true).",
-        "Do you have references? (answer honestly: none yet — offer acceptance tests and a bounded pilot instead)."
+        "Do you have references? (answer honestly: none yet; offer acceptance tests and a bounded pilot instead)."
       ],
       "facts_already_known_rule": "If the prospect already named what evidence would satisfy them, offer exactly that and nothing more.",
       "mirror_variants": [
         "What would you need to see in writing to feel this was a safe first step?",
-        "Is it certainty that this would work here that you’d want first — and what would show you that: a bounded pilot, or the acceptance tests written down before anything starts?"
+        "Is it certainty that this would work here that you’d want first? And what would show you that: a bounded pilot, or the acceptance tests written down before anything starts?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Mixed (instructor-described: B — mixed pacing across reframe / pushback / consequence / CTA; Apohenia uses only the diagnostic parts). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Mixed (instructor-described; B: mixed pacing across reframe / pushback / consequence / CTA; Apohenia uses only the diagnostic parts). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: slower on the concern itself, plain and even when listing options."
       },
       "completion_criteria": "The concern is confirmed or corrected in their words, and a concrete evidence/structure request is captured. No analogy is performed; no guarantee of results is offered.",
@@ -2817,7 +2817,7 @@
           "note": "Scope conversation for a pilot with acceptance tests."
         },
         {
-          "label": "Not certainty — doesn't need it",
+          "label": "Not certainty, doesn't need it",
           "answer_category": "not_convinced",
           "next_node_id": "exit-no-sale"
         },
@@ -2828,11 +2828,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "The worker/entrepreneur and beach analogies (O23/O24/O27–O29) are study_only and not used.",
+        "Opt-out: stop immediately.",
+        "The worker-versus-entrepreneur and beach analogies are study only and not used.",
         "With supported_proof empty, never imply references or results."
       ],
-      "why_this_now": "The source reframes a fit concern as seeking certainty (O22) and links it to prior inaction (O25/O26/O30); Apohenia keeps only the diagnostic questions and answers with approved proof and bounded structure (framework §10).",
+      "why_this_now": "The source reframes a fit concern as seeking certainty and links it to prior inaction; Apohenia keeps only the diagnostic questions and answers with approved proof and bounded structure.",
       "what_to_listen_for": "Whether it is certainty or simply no need; the exact evidence they would accept.",
       "source_note": "Commercial reframe of the certainty lineage; analogies and the four-frame ritual are excluded."
     },
@@ -2853,26 +2853,26 @@
         "follow_up",
         "upsell"
       ],
-      "primary_word_track": "Understood — this doesn't sound like the right fit right now, and I'd rather say that than push. If it's useful, I'll leave you with the one-page inquiry checklist and that's it. Thank you for the time.",
+      "primary_word_track": "Understood. This doesn't sound like the right fit right now, and I'd rather say that than push. If it's useful, I'll leave you with the one-page inquiry checklist and that's it. Thank you for the time.",
       "source_question_ids": [],
       "intended_answer_type": "Acknowledgement; optionally acceptance of the free resource or an agreed later date.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Thanks — yes, send the checklist.",
+        "Thanks. Yes, send the checklist.",
         "Appreciate it. Maybe in the spring."
       ],
       "insufficient_answer_examples": [
-        "Any answer used as a reason to re-open the pitch — this node does not re-open.",
-        "Silence — say thank you and end."
+        "Any answer used as a reason to re-open the pitch. This line does not re-open.",
+        "Silence. Say thank you and end."
       ],
       "facts_already_known_rule": "Not applicable: this node ends the sales conversation regardless of what is known.",
       "mirror_variants": [
-        "That's fine — I'd rather we both know it's not the right thing than pretend. Thanks for talking it through.",
+        "That's fine. I'd rather we both know it's not the right thing than pretend. Thanks for talking it through.",
         "No problem at all. If anything changes on your side, you know where I am."
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Calm and plain (Apohenia — no source delivery cue applies to exits, stops and repairs).",
+        "tone_cue": "Calm and plain (Apohenia: no source delivery cue applies to exits, stops and repairs).",
         "pacing_cue": "Unhurried; one sentence at a time; no attempt to re-open the conversation."
       },
       "completion_criteria": "The call ends courteously with no further attempt; a resource or a later date is offered once at most.",
@@ -2891,9 +2891,9 @@
       "stop_or_skip_conditions": [
         "Terminal for the sale. No reframes follow a clear no."
       ],
-      "why_this_now": "A no-fit outcome handled respectfully is a good outcome (scenario 5); the source's apology-and-suffering exit is not used.",
+      "why_this_now": "A no-fit outcome handled respectfully is a good outcome; the source's apology-and-suffering exit is not used.",
       "what_to_listen_for": "A genuine \"later\" with a date versus politeness; take the polite one at face value.",
-      "source_note": "Apohenia addition — replaces the source's four-reframe-then-apology exit (framework §10)."
+      "source_note": "Apohenia addition: replaces the source's four-reframe-then-apology exit."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -2913,7 +2913,7 @@
         "referral",
         "upsell"
       ],
-      "primary_word_track": "Understood — I'll stop here and take you off my list. Thanks for telling me.",
+      "primary_word_track": "Understood. I'll stop here and take you off my list. Thanks for telling me.",
       "source_question_ids": [],
       "intended_answer_type": "None required. The call ends.",
       "required_context": [],
@@ -2927,15 +2927,15 @@
       ],
       "facts_already_known_rule": "Not applicable: an opt-out overrides everything known.",
       "mirror_variants": [
-        "Got it — I'll stop now. Sorry to have interrupted your day.",
-        "Will do — you won't hear from me again."
+        "Got it. I'll stop now. Sorry to have interrupted your day.",
+        "Will do. You won't hear from me again."
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Calm and plain (Apohenia — no source delivery cue applies to exits, stops and repairs).",
+        "tone_cue": "Calm and plain (Apohenia: no source delivery cue applies to exits, stops and repairs).",
         "pacing_cue": "Unhurried; one sentence at a time; no attempt to re-open the conversation."
       },
-      "completion_criteria": "The call ends immediately; the opt-out is recorded so it persists through any reimport or future scheduling (scenario 17).",
+      "completion_criteria": "The call ends immediately; the opt-out is recorded so it persists through any reimport or future scheduling.",
       "branches": [
         {
           "label": "End",
@@ -2946,9 +2946,9 @@
       "stop_or_skip_conditions": [
         "Terminal. Reached from any node on an opt-out."
       ],
-      "why_this_now": "A request to stop is honoured immediately (scenario 40); the source's four-reframe ritual never applies.",
-      "what_to_listen_for": "Nothing — end the call.",
-      "source_note": "Apohenia addition — immediate respectful stop; no source counterpart."
+      "why_this_now": "A request to stop is honoured immediately; the source's four-reframe ritual never applies.",
+      "what_to_listen_for": "Nothing: end the call.",
+      "source_note": "Apohenia addition: immediate respectful stop; no source counterpart."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -2968,19 +2968,19 @@
         "referral",
         "upsell"
       ],
-      "primary_word_track": "Would it help if I sent {resource} and we reconnected {reconnect_window} — you pick the day? If it turns out not to be useful, just say so and that's fine.",
+      "primary_word_track": "Would it help if I sent {resource} and we reconnected {reconnect_window}? You pick the day. If it turns out not to be useful, just say so and that's fine.",
       "source_question_ids": [
         "U01",
         "X11"
       ],
-      "intended_answer_type": "Agreement on what will be sent and when to reconnect, with a specific day chosen by the prospect — or a decline.",
+      "intended_answer_type": "Agreement on what will be sent and when to reconnect, with a specific day chosen by the prospect, or a decline.",
       "required_context": [
         "{resource}",
         "{reconnect_window}"
       ],
       "sufficient_answer_examples": [
-        "Send it — Thursday afternoon works to reconnect.",
-        "Send the scope, but don't call — I'll email you."
+        "Send it. Thursday afternoon works to reconnect.",
+        "Send the scope, but don't call. I'll email you."
       ],
       "insufficient_answer_examples": [
         "Sure, sometime (offer two specific days; accept 'I'll reach out' as an answer).",
@@ -2988,12 +2988,12 @@
       ],
       "facts_already_known_rule": "If a date is already agreed, confirm it and end; do not renegotiate it earlier without consent.",
       "mirror_variants": [
-        "What would be the most useful thing for me to send before we talk again — and when?",
+        "What would be the most useful thing for me to send before we talk again, and when?",
         "Is a reconnect in a few days worthwhile, or would you rather I wait for you?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "A resource, a day and a channel are agreed and recorded as the next expected step; the resource is labelled accurately (never testimonial content disguised as training).",
@@ -3016,10 +3016,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
-        "Check the link opens (X11) only as a courtesy — never fabricate technical trouble to prompt a click."
+        "Opt-out: stop immediately.",
+        "Check the link opens only as a courtesy; never fabricate technical trouble to prompt a click."
       ],
-      "why_this_now": "Nurture-first (B17): send something specifically relevant and agree the reconnect; this node also carries the scope conversation, the pilot conversation and the deferred-decision date.",
+      "why_this_now": "Nurture-first: send something specifically relevant and agree the reconnect; this node also carries the scope conversation, the pilot conversation and the deferred-decision date.",
       "what_to_listen_for": "A real day; the channel they prefer; whether \"send me something\" is interest or a soft no (both are fine).",
       "source_note": "Source lineage U01 (nurture-first) and X11 (delivery check); use as scope/deferral agreement is an Apohenia extension."
     },
@@ -3036,7 +3036,7 @@
         "setter",
         "closer"
       ],
-      "primary_word_track": "Hi {prospect_name}, Jason with Apohenia — we said we'd reconnect today. Are you still looking at the inquiry follow-through, or has something changed since we spoke?",
+      "primary_word_track": "Hi {prospect_name}, Jason with Apohenia. We said we'd reconnect today. Are you still looking at the inquiry follow-through, or has something changed since we spoke?",
       "source_question_ids": [
         "U02",
         "U07"
@@ -3046,7 +3046,7 @@
         "{prospect_name}"
       ],
       "sufficient_answer_examples": [
-        "Still looking — and the owner has now asked for a number by month-end.",
+        "Still looking, and the owner has now asked for a number by month-end.",
         "We went with our CRM vendor's add-on last week."
       ],
       "insufficient_answer_examples": [
@@ -3056,11 +3056,11 @@
       "facts_already_known_rule": "If the prospect has already emailed an update, reflect it and skip to the relevant node instead of asking what changed.",
       "mirror_variants": [
         "What's the plan on this now, from your side?",
-        "Since we spoke, has anything moved — priorities, budget, people?"
+        "Since we spoke, has anything moved: priorities, budget, people?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "Interest is reconfirmed or withdrawn, and any change is recorded; discovery is not replayed.",
@@ -3093,10 +3093,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Never call before the agreed date."
       ],
-      "why_this_now": "The follow-up updates the situation (U07) rather than replaying all discovery; interest is reconfirmed, not assumed (U02).",
+      "why_this_now": "The follow-up updates the situation rather than replaying all discovery; interest is reconfirmed, not assumed.",
       "what_to_listen_for": "A competitor decision (accept it); a new trigger (the owner asked); a polite fade."
     },
     {
@@ -3112,7 +3112,7 @@
         "setter",
         "closer"
       ],
-      "primary_word_track": "Did you get a chance to look at what I sent — and if so, what did you take from it, if anything?",
+      "primary_word_track": "Did you get a chance to look at what I sent? And if so, what did you take from it, if anything?",
       "source_question_ids": [
         "U03",
         "U04",
@@ -3122,7 +3122,7 @@
       "intended_answer_type": "Whether the resource was reviewed, the prospect's own takeaway, and how they think it applies to their store.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "I did — the bit about unowned inquiries after six is exactly us.",
+        "I did. The bit about unowned inquiries after six is exactly us.",
         "Haven't opened it yet, honestly."
       ],
       "insufficient_answer_examples": [
@@ -3131,18 +3131,18 @@
       ],
       "facts_already_known_rule": "If they already told you their takeaway (e.g. by email), reflect it and ask how it applies.",
       "mirror_variants": [
-        "How was it for you — anything in there that matched what you see at the store?",
+        "How was it for you? Anything in there that matched what you see at the store?",
         "Was there one thing in it that applied, or nothing much?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "Reviewed / not reviewed is known; if reviewed, a takeaway in their words. 'Not reviewed' gets a reschedule with no guilt and no tease.",
       "branches": [
         {
-          "label": "Reviewed — takeaway given",
+          "label": "Reviewed, takeaway given",
           "answer_category": "reviewed_takeaway",
           "next_node_id": "setter-permission"
         },
@@ -3150,7 +3150,7 @@
           "label": "Not reviewed",
           "answer_category": "not_reviewed",
           "next_node_id": "followup-agree",
-          "note": "Reschedule without guilt (U06 tease excluded)."
+          "note": "Reschedule without guilt (the source's tease is excluded)."
         },
         {
           "label": "Not useful",
@@ -3164,11 +3164,11 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop."
+        "Opt-out: stop immediately."
       ],
-      "why_this_now": "The setter follow-up asks whether the resource was reviewed, the takeaway, and the application (U03–U05, U09) before the standard appointment transition.",
+      "why_this_now": "The setter follow-up asks whether the resource was reviewed, the takeaway, and the application before the standard appointment transition.",
       "what_to_listen_for": "Their own takeaway versus a polite echo; an application to their store in their words.",
-      "source_note": "Source tease for not watching (U06) is study_only and excluded; rescheduling is offered without guilt (framework §5)."
+      "source_note": "Source tease for not watching (U06) is study only and excluded; rescheduling is offered without guilt."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -3181,7 +3181,7 @@
       "role_applicability": [
         "referral"
       ],
-      "primary_word_track": "How are you feeling about how the inquiry follow-through has gone so far — and what are you looking forward to next?",
+      "primary_word_track": "How are you feeling about how the inquiry follow-through has gone so far, and what are you looking forward to next?",
       "source_question_ids": [
         "R01",
         "R02"
@@ -3189,7 +3189,7 @@
       "intended_answer_type": "The client's honest satisfaction and actual progress at a success point, plus their next positive expectation.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Good — Saturday inquiries are getting answered and I can see it. Next I want the same for phone-ups.",
+        "Good. Saturday inquiries are getting answered and I can see it. Next I want the same for phone-ups.",
         "Mixed. The report's useful but the handoff still drops on Tuesdays."
       ],
       "insufficient_answer_examples": [
@@ -3198,12 +3198,12 @@
       ],
       "facts_already_known_rule": "If satisfaction and progress are already recorded from a recent review, reflect them and move to the ask.",
       "mirror_variants": [
-        "What has actually changed for you since we started — anything you can point to?",
+        "What has actually changed for you since we started? Anything you can point to?",
         "Is it doing what we agreed it would, in your view?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "Satisfaction and progress are stated in their words. If the original promise is unfulfilled, route to service repair before any ask.",
@@ -3232,10 +3232,10 @@
       ],
       "stop_or_skip_conditions": [
         "Only at actual success points; the source day-1/10/35/60/75 dates are examples, not a rule.",
-        "Opt-out → exit-stop."
+        "Opt-out: stop immediately."
       ],
-      "why_this_now": "Referrals are asked at success points after checking satisfaction and actual progress (B19; R01/R02).",
-      "what_to_listen_for": "Whether progress is real and visible to them; anything unfulfilled — that comes first."
+      "why_this_now": "Referrals are asked at success points after checking satisfaction and actual progress.",
+      "what_to_listen_for": "Whether progress is real and visible to them; anything unfulfilled; that comes first."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -3248,7 +3248,7 @@
       "role_applicability": [
         "referral"
       ],
-      "primary_word_track": "Who else do you know running a store with the same inquiry problem — and if you think it would genuinely help them, would you be open to introducing us so we can have a conversation?",
+      "primary_word_track": "Who else do you know running a store with the same inquiry problem? And if you think it would genuinely help them, would you be open to introducing us so we can have a conversation?",
       "source_question_ids": [
         "R03",
         "R05",
@@ -3258,7 +3258,7 @@
       "intended_answer_type": "Zero or more named people with a reason they might benefit, and whether the client will make an introduction.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Tom at the Ford store across town — same inbox problem. I'll text him and copy you.",
+        "Tom at the Ford store across town. Same inbox problem. I'll text him and copy you.",
         "Nobody comes to mind, honestly."
       ],
       "insufficient_answer_examples": [
@@ -3268,11 +3268,11 @@
       "facts_already_known_rule": "If the client already offered a name, thank them and ask only about the introduction.",
       "mirror_variants": [
         "Is there anyone you talk to who complains about the same thing?",
-        "Why do you feel we could help them — what is similar about their setup?"
+        "Why do you feel we could help them? What is similar about their setup?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "A name with a reason and an agreed introduction, or a clear no (accepted the first time). Referred contacts stay out of automatic campaigns until reviewed.",
@@ -3295,12 +3295,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Ask once; the source insistence (R04) is study_only and excluded.",
-        "Opt-out → exit-stop."
+        "Ask once; the source insistence is study_only and excluded.",
+        "Opt-out: stop immediately."
       ],
-      "why_this_now": "Understand who might benefit and why, then seek an introduction (R03/R05–R07); fit matters more than collecting any contact.",
+      "why_this_now": "Understand who might benefit and why, then seek an introduction; fit matters more than collecting any contact.",
       "what_to_listen_for": "A reason the referral fits; whether the client wants to make the introduction themselves.",
-      "source_note": "R04 (insistence after no answer) is study_only and excluded."
+      "source_note": "R04 (insistence after no answer) is study only and excluded."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -3314,7 +3314,7 @@
         "upsell",
         "setter"
       ],
-      "primary_word_track": "What's your feedback so far — and what has actually changed on inquiries since we started?",
+      "primary_word_track": "What's your feedback so far, and what has actually changed on inquiries since we started?",
       "source_question_ids": [
         "X01",
         "X02"
@@ -3322,7 +3322,7 @@
       "intended_answer_type": "Delivered results and honest feedback on the current product, in their words, before any expansion is discussed.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Response times are down and I can finally see status — the Tuesday handoff is still patchy.",
+        "Response times are down and I can finally see status. The Tuesday handoff is still patchy.",
         "Frankly it hasn't done what you said: the report is there but inquiries still sit."
       ],
       "insufficient_answer_examples": [
@@ -3331,12 +3331,12 @@
       ],
       "facts_already_known_rule": "If results and feedback are already recorded from a review, reflect the recorded counts and ask only what is next.",
       "mirror_variants": [
-        "What results have you seen from it — counts, time saved, anything?",
+        "What results have you seen from it: counts, time saved, anything?",
         "What is it doing well, and what is it not doing?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "Delivered results are stated (or their absence is stated). An unfulfilled original promise routes to service repair, never to a new offer.",
@@ -3353,7 +3353,7 @@
           "note": "Scenario 39."
         },
         {
-          "label": "Unsure — get the numbers",
+          "label": "Unsure, get the numbers",
           "answer_category": "unsure",
           "next_node_id": "upsell-next-goal",
           "note": "Review the recorded counts together first."
@@ -3365,10 +3365,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Never pretend to be customer support to open an upsell; the call is what it is."
       ],
-      "why_this_now": "Upsell setting begins with feedback and delivered results (X01/X02) — never a replay of the original problem as if nothing was delivered (framework §13).",
+      "why_this_now": "Upsell setting begins with feedback and delivered results, never a replay of the original problem as if nothing was delivered.",
       "what_to_listen_for": "Whether the original promise was met; the exact thing they say is still not working.",
       "source_note": "Source's customer-support pretext and implied credit (B20) are not transferred."
     },
@@ -3384,7 +3384,7 @@
         "upsell",
         "setter"
       ],
-      "primary_word_track": "What's the next thing you'd want on this — and what's getting in the way of it right now, even with the current setup? Walk me through what happens today.",
+      "primary_word_track": "What's the next thing you'd want on this, and what's getting in the way of it right now, even with the current setup? Walk me through what happens today.",
       "source_question_ids": [
         "X03",
         "X04",
@@ -3394,32 +3394,32 @@
       "intended_answer_type": "A new goal, the remaining gap in concrete terms, and a walk-through of the current situation (diagnostic expansion).",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Phone-ups — they get the same nothing. Today the receptionist writes a sticky note and hopes.",
+        "Phone-ups. They get the same nothing. Today the receptionist writes a sticky note and hopes.",
         "Same-day for after-hours inquiries; right now nobody is on it after six."
       ],
       "insufficient_answer_examples": [
-        "Just more of the same (ask what \"more\" would be — a channel, a rooftop, a report).",
+        "Just more of the same (ask what \"more\" would be: a channel, a rooftop, a report).",
         "Growth (ask what they mean, and what is stopping it)."
       ],
       "facts_already_known_rule": "If the new goal and gap are already recorded, transition straight to permission to explore advanced help.",
       "mirror_variants": [
         "If the current setup stayed exactly as it is, what would still frustrate you in six months?",
-        "What do you mean by that — can you show me on a real example from this week?"
+        "What do you mean by that? Can you show me on a real example from this week?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
-      "completion_criteria": "A new goal and a concrete remaining gap are stated; the diagnostic is a review of real operations (X06), not a performance.",
+      "completion_criteria": "A new goal and a concrete remaining gap are stated; the diagnostic is a review of real operations, not a performance.",
       "branches": [
         {
-          "label": "Gap named — hand to closer",
+          "label": "Gap named, hand to closer",
           "answer_category": "gap_named_handoff",
           "next_node_id": "setter-permission"
         },
         {
-          "label": "Gap named — closer continues",
+          "label": "Gap named, closer continues",
           "answer_category": "gap_named_continue",
           "next_node_id": "upsell-closer-positives"
         },
@@ -3440,10 +3440,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {new_goal} is already recorded."
       ],
-      "why_this_now": "The upsell setter opens the next goal, the remaining problem and a diagnostic expansion (X03–X06) before any transition to advanced help.",
+      "why_this_now": "The upsell setter opens the next goal, the remaining problem and a diagnostic expansion before any transition to advanced help.",
       "what_to_listen_for": "A genuinely new capability versus a repair of the original scope; the concrete operational gap.",
       "satisfied_by_facts": [
         "new_goal"
@@ -3463,34 +3463,34 @@
         "closer",
         "setter"
       ],
-      "primary_word_track": "Before anything new — it sounds like {original_promise} hasn't landed the way we agreed. Let's fix that first, inside the original scope and at no additional charge. What specifically isn't working?",
+      "primary_word_track": "Before anything new: it sounds like {original_promise} hasn't landed the way we agreed. Let's fix that first, inside the original scope and at no additional charge. What specifically isn't working?",
       "source_question_ids": [],
       "intended_answer_type": "The specific unfulfilled element of the original scope and an agreed repair plan with a date.",
       "required_context": [
         "{original_promise}"
       ],
       "sufficient_answer_examples": [
-        "The weekly export has been wrong twice — it's missing the Saturday inquiries.",
+        "The weekly export has been wrong twice. It's missing the Saturday inquiries.",
         "The handoff rule assigns to someone who left in June."
       ],
       "insufficient_answer_examples": [
         "It just doesn't work (ask which acceptance criterion is failing).",
-        "Never mind, tell me about the new thing (do not — repair first)."
+        "Never mind, tell me about the new thing (do not; repair first)."
       ],
       "facts_already_known_rule": "If the defect is already logged, confirm the repair date instead of asking again.",
       "mirror_variants": [
         "Which of the acceptance tests we agreed is not passing right now?",
         "What did you expect to see that you are not seeing?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Calm and plain (Apohenia — no source delivery cue applies to exits, stops and repairs).",
+        "tone_cue": "Calm and plain (Apohenia: no source delivery cue applies to exits, stops and repairs).",
         "pacing_cue": "Unhurried; one sentence at a time; no attempt to re-open the conversation."
       },
       "completion_criteria": "The failing element is identified against the original acceptance criteria and a repair date is agreed. No new offer is discussed until it is fixed.",
       "branches": [
         {
-          "label": "Issue named — repair plan",
+          "label": "Issue named, repair plan",
           "answer_category": "issue_named",
           "next_node_id": "followup-agree",
           "note": "Repair date; no charge inside original scope."
@@ -3507,12 +3507,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "This node blocks the upsell path until the original promise is met."
       ],
-      "why_this_now": "A new offer must add genuine value; charging to repair an unfulfilled original promise is excluded (scenario 39; framework §13).",
-      "what_to_listen_for": "Whether it is a defect (repair) or a new request (change order) — say which, plainly.",
-      "source_note": "Apohenia addition — no source counterpart; implements scenario 39."
+      "why_this_now": "A new offer must add genuine value; charging to repair an unfulfilled original promise is excluded.",
+      "what_to_listen_for": "Whether it is a defect (repair) or a new request (change order); say which, plainly.",
+      "source_note": "Apohenia addition: no source counterpart; implements the repair-first rule."
     },
     {
       "script_version_id": "dealership-inquiry-follow-through-v0.1",
@@ -3526,7 +3526,7 @@
         "upsell",
         "closer"
       ],
-      "primary_word_track": "What do you feel is going well — and which part has been most helpful?",
+      "primary_word_track": "What do you feel is going well, and which part has been most helpful?",
       "source_question_ids": [
         "Y01",
         "Y02"
@@ -3534,21 +3534,21 @@
       "intended_answer_type": "Genuine positives and the component they value most, in their language.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "The named handoff — for the first time I know who has what.",
+        "The named handoff. For the first time I know who has what.",
         "The Monday report; I read it before the owner asks."
       ],
       "insufficient_answer_examples": [
         "It's all good (ask which part they would keep if they could keep only one).",
-        "Nothing really (route to repair — do not proceed to a new offer)."
+        "Nothing really (route to repair: do not proceed to a new offer)."
       ],
       "facts_already_known_rule": "If the valued component is already recorded, reflect it and ask about the next level.",
       "mirror_variants": [
         "If you had to keep only one piece of it, which would you keep?",
         "What has changed on a normal week because of it?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual (instructor-described: A — open posture, visible hands; B — conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual (instructor-described; A: open posture, visible hands; B: conversational, your own natural vocabulary). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: relaxed conversational pace; say it once and stop."
       },
       "completion_criteria": "At least one genuine positive and the most helpful component are stated; \"nothing\" routes to repair.",
@@ -3570,10 +3570,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop."
+        "Opt-out: stop immediately."
       ],
-      "why_this_now": "The upsell closer reviews actual positives first (Y01/Y02) so the new offer builds on delivered value rather than erasing it.",
-      "what_to_listen_for": "The component in their words — it becomes the comparison baseline for the new offer.",
+      "why_this_now": "The upsell closer reviews actual positives first so the new offer builds on delivered value rather than erasing it.",
+      "what_to_listen_for": "The component in their words; it becomes the comparison baseline for the new offer.",
       "satisfied_by_facts": [
         "valued_component"
       ]
@@ -3590,7 +3590,7 @@
         "upsell",
         "closer"
       ],
-      "primary_word_track": "What do you want more help with to get to the next level — and why is that important now?",
+      "primary_word_track": "What do you want more help with to get to the next level, and why is that important now?",
       "source_question_ids": [
         "Y03",
         "Y04"
@@ -3598,21 +3598,21 @@
       "intended_answer_type": "A new tangible (the next goal) and why it matters now.",
       "required_context": [],
       "sufficient_answer_examples": [
-        "Phone-ups and chat, before the spring push — the owner wants one number across all of it.",
-        "The second rooftop — we're opening in April and I don't want to start from zero there."
+        "Phone-ups and chat, before the spring push. The owner wants one number across all of it.",
+        "The second rooftop. We're opening in April and I don't want to start from zero there."
       ],
       "insufficient_answer_examples": [
         "Just keep improving (ask what the next specific thing is).",
         "Whatever you recommend (hand it back: what would they want to be different?)."
       ],
-      "facts_already_known_rule": "If the new goal and its timing are recorded, transition: \"You mentioned {new_goal} — what would tangibly be different once that is in place?\"",
+      "facts_already_known_rule": "If the new goal and its timing are recorded, transition: \"You mentioned {new_goal}. What would tangibly be different once that is in place?\"",
       "mirror_variants": [
         "What is the next thing you would want fixed, now that the first one is working?",
         "Is there a date this next level needs to be in place by?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Curious (instructor-described: A — head tilt, squint, upward inflection; B — lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Curious (instructor-described; A: head tilt, squint, upward inflection; B: lower the guard, first-person demonstration). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: brisker early-discovery pace; ask, then leave a full beat of silence."
       },
       "completion_criteria": "A new goal and a reason for now are stated; the goal is genuinely new (not the original scope restated).",
@@ -3621,7 +3621,7 @@
           "label": "New goal stated",
           "answer_category": "new_goal",
           "next_node_id": "future-tangible",
-          "note": "Future-pace the NEW goal (Y05/Y06), then consequence (Y07), then permission (Y08)."
+          "note": "Future-pace the NEW goal, then consequence, then permission."
         },
         {
           "label": "Unclear",
@@ -3641,10 +3641,10 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "Skip when {new_goal} is already recorded."
       ],
-      "why_this_now": "The upsell closer elicits a new tangible and why it matters now (Y03/Y04) before future-pacing it.",
+      "why_this_now": "The upsell closer elicits a new tangible and why it matters now before future-pacing it.",
       "what_to_listen_for": "A goal the current product genuinely does not cover; a real deadline.",
       "satisfied_by_facts": [
         "new_goal"
@@ -3662,7 +3662,7 @@
         "upsell",
         "closer"
       ],
-      "primary_word_track": "Compared with what you have now, the difference is {new_offer_difference}. Do you feel that would get you to {new_goal}? Why — and which of the new pieces matters most?",
+      "primary_word_track": "Compared with what you have now, the difference is {new_offer_difference}. Do you feel that would get you to {new_goal}? Why, and which of the new pieces matters most?",
       "source_question_ids": [
         "Y09",
         "Y10",
@@ -3674,21 +3674,21 @@
         "{new_goal}"
       ],
       "sufficient_answer_examples": [
-        "Yes — the phone-up capture is the part; the rest we already have.",
+        "Yes. The phone-up capture is the part; the rest we already have.",
         "Not really; that's mostly what we have with a new label."
       ],
       "insufficient_answer_examples": [
         "Sounds good (ask which new piece, specifically).",
         "I'd need to see it (offer the written old/new comparison)."
       ],
-      "facts_already_known_rule": "If the client already compared the two in writing, do not re-present — ask how they would like to proceed.",
+      "facts_already_known_rule": "If the client already compared the two in writing, do not re-present; ask how they would like to proceed.",
       "mirror_variants": [
         "What does the new version do that the current one cannot, in your words?",
         "Of the new pieces, which one would you actually use?"
       ],
-      "bridge_template": "{ack} — you mentioned {referent}. {question}",
+      "bridge_template": "{ack}, you mentioned {referent}. {question}",
       "delivery_overlay": {
-        "tone_cue": "Casual-confident for the pitch (instructor-described: A — confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
+        "tone_cue": "Casual-confident for the pitch (instructor-described; A: confident delivery through pillars and price). Instructor-described cue, not audio-verified.",
         "pacing_cue": "Instructor-described: steady and even; pause after each check; do not race toward the price."
       },
       "completion_criteria": "The old/new difference is shown explicitly and the client states fit, reason and key new pillar. If the difference is not genuine added value, route to a respectful exit.",
@@ -3716,12 +3716,12 @@
         }
       ],
       "stop_or_skip_conditions": [
-        "Opt-out → exit-stop.",
+        "Opt-out: stop immediately.",
         "A \"more likely to achieve\" claim needs an adequate basis (UVP rule); with supported_proof empty, do not make it."
       ],
-      "why_this_now": "The upsell closer shows previous-versus-new and asks fit, why and the key pillar (Y09–Y11); the new offer must add genuine value (framework §13; scenario 39).",
+      "why_this_now": "The upsell closer shows previous-versus-new and asks fit, why and the key pillar; the new offer must add genuine value.",
       "what_to_listen_for": "Whether they see a real difference; the one new piece they name.",
-      "source_note": "The explicit old/new comparison is an Apohenia addition to the Y09–Y11 lineage."
+      "source_note": "The explicit old and new comparison is an Apohenia addition to the Y09 to Y11 lineage."
     }
   ],
   "word_track_variants": []

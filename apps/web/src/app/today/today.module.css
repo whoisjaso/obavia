@@ -97,6 +97,7 @@
 .ringCenter {
   display: grid;
   place-items: center;
+  font-variant-numeric: tabular-nums;
 }
 .ringCount {
   font-size: var(--fs-large);

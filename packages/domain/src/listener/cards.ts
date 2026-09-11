@@ -11,10 +11,10 @@ import type { ListenerState } from './state';
 /** Human-readable meaning-status text for a card (accessible name of the glyph). */
 export function meaningStatusText(r: Reference): string {
   const labels: Record<Reference['semantics']['meaning_status'], string> = {
-    observed: 'observed — the relationship was stated in the turn',
-    inferred: 'inferred — interpretation of this sentence, not confirmed',
-    confirmed: 'confirmed — meaning supplied by the prospect',
-    unknown: 'unknown — ask before assuming',
+    observed: 'observed: the relationship was stated in the turn',
+    inferred: 'inferred: interpretation of this sentence, not confirmed',
+    confirmed: 'confirmed: meaning supplied by the prospect',
+    unknown: 'unknown: ask before assuming',
   };
   return labels[r.semantics.meaning_status];
 }
@@ -29,7 +29,7 @@ export function meaningGlyph(r: Reference): MeaningGlyph {
 /** One short meaning line for the collapsed card. */
 export function shortMeaning(r: Reference): string {
   if (r.lifecycle.state === 'invalidated') return `Invalidated: ${r.lifecycle.reason ?? 'evidence retracted'}`;
-  if (r.lifecycle.state === 'rejected') return 'Rejected by the prospect — not used again';
+  if (r.lifecycle.state === 'rejected') return 'Rejected by the prospect, not used again';
   const rel = r.semantics.relationship.replace(/^[^:]+:\s*/, '');
   return rel.length > 90 ? `${rel.slice(0, 87)}…` : rel;
 }
@@ -39,7 +39,7 @@ export function originLabel(origin: Reference['semantics']['origin']): string {
     prospect_spontaneous: 'prospect said it unprompted',
     prompted: 'prospect said it when asked for a comparison',
     seller_introduced_prospect_confirmed: 'seller introduced, prospect confirmed (shared term)',
-    third_party: "someone else's frame — not the prospect's",
+    third_party: "someone else's frame, not the prospect's",
     unknown: 'origin unknown (no preceding context)',
   };
   return labels[origin];
@@ -48,25 +48,25 @@ export function originLabel(origin: Reference['semantics']['origin']): string {
 function stateLine(r: Reference): string | undefined {
   switch (r.lifecycle.state) {
     case 'invalidated':
-      return `Invalidated — ${r.lifecycle.reason ?? 'the evidence was retracted'}`;
+      return `Invalidated: ${r.lifecycle.reason ?? 'the evidence was retracted'}`;
     case 'rejected':
-      return 'Rejected by the prospect — not used again';
+      return 'Rejected by the prospect, not used again';
     case 'dismissed':
-      return `Dismissed — ${r.lifecycle.reason ?? 'by the representative'}`;
+      return `Dismissed: ${r.lifecycle.reason ?? 'by the representative'}`;
     case 'pinned':
-      return 'Pinned — position protected; accuracy is not certified by pinning';
+      return 'Pinned: position protected; accuracy is not certified by pinning';
     default:
-      return r.reuse.do_not_reuse ? 'Held as evidence — marked do not reuse' : undefined;
+      return r.reuse.do_not_reuse ? 'Held as evidence, marked do not reuse' : undefined;
   }
 }
 
 function usefulWhen(r: Reference): string {
   const concepts = r.semantics.concept_ids.map((id) => CONCEPT_BY_ID.get(id)?.label ?? id);
   const stages = r.reuse.candidate_purposes.filter((p) => !r.semantics.concept_ids.includes(p));
-  if (r.semantics.painful) return 'Hold it. Reuse only as a neutral acknowledgment of the setback — never the image itself.';
-  if (r.semantics.origin === 'third_party') return "Not for reuse — it is someone else's frame, not the prospect's.";
-  if (concepts.length === 0) return 'No concept tag yet — reuse only if the same topic returns.';
-  return `When ${concepts.join(' or ')} comes up${stages.length > 0 ? ` (usually in ${stages.join(', ')})` : ''} — even without the same words.`;
+  if (r.semantics.painful) return 'Hold it. Reuse only as a neutral acknowledgment of the setback, never the image itself.';
+  if (r.semantics.origin === 'third_party') return "Not for reuse: it is someone else's frame, not the prospect's.";
+  if (concepts.length === 0) return 'No concept tag yet: reuse only if the same topic returns.';
+  return `When ${concepts.join(' or ')} comes up${stages.length > 0 ? ` (usually in ${stages.join(', ')})` : ''}, even without the same words.`;
 }
 
 function represents(r: Reference): string {
@@ -74,7 +74,7 @@ function represents(r: Reference): string {
   if (r.semantics.kind === 'emotional_descriptor') {
     return r.semantics.meaning_status === 'confirmed' && r.semantics.explained_meaning
       ? `Their word for ${r.semantics.business_target}; they explained: ${r.semantics.explained_meaning.text}`
-      : `Their word for ${r.semantics.business_target === 'not stated' ? 'how it felt' : r.semantics.business_target} — the why is not explained yet.`;
+      : `Their word for ${r.semantics.business_target === 'not stated' ? 'how it felt' : r.semantics.business_target}; the why is not explained yet.`;
   }
   if (r.semantics.kind === 'outcome_label' || r.semantics.kind === 'correction' || r.semantics.kind === 'defined_term') return rel;
   return `${r.semantics.business_target === 'this' ? 'The situation' : r.semantics.business_target.charAt(0).toUpperCase() + r.semantics.business_target.slice(1)}: ${rel}`;
@@ -90,7 +90,7 @@ export function toCard(r: Reference): ReferenceCard {
     meaning_line: shortMeaning(r),
     meaning_status: r.semantics.meaning_status,
     glyph: meaningGlyph(r),
-    glyph_name: r.lifecycle.state === 'invalidated' ? 'invalidated — evidence retracted by a transcript revision' : `meaning ${meaningStatusText(r)}`,
+    glyph_name: r.lifecycle.state === 'invalidated' ? 'invalidated: evidence retracted by a transcript revision' : `meaning ${meaningStatusText(r)}`,
     origin: r.semantics.origin,
     origin_label: originLabel(r.semantics.origin),
     valence: r.semantics.valence,

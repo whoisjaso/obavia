@@ -27,7 +27,7 @@ function scenario(
 ): PracticeScenario {
   return PracticeScenario.parse({
     id,
-    title: `${FICTIONAL} — ${title}`,
+    title: `${FICTIONAL}: ${title}`,
     public_brief,
     entrypoint,
     hidden_fact_sheet: hidden,
@@ -45,7 +45,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     'Owner of a single-rooftop used-car store (fictional). Answered the phone between two walk-ins. Web inquiries reach a shared inbox. Nothing else is known.',
     {
       real_needs: ['Web inquiries that arrive after six are answered the next morning, sometimes later.', 'Wants the evening leads looked at without hiring a night person.'],
-      objections: ["I have a customer standing here — I have about a minute.", 'If this is a pitch, send me something instead.'],
+      objections: ["I have a customer standing here. I have about a minute.", 'If this is a pitch, send me something instead.'],
       budget_capacity: ['Could authorise a small pilot personally; anything recurring is a discussion with the accountant.'],
       decision_roles: ['Sole owner; decides alone.'],
       already_tried: ['An auto-reply that says "we will get back to you". Nobody follows it up.'],
@@ -78,8 +78,8 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     'inbound',
     'Independent dealer (fictional) who downloaded the inquiry checklist. Talks about margin. Requested a callback.',
     {
-      real_needs: ['Buying cars right at auction. Margin per unit is the number he watches.', 'Lead response is fine — the team calls within the hour.'],
-      objections: ['My problem is what I pay for inventory, not the phone.', 'Profit, not revenue — do not quote me revenue lifts.'],
+      real_needs: ['Buying cars right at auction. Margin per unit is the number he watches.', 'Lead response is fine; the team calls within the hour.'],
+      objections: ['My problem is what I pay for inventory, not the phone.', 'Profit, not revenue. Do not quote me revenue lifts.'],
       budget_capacity: ['Would spend on anything that lowers acquisition cost; nothing on lead handling.'],
       decision_roles: ['Owner; decides alone.'],
       already_tried: ['Two auction-data subscriptions; one wholesale broker.'],
@@ -197,7 +197,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     'cold',
     'Owner (fictional). Picks up, hears the opening, and asks not to be called.',
     {
-      real_needs: ['Not relevant — the request to stop overrides everything.'],
+      real_needs: ['Not relevant: the request to stop overrides everything.'],
       objections: ['Please take me off your list and do not call again.'],
       budget_capacity: ['Not relevant.'],
       decision_roles: ['Not relevant.'],

@@ -67,6 +67,7 @@
   line-height: var(--lh-tight);
   letter-spacing: -0.015em;
   padding: var(--s-2) 0;
+  text-wrap: balance;
 }
 .options {
   list-style: none;
@@ -127,7 +128,7 @@
   height: 20px;
   border-radius: 50%;
   background: var(--blue);
-  color: #fff;
+  color: var(--ink-on-blue);
   display: grid;
   place-items: center;
 }
@@ -159,17 +160,27 @@
   bottom: 0;
   z-index: 20;
   display: flex;
-  align-items: center;
-  gap: var(--s-3);
+  flex-direction: column;
+  gap: var(--s-2);
   max-width: var(--col);
   margin: 0 auto;
-  padding: var(--s-3) var(--s-4) calc(var(--s-3) + var(--safe-bottom));
+  padding: var(--s-2) var(--s-4) calc(var(--s-3) + var(--safe-bottom));
   background: var(--bg-1);
   border-top: 1px solid var(--line);
 }
+/* the controls: Back, Skip, then Next; none of them ever shrinks (the cue has its own line above) */
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.skipChip {
+  flex: 0 0 auto;
+  min-width: max-content;
+}
 /* reserve the bar's height so the last tiles are always reachable */
 .screen {
-  padding-bottom: calc(84px + var(--safe-bottom));
+  padding-bottom: calc(124px + var(--safe-bottom));
 }
 .spacer {
   flex: 1;
@@ -177,6 +188,7 @@
 .reason {
   display: inline-flex;
   align-items: center;
+  min-height: 28px;
   min-width: 0;
   overflow: hidden;
   transition: opacity var(--dur-fast) var(--ease);
@@ -196,15 +208,15 @@
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
-  min-width: 120px;
+  min-width: 128px;
   flex-shrink: 0;
   height: 56px;
   padding: 0 var(--s-4) 0 var(--s-5);
   border: none;
   border-radius: var(--r-chip);
-  background: var(--blue);
-  color: #fff;
-  font-size: var(--fs-body);
+  background: var(--blue-fill);
+  color: var(--ink-on-blue);
+  font-size: 20px; /* large text on the filled blue: 3:1 floor applies, 4.8:1 met */
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -213,7 +225,7 @@
     opacity var(--dur-fast) var(--ease);
 }
 .nextHero:hover {
-  background: #2b93ff;
+  background: var(--blue);
 }
 .nextHero:active {
   transform: scale(0.96);

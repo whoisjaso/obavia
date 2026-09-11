@@ -29,7 +29,7 @@ export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
 export function IconButton({ icon, label, href, size = 44, tone = 'neutral', solid = false, weight, className, type = 'button', ...rest }: IconButtonProps) {
   const cls = [styles.button, styles[tone], solid ? styles.solid : '', className ?? ''].join(' ').trim();
   const style = { width: size, height: size } as const;
-  const iconSize = Math.round(size * 0.5);
+  const iconSize = size === 72 ? 32 : size === 56 ? 28 : 20;
   const iconWeight: IconWeight = weight ?? (solid ? 'fill' : 'regular');
   if (href) {
     return (

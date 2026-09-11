@@ -43,19 +43,19 @@ const WORD = "[A-Za-z][A-Za-z'-]*";
 const TERM_1_2 = `${WORD}(?:\\s${WORD})?`;
 
 const CONTRAST = new RegExp(
-  `(?:^|[,;—-]\\s*|\\b(?:is|it's|its|about|want|wants|on|need|needs)\\s+)(${TERM_1_2}),\\s*not\\s+((?:the\\s+)?${TERM_1_2})(?=\\s*[.,;!?—-]|$)`,
+  `(?:^|[,;:—-]\\s*|\\b(?:is|it's|its|about|want|wants|on|need|needs)\\s+)(${TERM_1_2}),\\s*not\\s+((?:the\\s+)?${TERM_1_2})(?=\\s*[.,;:!?—-]|$)`,
   'gi',
 );
 const NEGATION_VERB = new RegExp(
-  `\\b(?:I|we)\\s+(?:don't|do not|never|couldn't|can't|won't)\\s+(?:care about|chase|want|need|measure|look at|talk about|track|worry about)\\s+(?:the\\s+)?(${TERM_1_2})(?=\\s*[.,;!?—-]|$|\\s+and\\b)`,
+  `\\b(?:I|we)\\s+(?:don't|do not|never|couldn't|can't|won't)\\s+(?:care about|chase|want|need|measure|look at|talk about|track|worry about)\\s+(?:the\\s+)?(${TERM_1_2})(?=\\s*[.,;:!?—-]|$|\\s+and\\b)`,
   'gi',
 );
 const NEGATION_ABOUT = new RegExp(
-  `\\b(?:it's|it is|this is|that's)\\s+not(?:\\s+really|\\s+just|\\s+only)?\\s+about\\s+(?:the\\s+)?(${TERM_1_2})(?=\\s*[.,;!?—-]|$|\\s+(?:and|for)\\b)`,
+  `\\b(?:it's|it is|this is|that's)\\s+not(?:\\s+really|\\s+just|\\s+only)?\\s+about\\s+(?:the\\s+)?(${TERM_1_2})(?=\\s*[.,;:!?—-]|$|\\s+(?:and|for)\\b)`,
   'gi',
 );
 const LEAD_IN = new RegExp(
-  `\\b(what matters(?:\\s+(?:to me|to us))?(?:\\s+most)?\\s+is|what I care about is|the main thing(?:\\s+is|\\s*[—-])|what I mean is|it comes down to|(?:my|his|her|their|our) goal is|the thing (?:we're|I'm|we are|I am) after is|what (?:I'm|we're) after is|I'd put it as|call it|the whole game is|the number that matters is|the problem(?:\\s+is|\\s*[—-])|what's killing us is)\\s+(?:the\\s+)?(${WORD}(?:\\s${WORD}){0,5})(?=\\s*[.,;!?—-]|$|\\s+(?:and|for|if)\\b)`,
+  `\\b(what matters(?:\\s+(?:to me|to us))?(?:\\s+most)?\\s+is|what I care about is|the main thing(?:\\s+is|\\s*[—:-])|what I mean is|it comes down to|(?:my|his|her|their|our) goal is|the thing (?:we're|I'm|we are|I am) after is|what (?:I'm|we're) after is|I'd put it as|call it|the whole game is|the number that matters is|the problem(?:\\s+is|\\s*[—:-])|what's killing us is)\\s+(?:the\\s+)?(${WORD}(?:\\s${WORD}){0,5})(?=\\s*[.,;:!?—-]|$|\\s+(?:and|for|if)\\b)`,
   'gi',
 );
 const QUOTED = /[“"]([^”"]{2,60})[”"]/g;
@@ -63,7 +63,7 @@ const DEFINED_MEANS = new RegExp(`\\b((?:${WORD}\\s){0,2}${WORD})\\s+means\\s+(.
 /** "Satisfaction is a survey score" — the predicate must read as a definition, not "X is really the whole game". */
 const DEFINED_IS = /^([A-Z][a-z]{4,})\s+is\s+((?:a|an|the|me|my|our|us|when|what|how|about|where)\b.+?)(?=[.;!?]|$)/;
 /** Representative proposes a label and asks for confirmation: "… is efficiency — is that the word?" */
-const PROPOSED = new RegExp(`\\b(?:is|would be|call it|sounds like)\\s+(${TERM_1_2})\\s*[—,-]?\\s*(?:is that the word|is that right|is that fair|right\\?|fair\\?)`, 'gi');
+const PROPOSED = new RegExp(`\\b(?:is|would be|call it|sounds like)\\s+(${TERM_1_2})\\s*[—,:-]?\\s*(?:is that the word|is that right|is that fair|right\\?|fair\\?)`, 'gi');
 /** Prospect affirms a term by name: "Yes, efficiency." */
 const AFFIRMED = new RegExp(`^(?:yes|yeah|yep|exactly|right|correct)[,.!]?\\s+(${TERM_1_2})(?=[.!,;]|$)`, 'i');
 const CAPITALIZED_AFTER_THE = /\b[Tt]he\s+([A-Z][a-z]{3,})\b/g;
@@ -237,16 +237,16 @@ function sentenceAround(turn: NormalizedTurn, at: number): string {
 }
 
 function cueFor(ev: Pick<VocabularyEvent, 'exact_text' | 'correction_or_negation' | 'meaning_status' | 'provenance' | 'attribution' | 'rejected_by' | 'explicit_emphasis' | 'normalized_key'>): string | undefined {
-  if (ev.meaning_status === 'invalidated') return 'clarify: the transcript revised this word — ask what they meant rather than assume a meaning';
-  if (ev.rejected_by) return 'they rejected this comparison — do not count it as their priority';
-  if (ev.attribution === 'quoted_other') return "someone else's goal — do not treat it as this prospect's priority";
-  if (ev.provenance === 'seller_only') return 'seller-only term — never present it as their words';
+  if (ev.meaning_status === 'invalidated') return 'clarify: the transcript revised this word; ask what they meant rather than assume a meaning';
+  if (ev.rejected_by) return 'they rejected this comparison: do not count it as their priority';
+  if (ev.attribution === 'quoted_other') return "someone else's goal: do not treat it as this prospect's priority";
+  if (ev.provenance === 'seller_only') return 'seller-only term: never present it as their words';
   if (ev.correction_or_negation) {
     const pair = `${ev.normalized_key ?? ''} ${ev.correction_or_negation.rejects}`;
     if (/\b(net|gross)\b/.test(pair)) return 'ask what costs are included before any calculation';
-    return `keep their word "${ev.exact_text}" — do not substitute "${ev.correction_or_negation.rejects}"; ask what "${ev.exact_text}" includes before calculating`;
+    return `keep their word "${ev.exact_text}"; do not substitute "${ev.correction_or_negation.rejects}". Ask what "${ev.exact_text}" includes before calculating`;
   }
-  if (ev.meaning_status === 'explained' || ev.meaning_status === 'confirmed') return `use their word "${ev.exact_text}" with their own definition — no synonym`;
+  if (ev.meaning_status === 'explained' || ev.meaning_status === 'confirmed') return `use their word "${ev.exact_text}" with their own definition, no synonym`;
   if (ev.provenance === 'prospect_said' && ev.explicit_emphasis) return `ask what "${ev.exact_text}" means to them before using any synonym`;
   return undefined;
 }
@@ -426,7 +426,7 @@ export function clarifyEvent(ev: VocabularyEvent): VocabularyEvent {
   return {
     ...ev,
     meaning_status: 'asked',
-    cue: 'clarification requested — record their answer as the meaning; nothing is assumed',
+    cue: 'clarification requested: record their answer as the meaning; nothing is assumed',
     rank_reasons: [...(ev.rank_reasons ?? []), 'clarified by representative'],
   };
 }
@@ -455,5 +455,5 @@ export function applyMeaning(ev: VocabularyEvent, proposal: MeaningProposal, now
   if (locked) {
     return { event: ev, applied: false, reason: `"${ev.exact_text}" keeps the prospect's own definition; a ${proposal.by} synonym cannot overwrite it` };
   }
-  return { event: ev, applied: false, reason: 'meaning unknown — ask the prospect rather than assume a synonym' };
+  return { event: ev, applied: false, reason: 'meaning unknown: ask the prospect rather than assume a synonym' };
 }

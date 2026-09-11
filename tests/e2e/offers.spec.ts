@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 /**
  * Offers (DESIGN_SYSTEM §3.5): cards; a blank price is the caption "Not set" (never a dash, never $0) with
- * the accessible name "Price not set — a blank price is not $0"; the fictional fixture carries the Fictional pill and lives behind the Practice
+ * the accessible name "Price not set: a blank price is not $0"; the fictional fixture carries the Fictional pill and lives behind the Practice
  * chip, never in the default list (B-9: the default chip is "Offers"); status moves through a
  * confirm sheet and is the one store /scripts reads (B-12).
  */
@@ -28,7 +28,8 @@ async function prime(page: Page): Promise<void> {
   });
 }
 
-const BANNER = 'FICTIONAL TRAINING OFFER — NOT A REAL QUOTE';
+/** Two lines on the stage (a line break, never a dash); Playwright normalises the whitespace. */
+const BANNER = 'FICTIONAL TRAINING OFFER NOT A REAL QUOTE';
 const LIVE = '[data-offer="draft-research-offer-v0"]';
 const FIXTURE = '[data-offer="fictional-demo-inquiry-pilot"]';
 
@@ -53,11 +54,12 @@ test.describe('offers', () => {
     await expect(live).toBeVisible();
     await expect(live).toHaveAttribute('data-offer-kind', 'live');
     await expect(live).toHaveAttribute('data-offer-status', 'draft');
-    await expect(live.locator('[data-status-pill="draft"]')).toHaveAttribute('aria-label', /Draft — written, not reviewed/);
+    await expect(live.locator('[data-status-pill="draft"]')).toHaveAttribute('aria-label', /Draft: written, not reviewed/);
+    await expect(live.locator('[data-status-pill="draft"]')).not.toContainText(/draft/i); // a quiet mark, never a DRAFT chip
     const setup = live.locator('[data-price="setup"]');
     await expect(setup).toHaveText('Not set');
-    await expect(setup).toHaveAttribute('aria-label', 'Setup: Price not set — a blank price is not $0');
-    await expect(live.locator('[data-price="recurring"]')).toHaveAttribute('aria-label', 'Recurring: Price not set — a blank price is not $0');
+    await expect(setup).toHaveAttribute('aria-label', 'Setup: Price not set: a blank price is not $0');
+    await expect(live.locator('[data-price="recurring"]')).toHaveAttribute('aria-label', 'Recurring: Price not set: a blank price is not $0');
     await expect(live.getByRole('list', { name: 'Three pillars' }).getByRole('listitem')).toHaveCount(3);
 
     await expect(page.locator(FIXTURE)).toHaveCount(0);
@@ -90,12 +92,13 @@ test.describe('offers', () => {
     await expect(fixture).toHaveAttribute('data-offer-kind', 'practice');
     await expect(fixture.locator('[data-fictional-pill]')).toHaveAttribute('aria-label', /Fictional training content/);
     await expect(fixture.locator('[data-price="setup"]')).toHaveText('$750.00');
-    await expect(fixture.locator('[data-price="setup"]')).toHaveAttribute('aria-label', /fictional fixture \$750\.00 — never quoted live/);
+    await expect(fixture.locator('[data-price="setup"]')).toHaveAttribute('aria-label', /fictional fixture \$750\.00, never quoted live/);
     await expect(fixture.locator('[data-price="recurring"]')).toHaveText('$150.00');
     await expect(page.locator(LIVE)).toHaveCount(0);
     await fixture.click();
     const sheet = page.locator('dialog[data-sheet="offer"]');
     await expect(sheet.locator('[data-fictional-banner]')).toHaveText(BANNER);
+    await expect(sheet.locator('[data-fictional-banner]')).not.toContainText('—');
     await expect(sheet.locator('[data-practice-only]')).toBeVisible();
     await expect(sheet.locator('[data-never-quoted]')).toHaveAttribute('aria-label', /quotable: no/);
     await expect(sheet.locator('[data-transition]')).toHaveCount(0);
@@ -105,6 +108,7 @@ test.describe('offers', () => {
     await page.goto('/offers');
     await page.locator(LIVE).click();
     const sheet = page.locator('dialog[data-sheet="offer"]');
+    await expect(sheet.locator('[data-sheet-status="draft"]')).toContainText('Draft offer. Not approved for live use.');
     await sheet.locator('[data-transition="reviewed"]').click();
     await expect(sheet.locator('[data-sheet-status="reviewed"]')).toBeVisible();
     await sheet.locator('[data-transition="published"]').click();

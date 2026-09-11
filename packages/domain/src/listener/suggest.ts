@@ -104,22 +104,22 @@ export function templateFor(r: Reference, conceptId: string | undefined): { text
   const exact = r.evidence.exact_expression;
   if (r.semantics.painful) {
     // Neutral acknowledgment + business-level question; no domain word, no elaboration of the image.
-    return { text: `You described that setback in strong terms earlier — what did it cost you, in practical terms?`, purpose: 'neutral_acknowledgment' };
+    return { text: `You described that setback in strong terms earlier. What did it cost you, in practical terms?`, purpose: 'neutral_acknowledgment' };
   }
   if (kind === 'emotional_descriptor') {
     if (r.semantics.meaning_status !== 'confirmed') {
       return r.reuse.proposed_clarification ? { text: r.reuse.proposed_clarification, purpose: 'clarify_meaning' } : null;
     }
     const q = concept?.question ?? 'what would need to be different this time?';
-    return { text: `You said you felt ${exact.toLowerCase()}${r.semantics.business_target !== 'not stated' ? ` by ${r.semantics.business_target}` : ''} — ${q}`, purpose: conceptId ?? 'answer_in_their_frame' };
+    return { text: `You said you felt ${exact.toLowerCase()}${r.semantics.business_target !== 'not stated' ? ` by ${r.semantics.business_target}` : ''}. ${q.charAt(0).toUpperCase()}${q.slice(1)}`, purpose: conceptId ?? 'answer_in_their_frame' };
   }
   if (kind === 'outcome_label' || kind === 'correction') {
     const q = concept?.question ?? `where does ${exact.toLowerCase()} come into what we are discussing?`;
-    return { text: `You said ${exact.toLowerCase()} is what matters — ${q}`, purpose: conceptId ?? 'answer_in_their_frame' };
+    return { text: `You said ${exact.toLowerCase()} is what matters. ${q.charAt(0).toUpperCase()}${q.slice(1)}`, purpose: conceptId ?? 'answer_in_their_frame' };
   }
   if (kind === 'defined_term') {
     const meaning = r.semantics.explained_meaning?.text ?? '';
-    return { text: `You defined "${exact.toLowerCase()}" as ${meaning || 'something specific'} — does that still hold for what we are discussing?`, purpose: 'confirm_definition' };
+    return { text: `You defined "${exact.toLowerCase()}" as ${meaning || 'something specific'}. Does that still hold for what we are discussing?`, purpose: 'confirm_definition' };
   }
   // analogy / comparison / image
   const word = domainWord(r);
@@ -132,7 +132,7 @@ export function templateFor(r: Reference, conceptId: string | undefined): { text
 
 function build(r: Reference, conceptId: string | undefined, input: SuggestionInput, node: SuggestionNode): SuggestionDecision {
   const t = templateFor(r, conceptId);
-  if (!t) return { suggestion: null, reason: `no honest template for "${r.label}" on this concept — abstain` };
+  if (!t) return { suggestion: null, reason: `no honest template for "${r.label}" on this concept; abstain` };
   const guard = offerClaimGuard(t.text, input.approved_offer);
   if (!guard.ok) return { suggestion: null, reason: `guard rejected the line: ${guard.reason}` };
   const metric = metricGuard(r, t.text);
@@ -202,7 +202,7 @@ export function decideSuggestion(input: SuggestionInput): SuggestionDecision {
     if (input.last_suggestion_reference_id && c.reference.id === input.last_suggestion_reference_id && !asksClarification) return false;
     return true;
   });
-  if (candidates.length === 0) return { suggestion: null, reason: 'no earlier reference matches the concept of the current turn — abstain' };
+  if (candidates.length === 0) return { suggestion: null, reason: 'no earlier reference matches the concept of the current turn; abstain' };
   for (const cand of candidates) {
     const conceptId = cand.matched_concepts[0];
     const nodeText = `${node.why_this_now ?? ''} ${node.intended_answer_type ?? ''}`;
@@ -213,7 +213,7 @@ export function decideSuggestion(input: SuggestionInput): SuggestionDecision {
     const decision = build(cand.reference, conceptId, input, node);
     if (decision.suggestion) return { ...decision, reason: `${decision.reason}; concept ${conceptId}; ${stageMatch ? `matches stage ${node.stage}` : "answers the prospect's question in their frame"}` };
   }
-  return { suggestion: null, reason: 'matching references exist but none fits this node purpose without an unsupported claim — abstain' };
+  return { suggestion: null, reason: 'matching references exist but none fits this node purpose without an unsupported claim; abstain' };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -284,7 +284,7 @@ export function suggestionStillValid(references: readonly Reference[], suggestio
   const r = references.find((x) => x.id === suggestion.reference_id);
   if (!r) return { ok: false, reason: 'reference no longer exists' };
   if (r.lifecycle.state === 'dismissed' || r.lifecycle.state === 'rejected' || r.lifecycle.state === 'invalidated') {
-    return { ok: false, reason: `reference is ${r.lifecycle.state} — suggestion dropped` };
+    return { ok: false, reason: `reference is ${r.lifecycle.state}; suggestion dropped` };
   }
   if (r.reuse.do_not_reuse) return { ok: false, reason: 'reference is marked do-not-reuse' };
   if (r.updated_event_version > suggestion.input_event_version) {

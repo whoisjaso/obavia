@@ -63,7 +63,7 @@ describe('offer schema', () => {
   });
   it('requires a banner on fictional offers', () => {
     expect(OfferVersion.safeParse({ ...offer, fictional: true }).success).toBe(false);
-    expect(OfferVersion.safeParse({ ...offer, fictional: true, fictional_banner: 'FICTIONAL TRAINING OFFER — NOT A REAL QUOTE' }).success).toBe(true);
+    expect(OfferVersion.safeParse({ ...offer, fictional: true, fictional_banner: 'FICTIONAL TRAINING OFFER\nNOT A REAL QUOTE' }).success).toBe(true);
   });
 });
 

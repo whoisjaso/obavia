@@ -3,7 +3,7 @@
   "package_sha256": "99bd74bdc164b6e9fd849d83cc27b0c0e4b81a2755c9fc86f9c4d622c8c9749a",
   "offset_convention": "half-open [start, end) Unicode code-point offsets into the original single-line transcript for the named source (A or B)",
   "raw_sources_supplied": false,
-  "hash_verification": "pending — raw Source A / Source B transcripts are not in the supplied package; excerpts recorded as supplied",
+  "hash_verification": "pending: raw Source A / Source B transcripts are not in the supplied package; excerpts recorded as supplied",
   "expected_record_count": 207,
   "record_count": 207,
   "section_count_with_records": 26,

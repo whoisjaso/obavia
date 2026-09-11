@@ -165,8 +165,8 @@ export function PracticeClient({ nodes, scriptVersionId, placeholder, practiceFa
           <div className={styles.chipRow}>
             <FictionalPill />
             <Chip static label={`${nodes.length} nodes`} name={`${nodes.length} script nodes, version ${scriptVersionId}`} />
-            <Chip static icon="hourglass" label="Draft" name="All nodes are draft: training only" tone="teal" />
           </div>
+          <p className={styles.sheetMuted}>Draft script. Training only, not approved for live use.</p>
           <p className={styles.sheetBig}>{NOT_A_VOICE_CALL}.</p>
           <p className={styles.sheetText}>{TONE_NOTE}. Memory and Conversation are separate scores and never mixed.</p>
           <p className={styles.sheetText}>Assisted and unassisted attempts are summarised separately. {MODE_COPY} Nothing here ranks you.</p>
@@ -197,7 +197,7 @@ function BucketCard({ title, glyph, bucket, color }: { title: string; glyph: str
         <div className={styles.score} data-scored={mem.attempts > 0 ? 'true' : 'false'}>
           <Ring value={memValue} size={64} stroke={6} color={mem.attempts > 0 ? color : 'var(--ink-3)'} label={mem.attempts > 0 ? `Memory: ${mem.attempts} scored, mean exact match ${pct(memValue)}, mean word order ${pct(mem.mean_word_order_ratio ?? 0)}` : 'Memory: none scored'}>
             <span className={styles.scoreCenterSmall} aria-hidden="true">
-              {mem.attempts > 0 ? Math.round(memValue * 100) : <Icon name="empty" size={16} weight="bold" className={styles.scoreEmpty} />}
+              {mem.attempts > 0 ? `${Math.round(memValue * 100)}%` : <Icon name="empty" size={16} weight="bold" className={styles.scoreEmpty} />}
             </span>
           </Ring>
           <span className={styles.scoreLabel} aria-hidden="true">
@@ -213,7 +213,7 @@ function BucketCard({ title, glyph, bucket, color }: { title: string; glyph: str
             label={conv.attempts > 0 ? `Conversation: ${conv.attempts} scored, ${conv.objective_satisfied} objective satisfied, ${conv.branch_choices_correct} of ${conv.branch_choices} branch choices, ${conv.accurate_disqualifications} accurate disqualifications` : 'Conversation: none scored'}
           >
             <span className={styles.scoreCenterSmall} aria-hidden="true">
-              {conv.attempts > 0 ? Math.round(convValue * 100) : <Icon name="empty" size={16} weight="bold" className={styles.scoreEmpty} />}
+              {conv.attempts > 0 ? `${Math.round(convValue * 100)}%` : <Icon name="empty" size={16} weight="bold" className={styles.scoreEmpty} />}
             </span>
           </Ring>
           <span className={styles.scoreLabel} aria-hidden="true">

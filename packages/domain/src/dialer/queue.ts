@@ -73,11 +73,11 @@ export function dialableItems(queue: readonly QueueItem[]): QueueItem[] {
 export function policyGlyph(status: QueueItem['policy_status']): { glyph: '✓' | '◔' | '⊘'; word: 'ok' | 'review' | 'DNC'; name: string } {
   switch (status) {
     case 'allow':
-      return { glyph: '✓', word: 'ok', name: 'Allowed — demo: a synthetic call may be simulated; no real call is placed' };
+      return { glyph: '✓', word: 'ok', name: 'Allowed in demo: a synthetic call may be simulated; no real call is placed' };
     case 'requires_review':
-      return { glyph: '◔', word: 'review', name: 'Requires review — no reviewed contact policy for this number' };
+      return { glyph: '◔', word: 'review', name: 'Requires review: no reviewed contact policy for this number' };
     case 'suppressed':
-      return { glyph: '⊘', word: 'DNC', name: 'Do not call — opt-out on record; never dialed' };
+      return { glyph: '⊘', word: 'DNC', name: 'Do not call: opt-out on record; never dialed' };
     default:
       return { glyph: '◔', word: 'review', name: 'Requires review' };
   }

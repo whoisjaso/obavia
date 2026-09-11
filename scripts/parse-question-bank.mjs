@@ -138,14 +138,14 @@ const namedOnly = [
   { id: 'B01', source: 'B', title: 'Intent and logical certainty overview (named in framework; no records supplied)' },
   { id: 'B02', source: 'B', title: 'Setting call structure (named in framework; no records supplied)' },
   { id: 'B06', source: 'B', title: 'Process orientation and repetition (named in framework; no records supplied)' },
-  { id: 'B12', source: 'B', title: 'Named in framework range B12–B16 (delivery/tonality); no records supplied' },
-  { id: 'B13', source: 'B', title: 'Named in framework range B13–B16 (verbal cueing); no records supplied' },
-  { id: 'B14', source: 'B', title: 'Named in framework range B13–B16 (delivery); no records supplied' },
-  { id: 'B15', source: 'B', title: 'Named in framework range B13–B16 (delivery); no records supplied' },
+  { id: 'B12', source: 'B', title: 'Named in framework range B12 to B16 (delivery/tonality); no records supplied' },
+  { id: 'B13', source: 'B', title: 'Named in framework range B13 to B16 (verbal cueing); no records supplied' },
+  { id: 'B14', source: 'B', title: 'Named in framework range B13 to B16 (delivery); no records supplied' },
+  { id: 'B15', source: 'B', title: 'Named in framework range B13 to B16 (delivery); no records supplied' },
   { id: 'B16', source: 'B', title: 'Pacing (named in framework; internal wording ambiguity noted); no records supplied' },
   { id: 'B22', source: 'B', title: 'Physiology/anchors claims (named in framework; not validated); no records supplied' },
   { id: 'B23', source: 'B', title: 'Sleep/isolation/burnout claims (named in framework; not validated); no records supplied' },
-  { id: 'B25', source: 'B', title: 'Named in framework range B22–B25; no records supplied' },
+  { id: 'B25', source: 'B', title: 'Named in framework range B22 to B25; no records supplied' },
 ];
 
 const sectionsOut = sections
@@ -168,7 +168,7 @@ const validation = {
   package_sha256: packageHash,
   offset_convention: 'half-open [start, end) Unicode code-point offsets into the original single-line transcript for the named source (A or B)',
   raw_sources_supplied: false,
-  hash_verification: 'pending — raw Source A / Source B transcripts are not in the supplied package; excerpts recorded as supplied',
+  hash_verification: 'pending: raw Source A / Source B transcripts are not in the supplied package; excerpts recorded as supplied',
   expected_record_count: 207,
   record_count: records.length,
   section_count_with_records: sections.length,

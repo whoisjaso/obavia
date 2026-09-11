@@ -88,8 +88,10 @@
 .inHours {
   color: var(--green);
 }
-.dnc {
-  opacity: 0.6;
+.dnc .contact {
+  text-decoration: line-through;
+  text-decoration-color: var(--red);
+  text-decoration-thickness: 2px;
 }
 .empty {
   display: flex;

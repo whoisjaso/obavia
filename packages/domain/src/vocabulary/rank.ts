@@ -16,11 +16,11 @@ export interface RankedCandidate {
 
 export function exclusionFor(ev: VocabularyEvent): string | undefined {
   if (ev.rejected_by) return `rejected term (${ev.rejected_by === 'negation' ? 'negated by the prospect' : `"${ev.rejected_by}" was preferred`})`;
-  if (ev.attribution === 'quoted_other') return "quoted someone else's goal — not the prospect's priority";
-  if (ev.meaning_status === 'invalidated') return 'invalidated by a transcript revision — clarify before using';
-  if (ev.provenance === 'seller_only') return 'seller only — the prospect never adopted it';
-  if (ev.provenance === 'model_hypothesis') return 'hypothesis — not a quote';
-  if (ev.stability === 'interim') return 'interim transcript — provisional until final';
+  if (ev.attribution === 'quoted_other') return "quoted someone else's goal: not the prospect's priority";
+  if (ev.meaning_status === 'invalidated') return 'invalidated by a transcript revision: clarify before using';
+  if (ev.provenance === 'seller_only') return 'seller only: the prospect never adopted it';
+  if (ev.provenance === 'model_hypothesis') return 'hypothesis: not a quote';
+  if (ev.stability === 'interim') return 'interim transcript: provisional until final';
   return undefined;
 }
 
@@ -77,9 +77,9 @@ export function rankCandidates(events: readonly VocabularyEvent[]): Ranking {
   return { ranked, excluded };
 }
 
-/** The correction line shown under the strip: "PROFIT — rejected: revenue". */
+/** The correction line shown under the strip: "PROFIT, rejected: revenue". */
 export function correctionLines(events: readonly VocabularyEvent[]): { event_id: string; line: string; cue?: string }[] {
   return events
     .filter((e) => e.correction_or_negation && !e.rejected_by && e.speaker_role === 'prospect')
-    .map((e) => ({ event_id: e.id, line: `${e.exact_text.toUpperCase()} — rejected: ${e.correction_or_negation!.rejects}`, cue: e.cue }));
+    .map((e) => ({ event_id: e.id, line: `${e.exact_text.toUpperCase()}, rejected: ${e.correction_or_negation!.rejects}`, cue: e.cue }));
 }

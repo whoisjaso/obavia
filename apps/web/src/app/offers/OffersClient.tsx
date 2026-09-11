@@ -52,7 +52,7 @@ function List({ items, empty }: { items: string[]; empty?: string }) {
 function Money({ minor, currency, what, fictional, hook }: { minor: number | null; currency: string; what: string; fictional: boolean; hook: string }) {
   const unset = minor === null;
   const text = unset ? 'Not set' : formatMoney(minor, currency);
-  const name = unset ? `${what}: ${PRICE_NOT_SET_NAME}` : fictional ? `${what}: fictional fixture ${text} — never quoted live` : `${what}: ${text}`;
+  const name = unset ? `${what}: ${PRICE_NOT_SET_NAME}` : fictional ? `${what}: fictional fixture ${text}, never quoted live` : `${what}: ${text}`;
   return (
     <span className={styles.money}>
       <span className={[styles.moneyValue, unset ? styles.moneyUnset : ''].join(' ').trim()} role="img" aria-label={name} title={name} data-price={hook} data-price-set={unset ? 'no' : 'yes'}>
@@ -68,11 +68,11 @@ function Money({ minor, currency, what, fictional, hook }: { minor: number | nul
 function OfferCard({ offer, practice, onOpen }: { offer: OfferVersion; practice: boolean; onOpen: () => void }) {
   const g = statusGlyph(offer.status);
   return (
-    <Card onPress={onOpen} name={`${offer.name}. ${g.name}.${offer.fictional ? ' Fictional training offer — not a real quote.' : ''} Open.`} data-offer={offer.id} data-offer-kind={practice ? 'practice' : 'live'} data-offer-status={offer.status}>
+    <Card onPress={onOpen} name={`${offer.name}. ${g.name}.${offer.fictional ? ' Fictional training offer, not a real quote.' : ''} Open.`} data-offer={offer.id} data-offer-kind={practice ? 'practice' : 'live'} data-offer-status={offer.status}>
       <div className={styles.offerHead}>
         <span className={styles.offerName}>{offer.name}</span>
         <span className={styles.offerPills}>
-          <GlyphPill glyph={g.glyph} label={g.word} tone={g.tone} name={g.name} data-status-pill={offer.status} />
+          {offer.status === 'draft' ? <GlyphPill icon="edit" weight="regular" tone="neutral" name={g.name} data-status-pill={offer.status} /> : <GlyphPill glyph={g.glyph} label={g.word} tone={g.tone} name={g.name} data-status-pill={offer.status} />}
           {offer.fictional ? <FictionalPill /> : null}
         </span>
       </div>
@@ -128,11 +128,11 @@ export function OffersClient({ offers, placeholder }: Props) {
       <TopBar title="Offers" right={<IconButton icon="script" label="Script" href="/scripts" />} />
 
       <div className={styles.filters} role="group" aria-label="Show">
-        <Chip label="Offers" toggle selected={filter === 'offers'} onClick={() => setFilter('offers')} name={`Offers, ${live.length} — the only versions a script may reference`} data-filter="offers" />
-        <Chip label="Practice" glyph="✦" tone="purple" toggle selected={filter === 'practice'} onClick={() => setFilter('practice')} name={`Practice fixtures, ${practice.length} — fictional offers for mock scenarios; never live, never quoted`} data-filter="practice" />
+        <Chip label="Offers" toggle selected={filter === 'offers'} onClick={() => setFilter('offers')} name={`Offers, ${live.length}: the only versions a script may reference`} data-filter="offers" />
+        <Chip label="Practice" glyph="✦" tone="purple" toggle selected={filter === 'practice'} onClick={() => setFilter('practice')} name={`Practice fixtures, ${practice.length}: fictional offers for mock scenarios; never live, never quoted`} data-filter="practice" />
       </div>
 
-      {placeholder ? <GlyphPill glyph="◔" label="Placeholder" tone="orange" name="The offers seed is still a placeholder — nothing here is authored content" /> : null}
+      {placeholder ? <GlyphPill glyph="◔" label="Placeholder" tone="orange" name="The offers seed is still a placeholder; nothing here is authored content" /> : null}
 
       <div className={styles.cards} data-offer-list={filter}>
         {shown.length === 0 ? (
@@ -157,11 +157,17 @@ export function OffersClient({ offers, placeholder }: Props) {
             return (
               <div className={styles.sheetBody} data-offer-sheet={sheetOffer.id} data-offer-sheet-status={sheetOffer.status}>
                 <div className={styles.sheetHead}>
-                  <GlyphPill glyph={g.glyph} label={g.word} tone={g.tone} name={g.name} data-sheet-status={sheetOffer.status} />
+                  {sheetOffer.status !== 'draft' ? <GlyphPill glyph={g.glyph} label={g.word} tone={g.tone} name={g.name} data-sheet-status={sheetOffer.status} /> : null}
                   {sheetOffer.fictional ? <FictionalPill /> : null}
                   {sheetOffer.practice_only ? <GlyphPill glyph="⊘" label="Never live" tone="purple" name="Practice-only fixture: structurally excluded from the live offer list and from live pricing" data-practice-only /> : null}
                   {readOnly ? <GlyphPill icon="lock" weight="fill" label="Frozen" tone="neutral" name="Published or retired offers are immutable; a change means a new version" data-read-only /> : null}
                 </div>
+
+                {sheetOffer.status === 'draft' ? (
+                  <p className={styles.draftNote} role="status" aria-label={g.name} data-sheet-status="draft">
+                    Draft offer. Not approved for live use.
+                  </p>
+                ) : null}
 
                 {sheetOffer.fictional ? (
                   <p className={styles.banner} role="note" data-fictional-banner>
@@ -169,21 +175,33 @@ export function OffersClient({ offers, placeholder }: Props) {
                   </p>
                 ) : null}
 
-                {!sheetIsPractice ? (
-                  <TileGrid columns={2}>
-                    {next && next !== 'retired' ? (
-                      <Tile
-                        icon={next === 'published' ? 'lock' : 'check'}
-                        label={next === 'reviewed' ? 'Review' : 'Publish'}
-                        tone={next === 'published' ? 'green' : 'blue'}
-                        name={next === 'reviewed' ? 'Mark reviewed: the owner accepts the wording as a candidate; still not live' : 'Publish: approve and freeze this version; a blank price still blocks quoting'}
-                        onClick={() => requestTransition(sheetOffer, next)}
-                        data-transition={next}
-                      />
-                    ) : null}
-                    {sheetOffer.status === 'published' ? <Tile icon="ban" label="Retire" tone="orange" name="Retire: no longer referenced by any live script; kept for history" onClick={() => requestTransition(sheetOffer, 'retired')} data-transition="retired" /> : null}
-                  </TileGrid>
-                ) : null}
+                {!sheetIsPractice
+                  ? (() => {
+                      const actions = [
+                        ...(next && next !== 'retired'
+                          ? [
+                              <Tile
+                                key="next"
+                                icon={next === 'published' ? 'lock' : 'check'}
+                                label={next === 'reviewed' ? 'Review' : 'Publish'}
+                                tone={next === 'published' ? 'green' : 'blue'}
+                                name={next === 'reviewed' ? 'Mark reviewed: the owner accepts the wording as a candidate; still not live' : 'Publish: approve and freeze this version; a blank price still blocks quoting'}
+                                onClick={() => requestTransition(sheetOffer, next)}
+                                data-transition={next}
+                                {...(next === 'reviewed' ? { size: 'sm' as const } : {})}
+                              />,
+                            ]
+                          : []),
+                        ...(sheetOffer.status === 'published'
+                          ? [<Tile key="retire" icon="ban" label="Retire" tone="orange" name="Retire: no longer referenced by any live script; kept for history" onClick={() => requestTransition(sheetOffer, 'retired')} data-transition="retired" size="sm" />]
+                          : []),
+                      ];
+                      // one action = one full-width row; two = the grid (never an orphan half-width tile)
+                      if (actions.length === 0) return null;
+                      if (actions.length === 1) return <div className={styles.actionRow}>{actions}</div>;
+                      return <TileGrid columns={2}>{actions}</TileGrid>;
+                    })()
+                  : null}
 
                 <section aria-labelledby="o-price" data-price-section>
                   <Caption id="o-price">Price</Caption>

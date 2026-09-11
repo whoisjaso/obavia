@@ -78,11 +78,11 @@ export interface ClassificationGlyph {
 export function classificationGlyph(c: UseClassification): ClassificationGlyph {
   switch (c) {
     case 'adapt':
-      return { glyph: '◔', word: 'Adapt', name: 'Adapt — study material a live node may cite in its own words; not live approval', tone: 'teal', liveEligible: true };
+      return { glyph: '◔', word: 'Adapt', name: 'Adapt: study material a live line may cite in its own words; not live approval', tone: 'teal', liveEligible: true };
     case 'study_only':
-      return { glyph: '⊘', word: 'Study only', name: 'Study only — readable for study; never a live recommendation and never cited by a live node', tone: 'orange', liveEligible: false };
+      return { glyph: '⊘', word: 'Study only', name: 'Study only: readable for study; never a live recommendation and never cited by a live line', tone: 'orange', liveEligible: false };
     case 'private_training':
-      return { glyph: '◌', word: 'Private', name: 'Private training — may be cited only by a practice-only node; never live', tone: 'purple', liveEligible: false };
+      return { glyph: '◌', word: 'Private', name: 'Private training: may be cited only by a practice-only line; never live', tone: 'purple', liveEligible: false };
     default:
       return { glyph: '?', word: String(c), name: `Unknown classification ${String(c)}`, tone: 'orange', liveEligible: false };
   }
@@ -212,7 +212,7 @@ export interface EvidenceCheck {
   rule: string | null;
 }
 
-const DEFAULT_KNOWN_RULE = 'Already answered — offer a transition instead of asking again.';
+const DEFAULT_KNOWN_RULE = 'Already answered: offer a transition instead of asking again.';
 
 /** The spoken transition inside a facts-already-known rule: the first double-quoted sentence, if any. */
 export function transitionLineOf(rule: string | undefined): string | null {
@@ -255,8 +255,8 @@ export function slotLabel(name: string): string {
   return name.replace(/\|.*$/, '').replace(/_/g, ' ');
 }
 
-export const PRICE_NOT_APPROVED_CUE = 'Price not approved yet — route to scope conversation' as const;
-export const FICTIONAL_PRICE_CUE = 'Fictional offer — not a real quote; no price may be spoken' as const;
+export const PRICE_NOT_APPROVED_CUE = 'Price not approved yet: route to scope conversation' as const;
+export const FICTIONAL_PRICE_CUE = 'Fictional offer, not a real quote; no price may be spoken' as const;
 /** Prefix of the cue shown for a pillar slot while the linked offer is not published (B-2). */
 export const OFFER_NOT_APPROVED_CUE = 'Offer not approved' as const;
 
@@ -316,7 +316,7 @@ export function resolveSlots(template: string, ctx: SlotContext): SlotResolution
       if (offer && p && offer.status === 'published') return pillar[2] === 'name' ? p.name : p.delivery;
       missing.push(name);
       if (offer && p) {
-        notes.push(`${OFFER_NOT_APPROVED_CUE}: "${offer.name}" is ${offer.status} — pillar wording is not spoken until the offer is published.`);
+        notes.push(`${OFFER_NOT_APPROVED_CUE}: "${offer.name}" is ${offer.status}; pillar wording is not spoken until the offer is published.`);
         return `[${OFFER_NOT_APPROVED_CUE}: ${slotLabel(name)}]`;
       }
       return `[missing: ${slotLabel(name)}]`;
@@ -389,7 +389,7 @@ export function renderNodeCard(node: ScriptNode, opts: RenderOptions = {}): Node
   const routing = [...say.notes];
   if (evidence.satisfied) routing.push('Evidence-satisfied: offer the transition instead of asking twice.');
   for (const m of say.missing) routing.push(`Missing "${slotLabel(m)}": confirm it with the prospect or route to the question that establishes it.`);
-  if (node.practice_only) routing.push('Study/practice only — never a live recommendation.');
+  if (node.practice_only) routing.push('Study and practice only: never a live recommendation.');
 
   const base: NodeCard = {
     node_id: node.id,
@@ -533,7 +533,7 @@ export function validateGraph(
   // Global stop rule (B-1).
   const stopId = stopNodeId(version);
   const stop = nodeById(own, stopId);
-  if (!stop) errors.push(`stop node ${stopId} is missing — opt-out cannot reach a stop from every node`);
+  if (!stop) errors.push(`stop node ${stopId} is missing: opt-out cannot reach a stop from every node`);
   else {
     if (stop.stage !== 'exit') errors.push(`stop node ${stopId} must be in the exit stage (found "${stop.stage}")`);
     if (stop.practice_only) errors.push(`stop node ${stopId} must not be practice_only`);
@@ -558,9 +558,9 @@ export function validateGraph(
     const transition = transitionLineOf(n.facts_already_known_rule);
     if (transition) {
       for (const slot of new Set(slotsIn(transition))) {
-        if (!declared.has(slot) && !satisfying.has(slot)) errors.push(`node ${n.id} transition uses {${slot}} which is neither declared nor a satisfying fact — the transition can never be spoken`);
+        if (!declared.has(slot) && !satisfying.has(slot)) errors.push(`node ${n.id} transition uses {${slot}} which is neither declared nor a satisfying fact; the transition can never be spoken`);
       }
-      if (satisfying.size === 0) errors.push(`node ${n.id} declares a transition line but no satisfied_by_facts — it can never be evidence-satisfied`);
+      if (satisfying.size === 0) errors.push(`node ${n.id} declares a transition line but no satisfied_by_facts; it can never be evidence-satisfied`);
     }
   }
 

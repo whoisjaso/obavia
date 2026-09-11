@@ -9,9 +9,8 @@ import { EMPTY_PIN_STATE, analyzeCall, callDurationSeconds, callOutcome, outcome
 import { listenerFromTurns, toCards, visibleCards } from '@apohenia/domain/listener';
 import { Avatar, Card, Chip, Icon, IconButton, LineCard, NotAssessedLabel, REF_MEANING_GLYPH, RefCard, Sheet, Tile, Toast, WordCard, useToast, type IconName, type WordReference } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
-import { bridgeParts } from '@/lib/line-parts';
-import { formatDuration, wordCorrection, wordProvenance } from './review-lib';
-import { splitRefLabel } from '../dial-lib';
+import { formatDuration, toKnownFacts, wordCorrection, wordProvenance } from './review-lib';
+import { resolveBridge, splitRefLabel } from '../dial-lib';
 import styles from './calls.module.css';
 
 const Corrections = z.array(HumanCorrection);
@@ -39,20 +38,21 @@ const REPLAY_STATUS_ROWS: readonly { id: 'call' | 'transcription' | 'recording' 
 ];
 const REPLAY_STATUS_NAME = 'Demo replay: a synthetic transcript, no real call was placed. Transcription off, recording off, coach off. Open replay status.';
 
-/** Plain display form of a domain label that carries a dash separator ("internal training rubric, not validated"). */
+/** Display form of a domain label (labels carry no dash separators; this only guards seed text). */
 function plainLabel(label: string): string {
   return label.replace(/\s+[—–]\s+/g, ', ');
 }
 
-/**
- * Review prose from the rule engine, with its dash separators turned into punctuation. Anything
- * inside double quotes is a transcript quote and stays exactly as spoken.
- */
+/** Review prose from the rule engine. Anything inside double quotes is a transcript quote and stays exactly as spoken. */
 function plainReview(text: string): string {
   return text
     .split(/("[^"]*")/)
-    .map((part) => (part.startsWith('"') ? part : part.replace(/\s+[—–]\s+use theirs/, '. Use theirs').replace(/\s+[—–]\s+/g, ': ')))
+    .map((part) => (part.startsWith('"') ? part : part.replace(/\s+[—–]\s+/g, ': ')))
     .join('');
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /** One plain clause for a card's meaning line: parentheticals dropped, the first clause before any dash, at most 8 words. */
@@ -105,6 +105,8 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
   const rubric = rubricDefinition();
   const outcome = outcomeGlyph(callOutcome(analysis));
   const duration = formatDuration(callDurationSeconds(transcript.turns));
+  // The bridge renders only when every slot resolves from what the prospect said (their word); otherwise nothing.
+  const bridge = node ? resolveBridge(node.bridge_template, toKnownFacts(analysis.facts)) : null;
 
   const [corrections, setCorrections, hydrated] = useStoredState(`calls.corrections.${transcript.call_id}`, Corrections, NO_CORRECTIONS);
   const [sheet, setSheet] = useState<SheetKind | null>(null);
@@ -229,7 +231,7 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
             <LineCard
               stage={stageLabel(node.stage)}
               line={line}
-              shape={bridgeParts(node.bridge_template)}
+              bridge={bridge ?? undefined}
               onInfo={() => setSheet({ kind: 'info' })}
               nodeId={node.id}
               locked
@@ -341,7 +343,11 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
             <span className={styles.detailWord}>{selectedWord.exact_text}</span>
             <p className={styles.detailLine}>{provenanceLabel(selectedWord)}</p>
             <p className={styles.detailLine} data-word-meaning>
-              {selectedWord.meaning ? `means: ${selectedWord.meaning}` : 'meaning unknown: not explained by the prospect'}
+              {selectedWordRef
+                ? `${selectedWordRef.state === 'invalidated' ? 'Invalidated' : capitalize(selectedWordRef.meaning_status)}; meaning ${selectedWord.meaning ? `given: ${selectedWord.meaning}` : 'not explained by the prospect'}`
+                : selectedWord.meaning
+                  ? `means: ${selectedWord.meaning}`
+                  : 'meaning unknown: not explained by the prospect'}
             </p>
             {selectedWord.correction_or_negation ? (
               <p className={styles.detailLine}>
@@ -352,8 +358,7 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
             {selectedWordRef ? (
               <div className={styles.mergedRef} data-word-reference={selectedWordRef.id}>
                 <div className={styles.detailChips}>
-                  <Chip static icon="diamond" label="Reference" tone="purple" name="This word is also a reference the listener tracks" />
-                  <Chip static glyph={selectedWordRef.state === 'invalidated' ? '⊘' : REF_MEANING_GLYPH[selectedWordRef.meaning_status]} label={selectedWordRef.state === 'invalidated' ? 'invalidated' : selectedWordRef.meaning_status} tone="purple" name={selectedWordRef.glyph_name} />
+                  <Chip static icon="diamond" label="Reference" tone="purple" name={`This word is also a reference the listener tracks. ${selectedWordRef.glyph_name}`} />
                 </div>
                 <p className={styles.detailLine}>{plainLabel(selectedWordRef.represents)}</p>
                 <div className={styles.detailActions}>
