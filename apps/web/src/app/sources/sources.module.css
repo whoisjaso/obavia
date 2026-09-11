@@ -141,11 +141,6 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink-3);
 }
-.sectionId {
-  font-family: var(--font-mono);
-  font-size: var(--fs-micro);
-  color: var(--ink-3);
-}
 .namedOnly {
   cursor: default;
   border-style: dashed;
@@ -176,6 +171,17 @@
   align-items: center;
   gap: var(--s-2);
   min-width: 0;
+}
+.recordGlyph {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-2);
+  color: var(--teal);
+  font-size: 15px;
 }
 .recordTitle {
   flex: 1;

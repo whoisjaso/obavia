@@ -2,6 +2,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
   min-height: 40px;
   padding: 0 var(--s-4);
   border-radius: var(--r-chip);
@@ -43,8 +45,10 @@
   background: transparent;
 }
 .label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .glyph {
   line-height: 1;

@@ -298,7 +298,9 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
         </div>
       ) : null}
       <div className={styles.publishDock} data-publish-dock>
-        <Tile icon="lock" label="Publish" size="lg" tone="green" name="Publish this version: freeze the wording as an immutable snapshot with a content hash. Node approval is not changed." onClick={() => setSheet({ kind: 'publish' })} disabled={!pubsHydrated} data-publish className={styles.publishTile} />
+        <div className={styles.publishInner}>
+          <Tile icon="lock" label="Publish" tone="green" name="Publish this version: freeze the wording as an immutable snapshot with a content hash. Node approval is not changed." onClick={() => setSheet({ kind: 'publish' })} disabled={!pubsHydrated} data-publish className={styles.publishTile} />
+        </div>
       </div>
 
       {/* ================= status sheet: version · graph · offer ================= */}

@@ -5,7 +5,7 @@ import type { Attempt, ListenerAction, QueueItem, ScriptNode, ScriptVersion, Tra
 import { loadVersionGraph, stageLabel } from '@apohenia/domain/scripts';
 import { analyzeCall, pinPhrase, resolvePins, unpinPhrase } from '@apohenia/domain/vocabulary';
 import { formatClock, knownFactsFor, nextScriptNodeHint } from '@apohenia/domain/dialer';
-import { Avatar, Card, Chip, DemoPill, IconButton, LineCard, RefCard, Sheet, SlotLine, Tile, TileGrid, WordCard, type WordReference } from '@/components/ui';
+import { Avatar, Card, Chip, DemoPill, IconButton, LineCard, REF_MEANING_GLYPH, RefCard, Sheet, SlotLine, Tile, TileGrid, WordCard, type WordReference } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { useImmersive } from '@/lib/immersive';
 import { useWide } from '@/lib/use-wide';
@@ -26,7 +26,9 @@ import {
   referencesForRail,
   resolveLine,
   resolveMirror,
+  splitRefLabel,
   toKnownFacts,
+  guidanceLine,
   wordCorrection,
   wordProvenance,
   wordProvenanceName,
@@ -320,6 +322,15 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
       ))}
     </>
   );
+  const mergedRefs = [...merged.wordRefs.values()];
+  const refIndex =
+    mergedRefs.length > 0 ? (
+      <div className={styles.refIndex} role="group" aria-label="References carried by a word card" data-ref-index>
+        {mergedRefs.map((r) => (
+          <Chip key={r.id} glyph={r.lifecycle.state === 'invalidated' ? '⊘' : '◆'} label={splitRefLabel(r.label).title.toLowerCase()} tone="purple" name={`${r.label} — reference shown on its word card. Open.`} onClick={() => setSheet({ kind: 'ref', id: r.id })} data-ref-index-chip={r.id} className={styles.refIndexChip} />
+        ))}
+      </div>
+    ) : null;
   const panelEmpty = resolved.pinned.length + merged.refs.length === 0;
 
   return (
@@ -389,7 +400,6 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
                 />
               ))}
               {moreCount > 0 ? <Chip label="more" glyph="…" name={`${moreCount} more branches`} onClick={() => setSheet({ kind: 'more' })} data-branch-more className={styles.chip} /> : null}
-              {st.history.length > 0 ? <IconButton icon="arrow-left" label="Previous line" onClick={goBack} className={styles.backButton} /> : null}
             </div>
           ) : null}
 
@@ -422,13 +432,14 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
             <div className={styles.railList} data-words-rail data-empty={resolved.pinned.length === 0 ? 'true' : undefined}>
               {words}
             </div>
-            {merged.refs.length > 0 ? (
+            {rail.length > 0 ? (
               <>
                 <div className={styles.railHead}>
-                  <Chip static label="Their refs" tone="purple" className={styles.railLabel} />
+                  <Chip static label="Their refs" tone="purple" className={styles.railLabel} name={`Their references: ${rail.length}`} />
                 </div>
                 <div className={styles.railList} data-refs-rail>
                   {refs}
+                  {refIndex}
                 </div>
               </>
             ) : null}
@@ -441,7 +452,7 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
         <div className={styles.callFootInner}>
           <IconButton icon="arrow-up" label="Transcript" onClick={() => setSheet({ kind: 'transcript' })} data-transcript-button />
           <IconButton icon="phone-off" label="End call" tone="red" solid size={72} onClick={onEnd} data-end-call />
-          <span className={styles.footSpacer} aria-hidden="true" />
+          <IconButton icon="arrow-left" label="Previous line" onClick={goBack} disabled={st.history.length === 0} className={styles.backButton} data-line-prev />
         </div>
       </div>
 
@@ -599,11 +610,33 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
       >
         {selectedRef ? (
           <div className={styles.detail}>
-            <span className={styles.detailRef}>{selectedRef.label}</span>
+            <span className={styles.detailRef} data-ref-title>
+              {splitRefLabel(selectedRef.label).title}
+            </span>
+            <div className={styles.detailChips}>
+              {splitRefLabel(selectedRef.label).aside ? (
+                <span className={styles.detailAside} data-ref-aside>
+                  not <s>{splitRefLabel(selectedRef.label).aside!.replace(/^not\s+/i, '')}</s>
+                </span>
+              ) : null}
+              <Chip static glyph={selectedRef.lifecycle.state === 'invalidated' ? '⊘' : REF_MEANING_GLYPH[refMeaningStatus(selectedRef)]} label={selectedRef.lifecycle.state === 'invalidated' ? 'invalidated' : refMeaningStatus(selectedRef)} tone="purple" name={selectedRef.lifecycle.state === 'invalidated' ? 'Invalidated — evidence retracted' : refMeaningName(selectedRef)} data-ref-status />
+            </div>
             <q className={styles.detailQuote}>{selectedRef.evidence.supporting_quote}</q>
             <p className={styles.detailLine}>{selectedRef.semantics.relationship}</p>
-            <p className={styles.detailCue}>{refMeaningName(selectedRef)}</p>
-            {selectedRef.semantics.prohibited_inferences.length > 0 ? <p className={styles.detailCue}>not inferred: {selectedRef.semantics.prohibited_inferences.join('; ')}</p> : null}
+            {guidanceLine(selectedRef) ? (
+              <p className={styles.detailUse} data-ref-use-line>
+                {guidanceLine(selectedRef)}
+              </p>
+            ) : null}
+            {selectedRef.semantics.prohibited_inferences.length > 0 ? (
+              <InfoRow label="Use it right" glyph="◆" tone="purple">
+                <ul className={styles.infoList} data-ref-prohibited>
+                  {selectedRef.semantics.prohibited_inferences.map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              </InfoRow>
+            ) : null}
           </div>
         ) : null}
       </Sheet>
@@ -628,10 +661,10 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
 }
 
 /** A collapsible row in the ⓘ sheet: tap the label row to open its text (why-now stays the hero). */
-function InfoRow({ label, glyph, tone, children }: { label: string; glyph: string; tone?: 'teal'; children: ReactNode }) {
+function InfoRow({ label, glyph, tone, children }: { label: string; glyph: string; tone?: 'teal' | 'purple'; children: ReactNode }) {
   return (
     <details className={styles.infoRow} data-info-row={label.toLowerCase().replace(/\s+/g, '-')}>
-      <summary className={[styles.infoSummary, tone === 'teal' ? styles.infoTeal : ''].join(' ').trim()}>
+      <summary className={[styles.infoSummary, tone === 'teal' ? styles.infoTeal : '', tone === 'purple' ? styles.infoPurple : ''].join(' ').trim()}>
         <span className={styles.infoGlyph} aria-hidden="true">
           {glyph}
         </span>

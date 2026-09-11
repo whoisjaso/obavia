@@ -251,9 +251,9 @@ interface ScreenViewProps {
   onNext: (selection: string[]) => void;
 }
 
-/** Short cue (≤3 words) for a selection problem; the full sentence stays the accessible text. */
-function reasonCue(problem: string): string {
-  if (problem.startsWith('Choose an option')) return 'Pick one';
+/** Short cue (≤3 words) for a selection problem, true to the question's select mode; the full sentence stays the accessible text. */
+function reasonCue(problem: string, max: number | undefined): string {
+  if (problem.startsWith('Choose an option')) return max !== undefined ? `Pick up to ${max}` : 'Pick one';
   if (problem.startsWith('Choose up to')) return 'Too many';
   if (/mutually exclusive|cannot be combined/.test(problem)) return 'One or other';
   return 'Check choice';
@@ -388,12 +388,17 @@ function ScreenView({ screen, index, total, initialSelection, needsReanswer, has
         <IconButton icon="arrow-left" label="Back" size={56} disabled={!canGoBack} onClick={onBack} data-back />
         <Chip label="Skip" glyph="→" name="Skip this question" onClick={onSkip} data-skip />
         <span className={styles.spacer} />
-        {problem !== null ? (
-          <span id={reasonId} className={styles.reason} data-next-reason>
-            <span aria-hidden="true">◌ {reasonCue(problem)}</span>
-            <span className="sr-only">{problem}</span>
-          </span>
-        ) : null}
+        {/* fixed slot: the cue fades in and out without moving Next */}
+        <span id={reasonId} className={[styles.reason, problem === null ? styles.reasonClear : ''].join(' ').trim()} data-next-reason={problem === null ? 'clear' : 'blocked'} aria-hidden={problem === null ? 'true' : undefined}>
+          {problem !== null ? (
+            <>
+              <span aria-hidden="true">◌ {reasonCue(problem, max)}</span>
+              <span className="sr-only">{problem}</span>
+            </>
+          ) : (
+            <span aria-hidden="true">✓</span>
+          )}
+        </span>
         <button type="button" className={styles.nextHero} onClick={() => onNext(selection)} disabled={problem !== null} aria-describedby={problem !== null ? reasonId : undefined} data-next>
           <span>Next</span>
           <Icon name="arrow-right" size={22} strokeWidth={2.25} />

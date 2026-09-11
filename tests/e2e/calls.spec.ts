@@ -113,11 +113,13 @@ test.describe('Queue /prospects', () => {
     await expect(page.getByRole('button', { name: /^(Call|Dial)\b/ })).toHaveCount(0);
     await expect(page.locator('table')).toHaveCount(0);
 
-    // Record sheet: phone, chips, still no dial control.
+    // Record sheet: a readable number (E.164 stays in the accessible name), chips, still no dial control.
     await cards.nth(1).click();
     const record = page.locator('dialog[data-sheet="record"]');
     await expect(record).toBeVisible();
-    await expect(record).toContainText('+1555010');
+    await expect(record.locator('[data-record-phone]')).toHaveAttribute('aria-label', /\+1555010/);
+    await expect(record.locator('[data-record-phone]')).toContainText(/\(555\) 010-\d{4}$/); // readable, not E.164
+    await expect(record).not.toContainText('America/');
     await expect(record.locator('[data-fictional-pill]')).toBeVisible();
     await expect(record.getByRole('button', { name: /^(Call|Dial)\b/ })).toHaveCount(0);
     await page.keyboard.press('Escape');

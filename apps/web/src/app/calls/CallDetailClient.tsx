@@ -7,10 +7,11 @@ import { HumanCorrection } from '@apohenia/domain/schemas';
 import { stageLabel } from '@apohenia/domain/scripts';
 import { EMPTY_PIN_STATE, analyzeCall, callDurationSeconds, callOutcome, outcomeGlyph, postCallReview, provenanceLabel, resolvePins, rubricDefinition, type NodeLike } from '@apohenia/domain/vocabulary';
 import { listenerFromTurns, toCards, visibleCards } from '@apohenia/domain/listener';
-import { Avatar, Card, Chip, DemoPill, IconButton, LineCard, NotAssessedGlyph, RefCard, Sheet, Toast, WordCard, useToast } from '@/components/ui';
+import { Avatar, Card, Chip, DemoPill, IconButton, LineCard, NotAssessedGlyph, REF_MEANING_GLYPH, RefCard, Sheet, Toast, WordCard, useToast } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { bridgeParts } from '@/lib/line-parts';
 import { formatDuration, wordCorrection, wordProvenance } from './review-lib';
+import { splitRefLabel } from '../dial-lib';
 import styles from './calls.module.css';
 
 const Corrections = z.array(HumanCorrection);
@@ -191,7 +192,11 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
           <div className={styles.outcomeRow} data-review-outcome>
             <Chip static glyph={outcome.glyph} label={outcome.word} name={outcome.name} tone={outcome.glyph === '✓' ? 'green' : outcome.glyph === '⊘' ? 'red' : outcome.glyph === '◔' ? 'teal' : 'neutral'} />
             <NotAssessedGlyph name="Tone not assessed (text-only)" data-review-tone />
-            <IconButton icon="info" label="Uncertainties and rubric" onClick={() => setSheet({ kind: 'uncertain' })} data-uncertainties />
+            <span className={styles.outcomeTools}>
+              <IconButton icon="list" label="Transcript" onClick={() => setSheet({ kind: 'transcript' })} data-transcript-button />
+              <IconButton icon="bookmark" label={`Corrections (${corrections.length})`} onClick={() => setSheet({ kind: 'corrections' })} data-corrections-button />
+              <IconButton icon="info" label="Uncertainties and rubric" onClick={() => setSheet({ kind: 'uncertain' })} data-uncertainties />
+            </span>
           </div>
 
           {/* the review block: four cards */}
@@ -200,12 +205,6 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
             {reviewCard('fix', 'Fix', '△', 'orange', review.correction.text, quoteFor(review.correction.quote_turn_id))}
             {reviewCard('ask', 'Ask instead', '?', 'purple', review.better_question, null)}
             {reviewCard('drill', 'Drill', '◎', 'neutral', review.drill, null, '/practice')}
-          </div>
-
-          <div className={styles.callFoot}>
-            <IconButton icon="arrow-up" label="Transcript" onClick={() => setSheet({ kind: 'transcript' })} data-transcript-button />
-            <IconButton icon="bookmark" label={`Corrections (${corrections.length})`} onClick={() => setSheet({ kind: 'corrections' })} size={56} data-corrections-button />
-            <span className={styles.footSpacer} aria-hidden="true" />
           </div>
         </div>
 
@@ -298,13 +297,33 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
       <Sheet open={selectedRef !== null} onClose={() => setSheet(null)} title="Their reference" data-sheet="ref">
         {selectedRef ? (
           <div className={styles.detail}>
-            <span className={styles.detailRef}>{selectedRef.label}</span>
+            <span className={styles.detailRef} data-ref-title>
+              {splitRefLabel(selectedRef.label).title}
+            </span>
+            <div className={styles.detailChips}>
+              {splitRefLabel(selectedRef.label).aside ? (
+                <span className={styles.detailAside} data-ref-aside>
+                  not <s>{splitRefLabel(selectedRef.label).aside!.replace(/^not\s+/i, '')}</s>
+                </span>
+              ) : null}
+              <Chip static glyph={selectedRef.state === 'invalidated' ? '⊘' : REF_MEANING_GLYPH[selectedRef.meaning_status]} label={selectedRef.state === 'invalidated' ? 'invalidated' : selectedRef.meaning_status} tone="purple" name={selectedRef.glyph_name} data-ref-status />
+              <Chip static glyph="○" label={selectedRef.origin_label.split(/\s[—–-]\s|:/)[0] ?? selectedRef.origin_label} name={selectedRef.origin_label} />
+            </div>
             <q className={styles.detailQuote}>{selectedRef.evidence.quote}</q>
             <p className={styles.detailLine}>{selectedRef.represents}</p>
-            <p className={styles.detailCue}>{selectedRef.glyph_name}</p>
-            <p className={styles.detailCue}>{selectedRef.origin_label}</p>
             {selectedRef.useful_when ? <p className={styles.detailLine}>later: {selectedRef.useful_when}</p> : null}
-            {selectedRef.prohibited_inferences.length > 0 ? <p className={styles.detailCue}>not inferred: {selectedRef.prohibited_inferences.join('; ')}</p> : null}
+            {selectedRef.prohibited_inferences.length > 0 ? (
+              <details className={styles.useRight} data-ref-use-right>
+                <summary className={styles.useRightSummary}>
+                  <span aria-hidden="true">◆ </span>Use it right
+                </summary>
+                <ul className={styles.infoList} data-ref-prohibited>
+                  {selectedRef.prohibited_inferences.map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
             {selectedRef.state_line ? <p className={styles.detailCue}>{selectedRef.state_line}</p> : null}
           </div>
         ) : null}

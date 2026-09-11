@@ -61,14 +61,6 @@
   font-weight: 600;
   color: var(--ink-2);
 }
-.tag {
-  min-width: 20px;
-  padding: 1px 6px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--ink-2);
-  text-align: center;
-}
 .clock {
   font-variant-numeric: tabular-nums;
 }
@@ -275,8 +267,10 @@
   gap: var(--s-3);
   flex-wrap: wrap;
 }
-.outcomeRow > :last-child {
+.outcomeTools {
   margin-left: auto;
+  display: inline-flex;
+  gap: var(--s-2);
 }
 .reviewGrid {
   display: grid;
@@ -304,23 +298,50 @@
   color: var(--ink-2);
   font-style: italic;
 }
-.callFoot {
-  position: sticky;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom));
-  z-index: 20;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+/* reference sheet chips */
+.detailChips {
+  display: flex;
   align-items: center;
-  justify-items: center;
-  padding: var(--s-3) var(--s-4);
-  margin: auto calc(-1 * var(--s-4)) 0;
-  background: linear-gradient(180deg, transparent, var(--bg) 35%);
+  flex-wrap: wrap;
+  gap: var(--s-2);
 }
-.callFoot > :first-child {
-  justify-self: start;
+.detailAside {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-chip);
+  border: 1px solid rgba(255, 69, 58, 0.45);
+  background: rgba(255, 69, 58, 0.1);
+  color: var(--red);
+  font-size: var(--fs-caption);
+  font-weight: 700;
 }
-.footSpacer {
-  width: 44px;
+.detailAside s {
+  text-decoration-thickness: 2px;
+}
+.useRight {
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  padding: 0 var(--s-4);
+  color: var(--ink-2);
+}
+.useRightSummary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  color: var(--ink);
+}
+.useRightSummary::-webkit-details-marker {
+  display: none;
+}
+.useRight[open] {
+  padding-bottom: var(--s-3);
 }
 
 /* sheets */

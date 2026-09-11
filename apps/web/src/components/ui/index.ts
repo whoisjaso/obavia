@@ -20,7 +20,7 @@ export { Avatar, hueFromName, initialsOf, type AvatarProps } from './Avatar';
 export { LineCard, type LineCardProps } from './LineCard';
 export { SlotLine, type SlotLineProps } from './SlotLine';
 export { WordCard, WORD_PROVENANCE_GLYPH, type WordCardProps, type WordProvenance, type WordReference } from './WordCard';
-export { RefCard, REF_MEANING_GLYPH, type RefCardProps, type RefMeaningStatus } from './RefCard';
+export { RefCard, REF_MEANING_GLYPH, splitReferenceLabel, type RefCardProps, type RefMeaningStatus } from './RefCard';
 export { Icon, type IconName, type IconProps } from './Icon';
 export { ICON_PATHS } from './icons';
 export { IconButton, type IconButtonProps, type IconButtonTone } from './IconButton';

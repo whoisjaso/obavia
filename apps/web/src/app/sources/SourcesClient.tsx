@@ -160,10 +160,9 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
       {/* A / B — two chips, two lists; the missing register chip; the matching count */}
       <div className={styles.row} role="group" aria-label="Source">
         {SOURCES.map((s) => (
-          <Chip key={s} label={`Source ${s}`} toggle selected={source === s} onClick={() => update({ source: s })} name={`Source ${s}, ${perSource[s].length} matching of ${coverage.by_source[s]} — ${sourceDescriptions[s]}`} data-source-chip={s} />
+          <Chip key={s} label={`Source ${s}`} kbd={String(perSource[s].length)} toggle selected={source === s} onClick={() => update({ source: s })} name={`Source ${s}, ${perSource[s].length} matching of ${coverage.by_source[s]} — ${sourceDescriptions[s]}`} data-source-chip={s} data-source-count={perSource[s].length} />
         ))}
         <Chip label={String(missing.length)} glyph="⊘" tone="gold" name={`Named but missing resources (${missing.length}) — marked missing, never reconstructed. Open the register.`} onClick={() => setSheet({ kind: 'missing' })} data-open-missing />
-        <Stat value={perSource[source].length} icon="list" name={`Matching records in Source ${source}`} />
       </div>
 
       {/* classification chips */}
@@ -193,9 +192,6 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
                 </span>
                 <span className={styles.sectionName} aria-hidden="true">
                   {sectionShortName(s.title)}
-                </span>
-                <span className={styles.sectionId} aria-hidden="true">
-                  {s.id}
                 </span>
               </span>
             );
@@ -247,7 +243,9 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
               return (
                 <Card key={r.id} href={`/sources/${encodeURIComponent(r.id)}`} name={`${r.id} — ${r.title}. ${g.name}. Open record.`} dense data-record-id={r.id}>
                   <div className={styles.recordRow}>
-                    <Chip static label={r.id} name={`Record ${r.id}`} className={styles.mono} />
+                    <span className={styles.recordGlyph} aria-hidden="true">
+                      {sectionGlyph(r.section_title)}
+                    </span>
                     <span className={styles.recordTitle}>{r.title}</span>
                     <GlyphPill glyph={g.glyph} tone={g.tone} name={g.name} data-classification={r.use_classification} />
                   </div>

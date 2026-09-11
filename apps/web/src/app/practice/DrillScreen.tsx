@@ -10,6 +10,7 @@ import {
   gradeDeliveryReplay,
   gradeExactRecall,
   gradeOrder,
+  maskForMode,
   mirrorDuel,
   orderRehearsal,
   practiceThisMoment,
@@ -21,9 +22,9 @@ import {
   type VocabularyItemInput,
 } from '@apohenia/domain/practice';
 import { stageLabel } from '@apohenia/domain/scripts';
-import { Card, Chip, FictionalPill, GlyphPill, IconButton, LineCard, Sheet, Tile, TileGrid, TopBar, WordCard } from '@/components/ui';
-import { AssistCard, ChoiceTile, PracticeHero, ProspectCard, ResultCard, type ChoiceState } from './parts';
-import { DEFAULT_MOMENT, drillMeta, itemWithFacts, lines, resultAnnouncement, shortChoices } from './practice-lib';
+import { Card, Chip, FictionalPill, GlyphPill, IconButton, LineCard, Sheet, SlotLine, Tile, TileGrid, TopBar, WordCard } from '@/components/ui';
+import { AssistCard, ChoiceTile, PracticeHero, ProspectCard, QuestionCard, ResultCard, type ChoiceState } from './parts';
+import { DEFAULT_MOMENT, drillMeta, itemWithFacts, lines, resolveForPractice, resultAnnouncement, shortChoices } from './practice-lib';
 import styles from './practice.module.css';
 
 /** FICTIONAL vocabulary items for the meaning-fidelity drill (brief §7 examples, synthetic). */
@@ -133,6 +134,12 @@ export function DrillScreen({ kind, nodes, mode, facts, practiceLabel, onResult,
 
   const currentStage = item?.stage ?? node?.stage ?? stage;
   const fictional = Boolean(item?.synthetic_prospect_line) || kind === 'practice_this_moment' || kind === 'vocabulary_meaning';
+  // ⓘ sheet content for the node on stage, masked by the assistance mode (never on the stage itself).
+  const mirrorsGiveAway = kind === 'mirror_duel' || kind === 'practice_this_moment';
+  const view = usesNode && node ? maskForMode(node, mode) : null;
+  const whyNow = view?.purpose ?? null;
+  const listenFor = view?.listen_for ?? null;
+  const mirrors = view && !mirrorsGiveAway ? view.mirrors.map((m) => resolveForPractice(m, facts)) : [];
 
   return (
     <div className={styles.screen} data-drill-screen={kind} data-done={done}>
@@ -182,11 +189,36 @@ export function DrillScreen({ kind, nodes, mode, facts, practiceLabel, onResult,
           <p className={styles.sheetBig}>{meta.hint}</p>
           {item ? <p className={styles.sheetText}>{item.prompt}</p> : null}
           {item?.context && !(item.input === 'text' && mode === 'unassisted') ? <p className={styles.sheetText}>{item.context}</p> : null}
+          {whyNow ? (
+            <div className={styles.sheetRow} data-sheet-why-now>
+              <span className={styles.sheetKey}>Why this now</span>
+              <p className={styles.sheetText}>{whyNow}</p>
+            </div>
+          ) : null}
+          {listenFor ? (
+            <div className={styles.sheetRow} data-sheet-listen-for>
+              <span className={styles.sheetKey}>Listen for</span>
+              <p className={styles.sheetText}>{listenFor}</p>
+            </div>
+          ) : null}
+          {mirrors.length > 0 ? (
+            <div className={styles.sheetRow} data-sheet-mirrors>
+              <span className={styles.sheetKey}>Mirrors</span>
+              <ul className={styles.sheetList}>
+                {mirrors.map((m) => (
+                  <li key={m} className={styles.mirror} data-mirror>
+                    <span aria-hidden="true">⇄</span> <SlotLine text={m} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {item?.cited_node_ids.length ? (
             <div className={styles.sheetChips}>
-              {item.cited_node_ids.map((id) => (
-                <Chip key={id} static label={id} name={`Cites node ${id}`} />
-              ))}
+              {item.cited_node_ids.map((id) => {
+                const cited = nodes.find((n) => n.id === id);
+                return <Chip key={id} static glyph="≡" label={(cited?.substage ?? id).replace(/[_-]+/g, ' ')} name={`Cites node ${id}${cited ? ` (${stageLabel(cited.stage)})` : ''}`} />;
+              })}
             </div>
           ) : null}
           <p className={styles.sheetMuted}>Tone: not assessed (text-only). Reducing assistance is optional and reversible.</p>
@@ -396,6 +428,44 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
         </div>
       ) : item.synthetic_prospect_line ? (
         <ProspectCard text={item.synthetic_prospect_line} />
+      ) : isChoice && item.kind === 'branch_classification' ? (
+        <QuestionCard text={item.prompt} />
+      ) : null}
+
+      {isChoice ? (
+        gridChoices ? (
+          <div role="group" aria-label="Choices" data-choice-group>
+            <TileGrid columns={2}>
+              {item.choices.map((c, i) => {
+                const st = stateFor(c.id);
+                return (
+                  <Tile
+                    key={c.id}
+                    label={c.label}
+                    name={`${c.label}${st === 'correct' ? ', accepted answer' : st === 'wrong' ? ', your choice, not accepted' : ''}`}
+                    selected={checked ? st === 'correct' : choice === c.id}
+                    tone={st === 'correct' ? 'green' : st === 'wrong' ? 'red' : 'neutral'}
+                    disabled={checked}
+                    onClick={() => setChoice(c.id)}
+                    className={[styles.tileChoice, styles[`tile_${st}`]].join(' ')}
+                    data-choice-id={c.id}
+                    data-choice-state={st}
+                  >
+                    <span className={styles.tileKey} aria-hidden="true">
+                      {i + 1}
+                    </span>
+                  </Tile>
+                );
+              })}
+            </TileGrid>
+          </div>
+        ) : (
+          <div role="group" aria-label="Choices" className={styles.choices} data-choice-group>
+            {item.choices.map((c, i) => (
+              <ChoiceTile key={c.id} choice={c} index={i} state={stateFor(c.id)} disabled={checked} onPress={() => setChoice(c.id)} note={checked ? c.note : undefined} />
+            ))}
+          </div>
+        )
       ) : null}
 
       {item.delivery_cues ? (
@@ -447,42 +517,6 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
           {item.kind === 'recall_with_reveal' && !revealed && !checked ? <Chip glyph="◑" label="Reveal" name="Reveal the line before typing (counts as revealed)" tone="teal" onClick={() => setRevealed(true)} data-reveal /> : null}
           <textarea className={styles.textarea} aria-label="Type the line from memory" placeholder="…" value={text} onChange={(e) => setText(e.target.value)} disabled={checked} rows={4} autoFocus data-recall-input />
         </div>
-      ) : null}
-
-      {isChoice ? (
-        gridChoices ? (
-          <div role="group" aria-label="Choices" data-choice-group>
-            <TileGrid columns={2}>
-              {item.choices.map((c, i) => {
-                const st = stateFor(c.id);
-                return (
-                  <Tile
-                    key={c.id}
-                    label={c.label}
-                    name={`${c.label}${st === 'correct' ? ', accepted answer' : st === 'wrong' ? ', your choice, not accepted' : ''}`}
-                    selected={checked ? st === 'correct' : choice === c.id}
-                    tone={st === 'correct' ? 'green' : st === 'wrong' ? 'red' : 'neutral'}
-                    disabled={checked}
-                    onClick={() => setChoice(c.id)}
-                    className={[styles.tileChoice, styles[`tile_${st}`]].join(' ')}
-                    data-choice-id={c.id}
-                    data-choice-state={st}
-                  >
-                    <span className={styles.tileKey} aria-hidden="true">
-                      {i + 1}
-                    </span>
-                  </Tile>
-                );
-              })}
-            </TileGrid>
-          </div>
-        ) : (
-          <div role="group" aria-label="Choices" className={styles.choices} data-choice-group>
-            {item.choices.map((c, i) => (
-              <ChoiceTile key={c.id} choice={c} index={i} state={stateFor(c.id)} disabled={checked} onPress={() => setChoice(c.id)} note={checked ? c.note : undefined} />
-            ))}
-          </div>
-        )
       ) : null}
 
       {isOrder ? (

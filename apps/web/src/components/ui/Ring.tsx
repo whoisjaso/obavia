@@ -21,6 +21,8 @@ export interface RingProps {
   overlay?: boolean;
   /** Smooth the stroke between ticks (ms). 0 = none. */
   transitionMs?: number;
+  /** Draw the track as faint ticks (a ring at 0 reads as "not yet", never as a dead circle). */
+  ticks?: boolean;
   className?: string;
   style?: CSSProperties;
 }
@@ -29,7 +31,7 @@ export interface RingProps {
  * SVG ring. `progress` fills clockwise from 12 o'clock; `countdown` drains clockwise so the
  * remaining arc shrinks like a conic timer. Never a progress bar with a caption.
  */
-export function Ring({ value, size = 56, stroke = 6, color = 'var(--green)', track = 'var(--line-strong)', variant = 'progress', children, label, overlay, transitionMs = 0, className, style }: RingProps) {
+export function Ring({ value, size = 56, stroke = 6, color = 'var(--green)', track = 'var(--line-strong)', variant = 'progress', children, label, overlay, transitionMs = 0, ticks = false, className, style }: RingProps) {
   const v = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -48,7 +50,7 @@ export function Ring({ value, size = 56, stroke = 6, color = 'var(--green)', tra
       data-ring-value={v.toFixed(2)}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" style={{ width: '100%', height: '100%' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} strokeDasharray={ticks ? `${Math.max(1, stroke * 0.35)} ${Math.max(3, stroke * 0.9)}` : undefined} strokeLinecap={ticks ? 'round' : undefined} data-ring-track={ticks ? 'ticks' : 'solid'} />
         <circle
           cx={size / 2}
           cy={size / 2}

@@ -143,15 +143,6 @@
   color: var(--green);
   background: rgba(48, 209, 88, 0.14);
 }
-.iconMuted {
-  color: var(--ink-3);
-  background: var(--bg-2);
-}
-.planGlyph {
-  font-size: 30px;
-  line-height: 1;
-  font-weight: 300;
-}
 .iconBlue {
   color: var(--blue);
   background: rgba(10, 132, 255, 0.16);

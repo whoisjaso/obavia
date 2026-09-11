@@ -45,7 +45,8 @@ export type IconName =
 
 export const ICON_PATHS: Record<IconName, string[]> = {
   phone: ['M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 6.5 6.5L16 14l4 1.5V19a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z'],
-  'phone-off': ['M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 3 4.2', 'M14.3 15.9c.5.4 1.1.7 1.7.9L16 14l4 1.5V19a2 2 0 0 1-2 2 15 15 0 0 1-9.8-4.1', 'M3 6a2 2 0 0 1 2-2', 'M3 3l18 18'],
+  /* the same handset, filled and turned 135° — the standard "call end" glyph (see ICON_TRANSFORMS) */
+  'phone-off': ['M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 6.5 6.5L16 14l4 1.5V19a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z'],
   pause: ['M8 5v14', 'M16 5v14'],
   play: ['M7 4l13 8-13 8z'],
   next: ['M5 12h14', 'M13 6l6 6-6 6'],
@@ -85,4 +86,7 @@ export const ICON_PATHS: Record<IconName, string[]> = {
 };
 
 /** Icons whose shape is filled rather than stroked. */
-export const FILLED_ICONS: ReadonlySet<IconName> = new Set<IconName>(['play', 'star', 'bookmark']);
+export const FILLED_ICONS: ReadonlySet<IconName> = new Set<IconName>(['play', 'star', 'bookmark', 'phone-off']);
+
+/** Per-icon SVG transform applied to every path (the hang-up handset is the call handset rotated 135° about the grid center). */
+export const ICON_TRANSFORMS: Readonly<Partial<Record<IconName, string>>> = { 'phone-off': 'rotate(135 12 12)' };

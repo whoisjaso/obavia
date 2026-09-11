@@ -1,8 +1,12 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { DemoPill, Stage, TabBar } from '@/components/ui';
 import '@/styles/globals.css';
 import styles from './shell.module.css';
+
+/** One shipped face so every viewer (and every CI screenshot) renders the same stack; `--font-sans` feeds tokens.css. */
+const inter = Inter({ subsets: ['latin'], weight: ['500', '600', '700', '800'], display: 'swap', variable: '--font-sans', fallback: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'system-ui', 'sans-serif'] });
 
 export const metadata: Metadata = {
   title: { default: 'Apohenia', template: '%s · Apohenia' },
@@ -27,7 +31,7 @@ export const viewport: Viewport = {
  */
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body>
         <a href="#main" className="skip-link">
           Skip to content

@@ -76,7 +76,6 @@ export function CallsClient({ calls }: CallsClientProps) {
             <span className={styles.company}>{c.contact}</span>
             <span className={styles.contact}>{c.company}</span>
             <span className={styles.meta}>
-              <span className={styles.tag}>{c.tag}</span>
               <span className={styles.clock}>
                 <span aria-hidden="true">⏱</span> {formatDuration(c.duration_s)}
               </span>

@@ -20,7 +20,9 @@ import {
   sourceLabel,
 } from '@apohenia/domain/sources';
 import { classificationGlyph } from '@apohenia/domain/scripts';
+import { loadScriptNodes } from '@apohenia/domain/seeds';
 import { statusGlyph } from '@apohenia/domain/offers';
+import { sectionShortName } from '../lib';
 import { Card, Chip, GlyphPill, IconButton, TopBar } from '@/components/ui';
 import styles from '../sources.module.css';
 import { RecordInfo } from './RecordInfo';
@@ -58,6 +60,8 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
   const liveEligible = isLiveEligibleForCitation(record);
   const g = classificationGlyph(record.use_classification);
   const definition = CLASSIFICATION_DEFINITIONS[record.use_classification];
+  const position = index.records.findIndex((r) => r.id === record.id) + 1;
+  const nodeLabels = new Map(loadScriptNodes().nodes.map((n) => [n.id, (n.substage ?? n.id).replace(/[_-]+/g, ' ')] as const));
 
   return (
     <div className={styles.root} data-record={record.id} data-live-eligible={liveEligible ? 'yes' : 'no'}>
@@ -66,7 +70,7 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
       </h1>
       <TopBar
         left={<IconButton icon="arrow-left" label="Back to the Source Library" href="/sources" data-back />}
-        center={<Chip static label={record.id} name={`Record ${record.id}`} className={styles.mono} />}
+        center={<Chip static label={sectionShortName(record.section_title)} name={`Record ${record.id} — ${record.section_title}`} data-record-section />}
         right={
           <RecordInfo
             meta={{
@@ -142,12 +146,12 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
                 <Link
                   key={c.node_id}
                   href={`/scripts?node=${encodeURIComponent(c.node_id)}`}
-                  className={[styles.chipLink, styles.mono].join(' ')}
-                  aria-label={`${c.node_id}, stage ${c.stage}. ${s.name}.${c.practice_only ? ' Practice only.' : ''}${c.citation_warning ? ` ${c.citation_warning}` : ''} Open in the script.`}
+                  className={styles.chipLink}
+                  aria-label={`${nodeLabels.get(c.node_id) ?? c.node_id} (${c.node_id}), stage ${c.stage}. ${s.name}.${c.practice_only ? ' Practice only.' : ''}${c.citation_warning ? ` ${c.citation_warning}` : ''} Open in the script.`}
                   data-counterpart={c.node_id}
                 >
                   <span aria-hidden="true">{s.glyph}</span>
-                  <span>{c.node_id}</span>
+                  <span>{nodeLabels.get(c.node_id) ?? c.node_id}</span>
                 </Link>
               );
             })}
@@ -158,7 +162,7 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
       <nav className={styles.pager} aria-label="Record pager">
         {prev ? <IconButton icon="arrow-left" label={`Previous: ${prev.id} — ${prev.title}`} href={`/sources/${encodeURIComponent(prev.id)}`} size={56} /> : <span className={styles.pagerEnd} aria-hidden="true" />}
         <span className={styles.pagerMid} aria-hidden="true">
-          {record.id}
+          {position} / {index.records.length}
         </span>
         {next ? <IconButton icon="arrow-right" label={`Next: ${next.id} — ${next.title}`} href={`/sources/${encodeURIComponent(next.id)}`} size={56} /> : <span className={styles.pagerEnd} aria-hidden="true" />}
       </nav>

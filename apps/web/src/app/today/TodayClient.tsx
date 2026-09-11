@@ -268,24 +268,8 @@ export function TodayClient({ version, serverDay }: TodayClientProps) {
         {topBar}
         {ringsBlock}
 
-        {/* plan: the only place the ∅ lives */}
-        <Card data-plan-card>
-          <div className={styles.cardRow}>
-            <span className={[styles.iconCircle, styles.iconMuted].join(' ')} aria-hidden="true">
-              <span className={styles.planGlyph}>∅</span>
-            </span>
-            <div className={styles.cardText}>
-              <span className={styles.kicker}>Plan</span>
-              <span className={styles.big} aria-hidden="true">
-                —
-              </span>
-              <span className="sr-only">{hasSession ? 'No plan yet: Today reads an endorsed profile only. Finish and endorse the interview first.' : 'No plan yet: Today reads an endorsed profile only. Start the identity interview first.'}</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* next drill: the Train tile grid until a profile chooses one */}
-        <Card href="/practice" name="Next drill: not chosen yet — opens Train" data-next-drill-empty>
+        {/* next drill: until an endorsed profile chooses one, day one starts with Recall on the entry line */}
+        <Card href="/practice" name={`Next drill: Recall — the entry line, from memory. ${hasSession ? 'Your profile has not chosen a drill yet; finish and endorse the interview to set one.' : 'Your own choice comes from the interview.'} Opens Train.`} data-next-drill-empty data-next-drill-default="recall">
           <div className={styles.cardRow}>
             <span className={[styles.iconCircle, styles.iconGreen].join(' ')} aria-hidden="true">
               <Icon name="target" size={28} />
@@ -293,7 +277,10 @@ export function TodayClient({ version, serverDay }: TodayClientProps) {
             <div className={styles.cardText}>
               <span className={styles.kicker}>Next drill</span>
               <span className={styles.big} aria-hidden="true">
-                —
+                Recall
+              </span>
+              <span className={styles.sub} aria-hidden="true">
+                Entry line
               </span>
             </div>
           </div>
@@ -417,7 +404,7 @@ interface RingToggleProps {
 function RingToggle({ id, label, icon, color, done, count, name, onToggle }: RingToggleProps) {
   return (
     <button type="button" className={styles.ringToggle} aria-pressed={done} aria-label={name} onClick={onToggle} data-ring-toggle={id} data-done={done ? 'true' : 'false'} data-count={count}>
-      <Ring value={done ? 1 : 0} size={96} stroke={9} color={color} transitionMs={320}>
+      <Ring value={done ? 1 : 0} size={96} stroke={9} color={color} transitionMs={320} ticks={!done}>
         <span className={styles.ringCenter} style={{ color: done ? color : 'var(--ink-2)' }} aria-hidden="true">
           {done ? <Icon name="check" size={40} strokeWidth={2.5} /> : count > 0 ? <span className={styles.ringCount}>{count}</span> : <Icon name={icon} size={30} />}
         </span>

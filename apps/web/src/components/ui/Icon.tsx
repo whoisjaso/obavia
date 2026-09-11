@@ -1,5 +1,5 @@
 import type { SVGAttributes } from 'react';
-import { FILLED_ICONS, ICON_PATHS, type IconName } from './icons';
+import { FILLED_ICONS, ICON_PATHS, ICON_TRANSFORMS, type IconName } from './icons';
 
 export type { IconName } from './icons';
 
@@ -19,6 +19,7 @@ export interface IconProps extends Omit<SVGAttributes<SVGSVGElement>, 'name'> {
  */
 export function Icon({ name, size = 24, label, strokeWidth = 1.75, className, style, ...rest }: IconProps) {
   const filled = FILLED_ICONS.has(name);
+  const transform = ICON_TRANSFORMS[name];
   return (
     <svg
       width={size}
@@ -38,7 +39,7 @@ export function Icon({ name, size = 24, label, strokeWidth = 1.75, className, st
       {...rest}
     >
       {ICON_PATHS[name].map((d) => (
-        <path key={d} d={d} />
+        <path key={d} d={d} transform={transform} />
       ))}
     </svg>
   );

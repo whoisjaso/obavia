@@ -89,6 +89,26 @@ export function plainMeaning(r: Reference): string {
   return words.length > 8 ? `${words.slice(0, 8).join(' ')}…` : rel;
 }
 
+/** "PROFIT (NOT REVENUE)" → title "PROFIT" + aside "not revenue" (the set-aside word, shown struck through). */
+export function splitRefLabel(label: string): { title: string; aside: string | null } {
+  const m = /^(.*?)\s*\((not\s+[^)]+)\)\s*$/i.exec(label);
+  return m ? { title: m[1]!.trim(), aside: m[2]!.trim().toLowerCase() } : { title: label, aside: null };
+}
+
+/** One imperative line from the reference's prohibited inferences ("Use their word: profit, not revenue"). */
+export function guidanceLine(r: Reference): string | null {
+  const { title, aside } = splitRefLabel(r.label);
+  if (aside) return `Use their word: ${title.toLowerCase()}, ${aside}`;
+  if (r.semantics.prohibited_inferences.length === 0) return null;
+  return 'Use their example — never their biography';
+}
+
+/** E.164 → a readable NANP number "(555) 010-0001"; anything else is returned unchanged. */
+export function formatPhone(e164: string): string {
+  const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(e164);
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : e164;
+}
+
 /** Cards worth showing on the rail: held/pinned first-appearance order, then muted states, max `max`. */
 export function referencesForRail(references: readonly Reference[], max = 7): Reference[] {
   const live = references.filter((r) => r.lifecycle.state === 'held' || r.lifecycle.state === 'pinned');

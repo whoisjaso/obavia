@@ -34,8 +34,15 @@ export interface RefCardProps {
  * THEIR REFERENCES card: label at `--fs-their-words` in purple, one meaning line, a meaning-status
  * glyph + one word. Invalidated references strike through with ⊘. Tap → Sheet (Keep · Use · Clarify).
  */
+/** "PROFIT (NOT REVENUE)" → title "PROFIT" + aside "revenue" (the word they set aside). */
+export function splitReferenceLabel(label: string): { title: string; aside: string | null } {
+  const m = /^(.*?)\s*\(not\s+([^)]+)\)\s*$/i.exec(label);
+  return m ? { title: m[1]!.trim(), aside: m[2]!.trim().toLowerCase() } : { title: label, aside: null };
+}
+
 export function RefCard({ label, meaning, status, statusName, invalidated, muted, pinned, kept, onPress, referenceId, tabIndex }: RefCardProps) {
   const glyph = invalidated ? '⊘' : REF_MEANING_GLYPH[status];
+  const { title, aside } = splitReferenceLabel(label);
   const word = invalidated ? 'invalidated' : status;
   const name = `${label}. ${meaning}. ${invalidated ? 'Invalidated — evidence retracted' : statusName}${pinned ? '; pinned' : ''}${kept ? '; kept for later' : ''}`;
   return (
@@ -50,12 +57,17 @@ export function RefCard({ label, meaning, status, statusName, invalidated, muted
       tabIndex={tabIndex}
     >
       <span className={styles.label} data-ref-label>
-        {label}
+        {title}
       </span>
+      {aside ? (
+        <span className={styles.aside} aria-hidden="true" data-ref-aside>
+          not <s>{aside}</s>
+        </span>
+      ) : null}
       <span className={styles.meaning} data-ref-meaning>
         {meaning}
       </span>
-      <span className={styles.meta} aria-hidden="true">
+      <span className={styles.meta} aria-hidden="true" data-ref-meta>
         <span className={styles.glyph}>{glyph}</span>
         <span>{word}</span>
         {pinned ? <span className={styles.pin}>⌖</span> : null}

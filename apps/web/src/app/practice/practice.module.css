@@ -120,8 +120,9 @@
   gap: var(--s-4);
   flex: 1;
   animation: fadeIn var(--dur) var(--ease);
-  /* reserve room for the docked hero so nothing renders under it or the tab bar */
-  padding-bottom: 156px;
+  /* reserve room for the docked hero (foot ≈ 172px incl. its own gradient) plus the safe area,
+     so nothing ever renders under the Check/Next control or the tab bar */
+  padding-bottom: calc(184px + var(--safe-bottom));
 }
 .cueRow {
   display: flex;
@@ -203,21 +204,13 @@
   color: var(--ink-3);
   min-height: calc(2 * var(--fs-display) * var(--lh-tight));
 }
-.hiddenBridge {
-  font-size: var(--fs-body);
-  color: var(--ink-2);
-  line-height: var(--lh-body);
-}
-.mirrors {
-  list-style: none;
-  margin: 0;
-  padding: 0 var(--s-2);
+.mirrorRow {
   display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  margin-top: var(--s-3);
+  justify-content: flex-end;
+  margin-top: var(--s-2);
 }
 .mirror {
+  list-style: none;
   font-size: var(--fs-caption);
   color: var(--ink-2);
   line-height: var(--lh-body);
@@ -251,6 +244,35 @@
   font-size: 13px;
 }
 .prospectText {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+/* the drill's own question (teal, a "?" keycap) */
+.question {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-4) 20px;
+  border-radius: var(--r-card);
+  border: 1px solid rgba(100, 210, 255, 0.28);
+  background: linear-gradient(180deg, rgba(100, 210, 255, 0.08), rgba(100, 210, 255, 0.02)), var(--bg-1);
+}
+.questionGlyph {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: rgba(100, 210, 255, 0.16);
+  color: var(--teal);
+  font-weight: 800;
+}
+.questionText {
   font-size: var(--fs-title);
   font-weight: 600;
   line-height: 1.25;
@@ -622,7 +644,7 @@
   align-items: center;
   justify-items: center;
   padding: var(--s-4) var(--s-4) var(--s-3);
-  background: linear-gradient(180deg, transparent, var(--bg) 40%);
+  background: linear-gradient(180deg, transparent, var(--bg) 28%);
 }
 .footSide {
   display: flex;

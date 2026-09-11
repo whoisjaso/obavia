@@ -24,7 +24,7 @@ import {
 } from '@apohenia/domain/dialer';
 import { Avatar, Card, Chip, FictionalPill, HeroButton, IconButton, Sheet, Stat, Tile, Toast, TopBar, useToast, type HeroState } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
-import { localTimeIn } from './dial-lib';
+import { formatPhone, localTimeIn } from './dial-lib';
 import { InCall } from './InCall';
 import { OutcomeSheet } from './OutcomeSheet';
 import styles from './dial.module.css';
@@ -375,27 +375,27 @@ export function DialClient({ nodes, versions, transcripts, prospects }: DialClie
             <div className={styles.recordHead}>
               <Avatar name={next.contact} size={72} />
               <div>
-                <div className={styles.recordName}>{next.contact}</div>
-                <div className={styles.recordRole}>{next.role}</div>
+                <span className={styles.recordName}>{next.contact}</span>
+                <span className={styles.recordRole}>{next.role}</span>
+                <span className={styles.recordCompany}>{next.location !== next.company ? `${next.company} · ${next.location}` : next.company}</span>
+                <span className={styles.recordPlace}>
+                  {next.city}, {next.state}
+                </span>
               </div>
             </div>
-            <div className={styles.recordGrid}>
-              <span className={styles.recordKey}>Company</span>
-              <span>{next.company}</span>
-              {next.location !== next.company ? (
-                <>
-                  <span className={styles.recordKey}>Location</span>
-                  <span>{next.location}</span>
-                </>
-              ) : null}
-              <span className={styles.recordKey}>City</span>
-              <span>
-                {next.city}, {next.state}
+            <div className={styles.recordMeta} role="group" aria-label="Local time and number">
+              <span className={styles.recordFact} role="img" aria-label={localTime ? localTime.name : `Time zone ${next.timezone}`} data-record-local>
+                <span className={styles.recordFactGlyph} aria-hidden="true">
+                  {localTime?.withinHours ? '◔' : '◑'}
+                </span>
+                <span aria-hidden="true">{localTime ? localTime.text : '—'}</span>
               </span>
-              <span className={styles.recordKey}>Local</span>
-              <span>{localTime ? `${localTime.text} · ${next.timezone}` : next.timezone}</span>
-              <span className={styles.recordKey}>Phone</span>
-              <span className={styles.mono}>{next.phone}</span>
+              <span className={styles.recordFact} role="img" aria-label={`Number ${next.phone} (fictional)`} data-record-phone={next.phone}>
+                <span className={styles.recordFactGlyph} aria-hidden="true">
+                  ☏
+                </span>
+                <span aria-hidden="true">{formatPhone(next.phone)}</span>
+              </span>
             </div>
             <div className={styles.recordChips}>
               <FictionalPill />

@@ -58,7 +58,8 @@ test.describe('source library list', () => {
     await expect(page.locator('[data-section-rail="A"] [data-section-id]')).toHaveCount(13);
     await expect(page.locator('[data-record-id]')).toHaveCount(0);
     await expect(page.locator('[data-results-status]')).toContainText('Source A 144, Source B 63');
-    await expect(page.locator('[data-stat="matching records in source a"]')).toHaveAttribute('aria-label', 'Matching records in Source A: 144');
+    await expect(page.locator('[data-source-chip="A"]')).toHaveAttribute('data-source-count', '144');
+    await expect(page.locator('[data-source-chip="A"]')).toHaveAttribute('aria-label', /^Source A, 144 matching of 144/);
     // Open a section: one-line cards with id chip, title, classification glyph with its full meaning — no excerpt on the list.
     await page.locator('[data-section-rail="A"] [data-section-id="A01"]').click();
     await expect(page.locator('[data-sources]')).toHaveAttribute('data-view', 'records');
@@ -66,7 +67,8 @@ test.describe('source library list', () => {
     await expect(page.locator('[data-source-panel="A"] [data-record-id="I01"]')).toBeVisible();
     await expect(page.locator('[data-source-panel="B"]')).toHaveCount(0);
     const i01 = page.locator('[data-record-id="I01"]');
-    await expect(i01.locator('[data-chip="I01"]')).toBeVisible();
+    await expect(i01).toHaveAttribute('aria-label', /^I01 — /); // the id lives in the accessible name, not on the stage
+    await expect(i01).not.toContainText('I01');
     await expect(i01.locator('[data-classification="adapt"]')).toHaveAttribute('aria-label', /Adapt — study material.*not live approval/);
     await expect(i01.locator('p')).toHaveCount(0);
 
@@ -93,7 +95,7 @@ test.describe('source library list', () => {
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('[data-results-status]')).toContainText('Source A 21, Source B 12');
-    await expect(page.locator('[data-stat="matching records in source a"]')).toHaveAttribute('aria-label', 'Matching records in Source A: 21');
+    await expect(page.locator('[data-source-chip="A"]')).toHaveAttribute('data-source-count', '21');
     // Section counts follow the filter; D01 sits in A10 (alpha/beta buying pocket).
     await expect(page.locator('[data-section-rail="A"] [data-section-id="A10"]')).toHaveAttribute('aria-label', /^A10 — .*: [12] of 2 records/);
     await page.locator('[data-search-open]').click();

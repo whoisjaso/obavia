@@ -190,6 +190,11 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+.reasonClear {
+  color: var(--green);
+  opacity: 0.85;
 }
 .nextHero {
   display: inline-flex;

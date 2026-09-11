@@ -29,7 +29,8 @@
   --teal: #64d2ff; /* mirrors / clarify */
 
   /* type */
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, Inter, system-ui, sans-serif;
+  /* Inter ships with the app (next/font, `--font-sans` on <html>); the system stack is only the fallback while it loads */
+  --font: var(--font-sans, Inter), -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --fs-micro: 11px;
   --fs-caption: 13px;

@@ -30,6 +30,16 @@
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
+.aside {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--red);
+  line-height: 1.2;
+}
+.aside s {
+  text-decoration-thickness: 2px;
+  opacity: 0.85;
+}
 .meaning {
   font-size: var(--fs-body);
   line-height: var(--lh-body);

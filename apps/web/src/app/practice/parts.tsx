@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import type { AssistanceMode, DrillChoice, DrillResult, ScriptNode } from '@apohenia/domain/schemas';
 import { maskForMode } from '@apohenia/domain/practice';
 import { stageLabel } from '@apohenia/domain/scripts';
-import { Chip, Icon, IconButton, LineCard, NotAssessedGlyph, Ring, Sheet, SlotLine, type IconName } from '@/components/ui';
+import { Chip, Icon, IconButton, LineCard, NotAssessedGlyph, Ring, Sheet, type IconName } from '@/components/ui';
 import { pct, resolveForPractice, verdictText } from './practice-lib';
 import styles from './practice.module.css';
 
@@ -105,6 +105,20 @@ export function ProspectCard({ text, label = 'They said' }: { text: string; labe
   );
 }
 
+/** The drill's own question when no synthetic prospect line carries it (e.g. "which branch handles this category?"). */
+export function QuestionCard({ text }: { text: string }) {
+  return (
+    <section className={styles.question} data-drill-question aria-label={`Drill question: ${text}`}>
+      <span className={styles.questionGlyph} aria-hidden="true">
+        ?
+      </span>
+      <span className={styles.questionText} aria-hidden="true">
+        {text}
+      </span>
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------------------
 // Assistance: what the current mode shows for a node. The primary line is rendered verbatim
 // in a LineCard (never re-flows) or replaced by a hidden-line card with an optional Reveal.
@@ -121,6 +135,7 @@ export interface AssistCardProps {
   hideMirrors?: boolean;
   /** Extra chip(s) next to the stage. */
   meta?: ReactNode;
+  /** ⓘ: why now · listen for · mirrors (the stage carries none of that text). */
   onInfo?: () => void;
   /** Fictional practice prospect facts: slots resolve against them (unfilled slots render as chips). */
   facts?: Record<string, string>;
@@ -135,7 +150,7 @@ export function AssistCard({ node, mode, revealed, onReveal, hideLine, hideMirro
   return (
     <div data-assistance-block data-primary={shown ? 'shown' : 'hidden'} data-node-id={node.id} data-mode={mode}>
       {shown ? (
-        <LineCard stage={stage} line={view.primary ?? ''} bridge={view.purpose ?? undefined} nodeId={node.id} locked={node.approval.status === 'published'} minLines={2} meta={<>{draft}{meta}</>} onInfo={onInfo} />
+        <LineCard stage={stage} line={view.primary ?? ''} nodeId={node.id} locked={node.approval.status === 'published'} minLines={2} meta={<>{draft}{meta}</>} onInfo={onInfo} />
       ) : (
         <section className={styles.hiddenLine} aria-label={`Script line, stage ${stage}, hidden`} data-primary-hidden>
           <div className={styles.hiddenHead}>
@@ -148,18 +163,13 @@ export function AssistCard({ node, mode, revealed, onReveal, hideLine, hideMirro
             · · ·
           </div>
           <span className="sr-only">{hideLine ? 'Primary line hidden by this drill.' : 'Primary line hidden in this mode.'}</span>
-          {view.purpose ? <p className={styles.hiddenBridge}>{view.purpose}</p> : null}
           {view.can_reveal && !hideLine ? <Chip glyph="◑" label="Reveal" name="Reveal the primary line (allowed in this mode)" tone="teal" onClick={onReveal} data-reveal /> : null}
         </section>
       )}
       {shown && !hideMirrors && view.mirrors.length > 0 ? (
-        <ul className={styles.mirrors} aria-label="Mirror questions — same answer type, different words">
-          {view.mirrors.map((m) => (
-            <li key={m} className={styles.mirror}>
-              <span aria-hidden="true">⇄</span> <SlotLine text={m} />
-            </li>
-          ))}
-        </ul>
+        <div className={styles.mirrorRow}>
+          <Chip glyph="⇄" label={`${view.mirrors.length} mirrors`} tone="teal" name={`${view.mirrors.length} mirror questions — same answer type, different words. Open.`} onClick={onInfo} data-mirrors-chip />
+        </div>
       ) : null}
     </div>
   );

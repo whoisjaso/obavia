@@ -120,26 +120,43 @@
   font-size: var(--fs-caption);
   color: var(--ink-2);
 }
-.recordGrid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--s-2) var(--s-4);
+.recordWho {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.recordCompany {
   font-size: var(--fs-body);
+  font-weight: 600;
 }
-.recordKey {
-  font-size: var(--fs-micro);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  align-self: center;
-}
-.mono {
-  font-family: var(--font-mono);
-}
-.muted {
-  color: var(--ink-2);
+.recordPlace {
   font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+/* one glyph row: ◑ local time · ☏ number · ◌ line — the tz id and E.164 live in the accessible names */
+.recordMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+}
+.recordFact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.recordFactGlyph {
+  color: var(--ink-2);
+  font-size: 15px;
 }
 .recordChips {
   display: flex;

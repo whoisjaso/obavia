@@ -141,7 +141,7 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
         <TileGrid columns={2} data-scenario-grid>
           {PRACTICE_SCENARIOS.map((s) => {
             const m = scenarioMeta(s.id);
-            return <Tile key={s.id} icon={m.icon} label={m.label} name={s.title} onClick={() => setScenarioId(s.id)} data-scenario={s.id} tone={s.never_converts ? 'orange' : 'neutral'} />;
+            return <Tile key={s.id} icon={m.icon} label={m.label} name={s.title} onClick={() => setScenarioId(s.id)} data-scenario={s.id} />;
           })}
         </TileGrid>
       ) : null}

@@ -80,7 +80,8 @@ test.describe('identity interview → profile → Today', () => {
     await expect(back).toBeDisabled();
     const reason = page.locator('[data-next-reason]');
     await expect(reason).toBeVisible();
-    await expect(reason).toContainText('Pick one');
+    await expect(reason).toHaveAttribute('data-next-reason', 'blocked');
+    await expect(reason).toContainText('Pick up to 3'); // the cue matches the question's select mode (multi, max 3)
     await expect(reason).toContainText('Choose an option, or skip this question.');
     const reasonId = await reason.getAttribute('id');
     await expect(next).toHaveAttribute('aria-describedby', reasonId ?? '');
@@ -101,7 +102,8 @@ test.describe('identity interview → profile → Today', () => {
     await clickOption(page, 'goal_durable');
     await expect(page.locator('[data-option-id="goal_meaning.unsure"]')).toHaveAttribute('aria-pressed', 'false');
     await expect(next).toBeEnabled();
-    await expect(reason).toHaveCount(0);
+    await expect(reason).toHaveAttribute('data-next-reason', 'clear'); // the slot stays (no bar reflow); the cue is gone
+    await expect(reason).not.toContainText('Pick');
     await next.click();
 
     // Walk every screen. Specific choices unlock / skip / exercise conditionals.

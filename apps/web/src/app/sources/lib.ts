@@ -36,6 +36,7 @@ export function namedOnlyTitle(title: string): string {
 
 /** ≤2-word tile label for a section ("Closing: future pace and consequence" → "Future Pace"); the full title stays in the accessible name. */
 export function sectionShortName(title: string): string {
+  if (/^reviewed\b/i.test(title)) return 'Reviewed Call';
   const clean = namedOnlyTitle(title)
     .replace(/^Named in framework range\s+[A-Z0-9–-]+\s*\(([^)]*)\).*$/i, '$1')
     .replace(/^[^:]+:\s*/, '')

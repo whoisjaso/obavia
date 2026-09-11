@@ -6,6 +6,7 @@ import { DialSuppressionList } from '@apohenia/domain/schemas';
 import { buildQueue, policyGlyph } from '@apohenia/domain/dialer';
 import { Avatar, Card, Chip, FictionalPill, IconButton, Sheet, Stat, StatusGlyph, Tile, TileGrid, TopBar } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
+import { formatPhone } from '../dial-lib';
 import { endpointLabel, localClock, matchesQuery, sharedWith } from './queue-lib';
 import styles from './prospects.module.css';
 
@@ -158,34 +159,29 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
           <div className={styles.record}>
             <div className={styles.recordHead}>
               <Avatar name={selected.contact} size={72} />
-              <div>
-                <div className={styles.recordName}>{selected.contact}</div>
-                <div className={styles.recordRole}>{selected.role}</div>
+              <div className={styles.recordWho}>
+                <span className={styles.recordName}>{selected.contact}</span>
+                <span className={styles.recordRole}>{selected.role}</span>
+                <span className={styles.recordCompany}>{selected.location !== selected.company ? `${selected.company} · ${selected.location}` : selected.company}</span>
+                <span className={styles.recordPlace}>
+                  {selected.city}, {selected.state}
+                </span>
               </div>
             </div>
-            <div className={styles.recordGrid}>
-              <span className={styles.recordKey}>Company</span>
-              <span>{selected.company}</span>
-              {selected.location !== selected.company ? (
-                <>
-                  <span className={styles.recordKey}>Location</span>
-                  <span>{selected.location}</span>
-                </>
-              ) : null}
-              <span className={styles.recordKey}>City</span>
-              <span>
-                {selected.city}, {selected.state}
+            <div className={styles.recordMeta} role="group" aria-label="Local time, number and line">
+              <span className={styles.recordFact} role="img" aria-label={selectedClock ? selectedClock.name : `Time zone ${selected.timezone}`} data-record-local>
+                <span className={styles.recordFactGlyph} aria-hidden="true">
+                  {selectedClock?.withinHours ? '◔' : '◑'}
+                </span>
+                <span aria-hidden="true">{selectedClock ? selectedClock.text : '—'}</span>
               </span>
-              <span className={styles.recordKey}>Local</span>
-              <span>{selectedClock ? `${selectedClock.text} · ${selected.timezone}` : selected.timezone}</span>
-              <span className={styles.recordKey}>Phone</span>
-              <span className={styles.mono}>{selected.phone}</span>
-              {selectedEndpoint ? (
-                <>
-                  <span className={styles.recordKey}>Line</span>
-                  <span className={styles.muted}>{selectedEndpoint}</span>
-                </>
-              ) : null}
+              <span className={styles.recordFact} role="img" aria-label={`Number ${selected.phone} (fictional)`} data-record-phone={selected.phone}>
+                <span className={styles.recordFactGlyph} aria-hidden="true">
+                  ☏
+                </span>
+                <span aria-hidden="true">{formatPhone(selected.phone)}</span>
+              </span>
+              {selectedEndpoint ? <Chip static glyph="◌" label={selectedEndpoint} name={`Line: ${selectedEndpoint} — demo, no real line`} /> : null}
             </div>
             <div className={styles.recordChips}>
               <FictionalPill />

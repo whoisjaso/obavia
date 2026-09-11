@@ -77,12 +77,19 @@ export function WordCard({ word, provenance, provenanceName, correction, pinned,
       ) : null}
       {reference ? (
         <span className={styles.meaning} aria-hidden="true" data-ref-meaning>
-          <span className={styles.refGlyph}>{reference.invalidated ? '⊘' : REF_MEANING_GLYPH[reference.status]}</span> {reference.meaning}
+          {reference.meaning}
         </span>
       ) : null}
-      <span className={styles.meta} aria-hidden="true">
+      <span className={styles.meta} aria-hidden="true" data-word-meta>
         <span className={styles.glyph}>{WORD_PROVENANCE_GLYPH[provenance]}</span>
         <span>{provenance}</span>
+        {reference ? (
+          <span className={[styles.refChip, reference.invalidated ? styles.refChipOff : ''].join(' ').trim()} data-ref-chip>
+            <span>{reference.invalidated ? '⊘' : '◆'}</span>
+            <span>ref</span>
+            <span className={styles.refStatus}>{reference.invalidated ? '' : REF_MEANING_GLYPH[reference.status]}</span>
+          </span>
+        ) : null}
         {pinned ? <span className={styles.pin}>⌖</span> : null}
         {reference?.kept ? <span className={styles.kept}>◇</span> : null}
       </span>
