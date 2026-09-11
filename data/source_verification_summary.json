@@ -1,0 +1,14 @@
+{
+  "source": "A",
+  "verified_at": "2026-09-11T06:37:12.481Z",
+  "provenance": "Raw Source A transcript supplied by Jason in chat on 2026-09-11 and saved to sources/source_a.txt (gitignored, private). Text reproduced from the chat paste; treat the hash as the hash of that saved copy, not of the original upload.",
+  "sha256_of_saved_copy": "ff961d27732b59e148f5519de83d77d6bc50273090b10583f56a6aa88c8c9240",
+  "code_points": 158723,
+  "records": 144,
+  "offset_exact": 113,
+  "verbatim_but_shifted": 31,
+  "shift_note": "All shifted records are found verbatim at claimed offset + 2 code points from V18 onward (two characters differ somewhere in the uncovered span between V17 and V18; the original file is needed to locate them).",
+  "missing": 0,
+  "missing_ids": [],
+  "source_b": "not supplied"
+}
