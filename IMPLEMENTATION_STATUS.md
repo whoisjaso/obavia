@@ -1,7 +1,7 @@
 # Implementation status — Apohenia Sales OS
 
 Truthful state after the Arena v2 (Design System v2) integration pass, visual-critic fix rounds 1 and 2 and
-integration round 2 on 2026-09-11. Categories follow
+integration rounds 2 and 3 on 2026-09-11. Categories follow
 CLAUDE.md: **verified by automated tests** · **manually inspected** · **integration built but live test
 pending** · **intentionally disabled pending permission/credentials** · **not implemented**.
 
@@ -103,6 +103,18 @@ pending** · **intentionally disabled pending permission/credentials** · **not 
   stack is the fallback while it loads, so every OS and CI shot renders the same face.
 - Tests touched only where the UI changed shape: `calls.spec` (readable number, E.164 in the name), `interview.spec`
   (mode-true cue, fixed slot), `sources.spec` (count on the chip, id in the name). Brief-rule assertions unchanged.
+
+## Integration round 3 (verification-only pass; nothing needed fixing)
+- Ran, in order and once each after `git checkout -- apps/web/next-env.d.ts` and killing stray dev servers:
+  seed validate (byte-identical output, tree unchanged) → typecheck → lint → vitest (13 files, 264 passed,
+  2 todo) → build (246 static pages) → e2e (88 passed, 0 failed, 0 skipped, 1.9 min, production server).
+  `dial.spec.ts:140` (desktop full loop) passed in this run.
+- Dead-code sweep: every `components/ui/*` export is imported by at least one screen; `app/call-room/` holds only
+  the redirect `page.tsx`; no `<table>`, sidebar or `components/ui/legacy` remains; no obsolete spec remains.
+- All 28 `docs/screenshots/v2/*.png` regenerated and inspected one by one: Dial idle has the hero as the largest
+  object and 13 visible words; In-call shows the line at display size with three gold words and the reference
+  lane/chips beside it, nothing overlapping; tab bar on every tab screen; no sidebar, table or paragraph; text
+  legible at 430 wide. Not committed (as instructed for this round).
 
 ## Manually inspected
 - `docs/screenshots/v2/fix-round2/*.png` (20 shots from a one-off Playwright pass, not kept as a spec): drill
