@@ -303,6 +303,35 @@ process in `docs/THREAT_MODEL.md` §5.
 - No performance, latency or load figure exists.
 - The 1,449-occurrence audit, the raw transcripts, the upstream validation report and two of the brief's 41
   sections are not in the repo and were not reconstructed.
-- Nothing has been deployed; `vercel.json` describes a build, not a deployment.
+- The Vercel preview for this branch builds and deploys successfully; no production domain is promoted and
+  no deployment has been exercised by a real user.
 - A green build, 264 unit tests and 88 e2e tests over synthetic data do not mean sales results, verified carrier
   audio, legal clearance or reliable production operation.
+
+---
+
+## 10. Where the project stands overall
+
+The brief plans seven increments. **One is complete.**
+
+| Increment | Scope | State |
+|---|---|---|
+| 1 | No-credential core: sources, interview, profile, draft offer, script editor, practice drills, vocabulary and listener over synthetic transcripts, dialer simulator, the whole Arena v2 interface | **Complete and verified.** 264 unit tests, 88 e2e tests, clean typecheck, clean lint, green build |
+| 2 | Durable persistence, row-level security, jobs, CRM import, contact policy, suppression, budgets | Not started |
+| 3 | Telephony: call intents, voice tokens, webhooks, consent gates | Not started |
+| 4 | Transcription pipeline and structured coach contract | Not started |
+| 5 | Realtime practice sessions, post-call review, metrics | Not started |
+| 6 | Source registry, safe fetching, scheduled research, gated sequential sessions | Not started |
+| 7 | Hardening, accessibility audit, security negative tests, deletion and export, release checklist | Not started |
+
+Counting increments understates what is usable and counting screens overstates it. The accurate
+statement is this: **everything that does not require an outside account is built, tested and
+working; everything that requires one is not started.** For the daily practice loop Jason described
+(dial sessions, scripts, branch drills, mock calls) the application is usable today. For placing a
+real phone call it is not, and cannot be without the decisions recorded in `docs/09-local-first-plan.md`.
+
+Two documents now carry that forward:
+
+- `RUN_LOCALLY.md` — how to run the whole thing on a laptop with no accounts and no keys.
+- `docs/09-local-first-plan.md` — how mock calls work today, the two honest routes to live calls and
+  what each costs, and why a chat subscription cannot serve as an application credential.
