@@ -15,9 +15,13 @@ import {
   findScreen,
   invalidateDependents,
   isComplete,
+  isProfileCurrent,
   nextScreenId,
+  planSettings,
   prevScreenId,
   progress,
+  selectedOption,
+  selectedOptions,
   selectionProblem,
   sortedScreens,
   toggleSelection,
@@ -93,6 +97,22 @@ describe('identity interview seed', () => {
     expect(desired.help).toMatch(/optional lens, not a validated test/i);
     expect(current.options).toHaveLength(6);
     expect(desired.options).toHaveLength(6);
+  });
+
+  it('faith context is multi-select (its options are jointly true) and the biggest-blocker screen lists the vocabulary-reminder failure point', () => {
+    const faith = screen('faith_context');
+    expect(faith.kind).toBe('multi');
+    expect(faith.max_select).toBe(3);
+    expect(toggleSelection(faith, ['faith_reason'], 'faith_people')).toEqual(['faith_reason', 'faith_people']);
+    const blocker = screen('friction_biggest');
+    expect(blocker.options.map((o) => o.id)).toContain('big_vocab');
+  });
+
+  it('option descriptions describe, never pronounce a verdict on the person', () => {
+    const descriptions = version.screens.flatMap((s) => s.options.map((o) => o.description ?? ''));
+    for (const banned of ['it will again', 'not quite me yet', 'is not yet', 'teach fastest', 'but it sticks', 'instead of forcing', 'is a good outcome']) {
+      expect(descriptions.some((d) => d.toLowerCase().includes(banned)), banned).toBe(false);
+    }
   });
 
   it('uses no shame or readiness language', () => {
@@ -393,6 +413,57 @@ describe('profile', () => {
     expect(prepare.review.length).toBeGreaterThan(0);
     expect(prepare.recovery_rule).toMatch(/does not erase previous work/);
     expect(plan.some((p) => p.standard.startsWith('I tell the truth'))).toBe(true);
+  });
+
+  it('an unchosen practice duration is null, never a default number; a later choice fills it only when the interview left it open', () => {
+    let session = completedSession();
+    session = applyAnswer(session, screen('practice_duration'), [screen('practice_duration').uncertainty_option!.id], 'answered', { version, now: NOW });
+    const profile = endorseProfile(buildProfile(version, session), NOW);
+    const settings = planSettings(profile);
+    expect(settings.duration_minutes).toBeNull();
+    expect(settings.duration_source).toBe('not_chosen');
+    const plan = buildTrainingPlan(profile);
+    expect(plan.length).toBeGreaterThan(0);
+    for (const item of plan) {
+      expect(item.duration_minutes).toBeNull();
+      expect(TrainingPlanItem.safeParse(item).success).toBe(true);
+    }
+    expect(JSON.stringify(plan)).not.toContain('15');
+
+    const later = planSettings(profile, { duration_minutes: 20 });
+    expect(later.duration_minutes).toBe(20);
+    expect(later.duration_source).toBe('chosen_later');
+    expect(buildTrainingPlan(profile, { duration_minutes: 20 })[0]?.duration_minutes).toBe(20);
+
+    // The interview answer always wins over a later choice.
+    const chosen = endorseProfile(buildProfile(version, completedSession()), NOW);
+    expect(planSettings(chosen, { duration_minutes: 45 })).toMatchObject({ duration_minutes: 10, duration_source: 'interview' });
+  });
+
+  it('isProfileCurrent is true only for an endorsed profile that still matches the session exactly', () => {
+    const session = completedSession();
+    const unendorsed = buildProfile(version, session);
+    expect(isProfileCurrent(unendorsed, version, session)).toBe(false);
+    const endorsed = endorseProfile(unendorsed, NOW);
+    expect(isProfileCurrent(endorsed, version, session)).toBe(true);
+    // A back-edit after endorsement makes the stored profile stale.
+    const edited = applyAnswer(session, screen('practice_duration'), ['dur_20'], 'answered', { version, now: NOW });
+    expect(isProfileCurrent(endorsed, version, edited)).toBe(false);
+    // "Start over" (a fresh session) never keeps an old endorsement.
+    expect(isProfileCurrent(endorsed, version, createSession(version, NOW, 'fresh'))).toBe(false);
+    expect(isProfileCurrent(endorsed, version, null)).toBe(false);
+    expect(isProfileCurrent(null, version, session)).toBe(false);
+  });
+
+  it('selectedOptions reads the chosen options of a screen from answer ids only', () => {
+    const profile = buildProfile(version, completedSession());
+    expect(selectedOption(profile, version, 'next_drill')?.id).toBe('drill_opening_recall');
+    expect(selectedOption(profile, version, 'identity_primary')?.label).toBe('I prepare');
+    expect(selectedOptions(profile, version, 'unknowns').map((o) => o.id)).toEqual(['unk_price', 'unk_who_first']);
+    // Uncertainty answers and skipped screens yield nothing.
+    expect(selectedOptions(profile, version, 'beliefs_self')).toEqual([]);
+    expect(selectedOptions(profile, version, 'needs_current')).toEqual([]);
+    expect(selectedOptions(profile, version, 'no_such_screen')).toEqual([]);
   });
 
   it('exportForProspectContext is structurally blocked', () => {

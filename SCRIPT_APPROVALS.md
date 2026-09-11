@@ -8,10 +8,10 @@ Both script nodes (`approval.status`) and offer versions (`status`) use the same
 
 | State | Meaning | Rendered as | Who moves it |
 |---|---|---|---|
-| `draft` | Written, not reviewed. May be edited freely. Never live. | warning badge "draft" on every render | author (M-script / Jason) |
-| `reviewed` | Owner (Jason) has read it and accepts the wording and routing as a candidate. Still not live. | info badge "reviewed" | Jason only |
-| `published` | Approved for live use and **frozen**. Wording cannot change; a change means a new version. | success badge "published" | Jason only, with explicit confirmation |
-| `retired` | No longer used; kept for history. Read-only. | neutral badge "retired" | Jason only |
+| `draft` | Written, not reviewed. May be edited freely. Never live. | `◔ Draft` glyph pill on every render; accessible name "Draft — written, not reviewed; never rendered as approved and never live" | author (M-script / Jason) |
+| `reviewed` | Owner (Jason) has read it and accepts the wording and routing as a candidate. Still not live. | `◑ Reviewed` glyph pill | Jason only |
+| `published` | Approved for live use and **frozen**. Wording cannot change; a change means a new version. | `✓ Published` glyph pill | Jason only, with explicit confirmation |
+| `retired` | No longer used; kept for history. Read-only. | `— Retired` glyph pill | Jason only |
 
 Allowed moves: `draft → reviewed → published → retired`. Nothing moves backwards; a rejected `reviewed` item is re-authored as a new draft. The engine enforces this for offers (`canTransitionOffer`, `transitionOffer`, `assertOfferEditable`) and for script versions (`assertPrimaryEditable`, `editPrimaryWordTrack` throw once a version is published or immutable).
 

@@ -203,16 +203,30 @@ for (const vp of VIEWPORTS) {
         expect(railBox.x).toBeGreaterThan(lineBox.x + lineBox.width - 1);
       }
 
-      // A word card opens its sheet; Esc closes it and does NOT end the call.
+      // A word card opens its sheet (a word that is also a reference opens the reference sheet — one panel system);
+      // Esc closes it and does NOT end the call.
       await page.locator('[data-word-card]:visible').first().click();
-      await expect(page.locator('dialog[data-sheet="word"]')).toBeVisible();
+      const openSheet = page.locator('dialog[open]');
+      await expect(openSheet).toHaveAttribute('data-sheet', /^(word|ref)$/);
       await page.keyboard.press('Escape');
-      await expect(page.locator('dialog[data-sheet="word"]')).toBeHidden();
+      await expect(page.locator('dialog[open]')).toHaveCount(0);
       await expectStatus(page, 'connected', 1000);
 
-      // Branch chips: at most 4 visible plus "more"; a chip advances the line.
+      // An iOS call has no tab bar: the primary nav is hidden while connected and the stage never scrolls.
+      await expect(page.getByRole('navigation', { name: 'Primary' })).toBeHidden();
+      expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(0);
+
+      // Branch chips: one row (2 on a phone, 4 on a wide stage) plus "more"; nothing renders under the End control.
       const chips = page.locator('[data-branch]');
-      expect(await chips.count()).toBeLessThanOrEqual(4);
+      expect(await chips.count()).toBeLessThanOrEqual(vp.width >= 1024 ? 4 : 2);
+      const endBox = (await page.locator('[data-end-call]').boundingBox())!;
+      for (const chip of await chips.all()) {
+        const b = (await chip.boundingBox())!;
+        expect(overlaps(b, endBox), 'chip overlaps the End control').toBe(false);
+        expect(b.y + b.height, 'chip is inside the viewport').toBeLessThanOrEqual(vp.height);
+      }
+      await expect(page.locator('[data-bridge-line]')).not.toContainText('⟨');
+      expect(await line.textContent()).not.toMatch(/\[missing:|[{}⟨⟩]/);
       await chips.first().click();
       await expect(line).not.toHaveText(expectedEntryLine(firstContact));
       await page.keyboard.press('ArrowLeft');
@@ -234,8 +248,10 @@ for (const vp of VIEWPORTS) {
       await expect(when.locator('[data-when]')).toHaveCount(4);
       await page.keyboard.press('Escape');
       await expect(outcome).toBeVisible();
+      await expect(outcome.locator('[data-outcome][data-suggested="true"]')).toHaveCount(1);
       await outcome.locator('[data-outcome="meeting"]').click();
       await expectStatus(page, 'cooldown', 3000);
+      await expect(page.getByRole('navigation', { name: 'Primary' })).toBeVisible();
       await expect(page.locator('[data-hero-state="cooldown"] [data-ring="countdown"]')).toBeVisible();
       await expect(page.locator('[data-stat="dials"]')).toHaveAttribute('aria-label', 'Dials: 1');
       await expect(page.locator('[data-stat="next steps"]')).toHaveAttribute('aria-label', 'Next steps: 1');

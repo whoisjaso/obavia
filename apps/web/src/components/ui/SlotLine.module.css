@@ -1,0 +1,34 @@
+.slot {
+  display: inline-block;
+  vertical-align: baseline;
+  padding: 0 0.32em;
+  margin: 0 0.04em;
+  border-radius: 0.45em;
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
+  white-space: nowrap;
+  transform: translateY(-0.08em);
+}
+.bracket {
+  opacity: 0.6;
+}
+.glyph {
+  font-size: 0.85em;
+}
+.missing {
+  color: var(--blue);
+  background: rgba(10, 132, 255, 0.16);
+  border: 1px solid rgba(10, 132, 255, 0.35);
+}
+.offer {
+  color: var(--orange);
+  background: rgba(255, 159, 10, 0.14);
+  border: 1px solid rgba(255, 159, 10, 0.35);
+}
+.fictional {
+  color: var(--purple);
+  background: rgba(191, 90, 242, 0.14);
+  border: 1px solid rgba(191, 90, 242, 0.35);
+}

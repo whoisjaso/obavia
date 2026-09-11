@@ -8,11 +8,9 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 .privateChip {
@@ -69,31 +67,102 @@
   margin-left: auto;
 }
 
-/* section rail */
-.rail {
+.rowEnd {
+  margin-left: auto;
+}
+
+/* section tiles: glyph · ≤2-word name · count ring */
+.sectionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+@media (max-width: 379px) {
+  .sectionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.sectionGridCollapsed {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+.sectionTile {
+  position: relative;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: var(--s-2);
-  margin: 0 calc(-1 * var(--s-4));
-  padding: var(--s-1) var(--s-4);
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+  min-height: 112px;
+  padding: var(--s-3) var(--s-2);
+  border-radius: var(--r-tile);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
 }
-.rail::-webkit-scrollbar {
-  display: none;
+.sectionTile:hover {
+  background: var(--bg-2);
 }
-.railChip {
-  scroll-snap-align: start;
-  flex-shrink: 0;
+.sectionTile:active {
+  background: var(--bg-3);
+  transform: scale(0.97);
+}
+.sectionSelected {
+  box-shadow: inset 0 0 0 2px var(--blue);
+  border-color: var(--blue);
+}
+.sectionGridCollapsed .sectionTile {
+  min-height: 72px;
+  min-width: 96px;
+}
+.sectionGlyph {
+  font-size: 18px;
+  line-height: 1;
+  color: var(--ink);
+}
+.sectionName {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.sectionCount {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+.sectionId {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  color: var(--ink-3);
 }
 .namedOnly {
-  min-height: 40px;
-  border: 1px dashed var(--line-strong);
-  text-transform: none;
-  letter-spacing: 0;
-  font-size: var(--fs-caption);
+  cursor: default;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: transparent;
   color: var(--ink-3);
+}
+.namedOnly .sectionGlyph,
+.namedOnly .sectionName {
+  color: var(--ink-3);
+}
+.listHead {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+  padding-left: var(--s-2);
 }
 
 /* cards */

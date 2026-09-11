@@ -29,6 +29,8 @@ export interface AppRoute {
   href: string;
   /** Text of the route's single h1 (visually hidden on the stage). */
   h1: string;
+  /** Immersive: the screen owns the viewport (no tab bar) and carries its own exit control. */
+  immersive?: true;
 }
 
 export const APP_ROUTES: readonly AppRoute[] = [
@@ -36,7 +38,7 @@ export const APP_ROUTES: readonly AppRoute[] = [
   { href: '/practice', h1: 'Practice' },
   { href: '/scripts', h1: 'Scripts' },
   { href: '/today', h1: 'Today' },
-  { href: '/onboarding/identity', h1: 'Identity interview' },
+  { href: '/onboarding/identity', h1: 'Identity interview', immersive: true },
   { href: '/profile', h1: 'Profile' },
   { href: '/offers', h1: 'Offers' },
   { href: '/sources', h1: 'Sources' },

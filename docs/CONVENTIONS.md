@@ -14,7 +14,7 @@ something from a shared file, request it in your report — do not edit it.
 | **M-script** | `data/apohenia_script_nodes.json`, `data/offers.json`, `packages/domain/src/scripts/**`, `packages/domain/src/offers/**`, `apps/web/src/app/scripts/**`, `apps/web/src/app/offers/**`, `docs/03-apohenia-draft-scripts.md`, `SCRIPT_APPROVALS.md` |
 | **M-sources** | `packages/domain/src/sources/**` (extend — keep existing exports working), `apps/web/src/app/sources/**`, `data/source_missing_resources.json`, `scripts/verify-source-offsets.mjs`, `packages/domain/test/sources-library.test.ts`, `tests/e2e/sources.spec.ts`, `SOURCE_COVERAGE.md` |
 | **M-practice** | `packages/domain/src/practice/**`, `apps/web/src/app/practice/**` |
-| **M-vocab** | `packages/domain/src/vocabulary/**`, `data/synthetic_transcripts.json`, `apps/web/src/app/call-room/**`, `apps/web/src/app/calls/**`, `apps/web/src/app/prospects/**`, `apps/web/src/app/pipeline/**`, `apps/web/src/app/insights/**` |
+| **M-vocab** | `packages/domain/src/vocabulary/**`, `data/synthetic_transcripts.json`, `apps/web/src/app/call-room/**` (now a redirect to `/`), `apps/web/src/app/calls/**`, `apps/web/src/app/prospects/**`, `apps/web/src/app/pipeline/**`, `apps/web/src/app/insights/**` |
 
 **Shared (skeleton-owned — do not edit without saying so in your report):**
 `packages/domain/src/schemas/**`, `packages/domain/src/seeds.ts`, `packages/domain/src/index.ts`,
@@ -55,7 +55,7 @@ Server page + client component pattern:
 // apps/web/src/app/scripts/page.tsx  (server component — no 'use client')
 import type { Metadata } from 'next';
 import { loadScriptNodes } from '@apohenia/domain/seeds';   // seeds load on the server
-import { PageHeader } from '@/components/ui';
+import { TopBar } from '@/components/ui';
 import { ScriptsClient } from './ScriptsClient';
 
 export const metadata: Metadata = { title: 'Scripts' };
@@ -64,7 +64,8 @@ export default function ScriptsPage() {
   const seed = loadScriptNodes();                            // throws if the JSON is invalid
   return (
     <>
-      <PageHeader title="Scripts" purpose="One sentence from the brief." />
+      <h1 className="sr-only">Scripts</h1>            {/* one visually hidden h1 per route */}
+      <TopBar title="Script" />                        {/* ◐ Demo pill + one-word title */}
       <ScriptsClient nodes={seed.nodes} versions={seed.versions} placeholder={seed._status !== undefined} />
     </>
   );
@@ -87,7 +88,8 @@ export function ScriptsClient({ nodes }: { nodes: ScriptNode[] }) {
 ```
 
 Rules:
-- Exactly one `<h1>` per page, via `PageHeader`. The `purpose` is one sentence from the brief.
+- Exactly one `<h1>` per route, visually hidden (`className="sr-only"`); the stage shows a
+  one-word `TopBar` title at most (DESIGN_SYSTEM §0 rule 3). No page-title headings you read.
 - Seeds: import loaders from `@apohenia/domain/seeds` in **server** components; pass plain
   data down as props. Loaders throw on invalid JSON — that is intended.
 - Client state: `useStoredState(key, zodSchema, initial)` from `@/lib/storage`. Keys are
@@ -144,20 +146,26 @@ port 3000) will pass after merge. Assert no console errors where reasonable (see
 - Plain CSS with tokens from `apps/web/src/styles/tokens.css`; CSS Modules colocated with
   the component (`foo.module.css`). No Tailwind, no CSS-in-JS, no runtime font fetching —
   system font stack only.
-- Use spacing (`--space-N`), type (`--font-size-*`), color, radius and focus tokens; do not
-  hard-code hex colors. THEIR WORDS text uses `--font-size-their-words`.
-- Calm desktop UI: strong text hierarchy, restrained decoration, no flashing, no bouncing.
-  Transitions are killed under `prefers-reduced-motion` globally — do not re-enable.
-- Reuse `@/components/ui` (Button, Card, PageHeader, Badge, Field, Select, EmptyState,
-  Dialog, Tabs, KeyboardHint, VisuallyHidden, Stack, Inline). If you need a new shared
-  component, build it inside your route folder and propose promotion in your report.
+- Use the v2 tokens only (`--s-N`, `--fs-*`, `--bg/--bg-1/2/3`, `--ink*`, signal colors,
+  `--r-*`, `--focus`, `--dur*`); do not hard-code hex colors. THEIR WORDS / REFERENCES labels
+  use `--fs-their-words`; the script line uses `--fs-display`.
+- Dark stage, one hero per screen, 97/3 (labels ≤3 words, explanations behind ⓘ sheets), no
+  tables, no sidebars, no paragraphs on screens (`docs/DESIGN_SYSTEM.md`). Motion ≤560 ms,
+  nothing flashes; transitions are killed under `prefers-reduced-motion` globally — do not re-enable.
+- Reuse the v2 kit in `@/components/ui` (Stage, TabBar, TopBar, DemoPill/FictionalPill/GlyphPill/
+  NotAssessedGlyph, HeroButton, Ring, Stat, Tile/TileGrid, Chip, Card, Sheet, Avatar, LineCard,
+  WordCard, RefCard, Icon, IconButton, Toast, VisuallyHidden). The v1 kit (Button, PageHeader,
+  Badge, Field, Select, EmptyState, Dialog, Tabs, Stack/Inline) is deleted. If you need a new
+  shared component, build it inside your route folder and propose promotion in your report.
 
 ## 7. Accessibility checklist (every screen)
 
-- One `h1`; headings in order; landmarks intact (the shell provides header/nav/main).
+- One `h1` (visually hidden); headings in order; landmarks intact (the shell provides the skip
+  link, `main` Stage and the `nav[aria-label="Primary"]` tab bar).
 - Every control keyboard-operable with a visible focus ring (never `outline: none`).
-- State never by color alone: pair with text or a glyph (see `Badge`).
-- Form controls linked via `Field` (label, help, error with `aria-invalid`).
+- State never by color alone: pair with a glyph whose accessible name says the whole truth
+  (`GlyphPill`, `NotAssessedGlyph`).
+- Form controls (the rare textarea/search field) carry a real `<label>` or `aria-label`.
 - Dialogs use `Dialog` (native `<dialog>`, focus contained, Esc closes).
 - Large answer cards and script lines are real buttons/links, not clickable divs.
 - Text contrast ≥ 4.5:1 against `--color-paper` / `--color-surface`.

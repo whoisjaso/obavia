@@ -1,25 +1,31 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type TouchEvent } from 'react';
 import type { Attempt, ListenerAction, QueueItem, ScriptNode, ScriptVersion, Transcript, TranscriptTurn } from '@apohenia/domain/schemas';
 import { loadVersionGraph, stageLabel } from '@apohenia/domain/scripts';
 import { analyzeCall, pinPhrase, resolvePins, unpinPhrase } from '@apohenia/domain/vocabulary';
 import { formatClock, knownFactsFor, nextScriptNodeHint } from '@apohenia/domain/dialer';
-import { Avatar, Card, Chip, DemoPill, IconButton, LineCard, RefCard, Sheet, Tile, TileGrid, WordCard } from '@/components/ui';
+import { Avatar, Card, Chip, DemoPill, IconButton, LineCard, RefCard, Sheet, SlotLine, Tile, TileGrid, WordCard, type WordReference } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
+import { useImmersive } from '@/lib/immersive';
+import { useWide } from '@/lib/use-wide';
 import {
   EMPTY_IN_CALL,
   InCallState,
+  branchIcon,
   bridgeShape,
   candidateById,
+  chipLabel,
   decideOverlay,
   defaultNextNodeId,
   listenerOver,
-  refMeaningLine,
+  panelKey,
+  plainMeaning,
   refMeaningName,
   refMeaningStatus,
   referencesForRail,
   resolveLine,
+  resolveMirror,
   toKnownFacts,
   wordCorrection,
   wordProvenance,
@@ -48,14 +54,19 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K>
 /** A rep/UI listener action before it is stamped with the event version. */
 type CardAction = DistributiveOmit<ListenerAction, 'event_version'>;
 
-const MAX_CHIPS = 4;
+/** Branch chips in one row: 2 on a phone, 3 on a wide stage (+ "more"); labels never truncate. */
+const MAX_CHIPS_NARROW = 2;
+const MAX_CHIPS_WIDE = 3;
 
 /**
- * In-call (DESIGN_SYSTEM §3.2): header, the script LineCard (never re-flows), branch chips,
- * THEIR WORDS (vocabulary pipeline) and THEIR REFERENCES (listener) rails, one optional suggestion
- * overlay that never auto-applies, the red End control, and a swipe-up transcript sheet.
+ * In-call (DESIGN_SYSTEM §3.2): a fixed, non-scrolling stage — header, THEIR WORDS strip (phone)
+ * or rail (wide), the script LineCard (its text scrolls inside the card; the card never moves), one
+ * row of branch chips, one optional suggestion overlay that never auto-applies, and a docked bottom
+ * bar with ↑ transcript and the red End control. The tab bar is hidden while a call is on.
  */
 export function InCall({ item, attempt, transcript, played, talkMs, nodes, versions, dimmed, onEnd, onNotify }: InCallProps) {
+  useImmersive(true);
+  const wide = useWide();
   const graph = useMemo(() => (versions[0] ? loadVersionGraph(versions[0], nodes) : null), [versions, nodes]);
   const entryNodeId = versions[0]?.entry_node_ids[item.entrypoint] ?? versions[0]?.entry_node_ids['cold'] ?? nodes[0]?.id ?? null;
   const recordFacts = useMemo(() => knownFactsFor(item), [item]);
@@ -240,11 +251,26 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
     if (start !== null && end !== null && start - end > 40) setSheet({ kind: 'transcript' });
   }
 
+  // ---- one panel system: a reference whose term is a pinned word merges into that word card ----
   const rail = referencesForRail(listener.references);
-  const chips = node ? node.branches.slice(0, MAX_CHIPS) : [];
-  const moreCount = node ? Math.max(0, node.branches.length - MAX_CHIPS) : 0;
+  const merged = useMemo(() => {
+    const byKey = new Map<string, (typeof rail)[number]>();
+    for (const r of rail) byKey.set(panelKey(r.label), r);
+    const wordRefs = new Map<string, (typeof rail)[number]>();
+    for (const c of resolved.pinned) {
+      const r = byKey.get(panelKey(c.event.exact_text));
+      if (r) wordRefs.set(c.event.id, r);
+    }
+    const mergedIds = new Set([...wordRefs.values()].map((r) => r.id));
+    return { wordRefs, refs: rail.filter((r) => !mergedIds.has(r.id)) };
+  }, [rail, resolved.pinned]);
+
+  const maxChips = wide ? MAX_CHIPS_WIDE : MAX_CHIPS_NARROW;
+  const chips = node ? node.branches.slice(0, maxChips) : [];
+  const moreCount = node ? Math.max(0, node.branches.length - maxChips) : 0;
   const selectedWord = sheet?.kind === 'word' ? (byId.get(sheet.id) ?? analysis.excluded.find((c) => c.event.id === sheet.id) ?? null) : null;
   const selectedRef = sheet?.kind === 'ref' ? (listener.references.find((r) => r.id === sheet.id) ?? null) : null;
+  const refActive = (r: { lifecycle: { state: string } }) => r.lifecycle.state === 'held' || r.lifecycle.state === 'pinned';
   const stateDots = [
     { id: 'call', on: true, tone: styles.dotGreen, name: 'Call: simulated, connected (demo — no phone line)' },
     { id: 'transcribe', on: false, tone: styles.dotOff, name: 'Transcription: off — synthetic transcript, no microphone' },
@@ -253,28 +279,35 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
 
   const words = (
     <>
-      {resolved.pinned.map((c) => (
-        <WordCard
-          key={c.event.id}
-          word={c.event.exact_text}
-          provenance={wordProvenance(c.event)}
-          provenanceName={wordProvenanceName(c.event)}
-          correction={wordCorrection(c.event)}
-          pinned={resolved.state.manual.includes(c.event.id)}
-          provisional={c.event.stability === 'interim'}
-          eventId={c.event.id}
-          onPress={() => setSheet({ kind: 'word', id: c.event.id })}
-        />
-      ))}
+      {resolved.pinned.map((c) => {
+        const r = merged.wordRefs.get(c.event.id);
+        const reference: WordReference | undefined = r
+          ? { referenceId: r.id, meaning: plainMeaning(r), status: refMeaningStatus(r), statusName: refMeaningName(r), invalidated: r.lifecycle.state === 'invalidated', pinned: r.lifecycle.state === 'pinned', kept: r.lifecycle.kept_for_later }
+          : undefined;
+        return (
+          <WordCard
+            key={c.event.id}
+            word={c.event.exact_text}
+            provenance={wordProvenance(c.event)}
+            provenanceName={wordProvenanceName(c.event)}
+            correction={wordCorrection(c.event)}
+            pinned={resolved.state.manual.includes(c.event.id)}
+            provisional={c.event.stability === 'interim'}
+            reference={reference}
+            eventId={c.event.id}
+            onPress={() => setSheet(r ? { kind: 'ref', id: r.id } : { kind: 'word', id: c.event.id })}
+          />
+        );
+      })}
     </>
   );
   const refs = (
     <>
-      {rail.map((r) => (
+      {merged.refs.map((r) => (
         <RefCard
           key={r.id}
           label={r.label}
-          meaning={refMeaningLine(r)}
+          meaning={plainMeaning(r)}
           status={refMeaningStatus(r)}
           statusName={refMeaningName(r)}
           invalidated={r.lifecycle.state === 'invalidated'}
@@ -287,50 +320,51 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
       ))}
     </>
   );
+  const panelEmpty = resolved.pinned.length + merged.refs.length === 0;
 
   return (
-    <div className={[styles.incall, dimmed ? styles.dimmed : ''].join(' ').trim()} data-stage-wide data-incall data-attempt-id={attempt.id} data-node-id={node?.id}>
+    <div className={[styles.incall, dimmed ? styles.dimmed : ''].join(' ').trim()} data-stage-wide data-incall data-immersive-stage data-attempt-id={attempt.id} data-node-id={node?.id}>
       <div className="sr-only" aria-live="polite" aria-atomic="true" data-incall-live>
         {liveText}
       </div>
 
       {/* header */}
       <div className={styles.callHead} data-topbar>
-        <DemoPill compact />
-        <Avatar name={item.contact} size={40} />
-        <div className={styles.callWho}>
-          <span className={styles.callName}>{item.contact}</span>
-          <span className={styles.callCompany}>{item.company}</span>
-        </div>
-        <span className={styles.callTimer} data-call-timer aria-label={`Call time ${formatClock(talkMs)}`}>
-          {formatClock(talkMs)}
-        </span>
-        <span className={styles.dots} role="group" aria-label="Call state">
-          {stateDots.map((d) => (
-            <span key={d.id} className={[styles.dot, d.tone].join(' ')} role="img" aria-label={d.name} title={d.name} data-state-dot={d.id} />
-          ))}
-        </span>
-      </div>
-
-      {/* narrow: words strip above the line */}
-      <div className={styles.strip} ref={railRef} data-words-strip aria-label="Their words and references">
-        {resolved.pinned.length + rail.length === 0 ? (
-          <span className={styles.stripEmpty} aria-hidden="true">
-            ◌
+        <div className={styles.callHeadInner}>
+          <DemoPill compact />
+          <Avatar name={item.contact} size={40} />
+          <div className={styles.callWho}>
+            <span className={styles.callName}>{item.contact}</span>
+            <span className={styles.callCompany}>{item.company}</span>
+          </div>
+          <span className={styles.callTimer} data-call-timer aria-label={`Call time ${formatClock(talkMs)}`}>
+            {formatClock(talkMs)}
           </span>
-        ) : null}
-        {words}
-        {refs}
+          <span className={styles.dots} role="group" aria-label="Call state">
+            {stateDots.map((d) => (
+              <span key={d.id} className={[styles.dot, d.tone].join(' ')} role="img" aria-label={d.name} title={d.name} data-state-dot={d.id} />
+            ))}
+          </span>
+        </div>
       </div>
 
-      <div className={styles.columns}>
+      <div className={styles.body}>
         {/* center: the line */}
         <div className={styles.lineCol}>
+          {/* narrow: words strip above the line — fixed height, simply dark while empty */}
+          {!wide ? (
+            <div className={styles.strip} ref={railRef} data-words-strip aria-label="Their words and references" data-empty={panelEmpty ? 'true' : undefined}>
+              {words}
+              {refs}
+            </div>
+          ) : null}
+
           {node ? (
             <LineCard
               stage={stageLabel(node.stage)}
               line={st.line_text}
-              bridge={bridgeShape(node.bridge_template)}
+              shape={bridgeShape(node.bridge_template)}
+              fill
               onNext={next}
               nextName={`${st.line_text} — next line`}
               onInfo={() => setSheet({ kind: 'info' })}
@@ -344,59 +378,71 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
               {chips.map((b, i) => (
                 <Chip
                   key={b.answer_category}
-                  label={b.label}
+                  label={chipLabel(b)}
                   kbd={String(i + 1)}
                   glyph={hint?.branch.answer_category === b.answer_category ? '◆' : undefined}
                   tone={hint?.branch.answer_category === b.answer_category ? 'teal' : 'neutral'}
                   name={`${b.label}${hint?.branch.answer_category === b.answer_category ? ' — matches what they just said' : ''}${b.next_node_id ? '' : ' (end of sequence)'}`}
                   onClick={() => goTo(b.next_node_id)}
                   data-branch={b.answer_category}
+                  className={styles.chip}
                 />
               ))}
-              {moreCount > 0 ? <Chip label="more" glyph="…" name={`${moreCount} more branches`} onClick={() => setSheet({ kind: 'more' })} data-branch-more /> : null}
-              {st.history.length > 0 ? <IconButton icon="arrow-left" label="Previous line" onClick={goBack} /> : null}
+              {moreCount > 0 ? <Chip label="more" glyph="…" name={`${moreCount} more branches`} onClick={() => setSheet({ kind: 'more' })} data-branch-more className={styles.chip} /> : null}
+              {st.history.length > 0 ? <IconButton icon="arrow-left" label="Previous line" onClick={goBack} className={styles.backButton} /> : null}
             </div>
           ) : null}
 
           {suggestion ? (
-            <Card tone="purple" data-suggestion-overlay>
-              <div className={styles.suggestHead}>
-                <span className={styles.suggestTag}>Suggested</span>
-                <span className={styles.suggestRef}>{suggestedRef?.label ?? ''}</span>
-              </div>
-              <p className={styles.suggestText} data-suggestion-text>
-                {suggestion.text}
-              </p>
-              <div className={styles.suggestActions}>
-                <Chip label="Use" tone="purple" selected onClick={useSuggestion} name="Use this line now — records that you said it" />
-                <Chip label="Not now" onClick={notNow} />
-                <Chip label="Never" onClick={never} name="Never suggest this reference again" />
-              </div>
-            </Card>
+            <div className={styles.suggestWrap}>
+              <Card tone="purple" data-suggestion-overlay className={styles.suggest}>
+                <div className={styles.suggestHead}>
+                  <span className={styles.suggestTag}>Suggested</span>
+                  <span className={styles.suggestRef}>{suggestedRef?.label ?? ''}</span>
+                </div>
+                <p className={styles.suggestText} data-suggestion-text>
+                  {suggestion.text}
+                </p>
+                <div className={styles.suggestActions}>
+                  <Chip label="Use" tone="purple" selected onClick={useSuggestion} name="Use this line now — records that you said it" />
+                  <Chip label="Not now" onClick={notNow} />
+                  <Chip label="Never" onClick={never} name="Never suggest this reference again" />
+                </div>
+              </Card>
+            </div>
           ) : null}
-
-          <div className={styles.callFoot} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-            <IconButton icon="arrow-up" label="Transcript" onClick={() => setSheet({ kind: 'transcript' })} data-transcript-button />
-            <IconButton icon="phone-off" label="End call" tone="red" solid size={72} onClick={onEnd} data-end-call />
-            <span className={styles.footSpacer} aria-hidden="true" />
-          </div>
         </div>
 
-        {/* wide: rail */}
-        <aside className={styles.rail} aria-label="Their words and references">
-          <div className={styles.railHead}>
-            <Chip static label="Their words" tone="gold" />
-          </div>
-          <div className={styles.railList} data-words-rail>
-            {resolved.pinned.length === 0 ? <span className={styles.railEmpty} aria-hidden="true">◌</span> : words}
-          </div>
-          <div className={styles.railHead}>
-            <Chip static label="Their refs" tone="purple" />
-          </div>
-          <div className={styles.railList} data-refs-rail>
-            {rail.length === 0 ? <span className={styles.railEmpty} aria-hidden="true">◌</span> : refs}
-          </div>
-        </aside>
+        {/* wide: rail — full height, scrolls on its own */}
+        {wide ? (
+          <aside className={styles.rail} ref={railRef} aria-label="Their words and references">
+            <div className={styles.railHead}>
+              <Chip static label="Their words" tone="gold" className={styles.railLabel} />
+            </div>
+            <div className={styles.railList} data-words-rail data-empty={resolved.pinned.length === 0 ? 'true' : undefined}>
+              {words}
+            </div>
+            {merged.refs.length > 0 ? (
+              <>
+                <div className={styles.railHead}>
+                  <Chip static label="Their refs" tone="purple" className={styles.railLabel} />
+                </div>
+                <div className={styles.railList} data-refs-rail>
+                  {refs}
+                </div>
+              </>
+            ) : null}
+          </aside>
+        ) : null}
+      </div>
+
+      {/* docked bottom bar: ↑ transcript · End */}
+      <div className={styles.callFoot} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} data-call-foot>
+        <div className={styles.callFootInner}>
+          <IconButton icon="arrow-up" label="Transcript" onClick={() => setSheet({ kind: 'transcript' })} data-transcript-button />
+          <IconButton icon="phone-off" label="End call" tone="red" solid size={72} onClick={onEnd} data-end-call />
+          <span className={styles.footSpacer} aria-hidden="true" />
+        </div>
       </div>
 
       {/* ---- sheets ---- */}
@@ -404,28 +450,26 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
         {node ? (
           <div className={styles.info}>
             <p className={styles.infoBig}>{node.why_this_now}</p>
-            <div className={styles.infoRow}>
-              <Chip static label="Listen for" />
+            <InfoRow label="Listen for" glyph="◎">
               <p>{node.what_to_listen_for}</p>
-            </div>
+            </InfoRow>
             {node.mirror_variants.length > 0 ? (
-              <div className={styles.infoRow}>
-                <Chip static label="Mirrors" tone="teal" />
+              <InfoRow label="Mirrors" glyph="⇄" tone="teal">
                 <ul className={styles.infoList}>
                   {node.mirror_variants.map((m) => (
-                    <li key={m}>{m}</li>
+                    <li key={m} data-mirror>
+                      <SlotLine text={resolveMirror(m, facts)} />
+                    </li>
                   ))}
                 </ul>
-              </div>
+              </InfoRow>
             ) : null}
-            <div className={styles.infoRow}>
-              <Chip static label="Tone" />
+            <InfoRow label="Tone" glyph="♪">
               <p>{node.delivery_overlay.tone_cue}</p>
-            </div>
-            <div className={styles.infoRow}>
-              <Chip static label="Done when" />
+            </InfoRow>
+            <InfoRow label="Done when" glyph="✓">
               <p>{node.completion_criteria}</p>
-            </div>
+            </InfoRow>
           </div>
         ) : null}
       </Sheet>
@@ -436,13 +480,15 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
             {node.branches.map((b, i) => (
               <Tile
                 key={b.answer_category}
-                label={b.label}
-                icon={b.next_node_id ? 'next' : 'flag'}
+                label={chipLabel(b)}
+                icon={branchIcon(b)}
+                tone={b.answer_category === 'opt_out' ? 'red' : b.next_node_id ? 'neutral' : 'orange'}
                 name={`${i + 1}. ${b.label}${b.note ? ` — ${b.note}` : ''}${b.next_node_id ? '' : ' (end of sequence)'}`}
                 onClick={() => {
                   setSheet(null);
                   goTo(b.next_node_id);
                 }}
+                data-branch-tile={b.answer_category}
               />
             ))}
           </TileGrid>
@@ -455,7 +501,11 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
             <span className={styles.detailWord}>{selectedWord.event.exact_text}</span>
             <p className={styles.detailLine}>{wordProvenanceName(selectedWord.event)}</p>
             {selectedWord.event.meaning ? <p className={styles.detailLine}>means: {selectedWord.event.meaning}</p> : null}
-            {selectedWord.event.correction_or_negation ? <p className={styles.detailLine}>{wordCorrection(selectedWord.event)}</p> : null}
+            {selectedWord.event.correction_or_negation ? (
+              <p className={styles.detailCorrection}>
+                not <s>{selectedWord.event.correction_or_negation.rejects}</s>
+              </p>
+            ) : null}
             {selectedWord.event.cue ? <p className={styles.detailCue}>{selectedWord.event.cue}</p> : null}
             {selectedWord.exclusion ? <p className={styles.detailCue}>{selectedWord.exclusion}</p> : null}
             <div className={styles.detailActions}>
@@ -470,7 +520,83 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
         ) : null}
       </Sheet>
 
-      <Sheet open={selectedRef !== null} onClose={() => setSheet(null)} title="Their reference" data-sheet="ref">
+      <Sheet
+        open={selectedRef !== null}
+        onClose={() => setSheet(null)}
+        title="Their reference"
+        data-sheet="ref"
+        actions={
+          selectedRef ? (
+            <>
+              <IconButton
+                icon="bookmark"
+                label={selectedRef.lifecycle.state === 'pinned' ? 'Unpin — position no longer protected' : 'Pin — protects the card position, not its accuracy'}
+                tone={selectedRef.lifecycle.state === 'pinned' ? 'blue' : 'neutral'}
+                solid={selectedRef.lifecycle.state === 'pinned'}
+                aria-pressed={selectedRef.lifecycle.state === 'pinned'}
+                disabled={selectedRef.lifecycle.state === 'invalidated' || selectedRef.lifecycle.state === 'rejected'}
+                onClick={() => refAction({ type: selectedRef.lifecycle.state === 'pinned' ? 'unpin' : 'pin', reference_id: selectedRef.id })}
+                data-ref-pin
+              />
+              <IconButton
+                icon="ban"
+                label="Dismiss this reference"
+                tone="red"
+                disabled={selectedRef.lifecycle.state === 'invalidated' || selectedRef.lifecycle.state === 'dismissed'}
+                onClick={() => {
+                  refAction({ type: 'dismiss', reference_id: selectedRef.id });
+                  setSheet(null);
+                }}
+                data-ref-dismiss
+              />
+            </>
+          ) : null
+        }
+        footer={
+          selectedRef ? (
+            <TileGrid columns={3}>
+              <Tile
+                icon="bookmark"
+                label="Keep"
+                tone="blue"
+                selected={selectedRef.lifecycle.kept_for_later}
+                disabled={!refActive(selectedRef)}
+                name={selectedRef.lifecycle.kept_for_later ? 'Kept for later' : 'Keep for later'}
+                onClick={() => {
+                  refAction({ type: 'keep', reference_id: selectedRef.id });
+                  onNotify('Kept for later');
+                }}
+                data-ref-keep
+              />
+              <Tile
+                icon="spark"
+                label="Use"
+                tone="purple"
+                disabled={selectedRef.reuse.do_not_reuse || !refActive(selectedRef)}
+                name="Use now — shows one suggested bridge; never auto-applied"
+                onClick={() => {
+                  update({ overlay: { kind: 'use', reference_id: selectedRef.id } });
+                  setSheet(null);
+                }}
+                data-ref-use
+              />
+              <Tile
+                icon="search"
+                label="Clarify"
+                tone="blue"
+                disabled={!refActive(selectedRef)}
+                name="Clarify meaning — asks what it means for them, before assuming"
+                onClick={() => {
+                  refAction({ type: 'clarify', reference_id: selectedRef.id });
+                  update({ overlay: { kind: 'clarify', reference_id: selectedRef.id } });
+                  setSheet(null);
+                }}
+                data-ref-clarify
+              />
+            </TileGrid>
+          ) : null
+        }
+      >
         {selectedRef ? (
           <div className={styles.detail}>
             <span className={styles.detailRef}>{selectedRef.label}</span>
@@ -478,56 +604,6 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
             <p className={styles.detailLine}>{selectedRef.semantics.relationship}</p>
             <p className={styles.detailCue}>{refMeaningName(selectedRef)}</p>
             {selectedRef.semantics.prohibited_inferences.length > 0 ? <p className={styles.detailCue}>not inferred: {selectedRef.semantics.prohibited_inferences.join('; ')}</p> : null}
-            <div className={styles.detailActions}>
-              <Chip
-                label="Keep"
-                glyph="◇"
-                tone="teal"
-                toggle
-                selected={selectedRef.lifecycle.kept_for_later}
-                disabled={!(selectedRef.lifecycle.state === 'held' || selectedRef.lifecycle.state === 'pinned')}
-                onClick={() => {
-                  refAction({ type: 'keep', reference_id: selectedRef.id });
-                  onNotify('Kept for later');
-                }}
-              />
-              <Chip
-                label="Use"
-                tone="purple"
-                disabled={selectedRef.reuse.do_not_reuse || !(selectedRef.lifecycle.state === 'held' || selectedRef.lifecycle.state === 'pinned')}
-                onClick={() => {
-                  update({ overlay: { kind: 'use', reference_id: selectedRef.id } });
-                  setSheet(null);
-                }}
-              />
-              <Chip
-                label="Clarify"
-                tone="teal"
-                disabled={!(selectedRef.lifecycle.state === 'held' || selectedRef.lifecycle.state === 'pinned')}
-                onClick={() => {
-                  refAction({ type: 'clarify', reference_id: selectedRef.id });
-                  update({ overlay: { kind: 'clarify', reference_id: selectedRef.id } });
-                  setSheet(null);
-                }}
-              />
-              <Chip
-                label={selectedRef.lifecycle.state === 'pinned' ? 'Unpin' : 'Pin'}
-                glyph="⌖"
-                toggle
-                selected={selectedRef.lifecycle.state === 'pinned'}
-                disabled={selectedRef.lifecycle.state === 'invalidated' || selectedRef.lifecycle.state === 'rejected'}
-                onClick={() => refAction({ type: selectedRef.lifecycle.state === 'pinned' ? 'unpin' : 'pin', reference_id: selectedRef.id })}
-              />
-              <Chip
-                label="Dismiss"
-                tone="red"
-                disabled={selectedRef.lifecycle.state === 'invalidated' || selectedRef.lifecycle.state === 'dismissed'}
-                onClick={() => {
-                  refAction({ type: 'dismiss', reference_id: selectedRef.id });
-                  setSheet(null);
-                }}
-              />
-            </div>
           </div>
         ) : null}
       </Sheet>
@@ -548,5 +624,23 @@ export function InCall({ item, attempt, transcript, played, talkMs, nodes, versi
         {listener.normalized.turns.length === 0 ? <span className={styles.railEmpty}>◌</span> : null}
       </Sheet>
     </div>
+  );
+}
+
+/** A collapsible row in the ⓘ sheet: tap the label row to open its text (why-now stays the hero). */
+function InfoRow({ label, glyph, tone, children }: { label: string; glyph: string; tone?: 'teal'; children: ReactNode }) {
+  return (
+    <details className={styles.infoRow} data-info-row={label.toLowerCase().replace(/\s+/g, '-')}>
+      <summary className={[styles.infoSummary, tone === 'teal' ? styles.infoTeal : ''].join(' ').trim()}>
+        <span className={styles.infoGlyph} aria-hidden="true">
+          {glyph}
+        </span>
+        <span>{label}</span>
+        <span className={styles.infoChevron} aria-hidden="true">
+          ›
+        </span>
+      </summary>
+      <div className={styles.infoBody}>{children}</div>
+    </details>
   );
 }

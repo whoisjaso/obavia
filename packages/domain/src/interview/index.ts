@@ -586,8 +586,10 @@ const RECOVERY_BY_OPTION: Record<string, string> = {
   rec_review_adjust: 'Review the plan and adjust duration or frequency. A missed practice does not erase previous work.',
 };
 
-export const DEFAULT_DURATION_MINUTES = 15;
 export const DEFAULT_RECOVERY_RULE = 'Resume at the next session. A missed practice does not erase previous work.';
+
+/** Durations the person can choose (minutes) — the same values the interview offers. Never a default. */
+export const DURATION_CHOICES: readonly number[] = [10, 15, 20, 30, 45];
 
 function sectionIds(profile: IdentityProfile, key: string): string[] {
   return profile.sections.find((s) => s.key === key)?.answer_ids ?? [];
@@ -601,18 +603,46 @@ function firstMatch<T>(ids: readonly string[], table: Record<string, T>): T | un
   return undefined;
 }
 
-/** Settings the plan reads from an endorsed profile (duration, frequency, cue, recovery). */
-export function planSettings(profile: IdentityProfile): {
-  duration_minutes: number;
+export interface PlanSettings {
+  /** Chosen duration in minutes, or `null` when the person has not chosen one (never a default). */
+  duration_minutes: number | null;
+  /** Where the duration came from: the interview answer, a later choice, or nowhere yet. */
+  duration_source: 'interview' | 'chosen_later' | 'not_chosen';
   frequency: string;
+  /** True when the frequency comes from an answer rather than the documented placeholder text. */
+  frequency_chosen: boolean;
   cue: string;
+  cue_chosen: boolean;
   recovery_rule: string;
-} {
+}
+
+/** Options for `planSettings` / `buildTrainingPlan`. */
+export interface PlanOptions {
+  /**
+   * A duration chosen outside the interview (e.g. on Today when the interview left it open).
+   * Used only when the profile itself carries no duration; the interview answer always wins.
+   */
+  duration_minutes?: number | null;
+}
+
+/**
+ * Settings the plan reads from an endorsed profile (duration, frequency, cue, recovery).
+ * An unchosen duration is `null` — the UI shows "—" and asks; it never invents "15 min".
+ */
+export function planSettings(profile: IdentityProfile, options: PlanOptions = {}): PlanSettings {
   const rhythm = sectionIds(profile, 'practice_duration');
+  const fromInterview = firstMatch(rhythm, DURATION_BY_OPTION);
+  const later = options.duration_minutes ?? null;
+  const duration_minutes = fromInterview ?? later;
+  const frequency = firstMatch(rhythm, FREQUENCY_BY_OPTION);
+  const cue = firstMatch(rhythm, CUE_BY_OPTION);
   return {
-    duration_minutes: firstMatch(rhythm, DURATION_BY_OPTION) ?? DEFAULT_DURATION_MINUTES,
-    frequency: firstMatch(rhythm, FREQUENCY_BY_OPTION) ?? 'At the frequency you choose (not set yet)',
-    cue: firstMatch(rhythm, CUE_BY_OPTION) ?? 'the start of your practice session',
+    duration_minutes,
+    duration_source: fromInterview !== undefined ? 'interview' : later !== null ? 'chosen_later' : 'not_chosen',
+    frequency: frequency ?? 'At the frequency you choose (not set yet)',
+    frequency_chosen: frequency !== undefined,
+    cue: cue ?? 'the start of your practice session',
+    cue_chosen: cue !== undefined,
     recovery_rule: firstMatch(sectionIds(profile, 'recovery_rule'), RECOVERY_BY_OPTION) ?? DEFAULT_RECOVERY_RULE,
   };
 }
@@ -621,11 +651,12 @@ export function planSettings(profile: IdentityProfile): {
  * Translate each endorsed standard into a training-plan item. Returns an empty list for an
  * unendorsed profile: nothing downstream reads a profile the person has not endorsed.
  * Example: "I prepare" → start-of-session cue → rehearse approved opening and one branch →
- * chosen duration → completed drill (not time on page) → review → recovery rule.
+ * chosen duration (or `null` while unchosen) → completed drill (not time on page) → review →
+ * recovery rule.
  */
-export function buildTrainingPlan(profile: IdentityProfile): TrainingPlanItem[] {
+export function buildTrainingPlan(profile: IdentityProfile, options: PlanOptions = {}): TrainingPlanItem[] {
   if (!profile.endorsed) return [];
-  const settings = planSettings(profile);
+  const settings = planSettings(profile, options);
   const standardIds = sectionIds(profile, 'chosen_standards').filter((id) => id in STANDARD_TEMPLATES);
   return standardIds.map((id) => {
     const t = STANDARD_TEMPLATES[id] as StandardTemplate;
@@ -640,6 +671,45 @@ export function buildTrainingPlan(profile: IdentityProfile): TrainingPlanItem[] 
       recovery_rule: settings.recovery_rule,
     };
   });
+}
+
+// ---------------------------------------------------------------------------------------
+// Reading an endorsed profile (Today, Profile)
+// ---------------------------------------------------------------------------------------
+
+/**
+ * True only when `profile` is endorsed AND still describes `session` exactly: same session id and
+ * the same reviewable content (fingerprint). A back-edit after endorsement, or a fresh session
+ * after "Start over", makes the stored profile stale — Today must then fall back to its empty
+ * state rather than keep reading it.
+ */
+export function isProfileCurrent(profile: IdentityProfile | null | undefined, version: InterviewVersion, session: InterviewSession | null | undefined): boolean {
+  if (!profile || !profile.endorsed || !session) return false;
+  if (session.version_id !== version.id || profile.session_id !== session.id) return false;
+  return profileFingerprint(buildProfile(version, session)) === profileFingerprint(profile);
+}
+
+/**
+ * The substantive options a profile carries for one screen, in the screen's option order.
+ * Uncertainty / none answers yield an empty list (the profile marks them as unknowns).
+ * Reads only `answer_ids`; nothing is inferred.
+ */
+export function selectedOptions(profile: IdentityProfile, version: InterviewVersion, screenId: string): InterviewScreen['options'] {
+  const screen = findScreen(version, screenId);
+  if (!screen) return [];
+  const ids = new Set(profile.sections.find((s) => s.key === screen.profile_field)?.answer_ids ?? []);
+  if (!ids.has(screen.id)) return [];
+  return screen.options.filter((o) => ids.has(o.id));
+}
+
+/** First selected option of a single-choice screen, or null. */
+export function selectedOption(profile: IdentityProfile, version: InterviewVersion, screenId: string): InterviewScreen['options'][number] | null {
+  return selectedOptions(profile, version, screenId)[0] ?? null;
+}
+
+/** Label of an option id on a screen (substantive, uncertainty or none), or the id itself. */
+export function optionLabelOf(screen: InterviewScreen, optionId: string): string {
+  return optionLabel(screen, optionId);
 }
 
 // ---------------------------------------------------------------------------------------

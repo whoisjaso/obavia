@@ -11,7 +11,8 @@ import { provenanceLabel, type Fact, type RankedCandidate } from '@apohenia/doma
 import { resolveSlots, type KnownFacts } from '@apohenia/domain/scripts';
 import { ListenerAction, PinState } from '@apohenia/domain/schemas';
 import type { Reference, ReferenceSuggestion, ScriptNode, TranscriptTurn, VocabularyEvent } from '@apohenia/domain/schemas';
-import type { RefMeaningStatus, WordProvenance } from '@/components/ui';
+import type { IconName, RefMeaningStatus, WordProvenance } from '@/components/ui';
+import { bridgeParts, type BridgePart } from '@/lib/line-parts';
 
 // ---------------------------------------------------------------------------------------------
 // THEIR WORDS
@@ -36,9 +37,18 @@ export function wordProvenanceName(ev: VocabularyEvent): string {
   return provenanceLabel(ev);
 }
 
-/** "rejected: revenue" when the prospect set a term aside; undefined otherwise. */
+/** The word the prospect set aside ("revenue" in "profit, not revenue"); undefined otherwise. */
 export function wordCorrection(ev: Pick<VocabularyEvent, 'correction_or_negation'>): string | undefined {
-  return ev.correction_or_negation ? `rejected: ${ev.correction_or_negation.rejects}` : undefined;
+  return ev.correction_or_negation?.rejects;
+}
+
+/** Normalized key for matching a reference label against a pinned word ("PROFIT (NOT REVENUE)" → "profit"). */
+export function panelKey(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 }
 
 /** Vocabulary facts ("{prospect_name}") → script known facts ("prospect_name"). */
@@ -63,6 +73,20 @@ export function refMeaningName(r: Reference): string {
 
 export function refMeaningLine(r: Reference): string {
   return shortMeaning(r);
+}
+
+/** One plain clause, ≤8 words, for the card: "profit, not revenue" (the full relationship stays in the sheet). */
+export function plainMeaning(r: Reference): string {
+  if (r.lifecycle.state === 'invalidated') return 'evidence retracted';
+  if (r.lifecycle.state === 'rejected') return 'set aside by them';
+  const rel = r.semantics.relationship
+    .replace(/^[^:]+:\s*/, '')
+    .replace(/\s*\([^)]*\)/g, '')
+    .split(/\s+[—–-]\s+/)[0]!
+    .replace(/[.;:,\s]+$/g, '')
+    .trim();
+  const words = rel.split(/\s+/).filter(Boolean);
+  return words.length > 8 ? `${words.slice(0, 8).join(' ')}…` : rel;
 }
 
 /** Cards worth showing on the rail: held/pinned first-appearance order, then muted states, max `max`. */
@@ -126,9 +150,120 @@ export function resolveLine(node: ScriptNode, knownFacts: KnownFacts): string {
   return resolveSlots(node.primary_word_track, { knownFacts }).text;
 }
 
-/** "{ack} — you mentioned {referent}" → "⟨ack⟩ — you mentioned ⟨referent⟩": a shape, not words to say. */
-export function bridgeShape(template: string): string {
-  return template.replace(/\{([a-z0-9_|]+)\}/gi, (_m, name: string) => `⟨${name.split('|')[0]!.replace(/_/g, ' ')}⟩`);
+/** The bridge template as glyph cues (◐ ack · ● their word · ? question) — a shape, never words to say. */
+export function bridgeShape(template: string): BridgePart[] {
+  return bridgeParts(template);
+}
+
+/** Resolve a mirror variant against the record (never invents; unfilled slots stay as chips). */
+export function resolveMirror(text: string, knownFacts: KnownFacts): string {
+  return resolveSlots(text, { knownFacts }).text;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Branch chips: ≤3 visible words + a distinct icon per answer category; the full label is the name.
+// ---------------------------------------------------------------------------------------------
+
+const CHIP_LABELS: Record<string, string> = {
+  permission_granted: 'Go ahead',
+  gatekeeper: 'Gatekeeper',
+  bad_time: 'Bad time',
+  not_relevant: 'Not relevant',
+  opt_out: 'Decline',
+  declined: 'Declines',
+  transferred: 'Transferred',
+  name_given: 'Name given',
+  take_message: 'Takes message',
+  agreed: 'Agreed',
+  talk_now: 'Talk now',
+  confirmed: 'Confirmed',
+  doesnt_recall: "Doesn't recall",
+  wrong_person: 'Wrong person',
+  missing_notes: 'Goal missing',
+  disputed: 'Disputed',
+  tangible_given: 'Tangible',
+  experience_included: 'Problem too',
+  no_goal: 'No goal',
+  experience_given: 'Experience',
+  generic_goal_repeated: 'Generic again',
+  no_problem: 'No problem',
+  described: 'Described',
+  already_known: 'On record',
+  unknown: 'Unknown',
+  answered: 'Answered',
+  something_to_keep: 'Keep something',
+  nothing_liked: 'Nothing liked',
+  specific_problem: 'Specific',
+  label_only: 'Label only',
+  nothing_to_change: 'Nothing',
+  impact_described_setter: 'Impact · setter',
+  impact_described_closer: 'Impact · closer',
+  no_impact: 'No impact',
+  target_and_gap: 'Target · gap',
+  unqualified_signal: 'Too small',
+  would_invest: 'Would fund',
+  would_not: 'Not now',
+  lack_authority: 'Not their call',
+  prefers_nurture: 'Resource first',
+  rationale_given: 'Rationale',
+  prefers_diy: 'In-house',
+  never_looked: 'Never looked',
+  looked_not_proceeded: 'Looked, stopped',
+  proceeded_bad: 'Bad result',
+  proceeded_good: 'Good result',
+  mixed_result: 'Mixed result',
+  still_active_provider: 'Has provider',
+  changed_priorities: 'Priorities moved',
+  no_actual_problem: 'No problem',
+  lack_authority_budget: 'No authority',
+  shifted_explained: 'Shift explained',
+  plausible_reason_accepted: 'Plausible reason',
+  still_constrained: 'Still constrained',
+  identity_frame_practice_only: 'Identity frame',
+  criteria_given: 'Criteria',
+  bottleneck_named: 'Bottleneck',
+  still_active_no_gap: 'No gap',
+  practice_complete: 'Done',
+  specific_outcomes: 'Specific',
+  vague_word: 'Vague word',
+  meaning_given: 'Meaning',
+  still_vague: 'Still vague',
+  consequences_stated: 'Consequences',
+  no_consequence: 'None',
+  not_settling: 'Not settling',
+  would_settle: 'Would settle',
+  reason_given: 'Reason',
+  responsibility_optional: 'Whose call',
+  no_reason_now: 'No reason',
+  mine: 'Their decision',
+  someone_else: 'Someone else',
+  yes: 'Yes',
+  yes_upsell_compare: 'Yes · compare',
+  not_yet: 'Not yet',
+  makes_sense: 'Makes sense',
+  question: 'Question',
+  end: 'End',
+};
+
+/** ≤3 visible words for a branch chip: the curated label, else the first three words of the label. */
+export function chipLabel(branch: { answer_category: string; label: string }): string {
+  const known = CHIP_LABELS[branch.answer_category];
+  if (known) return known;
+  const words = branch.label.replace(/\s*\([^)]*\)/g, '').replace(/[—–].*$/, '').trim().split(/\s+/);
+  return words.slice(0, 3).join(' ');
+}
+
+/** A distinct icon per branch kind (check · shield · clock · x · ban · …) instead of one arrow for all. */
+export function branchIcon(branch: { answer_category: string; next_node_id: string | null }): IconName {
+  const c = branch.answer_category;
+  if (c === 'opt_out') return 'ban';
+  if (/gatekeeper|wrong_person|lack_authority|someone_else|transferred|take_message|name_given/.test(c)) return 'shield';
+  if (/bad_time|not_now|would_not|not_yet|later|prefers_nurture|changed_priorities|no_reason_now/.test(c)) return 'clock';
+  if (/declin|not_relevant|no_fit|no_problem|no_actual|nothing|no_goal|no_impact|no_consequence|would_settle|still_vague|generic|label_only|no_gap|still_constrained|unqualified|too_small/.test(c)) return 'x';
+  if (/question|unknown|doesnt_recall|disputed|missing_notes|vague_word|mixed/.test(c)) return 'search';
+  if (/practice|identity_frame|responsibility/.test(c)) return 'bookmark';
+  if (branch.next_node_id === null) return 'flag';
+  return 'check';
 }
 
 /** The default "next" for tap/Space: the first branch that leads somewhere. */

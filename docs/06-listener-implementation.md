@@ -215,8 +215,8 @@ topic · L13 revision retracts "ambushed" (same utterance, revision 1) · L14 ga
 - `npx vitest run packages/domain/test/listener.test.ts packages/domain/test/vocabulary.test.ts` — 91 passed,
   2 todo (listener 60 + 2 todo; vocabulary 31).
 - `npx eslint packages/domain/src/listener packages/domain/src/schemas/listener.ts packages/domain/test/listener.test.ts --max-warnings 0` — clean.
-- `npm run typecheck` — fails only inside `apps/web` (M-core's in-progress `components/ui` restructure and the
-  obsolete `call-room/ReferencesPanel.tsx` / `CallRoomClient.tsx`, which M-core replaces). Not a domain failure.
+- `npm run typecheck` — clean across all three projects once the v1 Call Room (`call-room/ReferencesPanel.tsx`,
+  `CallRoomClient.tsx`) was deleted; `/call-room` is now a redirect to the Dial front door (`/`).
 
 ## 8. Open items
 

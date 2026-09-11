@@ -101,6 +101,9 @@
 }
 
 /* ---- drill grid ---- */
+.drillGrid {
+  padding-bottom: var(--s-5);
+}
 .drillTile {
   min-height: 140px;
 }
@@ -108,12 +111,6 @@
   display: inline-flex;
   gap: var(--s-2);
   align-items: center;
-}
-.ringGlyph,
-.ringDot {
-  font-size: 10px;
-  line-height: 1;
-  color: var(--ink-3);
 }
 
 /* ---- drill screen ---- */
@@ -123,6 +120,8 @@
   gap: var(--s-4);
   flex: 1;
   animation: fadeIn var(--dur) var(--ease);
+  /* reserve room for the docked hero so nothing renders under it or the tab bar */
+  padding-bottom: 156px;
 }
 .cueRow {
   display: flex;
@@ -609,17 +608,20 @@
   line-height: var(--lh-body);
 }
 
-/* ---- hero footer ---- */
+/* ---- hero footer: docked above the tab bar ---- */
 .foot {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: calc(var(--tabbar-h) + var(--safe-bottom));
   z-index: 20;
+  max-width: var(--col);
+  margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   justify-items: center;
   padding: var(--s-4) var(--s-4) var(--s-3);
-  margin: auto calc(-1 * var(--s-4)) 0;
   background: linear-gradient(180deg, transparent, var(--bg) 40%);
 }
 .footSide {
@@ -849,14 +851,13 @@
   gap: var(--s-2);
 }
 
+/* opacity only: a transform here would become the containing block of the fixed hero footer */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 @keyframes pop {

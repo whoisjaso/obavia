@@ -1,17 +1,21 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import type { BridgePart } from '@/lib/line-parts';
 import { Chip } from './Chip';
 import { IconButton } from './IconButton';
+import { SlotLine } from './SlotLine';
 import styles from './LineCard.module.css';
 
 export interface LineCardProps {
   /** Stage chip (one or two words, e.g. "intent"). */
   stage: string;
-  /** The exact primary line. Rendered verbatim; never re-flows while visible (fixed min-height). */
+  /** The exact primary line (resolved). Rendered verbatim through SlotLine; never re-flows while visible. */
   line: string;
-  /** Bridge line under the primary line (`--fs-body --ink-2`). */
+  /** A plain sentence under the line (`--fs-body --ink-2`), e.g. a purpose cue in Train. */
   bridge?: string;
+  /** The bridge *shape* as glyph cues (◐ ack · ● their word · ? question) — never angle tokens. */
+  shape?: readonly BridgePart[];
   /** Tap on the line = next. Omit to make the line non-interactive (e.g. read-only replay). */
   onNext?: () => void;
   /** ⓘ opens the explanation sheet (why now, listen for, mirrors, tone). */
@@ -24,32 +28,35 @@ export interface LineCardProps {
   meta?: ReactNode;
   /** Minimum number of display lines reserved so arriving words never move the text. */
   minLines?: number;
+  /** Fill the parent (fixed in-call stage): the text scrolls inside the card instead of growing it. */
+  fill?: boolean;
   /** Node id for automation hooks. */
   nodeId?: string;
 }
 
-/**
- * The script line: stage chip, the primary line at `--fs-display` weight 700, a subtle ⓘ, and the
- * bridge line below. The card reserves `minLines` lines so nothing shifts when words arrive.
- */
 /** Lines longer than this many words step down one size so the whole line stays on screen. */
 export const LONG_LINE_WORDS = 24;
 
-export function LineCard({ stage, line, bridge, onNext, onInfo, nextName, locked, meta, minLines = 4, nodeId }: LineCardProps) {
+/**
+ * The script line: stage chip, the primary line at `--fs-display` weight 700, a subtle ⓘ, and the
+ * bridge shape below. The card reserves `minLines` lines (or fills its parent) so nothing shifts
+ * when words arrive; slots render as chips, never as brackets.
+ */
+export function LineCard({ stage, line, bridge, shape, onNext, onInfo, nextName, locked, meta, minLines = 4, fill, nodeId }: LineCardProps) {
   const long = line.trim().split(/\s+/).length > LONG_LINE_WORDS;
   const text = (
     <span className={styles.text} data-primary-line data-node-id={nodeId}>
-      {line}
+      <SlotLine text={line} />
     </span>
   );
   return (
-    <section className={[styles.card, long ? styles.long : ''].join(' ').trim()} data-line-card data-node-id={nodeId} data-line-length={long ? 'long' : 'short'} aria-label={`Script line, stage ${stage}`}>
+    <section className={[styles.card, long ? styles.long : '', fill ? styles.fill : ''].join(' ').trim()} data-line-card data-node-id={nodeId} data-line-length={long ? 'long' : 'short'} aria-label={`Script line, stage ${stage}`}>
       <div className={styles.head}>
         <Chip static label={stage} tone="teal" glyph={locked ? '🔒' : undefined} name={locked ? `Stage ${stage}, line locked` : `Stage ${stage}`} />
         {meta}
         {onInfo ? <IconButton icon="info" label="Why this line now" onClick={onInfo} className={styles.info} /> : null}
       </div>
-      <div className={styles.lineBox} style={{ minHeight: `calc(${minLines} * ${long ? 'var(--fs-display-long)' : 'var(--fs-display)'} * var(--lh-tight))` }}>
+      <div className={styles.lineBox} style={fill ? undefined : { minHeight: `calc(${minLines} * ${long ? 'var(--fs-display-long)' : 'var(--fs-display)'} * var(--lh-tight))` }}>
         {onNext ? (
           <button type="button" className={styles.lineButton} onClick={onNext} aria-label={nextName ?? `${line} — next line`} data-line-next>
             {text}
@@ -58,8 +65,18 @@ export function LineCard({ stage, line, bridge, onNext, onInfo, nextName, locked
           <div className={styles.lineButton}>{text}</div>
         )}
       </div>
+      {shape && shape.length > 0 ? (
+        <div className={styles.shape} role="group" aria-label="Bridge shape" data-bridge-line>
+          {shape.map((p, i) => (
+            <span key={`${p.word}-${i}`} className={styles.shapeChip} role="img" aria-label={p.name} title={p.name}>
+              <span className={styles.shapeGlyph}>{p.glyph}</span>
+              <span>{p.word}</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
       {bridge ? (
-        <p className={styles.bridge} data-bridge-line>
+        <p className={styles.bridge} data-bridge-text>
           {bridge}
         </p>
       ) : null}

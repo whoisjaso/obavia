@@ -1,169 +1,353 @@
-.flow {
+/* /onboarding/identity — identity interview (DESIGN_SYSTEM §3.6). One question per screen. Tokens only. */
+
+.root {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  max-width: 760px;
+  gap: var(--s-4);
+  min-height: calc(100dvh - var(--tabbar-h) - var(--safe-bottom) - var(--s-5));
 }
 
-.progressLine {
+/* ---- top bar progress ---- */
+.progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.progressText {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.progressSep {
+  color: var(--ink-3);
+  padding: 0 2px;
+}
+
+/* ---- dependents note ---- */
+.noteRow {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
 }
-
-.progressBar {
-  height: 4px;
-  width: 100%;
-  background: var(--color-surface-sunken);
-  border-radius: 999px;
+.noteGlyph {
+  color: var(--orange);
+  font-size: var(--fs-title);
+  line-height: 1;
+}
+.noteText {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--ink);
   overflow: hidden;
-}
-.progressFill {
-  height: 100%;
-  background: var(--color-accent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* ---- one question ---- */
 .screen {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--s-4);
+  flex: 1;
+  animation: fadeIn var(--dur) var(--ease);
 }
-
+.cueRow,
+.kindRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
 .prompt {
-  font-size: var(--font-size-xl);
-  line-height: var(--line-height-tight);
-  max-width: 28ch;
+  font-size: var(--fs-large);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.015em;
+  padding: var(--s-2) 0;
 }
-
-.help {
-  color: var(--color-muted);
-  max-width: 64ch;
+.countPill {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
 }
 
 .options {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-3);
   list-style: none;
   margin: 0;
-  padding: 0;
-}
-
-.option {
+  padding: 0 0 var(--s-2);
   display: grid;
-  grid-template-columns: 24px 1fr;
-  column-gap: var(--space-3);
-  align-items: start;
-  width: 100%;
-  min-height: 72px;
-  padding: var(--space-4);
-  text-align: left;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  color: var(--color-ink);
-  cursor: pointer;
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-body);
-  transition: border-color var(--duration), background-color var(--duration);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
 }
-.option:hover {
-  background: var(--color-surface-sunken);
+.options > li {
+  min-width: 0;
+  display: flex;
 }
-.option[aria-pressed='true'] {
-  border-color: var(--color-accent);
-  border-width: 2px;
-  padding: calc(var(--space-4) - 1px);
-  background: var(--color-info-surface);
-}
-.optionExclusive {
-  border-style: dashed;
-}
-
-.check {
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--color-line);
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: var(--color-accent-ink);
-  background: var(--color-surface);
-  margin-top: 1px;
-}
-.option[aria-pressed='true'] .check {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.optionLabel {
-  font-weight: 600;
-}
-.optionDescription {
-  display: block;
-  color: var(--color-muted);
-  font-size: var(--font-size-sm);
-  margin-top: 2px;
-}
-
-.notice {
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
-}
-
-.note {
-  border-left: 3px solid var(--color-accent);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-info-surface);
-  color: var(--color-info-ink);
-  font-size: var(--font-size-sm);
-}
-
-.actions {
+.option {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-line);
+  justify-content: center;
+  width: 100%;
+  min-height: 104px;
+  padding: var(--s-4) var(--s-3);
+  border-radius: var(--r-tile);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--ink);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.option:hover {
+  background: var(--bg-2);
+}
+.option:active {
+  background: var(--bg-3);
+  transform: scale(0.97);
+}
+.optionSelected {
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 2px var(--blue);
+  background: var(--bg-2);
+}
+.optionLabel {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.25;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.optionCheck {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+.exclusiveItem {
+  min-width: 0;
+}
+.optionExclusive {
+  min-height: 64px;
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  color: var(--ink-2);
+}
+.optionExclusive .optionLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+.optionExclusive.optionSelected {
+  border-style: solid;
+  color: var(--ink);
+  background: var(--bg-2);
+}
+
+/* ---- actions: an opaque bar docked at the bottom (no tab bar during the interview) ---- */
+.actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  max-width: var(--col);
+  margin: 0 auto;
+  padding: var(--s-3) var(--s-4) calc(var(--s-3) + var(--safe-bottom));
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+}
+/* reserve the bar's height so the last tiles are always reachable */
+.screen {
+  padding-bottom: calc(84px + var(--safe-bottom));
 }
 .spacer {
   flex: 1;
 }
-
-.reviewTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-sm);
+.reason {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.reviewTable th,
-.reviewTable td {
-  text-align: left;
-  padding: var(--space-2) var(--space-3) var(--space-2) 0;
-  border-bottom: 1px solid var(--color-line);
-  vertical-align: top;
-}
-.reviewTable th {
-  font-weight: 600;
-  color: var(--color-muted);
-}
-.mono {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  color: var(--color-muted);
-}
-.linkButton {
-  background: none;
+.nextHero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-width: 120px;
+  flex-shrink: 0;
+  height: 56px;
+  padding: 0 var(--s-4) 0 var(--s-5);
   border: none;
-  padding: 0;
-  color: var(--color-accent);
-  text-decoration: underline;
+  border-radius: var(--r-chip);
+  background: var(--blue);
+  color: #fff;
+  font-size: var(--fs-body);
+  font-weight: 700;
   cursor: pointer;
-  font-size: var(--font-size-sm);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+.nextHero:hover {
+  background: #2b93ff;
+}
+.nextHero:active {
+  transform: scale(0.96);
+}
+.nextHero:disabled {
+  background: var(--bg-2);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+/* ---- review ---- */
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeIn var(--dur) var(--ease);
+}
+.reviewHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-2) var(--s-2);
+}
+.reviewRingCenter {
+  font-size: var(--fs-title);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+}
+.reviewChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.reviewList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.reviewCard {
+  padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4);
+}
+.reviewCardMuted {
+  opacity: 0.55;
+}
+.reviewRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.reviewIndex {
+  width: 28px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+.reviewBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.reviewTitle {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.reviewCond {
+  color: var(--teal);
+}
+.reviewMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.answerChip {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  background: var(--bg-2);
+  white-space: normal;
+  text-align: left;
+  min-height: 28px;
+  padding: 3px var(--s-3);
+}
+
+/* ---- sheets ---- */
+.sheetStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.sheetBig {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+}
+.sheetText {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.sheetMuted {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+.sheetOptions {
+  margin: 0;
+  padding-left: 1.1em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-body);
+}
+.sheetOptionLabel {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* opacity only: a transform here would become the containing block of the fixed action bar */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

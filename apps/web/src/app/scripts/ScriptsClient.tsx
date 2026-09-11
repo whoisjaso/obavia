@@ -8,10 +8,12 @@ import {
   STAGE_ORDER,
   STOP_ANSWER_CATEGORY,
   classificationGlyph,
+  isOfferSlot,
   loadVersionGraph,
   publicationApproval,
   publishVersion,
   renderNodeCard,
+  slotLabel,
   stageLabel,
   upsertWordTrackVariant,
   wordTrackVariantFor,
@@ -20,7 +22,7 @@ import {
   type NodeCard,
 } from '@apohenia/domain/scripts';
 import { EMPTY_OFFER_STATUS_MAP, OFFER_STATUS_STORAGE_KEY, OfferStatusMap, applyOfferStatuses, statusGlyph } from '@apohenia/domain/offers';
-import { Card, Chip, GlyphPill, Icon, IconButton, LineCard, Sheet, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
+import { Card, Chip, GlyphPill, Icon, IconButton, Sheet, SlotLine, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import styles from './scripts.module.css';
 
@@ -79,24 +81,20 @@ const SAMPLE_FACTS: KnownFacts = {
 const NO_FACTS: KnownFacts = {};
 const SAMPLE_FACTS_NAME = 'Sample facts (fictional, demo): fill slots with Northgate Motors sample answers to show interpolation and evidence-satisfied transitions. Off: slots show missing cues.';
 
-type SheetState = { kind: 'node'; id: string } | { kind: 'source'; id: string; from: string } | { kind: 'publish' } | { kind: 'publication'; id: string } | null;
+type SheetState = { kind: 'node'; id: string } | { kind: 'source'; id: string; from: string } | { kind: 'publish' } | { kind: 'publication'; id: string } | { kind: 'status' } | null;
+
+/** Routing notes that are not already carried by a missing-slot chip. */
+function otherNotes(card: NodeCard): string[] {
+  return card.routing_notes.filter((n) => !/^(Missing "|Offer not approved|Price not approved|Fictional offer)/.test(n));
+}
 
 function substageLabel(node: ScriptNode): string {
   return (node.substage ?? node.id).replace(/_/g, ' ');
 }
 
-/** Render text with `[missing: …]` / `[Price …]` / `[Offer …]` cues visibly marked (never invented values). */
+/** Render text with `[missing: …]` / `[Price …]` / `[Offer …]` cues as slot chips (never invented values, never brackets on the stage). */
 function withCues(text: string): ReactNode {
-  const parts = text.split(/(\[[^\]]+\])/g);
-  return parts.map((p, i) =>
-    /^\[[^\]]+\]$/.test(p) ? (
-      <mark key={i} className={styles.cue} data-missing-cue>
-        {p}
-      </mark>
-    ) : (
-      <span key={i}>{p}</span>
-    ),
-  );
+  return <SlotLine text={text} />;
 }
 
 function Caption({ id, children }: { id?: string; children: ReactNode }) {
@@ -227,8 +225,8 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
         title="Script"
         right={
           <>
+            <IconButton icon="info" label={`Version status: ${version.status}, ${draftCount} of ${graph.nodes.length} nodes draft; graph ${validation?.ok ? 'valid' : 'not validated'}; offer ${offer ? offer.status : 'none'}. Open.`} onClick={() => setSheet({ kind: 'status' })} data-status-open />
             <IconButton icon="bookmark" label="Sources" href="/sources" />
-            <IconButton icon="star" label="Offers" href="/offers" />
           </>
         }
       />
@@ -252,32 +250,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
         })}
       </div>
 
-      {/* ---- honesty pills: version · graph · offer ---- */}
-      <div className={styles.pills} data-status-pills>
-        <GlyphPill glyph={versionGlyph.glyph} label={versionGlyph.word} tone={versionGlyph.tone} name={`Version ${version.status}: ${draftCount} of ${graph.nodes.length} nodes draft — owner review required before live use`} data-version-pill />
-        {validation?.ok ? (
-          <GlyphPill glyph="✓" label="Graph" tone="green" name={`Graph valid: ${validation.stats.nodes} nodes, ${validation.stats.cited_record_ids} records cited, ${validation.stats.entrypoints} entrypoints, closed; opt-out reaches the stop node from every node`} data-graph-pill="ok" />
-        ) : (
-          <GlyphPill glyph="!" label="Graph" tone="orange" name={validation ? `Graph has ${validation.errors.length} error(s): ${validation.errors.join('; ')}` : 'Graph not validated'} data-graph-pill="error" />
-        )}
-        {offer && offerGlyph ? (
-          <GlyphPill
-            glyph={offerGlyph.glyph}
-            label="Offer"
-            tone={offerGlyph.tone}
-            name={
-              offer.status === 'published'
-                ? `Linked offer "${offer.name}" is published — pillar wording may be spoken; the price is quoted only when it is set`
-                : `Linked offer "${offer.name}" is ${offer.status} — pillar and price slots render as cues until it is published in the Offer Studio`
-            }
-            data-offer-pill={offer.status}
-          />
-        ) : (
-          <GlyphPill glyph="—" label="Offer" tone="neutral" name="No offer linked — pillar and price slots render as cues" data-offer-pill="none" />
-        )}
-      </div>
-
-      {/* ---- the lines of this stage ---- */}
+      {/* ---- the lines of this stage: compact cards (stage chip · the line at 22px, faded · chevron) ---- */}
       <div className={styles.lines} data-stage-lines>
         {stageNodes.map((n) => {
           const card = cards.get(n.id);
@@ -285,49 +258,115 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
           const approval = statusGlyph(card.approval_status);
           return (
             <div key={n.id} className={[styles.lineWrap, n.id === currentId ? styles.lineCurrent : ''].join(' ').trim()} data-node-card data-node-id={n.id} aria-current={n.id === currentId ? 'true' : undefined}>
-              <LineCard
-                stage={substageLabel(n)}
-                line={card.say_this ?? ''}
-                nodeId={n.id}
-                minLines={2}
-                onNext={() => openNode(n.id)}
-                nextName={`${substageLabel(n)} — open`}
-                meta={
-                  <>
-                    <GlyphPill glyph={approval.glyph} tone={approval.tone} name={`${approval.name} (node ${n.id})`} data-approval={card.approval_status} />
-                    {card.practice_only ? <GlyphPill glyph="⊘" tone="purple" name="Study/practice only — never a live recommendation" data-practice-only /> : null}
-                    {card.evidence.satisfied ? <GlyphPill glyph="✓" tone="teal" name="Already answered from known facts — offer the transition instead of asking twice" data-evidence-pill /> : null}
-                  </>
-                }
-              />
+              <Card onPress={() => openNode(n.id)} name={`${substageLabel(n)} — open`} data-line-next>
+                <div className={styles.cardHead}>
+                  <Chip static label={substageLabel(n)} tone="teal" name={`Stage ${substageLabel(n)}`} />
+                  <GlyphPill glyph={approval.glyph} tone={approval.tone} name={`${approval.name} (node ${n.id})`} data-approval={card.approval_status} />
+                  {card.practice_only ? <GlyphPill glyph="⊘" tone="purple" name="Study/practice only — never a live recommendation" data-practice-only /> : null}
+                  {card.evidence.satisfied ? <GlyphPill glyph="✓" tone="teal" name="Already answered from known facts — offer the transition instead of asking twice" data-evidence-pill /> : null}
+                </div>
+                <div className={styles.cardLineBox}>
+                  <span className={styles.cardLine} data-primary-line data-node-id={n.id}>
+                    <SlotLine text={card.say_this ?? ''} />
+                  </span>
+                  <span className={styles.cardFade} aria-hidden="true" />
+                </div>
+              </Card>
             </div>
           );
         })}
       </div>
 
-      {/* ---- publish ---- */}
-      <div className={styles.publishArea}>
+      {/* ---- publications + the docked Publish hero ---- */}
+      {versionPublications.length > 0 ? (
+        <div className={styles.publications} data-publications>
+          {versionPublications.map((p) => {
+            const approval = publicationApproval(p);
+            return (
+              <Card key={p.id} dense onPress={() => setSheet({ kind: 'publication', id: p.id })} name={`${approval.name}, ${new Date(p.published_at).toLocaleString()}. Open.`} data-publication data-publication-hash={p.content_hash} data-publication-label={approval.label}>
+                <div className={styles.pubRow}>
+                  <Icon name="lock" size={18} className={styles.pubIcon} />
+                  <span className={styles.pubLabel}>{approval.label}</span>
+                  <span className={styles.mono} aria-hidden="true">
+                    {p.content_hash.slice(0, 12)}
+                  </span>
+                  <span className="sr-only">{p.content_hash}</span>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      ) : null}
+      <div className={styles.publishDock} data-publish-dock>
         <Tile icon="lock" label="Publish" size="lg" tone="green" name="Publish this version: freeze the wording as an immutable snapshot with a content hash. Node approval is not changed." onClick={() => setSheet({ kind: 'publish' })} disabled={!pubsHydrated} data-publish className={styles.publishTile} />
-        {versionPublications.length > 0 ? (
-          <div className={styles.publications} data-publications>
-            {versionPublications.map((p) => {
-              const approval = publicationApproval(p);
-              return (
-                <Card key={p.id} dense onPress={() => setSheet({ kind: 'publication', id: p.id })} name={`${approval.name}, ${new Date(p.published_at).toLocaleString()}. Open.`} data-publication data-publication-hash={p.content_hash} data-publication-label={approval.label}>
-                  <div className={styles.pubRow}>
-                    <Icon name="lock" size={18} className={styles.pubIcon} />
-                    <span className={styles.pubLabel}>{approval.label}</span>
-                    <span className={styles.mono} aria-hidden="true">
-                      {p.content_hash.slice(0, 12)}
-                    </span>
-                    <span className="sr-only">{p.content_hash}</span>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        ) : null}
       </div>
+
+      {/* ================= status sheet: version · graph · offer ================= */}
+      <Sheet open={sheet?.kind === 'status'} onClose={() => setSheet(null)} title="Status" data-sheet="status">
+        <div className={styles.sheetBody}>
+          <div className={styles.pills} data-status-pills>
+            <GlyphPill glyph={versionGlyph.glyph} label={versionGlyph.word} tone={versionGlyph.tone} name={`Version ${version.status}: ${draftCount} of ${graph.nodes.length} nodes draft — owner review required before live use`} data-version-pill />
+            {validation?.ok ? (
+              <GlyphPill glyph="✓" label="Graph" tone="green" name={`Graph valid: ${validation.stats.nodes} nodes, ${validation.stats.cited_record_ids} records cited, ${validation.stats.entrypoints} entrypoints, closed; opt-out reaches the stop node from every node`} data-graph-pill="ok" />
+            ) : (
+              <GlyphPill glyph="!" label="Graph" tone="orange" name={validation ? `Graph has ${validation.errors.length} error(s): ${validation.errors.join('; ')}` : 'Graph not validated'} data-graph-pill="error" />
+            )}
+            {offer && offerGlyph ? (
+              <GlyphPill
+                glyph={offerGlyph.glyph}
+                label="Offer"
+                tone={offerGlyph.tone}
+                name={
+                  offer.status === 'published'
+                    ? `Linked offer "${offer.name}" is published — pillar wording may be spoken; the price is quoted only when it is set`
+                    : `Linked offer "${offer.name}" is ${offer.status} — pillar and price slots render as cues until it is published in the Offer Studio`
+                }
+                data-offer-pill={offer.status}
+              />
+            ) : (
+              <GlyphPill glyph="—" label="Offer" tone="neutral" name="No offer linked — pillar and price slots render as cues" data-offer-pill="none" />
+            )}
+          </div>
+          <div className={styles.countRow}>
+            <div className={styles.count} role="group" aria-label={`${draftCount} of ${graph.nodes.length} nodes draft`}>
+              <span className={styles.countValue} aria-hidden="true">
+                {draftCount}
+              </span>
+              <span className={styles.countKey} aria-hidden="true">
+                draft
+              </span>
+            </div>
+            <div className={styles.count} role="group" aria-label={`${graph.nodes.length} nodes`}>
+              <span className={styles.countValue} aria-hidden="true">
+                {graph.nodes.length}
+              </span>
+              <span className={styles.countKey} aria-hidden="true">
+                nodes
+              </span>
+            </div>
+            <div className={styles.count} role="group" aria-label={`${validation?.stats.cited_record_ids ?? 0} records cited`}>
+              <span className={styles.countValue} aria-hidden="true">
+                {validation?.stats.cited_record_ids ?? 0}
+              </span>
+              <span className={styles.countKey} aria-hidden="true">
+                cited
+              </span>
+            </div>
+            <div className={styles.count} role="group" aria-label={`${validation?.stats.entrypoints ?? 0} entrypoints`}>
+              <span className={styles.countValue} aria-hidden="true">
+                {validation?.stats.entrypoints ?? 0}
+              </span>
+              <span className={styles.countKey} aria-hidden="true">
+                entries
+              </span>
+            </div>
+          </div>
+          <TileGrid columns={2}>
+            <Tile icon="star" label="Offers" href="/offers" name="Offer Studio — the only place an offer status comes from" />
+            <Tile icon="bookmark" label="Sources" href="/sources" name="Source Library" />
+          </TileGrid>
+        </div>
+      </Sheet>
 
       {/* ================= node sheet ================= */}
       <Sheet open={sheet?.kind === 'node' && sheetNode !== null} onClose={() => setSheet(null)} title={sheetNode ? substageLabel(sheetNode) : 'Line'} data-sheet="node" tall>
@@ -351,9 +390,18 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
               </Card>
             ) : null}
 
-            {sheetCard.routing_notes.length > 0 ? (
+            {sheetCard.missing_slots.length > 0 ? (
+              <div className={styles.branches} role="group" aria-label="Missing before this line can be said" data-missing-slots>
+                {sheetCard.missing_slots.map((slot) => {
+                  const note = sheetCard.routing_notes.find((n) => n.startsWith(`Missing "${slotLabel(slot)}"`)) ?? `Missing "${slotLabel(slot)}"`;
+                  const offerSlot = isOfferSlot(slot);
+                  return <GlyphPill key={slot} glyph={offerSlot ? '◔' : '?'} label={slotLabel(slot)} tone="orange" name={offerSlot ? (sheetCard.routing_notes.find((n) => n.startsWith('Offer not approved') || n.startsWith('Price not approved') || n.startsWith('Fictional')) ?? note) : note} data-missing-slot={slot} />;
+                })}
+              </div>
+            ) : null}
+            {otherNotes(sheetCard).length > 0 ? (
               <ul className={styles.notes} data-routing-notes>
-                {sheetCard.routing_notes.map((n) => (
+                {otherNotes(sheetCard).map((n) => (
                   <li key={n}>{n}</li>
                 ))}
               </ul>
@@ -497,7 +545,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
                 <p className={styles.body}>{sheetCitation.purpose}</p>
               </section>
               <TileGrid columns={2}>
-                <Tile icon="bookmark" label="Open record" href={`/sources/${encodeURIComponent(sheetCitation.id)}`} name={`Open record ${sheetCitation.id} in the Source Library`} data-open-record />
+                <Tile icon="bookmark" label="Open record" href={`/sources/${encodeURIComponent(sheetCitation.id)}`} name={`Open record ${sheetCitation.id} in the Source Library`} />
                 <Tile icon="arrow-left" label="Back" onClick={() => setSheet({ kind: 'node', id: sheet.from })} />
               </TileGrid>
             </div>

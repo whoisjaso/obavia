@@ -34,7 +34,8 @@ async function expectHiddenH1(page: Page, text: string): Promise<void> {
   await expect(h1).toHaveCount(1);
   await expect(h1).toHaveText(text);
   const box = await h1.boundingBox();
-  expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1);
+  // ≤1px box (sub-pixel layout can report 1.0000000149 for a 1px sr-only box; anything visibly larger fails).
+  expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1.01);
 }
 
 test.describe('source library list', () => {
@@ -52,22 +53,32 @@ test.describe('source library list', () => {
     const chipB = page.locator('[data-source-chip="B"]');
     await expect(chipA).toHaveAttribute('aria-pressed', 'true');
     await expect(chipB).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('[data-source-panel="A"] [data-record-id]')).toHaveCount(144);
-    await expect(page.locator('[data-source-panel="A"] [data-record-id="I01"]')).toBeVisible();
-    await expect(page.locator('[data-source-panel="B"]')).toHaveCount(0);
+    // The library is a tile grid of sections; records appear only inside a section (or a search) — never a 144-card wall.
+    await expect(page.locator('[data-sources]')).toHaveAttribute('data-view', 'sections');
+    await expect(page.locator('[data-section-rail="A"] [data-section-id]')).toHaveCount(13);
+    await expect(page.locator('[data-record-id]')).toHaveCount(0);
     await expect(page.locator('[data-results-status]')).toContainText('Source A 144, Source B 63');
     await expect(page.locator('[data-stat="matching records in source a"]')).toHaveAttribute('aria-label', 'Matching records in Source A: 144');
-    // Each card: id chip, title, classification glyph with its full meaning.
+    // Open a section: one-line cards with id chip, title, classification glyph with its full meaning — no excerpt on the list.
+    await page.locator('[data-section-rail="A"] [data-section-id="A01"]').click();
+    await expect(page.locator('[data-sources]')).toHaveAttribute('data-view', 'records');
+    await expect(page.locator('[data-source-panel="A"] [data-record-id]')).toHaveCount(4);
+    await expect(page.locator('[data-source-panel="A"] [data-record-id="I01"]')).toBeVisible();
+    await expect(page.locator('[data-source-panel="B"]')).toHaveCount(0);
     const i01 = page.locator('[data-record-id="I01"]');
     await expect(i01.locator('[data-chip="I01"]')).toBeVisible();
     await expect(i01.locator('[data-classification="adapt"]')).toHaveAttribute('aria-label', /Adapt — study material.*not live approval/);
+    await expect(i01.locator('p')).toHaveCount(0);
 
     await chipB.click();
     await expect(chipB).toHaveAttribute('aria-pressed', 'true');
     await expect(chipA).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('[data-source-panel="B"] [data-record-id]')).toHaveCount(63);
-    await expect(page.locator('[data-source-panel="B"] [data-record-id="I01"]')).toHaveCount(0);
+    await expect(page.locator('[data-sources]')).toHaveAttribute('data-view', 'sections');
+    await expect(page.locator('[data-section-rail="B"] [data-section-id]')).toHaveCount(26);
     await expect(page.locator('[data-source-panel="A"]')).toHaveCount(0);
+    await page.locator('[data-section-rail="B"] [data-section-id="B05"]').click();
+    await expect(page.locator('[data-source-panel="B"] [data-record-id]')).toHaveCount(5);
+    await expect(page.locator('[data-source-panel="B"] [data-record-id="I01"]')).toHaveCount(0);
 
     await expect(page.locator('table')).toHaveCount(0);
     await expect(page.locator('[data-demo-pill]:visible')).toHaveCount(1);
@@ -82,26 +93,36 @@ test.describe('source library list', () => {
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('[data-results-status]')).toContainText('Source A 21, Source B 12');
-    await expect(page.locator('[data-source-panel="A"] [data-record-id]')).toHaveCount(21);
+    await expect(page.locator('[data-stat="matching records in source a"]')).toHaveAttribute('aria-label', 'Matching records in Source A: 21');
+    // Section counts follow the filter; D01 sits in A10 (alpha/beta buying pocket).
+    await expect(page.locator('[data-section-rail="A"] [data-section-id="A10"]')).toHaveAttribute('aria-label', /^A10 — .*: [12] of 2 records/);
+    await page.locator('[data-search-open]').click();
+    await page.locator('[data-search]').fill('D01');
     await expect(page.locator('[data-source-panel="A"] [data-record-id="D01"] [data-classification="study_only"]')).toHaveAttribute('aria-label', /Study only — readable for study; never a live recommendation/);
     await page.locator('[data-clear-filters]').click();
-    await expect(page.locator('[data-source-panel="A"] [data-record-id]')).toHaveCount(144);
+    await expect(chip).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('[data-results-status]')).toContainText('Source A 144, Source B 63');
   });
 
   test('search narrows results and a section chip filters within its source', async ({ page }) => {
     await page.goto('/sources');
-    // Two real records share this title (L07 in A02 and V08 in A13) — the count must reflect both.
+    // Search lives behind the 🔍 icon. Two real records share this title (L07 in A02 and V08 in A13) — the count must reflect both.
+    await expect(page.locator('[data-search]')).toHaveCount(0);
+    await page.locator('[data-search-open]').click();
     await page.locator('[data-search]').fill('change desired');
     await expect(page.locator('[data-results-status]')).toContainText('2 matching records in Source A; Source A 2, Source B 0');
     await expect(page.locator('[data-source-panel="A"] [data-record-id="L07"]')).toBeVisible();
     await expect(page.locator('[data-source-panel="A"] [data-record-id="V08"]')).toBeVisible();
     await page.locator('[data-search]').fill('');
+    await expect(page.locator('[data-sources]')).toHaveAttribute('data-view', 'sections');
 
     const section = page.locator('[data-section-rail="A"] [data-section-id="A01"]');
     await section.click();
     await expect(section).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('[data-source-panel="A"] [data-record-id]')).toHaveCount(4);
     await expect(section).toHaveAttribute('aria-label', /4 of 4 records/);
+    await section.click();
+    await expect(page.locator('[data-sources]')).toHaveAttribute('data-view', 'sections');
   });
 
   test('named-only sections are ∅ chips with the "no records supplied" truth in both rails', async ({ page }) => {
@@ -151,11 +172,16 @@ test.describe('source record detail', () => {
     await expect(glyph).toHaveAttribute('aria-label', /Source-only: readable for study; not a live recommendation/);
     await expect(glyph).toHaveAttribute('data-classification', 'study_only');
     await expect(page.locator('[data-offsets]')).toHaveText('[80241, 80817)');
-    await expect(page.locator('[data-offsets-chip]')).toHaveAttribute('aria-label', /code-point offsets/);
-    await expect(page.locator('[data-excerpt-label]')).toHaveAttribute('aria-label', 'Unchanged source excerpt · verification pending (raw sources not supplied)');
     await expect(page.locator('[data-template-label]')).toHaveAttribute('aria-label', /normalized template — not verbatim/);
+    // Offsets, hash status and section ids are data: they live behind ⓘ, never as stage chips.
+    await expect(page.locator('[data-offsets-chip]:visible')).toHaveCount(0);
     await page.locator('[data-open-overlay]').click();
-    await expect(page.locator('dialog[data-sheet="overlay"] [data-delivery-overlay]')).toBeVisible();
+    const info = page.locator('dialog[data-sheet="overlay"]');
+    await expect(info.locator('[data-offsets-chip]')).toHaveAttribute('aria-label', /code-point offsets/);
+    await expect(info.locator('[data-offsets-chip]')).toBeVisible();
+    await expect(info.locator('[data-excerpt-label]')).toHaveAttribute('aria-label', 'Unchanged source excerpt · verification pending (raw sources not supplied)');
+    await expect(info.locator('[data-record-provenance]')).toContainText('A10');
+    await expect(info.locator('[data-delivery-overlay]')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.locator('table')).toHaveCount(0);
     await page.waitForLoadState('networkidle');

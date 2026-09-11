@@ -8,11 +8,9 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -54,23 +52,52 @@
   box-shadow: 0 0 0 2px var(--blue);
 }
 
-.cue {
-  background: rgba(255, 159, 10, 0.16);
-  color: var(--orange);
-  border-radius: 6px;
-  padding: 0 4px;
-  font-weight: 600;
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+  flex-wrap: wrap;
+}
+.cardLineBox {
+  position: relative;
+  max-height: calc(3 * var(--fs-title) * 1.25);
+  overflow: hidden;
+}
+.cardLine {
+  display: block;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.cardFade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1.6em;
+  background: linear-gradient(180deg, transparent, var(--bg-1));
+  pointer-events: none;
+}
+.lineWrap [data-card]:hover .cardFade {
+  background: linear-gradient(180deg, transparent, var(--bg-2));
 }
 
-/* ---- publish ---- */
-.publishArea {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-  padding-top: var(--s-4);
+/* ---- publish: docked hero above the tab bar ---- */
+.publishDock {
+  position: sticky;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom));
+  z-index: 20;
+  padding-top: var(--s-3);
+  padding-bottom: var(--s-2);
+  background: linear-gradient(180deg, transparent, var(--bg) 40%);
 }
 .publishTile {
   width: 100%;
+  box-shadow: 0 0 0 1px rgba(48, 209, 88, 0.35), 0 0 40px rgba(48, 209, 88, 0.12);
 }
 .publications {
   display: flex;

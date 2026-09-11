@@ -23,7 +23,7 @@ import {
 import { stageLabel } from '@apohenia/domain/scripts';
 import { Card, Chip, FictionalPill, GlyphPill, IconButton, LineCard, Sheet, Tile, TileGrid, TopBar, WordCard } from '@/components/ui';
 import { AssistCard, ChoiceTile, PracticeHero, ProspectCard, ResultCard, type ChoiceState } from './parts';
-import { DEFAULT_MOMENT, drillMeta, lines, resultAnnouncement, shortChoices } from './practice-lib';
+import { DEFAULT_MOMENT, drillMeta, itemWithFacts, lines, resultAnnouncement, shortChoices } from './practice-lib';
 import styles from './practice.module.css';
 
 /** FICTIONAL vocabulary items for the meaning-fidelity drill (brief §7 examples, synthetic). */
@@ -40,6 +40,9 @@ export interface DrillScreenProps {
   kind: NodeDrillKind;
   nodes: ScriptNode[];
   mode: AssistanceMode;
+  /** Fictional practice prospect facts that fill slots (never a real person). */
+  facts: Record<string, string>;
+  practiceLabel: string;
   onResult: (result: DrillResult, nodeId?: string) => void;
   onClose: () => void;
   onLive: (text: string) => void;
@@ -55,7 +58,7 @@ function stagesInOrder(nodes: readonly ScriptNode[]): string[] {
  * One drill, one item per screen. Next advances to the next node / stage / seed; the stage chip
  * opens a jump sheet; ⓘ opens the prompt, purpose and what-to-listen-for; ✕ returns to the grid.
  */
-export function DrillScreen({ kind, nodes, mode, onResult, onClose, onLive }: DrillScreenProps) {
+export function DrillScreen({ kind, nodes, mode, facts, practiceLabel, onResult, onClose, onLive }: DrillScreenProps) {
   const meta = drillMeta(kind);
   const stages = useMemo(() => stagesInOrder(nodes), [nodes]);
   const [nodeIndex, setNodeIndex] = useState(0);
@@ -73,7 +76,8 @@ export function DrillScreen({ kind, nodes, mode, onResult, onClose, onLive }: Dr
 
   const item: DrillItem | null = useMemo(() => {
     if (!node) return null;
-    switch (kind) {
+    const raw = ((): DrillItem | null => {
+      switch (kind) {
       case 'exact_recall':
         return exactRecall(node);
       case 'recall_with_reveal':
@@ -94,8 +98,10 @@ export function DrillScreen({ kind, nodes, mode, onResult, onClose, onLive }: Dr
       }
       case 'practice_this_moment':
         return practiceThisMoment(moment, node);
-    }
-  }, [kind, node, nodes, stageNodes, seed, vocabIndex, moment]);
+      }
+    })();
+    return raw ? itemWithFacts(raw, facts) : null;
+  }, [kind, node, nodes, stageNodes, seed, vocabIndex, moment, facts]);
 
   function next() {
     setDone((d) => d + 1);
@@ -131,7 +137,7 @@ export function DrillScreen({ kind, nodes, mode, onResult, onClose, onLive }: Dr
   return (
     <div className={styles.screen} data-drill-screen={kind} data-done={done}>
       <TopBar
-        left={fictional ? <GlyphPill glyph="✦" name="Fictional training content — synthetic prospect lines, not a real record" tone="purple" data-fictional-pill /> : null}
+        left={<GlyphPill glyph="✦" name={fictional ? `Fictional training content — synthetic prospect lines, not a real record. Slots filled from the fictional practice prospect ${practiceLabel}.` : `Fictional practice prospect: ${practiceLabel} fills the name and dealership slots — not a real record`} tone="purple" data-fictional-pill />}
         title={meta.label}
         right={
           <>
@@ -154,6 +160,7 @@ export function DrillScreen({ kind, nodes, mode, onResult, onClose, onLive }: Dr
           item={item}
           node={usesNode ? node : undefined}
           mode={mode}
+          facts={facts}
           moment={kind === 'practice_this_moment' ? moment : undefined}
           stageChip={kind === 'order_rehearsal' ? <Chip static label={stageLabel(currentStage)} tone="teal" glyph="◎" name={`Stage ${stageLabel(currentStage)}`} data-stage-chip /> : null}
           lookupNode={kind === 'random_node_lookup' ? nodes.find((n) => n.id === item.node_id) : undefined}
@@ -224,6 +231,7 @@ interface RunProps {
   item: DrillItem;
   node?: ScriptNode;
   mode: AssistanceMode;
+  facts: Record<string, string>;
   moment?: MomentContext;
   stageChip: ReactNode;
   /** The target node of a lookup item (its stage cue is the question). */
@@ -237,7 +245,7 @@ interface RunProps {
 }
 
 /** One item. Keyed by item id so every answer state resets with the item. */
-function DrillRun({ item, node, mode, moment, stageChip, lookupNode, onJump, cue, onResult, onNext, onEditMoment, onInfo }: RunProps) {
+function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJump, cue, onResult, onNext, onEditMoment, onInfo }: RunProps) {
   const [text, setText] = useState('');
   const [choice, setChoice] = useState<string | null>(null);
   const [order, setOrder] = useState<string[]>(() => item.choices.map((c) => c.id));
@@ -349,12 +357,12 @@ function DrillRun({ item, node, mode, moment, stageChip, lookupNode, onJump, cue
       </div>
 
       {/* --- context: the line (mode-masked) or what the drill shows --- */}
-      {node && !isText ? <AssistCard node={node} mode={mode} revealed={revealed} onReveal={() => setRevealed(true)} hideMirrors={item.kind === 'mirror_duel' || item.kind === 'practice_this_moment'} onInfo={onInfo} /> : null}
+      {node && !isText ? <AssistCard node={node} mode={mode} facts={facts} revealed={revealed} onReveal={() => setRevealed(true)} hideMirrors={item.kind === 'mirror_duel' || item.kind === 'practice_this_moment'} onInfo={onInfo} /> : null}
       {node && isText ? (
         showLine ? (
           <LineCard stage={stageLabel(node.stage)} line={item.target_text ?? ''} nodeId={node.id} locked minLines={2} onInfo={onInfo} />
         ) : (
-          <AssistCard node={node} mode={mode} revealed={false} onReveal={() => setRevealed(true)} hideLine onInfo={onInfo} />
+          <AssistCard node={node} mode={mode} facts={facts} revealed={false} onReveal={() => setRevealed(true)} hideLine onInfo={onInfo} />
         )
       ) : null}
 
@@ -407,8 +415,34 @@ function DrillRun({ item, node, mode, moment, stageChip, lookupNode, onJump, cue
         </div>
       ) : null}
 
+      {/* --- result --- */}
+      {result ? (
+        <ResultCard result={result} accepted={accepted}>
+          {comparison ? (
+            <div className={styles.compare} data-moment-compare>
+              <Card tone="gold" dense data-compare="original">
+                <span className={styles.cardKey}>
+                  <span aria-hidden="true">● </span>Original
+                </span>
+                <ul className={styles.compareList}>{comparison.original.length > 0 ? comparison.original.map((l, i) => <li key={i}>{l}</li>) : <li className={styles.muted}>∅</li>}</ul>
+              </Card>
+              <Card tone="purple" dense data-compare="simulated" aria-label="Simulated: taken from the node's sufficient-answer examples, never from a real prospect">
+                <span className={styles.cardKey}>
+                  <span aria-hidden="true">✦ </span>Simulated
+                </span>
+                <ul className={styles.compareList}>
+                  {comparison.simulated.map((l, i) => (
+                    <li key={i}>{l}</li>
+                  ))}
+                </ul>
+              </Card>
+            </div>
+          ) : null}
+        </ResultCard>
+      ) : null}
+
       {/* --- input --- */}
-      {isText ? (
+      {isText && !checked ? (
         <div className={styles.typeBox}>
           {item.kind === 'recall_with_reveal' && !revealed && !checked ? <Chip glyph="◑" label="Reveal" name="Reveal the line before typing (counts as revealed)" tone="teal" onClick={() => setRevealed(true)} data-reveal /> : null}
           <textarea className={styles.textarea} aria-label="Type the line from memory" placeholder="…" value={text} onChange={(e) => setText(e.target.value)} disabled={checked} rows={4} autoFocus data-recall-input />
@@ -486,32 +520,6 @@ function DrillRun({ item, node, mode, moment, stageChip, lookupNode, onJump, cue
           </span>
           <span className={styles.emptyLabel}>No data yet</span>
         </div>
-      ) : null}
-
-      {/* --- result --- */}
-      {result ? (
-        <ResultCard result={result} accepted={accepted}>
-          {comparison ? (
-            <div className={styles.compare} data-moment-compare>
-              <Card tone="gold" dense data-compare="original">
-                <span className={styles.cardKey}>
-                  <span aria-hidden="true">● </span>Original
-                </span>
-                <ul className={styles.compareList}>{comparison.original.length > 0 ? comparison.original.map((l, i) => <li key={i}>{l}</li>) : <li className={styles.muted}>∅</li>}</ul>
-              </Card>
-              <Card tone="purple" dense data-compare="simulated" aria-label="Simulated: taken from the node's sufficient-answer examples, never from a real prospect">
-                <span className={styles.cardKey}>
-                  <span aria-hidden="true">✦ </span>Simulated
-                </span>
-                <ul className={styles.compareList}>
-                  {comparison.simulated.map((l, i) => (
-                    <li key={i}>{l}</li>
-                  ))}
-                </ul>
-              </Card>
-            </div>
-          ) : null}
-        </ResultCard>
       ) : null}
 
       <PracticeHero

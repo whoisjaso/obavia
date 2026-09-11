@@ -118,7 +118,11 @@ export const TrainingPlanItem = z.object({
   cue: z.string(),
   exact_action: z.string(),
   frequency: z.string(),
-  duration_minutes: z.number().int().positive(),
+  /**
+   * Chosen duration, or `null` when the person has not chosen one yet — never a default number
+   * (widened additively by M-interview: an unchosen duration is displayed as "—", not "15 min").
+   */
+  duration_minutes: z.number().int().positive().nullable(),
   /** Observable evidence (a completed drill), not time on page. */
   completion_evidence: z.string(),
   review: z.string(),

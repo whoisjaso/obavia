@@ -1,31 +1,234 @@
-.table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: var(--font-size-sm);
+/* /insights — rings + numbers with n/N denominators, ∅ where nothing is counted. Tokens only. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-height: calc(100dvh - var(--tabbar-h) - var(--safe-bottom) - var(--s-5));
+  animation: fadeIn var(--dur) var(--ease);
 }
-.table th,
-.table td {
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-line);
-  vertical-align: top;
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
 }
-.table th {
-  font-weight: 600;
-  color: var(--color-muted);
+.kicker {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
-.muted {
-  color: var(--color-muted);
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-4) 0 var(--s-5);
 }
-.note {
-  margin-top: var(--space-3);
-  color: var(--color-muted);
-  font-size: var(--font-size-sm);
-  max-width: 80ch;
+.empty > a {
+  width: min(100%, 200px);
 }
-.notes {
-  margin: var(--space-3) 0 0;
-  padding-left: var(--space-5);
-  color: var(--color-muted);
-  font-size: var(--font-size-sm);
+.emptyGlyph {
+  font-size: 72px;
+  line-height: 1;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+.emptyLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ---- calls ---- */
+.callsRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--s-3);
+  align-items: stretch;
+}
+.emptyTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 132px;
+  border-radius: var(--r-tile);
+  border: 1px dashed var(--line-strong);
+}
+.callsSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  align-items: stretch;
+  min-width: 132px;
+}
+.stageGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.stageTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 116px;
+  padding: var(--s-3) var(--s-2);
+  border-radius: var(--r-tile);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+}
+.stageTile:hover {
+  background: var(--bg-3);
+}
+.stageTileLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stageRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.stageLabel {
+  flex: 1;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  min-width: 0;
+}
+.ringDash {
+  color: var(--ink-3);
+  font-weight: 700;
+}
+.ratio {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.ratioSep {
+  color: var(--ink-3);
+  padding: 0 1px;
+}
+
+/* ---- rings ---- */
+.rings {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-6);
+  flex-wrap: wrap;
+  padding: var(--s-2) 0;
+}
+.ringStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 96px;
+}
+.ringCenter {
+  font-size: var(--fs-title);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.ringLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+/* ---- sheets ---- */
+.sheetStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.sheetBig {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+}
+.sheetText {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.sheetMuted {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+.sheetRow {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: var(--s-3);
+  align-items: start;
+}
+.sheetKey {
+  font-size: var(--fs-title);
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+}
+.criteria {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.criterion {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.weight {
+  font-size: var(--fs-body);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.criterionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.criterionLabel {
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.criterionDesc {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

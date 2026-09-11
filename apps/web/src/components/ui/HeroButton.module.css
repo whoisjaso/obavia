@@ -27,6 +27,22 @@
   opacity: 1;
   transition: opacity var(--dur) var(--ease);
 }
+/* Dialing: a ring expands outward from the hero every 900ms. Ringing: two staggered halos. */
+.pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(48, 209, 88, 0.7);
+  pointer-events: none;
+  animation: pulseOut 0.9s var(--ease) infinite;
+}
+.ringHalo {
+  border-width: 2px;
+  animation: pulseOut 1.4s var(--ease) infinite;
+}
+.ringHalo2 {
+  animation-delay: 0.7s;
+}
 .hero {
   position: relative;
   width: var(--hero-size);
@@ -96,10 +112,11 @@
 /* ---- states ---- */
 [data-hero-state='arming'] .halo {
   animation: none;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 [data-hero-state='arming'] .hero {
   background: #27b34b;
+  box-shadow: 0 0 0 12px rgba(48, 209, 88, 0.1);
 }
 [data-hero-state='dialing'] .hero {
   animation: pulse 0.9s var(--ease) infinite;
@@ -108,7 +125,10 @@
   animation: breathe 0.9s var(--ease) infinite;
 }
 [data-hero-state='ringing'] .hero {
-  animation: ringing 1.1s var(--ease) infinite;
+  animation: ringing 1.4s var(--ease) infinite;
+}
+[data-hero-state='ringing'] .halo {
+  animation: breathe 1.4s var(--ease) infinite;
 }
 [data-hero-state='active'] .hero {
   background: var(--red);
@@ -159,27 +179,50 @@
     transform: scale(1.04);
   }
 }
+@keyframes pulseOut {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.65);
+    opacity: 0;
+  }
+}
 @keyframes ringing {
   0%,
   100% {
     transform: rotate(0deg);
   }
-  20% {
+  15% {
     transform: rotate(-4deg);
   }
-  40% {
+  30% {
     transform: rotate(4deg);
   }
-  60% {
+  45% {
     transform: rotate(-2deg);
   }
-  80% {
+  60% {
     transform: rotate(2deg);
   }
 }
+/* Reduced motion: opacity steps only — nothing moves or scales. */
 @media (prefers-reduced-motion: reduce) {
   .halo,
   .hero {
     animation: none !important;
+  }
+  .pulse {
+    animation: blink 0.9s steps(2, end) infinite;
+    transform: scale(1.2);
+  }
+  @keyframes blink {
+    0% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 0;
+    }
   }
 }

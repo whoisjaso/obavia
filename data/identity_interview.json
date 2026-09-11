@@ -152,9 +152,10 @@
       "id": "faith_context",
       "order": 3,
       "prompt": "How does your faith relate to this work?",
-      "help": "Self-described context only. Nothing here is interpreted or scored.",
+      "help": "Self-described context only. Nothing here is interpreted or scored. Choose up to 3.",
       "summary_label": "Faith as context",
-      "kind": "single",
+      "kind": "multi",
+      "max_select": 3,
       "options": [
         {
           "id": "faith_reason",
@@ -260,7 +261,7 @@
         {
           "id": "bel_numbers",
           "label": "It is mostly a numbers game",
-          "description": "Enough attempts and the results follow."
+          "description": "Volume of attempts is what matters most."
         },
         {
           "id": "bel_right_order",
@@ -275,7 +276,7 @@
         {
           "id": "bel_performance",
           "label": "It is a performance I put on",
-          "description": "A role that is not quite me yet."
+          "description": "A role I put on for the call."
         },
         {
           "id": "bel_repetition_skill",
@@ -305,12 +306,12 @@
         {
           "id": "self_learn_like_before",
           "label": "I can learn this the way I learned call-center work",
-          "description": "Repetition got me fluent before; it will again."
+          "description": "Repetition made call-center lines fluent for me before."
         },
         {
           "id": "self_know_freeze",
           "label": "I know the material but freeze at transitions",
-          "description": "The words are there; the bridge is not yet."
+          "description": "The words are there; the bridges between them are the hard part."
         },
         {
           "id": "self_strong_live_underprepared",
@@ -372,7 +373,7 @@
         {
           "id": "std_respect_no_fit",
           "label": "I respect a no-fit case",
-          "description": "Ending politely is a good outcome when there is no gap."
+          "description": "Ending politely when there is no gap."
         },
         {
           "id": "std_call_before_build",
@@ -536,7 +537,7 @@
         {
           "id": "fr_building",
           "label": "Building software instead of having conversations",
-          "description": "Preparation that replaces the call."
+          "description": "Time goes to the build rather than the conversation."
         },
         {
           "id": "fr_vocab",
@@ -583,6 +584,10 @@
         {
           "id": "big_building",
           "label": "Building instead of calling"
+        },
+        {
+          "id": "big_vocab",
+          "label": "Vocabulary reminders out of reach"
         }
       ],
       "allow_skip": true,
@@ -673,7 +678,7 @@
         {
           "id": "want_permission",
           "label": "Asking permission before presenting",
-          "description": "Earning the pitch instead of forcing it."
+          "description": "A question before the presentation."
         },
         {
           "id": "want_calling_block",
@@ -868,12 +873,12 @@
         {
           "id": "learn_write_out",
           "label": "Writing it out by hand",
-          "description": "Slow, but it sticks."
+          "description": "Pen and paper, line by line."
         },
         {
           "id": "learn_live_pressure",
           "label": "Learning live under pressure",
-          "description": "Real stakes teach fastest."
+          "description": "Real stakes, real time."
         }
       ],
       "allow_skip": true,

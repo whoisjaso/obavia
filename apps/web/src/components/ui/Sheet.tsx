@@ -16,6 +16,10 @@ export interface SheetProps {
   children: ReactNode;
   /** Tall sheet (up to 92dvh) for long lists like a transcript. */
   tall?: boolean;
+  /** Icon buttons in the header (left of the close button) — e.g. pin / dismiss. */
+  actions?: ReactNode;
+  /** Fixed at the bottom of the sheet, above the scrolling body (e.g. three equal action tiles). */
+  footer?: ReactNode;
   /** Test/automation hook. */
   'data-sheet'?: string;
 }
@@ -23,9 +27,10 @@ export interface SheetProps {
 /**
  * Bottom sheet on native `<dialog>`: `showModal()` makes the rest of the page inert and traps
  * focus; a grabber, `--r-sheet` top corners, slide-up over `--dur`, blurred backdrop, Esc closes,
- * focus returns to the opener. Wide screens (≥640px) center it at 560px.
+ * focus returns to the opener. Max 85dvh: the body scrolls under a bottom fade; the footer stays
+ * put. Wide screens (≥640px) center it at 560px.
  */
-export function Sheet({ open, onClose, title, hideTitle, required, children, tall, 'data-sheet': dataSheet }: SheetProps) {
+export function Sheet({ open, onClose, title, hideTitle, required, children, tall, actions, footer, 'data-sheet': dataSheet }: SheetProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const titleId = useId();
@@ -37,7 +42,7 @@ export function Sheet({ open, onClose, title, hideTitle, required, children, tal
       opener.current = (document.activeElement as HTMLElement | null) ?? null;
       el.showModal();
       // Move focus to the first focusable control inside the sheet (not the close button).
-      const first = el.querySelector<HTMLElement>('[data-sheet-body] button, [data-sheet-body] a, [data-sheet-body] input, [data-sheet-body] textarea, [data-sheet-body] select, [data-sheet-body] [tabindex]');
+      const first = el.querySelector<HTMLElement>('[data-sheet-body] button, [data-sheet-body] a, [data-sheet-body] input, [data-sheet-body] textarea, [data-sheet-body] select, [data-sheet-body] [tabindex], [data-sheet-footer] button');
       (first ?? el).focus();
     } else if (!open && el.open) {
       el.close();
@@ -67,11 +72,22 @@ export function Sheet({ open, onClose, title, hideTitle, required, children, tal
           <h2 id={titleId} className={hideTitle ? 'sr-only' : styles.title}>
             {title}
           </h2>
-          {!required ? <IconButton icon="x" label={`Close ${title}`} onClick={onClose} className={styles.close} /> : null}
+          <div className={styles.headActions}>
+            {actions}
+            {!required ? <IconButton icon="x" label={`Close ${title}`} onClick={onClose} className={styles.close} /> : null}
+          </div>
         </div>
-        <div className={styles.body} data-sheet-body>
-          {children}
+        <div className={styles.scroll}>
+          <div className={styles.body} data-sheet-body>
+            {children}
+          </div>
+          <span className={styles.fade} aria-hidden="true" />
         </div>
+        {footer ? (
+          <div className={styles.footer} data-sheet-footer>
+            {footer}
+          </div>
+        ) : null}
       </div>
     </dialog>
   );

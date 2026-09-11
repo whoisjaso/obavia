@@ -1,355 +1,455 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { z } from 'zod';
-import { IdentityProfile } from '@apohenia/domain/schemas';
-import { buildTrainingPlan, planSettings } from '@apohenia/domain/interview';
-import { Badge, Button, Card, EmptyState, Field, Stack } from '@/components/ui';
+import { IdentityProfile, InterviewSession, PracticeAttempt, type InterviewVersion } from '@apohenia/domain/schemas';
+import { DURATION_CHOICES, isComplete, isProfileCurrent, planSettings, progress, selectedOption } from '@apohenia/domain/interview';
+import { Card, Chip, Icon, IconButton, Ring, Sheet, Tile, TileGrid, Toast, TopBar, useToast, type IconName } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
+import {
+  DayRecord,
+  EMPTY_DAY,
+  EMPTY_PREFS,
+  Evidence,
+  NEXT_DRILL_META,
+  NO_EVIDENCE,
+  PRESET_EVIDENCE,
+  RINGS,
+  TodayPrefs,
+  attemptsOn,
+  localDateOf,
+  minutesLabel,
+  nextId,
+  shortDay,
+  useLocalDay,
+  type EvidenceEntry,
+  type RingMeta,
+} from './today-lib';
 import styles from './today.module.css';
 
-const PROFILE_KEY = 'interview.profile';
+const SessionOrNull = InterviewSession.nullable();
 const ProfileOrNull = IdentityProfile.nullable();
+const Attempts = z.array(PracticeAttempt);
+const EMPTY_ATTEMPTS: PracticeAttempt[] = [];
 
-/** One editable routine item. `availability` explains why an item cannot be completed in this increment. */
-const RoutineItem = z.object({
-  id: z.string(),
-  label: z.string(),
-  detail: z.string(),
-  evidence: z.string(),
-  enabled: z.boolean(),
-  availability: z.enum(['available', 'no_telephony', 'none_yet']).default('available'),
-});
-type RoutineItem = z.infer<typeof RoutineItem>;
-const Routine = z.array(RoutineItem);
-
-const DayRecord = z.object({
-  done: z.record(z.string(), z.boolean()).default({}),
-  minimum_day: z.boolean().default(false),
-});
-type DayRecord = z.infer<typeof DayRecord>;
-const EMPTY_DAY: DayRecord = { done: {}, minimum_day: false };
-
-const EvidenceEntry = z.object({
-  id: z.string(),
-  date: z.string(),
-  text: z.string(),
-  source: z.enum(['preset', 'free']),
-});
-type EvidenceEntry = z.infer<typeof EvidenceEntry>;
-const Evidence = z.array(EvidenceEntry);
-const NO_EVIDENCE: EvidenceEntry[] = [];
-const NO_ROUTINE: RoutineItem[] | null = null;
-const RoutineOrNull = Routine.nullable();
-
-const PRESET_EVIDENCE = [
-  'I clarified a vague answer without making assumptions',
-  'I respected a no-fit case',
-  'I asked one clear question at a time',
-  'I ran the drill I said I would run',
-  'I moved from an answer to the next question without a pause',
-  'I said only what is approved when asked about price or capability',
-];
-
-const DEFAULT_ROUTINE: RoutineItem[] = [
-  {
-    id: 'rehearse',
-    label: 'Rehearse exact wording and one transition',
-    detail: 'The approved opening, word for word, plus one answer-to-question transition.',
-    evidence: 'Opening said in full and one transition completed (not time on page).',
-    enabled: true,
-    availability: 'available',
-  },
-  {
-    id: 'mock',
-    label: 'One focused mock scenario',
-    detail: 'A single typed practice scenario in Practice; ending a no-fit case cleanly counts.',
-    evidence: 'One scenario completed to an agreed next step or a clean no-fit ending.',
-    enabled: true,
-    availability: 'available',
-  },
-  {
-    id: 'calling_block',
-    label: 'Approved calling block',
-    detail: 'Not available in Increment 1 (no telephony). Shown so the routine is complete; it cannot be marked done.',
-    evidence: 'Not available in Increment 1 (no telephony).',
-    enabled: true,
-    availability: 'no_telephony',
-  },
-  {
-    id: 'review_two',
-    label: 'Review two conversations',
-    detail: 'None yet. Reviews appear when consented conversations exist in a later increment.',
-    evidence: 'None yet.',
-    enabled: true,
-    availability: 'none_yet',
-  },
-  {
-    id: 'change_one',
-    label: 'Change one behavior',
-    detail: 'Name the one behavior before the session; note whether it happened after.',
-    evidence: 'One behavior named before and observed after.',
-    enabled: true,
-    availability: 'available',
-  },
-];
-
-function nextId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+export interface TodayClientProps {
+  version: InterviewVersion;
+  /** Server date (UTC) — only the pre-hydration fallback for the local day key (A-5). */
+  serverDay: string;
 }
 
-export function TodayClient({ today }: { today: string }) {
-  const [profile, , profileHydrated] = useStoredState<IdentityProfile | null>(PROFILE_KEY, ProfileOrNull, null);
-  const [routineStored, setRoutine, routineHydrated] = useStoredState<RoutineItem[] | null>('today.routine', RoutineOrNull, NO_ROUTINE);
-  const [day, setDay, dayHydrated] = useStoredState<DayRecord>(`today.${today}`, DayRecord, EMPTY_DAY);
+/**
+ * Me (DESIGN_SYSTEM §3.6): three rings for today (Rehearse · Mock · Review), a `min` chip for a
+ * minimum-action day, then cards — Next drill (→ Train), Profile, Evidence — on a dark stage.
+ * Reads the endorsed profile only while it still matches the interview session exactly (A-1);
+ * otherwise it shows the empty state with one action tile.
+ */
+export function TodayClient({ version, serverDay }: TodayClientProps) {
+  const day = useLocalDay(serverDay);
+  const [session, , sessionHydrated] = useStoredState<InterviewSession | null>('interview.session', SessionOrNull, null);
+  const [profile, , profileHydrated] = useStoredState<IdentityProfile | null>('interview.profile', ProfileOrNull, null);
+  const [dayRec, setDayRec, dayHydrated] = useStoredState<DayRecord>(`today.${day}`, DayRecord, EMPTY_DAY);
+  const [prefs, setPrefs, prefsHydrated] = useStoredState<TodayPrefs>('today.prefs', TodayPrefs, EMPTY_PREFS);
   const [evidence, setEvidence, evidenceHydrated] = useStoredState<EvidenceEntry[]>('today.evidence', Evidence, NO_EVIDENCE);
-  const [editing, setEditing] = useState(false);
+  const [attempts, , attemptsHydrated] = useStoredState<PracticeAttempt[]>('practice.attempts', Attempts, EMPTY_ATTEMPTS);
+  const [sheet, setSheet] = useState<'none' | 'info' | 'journal'>('none');
   const [freeText, setFreeText] = useState('');
+  const [live, setLive] = useState('');
+  const [toast, showToast] = useToast();
 
-  const hydrated = profileHydrated && routineHydrated && dayHydrated && evidenceHydrated;
+  const hydrated = sessionHydrated && profileHydrated && dayHydrated && prefsHydrated && evidenceHydrated && attemptsHydrated;
+  const current = hydrated && profile !== null && isProfileCurrent(profile, version, session);
+  const logged = useMemo(() => attemptsOn(attempts, day), [attempts, day]);
+  const todayEvidence = useMemo(() => evidence.filter((e) => e.date === day), [evidence, day]);
+  const earlierEvidence = useMemo(() => evidence.filter((e) => e.date !== day), [evidence, day]);
+
+  const topBar = (
+    <TopBar
+      center={
+        <span className={styles.dayChip} data-local-day={day}>
+          {shortDay(day)}
+        </span>
+      }
+      right={
+        <>
+          <IconButton icon="wave" label="Insights" href="/insights" />
+          <IconButton icon="gear" label="Settings" href="/settings" />
+        </>
+      }
+    />
+  );
 
   if (!hydrated) {
     return (
-      <p role="status" className={styles.muted}>
-        Reading today’s plan…
-      </p>
+      <div className={styles.root} data-today data-hydrated="false">
+        {topBar}
+        <span className="sr-only" role="status">
+          Reading today
+        </span>
+      </div>
     );
   }
 
-  if (!profile || !profile.endorsed) {
-    return (
-      <EmptyState
-        title="Today’s plan appears once your profile is endorsed"
-        actions={
-          <span className={styles.toggleRow}>
-            <Link href="/onboarding/identity">Go to the identity interview</Link>
-            <span className={styles.muted}>·</span>
-            <Link href="/profile">Review and endorse your profile</Link>
-          </span>
-        }
-      >
-        <p>
-          The daily routine is built from the standards you endorse, with the duration, cue and recovery rule you chose. Until then
-          there is nothing to schedule and nothing is counted against you.
-        </p>
-      </EmptyState>
-    );
+  // ---- shared blocks: rings and evidence are completion evidence you mark — independent of the profile ----
+  function doneFor(id: RingMeta['id'] | 'minimum'): { done: boolean; auto: boolean; count: number } {
+    const count = id === 'rehearse' ? logged.rehearse : id === 'mock' ? logged.mock : 0;
+    const auto = count > 0;
+    return { done: auto || Boolean(dayRec.done[id]), auto, count };
   }
 
-  const plan = buildTrainingPlan(profile);
-  const settings = planSettings(profile);
-  const routine = routineStored ?? DEFAULT_ROUTINE;
-  const minimum = profile.sections.find((s) => s.key === 'difficult_day_minimum')?.summary ?? 'Difficult-day minimum: not chosen yet.';
-  const nextDrill = profile.sections.find((s) => s.key === 'next_drill')?.summary ?? 'Next drill: not chosen yet.';
-  const firstItem = plan[0];
-
-  const activeItems = routine.filter((r) => r.enabled);
-  const completable = activeItems.filter((r) => r.availability === 'available');
-  const doneCount = completable.filter((r) => day.done[r.id]).length;
-  const todayEvidence = evidence.filter((e) => e.date === today);
-
-  function setDone(id: string, value: boolean) {
-    setDay((prev) => ({ ...prev, done: { ...prev.done, [id]: value } }));
+  function toggleRing(meta: RingMeta | { id: 'minimum'; label: string }) {
+    const { done, auto } = doneFor(meta.id);
+    if (auto) {
+      showToast('Logged in Train');
+      return;
+    }
+    setDayRec((prev) => ({ ...prev, done: { ...prev.done, [meta.id]: !done } }));
+    setLive(`${meta.label}: ${done ? 'not yet' : 'done'}.`);
   }
 
-  function updateItem(id: string, patch: Partial<RoutineItem>) {
-    setRoutine(routine.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  function toggleMinimumDay() {
+    const next = !dayRec.minimum_day;
+    setDayRec((prev) => ({ ...prev, minimum_day: next }));
+    setLive(next ? 'Minimum-action day on: only the chosen minimum counts today. Progress is kept.' : 'Minimum-action day off.');
   }
 
-  function addEvidence(text: string, source: 'preset' | 'free') {
+  function addEvidence(text: string, source: EvidenceEntry['source']) {
     const trimmed = text.trim();
     if (!trimmed) return;
-    setEvidence((prev) => [{ id: nextId(), date: today, text: trimmed, source }, ...prev].slice(0, 500));
+    setEvidence((prev) => [{ id: nextId(), date: day, text: trimmed, source }, ...prev].slice(0, 500));
+    showToast('Logged', 'green');
+    setLive(`Evidence logged: ${trimmed}`);
   }
 
   function removeEvidence(id: string) {
     setEvidence((prev) => prev.filter((e) => e.id !== id));
   }
 
-  return (
-    <div className={styles.page} data-today={today}>
-      <Card title="Next drill">
-        <dl className={styles.drill} data-next-drill>
-          <dt>Cue</dt>
-          <dd>{firstItem ? firstItem.cue : `Session cue: ${settings.cue}`}</dd>
-          <dt>Exact action</dt>
-          <dd>{firstItem ? firstItem.exact_action : nextDrill}</dd>
-          <dt>Duration</dt>
-          <dd>
-            {settings.duration_minutes} minutes · {settings.frequency}
-          </dd>
-          <dt>Completion evidence</dt>
-          <dd>{firstItem ? firstItem.completion_evidence : 'A completed drill, not time on page.'}</dd>
-          <dt>Recovery rule</dt>
-          <dd>{settings.recovery_rule}</dd>
-          <dt>Standards</dt>
-          <dd>
-            {plan.length > 0 ? plan.map((p) => p.standard).join(' · ') : 'No standards chosen yet.'}{' '}
-            <Link href="/profile">See the full plan</Link>
-          </dd>
-        </dl>
-      </Card>
+  const minimumDone = doneFor('minimum').done;
+  const minimum = current && profile ? selectedOption(profile, version, 'difficult_day_minimum') : null;
 
-      <Card title="Daily routine">
-        <Stack gap={3}>
-          <div className={styles.toggleRow}>
-            <label className={styles.toggleRow}>
-              <input
-                type="checkbox"
-                className={styles.checkbox}
-                checked={day.minimum_day}
-                onChange={(e) => setDay((prev) => ({ ...prev, minimum_day: e.target.checked }))}
-                data-minimum-day
-              />
-              <span>Minimum-action day</span>
-            </label>
-            <span className={styles.muted}>
-              {day.minimum_day
-                ? `Today only the minimum counts: ${minimum} Progress is kept; nothing is deleted.`
-                : 'Turn on when today is difficult. Progress is kept either way; there are no streaks and nothing is deducted.'}
-            </span>
-          </div>
-          <p className={styles.muted} role="status" data-routine-progress>
-            {day.minimum_day
-              ? 'Minimum-action day: mark the minimum below when done.'
-              : `${doneCount} of ${completable.length} completable items done today. ${activeItems.length - completable.length} shown as unavailable in this increment.`}
-          </p>
-          <ul className={styles.routine} data-routine>
-            {day.minimum_day ? (
-              <li className={[styles.item, day.done['minimum'] ? styles.itemDone : ''].join(' ').trim()}>
-                <input
-                  id="routine-minimum"
-                  type="checkbox"
-                  className={styles.checkbox}
-                  checked={Boolean(day.done['minimum'])}
-                  onChange={(e) => setDone('minimum', e.target.checked)}
-                />
-                <div>
-                  <label htmlFor="routine-minimum" className={styles.itemTitle}>
-                    The minimum
-                  </label>
-                  <p className={styles.itemDetail}>{minimum}</p>
-                </div>
-              </li>
-            ) : null}
-            {activeItems.map((item) => {
-              const available = item.availability === 'available';
-              const done = Boolean(day.done[item.id]) && available;
-              return (
-                <li
-                  key={item.id}
-                  className={[styles.item, done ? styles.itemDone : '', !available ? styles.itemUnavailable : ''].join(' ').trim()}
-                  data-routine-item={item.id}
-                >
-                  <input
-                    id={`routine-${item.id}`}
-                    type="checkbox"
-                    className={styles.checkbox}
-                    checked={done}
-                    disabled={!available || day.minimum_day}
-                    onChange={(e) => setDone(item.id, e.target.checked)}
-                  />
-                  <div>
-                    <label htmlFor={`routine-${item.id}`} className={styles.itemTitle}>
-                      {item.label}
-                    </label>{' '}
-                    {item.availability === 'no_telephony' ? <Badge variant="neutral">Not available in Increment 1 (no telephony)</Badge> : null}
-                    {item.availability === 'none_yet' ? <Badge variant="neutral">None yet</Badge> : null}
-                    {done ? <Badge variant="success">Done</Badge> : null}
-                    <p className={styles.itemDetail}>{item.detail}</p>
-                    <span className={styles.evidenceLabel}>Completion evidence: {item.evidence}</span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          <div className={styles.toggleRow}>
-            <Button variant="quiet" onClick={() => setEditing((v) => !v)} aria-expanded={editing} data-edit-routine>
-              {editing ? 'Done editing' : 'Edit routine'}
-            </Button>
-            {routineStored ? (
-              <Button variant="quiet" onClick={() => setRoutine(DEFAULT_ROUTINE)}>
-                Restore suggested routine
-              </Button>
-            ) : null}
-          </div>
-          {editing ? (
-            <Stack gap={2} data-routine-editor>
-              {routine.map((item) => (
-                <div key={item.id} className={styles.editGrid}>
-                  <label>
-                    <span className={styles.muted}>Label</span>
-                    <input className={styles.input} value={item.label} onChange={(e) => updateItem(item.id, { label: e.target.value })} />
-                  </label>
-                  <label>
-                    <span className={styles.muted}>Completion evidence</span>
-                    <input className={styles.input} value={item.evidence} onChange={(e) => updateItem(item.id, { evidence: e.target.value })} />
-                  </label>
-                  <label className={styles.toggleRow}>
-                    <input type="checkbox" checked={item.enabled} onChange={(e) => updateItem(item.id, { enabled: e.target.checked })} />
-                    <span>In routine</span>
-                  </label>
-                </div>
-              ))}
-            </Stack>
-          ) : null}
-        </Stack>
-      </Card>
+  const ringsBlock = (
+    <section className={styles.ringsBlock} aria-label="Today" data-rings>
+      <div className={styles.ringsHead}>
+        <Chip
+          label="min"
+          glyph="◐"
+          toggle
+          selected={dayRec.minimum_day}
+          tone="gold"
+          name={dayRec.minimum_day ? 'Minimum-action day is on: only the chosen minimum counts today. Progress is kept; nothing is deducted. Tap to turn off.' : 'Minimum-action day: turn on when today is difficult. Only the chosen minimum counts; progress is kept; nothing is deducted.'}
+          onClick={toggleMinimumDay}
+          data-minimum-chip
+        />
+        <IconButton icon="info" label="About today's rings: completion evidence, not scores" onClick={() => setSheet('info')} data-today-info />
+      </div>
 
-      <Card title="Identity evidence journal">
-        <Stack gap={3}>
-          <p className={styles.muted}>
-            Observable things you did, in your words. Examples are the kind of evidence that counts; none of them are scores.
-          </p>
-          <div className={styles.presets} data-evidence-presets>
-            {PRESET_EVIDENCE.map((text) => (
-              <Button key={text} onClick={() => addEvidence(text, 'preset')}>
-                {text}
-              </Button>
-            ))}
-          </div>
-          <Field id="evidence-free" label="Add your own evidence line" help="Free text is allowed here; it stays in this browser.">
-            {(control) => (
-              <textarea
-                {...control}
-                className={styles.textarea}
-                value={freeText}
-                onChange={(e) => setFreeText(e.target.value)}
-                placeholder="e.g. I ended the mock call at the first clear no."
+      {dayRec.minimum_day ? (
+        <div className={styles.minimumRow} data-minimum-row>
+          <RingToggle
+            label="Minimum"
+            icon="check"
+            color="var(--orange)"
+            done={minimumDone}
+            count={0}
+            name={`Minimum: ${minimumDone ? 'done' : 'not yet'}. ${minimum ? minimum.label : 'Difficult-day minimum not chosen in the interview.'} Tap to ${minimumDone ? 'unmark' : 'mark'}.`}
+            onToggle={() => toggleRing({ id: 'minimum', label: 'Minimum' })}
+            id="minimum"
+          />
+          <span className={styles.minimumText} data-minimum-text>
+            {minimum ? minimum.label : '—'}
+          </span>
+        </div>
+      ) : (
+        <div className={styles.rings}>
+          {RINGS.map((meta) => {
+            const { done, auto, count } = doneFor(meta.id);
+            return (
+              <RingToggle
+                key={meta.id}
+                id={meta.id}
+                label={meta.label}
+                icon={meta.icon}
+                color={meta.color}
+                done={done}
+                count={count}
+                name={`${meta.label}: ${done ? 'done' : 'not yet'}${count > 0 ? `, ${count} logged in Train today` : ''}. ${meta.evidence}${auto ? '' : ` Tap to ${done ? 'unmark' : 'mark'}.`}`}
+                onToggle={() => toggleRing(meta)}
               />
-            )}
-          </Field>
-          <div>
-            <Button
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+
+  const evidenceCard = (
+    <Card data-evidence>
+      <div className={styles.evidenceHead}>
+        <span className={styles.kicker}>Evidence</span>
+        <button type="button" className={styles.count} onClick={() => setSheet('journal')} aria-label={`Evidence journal: ${todayEvidence.length} line${todayEvidence.length === 1 ? '' : 's'} today, ${evidence.length} in total. Open.`} data-evidence-open>
+          <span className={styles.countValue} aria-hidden="true" data-evidence-today={todayEvidence.length}>
+            {todayEvidence.length}
+          </span>
+          <Icon name="chevron" size={18} className={styles.countChevron} />
+        </button>
+      </div>
+      <div className={styles.chips} data-evidence-presets>
+        {PRESET_EVIDENCE.map((p) => {
+          const loggedToday = todayEvidence.some((e) => e.text === p.text);
+          return <Chip key={p.id} label={p.short} glyph={loggedToday ? '✓' : '+'} tone={loggedToday ? 'green' : 'neutral'} name={`Log evidence: ${p.text}${loggedToday ? ' (already logged today)' : ''}`} onClick={() => addEvidence(p.text, 'preset')} data-evidence-preset={p.id} />;
+        })}
+        <Chip label="Own" glyph="✎" name="Write your own evidence line" onClick={() => setSheet('journal')} data-evidence-own />
+      </div>
+    </Card>
+  );
+
+  const sheets = (
+    <>
+      {/* ---- ⓘ rings ---- */}
+      <Sheet open={sheet === 'info'} onClose={() => setSheet('none')} title="Today" data-sheet="today-info">
+        <div className={styles.sheetStack}>
+          {RINGS.map((meta) => (
+            <div key={meta.id} className={styles.sheetRow}>
+              <span className={styles.sheetKey} style={{ color: meta.color }}>
+                {meta.label}
+              </span>
+              <span className={styles.sheetText}>{meta.evidence}</span>
+            </div>
+          ))}
+          <div className={styles.sheetRow}>
+            <span className={[styles.sheetKey, styles.sheetKeyOrange].join(' ')}>min</span>
+            <span className={styles.sheetText}>A minimum-action day keeps your progress: only the chosen minimum counts. No streaks, nothing is deducted.</span>
+          </div>
+          <p className={styles.sheetMuted}>Rings are completion evidence, never a score. Stored in this browser only.</p>
+        </div>
+      </Sheet>
+
+      {/* ---- journal ---- */}
+      <Sheet open={sheet === 'journal'} onClose={() => setSheet('none')} title="Evidence" tall data-sheet="evidence">
+        <div className={styles.sheetStack}>
+          <label className={styles.ownLine}>
+            <span className="sr-only">Your own evidence line — something observable you did, in your words</span>
+            <textarea className={styles.textarea} rows={2} value={freeText} onChange={(e) => setFreeText(e.target.value)} placeholder="I ended the mock call at the first clear no." data-evidence-free />
+          </label>
+          <TileGrid columns={2}>
+            <Tile
+              icon="plus"
+              label="Add"
+              tone="green"
+              disabled={freeText.trim().length === 0}
+              name={freeText.trim().length === 0 ? 'Add — write a line first' : `Add evidence line: ${freeText.trim()}`}
               onClick={() => {
                 addEvidence(freeText, 'free');
                 setFreeText('');
               }}
-              disabled={freeText.trim().length === 0}
-            >
-              Add evidence line
-            </Button>
+              data-evidence-add
+            />
+            <Tile icon="check" label="Done" onClick={() => setSheet('none')} />
+          </TileGrid>
+          <JournalList heading="Today" count={todayEvidence.length} entries={todayEvidence} onRemove={removeEvidence} hook="today" />
+          {earlierEvidence.length > 0 ? <JournalList heading="Earlier" count={earlierEvidence.length} entries={earlierEvidence.slice(0, 60)} onRemove={removeEvidence} hook="earlier" showDate /> : null}
+        </div>
+      </Sheet>
+    </>
+  );
+
+  if (!current || profile === null) {
+    const hasSession = session !== null && session.version_id === version.id;
+    const prog = hasSession && session ? progress(session, version) : null;
+    const complete = hasSession && session ? isComplete(session, version) : false;
+    const fraction = prog && prog.total_visible > 0 ? (prog.answered + prog.skipped) / prog.total_visible : 0;
+    const interviewName = hasSession && prog ? `Identity interview: ${prog.answered + prog.skipped} of ${prog.total_visible} done — resume or revise your answers` : 'Start the identity interview';
+    return (
+      <div className={styles.root} data-today data-hydrated="true" data-local-day={day} data-today-empty={hasSession ? 'unendorsed' : 'no-session'} data-minimum-day={dayRec.minimum_day ? 'true' : 'false'}>
+        <div className="sr-only" aria-live="polite" aria-atomic="true" data-today-live>
+          {live}
+        </div>
+        {topBar}
+        {ringsBlock}
+
+        {/* plan: the only place the ∅ lives */}
+        <Card data-plan-card>
+          <div className={styles.cardRow}>
+            <span className={[styles.iconCircle, styles.iconMuted].join(' ')} aria-hidden="true">
+              <span className={styles.planGlyph}>∅</span>
+            </span>
+            <div className={styles.cardText}>
+              <span className={styles.kicker}>Plan</span>
+              <span className={styles.big} aria-hidden="true">
+                —
+              </span>
+              <span className="sr-only">{hasSession ? 'No plan yet: Today reads an endorsed profile only. Finish and endorse the interview first.' : 'No plan yet: Today reads an endorsed profile only. Start the identity interview first.'}</span>
+            </div>
           </div>
-          <h3>Today ({todayEvidence.length})</h3>
-          {evidence.length === 0 ? (
-            <p className={styles.muted}>No evidence lines yet.</p>
-          ) : (
-            <ul className={styles.journal} data-evidence-journal>
-              {evidence.slice(0, 40).map((e) => (
-                <li key={e.id} className={styles.entry}>
-                  <span>
-                    <span className={styles.entryDate}>{e.date}</span> {e.text}
-                  </span>
-                  <Button variant="quiet" onClick={() => removeEvidence(e.id)} aria-label={`Remove evidence: ${e.text}`}>
-                    Remove
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Stack>
+        </Card>
+
+        {/* next drill: the Train tile grid until a profile chooses one */}
+        <Card href="/practice" name="Next drill: not chosen yet — opens Train" data-next-drill-empty>
+          <div className={styles.cardRow}>
+            <span className={[styles.iconCircle, styles.iconGreen].join(' ')} aria-hidden="true">
+              <Icon name="target" size={28} />
+            </span>
+            <div className={styles.cardText}>
+              <span className={styles.kicker}>Next drill</span>
+              <span className={styles.big} aria-hidden="true">
+                —
+              </span>
+            </div>
+          </div>
+        </Card>
+
+        <TileGrid columns={2}>
+          <Tile icon="list" label={hasSession ? 'Interview' : 'Start interview'} name={interviewName} href="/onboarding/identity" size="lg" data-interview-tile>
+            <Ring value={fraction} size={28} stroke={3} color="var(--blue)" track="rgba(255,255,255,0.12)" label={prog ? `${prog.answered + prog.skipped} of ${prog.total_visible}` : '0 of 30'} />
+          </Tile>
+          {complete ? <Tile icon="check" label="Endorse" name="Review and endorse your profile" tone="green" href="/profile" size="lg" data-endorse-tile /> : <Tile icon="person" label="Profile" name={hasSession ? 'Profile — built from your answers so far; endorse once the interview is complete' : 'Profile — empty until the interview is answered'} href="/profile" size="lg" />}
+        </TileGrid>
+
+        {evidenceCard}
+        {sheets}
+        <Toast message={toast} />
+      </div>
+    );
+  }
+
+  // ---- endorsed and current ----
+  const settings = planSettings(profile, { duration_minutes: prefs.duration_minutes });
+  const drill = selectedOption(profile, version, 'next_drill');
+  const drillMeta = drill ? NEXT_DRILL_META[drill.id] : undefined;
+  const primary = selectedOption(profile, version, 'identity_primary');
+  const endorsedOn = profile.endorsed_at ? localDateOf(profile.endorsed_at) : null;
+  const durationName = settings.duration_minutes !== null ? `${settings.duration_minutes} minutes` : 'not chosen';
+
+  return (
+    <div className={styles.root} data-today data-hydrated="true" data-local-day={day} data-minimum-day={dayRec.minimum_day ? 'true' : 'false'}>
+      <div className="sr-only" aria-live="polite" aria-atomic="true" data-today-live>
+        {live}
+      </div>
+      {topBar}
+
+      {ringsBlock}
+
+      {/* ---- next drill ---- */}
+      <Card
+        href="/practice"
+        name={`Next drill: ${drill ? drill.label : 'not chosen'}. Primary statement: ${primary ? primary.label : 'not chosen'}. Duration ${durationName}. ${settings.frequency}. Cue: ${settings.cue}. Opens Train.`}
+        data-next-drill
+        data-drill-option={drill?.id ?? ''}
+        data-duration={settings.duration_minutes ?? ''}
+      >
+        <div className={styles.cardRow}>
+          <span className={[styles.iconCircle, styles.iconGreen].join(' ')} aria-hidden="true">
+            <Icon name={drillMeta?.icon ?? 'target'} size={28} />
+          </span>
+          <div className={styles.cardText}>
+            <span className={styles.kicker}>Next drill</span>
+            <span className={styles.big}>{drill ? drill.label : '—'}</span>
+            <span className={styles.sub}>{primary ? primary.label : '—'}</span>
+          </div>
+        </div>
+        <div className={styles.chips} aria-hidden="true">
+          <Chip static glyph="⏱" label={settings.duration_minutes !== null ? minutesLabel(settings.duration_minutes) : '— not chosen'} />
+          {settings.frequency_chosen ? <Chip static glyph="↻" label={settings.frequency} /> : null}
+          {settings.cue_chosen ? <Chip static glyph="▶" label={settings.cue} /> : null}
+          {drillMeta ? <Chip static glyph="◎" label={drillMeta.tile} /> : null}
+        </div>
       </Card>
+
+      {settings.duration_source !== 'interview' ? (
+        <div className={styles.durationRow} role="group" aria-label="Practice duration in minutes: not chosen in the interview — choose one here" data-duration-row>
+          <Chip static glyph="⏱" label="min" name="Practice duration, minutes" />
+          {DURATION_CHOICES.map((n) => (
+            <Chip
+              key={n}
+              label={String(n)}
+              name={`${n} minutes`}
+              toggle
+              selected={prefs.duration_minutes === n}
+              onClick={() => {
+                setPrefs({ duration_minutes: prefs.duration_minutes === n ? null : n });
+                setLive(prefs.duration_minutes === n ? 'Practice duration cleared.' : `Practice duration: ${n} minutes.`);
+              }}
+              data-duration-choice={n}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {/* ---- profile ---- */}
+      <Card href="/profile" name={`Profile: endorsed${endorsedOn ? ` on ${endorsedOn}` : ''}. Open profile.`} data-today-profile>
+        <div className={styles.cardRow}>
+          <span className={[styles.iconCircle, styles.iconBlue].join(' ')} aria-hidden="true">
+            <Icon name="person" size={28} />
+          </span>
+          <div className={styles.cardText}>
+            <span className={styles.kicker}>Profile</span>
+            <span className={styles.chipsInline} aria-hidden="true">
+              <Chip static glyph="✓" label="Endorsed" tone="green" />
+              {endorsedOn ? <Chip static label={endorsedOn} /> : null}
+            </span>
+          </div>
+        </div>
+      </Card>
+
+      {evidenceCard}
+      {sheets}
+
+      <Toast message={toast} />
     </div>
+  );
+}
+
+// ----------------------------------------------------------------------------------------
+
+interface RingToggleProps {
+  id: string;
+  label: string;
+  icon: IconName;
+  color: string;
+  done: boolean;
+  count: number;
+  name: string;
+  onToggle: () => void;
+}
+
+/** One ring you can mark: filled when done (check glyph), otherwise the count logged in Train or the ring's icon. */
+function RingToggle({ id, label, icon, color, done, count, name, onToggle }: RingToggleProps) {
+  return (
+    <button type="button" className={styles.ringToggle} aria-pressed={done} aria-label={name} onClick={onToggle} data-ring-toggle={id} data-done={done ? 'true' : 'false'} data-count={count}>
+      <Ring value={done ? 1 : 0} size={96} stroke={9} color={color} transitionMs={320}>
+        <span className={styles.ringCenter} style={{ color: done ? color : 'var(--ink-2)' }} aria-hidden="true">
+          {done ? <Icon name="check" size={40} strokeWidth={2.5} /> : count > 0 ? <span className={styles.ringCount}>{count}</span> : <Icon name={icon} size={30} />}
+        </span>
+      </Ring>
+      <span className={styles.ringLabel} aria-hidden="true">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function JournalList({ heading, count, entries, onRemove, hook, showDate }: { heading: string; count: number; entries: EvidenceEntry[]; onRemove: (id: string) => void; hook: string; showDate?: boolean }) {
+  return (
+    <section className={styles.journal} aria-label={`${heading}: ${count} line${count === 1 ? '' : 's'}`} data-evidence-journal={hook} data-count={count}>
+      <span className={styles.journalHead} aria-hidden="true">
+        {heading} <span className={styles.journalCount}>{count}</span>
+      </span>
+      {entries.length === 0 ? (
+        <span className={styles.journalEmpty} aria-hidden="true">
+          ∅
+        </span>
+      ) : (
+        <ul className={styles.journalList}>
+          {entries.map((e) => (
+            <li key={e.id} className={styles.entry} data-evidence-entry={e.id}>
+              {showDate ? <Chip static label={e.date} name={`Logged on ${e.date}`} /> : null}
+              <span className={styles.entryText}>{e.text}</span>
+              <IconButton icon="x" label={`Remove evidence: ${e.text}`} onClick={() => onRemove(e.id)} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

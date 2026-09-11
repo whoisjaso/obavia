@@ -24,7 +24,10 @@ Brief authority: `docs/00-codex-master-v2.md` §2, §4, §13–§14, §21 (scena
    things the person says about himself. The six-needs screens are labelled "optional lens, not a
    validated test", and *current* needs and *desired* priorities are two separate screens. Choosing
    "certainty" is not treated as fear; wanting success is not treated as wanting praise (framework §12,
-   scenario 37). No option label attaches worth to an answer.
+   scenario 37). No option label attaches worth to an answer, and no option *description* pronounces a
+   verdict on the person: descriptions describe the option ("A role I put on for the call"), never predict
+   or judge ("a role that is not quite me yet", "it will again", "real stakes teach fastest") — review
+   finding A-9, tested.
 6. **Ordinary progress language.** "Question 12 of 31 visible", "answered / skipped / remaining".
    No readiness percentages, shame scores, streaks or moral labels anywhere in the seed, the profile
    or the UI (tested).
@@ -116,8 +119,8 @@ Option ids are globally unique. Order below is presentation order (`order` 0–3
 ### 4. `faith_context` — base
 
 - **Prompt:** How does your faith relate to this work?
-- **Help:** Self-described context only. Nothing here is interpreted or scored.
-- **Kind / limit:** single
+- **Help:** Self-described context only. Nothing here is interpreted or scored. Choose up to 3.
+- **Kind / limit:** multi (max 3) — the options are jointly true, so one answer never has to exclude another (review finding A-8)
 - **Profile field:** `success_definitions`
 - **Options:**
   - `faith_reason` — It is the reason behind the goal *(The purpose comes first; the business serves it.)*
@@ -153,10 +156,10 @@ Option ids are globally unique. Order below is presentation order (`order` 0–3
 - **Profile field:** `beliefs`
 - **Options:**
   - `bel_helping_decide` — It is helping someone decide *(Questions that bring the real situation into view.)*
-  - `bel_numbers` — It is mostly a numbers game *(Enough attempts and the results follow.)*
+  - `bel_numbers` — It is mostly a numbers game *(Volume of attempts is what matters most.)*
   - `bel_right_order` — It is asking the right questions in the right order *(Sequence matters as much as words.)*
   - `bel_still_learning_trust` — It is something I am still learning to trust *(The process works for others; I am proving it for myself.)*
-  - `bel_performance` — It is a performance I put on *(A role that is not quite me yet.)*
+  - `bel_performance` — It is a performance I put on *(A role I put on for the call.)*
   - `bel_repetition_skill` — It is a skill built by repetition *(Like call-center work: reps first, fluency after.)*
   - `beliefs_selling.unsure` — I'm not sure yet (uncertainty; exclusive)
   - `beliefs_selling.none` — None of these (none; exclusive)
@@ -168,8 +171,8 @@ Option ids are globally unique. Order below is presentation order (`order` 0–3
 - **Kind / limit:** single
 - **Profile field:** `beliefs`
 - **Options:**
-  - `self_learn_like_before` — I can learn this the way I learned call-center work *(Repetition got me fluent before; it will again.)*
-  - `self_know_freeze` — I know the material but freeze at transitions *(The words are there; the bridge is not yet.)*
+  - `self_learn_like_before` — I can learn this the way I learned call-center work *(Repetition made call-center lines fluent for me before.)*
+  - `self_know_freeze` — I know the material but freeze at transitions *(The words are there; the bridges between them are the hard part.)*
   - `self_strong_live_underprepared` — I am strong live but under-prepared *(Good in the moment, thin on rehearsal.)*
   - `self_builder` — I am better at building than talking *(The tool gets built before the call gets made.)*
   - `self_steady` — I am steady and just need the reps *(No drama; the work is the work.)*
@@ -188,7 +191,7 @@ Option ids are globally unique. Order below is presentation order (`order` 0–3
   - `std_one_question` — I ask one clear question at a time *(One question, then I stop and wait.)*
   - `std_listen_first` — I listen before I answer *(I let the answer finish before the next line.)*
   - `std_follow_script` — I follow the script until I have earned the right to vary it *(Exact words first; variation later.)*
-  - `std_respect_no_fit` — I respect a no-fit case *(Ending politely is a good outcome when there is no gap.)*
+  - `std_respect_no_fit` — I respect a no-fit case *(Ending politely when there is no gap.)*
   - `std_call_before_build` — I make the call before I build the tool *(Conversations first; software after.)*
   - `std_keep_word` — I keep my word to myself *(The drill I said I would do is the drill I do.)*
   - `identity_statements.unsure` — I'm not sure yet (uncertainty; exclusive)
@@ -241,7 +244,7 @@ Option ids are globally unique. Order below is presentation order (`order` 0–3
   - `fr_transitions` — Unclear answer-to-next-question transitions *(I know the questions, not the bridges.)*
   - `fr_unapproved_offer` — No approved offer *(Price, scope and evidence are not settled.)*
   - `fr_few_reps` — Too few focused repetitions *(I study more than I drill.)*
-  - `fr_building` — Building software instead of having conversations *(Preparation that replaces the call.)*
+  - `fr_building` — Building software instead of having conversations *(Time goes to the build rather than the conversation.)*
   - `fr_vocab` — Vocabulary reminders are not at hand when I need them *(The words are somewhere else.)*
   - `friction_current.unsure` — I'm not sure yet (uncertainty; exclusive)
   - `friction_current.none` — None of these (none; exclusive)
@@ -258,6 +261,7 @@ Option ids are globally unique. Order below is presentation order (`order` 0–3
   - `big_unapproved_offer` — No approved offer
   - `big_few_reps` — Too few focused repetitions
   - `big_building` — Building instead of calling
+  - `big_vocab` — Vocabulary reminders out of reach *(brief §2, fifth failure point; review finding A-7)*
   - `friction_biggest.unsure` — I'm not sure yet (uncertainty; exclusive)
   - `friction_biggest.none` — None of these (none; exclusive)
 - **Skip:** allowed
@@ -288,7 +292,7 @@ Option ids are globally unique. Order below is presentation order (`order` 0–3
   - `want_transition_flow` — Moving from an answer to the next question without a pause *(Acknowledge, refer back, ask.)*
   - `want_reps_before_build` — Completing focused reps before building anything *(Drill first, tool second.)*
   - `want_review_change` — Reviewing one conversation and changing one thing *(One correction at a time.)*
-  - `want_permission` — Asking permission before presenting *(Earning the pitch instead of forcing it.)*
+  - `want_permission` — Asking permission before presenting *(A question before the presentation.)*
   - `want_calling_block` — Running an approved calling block on schedule *(Not available until a later increment; still a goal.)*
   - `desired_behavior.unsure` — I'm not sure yet (uncertainty; exclusive)
   - `desired_behavior.none` — None of these (none; exclusive)
@@ -352,8 +356,8 @@ Option ids are globally unique. Order below is presentation order (`order` 0–3
   - `learn_whole_then_parts` — Reading the whole script first, then drilling parts *(See the map, then walk the roads.)*
   - `learn_one_correction` — Being corrected on one thing at a time *(A single focus per drill.)*
   - `learn_hear_then_say` — Hearing it out loud, then saying it *(Ear first, mouth second.)*
-  - `learn_write_out` — Writing it out by hand *(Slow, but it sticks.)*
-  - `learn_live_pressure` — Learning live under pressure *(Real stakes teach fastest.)*
+  - `learn_write_out` — Writing it out by hand *(Pen and paper, line by line.)*
+  - `learn_live_pressure` — Learning live under pressure *(Real stakes, real time.)*
   - `learning_style.unsure` — I'm not sure yet (uncertainty; exclusive)
   - `learning_style.none` — None of these (none; exclusive)
 - **Skip:** allowed
@@ -598,8 +602,10 @@ Option ids are globally unique. Order below is presentation order (`order` 0–3
 ## Training-plan translation (from endorsed standards)
 
 Each option chosen on `identity_statements` (and `faith_practice_standard`) maps to a template in
-`STANDARD_TEMPLATES`. Duration comes from `practice_duration`, frequency from `practice_frequency`,
-the cue from `practice_cue`, the recovery rule from `recovery_rule`. Example (brief §4):
+`STANDARD_TEMPLATES`. Duration comes from `practice_duration` (or, only when that answer is missing, from a
+choice made later on Today — otherwise it stays `null` and is shown as `—` "not chosen", never a default),
+frequency from `practice_frequency`, the cue from `practice_cue`, the recovery rule from `recovery_rule`.
+Example (brief §4):
 
 | Standard | Cue | Exact action | Frequency / duration | Completion evidence | Review | Recovery |
 |---|---|---|---|---|---|---|
@@ -611,3 +617,5 @@ the cue from `practice_cue`, the recovery rule from `recovery_rule`. Example (br
 - Faith options are descriptive; the conditional asks for a *practice standard the person chooses*.
 - Six-needs screens carry the "optional lens, not a validated test" help text (unit-tested).
 - Offer options never imply approval; the hypothesis is labelled draft/unapproved in the description.
+- Option descriptions describe the option; none predicts or judges the person (unit test `option descriptions
+  describe, never pronounce a verdict on the person`).

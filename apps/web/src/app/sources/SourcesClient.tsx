@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import type { MissingResource, SourceId, SourceSection, UseClassification } from '@apohenia/domain/schemas';
 import type { SourceRow } from '@apohenia/domain/sources';
@@ -8,7 +8,7 @@ import { classificationGlyph } from '@apohenia/domain/scripts';
 import { Card, Chip, GlyphPill, Icon, IconButton, Ring, Sheet, Stat, TopBar } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import styles from './sources.module.css';
-import { filterRows, namedOnlyTitle } from './lib';
+import { filterRows, namedOnlyTitle, sectionGlyph, sectionShortName } from './lib';
 
 export interface CoverageNumbers {
   record_count: number;
@@ -65,28 +65,50 @@ function Caption({ id, children }: { id?: string; children: ReactNode }) {
   );
 }
 
-/** Source A / Source B are two chips and two lists; they are never merged into one ordering. */
-export function SourcesClient({ rows, sections, sourceDescriptions, classificationDefinitions, templateLabel, privateNotice, missing, coverage }: SourcesClientProps) {
+/**
+ * Source Library (DESIGN_SYSTEM §3.5): Source A / Source B as two chips (never merged), three
+ * classification glyph chips, then a tile grid of the source's sections (glyph · ≤2-word name ·
+ * count ring). Tap a section → its records as one-line cards (id chip · title · classification
+ * glyph); the excerpt lives on the record page. Search sits behind the 🔍 icon in the TopBar and
+ * lists matching records across sections. Coverage numbers and the missing register are sheets.
+ */
+export function SourcesClient({ rows, sections, sourceDescriptions, classificationDefinitions, privateNotice, missing, coverage }: SourcesClientProps) {
   const [filters, setFilters, hydrated] = useStoredState('sources.filters', Filters, INITIAL);
   const [sheet, setSheet] = useState<SheetState>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const searchId = useId();
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const shared = useMemo(() => filterRows(rows, { classification: filters.classification, query: filters.query }), [rows, filters.classification, filters.query]);
   const perSource = useMemo(() => {
     const out: Record<SourceId, SourceRow[]> = { A: [], B: [] };
-    for (const r of shared) {
-      if (filters.section[r.source] && r.section_id !== filters.section[r.source]) continue;
-      out[r.source].push(r);
-    }
+    for (const r of shared) out[r.source].push(r);
     return out;
-  }, [shared, filters.section]);
+  }, [shared]);
   const source = filters.source;
-  const list = perSource[source];
+  const query = filters.query.trim();
+  const sectionId = filters.section[source];
+  const searching = query.length > 0;
   const sectionCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const r of shared) if (r.source === source) m.set(r.section_id, (m.get(r.section_id) ?? 0) + 1);
     return m;
   }, [shared, source]);
+  /** Records on screen: a search lists matches across sections; otherwise the chosen section's records. */
+  const list = useMemo(() => {
+    const own = perSource[source];
+    if (searching) return own;
+    if (sectionId) return own.filter((r) => r.section_id === sectionId);
+    return [];
+  }, [perSource, source, searching, sectionId]);
+  const listOpen = searching || sectionId !== '';
+  const selectedSection = sectionId ? (sections[source].find((s) => s.id === sectionId) ?? null) : null;
+
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus();
+  }, [searchOpen]);
+  // Persisted query re-opens the search row after hydration.
+  const showSearch = searchOpen || (hydrated && searching);
 
   function update(patch: Partial<Filters>) {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -98,46 +120,50 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
     update({ classification: filters.classification === c ? '' : c });
   }
 
-  const anyFilter = filters.classification !== '' || filters.query.trim() !== '' || filters.section.A !== '' || filters.section.B !== '';
+  const anyFilter = filters.classification !== '' || query !== '' || filters.section.A !== '' || filters.section.B !== '';
   const missingItem = sheet?.kind === 'missing-item' ? (missing.find((m) => m.id === sheet.id) ?? null) : null;
   const hashRatio = coverage.record_count > 0 ? coverage.hash_verified_count / coverage.record_count : 0;
 
   return (
-    <div className={styles.root} data-sources data-source={source} data-hydrated={hydrated ? 'true' : 'false'}>
+    <div className={styles.root} data-sources data-source={source} data-hydrated={hydrated ? 'true' : 'false'} data-view={listOpen ? 'records' : 'sections'}>
       <TopBar
-        left={<Chip static glyph={<Icon name="lock" size={12} />} label="Private" name={privateNotice} tone="neutral" data-private-notice className={styles.privateChip} />}
+        left={<GlyphPill glyph="🔒" name={privateNotice} tone="neutral" data-private-notice className={styles.privateChip} />}
         title="Sources"
         right={
           <>
-            <IconButton icon="flag" label={`Named but missing resources (${missing.length})`} onClick={() => setSheet({ kind: 'missing' })} data-open-missing />
+            <IconButton icon="search" label={showSearch ? 'Hide search' : 'Search records by id, title, template or purpose'} onClick={() => setSearchOpen((v) => !v)} aria-pressed={showSearch} data-search-open />
             <IconButton icon="info" label="Package coverage" onClick={() => setSheet({ kind: 'coverage' })} data-open-coverage />
           </>
         }
       />
 
-      {/* search */}
-      <div className={styles.search} role="search">
-        <Icon name="search" size={20} className={styles.searchIcon} />
-        <input
-          id={searchId}
-          type="search"
-          className={styles.searchInput}
-          value={filters.query}
-          onChange={(e) => update({ query: e.target.value })}
-          aria-label="Search records by id, title, template or purpose"
-          autoComplete="off"
-          enterKeyHint="search"
-          data-search
-        />
-        {anyFilter ? <IconButton icon="x" label="Clear filters" onClick={() => setFilters(INITIAL)} className={styles.clear} data-clear-filters /> : null}
-      </div>
+      {/* search — behind the 🔍 icon */}
+      {showSearch ? (
+        <div className={styles.search} role="search">
+          <Icon name="search" size={20} className={styles.searchIcon} />
+          <input
+            id={searchId}
+            ref={searchRef}
+            type="search"
+            className={styles.searchInput}
+            value={filters.query}
+            onChange={(e) => update({ query: e.target.value })}
+            aria-label="Search records by id, title, template or purpose"
+            autoComplete="off"
+            enterKeyHint="search"
+            data-search
+          />
+          {anyFilter ? <IconButton icon="x" label="Clear filters" onClick={() => setFilters(INITIAL)} className={styles.clear} data-clear-filters /> : null}
+        </div>
+      ) : null}
 
-      {/* A / B — two chips, two lists */}
+      {/* A / B — two chips, two lists; the missing register chip; the matching count */}
       <div className={styles.row} role="group" aria-label="Source">
         {SOURCES.map((s) => (
           <Chip key={s} label={`Source ${s}`} toggle selected={source === s} onClick={() => update({ source: s })} name={`Source ${s}, ${perSource[s].length} matching of ${coverage.by_source[s]} — ${sourceDescriptions[s]}`} data-source-chip={s} />
         ))}
-        <Stat value={list.length} icon="list" name={`Matching records in Source ${source}`} />
+        <Chip label={String(missing.length)} glyph="⊘" tone="gold" name={`Named but missing resources (${missing.length}) — marked missing, never reconstructed. Open the register.`} onClick={() => setSheet({ kind: 'missing' })} data-open-missing />
+        <Stat value={perSource[source].length} icon="list" name={`Matching records in Source ${source}`} />
       </div>
 
       {/* classification chips */}
@@ -146,52 +172,91 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
           const g = classificationGlyph(c);
           return <Chip key={c} label={g.word} glyph={g.glyph} tone={g.tone === 'orange' ? 'gold' : g.tone} toggle selected={filters.classification === c} onClick={() => toggleClassification(c)} name={`${g.word}: ${classificationDefinitions[c]}`} data-classification-chip={c} />;
         })}
-      </div>
-
-      {/* section rail for the selected source */}
-      <div className={styles.rail} role="group" aria-label={`Source ${source} sections`} data-section-rail={source}>
-        {sections[source].map((s) => {
-          if (!s.records_supplied) {
-            return <Chip key={s.id} label={s.id} glyph="∅" static name={`${s.id} — ${namedOnlyTitle(s.title)}: named in the framework; no records supplied`} className={[styles.railChip, styles.mono, styles.namedOnly].join(' ')} data-section-id={s.id} data-named-only />;
-          }
-          const count = sectionCounts.get(s.id) ?? 0;
-          return (
-            <Chip key={s.id} label={s.id} toggle selected={filters.section[source] === s.id} onClick={() => toggleSection(s.id)} name={`${s.id} — ${s.title}: ${count} of ${s.record_count} records`} kbd={String(count)} className={[styles.railChip, styles.mono].join(' ')} data-section-id={s.id} />
-          );
-        })}
+        {anyFilter && !showSearch ? <IconButton icon="x" label="Clear filters" onClick={() => setFilters(INITIAL)} data-clear-filters className={styles.rowEnd} /> : null}
       </div>
 
       <span className="sr-only" role="status" aria-live="polite" data-results-status>
-        {list.length} matching records in Source {source}; Source A {perSource.A.length}, Source B {perSource.B.length}
+        {perSource[source].length} matching records in Source {source}; Source A {perSource.A.length}, Source B {perSource.B.length}
       </span>
 
-      {/* the list */}
-      <div className={styles.cards} data-source-panel={source}>
-        {list.length === 0 ? (
-          <div className={styles.empty}>
-            <span className={styles.emptyGlyph} aria-hidden="true">
-              ∅
-            </span>
-            <span className={styles.emptyLabel}>No match</span>
-          </div>
-        ) : (
-          list.map((r) => {
-            const g = classificationGlyph(r.use_classification);
+      {/* section tiles for the selected source (the selected one stays as the list header) */}
+      <div className={[styles.sectionGrid, listOpen ? styles.sectionGridCollapsed : ''].join(' ').trim()} role="group" aria-label={`Source ${source} sections`} data-section-rail={source}>
+        {sections[source].map((s) => {
+          const count = sectionCounts.get(s.id) ?? 0;
+          const selected = sectionId === s.id;
+          if (listOpen && !selected) return null;
+          if (!s.records_supplied) {
             return (
-              <Card key={r.id} href={`/sources/${encodeURIComponent(r.id)}`} name={`${r.id} — ${r.title}. ${g.name}. Open record.`} dense data-record-id={r.id}>
-                <div className={styles.recordRow}>
-                  <Chip static label={r.id} name={`Record ${r.id}`} className={styles.mono} />
-                  <span className={styles.recordTitle}>{r.title}</span>
-                  <GlyphPill glyph={g.glyph} tone={g.tone} name={g.name} data-classification={r.use_classification} />
-                </div>
-                <p className={styles.recordTemplate} title={templateLabel}>
-                  {r.template}
-                </p>
-              </Card>
+              <span key={s.id} className={[styles.sectionTile, styles.namedOnly].join(' ')} role="img" aria-label={`${s.id} — ${namedOnlyTitle(s.title)}: named in the framework; no records supplied`} data-section-id={s.id} data-named-only>
+                <span className={styles.sectionGlyph} aria-hidden="true">
+                  ∅
+                </span>
+                <span className={styles.sectionName} aria-hidden="true">
+                  {sectionShortName(s.title)}
+                </span>
+                <span className={styles.sectionId} aria-hidden="true">
+                  {s.id}
+                </span>
+              </span>
             );
-          })
-        )}
+          }
+          return (
+            <button
+              key={s.id}
+              type="button"
+              className={[styles.sectionTile, selected ? styles.sectionSelected : ''].join(' ').trim()}
+              aria-pressed={selected}
+              aria-label={`${s.id} — ${s.title}: ${count} of ${s.record_count} records${selected ? '. Selected; tap to show all sections' : ''}`}
+              onClick={() => toggleSection(s.id)}
+              data-section-id={s.id}
+            >
+              <Ring value={s.record_count > 0 ? count / s.record_count : 0} size={44} stroke={4} color={selected ? 'var(--blue)' : 'var(--teal)'}>
+                <span className={styles.sectionGlyph} aria-hidden="true">
+                  {sectionGlyph(s.title)}
+                </span>
+              </Ring>
+              <span className={styles.sectionName} aria-hidden="true">
+                {sectionShortName(s.title)}
+              </span>
+              <span className={styles.sectionCount} aria-hidden="true">
+                {count}
+              </span>
+            </button>
+          );
+        })}
+        {listOpen ? (
+          <span className={styles.listHead} aria-hidden="true">
+            {searching ? `“${query}”` : (selectedSection?.title ?? '')}
+          </span>
+        ) : null}
       </div>
+
+      {/* the records: one-line cards (id chip · title · classification glyph) */}
+      {listOpen ? (
+        <div className={styles.cards} data-source-panel={source}>
+          {list.length === 0 ? (
+            <div className={styles.empty}>
+              <span className={styles.emptyGlyph} aria-hidden="true">
+                ∅
+              </span>
+              <span className={styles.emptyLabel}>No match</span>
+            </div>
+          ) : (
+            list.map((r) => {
+              const g = classificationGlyph(r.use_classification);
+              return (
+                <Card key={r.id} href={`/sources/${encodeURIComponent(r.id)}`} name={`${r.id} — ${r.title}. ${g.name}. Open record.`} dense data-record-id={r.id}>
+                  <div className={styles.recordRow}>
+                    <Chip static label={r.id} name={`Record ${r.id}`} className={styles.mono} />
+                    <span className={styles.recordTitle}>{r.title}</span>
+                    <GlyphPill glyph={g.glyph} tone={g.tone} name={g.name} data-classification={r.use_classification} />
+                  </div>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      ) : null}
 
       {/* ================= missing register ================= */}
       <Sheet open={sheet?.kind === 'missing'} onClose={() => setSheet(null)} title="Missing" data-sheet="missing" tall>

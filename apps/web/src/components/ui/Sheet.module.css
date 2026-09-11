@@ -4,7 +4,7 @@
   margin: auto 0 0;
   width: 100%;
   max-width: 100%;
-  max-height: 84dvh;
+  max-height: 85dvh;
   padding: 0;
   border: 1px solid var(--line);
   border-bottom: none;
@@ -40,8 +40,17 @@
 .inner {
   display: flex;
   flex-direction: column;
-  max-height: inherit;
+  max-height: 85dvh;
   height: 100%;
+}
+.tall .inner {
+  max-height: 92dvh;
+}
+@media (min-width: 640px) {
+  .inner,
+  .tall .inner {
+    max-height: 80dvh;
+  }
 }
 .grabber {
   display: flex;
@@ -76,6 +85,12 @@
   justify-content: flex-end;
   padding-bottom: 0;
 }
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-left: auto;
+}
 .title {
   font-size: var(--fs-caption);
   font-weight: 700;
@@ -84,7 +99,14 @@
   color: var(--ink-2);
 }
 .close {
-  margin-left: auto;
+  margin-left: 0;
+}
+.scroll {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .body {
   padding: var(--s-2) var(--s-5) calc(var(--s-6) + var(--safe-bottom));
@@ -93,6 +115,23 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
+  min-height: 0;
+}
+/* Bottom fade: a scroll affordance that never covers the last line for long. */
+.fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  background: linear-gradient(180deg, transparent, var(--bg-1));
+  pointer-events: none;
+}
+.footer {
+  flex-shrink: 0;
+  padding: var(--s-3) var(--s-5) calc(var(--s-4) + var(--safe-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--bg-1);
 }
 
 @keyframes slideUp {

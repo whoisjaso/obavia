@@ -43,7 +43,8 @@ test.describe('offers', () => {
     const h1 = page.locator('h1');
     await expect(h1).toHaveText('Offers');
     const box = await h1.boundingBox();
-    expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1);
+    // ≤1px box (sub-pixel layout can report 1.0000000149 for a 1px sr-only box; anything visibly larger fails).
+  expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1.01);
     const offersChip = page.locator('[data-filter="offers"]');
     await expect(offersChip).toHaveText('Offers');
     await expect(offersChip).toHaveAttribute('aria-pressed', 'true');
@@ -129,7 +130,9 @@ test.describe('offers', () => {
 
     // The script screen reads the same store: the offer pill is published and pillar wording now speaks.
     await page.goto('/scripts');
-    await expect(page.locator('[data-offer-pill="published"]')).toBeVisible();
+    await page.locator('[data-status-open]').click();
+    await expect(page.locator('dialog[data-sheet="status"] [data-offer-pill="published"]')).toBeVisible();
+    await page.keyboard.press('Escape');
     await page.locator('[data-stage-rail] [data-stage="pitch"]').click();
     await expect(page.locator('[data-node-card][data-node-id="pitch-pillar-1"] [data-primary-line]')).toContainText('Same-day inquiry response');
   });

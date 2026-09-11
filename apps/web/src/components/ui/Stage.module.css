@@ -23,3 +23,8 @@
     max-width: calc(var(--col) + var(--rail) + var(--s-6));
   }
 }
+/* Immersive screens: the stage keeps no room for a tab bar. */
+:global(:root[data-immersive]) .stage,
+.stage:has([data-immersive-stage]) {
+  padding-bottom: var(--s-5);
+}

@@ -15,11 +15,17 @@ const VIEWPORTS = [
   { width: 1440, height: 900 },
 ] as const;
 
-const STATIC: { name: string; href: string }[] = [
+const STATIC: { name: string; href: string; immersive?: boolean }[] = [
   { name: 'train', href: '/practice' },
   { name: 'script', href: '/scripts' },
   { name: 'me', href: '/today' },
-  { name: 'interview', href: '/onboarding/identity' },
+  { name: 'interview', href: '/onboarding/identity', immersive: true },
+  { name: 'sources', href: '/sources' },
+  { name: 'profile', href: '/profile' },
+  { name: 'insights', href: '/insights' },
+  { name: 'queue', href: '/prospects' },
+  { name: 'history', href: '/calls' },
+  { name: 'followups', href: '/pipeline' },
 ];
 
 test.beforeAll(() => {
@@ -79,7 +85,11 @@ for (const vp of VIEWPORTS) {
       test(`${s.name} (${s.href})`, async ({ page }) => {
         await page.goto(s.href);
         await expect(page.locator('h1')).toHaveCount(1);
-        await expect(page.getByRole('navigation', { name: 'Primary' })).toBeVisible();
+        // Immersive screens (the interview) own the viewport: the tab bar hides and an exit control remains.
+        if (s.immersive) {
+          await expect(page.getByRole('navigation', { name: 'Primary' })).toBeHidden();
+          await expect(page.locator('[data-interview-exit]')).toBeVisible();
+        } else await expect(page.getByRole('navigation', { name: 'Primary' })).toBeVisible();
         await page.screenshot({ path: shot(s.name, vp) });
       });
     }

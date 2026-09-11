@@ -20,6 +20,10 @@ export interface PracticeClientProps {
   nodes: ScriptNode[];
   scriptVersionId: string;
   placeholder: boolean;
+  /** Fictional practice prospect facts (prospect_name, dealership_name) that fill slots in Train. */
+  practiceFacts: Record<string, string>;
+  /** "Dana at Riverbend Motors" — for the ✦ pill's accessible name. */
+  practiceLabel: string;
 }
 
 /**
@@ -28,7 +32,7 @@ export interface PracticeClientProps {
  * the same route. Attempts persist to `practice.attempts`; the mode default comes from
  * `settings.assistance_mode` and changing it here is for this visit only (reversible).
  */
-export function PracticeClient({ nodes, scriptVersionId, placeholder }: PracticeClientProps) {
+export function PracticeClient({ nodes, scriptVersionId, placeholder, practiceFacts, practiceLabel }: PracticeClientProps) {
   const [settingsMode] = useStoredState<AssistanceMode>('settings.assistance_mode', AssistanceMode, DEFAULT_ASSISTANCE_MODE);
   const [override, setOverride] = useState<AssistanceMode | null>(null);
   const mode: AssistanceMode = override ?? settingsMode;
@@ -97,7 +101,7 @@ export function PracticeClient({ nodes, scriptVersionId, placeholder }: Practice
 
           <ModeControl value={mode} onChange={changeMode} />
 
-          <TileGrid columns={2} data-drill-grid>
+          <TileGrid columns={2} data-drill-grid className={styles.drillGrid}>
             {DRILLS.map((d) => {
               const a = drillRing(attempts, d, true);
               const u = drillRing(attempts, d, false);
@@ -105,14 +109,10 @@ export function PracticeClient({ nodes, scriptVersionId, placeholder }: Practice
                 <Tile key={d.kind} icon={d.icon} label={d.label} name={`${d.label}: ${d.hint} ${a.name}. ${u.name}.`} size="lg" onClick={() => setDrill(d.kind)} data-drill-tile={d.kind} className={styles.drillTile}>
                   <span className={styles.tileRings} aria-hidden="true">
                     <span data-tile-ring="assisted" data-count={a.count} data-scored={a.scored ? 'true' : 'false'} data-value={a.value.toFixed(2)}>
-                      <Ring value={a.value} size={26} stroke={4} color="var(--green)">
-                        <span className={styles.ringGlyph}>≡</span>
-                      </Ring>
+                      <Ring value={a.value} size={28} stroke={3} color="var(--ink-2)" track="rgba(255,255,255,0.12)" />
                     </span>
                     <span data-tile-ring="unassisted" data-count={u.count} data-scored={u.scored ? 'true' : 'false'} data-value={u.value.toFixed(2)}>
-                      <Ring value={u.value} size={26} stroke={4} color="var(--blue)">
-                        <span className={styles.ringDot}>○</span>
-                      </Ring>
+                      <Ring value={u.value} size={28} stroke={3} color="var(--green)" track="rgba(255,255,255,0.12)" />
                     </span>
                   </span>
                 </Tile>
@@ -121,9 +121,9 @@ export function PracticeClient({ nodes, scriptVersionId, placeholder }: Practice
           </TileGrid>
         </div>
       ) : drill === 'full_mock' ? (
-        <MockScreen key="mock" nodes={nodes} mode={mode} onResult={record} onClose={close} onLive={setLive} />
+        <MockScreen key="mock" nodes={nodes} mode={mode} facts={practiceFacts} onResult={record} onClose={close} onLive={setLive} />
       ) : (
-        <DrillScreen key={drill} kind={drill as NodeDrillKind} nodes={nodes} mode={mode} onResult={record} onClose={close} onLive={setLive} />
+        <DrillScreen key={drill} kind={drill as NodeDrillKind} nodes={nodes} mode={mode} facts={practiceFacts} practiceLabel={practiceLabel} onResult={record} onClose={close} onLive={setLive} />
       )}
 
       {/* History: two buckets, never mixed. */}

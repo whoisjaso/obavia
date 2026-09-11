@@ -225,3 +225,17 @@ export function funnelDefinitions(): FunnelStage[] {
     { key: 'confirmed_outcomes', label: 'User-confirmed outcomes', numerator: 'won / lost / no-fit outcomes confirmed by the user', denominator: 'proposals authorized' },
   ];
 }
+
+/** Additive (M-queue): glyph chip for a text-derived call outcome (History cards). The name says the whole truth. */
+export function outcomeGlyph(outcome: CallOutcome): { glyph: '⊘' | '✓' | '◔' | '○'; word: string; name: string } {
+  switch (outcome) {
+    case 'do_not_call':
+      return { glyph: '⊘', word: 'DNC', name: `${outcomeLabel(outcome)} — derived from the prospect's own words` };
+    case 'agreed_follow_up':
+      return { glyph: '✓', word: 'follow-up', name: `${outcomeLabel(outcome)} — derived from the prospect's own words` };
+    case 'deferral':
+      return { glyph: '◔', word: 'deferral', name: `${outcomeLabel(outcome)} — derived from the prospect's own words` };
+    default:
+      return { glyph: '○', word: 'no step', name: `${outcomeLabel(outcome)} — derived from the prospect's own words` };
+  }
+}

@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loadScriptNodes } from '../../packages/domain/src/seeds';
+import { demoQueue, knownFactsFor } from '../../packages/domain/src/dialer';
+import { resolveSlots } from '../../packages/domain/src/scripts';
+import { lineParts, visibleText } from '../../apps/web/src/lib/line-parts';
 
 /**
  * Train (`/practice`, DESIGN_SYSTEM §3.4). Brief rules encoded here: hidden facts never reach the
@@ -14,6 +17,9 @@ const VIEWPORTS = [
 ] as const;
 
 const TONE_NAME = 'Tone not assessed (text-only)';
+/** Slots in Train resolve against the FICTIONAL first synthetic record (the same facts the page uses). */
+const PRACTICE_FACTS = knownFactsFor(demoQueue()[0]!);
+const shownLine = (template: string) => visibleText(lineParts(resolveSlots(template, { knownFacts: PRACTICE_FACTS }).text));
 /** A hidden fact from the FICTIONAL "existing vendor, no gap" scenario that is NOT revealed at the entry step. */
 const HIDDEN_FACT = 'The caller invents a problem or pushes for a meeting anyway.';
 const SCENARIO_TITLE = /Existing-vendor customer with no meaningful gap/;
@@ -46,7 +52,8 @@ async function expectHiddenH1(page: Page): Promise<void> {
   await expect(h1).toHaveText('Practice');
   const box = await h1.boundingBox();
   expect(box).not.toBeNull();
-  expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1);
+  // ≤1px box (sub-pixel layout can report 1.0000000149 for a 1px sr-only box; anything visibly larger fails).
+  expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1.01);
 }
 
 async function openDrill(page: Page, label: string): Promise<void> {
@@ -105,7 +112,8 @@ test.describe('train', () => {
     await expect(block).toHaveAttribute('data-primary', 'shown');
     const nodeId = await block.getAttribute('data-node-id');
     const node = loadScriptNodes().nodes.find((n) => n.id === nodeId)!;
-    await expect(block.locator('[data-primary-line]')).toHaveText(node.primary_word_track);
+    await expect(block.locator('[data-primary-line]')).toHaveText(shownLine(node.primary_word_track));
+    expect(await block.locator('[data-primary-line]').textContent()).not.toMatch(/[{}⟨⟩]|\[missing:/);
     const synthetic = drill.locator('[data-synthetic-line]');
     if ((await synthetic.count()) > 0) await expect(synthetic).toHaveAttribute('aria-label', /Synthetic prospect line, fictional, not a real prospect/);
 
@@ -167,7 +175,8 @@ test.describe('train', () => {
     await expect(block).toHaveAttribute('data-primary', 'shown');
     const nodeId = await block.getAttribute('data-node-id');
     const node = loadScriptNodes().nodes.find((n) => n.id === nodeId)!;
-    await expect(block.locator('[data-primary-line]')).toHaveText(node.primary_word_track);
+    await expect(block.locator('[data-primary-line]')).toHaveText(shownLine(node.primary_word_track));
+    expect(await block.locator('[data-primary-line]').textContent()).not.toMatch(/[{}⟨⟩]|\[missing:/);
 
     // Arrow keys move the radio selection (roving tabindex).
     await page.getByRole('button', { name: 'Close drill' }).click();
@@ -239,7 +248,7 @@ test.describe('train', () => {
     expect(errors).toEqual([]);
   });
 
-  test('exact recall keeps its textarea and scores typed words with separate ratios and missing-word chips', async ({ page }) => {
+  test('exact recall scores typed words with separate ratios and missing-word chips; on Check the rings replace the textarea in place', async ({ page }) => {
     await prime(page);
     await page.goto('/practice');
     await openDrill(page, 'Recall');
@@ -254,7 +263,11 @@ test.describe('train', () => {
     await expect(result.locator('[data-score="conversation"]')).toHaveAttribute('data-scored', 'false');
     await expect(result.getByRole('progressbar', { name: /^Memory: exact match \d+%, word order \d+%$/ })).toBeVisible();
     await expect(result.locator('[data-missing-words] span').nth(2)).toBeVisible();
-    await expect(box).toBeDisabled();
+    await expect(box).toHaveCount(0);
+    // The result rings sit where the textarea was — above the docked hero, never under the tab bar.
+    const resultBox = (await result.boundingBox())!;
+    const heroBox = (await page.locator('[data-practice-hero]').boundingBox())!;
+    expect(resultBox.y).toBeLessThan(heroBox.y);
     // After checking, the exact line is shown verbatim and locked.
     await expect(page.locator('[data-primary-line]')).toBeVisible();
   });

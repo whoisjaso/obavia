@@ -18,7 +18,8 @@ async function expectHiddenH1(page: Page, text: string): Promise<void> {
   await expect(h1).toHaveText(text);
   const box = await h1.boundingBox();
   expect(box, 'h1 is rendered').not.toBeNull();
-  expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1);
+  // ≤1px box (sub-pixel layout can report 1.0000000149 for a 1px sr-only box; anything visibly larger fails).
+  expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1.01);
 }
 
 test.describe('shell v2 (Arena)', () => {
@@ -74,12 +75,16 @@ test.describe('shell v2 (Arena)', () => {
 });
 
 for (const route of APP_ROUTES) {
-  test(`route ${route.href}: 200, one visually hidden h1, tab bar, one visible demo pill, no console errors`, async ({ page }) => {
+  test(`route ${route.href}: 200, one visually hidden h1, tab bar (or exit on an immersive screen), one visible demo pill, no console errors`, async ({ page }) => {
     const errors = trackErrors(page);
     const response = await page.goto(route.href);
     expect(response?.status(), `status for ${route.href}`).toBe(200);
     await expectHiddenH1(page, route.h1);
-    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link')).toHaveCount(4);
+    if (route.immersive) {
+      // The tab bar hides on an immersive screen; an explicit exit control takes its place.
+      await expect(page.getByRole('navigation', { name: 'Primary' })).toBeHidden();
+      await expect(page.locator('[data-interview-exit]')).toBeVisible();
+    } else await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link')).toHaveCount(4);
     await expect(page.locator('[data-demo-pill]:visible')).toHaveCount(1);
     await expect(page.getByRole('status', { name: DEMO_PILL_NAME }).first()).toBeVisible();
     // Dark stage, no horizontal scroll at the review viewport.

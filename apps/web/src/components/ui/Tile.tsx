@@ -22,16 +22,23 @@ export interface TileProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>,
   children?: ReactNode;
   /** Bigger icon and label (hero tile). */
   size?: 'md' | 'lg';
+  /** Suggested (not selected): a thin blue ring + small ✦ glyph, distinct from focus and selection. */
+  suggested?: boolean;
 }
 
 /**
  * Choice tile: 32px icon + ≤2-word label, `--r-tile`, `--bg-1`, pressed `--bg-3`. Grids of 2–3
  * columns. Every tile is a real `<button>` (or `<Link>` with `href`).
  */
-export function Tile({ icon, label, name, selected, tone = 'neutral', href, children, size = 'md', className, type = 'button', ...rest }: TileProps) {
-  const cls = [styles.tile, styles[tone], selected ? styles.selected : '', size === 'lg' ? styles.lg : '', className ?? ''].join(' ').trim();
+export function Tile({ icon, label, name, selected, tone = 'neutral', href, children, size = 'md', suggested, className, type = 'button', ...rest }: TileProps) {
+  const cls = [styles.tile, styles[tone], selected ? styles.selected : '', suggested && !selected ? styles.suggested : '', size === 'lg' ? styles.lg : '', className ?? ''].join(' ').trim();
   const inner = (
     <>
+      {suggested && !selected ? (
+        <span className={styles.spark} aria-hidden="true">
+          ✦
+        </span>
+      ) : null}
       {selected ? (
         <span className={styles.check} aria-hidden="true">
           <Icon name="check" size={14} strokeWidth={2.5} />

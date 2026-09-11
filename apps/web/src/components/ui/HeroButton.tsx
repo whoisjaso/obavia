@@ -36,17 +36,26 @@ const ICON: Record<HeroState, IconName> = {
 
 /**
  * The one hero: a 200px (160px < 480px) circle. Green with a breathing halo when idle; arming shows
- * a conic countdown ring around it; dialing pulses; ringing rings; active turns red with the
- * phone-off glyph; cooldown shows a 5-second ring with ⏸ at its center; paused shows ▶.
- * `aria-live` on the caption announces state words; the button's `aria-label` carries the whole state.
+ * a conic countdown ring (ink, 6px) draining 3 → 0 around the number; dialing sends a pulse ring
+ * outward every 900ms; ringing shows two staggered halos; active turns red with the phone-off
+ * glyph; cooldown shows a 5-second ring with ⏸ at its center; paused shows ▶. Under reduced motion
+ * every animation collapses to opacity steps. `aria-live` on the caption announces state words;
+ * the button's `aria-label` carries the whole state.
  */
 export function HeroButton({ state, label, progress = 0, count, caption, icon, aside, className, type = 'button', disabled, ...rest }: HeroButtonProps) {
   const ringState = state === 'arming' || state === 'cooldown';
-  const ringColor = state === 'cooldown' ? 'var(--ink-2)' : 'var(--green)';
+  const ringColor = state === 'cooldown' ? 'var(--ink-2)' : 'var(--ink)';
   return (
     <div className={[styles.wrap, className ?? ''].join(' ').trim()} data-hero-state={state}>
       <div className={styles.stage}>
         <span className={styles.halo} aria-hidden="true" />
+        {state === 'dialing' ? <span className={styles.pulse} aria-hidden="true" data-hero-pulse /> : null}
+        {state === 'ringing' ? (
+          <>
+            <span className={[styles.pulse, styles.ringHalo].join(' ')} aria-hidden="true" data-hero-halo="1" />
+            <span className={[styles.pulse, styles.ringHalo, styles.ringHalo2].join(' ')} aria-hidden="true" data-hero-halo="2" />
+          </>
+        ) : null}
         <button
           type={type}
           className={styles.hero}
@@ -57,7 +66,7 @@ export function HeroButton({ state, label, progress = 0, count, caption, icon, a
           {...rest}
         >
           {ringState ? (
-            <Ring overlay value={progress} stroke={8} color={ringColor} track="rgba(255,255,255,0.14)" variant="countdown" size={200} transitionMs={110} />
+            <Ring overlay value={progress} stroke={6} color={ringColor} track="rgba(0,0,0,0.18)" variant="countdown" size={200} transitionMs={110} />
           ) : null}
           <span className={styles.glyph} aria-hidden="true">
             {state === 'arming' && count !== undefined ? <span className={styles.count}>{count}</span> : <Icon name={icon ?? ICON[state]} size={72} strokeWidth={1.5} />}

@@ -68,37 +68,43 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
         left={<IconButton icon="arrow-left" label="Back to the Source Library" href="/sources" data-back />}
         center={<Chip static label={record.id} name={`Record ${record.id}`} className={styles.mono} />}
         right={
-          <>
-            <RecordInfo rows={[...DELIVERY_OVERLAY_TABLE]} note={DELIVERY_OVERLAY_NOTE} />
-          </>
+          <RecordInfo
+            meta={{
+              sourceLabel: sourceLabel(record.source),
+              sectionId: record.section_id,
+              sectionTitle: record.section_title,
+              sectionNamedOnly: Boolean(section && !section.records_supplied),
+              family: record.family,
+              familyLabel: familyLabel(record.family),
+              offsets: formatOffsets(record),
+              offsetConvention: OFFSET_CONVENTION,
+              hashVerified: record.hash_verified,
+              excerptLabel: excerptLabel(record),
+              excerptLength: record.excerpt_length,
+              lengthMatches: record.length_matches_offsets,
+              markdownLine: record.markdown_line,
+              reviewedCall: record.source === 'A' && record.family === 'V',
+            }}
+            rows={[...DELIVERY_OVERLAY_TABLE]}
+            note={DELIVERY_OVERLAY_NOTE}
+          />
         }
       />
 
       <div className={styles.row}>
         <GlyphPill glyph={g.glyph} label={g.word} tone={g.tone} name={liveEligible ? `${g.name}. ${definition}` : `${SOURCE_ONLY_NOTICE}. ${definition}`} data-classification={record.use_classification} {...(liveEligible ? {} : { 'data-source-only-notice': '' })} />
-        <Chip static label={sourceLabel(record.source)} name={sourceLabel(record.source)} />
-        <Chip static label={record.section_id} name={`Section ${record.section_id} — ${record.section_title}${section && !section.records_supplied ? ' (named only; no records supplied)' : ''}`} className={styles.mono} />
-        <Chip static label={record.family} name={`Family ${record.family} — ${familyLabel(record.family)}`} className={styles.mono} />
+        <span className="sr-only" data-offsets>
+          {formatOffsets(record)}
+        </span>
       </div>
 
       <p className={styles.recordHeading}>{record.title}</p>
 
-      {/* the excerpt is the hero */}
+      {/* the excerpt is the hero; provenance (offsets, hash status) lives behind ⓘ */}
       <Card data-excerpt-card>
-        <div className={styles.row} style={{ marginBottom: 'var(--s-3)' }}>
-          <GlyphPill glyph={record.hash_verified ? '✓' : '◔'} label={record.hash_verified ? 'Verified' : 'Pending'} tone={record.hash_verified ? 'green' : 'orange'} name={excerptLabel(record)} data-excerpt-label />
-          <Chip static label={formatOffsets(record)} name={`Original characters ${formatOffsets(record)} — ${OFFSET_CONVENTION}`} className={styles.mono} data-offsets-chip />
-          <span className="sr-only" data-offsets>
-            {formatOffsets(record)}
-          </span>
-        </div>
         <blockquote className={styles.excerpt} data-excerpt lang="en">
           {record.excerpt}
         </blockquote>
-        <p className={styles.small} style={{ marginTop: 'var(--s-3)' }}>
-          {record.excerpt_length} code points{record.length_matches_offsets ? '' : ' — length does not match the offsets; shown as supplied'} · line {record.markdown_line}
-          {record.source === 'A' && record.family === 'V' ? ' · reviewed call, ">>" turn markers, speakers not diarized' : ''}
-        </p>
       </Card>
 
       <Card data-template-card>

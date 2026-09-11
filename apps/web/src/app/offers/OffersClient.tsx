@@ -54,8 +54,8 @@ function Money({ minor, currency, what, fictional, hook }: { minor: number | nul
   const text = unset ? '—' : formatMoney(minor, currency);
   const name = unset ? `${what}: ${PRICE_NOT_SET_NAME}` : fictional ? `${what}: fictional fixture ${text} — never quoted live` : `${what}: ${text}`;
   return (
-    <span className={styles.money} role="img" aria-label={name} title={name} data-price={hook} data-price-set={unset ? 'no' : 'yes'}>
-      <span className={[styles.moneyValue, unset ? styles.moneyUnset : ''].join(' ').trim()} aria-hidden="true">
+    <span className={styles.money}>
+      <span className={[styles.moneyValue, unset ? styles.moneyUnset : ''].join(' ').trim()} role="img" aria-label={name} title={name} data-price={hook} data-price-set={unset ? 'no' : 'yes'}>
         {text}
       </span>
       <span className={styles.moneyKey} aria-hidden="true">
@@ -200,7 +200,7 @@ export function OffersClient({ offers, placeholder }: Props) {
                       </span>
                     </span>
                   </div>
-                  <p className={styles.body}>{sheetOffer.price.payment_schedule}</p>
+                  {/^\s*(not set)?\s*$/i.test(sheetOffer.price.payment_schedule) ? null : <p className={styles.body}>{sheetOffer.price.payment_schedule}</p>}
                   {sheetOffer.price.setup_minor_units === null || sheetOffer.price.recurring_minor_units === null ? (
                     <GlyphPill glyph="—" label="Not set" tone="orange" name={`${PRICE_NOT_SET_NAME}. Live price and proposal actions are blocked until an offer is approved.`} data-blank-price-note />
                   ) : null}

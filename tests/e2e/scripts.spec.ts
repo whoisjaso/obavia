@@ -20,9 +20,13 @@ function trackErrors(page: Page): string[] {
 async function prime(page: Page, extra: Record<string, unknown> = {}): Promise<void> {
   await page.addInitScript((entries: Record<string, unknown>) => {
     try {
-      if (sessionStorage.getItem('e2e.primed')) return;
-      sessionStorage.setItem('e2e.primed', '1');
-      for (const k of Object.keys(localStorage)) if (k.startsWith('apohenia.v1.')) localStorage.removeItem(k);
+      // The beforeEach script clears once per context; a test-level call with entries seeds them once, after that clear.
+      if (!sessionStorage.getItem('e2e.primed')) {
+        sessionStorage.setItem('e2e.primed', '1');
+        for (const k of Object.keys(localStorage)) if (k.startsWith('apohenia.v1.')) localStorage.removeItem(k);
+      }
+      if (Object.keys(entries).length === 0 || sessionStorage.getItem('e2e.primed.entries')) return;
+      sessionStorage.setItem('e2e.primed.entries', '1');
       for (const [k, v] of Object.entries(entries)) localStorage.setItem(`apohenia.v1.${k}`, JSON.stringify(v));
     } catch {
       // storage unavailable: the page still renders
@@ -67,7 +71,8 @@ test.describe('scripts', () => {
     await expect(h1).toHaveCount(1);
     await expect(h1).toHaveText('Scripts');
     const box = await h1.boundingBox();
-    expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1);
+    // ≤1px box (sub-pixel layout can report 1.0000000149 for a 1px sr-only box; anything visibly larger fails).
+  expect(Math.max(box!.width, box!.height)).toBeLessThanOrEqual(1.01);
 
     const rail = page.locator('[data-stage-rail]');
     await expect(rail.locator('[data-stage="entry"]')).toHaveAttribute('aria-pressed', 'true');
@@ -76,9 +81,20 @@ test.describe('scripts', () => {
     await expect(page.locator('[data-node-card][data-node-id="inbound-callback-open"] [data-primary-line]')).toContainText('Jason with Apohenia');
     // Draft is a glyph with the whole truth in its name — never rendered as approved.
     await expect(page.locator('[data-node-card][data-node-id="cold-open"] [data-approval="draft"]')).toHaveAttribute('aria-label', /Draft — written, not reviewed/);
-    await expect(page.locator('[data-version-pill]')).toHaveAttribute('aria-label', /51 of 51 nodes draft/);
-    await expect(page.locator('[data-graph-pill="ok"]')).toHaveAttribute('aria-label', /Graph valid: 51 nodes/);
-    await expect(page.locator('[data-offer-pill="draft"]')).toBeVisible();
+    // Version · graph · offer status live behind ⓘ (developer vocabulary never sits on the stage).
+    await expect(page.locator('[data-status-pills]:visible')).toHaveCount(0);
+    await page.locator('[data-status-open]').click();
+    const status = page.locator('dialog[data-sheet="status"]');
+    await expect(status.locator('[data-version-pill]')).toHaveAttribute('aria-label', /51 of 51 nodes draft/);
+    await expect(status.locator('[data-graph-pill="ok"]')).toHaveAttribute('aria-label', /Graph valid: 51 nodes/);
+    await expect(status.locator('[data-offer-pill="draft"]')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(status).toBeHidden();
+
+    // Slots are chips, never brackets or braces; the Publish hero is docked on the stage.
+    for (const card of await page.locator('[data-stage-lines] [data-primary-line]').all()) expect(await card.textContent()).not.toMatch(/\[missing:|[{}⟨⟩]/);
+    await expect(page.locator('[data-node-card][data-node-id="cold-open"] [data-slot="prospect_name"]')).toHaveAttribute('aria-label', /slot: prospect name/);
+    await expect(page.locator('[data-publish]')).toBeVisible();
 
     await expect(page.locator('table')).toHaveCount(0);
     await expect(page.locator('main p:visible')).toHaveCount(0);
@@ -104,11 +120,13 @@ test.describe('scripts', () => {
     await expect(sheet.locator('[data-sheet-approval="draft"]')).toBeVisible();
     await expect(sheet.locator('[data-mirror]')).toHaveCount(2);
     const say = sheet.locator('[data-say-this]');
-    await expect(say).toContainText('[missing: dealership name]');
+    // A missing slot is a visible cue — a ‹dealership name› chip whose name says what fills it — never an invented value or a bracket.
+    await expect(say.locator('[data-slot="dealership_name"]')).toHaveAttribute('aria-label', /slot: dealership name/);
+    expect(await say.textContent()).not.toMatch(/\[missing:|[{}⟨⟩]/);
 
     await sheet.locator('[data-sample-facts]').click();
     await expect(sheet.locator('[data-sample-facts]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(say).not.toContainText('[missing: dealership name]');
+    await expect(say.locator('[data-slot="dealership_name"]')).toHaveCount(0);
     await expect(say).toContainText('Northgate Motors');
 
     // Evidence-satisfied: the spoken transition, not the rule sentence.
@@ -167,23 +185,25 @@ test.describe('scripts', () => {
     await page.goto('/scripts');
     await page.locator('[data-stage-rail] [data-stage="decision"]').click();
     const priceLine = page.locator('[data-node-card][data-node-id="decision-price"] [data-primary-line]');
-    await expect(priceLine).toContainText('Price not approved yet — route to scope conversation');
+    await expect(priceLine.locator('[data-slot-status="price"]')).toHaveAttribute('aria-label', /Price not approved yet — route to scope conversation/);
     expect(await priceLine.textContent()).not.toMatch(/\$|\d/);
     await page.locator('[data-stage-rail] [data-stage="pitch"]').click();
     const pillarLine = page.locator('[data-node-card][data-node-id="pitch-pillar-1"] [data-primary-line]');
-    await expect(pillarLine).toContainText('[Offer not approved: pillar 1 name]');
+    await expect(pillarLine.locator('[data-slot="pillar_1_name"][data-slot-status="offer"]')).toHaveAttribute('aria-label', /Offer not approved: pillar 1 name/);
     await expect(pillarLine).not.toContainText('Same-day inquiry response');
   });
 
   test('B-12: publishing the offer in the Offer Studio store is what /scripts reads — pillars then speak, price still gated', async ({ page }) => {
     await prime(page, { 'offers.status': { 'draft-research-offer-v0': 'published' } });
     await page.goto('/scripts');
-    await expect(page.locator('[data-offer-pill="published"]')).toBeVisible();
+    await page.locator('[data-status-open]').click();
+    await expect(page.locator('dialog[data-sheet="status"] [data-offer-pill="published"]')).toBeVisible();
+    await page.keyboard.press('Escape');
     await page.locator('[data-stage-rail] [data-stage="pitch"]').click();
     await expect(page.locator('[data-node-card][data-node-id="pitch-pillar-1"] [data-primary-line]')).toContainText('Same-day inquiry response');
     await page.locator('[data-stage-rail] [data-stage="decision"]').click();
     const priceLine = page.locator('[data-node-card][data-node-id="decision-price"] [data-primary-line]');
-    await expect(priceLine).toContainText('Price not approved yet');
+    await expect(priceLine.locator('[data-slot-status="price"]')).toHaveAttribute('aria-label', /Price not approved yet/);
     expect(await priceLine.textContent()).not.toMatch(/\$|\d/);
   });
 
@@ -231,7 +251,7 @@ test.describe('scripts', () => {
     const source = page.locator('dialog[data-sheet="source"]');
     await expect(source.locator('[data-source-sheet="I01"]')).toBeVisible();
     await expect(source.locator('[data-classification="adapt"]')).toBeVisible();
-    await source.locator('[data-open-record]').click();
+    await source.getByRole('link', { name: /Open record I01 in the Source Library/ }).click();
     await expect(page).toHaveURL(/\/sources\/I01$/);
   });
 

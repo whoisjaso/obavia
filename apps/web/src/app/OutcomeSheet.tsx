@@ -103,7 +103,7 @@ export function OutcomeSheet({ open, contact, suggested, onChoose }: OutcomeShee
         <div ref={gridRef}>
           <TileGrid columns={3}>
             {OUTCOME_TILES.map((t) => (
-              <Tile key={t.kind} icon={t.icon} label={t.label} name={`${t.name}${t.kind === suggestedKind ? ' (simulated result)' : ''}`} tone={t.tone} onClick={() => choose(t.kind)} data-outcome={t.kind} className={t.kind === suggestedKind ? styles.suggestedTile : undefined} />
+              <Tile key={t.kind} icon={t.icon} label={t.label} name={`${t.name}${t.kind === suggestedKind ? ' (suggested from the simulated result — not chosen yet)' : ''}`} tone={t.tone} onClick={() => choose(t.kind)} data-outcome={t.kind} suggested={t.kind === suggestedKind} data-suggested={t.kind === suggestedKind ? 'true' : undefined} />
             ))}
           </TileGrid>
         </div>

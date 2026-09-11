@@ -3,7 +3,12 @@ import { SettingsClient } from './SettingsClient';
 
 export const metadata: Metadata = { title: 'Settings' };
 
-/** Skeleton-owned. Local storage inspector, export/delete, default assistance mode. */
+/** Owner: M-me. Default assistance mode, local data export/delete — local demo mode only. */
 export default function SettingsPage() {
-  return <SettingsClient />;
+  return (
+    <>
+      <h1 className="sr-only">Settings</h1>
+      <SettingsClient />
+    </>
+  );
 }

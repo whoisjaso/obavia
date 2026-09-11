@@ -1,82 +1,38 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { loadSyntheticTranscripts } from '@apohenia/domain/seeds';
-import { analyzeCall, callDurationSeconds, callOutcome, outcomeLabel } from '@apohenia/domain/vocabulary';
-import { Badge, Card, PageHeader, Stack } from '@/components/ui';
-import styles from './calls.module.css';
+import { loadSyntheticProspects, loadSyntheticTranscripts } from '@apohenia/domain/seeds';
+import { analyzeCall, callDurationSeconds, callOutcome } from '@apohenia/domain/vocabulary';
+import { CallsClient } from './CallsClient';
+import { companyFromTitle, tagFromTitle, type CallRow } from './review-lib';
 
-export const metadata: Metadata = { title: 'Calls' };
+export const metadata: Metadata = { title: 'History' };
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
-/** Owner: M-vocab. Synthetic call history; each row opens the post-call review. */
+/**
+ * History (DESIGN_SYSTEM §3.7): a card per ended demo session (from the browser's `dial.history`)
+ * and a card per synthetic call. Rows are computed here on the server from the seeds; outcomes are
+ * derived from the prospect's own words, never from a model.
+ */
 export default function CallsPage() {
-  const seed = loadSyntheticTranscripts();
-  const rows = seed.transcripts.map((t) => {
+  const transcripts = loadSyntheticTranscripts().transcripts;
+  const seed = loadSyntheticProspects();
+  const rows: CallRow[] = transcripts.map((t) => {
     const analysis = analyzeCall(t.turns);
-    const prospect = analysis.facts.find((f) => f.key === '{prospect_name}')?.value ?? 'Unknown';
-    const dealership = analysis.facts.find((f) => f.key === '{dealership_name}')?.value ?? '';
+    const contact = seed.contacts.find((c) => c.call_id === t.call_id) ?? null;
+    const location = contact ? (seed.locations.find((l) => l.id === contact.location_id) ?? null) : null;
+    const facts = new Map(analysis.facts.map((f) => [f.key, f.value] as const));
     return {
       id: t.call_id,
-      title: t.title,
-      prospect,
-      dealership,
+      contact: contact?.name ?? facts.get('{prospect_name}') ?? 'Unknown',
+      company: location?.name ?? facts.get('{dealership_name}') ?? companyFromTitle(t.title) ?? '—',
+      duration_s: callDurationSeconds(t.turns),
       turns: analysis.turns.length,
-      duration: formatDuration(callDurationSeconds(t.turns)),
       outcome: callOutcome(analysis),
-      optOut: analysis.opt_out !== null,
+      tag: tagFromTitle(t.title),
     };
   });
-
   return (
     <>
-      <PageHeader
-        title="Calls"
-        purpose="Call history: transcript turns, vocabulary events, dispositions and grounded post-call review with one next drill — synthetic transcripts only in Increment 1."
-        aside={<Badge variant="warning">Synthetic calls only</Badge>}
-      />
-      <Stack gap={5}>
-        <Card title={`${rows.length} synthetic calls`}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">Call</th>
-                <th scope="col">Prospect</th>
-                <th scope="col">Turns</th>
-                <th scope="col">Duration</th>
-                <th scope="col">Outcome</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <Link href={`/calls/${encodeURIComponent(r.id)}`}>{r.title}</Link>
-                    <div className={styles.muted}>
-                      <code>{r.id}</code>
-                    </div>
-                  </td>
-                  <td>
-                    {r.prospect}
-                    {r.dealership ? <div className={styles.muted}>{r.dealership} (fictional)</div> : null}
-                  </td>
-                  <td>{r.turns}</td>
-                  <td>{r.duration}</td>
-                  <td>{r.optOut ? <Badge variant="warning">{outcomeLabel(r.outcome)}</Badge> : outcomeLabel(r.outcome)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-        <p className={styles.muted}>
-          Durations are derived from provider timestamps. Outcomes are derived from the prospect&apos;s own words (opt-out, agreed follow-up,
-          deferral) — never from a model.
-        </p>
-      </Stack>
+      <h1 className="sr-only">Calls</h1>
+      <CallsClient calls={rows} />
     </>
   );
 }

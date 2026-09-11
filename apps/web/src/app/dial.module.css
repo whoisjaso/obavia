@@ -12,13 +12,12 @@
   animation: fadeIn var(--dur) var(--ease);
 }
 .timer {
-  font-size: var(--fs-number);
+  font-size: var(--fs-title);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
-  padding: 2px 0;
 }
 .stats {
   display: flex;
@@ -86,11 +85,9 @@
 .nextMeta {
   display: flex;
   gap: var(--s-3);
-  font-size: var(--fs-micro);
+  font-size: var(--fs-caption);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 .localTime {
   font-variant-numeric: tabular-nums;
@@ -155,11 +152,6 @@
   gap: var(--s-4);
 }
 
-/* outcome */
-.suggestedTile {
-  border-color: var(--line-strong);
-  background: var(--bg-2);
-}
 .pickRow {
   display: flex;
   gap: var(--s-3);
@@ -178,13 +170,15 @@
   color-scheme: dark;
 }
 
-/* ---- In-call (§3.2) ---- */
+/* ---- In-call (§3.2): a fixed, non-scrolling stage ---- */
 .incall {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
-  flex: 1;
-  animation: fadeIn var(--dur-slow) var(--ease);
+  background: var(--bg);
+  animation: connect var(--dur-slow) var(--ease);
   transition: opacity var(--dur) var(--ease);
 }
 .dimmed {
@@ -192,19 +186,22 @@
   pointer-events: none;
 }
 .callHead {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  min-height: var(--topbar-h);
-  padding: var(--s-2) var(--s-4);
-  padding-top: calc(var(--s-2) + var(--safe-top));
-  margin: 0 calc(-1 * var(--s-4));
+  flex-shrink: 0;
+  height: calc(60px + var(--safe-top));
+  padding-top: var(--safe-top);
   background: var(--glass);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   backdrop-filter: blur(20px) saturate(140%);
+  border-bottom: 1px solid var(--line);
+}
+.callHeadInner {
+  height: 60px;
+  max-width: calc(var(--col) + var(--rail) + var(--s-6));
+  margin: 0 auto;
+  padding: 0 var(--s-4);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
 }
 .callWho {
   display: flex;
@@ -252,23 +249,42 @@
   border: 1.5px solid var(--ink-3);
 }
 
-/* narrow words strip */
+/* body: the line column (+ rail on wide) fills the space between header and foot */
+.body {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: calc(var(--col) + var(--rail) + var(--s-6));
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-5);
+}
+.lineCol {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--s-3) var(--s-4) 0;
+}
+
+/* narrow words strip: fixed 120px; simply dark while empty (no placeholder glyph) */
 .strip {
   display: flex;
   gap: var(--s-3);
   overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
-  padding: 2px 0 var(--s-2);
   margin: 0 calc(-1 * var(--s-4));
-  padding-left: var(--s-4);
-  padding-right: var(--s-4);
+  padding: 0 var(--s-4);
   scrollbar-width: none;
-  /* Fixed height: cards arriving above the line must never move the line (§0.5). */
-  height: 164px;
-  min-height: 164px;
-  max-height: 164px;
-  overflow-y: hidden;
+  height: 120px;
+  min-height: 120px;
+  max-height: 120px;
+  flex-shrink: 0;
   align-items: stretch;
 }
 .strip::-webkit-scrollbar {
@@ -276,68 +292,94 @@
 }
 .strip > * {
   flex: 0 0 auto;
-  width: min(260px, 72vw);
+  width: min(232px, 64vw);
   height: 100%;
   overflow: hidden;
   scroll-snap-align: start;
+  padding: 10px 14px;
+  gap: 2px;
 }
-.stripEmpty,
+.strip [data-ref-meaning] {
+  -webkit-line-clamp: 1;
+  font-size: var(--fs-caption);
+}
 .railEmpty {
   color: var(--ink-3);
   font-size: var(--fs-large);
   padding: var(--s-4);
 }
 
-.columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--s-5);
-  align-items: start;
-  flex: 1;
-}
-.lineCol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-4);
-  min-width: 0;
-}
+/* one row of chips: 2 (+more) on a phone, 4 (+more) on a wide stage */
 .chips {
   display: flex;
   gap: var(--s-2);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 2px 0;
 }
+.chips::-webkit-scrollbar {
+  display: none;
+}
+.chip {
+  flex: 0 0 auto;
+}
+.backButton {
+  margin-left: auto;
+}
+
+/* wide: rail — the full height between header and the bottom of the stage, scrolls on its own */
 .rail {
   display: none;
 }
 @media (min-width: 1024px) {
-  .strip {
-    display: none;
-  }
-  .columns {
+  .body {
     grid-template-columns: minmax(0, 1fr) var(--rail);
   }
   .rail {
     display: flex;
     flex-direction: column;
     gap: var(--s-3);
-    position: sticky;
-    top: calc(var(--topbar-h) + var(--s-3));
-    max-height: calc(100dvh - var(--tabbar-h) - var(--topbar-h) - var(--s-6));
+    min-height: 0;
     overflow-y: auto;
-    padding-right: 2px;
+    overscroll-behavior: contain;
+    padding: var(--s-3) var(--s-4) var(--s-5) 0;
+    scrollbar-width: thin;
   }
   .railHead {
     display: flex;
+    flex-shrink: 0;
+  }
+  .railLabel {
+    font-size: var(--fs-caption);
+    letter-spacing: 0.06em;
   }
   .railList {
     display: flex;
     flex-direction: column;
     gap: var(--s-3);
   }
+  .railList:empty {
+    min-height: 0;
+  }
 }
 
-/* suggestion overlay */
+/* suggestion overlay: sits above the docked bar, never inside the line card */
+.suggestWrap {
+  position: absolute;
+  left: var(--s-4);
+  right: var(--s-4);
+  bottom: var(--s-2);
+  z-index: 3;
+  animation: fadeIn var(--dur) var(--ease);
+}
+.suggest {
+  box-shadow: 0 -12px 40px rgba(11, 11, 15, 0.7);
+}
 .suggestHead {
   display: flex;
   align-items: baseline;
@@ -373,42 +415,91 @@
   flex-wrap: wrap;
 }
 
+/* docked bottom bar: ↑ transcript · End (an iOS call has no tab bar) */
 .callFoot {
-  position: sticky;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom));
-  z-index: 20;
+  flex-shrink: 0;
+  padding: var(--s-2) 0 calc(var(--s-3) + var(--safe-bottom));
+  background: linear-gradient(180deg, transparent, var(--bg) 40%);
+}
+.callFootInner {
+  max-width: calc(var(--col) + var(--rail) + var(--s-6));
+  margin: 0 auto;
+  padding: 0 var(--s-4);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   justify-items: center;
-  padding: var(--s-3) var(--s-4) var(--s-3);
-  margin: auto calc(-1 * var(--s-4)) 0;
-  background: linear-gradient(180deg, transparent, var(--bg) 35%);
 }
-.callFoot > :first-child {
+.callFootInner > :first-child {
   justify-self: start;
 }
 .footSpacer {
   width: 44px;
+}
+@media (min-width: 1024px) {
+  .callFootInner {
+    padding-right: calc(var(--rail) + var(--s-5) + var(--s-4));
+  }
 }
 
 /* sheets */
 .info {
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
+  gap: var(--s-3);
 }
 .infoBig {
   font-size: var(--fs-title);
   font-weight: 600;
   line-height: 1.3;
+  padding-bottom: var(--s-2);
 }
 .infoRow {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
   color: var(--ink-2);
   font-size: var(--fs-body);
+}
+.infoSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 52px;
+  padding: 0 var(--s-4);
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--ink);
+}
+.infoSummary::-webkit-details-marker {
+  display: none;
+}
+.infoSummary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+  border-radius: var(--r-tile);
+}
+.infoGlyph {
+  width: 24px;
+  text-align: center;
+  color: var(--ink-2);
+}
+.infoTeal .infoGlyph {
+  color: var(--teal);
+}
+.infoChevron {
+  margin-left: auto;
+  color: var(--ink-3);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.infoRow[open] .infoChevron {
+  transform: rotate(90deg);
+}
+.infoBody {
+  padding: 0 var(--s-4) var(--s-4);
+  line-height: var(--lh-body);
 }
 .infoList {
   margin: 0;
@@ -444,6 +535,11 @@
 .detailLine {
   font-size: var(--fs-body);
   color: var(--ink-2);
+}
+.detailCorrection {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--red);
 }
 .detailCue {
   font-size: var(--fs-caption);
@@ -493,10 +589,35 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
+  }
+}
+/* connect: one quick scale-up, then the crossfade (opacity only under reduced motion) */
+@keyframes connect {
+  0% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  25% {
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
     transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .incall {
+    animation: fade var(--dur) linear;
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 }

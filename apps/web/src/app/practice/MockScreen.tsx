@@ -23,6 +23,8 @@ import styles from './practice.module.css';
 export interface MockScreenProps {
   nodes: ScriptNode[];
   mode: AssistanceMode;
+  /** Fictional practice prospect facts that fill slots (never a real person). */
+  facts: Record<string, string>;
   onResult: (result: DrillResult, nodeId?: string) => void;
   onClose: () => void;
   onLive: (text: string) => void;
@@ -34,7 +36,7 @@ export interface MockScreenProps {
  * Next, or End with an outcome tile → result rings. The hidden fact sheet is fetched through
  * `evaluatorView` only after the run has ended and only while the Evaluator sheet is open.
  */
-export function MockScreen({ nodes, mode, onResult, onClose, onLive }: MockScreenProps) {
+export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: MockScreenProps) {
   const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [run, setRun] = useState<MockRun | null>(null);
   const [choice, setChoice] = useState<string | null>(null);
@@ -190,7 +192,7 @@ export function MockScreen({ nodes, mode, onResult, onClose, onLive }: MockScree
 
       {scenario && run && step && node && !ended ? (
         <div className={styles.drill} data-mock-step data-step-index={step.index} data-drill-kind="full_mock">
-          <AssistCard node={node} mode={mode} revealed={revealed} onReveal={() => setRevealed(true)} onInfo={() => setSheet('info')} />
+          <AssistCard node={node} mode={mode} facts={facts} revealed={revealed} onReveal={() => setRevealed(true)} onInfo={() => setSheet('info')} />
           <ProspectCard text={step.prospect_line} />
           <div role="group" aria-label="Branch" className={styles.choices} data-choice-group>
             {step.choices

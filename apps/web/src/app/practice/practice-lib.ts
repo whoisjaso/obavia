@@ -4,6 +4,8 @@
  */
 import type { AssistanceMode, DrillKind, DrillResult, LegitimateOutcome, PracticeAttempt } from '@apohenia/domain/schemas';
 import { MODE_DESCRIPTIONS, MODE_LABELS, isAssisted, summarizeAttempts, type MomentContext } from '@apohenia/domain/practice';
+import { resolveSlots, type KnownFacts } from '@apohenia/domain/scripts';
+import type { DrillItem } from '@apohenia/domain/schemas';
 import type { IconName, TileTone } from '@/components/ui';
 
 // ---------------------------------------------------------------------------------------
@@ -188,4 +190,23 @@ export function lines(text: string): string[] {
 /** Choice labels short enough for a 2-column tile grid. */
 export function shortChoices(labels: readonly string[]): boolean {
   return labels.every((l) => l.trim().split(/\s+/).length <= 4);
+}
+
+// ---------------------------------------------------------------------------------------
+// Practice prospect: slots resolve against one FICTIONAL record so a rep types "Hi Dana", not
+// "{prospect_name}". Unfilled slots stay as cues (rendered as chips); nothing is invented.
+// ---------------------------------------------------------------------------------------
+
+export function resolveForPractice(text: string, facts: KnownFacts): string {
+  return resolveSlots(text, { knownFacts: facts }).text;
+}
+
+/** The same item with its target line and any script-line choices resolved (grading then matches what was shown). */
+export function itemWithFacts(item: DrillItem, facts: KnownFacts): DrillItem {
+  const scriptChoices = item.kind === 'order_rehearsal' || item.kind === 'random_node_lookup' || item.kind === 'mirror_duel';
+  return {
+    ...item,
+    ...(item.target_text !== undefined ? { target_text: resolveForPractice(item.target_text, facts) } : {}),
+    choices: scriptChoices ? item.choices.map((c) => ({ ...c, label: resolveForPractice(c.label, facts) })) : item.choices,
+  };
 }

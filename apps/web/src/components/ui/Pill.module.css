@@ -56,3 +56,18 @@
   border-color: rgba(100, 210, 255, 0.4);
   background: rgba(100, 210, 255, 0.1);
 }
+
+/* row-edge status glyph: 20px, tone color, no pill box */
+.statusGlyph {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  padding: 0;
+}

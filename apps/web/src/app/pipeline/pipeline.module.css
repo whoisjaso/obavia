@@ -1,82 +1,234 @@
-.h2 {
-  margin-bottom: var(--space-2);
+/* ---- Follow-ups (§3.7) ---- */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeIn var(--dur) var(--ease);
 }
-.note {
-  color: var(--color-muted);
-  font-size: var(--font-size-sm);
-  max-width: 80ch;
-  margin-bottom: var(--space-3);
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-7);
+  padding: var(--s-3) 0 0;
 }
-.muted {
-  color: var(--color-muted);
-  font-size: var(--font-size-xs);
+@media (max-width: 479px) {
+  .stats {
+    gap: var(--s-6);
+  }
 }
-.weeks {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.filters {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.filters > :last-child {
+  margin-left: auto;
+}
+
+/* segmented lane control: one row of chips that scrolls sideways on a phone */
+.lanes {
+  display: flex;
+  gap: var(--s-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  margin: 0 calc(-1 * var(--s-4));
+  padding: 2px var(--s-4);
+  scrollbar-width: none;
+}
+.lanes::-webkit-scrollbar {
+  display: none;
+}
+.laneChip {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+.laneList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.laneHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+}
+.laneTitle {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.laneGlyph {
+  color: var(--ink-2);
+}
+.laneCount {
+  font-size: var(--fs-title);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  margin-right: auto;
+}
+.examplesPill {
+  cursor: pointer;
+}
+.laneBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-height: 140px;
+}
+.laneEmpty {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--space-2);
+  place-items: center;
+  min-height: 140px;
+  font-size: 56px;
+  font-weight: 300;
+  color: var(--ink-3);
+}
+.cardRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.company {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.contact {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cardChips {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: var(--s-2);
+}
+.day {
+  margin-left: auto;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.example {
+  border-style: dashed;
+}
+
+/* weeks sheet */
+.weeks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  text-align: center;
+}
+.weekChips {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  justify-content: center;
 }
 .week {
-  padding: var(--space-3);
-  border: 1px dashed var(--color-line);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-}
-.lanes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-3);
-}
-.lane {
-  padding: var(--space-4);
-}
-.definition {
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
-  margin-bottom: var(--space-3);
-}
-.cards {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
 }
-.card {
-  padding: var(--space-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius);
-  background: var(--color-surface-sunken);
-  font-size: var(--font-size-sm);
+.weekNumber {
+  font-size: var(--fs-large);
+  font-weight: 800;
+  line-height: 1;
+}
+.weekUnit {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.weekNote {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  max-width: 36ch;
+}
+.weekLine {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+/* lane / card sheets */
+.sheetBody {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  align-items: center;
+  gap: var(--s-3);
+  text-align: center;
 }
-.cardHead {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-2);
-  align-items: baseline;
+.sheetGlyph {
+  font-size: 64px;
+  line-height: 1;
+  color: var(--ink-2);
 }
-.table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: var(--font-size-sm);
+.sheetName {
+  font-size: var(--fs-title);
+  font-weight: 700;
 }
-.table th,
-.table td {
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-line);
-  vertical-align: top;
+.sheetRole {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
 }
-.table th {
+.sheetLine {
+  font-size: var(--fs-body);
+  color: var(--ink-2);
+  max-width: 40ch;
+}
+.sheetCue {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.linkRow {
+  display: inline-flex;
+  gap: var(--s-2);
+  align-items: center;
   font-weight: 600;
-  color: var(--color-muted);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

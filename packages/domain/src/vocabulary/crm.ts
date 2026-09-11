@@ -6,7 +6,7 @@
  * The records live in `data/synthetic_prospects.json` (schema: `schemas/dialer.ts`, loader:
  * `dialer/seed.ts`) so the sequential dialer and this CRM view read ONE source of truth.
  */
-import type { SyntheticCompany, SyntheticContact, SyntheticEndpoint, SyntheticLocation } from '../schemas/dialer';
+import type { DispositionKind, SessionHistoryEntry, SyntheticCompany, SyntheticContact, SyntheticEndpoint, SyntheticLocation } from '../schemas/dialer';
 import { syntheticProspectsSeed } from '../dialer/seed';
 
 export type { SyntheticCompany, SyntheticContact, SyntheticLocation } from '../schemas/dialer';
@@ -105,3 +105,97 @@ export const SYNTHETIC_PIPELINE_CARDS: PipelineCard[] = [
   { id: 'pc-k', lane: 'no_fit', company: 'Example single-point store', contact: 'Example owner', summary: 'Example: no website inquiry volume to follow through on. Respectfully disqualified.', call_id: null, timezone: 'America/Chicago', agreed_when: null, synthetic: true },
   { id: 'pc-l', lane: 'no_contact', company: 'Example dealer group', contact: 'Example GM', summary: 'Example: two attempts, no answer. No inference about interest.', call_id: null, timezone: 'America/New_York', agreed_when: null, synthetic: true },
 ];
+
+// ---------------------------------------------------------------------------------------------
+// Additive (M-queue): dispositions from the sequential dialer → pipeline lanes / glyph chips.
+// A disposition is what the representative chose on the outcome sheet; it is never upgraded here.
+// ---------------------------------------------------------------------------------------------
+
+export type PipelineLaneKey = 'agreed_follow_up' | 'budget' | 'authority' | 'implementation' | 'no_fit' | 'deferral' | 'no_contact' | 'do_not_call';
+
+/** Glyph chip for a wrap-up disposition (DESIGN_SYSTEM §3.3 tiles, rendered small). */
+export const DISPOSITION_GLYPHS: Record<DispositionKind, { glyph: string; word: string; name: string }> = {
+  no_answer: { glyph: '○', word: 'no answer', name: 'No answer — attempted, nobody picked up' },
+  voicemail: { glyph: '◍', word: 'voicemail', name: 'Voicemail — reached a mailbox; no message left' },
+  gatekeeper: { glyph: '◈', word: 'gatekeeper', name: 'Gatekeeper — spoke to someone who is not the decision maker' },
+  callback: { glyph: '↻', word: 'callback', name: 'Callback requested — a time the prospect asked for' },
+  talked: { glyph: '◎', word: 'talked', name: 'Talked — decision-maker conversation, no next step agreed' },
+  meeting: { glyph: '▣', word: 'meeting', name: 'Meeting scheduled — a mutually agreed time' },
+  qualified: { glyph: '★', word: 'qualified', name: 'Qualified — relevant problem, fit and authority established from what they said' },
+  no_fit: { glyph: '✕', word: 'no fit', name: 'No fit — respectful disqualification' },
+  do_not_call: { glyph: '⊘', word: 'DNC', name: 'Do not call — explicit opt-out; the number is suppressed for good' },
+};
+
+/**
+ * Which lane a disposition lands in. Budget / authority / implementation have no outcome tile in
+ * Increment 1 (they are reasons the prospect states, not dial results) and stay empty until a later
+ * increment records them; nothing is inferred into them.
+ */
+export function laneForDisposition(kind: DispositionKind): PipelineLaneKey {
+  switch (kind) {
+    case 'callback':
+    case 'meeting':
+    case 'qualified':
+      return 'agreed_follow_up';
+    case 'talked':
+      return 'deferral';
+    case 'no_fit':
+      return 'no_fit';
+    case 'do_not_call':
+      return 'do_not_call';
+    case 'no_answer':
+    case 'voicemail':
+    case 'gatekeeper':
+      return 'no_contact';
+    default:
+      return 'no_contact';
+  }
+}
+
+/** A pipeline card built from one dispositioned attempt of an ended demo session. */
+export interface HistoryPipelineCard {
+  id: string;
+  lane: PipelineLaneKey;
+  kind: DispositionKind;
+  company: string;
+  contact: string;
+  /** ISO time for a callback (chosen from tiles); null otherwise. */
+  when: string | null;
+  /** When the disposition was recorded. */
+  at: string;
+  session_id: string;
+  attempt_id: string;
+  /** Synthetic transcript played on that attempt, when it connected. */
+  transcript_id: string | null;
+  /** Always demo in Increment 1. */
+  mode: SessionHistoryEntry['mode'];
+}
+
+/** Cards for every dispositioned attempt across the session history, newest first. Skips and undispositioned attempts are not cards. */
+export function pipelineCardsFromHistory(history: readonly SessionHistoryEntry[]): HistoryPipelineCard[] {
+  const out: HistoryPipelineCard[] = [];
+  for (const session of history) {
+    for (const a of session.attempts) {
+      if (!a.disposition || a.n === 0) continue;
+      out.push({
+        id: `${session.id}:${a.id}`,
+        lane: laneForDisposition(a.disposition.kind),
+        kind: a.disposition.kind,
+        company: a.company,
+        contact: a.contact,
+        when: a.disposition.callback_at ?? null,
+        at: a.disposition.at,
+        session_id: session.id,
+        attempt_id: a.id,
+        transcript_id: a.transcript_id,
+        mode: session.mode,
+      });
+    }
+  }
+  return out.sort((x, y) => (x.at < y.at ? 1 : x.at > y.at ? -1 : 0));
+}
+
+/** Cards grouped by lane in `PIPELINE_LANES` order (every lane present, possibly empty). */
+export function groupByLane<T extends { lane: string }>(cards: readonly T[]): { lane: PipelineLane; cards: T[] }[] {
+  return PIPELINE_LANES.map((lane) => ({ lane, cards: cards.filter((c) => c.lane === lane.key) }));
+}

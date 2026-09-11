@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { loadScriptNodes, loadSyntheticTranscripts } from '@apohenia/domain/seeds';
-import { Badge, PageHeader } from '@/components/ui';
+import { loadScriptNodes, loadSyntheticProspects, loadSyntheticTranscripts } from '@apohenia/domain/seeds';
+import { buildQueue, knownFactsFor } from '@apohenia/domain/dialer';
+import { entryNode, resolveSlots } from '@apohenia/domain/scripts';
+import { analyzeCall } from '@apohenia/domain/vocabulary';
 import { CallDetailClient } from '../CallDetailClient';
+import { companyFromTitle, toKnownFacts } from '../review-lib';
 
 export const metadata: Metadata = { title: 'Call review' };
 
@@ -14,23 +16,39 @@ export function generateStaticParams() {
   return loadSyntheticTranscripts().transcripts.map((t) => ({ callId: t.call_id }));
 }
 
-/** Owner: M-vocab. One synthetic call: review, rubric, transcript with provenance, human corrections. */
+/**
+ * Call review (DESIGN_SYSTEM §3.7): the in-call layout replayed read-only — the entry line for this
+ * record, THEIR WORDS, THEIR REFERENCES — then four review cards, the `—` tone glyph, and the
+ * corrections sheet. Everything here is derived from the synthetic transcript and the seeds.
+ */
 export default async function CallDetailPage({ params }: { params: Promise<{ callId: string }> }) {
   const { callId } = await params;
   const transcript = loadSyntheticTranscripts().transcripts.find((t) => t.call_id === decodeURIComponent(callId));
   if (!transcript) notFound();
-  const nodes = loadScriptNodes().nodes.filter((n) => n.required_context.every((k) => DERIVABLE.has(k)));
+
+  const scripts = loadScriptNodes();
+  const version = scripts.versions[0] ?? null;
+  const queue = buildQueue(loadSyntheticProspects(), { mode: 'demo' });
+  const item = queue.find((q) => q.call_id === transcript.call_id) ?? null;
+  const analysis = analyzeCall(transcript.turns);
+  const facts = new Map(analysis.facts.map((f) => [f.key, f.value] as const));
+  // Record facts (first name, dealership) win — they are what you would say; transcript facts fill the rest.
+  const knownFacts = { ...toKnownFacts(analysis.facts), ...(item ? knownFactsFor(item) : {}) };
+  const node = version ? (entryNode(version, scripts.nodes, item?.entrypoint ?? 'cold') ?? entryNode(version, scripts.nodes, 'cold') ?? null) : null;
+  const line = node ? resolveSlots(node.primary_word_track, { knownFacts }).text : '';
+  const nodesCovered = scripts.nodes.filter((n) => n.required_context.every((k) => DERIVABLE.has(k))).map((n) => ({ id: n.id, stage: n.stage, required_context: n.required_context }));
+
   return (
     <>
-      <PageHeader
-        title="Call review"
-        purpose="Grounded post-call review of one synthetic call: one strength, one correction, a better question, one drill, the outcome, and the uncertainties."
-        aside={<Badge variant="warning">Synthetic</Badge>}
+      <h1 className="sr-only">Call review</h1>
+      <CallDetailClient
+        transcript={transcript}
+        node={node}
+        line={line}
+        contact={item?.contact ?? facts.get('{prospect_name}') ?? 'Unknown'}
+        company={item?.company ?? facts.get('{dealership_name}') ?? companyFromTitle(transcript.title) ?? '—'}
+        nodesCovered={nodesCovered}
       />
-      <p style={{ marginBottom: 'var(--space-4)' }}>
-        <Link href="/calls">← All calls</Link>
-      </p>
-      <CallDetailClient transcript={transcript} nodesCovered={nodes.map((n) => ({ id: n.id, stage: n.stage, required_context: n.required_context }))} />
     </>
   );
 }

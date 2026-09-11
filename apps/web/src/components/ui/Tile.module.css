@@ -54,6 +54,18 @@
   box-shadow: inset 0 0 0 2px var(--blue);
   border-color: var(--blue);
 }
+.suggested {
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.7);
+  border-color: rgba(10, 132, 255, 0.5);
+}
+.spark {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 13px;
+  color: var(--blue);
+  line-height: 1;
+}
 .check {
   position: absolute;
   top: 8px;

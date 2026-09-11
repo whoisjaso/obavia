@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { ButtonHTMLAttributes } from 'react';
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react';
 import { Icon, type IconName } from './Icon';
 import styles from './IconButton.module.css';
 
@@ -30,7 +30,7 @@ export function IconButton({ icon, label, href, size = 44, tone = 'neutral', sol
   const iconSize = Math.round(size * 0.5);
   if (href) {
     return (
-      <Link href={href} className={cls} style={style} aria-label={label} title={label} data-icon-button={icon}>
+      <Link href={href} className={cls} style={style} aria-label={label} title={label} data-icon-button={icon} {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}>
         <Icon name={icon} size={iconSize} />
       </Link>
     );

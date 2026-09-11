@@ -4,8 +4,8 @@ import { useState, type ReactNode } from 'react';
 import type { AssistanceMode, DrillChoice, DrillResult, ScriptNode } from '@apohenia/domain/schemas';
 import { maskForMode } from '@apohenia/domain/practice';
 import { stageLabel } from '@apohenia/domain/scripts';
-import { Chip, Icon, IconButton, LineCard, NotAssessedGlyph, Ring, Sheet, type IconName } from '@/components/ui';
-import { pct, verdictText } from './practice-lib';
+import { Chip, Icon, IconButton, LineCard, NotAssessedGlyph, Ring, Sheet, SlotLine, type IconName } from '@/components/ui';
+import { pct, resolveForPractice, verdictText } from './practice-lib';
 import styles from './practice.module.css';
 
 export const TONE_NAME = 'Tone not assessed (text-only)' as const;
@@ -122,10 +122,13 @@ export interface AssistCardProps {
   /** Extra chip(s) next to the stage. */
   meta?: ReactNode;
   onInfo?: () => void;
+  /** Fictional practice prospect facts: slots resolve against them (unfilled slots render as chips). */
+  facts?: Record<string, string>;
 }
 
-export function AssistCard({ node, mode, revealed, onReveal, hideLine, hideMirrors, meta, onInfo }: AssistCardProps) {
-  const view = maskForMode(node, mode, revealed);
+export function AssistCard({ node, mode, revealed, onReveal, hideLine, hideMirrors, meta, onInfo, facts = {} }: AssistCardProps) {
+  const masked = maskForMode(node, mode, revealed);
+  const view = { ...masked, primary: masked.primary === null ? null : resolveForPractice(masked.primary, facts), mirrors: masked.mirrors.map((m) => resolveForPractice(m, facts)) };
   const shown = view.primary !== null && !hideLine;
   const stage = stageLabel(node.stage);
   const draft = node.approval.status !== 'published' ? <Chip static glyph="◔" label={node.approval.status} name={`Approval status: ${node.approval.status} — training only`} tone="teal" /> : null;
@@ -153,7 +156,7 @@ export function AssistCard({ node, mode, revealed, onReveal, hideLine, hideMirro
         <ul className={styles.mirrors} aria-label="Mirror questions — same answer type, different words">
           {view.mirrors.map((m) => (
             <li key={m} className={styles.mirror}>
-              <span aria-hidden="true">⇄</span> {m}
+              <span aria-hidden="true">⇄</span> <SlotLine text={m} />
             </li>
           ))}
         </ul>

@@ -48,3 +48,15 @@ export function FictionalPill(props: Omit<GlyphPillProps, 'glyph' | 'name' | 'la
 export function NotAssessedGlyph({ name, ...props }: Omit<GlyphPillProps, 'glyph' | 'label'>) {
   return <GlyphPill glyph="—" name={name} tone="neutral" data-not-assessed {...props} />;
 }
+
+/**
+ * A 20px status glyph at a row's edge: the word lives only in the accessible name (`role="img"`),
+ * so names use the whole row width. Carries `data-chip={label}` for automation, like a Chip would.
+ */
+export function StatusGlyph({ glyph, name, label, tone = 'neutral', className, ...rest }: GlyphPillProps) {
+  return (
+    <span role="img" aria-label={name} title={name} className={[styles.statusGlyph, styles[tone], className ?? ''].join(' ').trim()} data-chip={label ?? glyph} {...rest}>
+      <span aria-hidden="true">{glyph}</span>
+    </span>
+  );
+}
