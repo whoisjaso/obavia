@@ -3,19 +3,19 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { AssistanceMode, DEFAULT_ASSISTANCE_MODE } from '@apohenia/domain/schemas';
 import { MODE_COPY, MODE_DESCRIPTIONS, MODE_LABELS, isAssisted } from '@apohenia/domain/practice';
-import { Card, Chip, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
+import { Card, Chip, Icon, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast, type IconName } from '@/components/ui';
 import { STORAGE_NAMESPACE, clearAllStored, exportAllStored, listStoredKeys, useStoredState, type StoredKeyInfo } from '@/lib/storage';
 import styles from './settings.module.css';
 
 const ASSISTANCE_MODE_KEY = 'settings.assistance_mode';
 
-/** Five glyphs (full · reveal · mirror · cue · none) — the same set Train shows. */
-const MODES: readonly { mode: AssistanceMode; glyph: string; word: string }[] = [
-  { mode: 'full_script', glyph: '≡', word: 'full' },
-  { mode: 'recall_with_reveal', glyph: '◑', word: 'reveal' },
-  { mode: 'primary_plus_mirror', glyph: '⇄', word: 'mirror' },
-  { mode: 'stage_purpose_cue', glyph: '◎', word: 'cue' },
-  { mode: 'unassisted', glyph: '○', word: 'none' },
+/** Five marks (full, reveal, mirror, cue, none): the same set Train shows. */
+const MODES: readonly { mode: AssistanceMode; icon: IconName; word: string }[] = [
+  { mode: 'full_script', icon: 'list', word: 'full' },
+  { mode: 'recall_with_reveal', icon: 'circle-half', word: 'reveal' },
+  { mode: 'primary_plus_mirror', icon: 'swap', word: 'mirror' },
+  { mode: 'stage_purpose_cue', icon: 'target', word: 'cue' },
+  { mode: 'unassisted', icon: 'circle', word: 'none' },
 ];
 
 function modeName(mode: AssistanceMode): string {
@@ -30,7 +30,7 @@ function formatBytes(n: number): string {
 /**
  * Settings (DESIGN_SYSTEM §3.6): the default assistance mode as a five-glyph segmented control,
  * local data as a card with big numbers, export / delete behind a sheet. Everything here is the
- * browser's own `apohenia.v1.*` namespace — synthetic, local demo data.
+ * browser's own `apohenia.v1.*` namespace: synthetic, local demo data.
  */
 export function SettingsClient() {
   const [mode, setMode, hydrated, resetMode] = useStoredState<AssistanceMode>(ASSISTANCE_MODE_KEY, AssistanceMode, DEFAULT_ASSISTANCE_MODE);
@@ -95,7 +95,7 @@ export function SettingsClient() {
     const removed = clearAllStored();
     setSheet('none');
     setExported(null);
-    resetMode(); // in-memory only — must not re-create the key we just deleted
+    resetMode(); // in-memory only: must not re-create the key we just deleted
     setLastAction(`Deleted ${removed} local entr${removed === 1 ? 'y' : 'ies'}.`);
     showToast('Deleted', 'red');
     refresh();
@@ -131,7 +131,7 @@ export function SettingsClient() {
                 data-mode-option={m.mode}
               >
                 <span className={styles.segGlyph} aria-hidden="true">
-                  {m.glyph}
+                  <Icon name={m.icon} size={22} weight={selected ? 'fill' : 'regular'} />
                 </span>
                 <span className={styles.segWord} aria-hidden="true">
                   {m.word}
@@ -172,14 +172,14 @@ export function SettingsClient() {
       <Sheet open={sheet === 'data'} onClose={() => setSheet('none')} title="Local data" tall data-sheet="local-data">
         <div className={styles.sheetStack}>
           <div className={styles.chips}>
-            <Chip static glyph="⌂" label={`${STORAGE_NAMESPACE}*`} name={`Storage namespace ${STORAGE_NAMESPACE} in this browser's localStorage. Synthetic data only. Nothing leaves this device unless you export it.`} />
+            <Chip static icon="home" label="This browser" name={`Storage namespace ${STORAGE_NAMESPACE} in this browser's localStorage. Synthetic data only. Nothing leaves this device unless you export it.`} />
           </div>
           {keys.length === 0 ? (
             <div className={styles.emptyRow}>
               <span className={styles.emptyGlyph} aria-hidden="true">
-                ∅
+                <Icon name="empty" size={48} weight="bold" />
               </span>
-              <span className={styles.emptyLabel}>{hydrated ? 'No entries' : 'Reading'}</span>
+              <span className={styles.emptyLabel}>{hydrated ? 'None yet' : 'Reading'}</span>
             </div>
           ) : (
             <ul className={styles.keys} aria-label="Stored keys and sizes" data-stored-keys>
@@ -197,7 +197,7 @@ export function SettingsClient() {
       {/* ---- export result ---- */}
       <Sheet open={sheet === 'export'} onClose={() => setSheet('none')} title="Export" tall data-sheet="export">
         <div className={styles.sheetStack}>
-          <p className={styles.sheetMuted}>Local demo mode — synthetic data. The file was offered as a download; the JSON is also here.</p>
+          <p className={styles.sheetMuted}>Local demo mode, synthetic data. The file was offered as a download; the JSON is also here.</p>
           {exported !== null ? (
             <pre className={styles.exportPre} data-export-json>
               {exported}

@@ -354,6 +354,27 @@ describe('post-call review and definitions', () => {
       expect(JSON.stringify(r)).not.toMatch(/distress|emotion score|tonality score/i);
     }
   });
+  it('a missing-field correction quotes the last question the representative asked, never the closing prospect turn', () => {
+    // Call C never states a problem; a node requiring {stated_problem} makes that the correction.
+    const r = postCallReview(C.turns, [{ id: 'n', stage: 'intent', required_context: ['{stated_problem}'] }]);
+    expect(r.correction.text).toMatch(/^Critical field not established: stated problem\./);
+    const finals = C.turns.filter((t) => t.is_final);
+    const lastRepQuestion = [...finals].reverse().find((t) => t.speaker_role === 'representative' && t.text.includes('?'));
+    expect(r.correction.quote_turn_id).toBe(lastRepQuestion!.utterance_id);
+    expect(r.correction.quote_turn_id).not.toBe(finals[finals.length - 1]!.utterance_id);
+    // Every missing-field correction across the seed quotes a representative question (or nothing).
+    for (const t of seed.transcripts) {
+      const rev = postCallReview(t, [{ id: 'n', stage: 'intent', required_context: ['{stated_problem}'] }]);
+      if (!rev.correction.text.startsWith('Critical field not established')) continue;
+      if (rev.correction.quote_turn_id === null) {
+        expect(rev.correction.text).toContain('No question asked for it');
+        continue;
+      }
+      const quoted = t.turns.find((x) => x.utterance_id === rev.correction.quote_turn_id);
+      expect(quoted?.speaker_role).toBe('representative');
+      expect(quoted?.text).toContain('?');
+    }
+  });
   it('a strength cites an evidence turn (mirror after a vague answer in call A)', () => {
     const r = postCallReview(A.turns);
     expect(r.strength.quote_turn_id).toBe('syn-a-profit-not-revenue-u05');

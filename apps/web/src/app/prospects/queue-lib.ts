@@ -5,7 +5,7 @@ import type { QueueItem, SyntheticProspectsSeed } from '@apohenia/domain/schemas
 
 export interface LocalClock {
   text: string;
-  /** 9:00–17:59 local = a reasonable calling window. */
+  /** 9:00 to 17:59 local = a reasonable calling window. */
   withinHours: boolean;
   /** Full accessible name. */
   name: string;
@@ -21,7 +21,7 @@ export function localClock(timezone: string, now: number): LocalClock | null {
     const hour24 = (hourPart % 12) + (dayPeriod === 'PM' ? 12 : 0);
     const text = fmt.format(new Date(now)).replace(/\s?(AM|PM)$/i, (m) => m.trim().toLowerCase());
     const withinHours = hour24 >= 9 && hour24 < 18;
-    return { text, withinHours, name: `Local time ${fmt.format(new Date(now))} (${timezone}) — ${withinHours ? 'within' : 'outside'} calling hours` };
+    return { text, withinHours, name: `Local time ${fmt.format(new Date(now))} (${timezone}), ${withinHours ? 'within' : 'outside'} calling hours` };
   } catch {
     return null;
   }

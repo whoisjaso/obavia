@@ -48,32 +48,20 @@
   flex-direction: column;
   gap: var(--s-3);
 }
+/* tools row under the segmented control: examples toggle + lane info, trailing edge */
 .laneHead {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--s-2);
   min-height: 44px;
 }
-.laneTitle {
-  font-size: var(--fs-body);
-  font-weight: 700;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.laneGlyph {
-  color: var(--ink-2);
-}
-.laneCount {
-  font-size: var(--fs-title);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-2);
-  margin-right: auto;
-}
 .examplesPill {
   cursor: pointer;
+}
+.examplesPill:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 .laneBody {
   display: flex;
@@ -82,12 +70,15 @@
   min-height: 140px;
 }
 .laneEmpty {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
   min-height: 140px;
-  font-size: 56px;
-  font-weight: 300;
-  color: var(--ink-3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
 }
 .cardRow {
   display: flex;
@@ -193,8 +184,8 @@
   text-align: center;
 }
 .sheetGlyph {
-  font-size: 64px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
   color: var(--ink-2);
 }
 .sheetName {

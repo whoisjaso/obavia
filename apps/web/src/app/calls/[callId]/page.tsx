@@ -17,9 +17,9 @@ export function generateStaticParams() {
 }
 
 /**
- * Call review (DESIGN_SYSTEM §3.7): the in-call layout replayed read-only — the entry line for this
- * record, THEIR WORDS, THEIR REFERENCES — then four review cards, the `—` tone glyph, and the
- * corrections sheet. Everything here is derived from the synthetic transcript and the seeds.
+ * Call review (DESIGN_SYSTEM §3.7): the in-call layout replayed read-only (the entry line for this
+ * record, THEIR WORDS, THEIR REFERENCES), then four review cards, the tone "not assessed" caption,
+ * and the corrections sheet. Everything here is derived from the synthetic transcript and the seeds.
  */
 export default async function CallDetailPage({ params }: { params: Promise<{ callId: string }> }) {
   const { callId } = await params;
@@ -32,7 +32,7 @@ export default async function CallDetailPage({ params }: { params: Promise<{ cal
   const item = queue.find((q) => q.call_id === transcript.call_id) ?? null;
   const analysis = analyzeCall(transcript.turns);
   const facts = new Map(analysis.facts.map((f) => [f.key, f.value] as const));
-  // Record facts (first name, dealership) win — they are what you would say; transcript facts fill the rest.
+  // Record facts (first name, dealership) win: they are what you would say; transcript facts fill the rest.
   const knownFacts = { ...toKnownFacts(analysis.facts), ...(item ? knownFactsFor(item) : {}) };
   const node = version ? (entryNode(version, scripts.nodes, item?.entrypoint ?? 'cold') ?? entryNode(version, scripts.nodes, 'cold') ?? null) : null;
   const line = node ? resolveSlots(node.primary_word_track, { knownFacts }).text : '';
@@ -46,7 +46,7 @@ export default async function CallDetailPage({ params }: { params: Promise<{ cal
         node={node}
         line={line}
         contact={item?.contact ?? facts.get('{prospect_name}') ?? 'Unknown'}
-        company={item?.company ?? facts.get('{dealership_name}') ?? companyFromTitle(transcript.title) ?? '—'}
+        company={item?.company ?? facts.get('{dealership_name}') ?? companyFromTitle(transcript.title) ?? 'Unknown dealership'}
         nodesCovered={nodesCovered}
       />
     </>

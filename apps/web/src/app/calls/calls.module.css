@@ -62,6 +62,9 @@
   color: var(--ink-2);
 }
 .clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-variant-numeric: tabular-nums;
 }
 .ringNumber {
@@ -83,7 +86,6 @@
 }
 .miniGlyph {
   color: var(--ink-3);
-  font-size: var(--fs-caption);
 }
 .empty {
   display: flex;
@@ -171,20 +173,89 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
-.dots {
+/* the one status chip (replaces the three state dots); the whole truth lives in its sheet */
+.status {
   display: inline-flex;
+  align-items: center;
   gap: 6px;
-  margin-left: var(--s-2);
+  height: 30px;
+  padding: 0 11px 0 9px;
+  border-radius: var(--r-chip);
+  border: 1px solid rgba(255, 159, 10, 0.4);
+  background: rgba(255, 159, 10, 0.1);
+  color: var(--orange);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
 }
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
+.status:hover {
+  background: rgba(255, 159, 10, 0.16);
 }
-.dotOff {
-  background: transparent;
-  border: 1.5px solid var(--ink-3);
+.status:active {
+  transform: scale(0.96);
+}
+.status:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.statusWord {
+  line-height: 1;
+}
+.statusRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.statusRow {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--s-3);
+  row-gap: 2px;
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.statusIcon {
+  grid-row: 1 / span 2;
+  color: var(--ink-2);
+}
+.statusOn .statusIcon {
+  color: var(--orange);
+}
+.statusLabel {
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.statusState {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding: 4px 8px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line-strong);
+}
+.statusOn .statusState {
+  color: var(--orange);
+  border-color: rgba(255, 159, 10, 0.4);
+}
+.statusDetail {
+  grid-column: 2 / span 2;
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  line-height: var(--lh-body);
 }
 .strip {
   display: flex;
@@ -215,8 +286,9 @@
 }
 .stripEmpty,
 .railEmpty {
-  color: var(--ink-3);
-  font-size: var(--fs-large);
+  color: var(--ink-2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
   padding: var(--s-4);
 }
 .columns {
@@ -267,10 +339,64 @@
   gap: var(--s-3);
   flex-wrap: wrap;
 }
-.outcomeTools {
-  margin-left: auto;
-  display: inline-flex;
+
+/* docked action bar above the tab bar: opaque glass over reserved padding, never over card text */
+.replay {
+  padding-bottom: calc(var(--review-bar-h) + var(--s-4));
+  --review-bar-h: 76px;
+}
+.reviewBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom));
+  z-index: 25;
+  padding: var(--s-2) var(--s-4);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border-top: 1px solid var(--line);
+}
+.reviewBarInner {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-2);
+  max-width: calc(var(--col) - 2 * var(--s-4));
+  margin: 0 auto;
+}
+/* three compact tiles: icon over a one-word label, like the tab bar, so labels never clip at 430 */
+.reviewBarInner > * {
+  min-height: 56px;
+  gap: 4px;
+  padding: var(--s-2) var(--s-2);
+  background: var(--bg-2);
+}
+.reviewBarInner > * > [data-icon] {
+  width: 22px;
+  height: 22px;
+}
+.reviewBarInner > * > span:not([class*='barCount']) {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.barCount {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--r-chip);
+  background: var(--gold);
+  color: #1d1600;
+  font-size: var(--fs-micro);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 .reviewGrid {
   display: grid;
@@ -340,6 +466,10 @@
 .useRightSummary::-webkit-details-marker {
   display: none;
 }
+.useRightIcon {
+  margin-right: var(--s-2);
+  color: var(--purple);
+}
 .useRight[open] {
   padding-bottom: var(--s-3);
 }
@@ -404,13 +534,25 @@
   color: var(--ink-2);
 }
 .detailCue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--fs-caption);
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 .detailActions {
   display: flex;
   gap: var(--s-2);
   flex-wrap: wrap;
+}
+.mergedRef {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-tile);
+  border: 1px solid rgba(191, 90, 242, 0.35);
+  background: rgba(191, 90, 242, 0.08);
 }
 .correctionForm {
   display: flex;
@@ -486,6 +628,9 @@
   line-height: var(--lh-body);
 }
 .turnWho {
+  display: inline-grid;
+  place-items: center;
+  padding-top: 6px;
   color: var(--ink-3);
 }
 .turnProspect .turnWho {

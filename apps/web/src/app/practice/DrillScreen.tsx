@@ -374,22 +374,34 @@ function DrillRun({ item, node, mode, facts, moment, stageChip, lookupNode, onJu
 
   const showLine = isText && (revealed || checked) && item.target_text !== undefined;
   const gridChoices = isChoice && shortChoices(item.choices.map((c) => c.label));
+  // Choice drills show the line as a two-line preview; the cue and the tools ride in its head so the answer tiles start higher.
+  const preview = Boolean(node) && isChoice;
+  const cueChip = (
+    <span data-cue>
+      <Chip static label={cue} name={item.prompt} tone="neutral" />
+    </span>
+  );
+  const cueTools = (
+    <>
+      {onEditMoment ? <IconButton icon="gear" label="Edit the moment (fictional example)" onClick={onEditMoment} className={preview ? styles.quietButton : undefined} data-edit-moment /> : null}
+      {item.kind !== 'vocabulary_meaning' ? <IconButton icon="list" label="Jump to another stage" onClick={onJump} className={preview ? styles.quietButton : undefined} data-stage-jump /> : null}
+    </>
+  );
 
   return (
     <div className={styles.drill} data-drill-kind={item.kind} data-item-id={item.id} data-checked={checked ? 'true' : 'false'}>
-      <div className={styles.cueRow}>
-        {stageChip}
-        <span data-cue>
-          <Chip static label={cue} name={item.prompt} tone="neutral" />
-        </span>
-        <span className={styles.cueTools}>
-          {onEditMoment ? <IconButton icon="gear" label="Edit the moment (fictional example)" onClick={onEditMoment} data-edit-moment /> : null}
-          {item.kind !== 'vocabulary_meaning' ? <IconButton icon="list" label="Jump to another stage" onClick={onJump} data-stage-jump /> : null}
-        </span>
-      </div>
+      {!preview ? (
+        <div className={styles.cueRow}>
+          {stageChip}
+          {cueChip}
+          <span className={styles.cueTools}>{cueTools}</span>
+        </div>
+      ) : null}
 
       {/* --- context: the line (mode-masked) or what the drill shows --- */}
-      {node && !isText ? <AssistCard node={node} mode={mode} facts={facts} revealed={revealed} onReveal={() => setRevealed(true)} hideMirrors={item.kind === 'mirror_duel' || item.kind === 'practice_this_moment'} onInfo={onInfo} preview={isChoice} /> : null}
+      {node && !isText ? (
+        <AssistCard node={node} mode={mode} facts={facts} revealed={revealed} onReveal={() => setRevealed(true)} hideMirrors={item.kind === 'mirror_duel' || item.kind === 'practice_this_moment'} onInfo={onInfo} preview={preview} meta={preview ? cueChip : undefined} tools={preview ? cueTools : undefined} />
+      ) : null}
       {node && isText ? (
         showLine ? (
           <LineCard stage={stageLabel(node.stage)} line={item.target_text ?? ''} nodeId={node.id} locked minLines={2} onInfo={onInfo} />

@@ -130,7 +130,7 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
         title="Mock"
         right={
           <>
-            <IconButton icon="info" label={`About the mock: ${NOT_A_VOICE_CALL}. Every scenario is fictional; some never convert — a respectful exit is the correct result there.`} onClick={() => setSheet('info')} data-drill-info />
+            <IconButton icon="info" label={`About the mock: ${NOT_A_VOICE_CALL}. Every scenario is fictional; some never convert; a respectful exit is the correct result there.`} onClick={() => setSheet('info')} data-drill-info />
             <IconButton icon="x" label={run ? 'Leave this mock' : scenario ? 'Back to scenarios' : 'Close drill'} onClick={back} data-drill-close />
           </>
         }
@@ -157,7 +157,7 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
             </div>
             <FactRows facts={briefFacts(coach.public_brief)} hook="brief" />
           </Card>
-          <PracticeHero action="start" label="Start mock — choice-based simulation, not an AI voice call" onClick={start} />
+          <PracticeHero action="start" label="Start mock: choice-based simulation, not an AI voice call" onClick={start} />
         </>
       ) : null}
 
@@ -190,7 +190,7 @@ export function MockScreen({ nodes, mode, facts, onResult, onClose, onLive }: Mo
 
       {scenario && run && step && node && !ended ? (
         <div className={styles.drill} data-mock-step data-step-index={step.index} data-drill-kind="full_mock">
-          <AssistCard node={node} mode={mode} facts={facts} revealed={revealed} onReveal={() => setRevealed(true)} onInfo={() => setSheet('info')} />
+          <AssistCard node={node} mode={mode} facts={facts} revealed={revealed} onReveal={() => setRevealed(true)} onInfo={() => setSheet('info')} preview />
           <ProspectCard text={step.prospect_line} />
           <div role="group" aria-label="Branch" className={styles.choices} data-choice-group>
             {step.choices

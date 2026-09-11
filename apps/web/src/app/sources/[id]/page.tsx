@@ -22,8 +22,8 @@ import {
 import { classificationGlyph } from '@apohenia/domain/scripts';
 import { loadScriptNodes } from '@apohenia/domain/seeds';
 import { statusGlyph } from '@apohenia/domain/offers';
-import { sectionShortName } from '../lib';
-import { Card, Chip, GlyphPill, IconButton, TopBar } from '@/components/ui';
+import { sectionShortName, sentenceCase } from '../lib';
+import { Card, Chip, Glyph, GlyphPill, IconButton, TopBar } from '@/components/ui';
 import styles from '../sources.module.css';
 import { RecordInfo } from './RecordInfo';
 
@@ -39,7 +39,7 @@ export function generateStaticParams(): Params[] {
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { id } = await params;
   const record = getSourceIndex().byId.get(id);
-  return { title: record ? `${record.id} — ${record.title}` : 'Source record' };
+  return { title: record ? `${record.id} · ${sentenceCase(record.title)}` : 'Source record' };
 }
 
 /**
@@ -66,7 +66,7 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
   return (
     <div className={styles.root} data-record={record.id} data-live-eligible={liveEligible ? 'yes' : 'no'}>
       <h1 className="sr-only">
-        {record.id} — {record.title}
+        {record.id} · {sentenceCase(record.title)}
       </h1>
       <TopBar
         left={<IconButton icon="arrow-left" label="Back to the Source Library" href="/sources" data-back />}
@@ -102,7 +102,7 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
         </span>
       </div>
 
-      <p className={styles.recordHeading}>{record.title}</p>
+      <p className={styles.recordHeading}>{sentenceCase(record.title)}</p>
 
       {/* the excerpt is the hero; provenance (offsets, hash status) lives behind ⓘ */}
       <Card data-excerpt-card>
@@ -113,7 +113,7 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
 
       <Card data-template-card>
         <h2 className={styles.caption}>
-          Template <GlyphPill glyph="≈" label="Normalized" tone="neutral" name={`${TEMPLATE_LABEL} — an editorial reconstruction; the unchanged excerpt is above`} data-template-label />
+          Template <GlyphPill glyph="≈" label="Normalized" tone="neutral" name={`${TEMPLATE_LABEL}: an editorial reconstruction; the unchanged excerpt is above`} data-template-label />
         </h2>
         <p className={styles.templateLarge} data-template>
           {record.template}
@@ -129,7 +129,7 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
         <h2 className={styles.caption}>
           Delivery <GlyphPill glyph="◔" label="Described" tone="neutral" name={deliveryCueNote(record.delivery)} />
         </h2>
-        <Chip static label={record.delivery} name={`Delivery described in source: ${record.delivery}`} className={styles.mono} />
+        <Chip static label={record.delivery} name={`Delivery described in source: ${record.delivery}`} />
       </Card>
 
       <Card data-counterparts={counterparts.length === 0 ? 'none' : counterparts.length}>
@@ -137,7 +137,7 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
           Own lines <GlyphPill glyph="✦" tone="purple" name="Own-script lines are Apohenia's original wording citing this record id; they are never shown as source quotes" />
         </h2>
         {counterparts.length === 0 ? (
-          <GlyphPill glyph="∅" label="None yet" tone="neutral" name={`No own-script node cites ${record.id}${liveEligible ? '' : ' — and a live node must not, because it is not live-eligible'}`} />
+          <GlyphPill glyph="∅" label="None yet" tone="neutral" name={`No own-script node cites ${record.id}${liveEligible ? '' : ', and a live node must not, because it is not live-eligible'}`} />
         ) : (
           <div className={styles.row}>
             {counterparts.map((c) => {
@@ -150,7 +150,7 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
                   aria-label={`${nodeLabels.get(c.node_id) ?? c.node_id} (${c.node_id}), stage ${c.stage}. ${s.name}.${c.practice_only ? ' Practice only.' : ''}${c.citation_warning ? ` ${c.citation_warning}` : ''} Open in the script.`}
                   data-counterpart={c.node_id}
                 >
-                  <span aria-hidden="true">{s.glyph}</span>
+                  <Glyph glyph={s.glyph} size={14} />
                   <span>{nodeLabels.get(c.node_id) ?? c.node_id}</span>
                 </Link>
               );
@@ -160,11 +160,11 @@ export default async function SourceRecordPage({ params }: { params: Promise<Par
       </Card>
 
       <nav className={styles.pager} aria-label="Record pager">
-        {prev ? <IconButton icon="arrow-left" label={`Previous: ${prev.id} — ${prev.title}`} href={`/sources/${encodeURIComponent(prev.id)}`} size={56} /> : <span className={styles.pagerEnd} aria-hidden="true" />}
+        {prev ? <IconButton icon="arrow-left" label={`Previous: ${prev.id}, ${sentenceCase(prev.title)}`} href={`/sources/${encodeURIComponent(prev.id)}`} size={56} /> : <span className={styles.pagerEnd} aria-hidden="true" />}
         <span className={styles.pagerMid} aria-hidden="true">
-          {position} / {index.records.length}
+          {position} of {index.records.length}
         </span>
-        {next ? <IconButton icon="arrow-right" label={`Next: ${next.id} — ${next.title}`} href={`/sources/${encodeURIComponent(next.id)}`} size={56} /> : <span className={styles.pagerEnd} aria-hidden="true" />}
+        {next ? <IconButton icon="arrow-right" label={`Next: ${next.id}, ${sentenceCase(next.title)}`} href={`/sources/${encodeURIComponent(next.id)}`} size={56} /> : <span className={styles.pagerEnd} aria-hidden="true" />}
       </nav>
     </div>
   );

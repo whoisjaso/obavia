@@ -117,8 +117,13 @@ export function postCallReview(transcript: Transcript | readonly TranscriptTurn[
   }
   const missing = nodesCovered.flatMap((n) => missingFields(n.required_context, analysis.facts)).filter((v, i, a) => a.indexOf(v) === i);
   if (!correction && missing.length > 0 && !analysis.opt_out) {
-    const last = finals[finals.length - 1];
-    correction = { text: `Critical field not established: ${slotLabel(missing[0]!)}.`, quote_turn_id: last?.utterance_id ?? null };
+    // Evidence for an absence is the last question the representative asked: the last place the
+    // field could have been established, and the turn that shows what was asked instead.
+    // Never the closing prospect turn, which says nothing about what was (not) asked.
+    const lastQuestion = [...repQuestions].reverse()[0] ?? null;
+    correction = lastQuestion
+      ? { text: `Critical field not established: ${slotLabel(missing[0]!)}. The last question asked did not establish it.`, quote_turn_id: lastQuestion.utterance_id }
+      : { text: `Critical field not established: ${slotLabel(missing[0]!)}. No question asked for it.`, quote_turn_id: null };
   }
   if (!correction) correction = { text: 'No high-leverage correction found from text alone.', quote_turn_id: null };
 

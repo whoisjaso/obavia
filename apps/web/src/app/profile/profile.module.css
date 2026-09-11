@@ -1,4 +1,4 @@
-/* /profile — reviewable identity profile (DESIGN_SYSTEM §3.6). Cards per section, endorse hero tile, sheets. */
+/* /profile: reviewable identity profile (DESIGN_SYSTEM §3.6). Cards per section, endorse hero tile, sheets. */
 
 .root {
   display: flex;
@@ -20,10 +20,9 @@
   width: min(100%, 240px);
 }
 .emptyGlyph {
-  font-size: 96px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
   color: var(--ink-3);
-  font-weight: 300;
 }
 .emptyLabel {
   font-size: var(--fs-caption);
@@ -96,9 +95,9 @@
   font-weight: 700;
 }
 .answerEmpty {
-  font-size: var(--fs-title);
-  height: 32px;
-  padding: 0 var(--s-3);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  min-height: 32px;
 }
 .chips {
   display: flex;

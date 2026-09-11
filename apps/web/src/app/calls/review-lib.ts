@@ -14,11 +14,11 @@ export interface CallRow {
   duration_s: number;
   turns: number;
   outcome: CallOutcome;
-  /** Listener fixtures ("L") vs the eight scenario calls ("A"–"H"): shown as a small chip. */
+  /** Listener fixtures ("L") vs the eight scenario calls ("A" to "H"): shown as a small chip. */
   tag: string;
 }
 
-/** Provenance glyph word for a WordCard: ● said · ◐ confirmed · ○ yours · ◌ hypothesis. */
+/** Provenance word for a WordCard: said, confirmed, yours, hypothesis. */
 export function wordProvenance(ev: Pick<VocabularyEvent, 'provenance'>): WordProvenance {
   switch (ev.provenance) {
     case 'prospect_said':
@@ -44,13 +44,13 @@ export function toKnownFacts(facts: readonly Fact[]): Record<string, string> {
   return out;
 }
 
-/** The "(Cedar Hollow Motors, fictional)" parenthetical every synthetic title carries — data, not invention. */
+/** The "(Cedar Hollow Motors, fictional)" parenthetical every synthetic title carries: data, not invention. */
 export function companyFromTitle(title: string): string | null {
   const m = /\(([^()]+?),\s*fictional\)/i.exec(title);
   return m?.[1]?.trim() ?? null;
 }
 
-/** "Synthetic call A — …" → "A"; "Listener fixture L3 — …" → "L3". */
+/** "Synthetic call A: …" gives "A"; "Listener fixture L3: …" gives "L3". */
 export function tagFromTitle(title: string): string {
   const m = /^(?:Synthetic call|Listener fixture)\s+([A-Z]\d*)\b/.exec(title);
   return m?.[1] ?? '·';

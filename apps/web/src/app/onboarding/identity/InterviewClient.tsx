@@ -22,7 +22,7 @@ import {
   visibleScreens,
   type DisplayStatus,
 } from '@apohenia/domain/interview';
-import { Card, Chip, GlyphPill, Icon, IconButton, Ring, Sheet, Tile, TileGrid, TopBar } from '@/components/ui';
+import { Card, Chip, GlyphPill, Icon, IconButton, Ring, Sheet, Tile, TileGrid, TopBar, type IconName } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import styles from './interview.module.css';
 
@@ -30,12 +30,12 @@ const SESSION_KEY = 'interview.session';
 const SessionOrNull = InterviewSession.nullable();
 
 /** Status glyph + one word + the whole truth (DISPLAY_STATUS_LABEL) for the review cards. */
-const STATUS_GLYPH: Record<DisplayStatus, { glyph: string; word: string; tone: 'green' | 'neutral' | 'gold' | 'blue' }> = {
-  answered: { glyph: '✓', word: 'Answered', tone: 'green' },
-  skipped: { glyph: '→', word: 'Skipped', tone: 'neutral' },
-  not_applicable: { glyph: '⊘', word: 'N/A', tone: 'neutral' },
-  needs_reanswer: { glyph: '↺', word: 'Re-check', tone: 'gold' },
-  unanswered: { glyph: '○', word: 'Open', tone: 'blue' },
+const STATUS_GLYPH: Record<DisplayStatus, { icon: IconName; word: string; tone: 'green' | 'neutral' | 'gold' | 'blue' }> = {
+  answered: { icon: 'check', word: 'Answered', tone: 'green' },
+  skipped: { icon: 'arrow-right', word: 'Skipped', tone: 'neutral' },
+  not_applicable: { icon: 'ban', word: 'Not asked', tone: 'neutral' },
+  needs_reanswer: { icon: 'undo', word: 'Re-check', tone: 'gold' },
+  unanswered: { icon: 'circle', word: 'Open', tone: 'blue' },
 };
 
 export interface InterviewClientProps {
@@ -136,8 +136,8 @@ export function InterviewClient({ version, placeholder }: InterviewClientProps) 
       <TopBar
         left={
           <>
-            <IconButton icon="x" label="Leave the interview — answers so far stay saved" href="/today" data-interview-exit />
-            {placeholder ? <GlyphPill glyph="◔" label="Placeholder" name="Placeholder seed — the interview content is not authored yet" tone="orange" /> : null}
+            <IconButton icon="x" label="Leave the interview. Answers so far stay saved" href="/today" data-interview-exit />
+            {placeholder ? <GlyphPill icon="hourglass" weight="fill" label="Placeholder" name="Placeholder seed: the interview content is not authored yet" tone="orange" /> : null}
           </>
         }
         center={
@@ -162,10 +162,10 @@ export function InterviewClient({ version, placeholder }: InterviewClientProps) 
         <Card dense tone="orange" role="status" data-dependents-note>
           <span className={styles.noteRow}>
             <span className={styles.noteGlyph} aria-hidden="true">
-              ↺
+              <Icon name="undo" size={20} weight="bold" />
             </span>
             <span aria-hidden="true" className={styles.noteText}>
-              {note.count === 1 ? 'Reset' : `Reset ${note.count}`} · {note.labels.join(' · ')}
+              {note.count === 1 ? 'Reset' : `Reset ${note.count}`}: {note.labels.join(', ')}
             </span>
             <span className="sr-only">
               Because this answer changed, {note.count === 1 ? 'a dependent answer was' : `${note.count} dependent answers were`} reset: {note.labels.map((l) => `“${l}”`).join(', ')}. Nothing else was touched.
@@ -192,7 +192,7 @@ export function InterviewClient({ version, placeholder }: InterviewClientProps) 
         />
       )}
 
-      {/* ⓘ — help text and rules, off the stage. */}
+      {/* Info sheet: help text and rules, off the stage. */}
       <Sheet open={sheet === 'help'} onClose={() => setSheet('none')} title="Help" data-sheet="interview-help">
         <div className={styles.sheetStack}>
           {currentScreen ? (
@@ -204,7 +204,7 @@ export function InterviewClient({ version, placeholder }: InterviewClientProps) 
                   {currentScreen.options.map((o) => (
                     <li key={o.id}>
                       <span className={styles.sheetOptionLabel}>{o.label}</span>
-                      {o.description ? <span className={styles.sheetMuted}> — {o.description}</span> : null}
+                      {o.description ? <span className={styles.sheetMuted}>: {o.description}</span> : null}
                     </li>
                   ))}
                 </ul>
@@ -222,12 +222,12 @@ export function InterviewClient({ version, placeholder }: InterviewClientProps) 
         </div>
       </Sheet>
 
-      {/* Start over — two tiles, no paragraph. */}
+      {/* Start over: two tiles, no paragraph. */}
       <Sheet open={sheet === 'restart'} onClose={() => setSheet('none')} title="Start over" data-sheet="interview-restart">
         <div className={styles.sheetStack}>
           <p className={styles.sheetText}>Clears every answer in this browser and starts a fresh session. Your endorsed profile, if any, stops being used by Today until you endorse again.</p>
           <TileGrid columns={2}>
-            <Tile icon="refresh" label="Start over" tone="red" name="Start the interview over — clears every answer in this browser" onClick={restart} data-confirm-restart />
+            <Tile icon="refresh" label="Start over" tone="red" name="Start the interview over: clears every answer in this browser" onClick={restart} data-confirm-restart />
             <Tile icon="check" label="Keep" name="Keep my answers" onClick={() => setSheet('none')} />
           </TileGrid>
         </div>
@@ -317,13 +317,13 @@ function ScreenView({ screen, index, total, initialSelection, needsReanswer, has
           onKeyDown={(e) => onKeyDown(e, i)}
           className={[styles.option, o.exclusive ? styles.optionExclusive : '', pressed ? styles.optionSelected : ''].join(' ').trim()}
           aria-pressed={pressed}
-          aria-label={o.description ? `${o.label} — ${o.description}` : undefined}
+          aria-label={o.description ? `${o.label}: ${o.description}` : undefined}
           onClick={() => toggle(o.id)}
           data-option-id={o.id}
         >
           {pressed ? (
             <span className={styles.optionCheck} aria-hidden="true">
-              <Icon name="check" size={14} strokeWidth={2.5} />
+              <Icon name="check" size={14} weight="bold" />
             </span>
           ) : null}
           <span className={styles.optionLabel} aria-hidden={o.description ? true : undefined}>
@@ -340,15 +340,15 @@ function ScreenView({ screen, index, total, initialSelection, needsReanswer, has
         <span className="sr-only">
           Question {index + 1} of {total} visible.
         </span>
-        {screen.base_or_conditional === 'conditional' ? <Chip static glyph="↳" label="Follow-up" name="Conditional question — shown because of an earlier answer" tone="teal" /> : null}
+        {screen.base_or_conditional === 'conditional' ? <Chip static icon="branch" label="Follow-up" name="Conditional question: shown because of an earlier answer" tone="teal" /> : null}
         {needsReanswer ? (
           <span data-needs-reanswer role="status">
-            <Chip static glyph="↺" label="Re-check" name="An earlier answer this question depends on changed. Confirm or change your answer." tone="gold" />
+            <Chip static icon="undo" label="Re-check" name="An earlier answer this question depends on changed. Confirm or change your answer." tone="gold" />
           </span>
         ) : null}
         {hasDependents ? (
           <span data-has-dependents>
-            <Chip static glyph="⇢" label="Has follow-up" name="Changing this answer resets the answer that depends on it. You will see a note if that happens." />
+            <Chip static icon="arrow-right" label="Has follow-up" name="Changing this answer resets the answer that depends on it. You will see a note if that happens." />
           </span>
         ) : null}
       </div>
@@ -357,28 +357,6 @@ function ScreenView({ screen, index, total, initialSelection, needsReanswer, has
         {screen.prompt}
       </h2>
 
-      <div className={styles.kindRow}>
-        {max !== undefined ? (
-          <span data-max-select data-chosen={chosen}>
-            <Chip static glyph="◫" label={`Up to ${max}`} name={`Multi-select: choose up to ${max}. Selected ${chosen} of ${max}.`} />
-          </span>
-        ) : (
-          <span data-pick-one>
-            <Chip static glyph="◉" label="Pick one" name="Choose one." />
-          </span>
-        )}
-        {max !== undefined ? (
-          <span className={styles.countPill} aria-hidden="true">
-            {chosen}/{max}
-          </span>
-        ) : null}
-        {limitNotice ? (
-          <span role="status" data-limit-notice>
-            <Chip static glyph="◫" label={`Max ${max ?? ''}`} tone="gold" name={limitNotice} />
-          </span>
-        ) : null}
-      </div>
-
       <ul className={styles.options} role="group" aria-labelledby={promptId} data-options>
         {substantive.map((o, i) => renderOption(o, i))}
         {exclusive.map((o, j) => renderOption(o, substantive.length + j))}
@@ -386,22 +364,38 @@ function ScreenView({ screen, index, total, initialSelection, needsReanswer, has
 
       <div className={styles.actions}>
         <IconButton icon="arrow-left" label="Back" size={56} disabled={!canGoBack} onClick={onBack} data-back />
-        <Chip label="Skip" glyph="→" name="Skip this question" onClick={onSkip} data-skip />
+        <Chip label="Skip" icon="arrow-right" name="Skip this question" onClick={onSkip} data-skip />
         <span className={styles.spacer} />
-        {/* fixed slot: the cue fades in and out without moving Next */}
-        <span id={reasonId} className={[styles.reason, problem === null ? styles.reasonClear : ''].join(' ').trim()} data-next-reason={problem === null ? 'clear' : 'blocked'} aria-hidden={problem === null ? 'true' : undefined}>
-          {problem !== null ? (
+        {/*
+          The one place the select mode is stated: a fixed slot so the cue changes without moving Next.
+          Blocked: "Pick up to 3" / "Pick one" with the full sentence for assistive tech. Clear: a check
+          and the running count ("2 of 3"). The mark never disappears mid-flow.
+        */}
+        <span
+          id={reasonId}
+          className={[styles.reason, problem === null ? styles.reasonClear : '', limitNotice ? styles.reasonLimit : ''].join(' ').trim()}
+          data-next-reason={problem === null ? 'clear' : 'blocked'}
+          data-max-select={max !== undefined ? '' : undefined}
+          data-pick-one={max === undefined ? '' : undefined}
+          data-chosen={max !== undefined ? chosen : undefined}
+          aria-hidden={problem === null && !limitNotice ? 'true' : undefined}
+        >
+          {limitNotice ? (
+            <span role="status" data-limit-notice>
+              <Chip static icon="warning" label={`Max ${max ?? ''}`} tone="gold" name={limitNotice} />
+            </span>
+          ) : problem !== null ? (
             <>
-              <span aria-hidden="true">◌ {reasonCue(problem, max)}</span>
+              <Chip static icon="circle-dashed" label={reasonCue(problem, max)} name={max !== undefined ? `Multi-select: choose up to ${max}. Selected ${chosen} of ${max}.` : 'Choose one.'} className={styles.reasonChip} />
               <span className="sr-only">{problem}</span>
             </>
           ) : (
-            <span aria-hidden="true">✓</span>
+            <Chip static icon="check" label={max !== undefined ? `${chosen} of ${max}` : 'Chosen'} tone="green" name={max !== undefined ? `Multi-select: choose up to ${max}. Selected ${chosen} of ${max}.` : 'Choose one.'} className={styles.reasonChip} />
           )}
         </span>
         <button type="button" className={styles.nextHero} onClick={() => onNext(selection)} disabled={problem !== null} aria-describedby={problem !== null ? reasonId : undefined} data-next>
           <span>Next</span>
-          <Icon name="arrow-right" size={22} strokeWidth={2.25} />
+          <Icon name="arrow-right" size={22} weight="bold" />
         </button>
       </div>
     </section>
@@ -441,14 +435,14 @@ function ReviewScreen({ version, session, visible, hidden, complete, remaining, 
       <div className={styles.reviewHead} role="group" aria-label={summaryName} data-review-summary>
         <Ring value={prog.total_visible > 0 ? (prog.answered + prog.skipped) / prog.total_visible : 0} size={72} stroke={7} color={complete ? 'var(--green)' : 'var(--blue)'}>
           <span className={styles.reviewRingCenter} aria-hidden="true">
-            {complete ? <Icon name="check" size={30} strokeWidth={2.5} /> : remaining}
+            {complete ? <Icon name="check" size={30} weight="bold" /> : remaining}
           </span>
         </Ring>
         <div className={styles.reviewChips} aria-hidden="true">
-          <Chip static glyph="✓" label={`${prog.answered}`} tone="green" />
-          <Chip static glyph="→" label={`${prog.skipped}`} />
-          {hidden.length > 0 ? <Chip static glyph="⊘" label={`${hidden.length}`} /> : null}
-          {!complete ? <Chip static glyph="○" label={`${remaining} open`} tone="blue" /> : (
+          <Chip static icon="check" label={`${prog.answered}`} tone="green" />
+          <Chip static icon="arrow-right" label={`${prog.skipped}`} />
+          {hidden.length > 0 ? <Chip static icon="ban" label={`${hidden.length}`} /> : null}
+          {!complete ? <Chip static icon="circle" label={`${remaining} open`} tone="blue" /> : (
             <span data-review-complete>
               <Chip static label="All answered" tone="green" />
             </span>
@@ -470,16 +464,20 @@ function ReviewScreen({ version, session, visible, hidden, complete, remaining, 
                   <div className={styles.reviewBody}>
                     <span className={styles.reviewTitle}>
                       {title}
-                      {r.screen.base_or_conditional === 'conditional' ? <span className={styles.reviewCond} aria-label="conditional"> ↳</span> : null}
+                      {r.screen.base_or_conditional === 'conditional' ? (
+                        <span className={styles.reviewCond}>
+                          <Icon name="branch" size={14} weight="bold" label="conditional" />
+                        </span>
+                      ) : null}
                     </span>
                     <span className={styles.reviewMeta}>
-                      <Chip static glyph={s.glyph} label={s.word} tone={s.tone} name={DISPLAY_STATUS_LABEL[r.status]} />
+                      <Chip static icon={s.icon} label={s.word} tone={s.tone} name={DISPLAY_STATUS_LABEL[r.status]} />
                       {r.labels.map((l) => (
                         <Chip key={l} static label={l} name={`Answer: ${l}`} className={styles.answerChip} />
                       ))}
                     </span>
                   </div>
-                  {r.visible ? <Chip label="Edit" glyph="✎" name={`Edit: ${title}`} onClick={() => onEdit(r.screen.id)} data-review-edit={r.screen.id} /> : null}
+                  {r.visible ? <Chip label="Edit" icon="edit" name={`Edit: ${title}`} onClick={() => onEdit(r.screen.id)} data-review-edit={r.screen.id} /> : null}
                 </div>
               </Card>
             </li>

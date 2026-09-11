@@ -59,9 +59,14 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+/* a blank price: a quiet caption, never a dash and never $0 */
 .moneyUnset {
-  color: var(--ink-3);
-  font-weight: 400;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+  line-height: 1;
+  padding-top: calc(var(--fs-large) - var(--fs-caption));
 }
 .moneyKey {
   font-size: var(--fs-micro);
@@ -211,10 +216,9 @@
   padding: var(--s-8) 0;
 }
 .emptyGlyph {
-  font-size: 96px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
   color: var(--ink-3);
-  font-weight: 300;
 }
 .emptyLabel {
   font-size: var(--fs-caption);

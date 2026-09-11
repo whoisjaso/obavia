@@ -4,9 +4,9 @@ import { useMemo, useState } from 'react';
 import { z } from 'zod';
 import { DialHistory } from '@apohenia/domain/schemas';
 import { DISPOSITION_GLYPHS, FOLLOW_UP_WEEK_NOTE, FOLLOW_UP_WEEK_VIEW, PIPELINE_LANES, SYNTHETIC_PIPELINE_CARDS, groupByLane, pipelineCardsFromHistory, type HistoryPipelineCard, type PipelineCard, type PipelineLane } from '@apohenia/domain/vocabulary';
-import { Avatar, Card, Chip, FictionalPill, GlyphPill, IconButton, Sheet, Stat, TopBar } from '@/components/ui';
+import { Avatar, Card, Chip, FictionalPill, GlyphPill, Icon, IconButton, Sheet, Stat, TopBar, type IconName } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
-import { LANE_GLYPHS, laneTone, shortDay, whenChip } from './pipeline-lib';
+import { laneIcon, laneTone, shortDay, whenChip } from './pipeline-lib';
 import styles from './pipeline.module.css';
 
 const EMPTY_HISTORY: DialHistory = [];
@@ -18,10 +18,15 @@ type LaneCard = { source: 'history'; card: HistoryPipelineCard } | { source: 'ex
 type SheetKind = { kind: 'weeks' } | { kind: 'lane'; key: string } | { kind: 'card'; id: string };
 
 /**
- * Follow-ups: eight lanes as a segmented control of chips (glyph · ≤2 words · count) over ONE list —
- * never a board. Cards come from the dispositions in `dial.history`; synthetic example cards (✦)
- * can be shown beside them. No lane ever authorizes a message — the 1/2/4/6/8-week note lives behind ⓘ.
+ * Follow-ups: eight lanes as a segmented control of chips (icon, at most two words, count) over ONE
+ * list, never a board. The selected chip IS the lane's heading: the list below carries no repeated
+ * title, and the count appears once (on the chip). Cards come from the dispositions in
+ * `dial.history`; synthetic example cards can be shown beside them. No lane ever authorizes a
+ * message; the 1/2/4/6/8-week note lives behind the info button.
  */
+
+/** Disposition marks as kit icons (the domain keeps a status character per kind). */
+const DISPOSITION_ICON: Record<string, IconName> = { '○': 'circle', '◍': 'voicemail', '◈': 'person', '↻': 'refresh', '◎': 'target', '▣': 'calendar', '★': 'star', '✕': 'x', '⊘': 'ban' };
 export function PipelineClient() {
   const [history, , hydrated] = useStoredState('dial.history', DialHistory, EMPTY_HISTORY);
   const [prefs, setPrefs] = useStoredState('pipeline.prefs', Prefs, DEFAULT_PREFS);
@@ -57,10 +62,10 @@ export function PipelineClient() {
             </div>
           </div>
           <div className={styles.cardChips}>
-            <Chip static glyph={g.glyph} label={g.word} name={g.name} tone={h.kind === 'do_not_call' ? 'red' : h.lane === 'agreed_follow_up' ? 'green' : 'neutral'} />
+            <Chip static icon={DISPOSITION_ICON[g.glyph] ?? 'circle'} label={g.word} name={g.name} tone={h.kind === 'do_not_call' ? 'red' : h.lane === 'agreed_follow_up' ? 'green' : 'neutral'} />
             {when ? (
               <span data-when-chip>
-                <Chip static glyph="▣" label={when.text} name={when.name} tone={when.past ? 'neutral' : 'blue'} />
+                <Chip static icon="calendar" label={when.text} name={when.name} tone={when.past ? 'neutral' : 'blue'} />
               </span>
             ) : null}
             <span className={styles.day}>{shortDay(h.at)}</span>
@@ -80,7 +85,7 @@ export function PipelineClient() {
         </div>
         <div className={styles.cardChips}>
           <FictionalPill />
-          {e.agreed_when ? <Chip static glyph="▣" label={e.agreed_when} name={`Agreed: ${e.agreed_when} (${e.timezone}) — a synthetic example`} tone="blue" /> : null}
+          {e.agreed_when ? <Chip static icon="calendar" label={e.agreed_when} name={`Agreed: ${e.agreed_when}, a synthetic example`} tone="blue" /> : null}
         </div>
       </Card>
     );
@@ -92,7 +97,7 @@ export function PipelineClient() {
         title="Follow-ups"
         right={
           <>
-            <IconButton icon="info" label="Week view — a view, not permission to message" onClick={() => setSheet({ kind: 'weeks' })} data-weeks-info />
+            <IconButton icon="info" label="Week view: a view, not permission to message" onClick={() => setSheet({ kind: 'weeks' })} data-weeks-info />
             <IconButton icon="history" label="History" href="/calls" />
           </>
         }
@@ -104,13 +109,13 @@ export function PipelineClient() {
         <Stat value={callbacks} icon="calendar" name="Callbacks with a time" color="var(--blue)" />
       </div>
 
-      {/* segmented control: one chip per lane (glyph · label · count); scrolls sideways on a phone */}
+      {/* segmented control: one chip per lane (icon, label, count); scrolls sideways on a phone */}
       <div className={styles.lanes} data-lanes role="group" aria-label="Lanes">
         {lanes.map(({ lane, cards }) => (
           <Chip
             key={lane.key}
             label={lane.label}
-            glyph={LANE_GLYPHS[lane.key] ?? '·'}
+            icon={laneIcon(lane.key)}
             kbd={String(cards.length)}
             toggle
             selected={lane.key === activeKey}
@@ -128,18 +133,14 @@ export function PipelineClient() {
       {/* the one list: the active lane's cards */}
       {active ? (
         <section className={styles.laneList} aria-label={`${active.lane.label}: ${active.cards.length}`} data-lane-list={active.lane.key} data-count={active.cards.length}>
+          {/* tools only: the selected chip above is the heading, and it already carries the count */}
           <div className={styles.laneHead}>
-            <span className={styles.laneTitle} aria-hidden="true">
-              <span className={styles.laneGlyph}>{LANE_GLYPHS[active.lane.key] ?? '·'}</span> {active.lane.label}
-            </span>
-            <span className={styles.laneCount} aria-hidden="true">
-              {active.cards.length}
-            </span>
             <GlyphPill
-              glyph="✦"
-              label={prefs.examples ? 'on' : undefined}
+              icon="spark"
+              weight="fill"
+              label={prefs.examples ? 'Examples on' : 'Examples off'}
               tone="purple"
-              name={prefs.examples ? 'Synthetic example cards are shown — fictional, not real records. Tap to hide.' : 'Synthetic example cards hidden. Tap to show fictional examples.'}
+              name={prefs.examples ? 'Synthetic example cards are shown: fictional, not real records. Tap to hide.' : 'Synthetic example cards hidden. Tap to show fictional examples.'}
               role="button"
               tabIndex={0}
               aria-pressed={prefs.examples}
@@ -153,12 +154,13 @@ export function PipelineClient() {
               className={styles.examplesPill}
               data-examples-toggle
             />
-            <IconButton icon="info" label={`${active.lane.label} — what this lane means`} onClick={() => setSheet({ kind: 'lane', key: active.lane.key })} data-lane-info />
+            <IconButton icon="info" label={`${active.lane.label}: what this lane means`} onClick={() => setSheet({ kind: 'lane', key: active.lane.key })} data-lane-info />
           </div>
           <div className={styles.laneBody}>
             {active.cards.length === 0 ? (
               <span className={styles.laneEmpty} aria-hidden="true">
-                ∅
+                <Icon name="empty" size={40} weight="bold" />
+                <span>None yet</span>
               </span>
             ) : (
               active.cards.map((c) => renderCard(c.item))
@@ -202,11 +204,11 @@ function LaneSheet({ lane }: { lane: PipelineLane }) {
   return (
     <div className={styles.sheetBody}>
       <span className={styles.sheetGlyph} aria-hidden="true">
-        {LANE_GLYPHS[lane.key] ?? '·'}
+        <Icon name={laneIcon(lane.key)} size={56} weight="regular" />
       </span>
-      <Chip static glyph={LANE_GLYPHS[lane.key] ?? '·'} label={lane.label} tone={laneTone(lane.key)} />
+      <Chip static icon={laneIcon(lane.key)} label={lane.label} tone={laneTone(lane.key)} />
       <p className={styles.sheetLine}>{lane.definition}</p>
-      {lane.key === 'budget' || lane.key === 'authority' || lane.key === 'implementation' ? <Chip static glyph="◔" label="Increment 2" name="No outcome tile records this reason yet; nothing is inferred into this lane" tone="teal" /> : null}
+      {lane.key === 'budget' || lane.key === 'authority' || lane.key === 'implementation' ? <Chip static icon="hourglass" label="Increment 2" name="No outcome tile records this reason yet; nothing is inferred into this lane" tone="teal" /> : null}
     </div>
   );
 }
@@ -222,13 +224,12 @@ function CardSheet({ item }: { item: LaneCard }) {
         <p className={styles.sheetLine}>{e.summary}</p>
         <div className={styles.cardChips}>
           <FictionalPill />
-          <Chip static glyph="◔" label={e.timezone.split('/')[1]?.replace('_', ' ') ?? e.timezone} name={`Timezone ${e.timezone}`} />
-          {e.agreed_when ? <Chip static glyph="▣" label={e.agreed_when} name={`Agreed: ${e.agreed_when} — synthetic example`} tone="blue" /> : null}
+          {e.agreed_when ? <Chip static icon="calendar" label={e.agreed_when} name={`Agreed: ${e.agreed_when}, local to the prospect. Synthetic example`} tone="blue" /> : null}
         </div>
         {e.call_id ? (
           <Card href={`/calls/${encodeURIComponent(e.call_id)}`} name={`Open the synthetic call review for ${e.contact}`} dense>
             <span className={styles.linkRow}>
-              <span aria-hidden="true">◎</span> <span>Call review</span>
+              <Icon name="target" size={18} weight="bold" /> <span>Call review</span>
             </span>
           </Card>
         ) : null}
@@ -244,19 +245,19 @@ function CardSheet({ item }: { item: LaneCard }) {
       <div className={styles.sheetName}>{h.contact}</div>
       <div className={styles.sheetRole}>{h.company}</div>
       <div className={styles.cardChips}>
-        <Chip static glyph="◐" label="demo" name="Recorded in a demo session — synthetic prospect, no real call was placed" tone="neutral" />
-        <Chip static glyph={g.glyph} label={g.word} name={g.name} tone={h.kind === 'do_not_call' ? 'red' : h.lane === 'agreed_follow_up' ? 'green' : 'neutral'} />
-        {when ? <Chip static glyph="▣" label={when.text} name={when.name} tone="blue" /> : null}
-        <Chip static glyph="◷" label={shortDay(h.at)} name={`Recorded ${new Date(h.at).toLocaleString('en-US')}`} />
+        <Chip static icon="circle-half" label="demo" name="Recorded in a demo session: synthetic prospect, no real call was placed" tone="neutral" />
+        <Chip static icon={DISPOSITION_ICON[g.glyph] ?? 'circle'} label={g.word} name={g.name} tone={h.kind === 'do_not_call' ? 'red' : h.lane === 'agreed_follow_up' ? 'green' : 'neutral'} />
+        {when ? <Chip static icon="calendar" label={when.text} name={when.name} tone="blue" /> : null}
+        <Chip static icon="history" label={shortDay(h.at)} name={`Recorded ${new Date(h.at).toLocaleString('en-US')}`} />
       </div>
       {h.transcript_id ? (
         <Card href={`/calls/${encodeURIComponent(h.transcript_id)}`} name={`Open the synthetic call review played on this attempt`} dense>
           <span className={styles.linkRow}>
-            <span aria-hidden="true">◎</span> <span>Call review</span>
+            <Icon name="target" size={18} weight="bold" /> <span>Call review</span>
           </span>
         </Card>
       ) : null}
-      {h.lane === 'agreed_follow_up' ? <p className={styles.sheetCue}>only lane with an agreed touch — still a view, not a send</p> : <p className={styles.sheetCue}>a view, not permission to message</p>}
+      {h.lane === 'agreed_follow_up' ? <p className={styles.sheetCue}>the only lane with an agreed touch, still a view, not a send</p> : <p className={styles.sheetCue}>a view, not permission to message</p>}
     </div>
   );
 }

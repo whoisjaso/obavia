@@ -143,9 +143,11 @@ export interface AssistCardProps {
   facts?: Record<string, string>;
   /** Two-line preview with an expand control: the line is context, the answer tiles are the hero. */
   preview?: boolean;
+  /** Small controls at the right of the preview head (e.g. stage jump), before the info and expand controls. */
+  tools?: ReactNode;
 }
 
-export function AssistCard({ node, mode, revealed, onReveal, hideLine, hideMirrors, meta, onInfo, facts = {}, preview }: AssistCardProps) {
+export function AssistCard({ node, mode, revealed, onReveal, hideLine, hideMirrors, meta, onInfo, facts = {}, preview, tools }: AssistCardProps) {
   const [expanded, setExpanded] = useState(false);
   const masked = maskForMode(node, mode, revealed);
   const view = { ...masked, primary: masked.primary === null ? null : resolveForPractice(masked.primary, facts), mirrors: masked.mirrors.map((m) => resolveForPractice(m, facts)) };
@@ -161,6 +163,7 @@ export function AssistCard({ node, mode, revealed, onReveal, hideLine, hideMirro
             <Chip static label={stage} tone="teal" icon={node.approval.status === 'published' ? 'lock' : undefined} name={`Stage ${stage}`} />
             {meta}
             <span className={styles.previewTools}>
+              {tools}
               {onInfo ? <IconButton icon="info" label={infoLabel} onClick={onInfo} className={styles.quietButton} data-line-info /> : null}
               <IconButton icon={expanded ? 'arrow-up' : 'chevron-down'} label={expanded ? 'Collapse the script line' : 'Show the whole script line'} aria-expanded={expanded} onClick={() => setExpanded((v) => !v)} className={styles.quietButton} data-line-expand />
             </span>

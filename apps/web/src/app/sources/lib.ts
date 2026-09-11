@@ -3,6 +3,7 @@
  * `filterRows` mirrors `filterSourceRows` in @apohenia/domain/sources over the slim row shape.
  */
 import type { SourceRow } from '@apohenia/domain/sources';
+import type { IconName } from '@/components/ui';
 
 export interface RowFilters {
   classification?: string;
@@ -50,16 +51,29 @@ export function sectionShortName(title: string): string {
     .join(' ');
 }
 
-/** One glyph per section family (Setting ◎ · Closing ◆ · Mirror ⇄ · Objection ⚑ · Identity ◯ · Reviewed call ▶ · other ≡). */
-export function sectionGlyph(title: string): string {
+/** One icon per section family (Setting: target, Closing: diamond, Mirror: swap, Objection: flag, Identity: circle, Reviewed call: play, Follow-up: history, Upsell: arrow-up, other: list). */
+export function sectionIcon(title: string): IconName {
   const t = title.toLowerCase();
-  if (t.startsWith('setting')) return '◎';
-  if (t.startsWith('closing')) return '◆';
-  if (t.includes('mirror')) return '⇄';
-  if (t.includes('objection')) return '⚑';
-  if (t.includes('identity')) return '◯';
-  if (t.includes('reviewed')) return '▶';
-  if (t.includes('follow-up') || t.includes('diary')) return '◷';
-  if (t.includes('upsell') || t.includes('referral')) return '↗';
-  return '≡';
+  if (t.startsWith('setting')) return 'target';
+  if (t.startsWith('closing')) return 'diamond';
+  if (t.includes('mirror')) return 'swap';
+  if (t.includes('objection')) return 'flag';
+  if (t.includes('identity')) return 'circle';
+  if (t.includes('reviewed')) return 'play';
+  if (t.includes('follow-up') || t.includes('diary')) return 'history';
+  if (t.includes('upsell') || t.includes('referral')) return 'arrow-up';
+  return 'list';
+}
+
+/** Sentence case for a lowercase title fragment ("change desired" to "Change desired"); acronyms and later words are untouched. */
+export function sentenceCase(text: string): string {
+  const t = text.trim();
+  return t.length === 0 ? t : t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/** Card title: the family name, one separator, the record title in sentence case ("Logical certainty · Current process"). */
+export function recordTitle(family: string, title: string, familyLabels: Readonly<Record<string, string>>): string {
+  const fam = familyLabels[family] ?? '';
+  const t = sentenceCase(title);
+  return fam && fam.toLowerCase() !== t.toLowerCase() ? `${fam} · ${t}` : t;
 }

@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Offers (DESIGN_SYSTEM §3.5): cards; price `—` with the accessible name "Price not set — a blank
- * price is not $0"; the fictional fixture carries `✦ Fictional` and lives behind the Practice
+ * Offers (DESIGN_SYSTEM §3.5): cards; a blank price is the caption "Not set" (never a dash, never $0) with
+ * the accessible name "Price not set — a blank price is not $0"; the fictional fixture carries the Fictional pill and lives behind the Practice
  * chip, never in the default list (B-9: the default chip is "Offers"); status moves through a
  * confirm sheet and is the one store /scripts reads (B-12).
  */
@@ -37,7 +37,7 @@ test.describe('offers', () => {
     await prime(page);
   });
 
-  test('default list is "Offers": the draft research offer with a — price and its accessible truth; the fixture is absent', async ({ page }) => {
+  test('default list is "Offers": the draft research offer with a "Not set" price and its accessible truth; the fixture is absent', async ({ page }) => {
     const errors = trackErrors(page);
     await page.goto('/offers');
     const h1 = page.locator('h1');
@@ -55,7 +55,7 @@ test.describe('offers', () => {
     await expect(live).toHaveAttribute('data-offer-status', 'draft');
     await expect(live.locator('[data-status-pill="draft"]')).toHaveAttribute('aria-label', /Draft — written, not reviewed/);
     const setup = live.locator('[data-price="setup"]');
-    await expect(setup).toHaveText('—');
+    await expect(setup).toHaveText('Not set');
     await expect(setup).toHaveAttribute('aria-label', 'Setup: Price not set — a blank price is not $0');
     await expect(live.locator('[data-price="recurring"]')).toHaveAttribute('aria-label', 'Recurring: Price not set — a blank price is not $0');
     await expect(live.getByRole('list', { name: 'Three pillars' }).getByRole('listitem')).toHaveCount(3);
@@ -68,7 +68,7 @@ test.describe('offers', () => {
     expect(errors).toEqual([]);
   });
 
-  test('the offer sheet shows every field with h3 captions and the blank-price glyph', async ({ page }) => {
+  test('the offer sheet shows every field with h3 captions and the blank-price caption', async ({ page }) => {
     await page.goto('/offers');
     await page.locator(LIVE).click();
     const sheet = page.locator('dialog[data-sheet="offer"]');
@@ -78,7 +78,7 @@ test.describe('offers', () => {
     }
     await expect(sheet.getByRole('heading', { level: 2 })).toHaveCount(1);
     await expect(sheet.locator('[data-blank-price-note]')).toHaveAttribute('aria-label', /a blank price is not \$0/);
-    await expect(sheet.locator('[data-price="sheet-setup"]')).toHaveText('—');
+    await expect(sheet.locator('[data-price="sheet-setup"]')).toHaveText('Not set');
     await expect(sheet.getByRole('region', { name: 'Proof' })).toContainText('none yet');
   });
 
@@ -122,7 +122,7 @@ test.describe('offers', () => {
     await expect(sheet.locator('[data-transition="reviewed"]')).toHaveCount(0);
     await expect(sheet.locator('[data-transition="retired"]')).toHaveCount(1);
     // Publishing does not invent a price.
-    await expect(sheet.locator('[data-price="sheet-setup"]')).toHaveText('—');
+    await expect(sheet.locator('[data-price="sheet-setup"]')).toHaveText('Not set');
     await page.keyboard.press('Escape');
     await expect(page.locator(LIVE)).toHaveAttribute('data-offer-status', 'published');
     await page.reload();

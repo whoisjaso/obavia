@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { CLASSIFICATION_DEFINITIONS, PRIVATE_BY_DEFAULT_NOTICE, TEMPLATE_LABEL, coverageReport, getSourceIndex, listMissingResources, sectionsForSource, sourceDescription, toSourceRow } from '@apohenia/domain/sources';
+import { CLASSIFICATION_DEFINITIONS, FAMILY_LABELS, PRIVATE_BY_DEFAULT_NOTICE, TEMPLATE_LABEL, coverageReport, getSourceIndex, listMissingResources, sectionsForSource, sourceDescription, toSourceRow } from '@apohenia/domain/sources';
 import { SourcesClient } from './SourcesClient';
 
 export const metadata: Metadata = { title: 'Sources' };
@@ -25,6 +25,7 @@ export default function SourcesPage() {
         sections={sections}
         sourceDescriptions={{ A: sourceDescription('A'), B: sourceDescription('B') }}
         classificationDefinitions={CLASSIFICATION_DEFINITIONS}
+        familyLabels={FAMILY_LABELS}
         templateLabel={TEMPLATE_LABEL}
         privateNotice={PRIVATE_BY_DEFAULT_NOTICE}
         missing={missing}

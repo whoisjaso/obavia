@@ -168,14 +168,14 @@ test.describe('source record detail', () => {
   test('D01 (study_only) carries the ⊘ Source-only glyph, offsets and the verification-pending glyph', async ({ page }) => {
     const errors = trackErrors(page);
     await page.goto('/sources/D01');
-    await expectHiddenH1(page, 'D01 — deceptive status deflation');
+    await expectHiddenH1(page, 'D01 · Deceptive status deflation');
     await expect(page.locator('[data-record="D01"]')).toHaveAttribute('data-live-eligible', 'no');
     const glyph = page.locator('[data-source-only-notice]');
     await expect(glyph).toHaveAttribute('aria-label', /Source-only: readable for study; not a live recommendation/);
     await expect(glyph).toHaveAttribute('data-classification', 'study_only');
     await expect(page.locator('[data-offsets]')).toHaveText('[80241, 80817)');
     await expect(page.locator('[data-template-label]')).toHaveAttribute('aria-label', /normalized template — not verbatim/);
-    // Offsets, hash status and section ids are data: they live behind ⓘ, never as stage chips.
+    // Offsets, hash status and section ids are data: they live in the record sheet's Reference rows, never as stage chips.
     await expect(page.locator('[data-offsets-chip]:visible')).toHaveCount(0);
     await page.locator('[data-open-overlay]').click();
     const info = page.locator('dialog[data-sheet="overlay"]');
@@ -192,7 +192,7 @@ test.describe('source record detail', () => {
 
   test('L07: excerpt is the selectable hero, counterpart chip deep-links into the script, pager moves to L08', async ({ page }) => {
     await page.goto('/sources/L07');
-    await expectHiddenH1(page, 'L07 — change desired');
+    await expectHiddenH1(page, 'L07 · Change desired');
     await expect(page.locator('[data-source-only-notice]')).toHaveCount(0);
     const excerpt = page.locator('blockquote[data-excerpt]');
     await expect(excerpt).toContainText('is there is there anything you would change about either like the the the fitness regime');

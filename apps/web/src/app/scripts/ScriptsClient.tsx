@@ -92,6 +92,16 @@ function substageLabel(node: ScriptNode): string {
   return (node.substage ?? node.id).replace(/_/g, ' ');
 }
 
+/** Sentence case for a lowercase record title fragment ("change desired" to "Change desired"). */
+function sentenceCase(text: string): string {
+  const t = text.trim();
+  return t.length === 0 ? t : t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 /** Render text with `[missing: …]` / `[Price …]` / `[Offer …]` cues as slot chips (never invented values, never brackets on the stage). */
 function withCues(text: string): ReactNode {
   return <SlotLine text={text} />;
@@ -202,14 +212,14 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
     setPublications((prev) => [...prev.filter((p) => p.content_hash !== pub.content_hash || p.version.id !== pub.version.id), pub]);
     const approval = publicationApproval(pub);
     setSheet(null);
-    showToast(`${approval.label === 'frozen draft' ? 'Frozen draft' : approval.label === 'published' ? 'Published' : 'Frozen · mixed'} · ${pub.content_hash.slice(0, 12)}`, 'green');
+    showToast(`${approval.label === 'frozen draft' ? 'Frozen draft' : approval.label === 'published' ? 'Published' : 'Frozen, mixed'} · snapshot saved`, 'green');
   }
 
   if (!version || !graph) {
     return (
       <div className={styles.empty} role="status">
         <span className={styles.emptyGlyph} aria-hidden="true">
-          ∅
+          <Icon name="empty" size={72} />
         </span>
         <span className={styles.emptyLabel}>{placeholder ? 'Placeholder' : 'No script'}</span>
       </div>
@@ -239,6 +249,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
             <Chip
               key={s}
               label={stageLabel(s)}
+              kbd={String(count)}
               name={`${stageLabel(s)}, ${count} ${count === 1 ? 'line' : 'lines'}`}
               toggle
               selected={s === stage}
@@ -258,18 +269,17 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
           const approval = statusGlyph(card.approval_status);
           return (
             <div key={n.id} className={[styles.lineWrap, n.id === currentId ? styles.lineCurrent : ''].join(' ').trim()} data-node-card data-node-id={n.id} aria-current={n.id === currentId ? 'true' : undefined}>
-              <Card onPress={() => openNode(n.id)} name={`${substageLabel(n)} — open`} data-line-next>
+              <Card onPress={() => openNode(n.id)} name={`${substageLabel(n)}. Open.`} data-line-next>
                 <div className={styles.cardHead}>
                   <Chip static label={substageLabel(n)} tone="teal" name={`Stage ${substageLabel(n)}`} />
                   <GlyphPill glyph={approval.glyph} tone={approval.tone} name={`${approval.name} (node ${n.id})`} data-approval={card.approval_status} />
-                  {card.practice_only ? <GlyphPill glyph="⊘" tone="purple" name="Study/practice only — never a live recommendation" data-practice-only /> : null}
-                  {card.evidence.satisfied ? <GlyphPill glyph="✓" tone="teal" name="Already answered from known facts — offer the transition instead of asking twice" data-evidence-pill /> : null}
+                  {card.practice_only ? <GlyphPill glyph="⊘" tone="purple" name="Study/practice only: never a live recommendation" data-practice-only /> : null}
+                  {card.evidence.satisfied ? <GlyphPill glyph="✓" tone="teal" name="Already answered from known facts: offer the transition instead of asking twice" data-evidence-pill /> : null}
                 </div>
                 <div className={styles.cardLineBox}>
                   <span className={styles.cardLine} data-primary-line data-node-id={n.id}>
                     <SlotLine text={card.say_this ?? ''} />
                   </span>
-                  <span className={styles.cardFade} aria-hidden="true" />
                 </div>
               </Card>
             </div>
@@ -285,12 +295,11 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
             return (
               <Card key={p.id} dense onPress={() => setSheet({ kind: 'publication', id: p.id })} name={`${approval.name}, ${new Date(p.published_at).toLocaleString()}. Open.`} data-publication data-publication-hash={p.content_hash} data-publication-label={approval.label}>
                 <div className={styles.pubRow}>
-                  <Icon name="lock" size={18} className={styles.pubIcon} />
+                  <Icon name="lock" size={18} weight="fill" className={styles.pubIcon} />
                   <span className={styles.pubLabel}>{approval.label}</span>
-                  <span className={styles.mono} aria-hidden="true">
-                    {p.content_hash.slice(0, 12)}
+                  <span className={styles.pubWhen} aria-hidden="true">
+                    {shortDate(p.published_at)}
                   </span>
-                  <span className="sr-only">{p.content_hash}</span>
                 </div>
               </Card>
             );
@@ -307,26 +316,27 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
       <Sheet open={sheet?.kind === 'status'} onClose={() => setSheet(null)} title="Status" data-sheet="status">
         <div className={styles.sheetBody}>
           <div className={styles.pills} data-status-pills>
-            <GlyphPill glyph={versionGlyph.glyph} label={versionGlyph.word} tone={versionGlyph.tone} name={`Version ${version.status}: ${draftCount} of ${graph.nodes.length} nodes draft — owner review required before live use`} data-version-pill />
+            <GlyphPill glyph={versionGlyph.glyph} label={versionGlyph.word} tone={versionGlyph.tone} name={`Version ${version.status}: ${draftCount} of ${graph.nodes.length} nodes draft; owner review required before live use`} data-version-pill />
             {validation?.ok ? (
-              <GlyphPill glyph="✓" label="Graph" tone="green" name={`Graph valid: ${validation.stats.nodes} nodes, ${validation.stats.cited_record_ids} records cited, ${validation.stats.entrypoints} entrypoints, closed; opt-out reaches the stop node from every node`} data-graph-pill="ok" />
+              <GlyphPill icon="seal-check" weight="fill" label="Ready to publish" tone="green" name={`Graph valid: ${validation.stats.nodes} nodes, ${validation.stats.cited_record_ids} records cited, ${validation.stats.entrypoints} entrypoints, closed; opt-out reaches the stop node from every node`} data-graph-pill="ok" />
             ) : (
-              <GlyphPill glyph="!" label="Graph" tone="orange" name={validation ? `Graph has ${validation.errors.length} error(s): ${validation.errors.join('; ')}` : 'Graph not validated'} data-graph-pill="error" />
+              <GlyphPill icon="warning" weight="fill" label="Needs review" tone="orange" name={validation ? `Graph has ${validation.errors.length} error(s): ${validation.errors.join('; ')}` : 'Graph not validated'} data-graph-pill="error" />
             )}
             {offer && offerGlyph ? (
               <GlyphPill
-                glyph={offerGlyph.glyph}
-                label="Offer"
+                icon={offer.status === 'published' ? 'check' : 'hourglass'}
+                weight="fill"
+                label={offer.status === 'published' ? 'Offer approved' : 'Offer not approved'}
                 tone={offerGlyph.tone}
                 name={
                   offer.status === 'published'
-                    ? `Linked offer "${offer.name}" is published — pillar wording may be spoken; the price is quoted only when it is set`
-                    : `Linked offer "${offer.name}" is ${offer.status} — pillar and price slots render as cues until it is published in the Offer Studio`
+                    ? `Linked offer "${offer.name}" is published: pillar wording may be spoken; the price is quoted only when it is set`
+                    : `Linked offer "${offer.name}" is ${offer.status}: pillar and price slots render as cues until it is published in the Offer Studio`
                 }
                 data-offer-pill={offer.status}
               />
             ) : (
-              <GlyphPill glyph="—" label="Offer" tone="neutral" name="No offer linked — pillar and price slots render as cues" data-offer-pill="none" />
+              <GlyphPill icon="empty" label="No offer" tone="neutral" name="No offer linked: pillar and price slots render as cues" data-offer-pill="none" />
             )}
           </div>
           <div className={styles.countRow}>
@@ -377,7 +387,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
             <div className={styles.sheetHead}>
               <Chip static label={sheetCard.stage_label} tone="teal" name={`Stage ${sheetCard.stage_label}`} />
               <GlyphPill glyph={statusGlyph(sheetCard.approval_status).glyph} label={statusGlyph(sheetCard.approval_status).word} tone={statusGlyph(sheetCard.approval_status).tone} name={statusGlyph(sheetCard.approval_status).name} data-sheet-approval={sheetCard.approval_status} />
-              {sheetCard.practice_only ? <GlyphPill glyph="⊘" label="Study" tone="purple" name="Study/practice only — never a live recommendation" /> : null}
+              {sheetCard.practice_only ? <GlyphPill glyph="⊘" label="Study" tone="purple" name="Study/practice only: never a live recommendation" /> : null}
               <Chip label="Facts" glyph="✦" toggle selected={sampleFacts} tone="purple" name={SAMPLE_FACTS_NAME} onClick={() => setView((v) => ({ ...v, sample_facts: !v.sample_facts }))} data-sample-facts className={styles.factsChip} />
             </div>
 
@@ -439,7 +449,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
             {sheetCard.tone_pacing ? (
               <section aria-labelledby="tone">
                 <Caption id="tone">
-                  Tone <GlyphPill glyph="◔" label="Described" tone="neutral" name="Instructor-described cue — text from the transcripts, not audio-verified or measured" />
+                  Tone <GlyphPill glyph="◔" label="Described" tone="neutral" name="Instructor-described cue: text from the transcripts, not audio-verified or measured" />
                 </Caption>
                 <p className={styles.body}>{sheetCard.tone_pacing.tone_cue}</p>
                 <p className={styles.body}>{sheetCard.tone_pacing.pacing_cue}</p>
@@ -453,7 +463,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
                   const stop = b.answer_category === STOP_ANSWER_CATEGORY;
                   const end = b.next_node_id === null;
                   const target = b.next_node_id ? nodes.find((n) => n.id === b.next_node_id) : null;
-                  const name = `${b.label}${end ? ' — end of script, hand back' : target ? ` — go to ${substageLabel(target)}` : ''}${b.note ? `. ${b.note}` : ''}`;
+                  const name = `${b.label}${end ? '. End of script, hand back' : target ? `. Go to ${substageLabel(target)}` : ''}${b.note ? `. ${b.note}` : ''}`;
                   return (
                     <Chip
                       key={b.answer_category}
@@ -475,7 +485,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
               <Caption id="sources">Sources</Caption>
               <div className={styles.branches}>
                 {sheetCard.source_question_ids.length === 0 ? (
-                  <GlyphPill glyph="✦" label="Apohenia" tone="purple" name={`Apohenia addition — no source counterpart. ${sheetCard.source_note ?? ''}`} data-apohenia-addition />
+                  <GlyphPill glyph="✦" label="Apohenia" tone="purple" name={`Apohenia addition, no source counterpart. ${sheetCard.source_note ?? ''}`} data-apohenia-addition />
                 ) : (
                   sheetCard.source_question_ids.map((id) => {
                     const c = citations[id];
@@ -483,13 +493,13 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
                     return (
                       <Chip
                         key={id}
-                        label={id}
+                        label={c ? sentenceCase(c.title) : 'Not supplied'}
                         glyph={g?.glyph ?? '?'}
                         tone={g ? (g.tone === 'orange' ? 'gold' : g.tone) : 'gold'}
                         name={c && g ? `${id} — ${c.title}. ${g.name}. Open record.` : `${id} — not in the source package`}
                         onClick={() => setSheet({ kind: 'source', id, from: sheetNode.id })}
                         data-citation={id}
-                        className={styles.mono}
+                        className={styles.citationChip}
                       />
                     );
                   })
@@ -523,22 +533,21 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
       </Sheet>
 
       {/* ================= source record sheet ================= */}
-      <Sheet open={sheet?.kind === 'source'} onClose={() => setSheet(sheet?.kind === 'source' ? { kind: 'node', id: sheet.from } : null)} title={sheet?.kind === 'source' ? sheet.id : 'Source'} data-sheet="source">
+      <Sheet open={sheet?.kind === 'source'} onClose={() => setSheet(sheet?.kind === 'source' ? { kind: 'node', id: sheet.from } : null)} title="Source" data-sheet="source">
         {sheet?.kind === 'source' ? (
           sheetCitation ? (
             <div className={styles.sheetBody} data-source-sheet={sheetCitation.id}>
               <div className={styles.sheetHead}>
-                <Chip static label={`Source ${sheetCitation.source}`} name={`Source ${sheetCitation.source}`} />
-                <Chip static label={sheetCitation.section_id} name={`Section ${sheetCitation.section_id} — ${sheetCitation.section_title}`} className={styles.mono} />
+                <Chip static label={`Source ${sheetCitation.source}`} name={`Source ${sheetCitation.source}, section ${sheetCitation.section_id}: ${sheetCitation.section_title}`} />
                 {(() => {
                   const g = classificationGlyph(sheetCitation.classification);
                   return <GlyphPill glyph={g.glyph} label={g.word} tone={g.tone} name={g.name} data-classification={sheetCitation.classification} />;
                 })()}
               </div>
-              <p className={styles.sourceTitle}>{sheetCitation.title}</p>
+              <p className={styles.sourceTitle}>{sentenceCase(sheetCitation.title)}</p>
               <section aria-labelledby="src-template">
                 <Caption id="src-template">
-                  Template <GlyphPill glyph="≈" label="Normalized" tone="neutral" name="Normalized template — an editorial reconstruction, not verbatim; the unchanged excerpt is in the record" />
+                  Template <GlyphPill glyph="≈" label="Normalized" tone="neutral" name="Normalized template: an editorial reconstruction, not verbatim; the unchanged excerpt is in the record" />
                 </Caption>
                 <p className={styles.template}>{sheetCitation.template}</p>
               </section>
@@ -553,7 +562,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
             </div>
           ) : (
             <div className={styles.sheetBody}>
-              <GlyphPill glyph="—" label="Not supplied" tone="orange" name={`Record ${sheet.id} is not in the supplied source package`} />
+              <GlyphPill icon="empty" label="Not supplied" tone="orange" name={`Record ${sheet.id} is not in the supplied source package`} />
             </div>
           )
         ) : null}
@@ -581,7 +590,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
             return (
               <div className={styles.sheetBody} data-publication-sheet={sheetPublication.id}>
                 <div className={styles.sheetHead}>
-                  <GlyphPill glyph="🔒" label={approval.label} tone={approval.label === 'published' ? 'green' : 'orange'} name={approval.name} data-publication-approval={approval.label} />
+                  <GlyphPill icon="lock" weight="fill" label={approval.label} tone={approval.label === 'published' ? 'green' : 'orange'} name={approval.name} data-publication-approval={approval.label} />
                 </div>
                 <div className={styles.countRow}>
                   {(Object.keys(approval.counts) as (keyof typeof approval.counts)[]).map((k) => {
@@ -592,7 +601,7 @@ export function ScriptsClient({ versions, nodes, seedVariants, offers, citations
                           {approval.counts[k]}
                         </span>
                         <span className={styles.countKey} aria-hidden="true">
-                          {g.glyph} {g.word}
+                          {g.word}
                         </span>
                       </div>
                     );

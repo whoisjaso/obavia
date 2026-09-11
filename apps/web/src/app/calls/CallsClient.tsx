@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { DialHistory, type SessionHistoryEntry } from '@apohenia/domain/schemas';
 import { formatClock, isDial } from '@apohenia/domain/dialer';
 import { DISPOSITION_GLYPHS, outcomeGlyph } from '@apohenia/domain/vocabulary';
-import { Avatar, Card, Chip, FictionalPill, IconButton, Ring, Sheet, Stat, StatusGlyph, TopBar } from '@/components/ui';
+import { Avatar, Card, Chip, FictionalPill, Icon, IconButton, Ring, Sheet, Stat, StatusGlyph, TopBar, type IconName } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { formatDuration, formatWhen, historyTotals, type CallRow } from './review-lib';
 import styles from './calls.module.css';
@@ -19,9 +19,13 @@ function outcomeTone(glyph: string): 'green' | 'red' | 'teal' | 'neutral' {
   return glyph === '✓' ? 'green' : glyph === '⊘' ? 'red' : glyph === '◔' ? 'teal' : 'neutral';
 }
 
+/** Disposition marks that have no icon of their own in the status-character map. */
+const DISPOSITION_ICON: Record<string, IconName> = { '◍': 'voicemail', '◈': 'person', '↻': 'refresh', '◎': 'target', '▣': 'calendar', '★': 'star', '✕': 'x', '⊘': 'ban', '○': 'circle' };
+
 /**
- * History: sessions first (each a card with a talk ring, date, and three small numbers; tap → the
- * attempt list), then one card per synthetic call (Avatar · contact · company · duration · outcome glyph).
+ * History: sessions first (each a card with a talk ring, date, and three small numbers; tap opens
+ * the attempt list) and only while at least one exists, then one card per synthetic call (Avatar,
+ * contact, company, duration, outcome mark).
  */
 export function CallsClient({ calls }: CallsClientProps) {
   const [history, , hydrated] = useStoredState('dial.history', DialHistory, EMPTY_HISTORY);
@@ -53,11 +57,11 @@ export function CallsClient({ calls }: CallsClientProps) {
           </div>
           <span className={styles.minis} aria-hidden="true">
             <span className={styles.mini}>
-              <span className={styles.miniGlyph}>◎</span>
+              <Icon name="target" size={14} weight="bold" className={styles.miniGlyph} />
               {h.stats.talked}
             </span>
             <span className={styles.mini}>
-              <span className={styles.miniGlyph}>→</span>
+              <Icon name="arrow-right" size={14} weight="bold" className={styles.miniGlyph} />
               {h.stats.next_steps}
             </span>
           </span>
@@ -77,7 +81,7 @@ export function CallsClient({ calls }: CallsClientProps) {
             <span className={styles.contact}>{c.company}</span>
             <span className={styles.meta}>
               <span className={styles.clock}>
-                <span aria-hidden="true">⏱</span> {formatDuration(c.duration_s)}
+                <Icon name="timer" size={13} weight="fill" /> {formatDuration(c.duration_s)}
               </span>
             </span>
           </div>
@@ -105,24 +109,20 @@ export function CallsClient({ calls }: CallsClientProps) {
         <Stat value={totals.talks} icon="target" name="Talks" />
       </div>
 
-      <div className={styles.sectionHead}>
-        <Chip static glyph="◐" label="Sessions" name="Demo sessions ended in this browser" tone="neutral" />
-      </div>
-      <div className={styles.list} data-session-list>
-        {hydrated && history.length === 0 ? (
-          <div className={styles.empty} data-sessions-empty>
-            <span className={styles.emptyGlyph} aria-hidden="true">
-              ∅
-            </span>
-            <span className={styles.emptyLabel}>No sessions</span>
+      {/* sessions: only once at least one ended in this browser; the stat row already says zero */}
+      {history.length > 0 ? (
+        <>
+          <div className={styles.sectionHead}>
+            <Chip static icon="circle-half" label="Sessions" name="Demo sessions ended in this browser" tone="neutral" />
           </div>
-        ) : (
-          history.map(sessionCard)
-        )}
-      </div>
+          <div className={styles.list} data-session-list>
+            {history.map(sessionCard)}
+          </div>
+        </>
+      ) : null}
 
       <div className={styles.sectionHead}>
-        <Chip static glyph="✦" label="Calls" name="Synthetic calls — authored transcripts, no real prospect, no audio" tone="purple" />
+        <Chip static icon="spark" label="Calls" name="Synthetic calls: authored transcripts, no real prospect, no audio" tone="purple" />
       </div>
       <div className={styles.list} data-call-list>
         {calls.map(callCard)}
@@ -142,9 +142,9 @@ export function CallsClient({ calls }: CallsClientProps) {
               <Stat value={formatClock(session.stats.session_ms)} icon="clock" name="Session time" />
             </div>
             <div className={styles.recordChips}>
-              <Chip static glyph="◐" label="demo" name="Demo session — synthetic prospects, no real calls were placed" tone="neutral" />
+              <Chip static icon="circle-half" label="demo" name="Demo session: synthetic prospects, no real calls were placed" tone="neutral" />
               <FictionalPill />
-              <Chip static glyph={session.ended_reason === 'queue_empty' ? '∅' : session.ended_reason === 'checks_failed' ? '⊘' : '■'} label={session.ended_reason === 'queue_empty' ? 'queue empty' : session.ended_reason === 'checks_failed' ? 'checks failed' : 'ended'} name={`Session ended: ${session.ended_reason.replace('_', ' ')}`} />
+              <Chip static icon={session.ended_reason === 'queue_empty' ? 'empty' : session.ended_reason === 'checks_failed' ? 'ban' : 'phone-off'} label={session.ended_reason === 'queue_empty' ? 'queue empty' : session.ended_reason === 'checks_failed' ? 'checks failed' : 'ended'} name={`Session ended: ${session.ended_reason.replace('_', ' ')}`} />
             </div>
             <div className={styles.list} data-attempt-list>
               {session.attempts.filter(isDial).map((a) => {
@@ -159,7 +159,7 @@ export function CallsClient({ calls }: CallsClientProps) {
                         {a.talk_ms > 0 ? ` · ${formatClock(a.talk_ms)}` : ''}
                       </span>
                     </div>
-                    {g ? <StatusGlyph glyph={g.glyph} label={g.word} name={g.name} tone={a.disposition?.kind === 'do_not_call' ? 'red' : a.disposition && ['meeting', 'qualified', 'callback'].includes(a.disposition.kind) ? 'green' : 'neutral'} /> : <StatusGlyph glyph="—" label="open" name="No disposition recorded" />}
+                    {g ? <StatusGlyph icon={DISPOSITION_ICON[g.glyph] ?? 'circle'} label={g.word} name={g.name} tone={a.disposition?.kind === 'do_not_call' ? 'red' : a.disposition && ['meeting', 'qualified', 'callback'].includes(a.disposition.kind) ? 'green' : 'neutral'} /> : <StatusGlyph icon="circle-dashed" label="open" name="No disposition recorded" />}
                   </div>
                 );
                 return a.transcript_id ? (

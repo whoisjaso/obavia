@@ -1,4 +1,4 @@
-/* /today — Me (DESIGN_SYSTEM §3.6). Dark stage, rings, cards, sheets. Tokens only. */
+/* /today: Me (DESIGN_SYSTEM §3.6). Dark stage, rings, cards, sheets. Tokens only. */
 
 .root {
   display: flex;
@@ -65,6 +65,13 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-3);
   justify-items: center;
+}
+.ringsCaption {
+  align-self: center;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 .ringToggle {
   display: flex;
@@ -146,6 +153,19 @@
 .iconBlue {
   color: var(--blue);
   background: rgba(10, 132, 255, 0.16);
+}
+.iconMuted {
+  color: var(--ink-2);
+  background: var(--bg-2);
+}
+.emptyLine {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+.emptyAction {
+  margin-top: var(--s-4);
 }
 .cardText {
   display: flex;
@@ -290,9 +310,9 @@
   font-variant-numeric: tabular-nums;
 }
 .journalEmpty {
-  font-size: var(--fs-large);
-  color: var(--ink-3);
-  font-weight: 300;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
 }
 .journalList {
   list-style: none;

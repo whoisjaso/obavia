@@ -17,6 +17,39 @@
   min-height: 26px;
   font-size: var(--fs-micro);
 }
+/* reference rows (the record sheet): key on the left, value on the right, ids quiet */
+.refRows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.refRow {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: var(--s-3);
+  align-items: baseline;
+}
+.refKey {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.refValue {
+  margin: 0;
+  font-size: var(--fs-body);
+  color: var(--ink);
+  line-height: var(--lh-body);
+  overflow-wrap: anywhere;
+}
+.refId {
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  margin-right: 2px;
+}
 .mono {
   font-family: var(--font-mono);
 }
@@ -122,8 +155,8 @@
   min-width: 96px;
 }
 .sectionGlyph {
-  font-size: 18px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
   color: var(--ink);
 }
 .sectionName {
@@ -181,16 +214,19 @@
   place-items: center;
   background: var(--bg-2);
   color: var(--teal);
-  font-size: 15px;
 }
 .recordTitle {
   flex: 1;
   min-width: 0;
   font-size: var(--fs-body);
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 .recordTemplate {
   margin-top: var(--s-1);
@@ -357,9 +393,15 @@
   height: 56px;
 }
 .pagerMid {
-  font-family: var(--font-mono);
   font-size: var(--fs-caption);
-  color: var(--ink-3);
+  font-weight: 600;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.overlay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
 }
 .overlayRow {
   display: flex;
@@ -389,10 +431,9 @@
   padding: var(--s-8) 0;
 }
 .emptyGlyph {
-  font-size: 96px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
   color: var(--ink-3);
-  font-weight: 300;
 }
 .emptyLabel {
   font-size: var(--fs-caption);

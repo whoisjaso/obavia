@@ -17,7 +17,7 @@ import {
   practiceOffers,
   statusGlyph,
 } from '@apohenia/domain/offers';
-import { Card, Chip, FictionalPill, GlyphPill, IconButton, Sheet, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
+import { Card, Chip, FictionalPill, GlyphPill, Icon, IconButton, NotAssessedLabel, Sheet, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import styles from './offers.module.css';
 
@@ -48,10 +48,10 @@ function List({ items, empty }: { items: string[]; empty?: string }) {
   );
 }
 
-/** One price figure: `—` for unset with its accessible truth; a fixture figure is named fictional. */
+/** One price figure: the caption "Not set" for a blank price (never $0, never a dash) with its accessible truth; a fixture figure is named fictional. */
 function Money({ minor, currency, what, fictional, hook }: { minor: number | null; currency: string; what: string; fictional: boolean; hook: string }) {
   const unset = minor === null;
-  const text = unset ? '—' : formatMoney(minor, currency);
+  const text = unset ? 'Not set' : formatMoney(minor, currency);
   const name = unset ? `${what}: ${PRICE_NOT_SET_NAME}` : fictional ? `${what}: fictional fixture ${text} — never quoted live` : `${what}: ${text}`;
   return (
     <span className={styles.money}>
@@ -120,7 +120,7 @@ export function OffersClient({ offers, placeholder }: Props) {
     setStatuses((prev) => ({ ...prev, [o.id]: to }));
     setSheet({ kind: 'offer', id: o.id });
     const g = statusGlyph(to);
-    showToast(`${g.glyph} ${g.word} · ${o.name}`, to === 'published' ? 'green' : 'neutral');
+    showToast(`${g.word} · ${o.name}`, to === 'published' ? 'green' : 'neutral');
   }
 
   return (
@@ -138,7 +138,7 @@ export function OffersClient({ offers, placeholder }: Props) {
         {shown.length === 0 ? (
           <div className={styles.empty}>
             <span className={styles.emptyGlyph} aria-hidden="true">
-              ∅
+              <Icon name="empty" size={72} />
             </span>
             <span className={styles.emptyLabel}>{filter === 'offers' ? 'No offers' : 'No fixtures'}</span>
           </div>
@@ -159,9 +159,8 @@ export function OffersClient({ offers, placeholder }: Props) {
                 <div className={styles.sheetHead}>
                   <GlyphPill glyph={g.glyph} label={g.word} tone={g.tone} name={g.name} data-sheet-status={sheetOffer.status} />
                   {sheetOffer.fictional ? <FictionalPill /> : null}
-                  {sheetOffer.practice_only ? <GlyphPill glyph="⊘" label="Never live" tone="purple" name="Practice-only fixture — structurally excluded from the live offer list and from live pricing" data-practice-only /> : null}
-                  {readOnly ? <GlyphPill glyph="🔒" label="Frozen" tone="neutral" name="Published or retired offers are immutable; a change means a new version" data-read-only /> : null}
-                  <Chip static label={`v${sheetOffer.version}`} name={`Offer ${sheetOffer.offer_id}, version ${sheetOffer.version}, id ${sheetOffer.id}`} className={styles.mono} />
+                  {sheetOffer.practice_only ? <GlyphPill glyph="⊘" label="Never live" tone="purple" name="Practice-only fixture: structurally excluded from the live offer list and from live pricing" data-practice-only /> : null}
+                  {readOnly ? <GlyphPill icon="lock" weight="fill" label="Frozen" tone="neutral" name="Published or retired offers are immutable; a change means a new version" data-read-only /> : null}
                 </div>
 
                 {sheetOffer.fictional ? (
@@ -202,18 +201,18 @@ export function OffersClient({ offers, placeholder }: Props) {
                   </div>
                   {/^\s*(not set)?\s*$/i.test(sheetOffer.price.payment_schedule) ? null : <p className={styles.body}>{sheetOffer.price.payment_schedule}</p>}
                   {sheetOffer.price.setup_minor_units === null || sheetOffer.price.recurring_minor_units === null ? (
-                    <GlyphPill glyph="—" label="Not set" tone="orange" name={`${PRICE_NOT_SET_NAME}. Live price and proposal actions are blocked until an offer is approved.`} data-blank-price-note />
+                    <GlyphPill icon="empty" weight="bold" label="Not set" tone="orange" name={`${PRICE_NOT_SET_NAME}. Live price and proposal actions are blocked until an offer is approved.`} data-blank-price-note />
                   ) : null}
-                  {sheetIsPractice ? <GlyphPill glyph="✦" label="Never quoted" tone="purple" name={`Fixture price for practice only — never quoted live (quotable: ${canQuotePrice(sheetOffer) ? 'yes' : 'no'})`} data-never-quoted /> : null}
+                  {sheetIsPractice ? <GlyphPill glyph="✦" label="Never quoted" tone="purple" name={`Fixture price for practice only, never quoted live (quotable: ${canQuotePrice(sheetOffer) ? 'yes' : 'no'})`} data-never-quoted /> : null}
                 </section>
 
                 <section aria-labelledby="o-timing">
                   <Caption id="o-timing">Timing</Caption>
                   <div className={styles.timing}>
                     <span className={styles.timingKey}>Estimated</span>
-                    <span className={styles.body}>{sheetOffer.timing.estimated ?? '—'}</span>
+                    {sheetOffer.timing.estimated ? <span className={styles.body}>{sheetOffer.timing.estimated}</span> : <NotAssessedLabel label="Not set" name="Estimated timing not set" />}
                     <span className={styles.timingKey}>Committed</span>
-                    <span className={styles.body}>{sheetOffer.timing.committed ?? '—'}</span>
+                    {sheetOffer.timing.committed ? <span className={styles.body}>{sheetOffer.timing.committed}</span> : <NotAssessedLabel label="Not set" name="Committed timing not set" />}
                   </div>
                 </section>
 

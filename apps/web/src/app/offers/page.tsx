@@ -5,8 +5,8 @@ import { OffersClient } from './OffersClient';
 export const metadata: Metadata = { title: 'Offers' };
 
 /**
- * Owner: M-script. Offer Studio as cards (DESIGN_SYSTEM §3.5): price shows `—` with the accessible
- * name "Price not set — a blank price is not $0"; the fictional fixture carries `✦ Fictional` and
+ * Owner: M-script. Offer Studio as cards (DESIGN_SYSTEM §3.5): a blank price shows the caption
+ * "Not set" with the accessible name "Price not set: a blank price is not $0"; the fictional fixture carries the Fictional pill and
  * sits behind the Practice chip, never in the default list. Server component: loads the seed.
  */
 export default function OffersPage() {

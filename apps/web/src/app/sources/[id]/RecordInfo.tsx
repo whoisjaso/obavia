@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Chip, GlyphPill, IconButton, Sheet } from '@/components/ui';
+import { GlyphPill, IconButton, Sheet } from '@/components/ui';
 import styles from '../sources.module.css';
 
 export interface OverlayRow {
@@ -31,8 +31,8 @@ export interface RecordMeta {
 }
 
 /**
- * ⓘ → the record's provenance (source · section · family · character offsets · hash status) and the
- * delivery-overlay reference (framework §11) as a sheet. Ids and offsets are data, not stage UI.
+ * The info control opens the record's reference (source, section, family, character offsets, hash
+ * status) and the delivery-overlay reference (framework §11) as a sheet. Ids and offsets are data, not stage UI.
  */
 export function RecordInfo({ meta, rows, note }: { meta: RecordMeta; rows: OverlayRow[]; note: string }) {
   const [open, setOpen] = useState(false);
@@ -41,20 +41,59 @@ export function RecordInfo({ meta, rows, note }: { meta: RecordMeta; rows: Overl
       <IconButton icon="info" label="Record provenance: source, section, offsets, verification status, and the delivery overlay reference (framework §11)" onClick={() => setOpen(true)} data-open-overlay />
       <Sheet open={open} onClose={() => setOpen(false)} title="Record" data-sheet="overlay" tall>
         <div className={styles.sheetBody}>
-          <div className={styles.row} data-record-provenance>
-            <Chip static label={meta.sourceLabel} name={meta.sourceLabel} />
-            <Chip static label={meta.sectionId} name={`Section ${meta.sectionId} — ${meta.sectionTitle}${meta.sectionNamedOnly ? ' (named only; no records supplied)' : ''}`} className={styles.mono} />
-            <Chip static label={meta.family} name={`Family ${meta.family} — ${meta.familyLabel}`} className={styles.mono} />
-          </div>
-          <div className={styles.row}>
-            <GlyphPill glyph={meta.hashVerified ? '✓' : '◔'} label={meta.hashVerified ? 'Verified' : 'Pending'} tone={meta.hashVerified ? 'green' : 'orange'} name={meta.excerptLabel} data-excerpt-label />
-            <GlyphPill glyph="#" label={meta.offsets} tone="neutral" name={`Original characters ${meta.offsets} — ${meta.offsetConvention}`} className={styles.mono} data-offsets-chip />
-          </div>
-          <p className={styles.small}>
-            {meta.excerptLength} code points{meta.lengthMatches ? '' : ' — length does not match the offsets; shown as supplied'} · line {meta.markdownLine}
-            {meta.reviewedCall ? ' · reviewed call, ">>" turn markers, speakers not diarized' : ''}
-          </p>
-          <div data-delivery-overlay>
+          <section aria-labelledby="ref-caption" data-record-provenance>
+            <h3 id="ref-caption" className={styles.caption}>
+              Reference
+            </h3>
+            <dl className={styles.refRows}>
+              <div className={styles.refRow}>
+                <dt className={styles.refKey}>Source</dt>
+                <dd className={styles.refValue}>{meta.sourceLabel}</dd>
+              </div>
+              <div className={styles.refRow}>
+                <dt className={styles.refKey}>Section</dt>
+                <dd className={styles.refValue}>
+                  <span className={styles.refId}>{meta.sectionId}</span> {meta.sectionTitle}
+                  {meta.sectionNamedOnly ? <span className={styles.small}> (named only; no records supplied)</span> : null}
+                </dd>
+              </div>
+              <div className={styles.refRow}>
+                <dt className={styles.refKey}>Family</dt>
+                <dd className={styles.refValue}>
+                  <span className={styles.refId}>{meta.family}</span> {meta.familyLabel}
+                </dd>
+              </div>
+              <div className={styles.refRow}>
+                <dt className={styles.refKey}>Characters</dt>
+                <dd className={styles.refValue}>
+                  <GlyphPill glyph="#" label={meta.offsets} tone="neutral" name={`Original characters ${meta.offsets}: ${meta.offsetConvention}`} className={styles.mono} data-offsets-chip />
+                </dd>
+              </div>
+              <div className={styles.refRow}>
+                <dt className={styles.refKey}>Verified</dt>
+                <dd className={styles.refValue}>
+                  <GlyphPill glyph={meta.hashVerified ? '✓' : '◔'} label={meta.hashVerified ? 'Verified' : 'Pending'} tone={meta.hashVerified ? 'green' : 'orange'} name={meta.excerptLabel} data-excerpt-label />
+                </dd>
+              </div>
+              <div className={styles.refRow}>
+                <dt className={styles.refKey}>Length</dt>
+                <dd className={styles.refValue}>
+                  {meta.excerptLength} code points{meta.lengthMatches ? '' : '; length does not match the offsets, shown as supplied'}
+                </dd>
+              </div>
+              <div className={styles.refRow}>
+                <dt className={styles.refKey}>Line</dt>
+                <dd className={styles.refValue}>{meta.markdownLine}</dd>
+              </div>
+              {meta.reviewedCall ? (
+                <div className={styles.refRow}>
+                  <dt className={styles.refKey}>Turns</dt>
+                  <dd className={styles.refValue}>Reviewed call; turn markers kept, speakers not diarized</dd>
+                </div>
+              ) : null}
+            </dl>
+          </section>
+          <div className={styles.overlay} data-delivery-overlay>
             <h3 className={styles.caption}>Delivery overlay</h3>
             <p className={styles.small}>{note}</p>
             {rows.map((r) => (

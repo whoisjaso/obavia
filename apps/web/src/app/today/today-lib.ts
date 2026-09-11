@@ -1,5 +1,5 @@
 /**
- * Me (`/today`) — pure view helpers and stored shapes. Owner: M-me.
+ * Me (`/today`): pure view helpers and stored shapes. Owner: M-me.
  * Nothing here scores the person: rings are completion evidence (a drill logged in Train, or a
  * mark you make yourself), never a streak or a grade.
  */
@@ -90,8 +90,8 @@ export interface RingMeta {
 }
 
 export const RINGS: readonly RingMeta[] = [
-  { id: 'rehearse', label: 'Rehearse', icon: 'script', color: 'var(--green)', evidence: 'Exact wording said in full, or one transition completed — a drill logged in Train counts automatically.' },
-  { id: 'mock', label: 'Mock', icon: 'phone', color: 'var(--teal)', evidence: 'One focused mock scenario completed to an agreed next step or a clean no-fit ending — a Mock logged in Train counts automatically.' },
+  { id: 'rehearse', label: 'Rehearse', icon: 'script', color: 'var(--green)', evidence: 'Exact wording said in full, or one transition completed. A drill logged in Train counts automatically.' },
+  { id: 'mock', label: 'Mock', icon: 'phone', color: 'var(--teal)', evidence: 'One focused mock scenario completed to an agreed next step or a clean no-fit ending. A Mock logged in Train counts automatically.' },
   { id: 'review', label: 'Review', icon: 'history', color: 'var(--purple)', evidence: 'One conversation reviewed and one thing named to change. Nothing measures this yet; you mark it.' },
 ];
 

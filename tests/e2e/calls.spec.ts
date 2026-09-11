@@ -4,7 +4,7 @@ import { demoQueue, knownFactsFor } from '../../packages/domain/src/dialer';
 import { resolveSlots } from '../../packages/domain/src/scripts';
 
 /**
- * Queue (/prospects), History (/calls + /calls/[id]) and Follow-ups (/pipeline) — DESIGN_SYSTEM §3.7.
+ * Queue (/prospects), History (/calls + /calls/[id]) and Follow-ups (/pipeline): DESIGN_SYSTEM §3.7.
  * Cards, glyph chips and sheets; no table, no dial control outside `/`. Session data comes from the
  * browser's `dial.history` / `dial.suppression`, primed here exactly as the Dial screen writes it.
  */
@@ -102,11 +102,18 @@ test.describe('Queue /prospects', () => {
     await expect(cards.first()).toContainText('Dana Whitlock');
     await expect(cards.first()).toContainText('Round Rock');
 
-    // Status glyph chips: the seed's opt-out AND the durable suppression both read ⊘ DNC; the rest ✓ ok (demo).
+    // Status pills only where the policy deviates from OK: the seed's opt-out AND the durable suppression both read DNC.
+    // A default (allowed) row carries no mark; its policy truth lives in the card's accessible name.
     await expect(page.locator('[data-prospect-list] [data-prospect-card][data-policy="suppressed"]')).toHaveCount(2);
     await expect(page.locator('[data-prospect-list] [data-prospect-card][data-contact-id="ct-dana"]')).toHaveAttribute('data-policy', 'suppressed');
     await expect(page.locator('[data-prospect-list] [data-prospect-card][data-contact-id="ct-victor"] [data-chip]')).toHaveAttribute('aria-label', /Do not call/);
-    await expect(page.locator('[data-prospect-list] [data-prospect-card][data-policy="allow"] [data-chip]').first()).toHaveAttribute('aria-label', /no real call is placed/);
+    await expect(page.locator('[data-prospect-list] [data-prospect-card][data-policy="allow"]').first()).toHaveAttribute('aria-label', /no real call is placed/);
+    await expect(page.locator('[data-prospect-list] [data-prospect-card][data-policy="allow"] [data-chip]')).toHaveCount(0);
+    // Names never truncate at phone width: the name wraps instead of clipping to an ellipsis.
+    await page.setViewportSize({ width: 430, height: 932 });
+    for (const el of await page.locator('[data-prospect-list] [data-prospect-card] [data-avatar] + * > :first-child').all()) {
+      expect(await el.evaluate((n) => n.scrollWidth <= n.clientWidth + 1)).toBe(true);
+    }
 
     // No dial control anywhere on this screen; no table.
     await expect(page.locator('[data-hero]')).toHaveCount(0);
@@ -153,13 +160,14 @@ test.describe('Queue /prospects', () => {
 });
 
 test.describe('History /calls', () => {
-  test('a card per synthetic call with duration and outcome glyph; the opt-out call reads ⊘ DNC; ∅ when no session ended', async ({ page }) => {
+  test('a card per synthetic call with duration and outcome glyph; the opt-out call reads DNC; the sessions section is hidden when none ended', async ({ page }) => {
     const errors = trackErrors(page);
     await prime(page);
     await page.goto('/calls');
     await expectHiddenH1(page, 'Calls');
     await expect(page.locator('[data-history]')).toHaveAttribute('data-hydrated', 'true');
-    await expect(page.locator('[data-sessions-empty]')).toBeVisible();
+    await expect(page.locator('[data-session-list]')).toHaveCount(0);
+    await expect(page.locator('[data-session-card]')).toHaveCount(0);
 
     const calls = page.locator('[data-call-list] [data-call-card]');
     await expect(calls).toHaveCount(loadSyntheticTranscripts().transcripts.length);
@@ -167,7 +175,7 @@ test.describe('History /calls', () => {
     await expect(first).toContainText('Dana Whitlock');
     await expect(first).toContainText('Riverbend Motors');
     await expect(first).toContainText(/\d:\d\d/);
-    await expect(page.locator('[data-call-card][data-call-id="syn-h-opt-out"] [data-chip]')).toHaveAttribute('aria-label', /Opt-out recorded — do not call/);
+    await expect(page.locator('[data-call-card][data-call-id="syn-h-opt-out"] [data-chip]')).toHaveAttribute('aria-label', /Opt-out recorded — do not call/); // the domain's outcome label
     await expect(page.locator('[data-call-card][data-call-id="syn-h-opt-out"]')).toHaveAttribute('data-outcome', 'do_not_call');
     await expect(page.locator('table')).toHaveCount(0);
     await page.waitForLoadState('networkidle');
@@ -192,7 +200,7 @@ test.describe('History /calls', () => {
     await expect(sheet.locator('a[data-attempt-card][data-attempt-id="att-1"]')).toHaveAttribute('href', /\/calls\/syn-a-profit-not-revenue$/);
   });
 
-  test('call review replays the in-call layout read-only (entry line, ≥3 words at ≥24px, tone —) with four review cards and a persisted correction', async ({ page }) => {
+  test('call review replays the in-call layout read-only (entry line, ≥3 words at ≥24px, tone not assessed) with four review cards whose evidence quotes the supporting turn, and a persisted correction', async ({ page }) => {
     const errors = trackErrors(page);
     await prime(page);
     await page.goto('/calls');
@@ -215,11 +223,33 @@ test.describe('History /calls', () => {
     }
     await expect(words.first()).toHaveAttribute('aria-label', /prospect said/);
 
-    // Tone is a `—` glyph with the whole truth; four review cards; no table.
+    // Tone is a caption with the whole truth (never a dash); four review cards; no table.
     await expect(page.locator('[data-review-tone]')).toHaveAttribute('aria-label', 'Tone not assessed (text-only)');
+    await expect(page.locator('[data-review-tone]')).toContainText('Not assessed');
     for (const key of ['strength', 'fix', 'ask', 'drill']) await expect(page.locator(`[data-review="${key}"]`)).toBeVisible();
     await expect(page.locator('[data-review="drill"]')).toHaveAttribute('href', '/practice');
     await expect(page.locator('table')).toHaveCount(0);
+    // A Fix card that names a missing field quotes the last question asked, never an unrelated closing turn.
+    const fix = page.locator('[data-review="fix"]');
+    if ((await fix.textContent())?.includes('Critical field not established')) {
+      await expect(fix.locator('[data-review-quote]')).toContainText('?');
+    }
+    // One status chip (no state dots) opens the replay-state sheet listing Call / Transcription / Recording / Coach.
+    await expect(page.locator('[data-state-dot]')).toHaveCount(0);
+    await page.locator('[data-call-status]').click();
+    const status = page.locator('dialog[data-sheet="status"]');
+    await expect(status).toBeVisible();
+    for (const row of ['call', 'transcription', 'recording', 'coach']) await expect(status.locator(`[data-status-row="${row}"]`)).toBeVisible();
+    await page.keyboard.press('Escape');
+    // The transcript and corrections controls sit in a docked bottom bar, never over the card text.
+    const bar = page.locator('[data-review-bar]');
+    await expect(bar).toBeVisible();
+    expect(await bar.evaluate((n) => getComputedStyle(n).position)).toBe('fixed');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const barBox = (await bar.boundingBox())!;
+    const lastCard = (await page.locator('[data-review-block] [data-review]').last().boundingBox())!;
+    expect(lastCard.y + lastCard.height).toBeLessThanOrEqual(barBox.y + 1);
+    await page.evaluate(() => window.scrollTo(0, 0));
 
     // ⓘ → uncertainties + the unvalidated rubric.
     await page.locator('[data-uncertainties]').click();
@@ -271,7 +301,7 @@ test.describe('Follow-ups /pipeline', () => {
     await expect(page.locator('[data-lane="no_contact"]')).toHaveAttribute('data-count', '1');
     await expect(page.locator('[data-lane="do_not_call"]')).toHaveAttribute('data-count', '1');
     await expect(page.locator('[data-lane="budget"]')).toHaveAttribute('data-count', '0');
-    // One list, filtered by the segmented chips — never a board. Agreed follow-up is the default lane.
+    // One list, filtered by the segmented chips, never a board. Agreed follow-up is the default lane.
     await expect(page.locator('[data-lane-list="agreed_follow_up"]')).toHaveAttribute('data-count', '2');
     const callback = page.locator('[data-lane-list="agreed_follow_up"] [data-lane-card][data-kind="callback"]');
     await expect(callback).toHaveCount(1);

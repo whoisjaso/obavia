@@ -4,7 +4,7 @@ import { useMemo, useState, useSyncExternalStore } from 'react';
 import type { QueueItem, SyntheticProspectsSeed } from '@apohenia/domain/schemas';
 import { DialSuppressionList } from '@apohenia/domain/schemas';
 import { buildQueue, policyGlyph } from '@apohenia/domain/dialer';
-import { Avatar, Card, Chip, FictionalPill, IconButton, Sheet, Stat, StatusGlyph, Tile, TileGrid, TopBar } from '@/components/ui';
+import { Avatar, Card, Chip, FictionalPill, GlyphPill, Icon, IconButton, NotAssessedLabel, Sheet, Stat, Tile, TileGrid, TopBar } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { formatPhone } from '../dial-lib';
 import { endpointLabel, localClock, matchesQuery, sharedWith } from './queue-lib';
@@ -30,14 +30,27 @@ function useNow(): number | null {
   );
 }
 
-function chipTone(status: QueueItem['policy_status']): 'green' | 'red' | 'teal' {
-  return status === 'allow' ? 'green' : status === 'suppressed' ? 'red' : 'teal';
+function pillTone(status: QueueItem['policy_status']): 'orange' | 'red' | 'green' {
+  return status === 'suppressed' ? 'red' : status === 'requires_review' ? 'orange' : 'green';
+}
+
+/** Seed text can carry a dash separator ("General manager — not identified"); the stage prints a comma. */
+function plainText(text: string): string {
+  return text.replace(/\s+[—–]\s+/g, ', ');
+}
+
+/** The policy pill only when the record deviates from OK (review or do not call); a default row carries no mark. */
+function policyPill(item: QueueItem) {
+  const policy = policyGlyph(item.policy_status);
+  if (item.policy_status === 'allow') return null;
+  return <GlyphPill icon={item.policy_status === 'suppressed' ? 'ban' : 'hourglass'} weight="fill" label={policy.word} name={policy.name} tone={pillTone(item.policy_status)} data-chip={policy.word} />;
 }
 
 /**
- * Queue: one card per record (Avatar · company · contact · city · status glyph). A TopBar search
- * icon opens a Sheet; an Import tile opens a one-line Sheet (CSV import is Increment 2). There is
- * no dial control on this screen — the sequential session dials from `/`.
+ * Queue: one card per record (Avatar, contact on up to two lines, role, company and city, local
+ * clock). A policy pill appears only when the record deviates from OK. A TopBar search icon opens a
+ * Sheet; an Import tile opens a one-line Sheet (CSV import is Increment 2). There is no dial control
+ * on this screen: the sequential session dials from `/`.
  */
 export function ProspectsClient({ seed }: ProspectsClientProps) {
   const [suppression, , hydrated] = useStoredState('dial.suppression', DialSuppressionList, EMPTY_LIST);
@@ -84,18 +97,22 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
         <div className={styles.row}>
           <Avatar name={item.contact} size={48} />
           <div className={styles.text}>
-            <span className={styles.company}>{item.company}</span>
             <span className={styles.contact}>{item.contact}</span>
+            <span className={styles.roleLine}>
+              <span className={styles.role}>{plainText(item.role)}</span>
+              {policyPill(item)}
+            </span>
             <span className={styles.meta}>
-              <span>{item.city}</span>
+              <span className={styles.place}>
+                {item.company} · {item.city}
+              </span>
               {clock ? (
                 <span className={[styles.clock, clock.withinHours ? styles.inHours : ''].join(' ').trim()} role="img" aria-label={clock.name}>
-                  <span aria-hidden="true">{clock.withinHours ? '◔' : '◑'}</span> <span aria-hidden="true">{clock.text}</span>
+                  <Icon name={clock.withinHours ? 'sun' : 'moon'} size={13} weight="fill" /> <span aria-hidden="true">{clock.text}</span>
                 </span>
               ) : null}
             </span>
           </div>
-          <StatusGlyph glyph={policy.glyph} label={policy.word} name={policy.name} tone={chipTone(item.policy_status)} />
         </div>
       </Card>
     );
@@ -120,7 +137,7 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
       </div>
 
       <TileGrid columns={2}>
-        <Tile icon="plus" label="Import" name="Import prospects — CSV import arrives in Increment 2" onClick={() => setSheet({ kind: 'import' })} data-import-tile />
+        <Tile icon="plus" label="Import" name="Import prospects. CSV import arrives in Increment 2" onClick={() => setSheet({ kind: 'import' })} data-import-tile />
         <Tile icon="history" label="History" name="Call history" href="/calls" />
       </TileGrid>
 
@@ -143,8 +160,9 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
           />
           <div className={styles.list} data-search-results aria-live="polite">
             {results.length === 0 ? (
-              <span className={styles.empty} aria-label="No matches">
-                ∅
+              <span className={styles.empty} role="status" aria-label="No matches">
+                <Icon name="empty" size={48} weight="bold" />
+                <span aria-hidden="true">No matches</span>
               </span>
             ) : (
               results.map(card)
@@ -161,7 +179,7 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
               <Avatar name={selected.contact} size={72} />
               <div className={styles.recordWho}>
                 <span className={styles.recordName}>{selected.contact}</span>
-                <span className={styles.recordRole}>{selected.role}</span>
+                <span className={styles.recordRole}>{plainText(selected.role)}</span>
                 <span className={styles.recordCompany}>{selected.location !== selected.company ? `${selected.company} · ${selected.location}` : selected.company}</span>
                 <span className={styles.recordPlace}>
                   {selected.city}, {selected.state}
@@ -169,35 +187,39 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
               </div>
             </div>
             <div className={styles.recordMeta} role="group" aria-label="Local time, number and line">
-              <span className={styles.recordFact} role="img" aria-label={selectedClock ? selectedClock.name : `Time zone ${selected.timezone}`} data-record-local>
-                <span className={styles.recordFactGlyph} aria-hidden="true">
-                  {selectedClock?.withinHours ? '◔' : '◑'}
+              {selectedClock ? (
+                <span className={styles.recordFact} role="img" aria-label={selectedClock.name} data-record-local>
+                  <span className={styles.recordFactGlyph} aria-hidden="true">
+                    <Icon name={selectedClock.withinHours ? 'sun' : 'moon'} size={16} weight="fill" />
+                  </span>
+                  <span aria-hidden="true">{selectedClock.text}</span>
                 </span>
-                <span aria-hidden="true">{selectedClock ? selectedClock.text : '—'}</span>
-              </span>
+              ) : (
+                <NotAssessedLabel label="Local time unknown" name="Local time unknown: the time zone is not known to this browser" data-record-local />
+              )}
               <span className={styles.recordFact} role="img" aria-label={`Number ${selected.phone} (fictional)`} data-record-phone={selected.phone}>
                 <span className={styles.recordFactGlyph} aria-hidden="true">
-                  ☏
+                  <Icon name="phone" size={16} weight="fill" />
                 </span>
                 <span aria-hidden="true">{formatPhone(selected.phone)}</span>
               </span>
-              {selectedEndpoint ? <Chip static glyph="◌" label={selectedEndpoint} name={`Line: ${selectedEndpoint} — demo, no real line`} /> : null}
+              {selectedEndpoint ? <Chip static icon="circle-dashed" label={selectedEndpoint.replace(/\s*\(.*\)\s*$/, '')} name={`Line: ${selectedEndpoint}. Demo, no real line`} /> : null}
             </div>
             <div className={styles.recordChips}>
               <FictionalPill />
-              {selectedPolicy ? <Chip static glyph={selectedPolicy.glyph} label={selectedPolicy.word} name={selectedPolicy.name} tone={chipTone(selected.policy_status)} /> : null}
+              {selectedPolicy ? <Chip static icon={selected.policy_status === 'suppressed' ? 'ban' : selected.policy_status === 'requires_review' ? 'hourglass' : 'check'} label={selectedPolicy.word} name={selectedPolicy.name} tone={selected.policy_status === 'suppressed' ? 'red' : selected.policy_status === 'requires_review' ? 'gold' : 'green'} /> : null}
               <Chip
                 static
-                glyph={selected.entrypoint === 'inbound' ? '↙' : '↗'}
+                icon={selected.entrypoint === 'inbound' ? 'arrow-down' : 'arrow-up'}
                 label={selected.entrypoint}
                 name={selected.entrypoint === 'inbound' ? `Inbound: ${selected.inbound_action ?? 'the prospect acted first'}` : 'Cold: no prior action from the prospect'}
               />
-              {selectedShared.length > 0 ? <Chip static glyph="⇆" label="shared" name={`Number shared with ${selectedShared.join(', ')}`} tone="teal" /> : null}
-              <Chip static glyph="◔" label="unverified" name="Number never verified; jurisdiction unknown; no reviewed contact policy exists for any synthetic record" />
+              {selectedShared.length > 0 ? <Chip static icon="swap" label="shared" name={`Number shared with ${selectedShared.join(', ')}`} tone="teal" /> : null}
+              <Chip static icon="hourglass" label="unverified" name="Number never verified; jurisdiction unknown; no reviewed contact policy exists for any synthetic record" />
             </div>
             {selected.call_id ? <Card href={`/calls/${encodeURIComponent(selected.call_id)}`} name={`Open the synthetic call review for ${selected.contact}`} dense>
               <span className={styles.linkRow}>
-                <span aria-hidden="true">◎</span> <span>Call review</span>
+                <Icon name="target" size={18} weight="bold" /> <span>Call review</span>
               </span>
             </Card> : null}
           </div>
@@ -208,10 +230,10 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
       <Sheet open={sheet?.kind === 'import'} onClose={() => setSheet(null)} title="Import" data-sheet="import">
         <div className={styles.importBody}>
           <span className={styles.importGlyph} aria-hidden="true">
-            ⇪
+            <Icon name="arrow-up" size={64} weight="bold" />
           </span>
-          <Chip static glyph="◔" label="Increment 2" name="CSV import is not built yet; it arrives in Increment 2 with secure persistence" tone="teal" />
-          <p className={styles.importLine}>CSV import arrives in Increment 2 — a row is never permission to call.</p>
+          <Chip static icon="hourglass" label="Increment 2" name="CSV import is not built yet; it arrives in Increment 2 with secure persistence" tone="teal" />
+          <p className={styles.importLine}>CSV import arrives in Increment 2. A row is never permission to call.</p>
           <Tile icon="check" label="OK" onClick={() => setSheet(null)} />
         </div>
       </Sheet>

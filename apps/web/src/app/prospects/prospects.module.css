@@ -34,37 +34,56 @@
   min-width: 0;
   flex: 1;
 }
-.company {
+/* the name never truncates: it wraps to a second line at phone width */
+.contact {
   font-size: var(--fs-body);
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1.2;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
-.contact {
+/* second line: the role, with the policy pill (only when it deviates from OK) at the trailing edge */
+.roleLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.role {
   font-size: var(--fs-caption);
   color: var(--ink-2);
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .meta {
   display: flex;
+  align-items: baseline;
   gap: var(--s-3);
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
   font-size: var(--fs-caption);
   font-weight: 600;
   color: var(--ink-2);
 }
+/* company and city wrap rather than clip; the clock keeps its width */
+.place {
+  min-width: 0;
+  flex: 1;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
 .clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
-}
-.meta > :first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .inHours {
   color: var(--green);
@@ -73,11 +92,14 @@
   opacity: 0.6;
 }
 .empty {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
   text-align: center;
-  font-size: 64px;
-  line-height: 1;
-  color: var(--ink-3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
   padding: var(--s-6) 0;
 }
 
@@ -134,7 +156,7 @@
   font-size: var(--fs-caption);
   color: var(--ink-2);
 }
-/* one glyph row: ◑ local time · ☏ number · ◌ line — the tz id and E.164 live in the accessible names */
+/* one fact row: local time, number, line; the tz id and E.164 live in the accessible names */
 .recordMeta {
   display: flex;
   flex-wrap: wrap;
@@ -155,8 +177,9 @@
   font-variant-numeric: tabular-nums;
 }
 .recordFactGlyph {
+  display: inline-grid;
+  place-items: center;
   color: var(--ink-2);
-  font-size: 15px;
 }
 .recordChips {
   display: flex;
@@ -179,8 +202,8 @@
   text-align: center;
 }
 .importGlyph {
-  font-size: 72px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
   color: var(--ink-3);
 }
 .importLine {

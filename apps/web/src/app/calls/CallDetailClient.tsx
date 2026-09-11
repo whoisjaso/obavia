@@ -7,7 +7,7 @@ import { HumanCorrection } from '@apohenia/domain/schemas';
 import { stageLabel } from '@apohenia/domain/scripts';
 import { EMPTY_PIN_STATE, analyzeCall, callDurationSeconds, callOutcome, outcomeGlyph, postCallReview, provenanceLabel, resolvePins, rubricDefinition, type NodeLike } from '@apohenia/domain/vocabulary';
 import { listenerFromTurns, toCards, visibleCards } from '@apohenia/domain/listener';
-import { Avatar, Card, Chip, DemoPill, IconButton, LineCard, NotAssessedGlyph, REF_MEANING_GLYPH, RefCard, Sheet, Toast, WordCard, useToast } from '@/components/ui';
+import { Avatar, Card, Chip, Icon, IconButton, LineCard, NotAssessedLabel, REF_MEANING_GLYPH, RefCard, Sheet, Tile, Toast, WordCard, useToast, type IconName, type WordReference } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { bridgeParts } from '@/lib/line-parts';
 import { formatDuration, wordCorrection, wordProvenance } from './review-lib';
@@ -21,14 +21,50 @@ export interface CallDetailClientProps {
   transcript: Transcript;
   /** Entry node for this record's entrypoint (null only if the script seed has no entry). */
   node: ScriptNode | null;
-  /** The entry line with slots resolved from record facts — rendered verbatim, never re-flowed. */
+  /** The entry line with slots resolved from record facts, rendered verbatim, never re-flowed. */
   line: string;
   contact: string;
   company: string;
   nodesCovered: NodeLike[];
 }
 
-type SheetKind = { kind: 'info' } | { kind: 'word'; id: string } | { kind: 'ref'; id: string } | { kind: 'transcript' } | { kind: 'uncertain' } | { kind: 'corrections' };
+type SheetKind = { kind: 'info' } | { kind: 'word'; id: string } | { kind: 'ref'; id: string } | { kind: 'transcript' } | { kind: 'uncertain' } | { kind: 'corrections' } | { kind: 'status' };
+
+/** Replay state, one row each: the whole truth of what this screen is (and is not). */
+const REPLAY_STATUS_ROWS: readonly { id: 'call' | 'transcription' | 'recording' | 'coach'; icon: IconName; label: string; state: string; detail: string }[] = [
+  { id: 'call', icon: 'phone', label: 'Call', state: 'Replay', detail: 'A synthetic transcript played back read-only. No phone line, no real call.' },
+  { id: 'transcription', icon: 'chat', label: 'Transcription', state: 'Off', detail: 'Nothing was transcribed. The words are authored text, not a microphone.' },
+  { id: 'recording', icon: 'record', label: 'Recording', state: 'Off', detail: 'Nothing is recorded or stored beyond the corrections you save in this browser.' },
+  { id: 'coach', icon: 'spark', label: 'Coach', state: 'Off', detail: 'No model runs. The review is rule-based over the text alone.' },
+];
+const REPLAY_STATUS_NAME = 'Demo replay: a synthetic transcript, no real call was placed. Transcription off, recording off, coach off. Open replay status.';
+
+/** Plain display form of a domain label that carries a dash separator ("internal training rubric, not validated"). */
+function plainLabel(label: string): string {
+  return label.replace(/\s+[—–]\s+/g, ', ');
+}
+
+/**
+ * Review prose from the rule engine, with its dash separators turned into punctuation. Anything
+ * inside double quotes is a transcript quote and stays exactly as spoken.
+ */
+function plainReview(text: string): string {
+  return text
+    .split(/("[^"]*")/)
+    .map((part) => (part.startsWith('"') ? part : part.replace(/\s+[—–]\s+use theirs/, '. Use theirs').replace(/\s+[—–]\s+/g, ': ')))
+    .join('');
+}
+
+/** One plain clause for a card's meaning line: parentheticals dropped, the first clause before any dash, at most 8 words. */
+function shortMeaning(line: string): string {
+  const clause = line
+    .replace(/\s*\([^)]*\)/g, '')
+    .split(/\s+[—–-]\s+/)[0]!
+    .replace(/[.;:,\s]+$/g, '')
+    .trim();
+  const words = clause.split(/\s+/).filter(Boolean);
+  return words.length > 8 ? `${words.slice(0, 8).join(' ')}…` : clause;
+}
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -57,8 +93,9 @@ function tagPhrases(text: string, events: VocabularyEvent[], turnId: string): Re
 
 /**
  * Read-only replay of the in-call screen (§3.2 layout, nothing advances) + the review block as four
- * cards (Strength · Fix · Ask instead · Drill), the `—` tone glyph, and a corrections sheet whose
- * entries persist locally with the original meaning kept beside them.
+ * cards (Strength, Fix, Ask instead, Drill), the tone "not assessed" caption, a docked action bar
+ * (transcript, corrections, uncertainties) and a corrections sheet whose entries persist locally
+ * with the original meaning kept beside them.
  */
 export function CallDetailClient({ transcript, node, line, contact, company, nodesCovered }: CallDetailClientProps) {
   const analysis = useMemo(() => analyzeCall(transcript.turns), [transcript]);
@@ -78,6 +115,8 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
   const selectedWord = sheet?.kind === 'word' ? (byId.get(sheet.id) ?? null) : null;
   const selectedRef = sheet?.kind === 'ref' ? (refCards.find((r) => r.id === sheet.id) ?? null) : null;
   const wordCorrections = selectedWord ? corrections.filter((c) => c.event_id === selectedWord.id) : [];
+  /** The reference merged into the selected word's card, if any (one panel system). */
+  const selectedWordRef = selectedWord ? (refCards.find((r) => splitRefLabel(r.label).title.trim().toLowerCase() === selectedWord.exact_text.trim().toLowerCase()) ?? null) : null;
 
   function save() {
     if (!selectedWord || text.trim().length === 0) return;
@@ -90,32 +129,38 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
     };
     setCorrections((prev) => [...prev, entry]);
     setText('');
-    showToast(`Saved · ${selectedWord.exact_text} · original kept`, 'green');
+    showToast(`Saved: ${selectedWord.exact_text}, original kept`, 'green');
   }
 
-  const stateDots = [
-    { id: 'call', name: 'Call: replay of a synthetic transcript — no phone line' },
-    { id: 'transcribe', name: 'Transcription: none — authored text, no microphone' },
-    { id: 'coach', name: 'Coach: off — no model; the review is rule-based' },
-  ];
-
-  const words = resolved.pinned.map((c) => (
-    <WordCard
-      key={c.event.id}
-      word={c.event.exact_text}
-      provenance={wordProvenance(c.event)}
-      provenanceName={provenanceLabel(c.event)}
-      correction={wordCorrection(c.event)}
-      provisional={c.event.stability === 'interim'}
-      eventId={c.event.id}
-      onPress={() => setSheet({ kind: 'word', id: c.event.id })}
-    />
-  ));
-  const refs = refCards.map((r) => (
+  // One panel system (addendum v3): a reference whose term is already a pinned word merges into that
+  // word's card (meaning line + status mark) instead of appearing twice, once gold and once purple.
+  const refByTerm = new Map(refCards.map((r) => [splitRefLabel(r.label).title.trim().toLowerCase(), r] as const));
+  const merged = new Set<string>();
+  const words = resolved.pinned.map((c) => {
+    const r = refByTerm.get(c.event.exact_text.trim().toLowerCase()) ?? null;
+    if (r) merged.add(r.id);
+    const reference: WordReference | undefined = r
+      ? { referenceId: r.id, meaning: shortMeaning(r.meaning_line), status: r.meaning_status, statusName: r.glyph_name, invalidated: r.state === 'invalidated', pinned: r.pinned, kept: r.kept_for_later }
+      : undefined;
+    return (
+      <WordCard
+        key={c.event.id}
+        word={c.event.exact_text}
+        provenance={wordProvenance(c.event)}
+        provenanceName={provenanceLabel(c.event)}
+        correction={wordCorrection(c.event)}
+        provisional={c.event.stability === 'interim'}
+        eventId={c.event.id}
+        reference={reference}
+        onPress={() => setSheet({ kind: 'word', id: c.event.id })}
+      />
+    );
+  });
+  const refs = refCards.filter((r) => !merged.has(r.id)).map((r) => (
     <RefCard
       key={r.id}
       label={r.label}
-      meaning={r.meaning_line}
+      meaning={shortMeaning(r.meaning_line)}
       status={r.meaning_status}
       statusName={r.glyph_name}
       invalidated={r.state === 'invalidated'}
@@ -132,22 +177,31 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
     return analysis.turns.find((t) => t.utterance_id === turnId)?.text ?? null;
   };
 
-  const reviewCard = (key: string, label: string, glyph: string, tone: 'green' | 'orange' | 'purple' | 'neutral', body: string, quote: string | null, href?: string) => (
-    <Card tone={tone} data-review={key} href={href} name={href ? `${label}: ${body} — open Train` : undefined} dense={Boolean(href)}>
+  const reviewCard = (key: string, label: string, icon: IconName, tone: 'green' | 'orange' | 'purple' | 'neutral', body: string, quote: string | null, href?: string) => (
+    <Card tone={tone} data-review={key} href={href} name={href ? `${label}: ${body} Opens Train.` : undefined} dense={Boolean(href)}>
       <div className={styles.reviewHead}>
-        <Chip static glyph={glyph} label={label} tone={tone === 'green' ? 'green' : tone === 'orange' ? 'red' : tone === 'purple' ? 'purple' : 'teal'} />
+        <Chip static icon={icon} label={label} tone={tone === 'green' ? 'green' : tone === 'orange' ? 'red' : tone === 'purple' ? 'purple' : 'teal'} />
       </div>
       <p className={styles.reviewText}>{body}</p>
-      {quote ? <q className={styles.reviewQuote}>{quote}</q> : null}
+      {quote ? (
+        <q className={styles.reviewQuote} data-review-quote>
+          {quote}
+        </q>
+      ) : null}
     </Card>
   );
 
   return (
     <div className={styles.replay} data-stage-wide data-call-review data-call-id={transcript.call_id} data-hydrated={hydrated ? 'true' : 'false'}>
-      {/* header — same shape as in-call */}
+      {/* header: same shape as in-call, one status chip instead of state dots */}
       <div className={styles.callHead} data-topbar>
-        <DemoPill compact />
         <IconButton icon="arrow-left" label="Back to History" href="/calls" />
+        <button type="button" className={styles.status} onClick={() => setSheet({ kind: 'status' })} aria-label={REPLAY_STATUS_NAME} title={REPLAY_STATUS_NAME} data-call-status data-demo-pill>
+          <Icon name="circle-half" size={14} weight="fill" />
+          <span className={styles.statusWord} aria-hidden="true">
+            Replay
+          </span>
+        </button>
         <Avatar name={contact} size={40} />
         <div className={styles.callWho}>
           <span className={styles.callName}>{contact}</span>
@@ -156,18 +210,13 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
         <span className={styles.callTimer} aria-label={`Call length ${duration}`}>
           {duration}
         </span>
-        <span className={styles.dots} role="group" aria-label="Replay state">
-          {stateDots.map((d) => (
-            <span key={d.id} className={[styles.dot, styles.dotOff].join(' ')} role="img" aria-label={d.name} title={d.name} data-state-dot={d.id} />
-          ))}
-        </span>
       </div>
 
       {/* narrow: words strip above the line */}
       <div className={styles.strip} data-words-strip aria-label="Their words and references">
         {words.length + refs.length === 0 ? (
           <span className={styles.stripEmpty} aria-hidden="true">
-            ◌
+            None yet
           </span>
         ) : null}
         {words}
@@ -184,27 +233,22 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
               onInfo={() => setSheet({ kind: 'info' })}
               nodeId={node.id}
               locked
-              meta={<Chip static glyph="▶" label="replay" name="Read-only replay — the line does not advance" tone="neutral" />}
+              meta={<Chip static icon="play" label="replay" name="Read-only replay: the line does not advance" tone="neutral" />}
             />
           ) : null}
 
-          {/* outcome + tone + ⓘ */}
+          {/* outcome + tone */}
           <div className={styles.outcomeRow} data-review-outcome>
-            <Chip static glyph={outcome.glyph} label={outcome.word} name={outcome.name} tone={outcome.glyph === '✓' ? 'green' : outcome.glyph === '⊘' ? 'red' : outcome.glyph === '◔' ? 'teal' : 'neutral'} />
-            <NotAssessedGlyph name="Tone not assessed (text-only)" data-review-tone />
-            <span className={styles.outcomeTools}>
-              <IconButton icon="list" label="Transcript" onClick={() => setSheet({ kind: 'transcript' })} data-transcript-button />
-              <IconButton icon="bookmark" label={`Corrections (${corrections.length})`} onClick={() => setSheet({ kind: 'corrections' })} data-corrections-button />
-              <IconButton icon="info" label="Uncertainties and rubric" onClick={() => setSheet({ kind: 'uncertain' })} data-uncertainties />
-            </span>
+            <Chip static icon={outcome.glyph === '✓' ? 'check' : outcome.glyph === '⊘' ? 'ban' : outcome.glyph === '◔' ? 'hourglass' : 'circle'} label={outcome.word} name={outcome.name} tone={outcome.glyph === '✓' ? 'green' : outcome.glyph === '⊘' ? 'red' : outcome.glyph === '◔' ? 'teal' : 'neutral'} />
+            <NotAssessedLabel label="Tone: Not assessed" name="Tone not assessed (text-only)" data-review-tone />
           </div>
 
           {/* the review block: four cards */}
           <div className={styles.reviewGrid} data-review-block>
-            {reviewCard('strength', 'Strength', '◆', 'green', review.strength.text, quoteFor(review.strength.quote_turn_id))}
-            {reviewCard('fix', 'Fix', '△', 'orange', review.correction.text, quoteFor(review.correction.quote_turn_id))}
-            {reviewCard('ask', 'Ask instead', '?', 'purple', review.better_question, null)}
-            {reviewCard('drill', 'Drill', '◎', 'neutral', review.drill, null, '/practice')}
+            {reviewCard('strength', 'Strength', 'star', 'green', plainReview(review.strength.text), quoteFor(review.strength.quote_turn_id))}
+            {reviewCard('fix', 'Fix', 'warning', 'orange', plainReview(review.correction.text), quoteFor(review.correction.quote_turn_id))}
+            {reviewCard('ask', 'Ask instead', 'question', 'purple', plainReview(review.better_question), null)}
+            {reviewCard('drill', 'Drill', 'target', 'neutral', plainReview(review.drill), null, '/practice')}
           </div>
         </div>
 
@@ -214,18 +258,53 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
             <Chip static label="Their words" tone="gold" />
           </div>
           <div className={styles.railList} data-words-rail>
-            {words.length === 0 ? <span className={styles.railEmpty} aria-hidden="true">◌</span> : words}
+            {words.length === 0 ? (
+              <span className={styles.railEmpty} aria-hidden="true">
+                None yet
+              </span>
+            ) : (
+              words
+            )}
           </div>
           <div className={styles.railHead}>
-            <Chip static label="Their refs" tone="purple" />
+            <Chip static label="Their references" tone="purple" />
           </div>
           <div className={styles.railList} data-refs-rail>
-            {refs.length === 0 ? <span className={styles.railEmpty} aria-hidden="true">◌</span> : refs}
+            {refs.length === 0 ? (
+              <span className={styles.railEmpty} aria-hidden="true">
+                None yet
+              </span>
+            ) : (
+              refs
+            )}
           </div>
         </aside>
       </div>
 
+      {/* docked action bar: the review's tools live here, never floating over card text */}
+      <div className={styles.reviewBar} data-review-bar>
+        <div className={styles.reviewBarInner} role="group" aria-label="Review tools">
+          <Tile icon="list" label="Transcript" onClick={() => setSheet({ kind: 'transcript' })} data-transcript-button />
+          <Tile icon="bookmark" label="Corrections" name={`Corrections (${corrections.length})`} onClick={() => setSheet({ kind: 'corrections' })} data-corrections-button>
+            {corrections.length > 0 ? <span className={styles.barCount}>{corrections.length}</span> : null}
+          </Tile>
+          <Tile icon="info" label="Uncertain" name="Uncertainties and rubric" onClick={() => setSheet({ kind: 'uncertain' })} data-uncertainties />
+        </div>
+      </div>
+
       {/* ---- sheets ---- */}
+      <Sheet open={sheet?.kind === 'status'} onClose={() => setSheet(null)} title="Replay status" data-sheet="status">
+        <div className={styles.statusRows} role="list">
+          {REPLAY_STATUS_ROWS.map((r) => (
+            <div key={r.id} className={[styles.statusRow, r.id === 'call' ? styles.statusOn : ''].join(' ').trim()} role="listitem" data-status-row={r.id} data-status-on={r.id === 'call' ? 'true' : 'false'}>
+              <Icon name={r.icon} size={24} className={styles.statusIcon} />
+              <span className={styles.statusLabel}>{r.label}</span>
+              <span className={styles.statusState}>{r.state}</span>
+              <span className={styles.statusDetail}>{r.detail}</span>
+            </div>
+          ))}
+        </div>
+      </Sheet>
       <Sheet open={sheet?.kind === 'info'} onClose={() => setSheet(null)} title="Why now" data-sheet="info">
         {node ? (
           <div className={styles.info}>
@@ -262,20 +341,32 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
             <span className={styles.detailWord}>{selectedWord.exact_text}</span>
             <p className={styles.detailLine}>{provenanceLabel(selectedWord)}</p>
             <p className={styles.detailLine} data-word-meaning>
-              {selectedWord.meaning ? `means: ${selectedWord.meaning}` : 'meaning unknown — not explained by the prospect'}
+              {selectedWord.meaning ? `means: ${selectedWord.meaning}` : 'meaning unknown: not explained by the prospect'}
             </p>
             {selectedWord.correction_or_negation ? (
               <p className={styles.detailLine}>
                 not <s>{selectedWord.correction_or_negation.rejects}</s>
               </p>
             ) : null}
-            {selectedWord.cue ? <p className={styles.detailCue}>{selectedWord.cue}</p> : null}
+            {selectedWord.cue ? <p className={styles.detailCue}>{plainReview(selectedWord.cue)}</p> : null}
+            {selectedWordRef ? (
+              <div className={styles.mergedRef} data-word-reference={selectedWordRef.id}>
+                <div className={styles.detailChips}>
+                  <Chip static icon="diamond" label="Reference" tone="purple" name="This word is also a reference the listener tracks" />
+                  <Chip static glyph={selectedWordRef.state === 'invalidated' ? '⊘' : REF_MEANING_GLYPH[selectedWordRef.meaning_status]} label={selectedWordRef.state === 'invalidated' ? 'invalidated' : selectedWordRef.meaning_status} tone="purple" name={selectedWordRef.glyph_name} />
+                </div>
+                <p className={styles.detailLine}>{plainLabel(selectedWordRef.represents)}</p>
+                <div className={styles.detailActions}>
+                  <Chip label="Open reference" icon="arrow-right" onClick={() => setSheet({ kind: 'ref', id: selectedWordRef.id })} data-open-reference />
+                </div>
+              </div>
+            ) : null}
 
             <div className={styles.correctionForm}>
-              <Chip static glyph="✎" label="Correct meaning" name="Correct this phrase's meaning in the prospect's terms — the original stays visible" tone="teal" />
+              <Chip static icon="edit" label="Correct meaning" name="Correct this phrase's meaning in the prospect's terms. The original stays visible" tone="teal" />
               <textarea className={styles.textarea} aria-label="Corrected meaning" placeholder="In their terms…" value={text} onChange={(e) => setText(e.target.value)} rows={3} data-correction-text />
               <div className={styles.detailActions}>
-                <Chip label="Save" glyph="✓" tone="blue" selected disabled={!hydrated || text.trim().length === 0} onClick={save} data-correction-save />
+                <Chip label="Save" icon="check" tone="blue" selected disabled={!hydrated || text.trim().length === 0} onClick={save} data-correction-save />
               </div>
             </div>
 
@@ -307,15 +398,16 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
                 </span>
               ) : null}
               <Chip static glyph={selectedRef.state === 'invalidated' ? '⊘' : REF_MEANING_GLYPH[selectedRef.meaning_status]} label={selectedRef.state === 'invalidated' ? 'invalidated' : selectedRef.meaning_status} tone="purple" name={selectedRef.glyph_name} data-ref-status />
-              <Chip static glyph="○" label={selectedRef.origin_label.split(/\s[—–-]\s|:/)[0] ?? selectedRef.origin_label} name={selectedRef.origin_label} />
+              <Chip static icon="circle" label={selectedRef.origin_label.split(/\s[—–-]\s|:/)[0] ?? selectedRef.origin_label} name={selectedRef.origin_label} />
             </div>
             <q className={styles.detailQuote}>{selectedRef.evidence.quote}</q>
-            <p className={styles.detailLine}>{selectedRef.represents}</p>
-            {selectedRef.useful_when ? <p className={styles.detailLine}>later: {selectedRef.useful_when}</p> : null}
+            <p className={styles.detailLine}>{plainLabel(selectedRef.represents)}</p>
+            {selectedRef.useful_when ? <p className={styles.detailLine}>later: {plainLabel(selectedRef.useful_when).replace(/_/g, ' ')}</p> : null}
             {selectedRef.prohibited_inferences.length > 0 ? (
               <details className={styles.useRight} data-ref-use-right>
                 <summary className={styles.useRightSummary}>
-                  <span aria-hidden="true">◆ </span>Use it right
+                  <Icon name="shield" size={18} weight="fill" className={styles.useRightIcon} />
+                  Use it right
                 </summary>
                 <ul className={styles.infoList} data-ref-prohibited>
                   {selectedRef.prohibited_inferences.map((x) => (
@@ -331,20 +423,20 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
 
       <Sheet open={sheet?.kind === 'uncertain'} onClose={() => setSheet(null)} title="Uncertain" data-sheet="uncertainties">
         <div className={styles.info}>
-          <p className={styles.infoBig}>{review.next_step_or_outcome}</p>
+          <p className={styles.infoBig}>{plainReview(review.next_step_or_outcome)}</p>
           <ul className={styles.infoList} data-uncertainty-list>
             {review.uncertainties.map((u) => (
-              <li key={u}>{u}</li>
+              <li key={u}>{plainReview(u)}</li>
             ))}
           </ul>
           <div className={styles.infoRow}>
-            <Chip static glyph="◔" label="Rubric" name={`${rubric.label}; ${rubric.notes.join(' ')}`} tone="teal" />
+            <Chip static icon="hourglass" label="Rubric" name={`${plainLabel(rubric.label)}; ${rubric.notes.join(' ')}`} tone="teal" />
             <div className={styles.rubricChips}>
               {rubric.criteria.map((c) => (
                 <Chip key={c.key} static glyph={String(c.weight)} label={c.label} name={`${c.label}, weight ${c.weight}: ${c.description}`} />
               ))}
             </div>
-            <p className={styles.detailCue}>Not scored — {rubric.label}.</p>
+            <p className={styles.detailCue}>Not scored: {plainLabel(rubric.label)}.</p>
           </div>
         </div>
       </Sheet>
@@ -352,8 +444,8 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
       <Sheet open={sheet?.kind === 'corrections'} onClose={() => setSheet(null)} title="Corrections" data-sheet="corrections">
         <div className={styles.detail}>
           {corrections.length === 0 ? (
-            <span className={styles.railEmpty} aria-label="No corrections yet">
-              ∅
+            <span className={styles.railEmpty} role="status" aria-label="No corrections yet">
+              None yet
             </span>
           ) : (
             <ul className={styles.correctionList} data-corrections>
@@ -378,7 +470,7 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
           {analysis.turns.map((t) => (
             <li key={`${t.utterance_id}-${t.revision}`} className={[styles.turn, t.speaker_role === 'prospect' ? styles.turnProspect : styles.turnRep].join(' ')}>
               <span className={styles.turnWho} aria-hidden="true">
-                {t.speaker_role === 'prospect' ? '●' : '○'}
+                <Icon name="circle" size={10} weight={t.speaker_role === 'prospect' ? 'fill' : 'regular'} />
               </span>
               <span className="sr-only">{t.speaker_role === 'prospect' ? 'Prospect' : 'You'}:</span>
               <span className={styles.turnText}>{tagPhrases(t.text, analysis.events, t.utterance_id)}</span>
@@ -387,7 +479,11 @@ export function CallDetailClient({ transcript, node, line, contact, company, nod
             </li>
           ))}
         </ol>
-        {analysis.opt_out ? <p className={styles.detailCue}>⊘ opt-out at {analysis.opt_out.turn_id} — the call stops there.</p> : null}
+        {analysis.opt_out ? (
+          <p className={styles.detailCue} data-opt-out-note>
+            <Icon name="ban" size={14} weight="bold" /> Opt-out recorded. The call stops there.
+          </p>
+        ) : null}
       </Sheet>
 
       <Toast message={toast} />

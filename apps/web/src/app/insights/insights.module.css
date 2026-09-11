@@ -1,4 +1,4 @@
-/* /insights — rings + numbers with n/N denominators, ∅ where nothing is counted. Tokens only. */
+/* /insights: rings + numbers with "n of N" captions, an empty mark where nothing is counted. Tokens only. */
 
 .root {
   display: flex;
@@ -30,10 +30,9 @@
   width: min(100%, 200px);
 }
 .emptyGlyph {
-  font-size: 72px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
   color: var(--ink-3);
-  font-weight: 300;
 }
 .emptyLabel {
   font-size: var(--fs-caption);
@@ -107,8 +106,9 @@
   min-width: 0;
 }
 .ringDash {
+  display: grid;
+  place-items: center;
   color: var(--ink-3);
-  font-weight: 700;
 }
 .ratio {
   font-size: var(--fs-caption);
@@ -140,10 +140,15 @@
   min-width: 96px;
 }
 .ringCenter {
+  display: grid;
+  place-items: center;
   font-size: var(--fs-title);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
+}
+.ringCenterEmpty {
+  color: var(--ink-3);
 }
 .ringLabel {
   font-size: var(--fs-caption);

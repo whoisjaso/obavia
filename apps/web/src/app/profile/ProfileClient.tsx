@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { IdentityProfile, InterviewSession, type InterviewScreen, type InterviewVersion } from '@apohenia/domain/schemas';
 import { INTERVIEW_STORAGE_KEYS, buildProfile, buildTrainingPlan, displayStatus, endorseProfile, isProfileCurrent, isUncertaintyOption, isNoneOption, optionLabelOf, progress, visibleScreens } from '@apohenia/domain/interview';
-import { Card, Chip, GlyphPill, IconButton, NotAssessedGlyph, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
+import { Card, Chip, GlyphPill, Icon, IconButton, NotAssessedLabel, Sheet, Stat, Tile, TileGrid, Toast, TopBar, useToast } from '@/components/ui';
 import { listStoredKeys, readStored, removeStored, useStoredState } from '@/lib/storage';
 import styles from './profile.module.css';
 
@@ -13,7 +13,7 @@ const PROFILE_KEY = 'interview.profile';
 const SessionOrNull = InterviewSession.nullable();
 const ProfileOrNull = IdentityProfile.nullable();
 const Anything = z.unknown();
-/** Today's later duration choice (A-2) — read so the plan shows the same duration Today shows. */
+/** Today's later duration choice (A-2), read so the plan shows the same duration Today shows. */
 const TodayPrefs = z.object({ duration_minutes: z.number().int().positive().nullable().default(null) });
 const NO_PREFS = { duration_minutes: null } as const;
 
@@ -66,7 +66,7 @@ export function ProfileClient({ version }: { version: InterviewVersion }) {
         <TopBar />
         <div className={styles.empty}>
           <span className={styles.emptyGlyph} aria-hidden="true">
-            ∅
+            <Icon name="empty" size={72} weight="bold" />
           </span>
           <span className={styles.emptyLabel}>No answers yet</span>
           <span className="sr-only">Your profile is built from the identity interview. Nothing here is inferred; every section shows the answer ids it came from.</span>
@@ -133,11 +133,11 @@ export function ProfileClient({ version }: { version: InterviewVersion }) {
 
   const statusPill =
     status === 'endorsed' ? (
-      <GlyphPill glyph="✓" label="Endorsed" tone="green" name={`Endorsed ${endorsedDate ?? ''}. Your training plan and Today read this profile.`} data-profile-status="endorsed" />
+      <GlyphPill icon="check" label="Endorsed" tone="green" name={`Endorsed ${endorsedDate ?? ''}. Your training plan and Today read this profile.`} data-profile-status="endorsed" />
     ) : status === 'stale' ? (
-      <GlyphPill glyph="↺" label="Stale" tone="orange" name="Answers changed since endorsement — endorse again. Today has stopped reading the old profile." data-profile-status="stale" />
+      <GlyphPill icon="undo" label="Stale" tone="orange" name="Answers changed since endorsement. Endorse again; Today has stopped reading the old profile." data-profile-status="stale" />
     ) : (
-      <GlyphPill glyph="◌" label="Draft" tone="neutral" name="Not endorsed yet — nothing downstream uses this profile" data-profile-status="unendorsed" />
+      <GlyphPill icon="circle-dashed" label="Draft" tone="neutral" name="Not endorsed yet: nothing downstream uses this profile" data-profile-status="unendorsed" />
     );
 
   return (
@@ -176,7 +176,7 @@ export function ProfileClient({ version }: { version: InterviewVersion }) {
           onClick={onEndorse}
           data-endorse-button
         />
-        <Tile icon="target" label="Plan" size="lg" name={endorsedCurrent ? `Training plan: ${plan.length} standard${plan.length === 1 ? '' : 's'} translated into practice habits` : 'Training plan — endorse the profile to generate it'} onClick={() => setSheet('plan')} data-plan-open />
+        <Tile icon="target" label="Plan" size="lg" name={endorsedCurrent ? `Training plan: ${plan.length} standard${plan.length === 1 ? '' : 's'} translated into practice habits` : 'Training plan: endorse the profile to generate it'} onClick={() => setSheet('plan')} data-plan-open />
       </TileGrid>
 
       <div className={styles.sections} data-profile-sections>
@@ -191,7 +191,7 @@ export function ProfileClient({ version }: { version: InterviewVersion }) {
                 <Card>
                   <div className={styles.chips} data-unknowns aria-label={`Explicit unknowns: ${derived.unknowns.length}`}>
                     {derived.unknowns.length === 0 ? (
-                      <NotAssessedGlyph name="No unknowns recorded. Skipped or uncertain answers appear here." />
+                      <NotAssessedLabel label="None recorded" name="No unknowns recorded. Skipped or uncertain answers appear here." />
                     ) : (
                       derived.unknowns.map((u) => <Chip key={u} static label={u} className={styles.unknownChip} name={`Unknown: ${u}`} />)
                     )}
@@ -208,16 +208,16 @@ export function ProfileClient({ version }: { version: InterviewVersion }) {
       {/* ---- training plan ---- */}
       <Sheet open={sheet === 'plan'} onClose={() => setSheet('none')} title="Plan" tall data-sheet="plan">
         <div className={styles.sheetStack}>
-          <p className={styles.sheetMuted}>Each endorsed standard becomes cue → exact action → frequency and duration → completion evidence → review → recovery rule. A missed practice does not erase previous work.</p>
+          <p className={styles.sheetMuted}>Each endorsed standard becomes a cue, an exact action, a frequency and duration, completion evidence, a review and a recovery rule. A missed practice does not erase previous work.</p>
           {!endorsedCurrent ? (
             <div className={styles.gate} data-plan-gate>
-              <Chip static glyph="◌" label="Endorse first" tone="gold" name="Endorse the profile to generate the plan. An unendorsed profile produces no plan." />
+              <Chip static icon="circle-dashed" label="Endorse first" tone="gold" name="Endorse the profile to generate the plan. An unendorsed profile produces no plan." />
               <Tile icon="check" label="Endorse" tone="green" name="Endorse this profile now" onClick={() => { onEndorse(); }} />
             </div>
           ) : plan.length === 0 ? (
             <div className={styles.gate} data-plan-empty>
               <span className={styles.emptyGlyph} aria-hidden="true">
-                ∅
+                <Icon name="empty" size={48} weight="bold" />
               </span>
               <span className={styles.sheetText}>No standards were chosen on the “Which of these statements do you choose as yours?” screen, so there is nothing to translate yet.</span>
               <Tile icon="list" label="Revise" name="Revise answers in the interview" href="/onboarding/identity" />
@@ -234,7 +234,7 @@ export function ProfileClient({ version }: { version: InterviewVersion }) {
                     <span className={styles.planValue}>
                       {item.frequency}
                       {' · '}
-                      {item.duration_minutes !== null ? <span data-plan-duration={item.duration_minutes}>{item.duration_minutes} min</span> : <NotAssessedGlyph name="Duration not chosen — choose it on Today or in the interview" data-plan-duration="" />}
+                      {item.duration_minutes !== null ? <span data-plan-duration={item.duration_minutes}>{item.duration_minutes} min</span> : <NotAssessedLabel label="duration not chosen" name="Duration not chosen. Choose it on Today or in the interview" data-plan-duration="" />}
                     </span>
                   </div>
                   <PlanRow k="Evidence" v={item.completion_evidence} />
@@ -263,8 +263,8 @@ export function ProfileClient({ version }: { version: InterviewVersion }) {
             {PRIVACY_STATEMENT}
           </p>
           <div className={styles.chips}>
-            <Chip static glyph="⌂" label="interview.session" name="Stored key: interview.session (this browser only)" />
-            <Chip static glyph="⌂" label="interview.profile" name="Stored key: interview.profile (this browser only)" />
+            <Chip static icon="home" label="Answers" name="Stored key: interview.session (this browser only)" />
+            <Chip static icon="home" label="Profile" name="Stored key: interview.profile (this browser only)" />
           </div>
           <p className={styles.sheetMuted}>Export contains only the interview keys stored in this browser. Delete removes those keys and nothing else; the app-wide delete lives on Settings.</p>
           {confirmDelete ? (
@@ -293,8 +293,8 @@ export function ProfileClient({ version }: { version: InterviewVersion }) {
 
 /**
  * One card per question: the question as an 11px caption, the chosen option(s) as a 22px label
- * (several = chips). Unanswered is a single `—` glyph whose accessible name says why. Ids live
- * only in the JSON export (and the section's data attribute), never on the stage.
+ * (several = chips). Unanswered is a caption ("Skipped", "Not answered") whose accessible name says
+ * why. Ids live only in the JSON export (and the section's data attribute), never on the stage.
  */
 function AnswerCard({ screen, session }: { screen: InterviewScreen; session: InterviewSession }) {
   const st = displayStatus(session, screen.id);
@@ -305,7 +305,8 @@ function AnswerCard({ screen, session }: { screen: InterviewScreen; session: Int
   const exclusive = first !== undefined && (isUncertaintyOption(screen, first) || isNoneOption(screen, first));
   const labels = ids.map((id) => optionLabelOf(screen, id));
   const emptyName =
-    st === 'skipped' ? `${caption}: skipped` : st === 'needs_reanswer' ? `${caption}: an earlier answer changed — confirm this one again` : st === 'not_applicable' ? `${caption}: not applicable` : `${caption}: not answered yet`;
+    st === 'skipped' ? `${caption}: skipped` : st === 'needs_reanswer' ? `${caption}: an earlier answer changed. Confirm this one again` : st === 'not_applicable' ? `${caption}: not applicable` : `${caption}: not answered yet`;
+  const emptyWord = st === 'skipped' ? 'Skipped' : st === 'needs_reanswer' ? 'Re-check' : st === 'not_applicable' ? 'Not asked' : 'Not answered';
   return (
     <Card dense data-answer-card={screen.id} data-answer-status={st}>
       <span className={styles.answerCaption} aria-hidden="true">
@@ -325,7 +326,7 @@ function AnswerCard({ screen, session }: { screen: InterviewScreen; session: Int
           </span>
         )
       ) : (
-        <NotAssessedGlyph name={emptyName} className={styles.answerEmpty} />
+        <NotAssessedLabel label={emptyWord} name={emptyName} className={styles.answerEmpty} />
       )}
     </Card>
   );

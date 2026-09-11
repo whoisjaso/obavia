@@ -65,7 +65,7 @@ test.describe('identity interview → profile → Today', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Identity interview');
     await expect(page.locator('[data-screen-id]')).toBeVisible();
 
-    // Fresh session: 30 visible, up to 3 more — as a ring in the top bar with the whole truth in its name.
+    // Fresh session: 30 visible, up to 3 more, as a ring in the top bar with the whole truth in its name.
     const progress = page.locator('[data-progress-line]');
     await expect(progress).toHaveAttribute('data-index', '1');
     await expect(progress).toHaveAttribute('data-total', '30');
@@ -75,7 +75,7 @@ test.describe('identity interview → profile → Today', () => {
     const back = page.getByRole('button', { name: 'Back', exact: true });
     const skip = page.getByRole('button', { name: 'Skip this question' });
 
-    // Next is disabled until a valid selection exists — with a VISIBLE reason (A-6), not only a tooltip.
+    // Next is disabled until a valid selection exists, with a VISIBLE reason (A-6), not only a tooltip.
     await expect(next).toBeDisabled();
     await expect(back).toBeDisabled();
     const reason = page.locator('[data-next-reason]');
@@ -86,8 +86,10 @@ test.describe('identity interview → profile → Today', () => {
     const reasonId = await reason.getAttribute('id');
     await expect(next).toHaveAttribute('aria-describedby', reasonId ?? '');
 
-    // Multi-select limit is stated and enforced on the first screen (max 3).
+    // Multi-select limit is stated ONCE (in the footer control, which is also the reason slot) and enforced on the first screen (max 3).
     await expect(page.locator('[data-max-select] [data-chip]')).toHaveAttribute('aria-label', /choose up to 3/);
+    await expect(page.locator('[data-max-select]')).toHaveCount(1);
+    await expect(page.locator('[data-max-select]')).toHaveAttribute('id', reasonId ?? '');
     await clickOption(page, 'goal_durable');
     await clickOption(page, 'goal_provide');
     await clickOption(page, 'goal_freedom');
@@ -102,8 +104,10 @@ test.describe('identity interview → profile → Today', () => {
     await clickOption(page, 'goal_durable');
     await expect(page.locator('[data-option-id="goal_meaning.unsure"]')).toHaveAttribute('aria-pressed', 'false');
     await expect(next).toBeEnabled();
-    await expect(reason).toHaveAttribute('data-next-reason', 'clear'); // the slot stays (no bar reflow); the cue is gone
+    await expect(reason).toHaveAttribute('data-next-reason', 'clear'); // the slot stays (no bar reflow); the cue is gone, the mark and count remain
     await expect(reason).not.toContainText('Pick');
+    await expect(reason).toContainText('1 of 3');
+    await expect(reason.locator('[data-icon="check"]')).toHaveCount(1);
     await next.click();
 
     // Walk every screen. Specific choices unlock / skip / exercise conditionals.
@@ -279,7 +283,7 @@ test.describe('identity interview → profile → Today', () => {
     await expect(journal).toContainText('I respected a no-fit case');
     await closeSheet(page);
 
-    // A-1: a back-edit after endorsement makes the profile stale — Today stops reading it.
+    // A-1: a back-edit after endorsement makes the profile stale; Today stops reading it.
     await page.goto('/onboarding/identity');
     await expect(page.locator('[data-review-screen]')).toBeVisible();
     await page.getByRole('button', { name: 'Edit: Practice duration' }).click();
@@ -305,7 +309,7 @@ test.describe('identity interview → profile → Today', () => {
     expect(errors).toEqual([]);
   });
 
-  test('an unchosen practice duration shows — and is asked on Today; a later choice feeds the plan (A-2)', async ({ page }) => {
+  test('an unchosen practice duration shows "not chosen" and is asked on Today; a later choice feeds the plan (A-2)', async ({ page }) => {
     const errors = trackErrors(page);
     const version = loadIdentityInterview();
     const now = '2026-09-10T12:00:00.000Z';
@@ -370,7 +374,7 @@ test.describe('identity interview → profile → Today', () => {
     await expect(page.locator('[data-option-id="goal_provide"]')).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('settings and insights render as tiles, rings and sheets — no table, one hidden h1', async ({ page }) => {
+  test('settings and insights render as tiles, rings and sheets: no table, one hidden h1', async ({ page }) => {
     const errors = trackErrors(page);
     await prime(page);
     await page.goto('/settings');
@@ -399,7 +403,7 @@ test.describe('identity interview → profile → Today', () => {
     await expect(page.locator('[data-ring-stat="drills"]')).toHaveAttribute('data-scored', 'false');
     await expect(page.locator('[data-ring-stat="drills"]')).toHaveAttribute('aria-label', 'Drills: no attempts yet');
     await page.locator('[data-rubric-open]').click();
-    await expect(page.getByRole('heading', { name: 'internal training rubric — not validated' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'internal training rubric, not validated' })).toBeVisible();
     await expect(page.locator('[data-rubric] li')).toHaveCount(6);
     await closeSheet(page);
     await expect(page.locator('table')).toHaveCount(0);

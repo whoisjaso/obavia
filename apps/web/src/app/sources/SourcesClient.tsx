@@ -8,7 +8,7 @@ import { classificationGlyph } from '@apohenia/domain/scripts';
 import { Card, Chip, GlyphPill, Icon, IconButton, Ring, Sheet, Stat, TopBar } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import styles from './sources.module.css';
-import { filterRows, namedOnlyTitle, sectionGlyph, sectionShortName } from './lib';
+import { filterRows, namedOnlyTitle, recordTitle, sectionIcon, sectionShortName } from './lib';
 
 export interface CoverageNumbers {
   record_count: number;
@@ -37,6 +37,8 @@ export interface SourcesClientProps {
   sections: Record<SourceId, SourceSection[]>;
   sourceDescriptions: Record<SourceId, string>;
   classificationDefinitions: Readonly<Record<UseClassification, string>>;
+  /** Family letter to its name ("L" to "Logical certainty"), for card titles. */
+  familyLabels: Readonly<Record<string, string>>;
   templateLabel: string;
   privateNotice: string;
   missing: MissingResource[];
@@ -72,7 +74,7 @@ function Caption({ id, children }: { id?: string; children: ReactNode }) {
  * glyph); the excerpt lives on the record page. Search sits behind the 🔍 icon in the TopBar and
  * lists matching records across sections. Coverage numbers and the missing register are sheets.
  */
-export function SourcesClient({ rows, sections, sourceDescriptions, classificationDefinitions, privateNotice, missing, coverage }: SourcesClientProps) {
+export function SourcesClient({ rows, sections, sourceDescriptions, classificationDefinitions, familyLabels, privateNotice, missing, coverage }: SourcesClientProps) {
   const [filters, setFilters, hydrated] = useStoredState('sources.filters', Filters, INITIAL);
   const [sheet, setSheet] = useState<SheetState>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -127,7 +129,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
   return (
     <div className={styles.root} data-sources data-source={source} data-hydrated={hydrated ? 'true' : 'false'} data-view={listOpen ? 'records' : 'sections'}>
       <TopBar
-        left={<GlyphPill glyph="🔒" name={privateNotice} tone="neutral" data-private-notice className={styles.privateChip} />}
+        left={<GlyphPill icon="lock" weight="fill" label="Private" name={privateNotice} tone="neutral" data-private-notice className={styles.privateChip} />}
         title="Sources"
         right={
           <>
@@ -162,7 +164,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
         {SOURCES.map((s) => (
           <Chip key={s} label={`Source ${s}`} kbd={String(perSource[s].length)} toggle selected={source === s} onClick={() => update({ source: s })} name={`Source ${s}, ${perSource[s].length} matching of ${coverage.by_source[s]} — ${sourceDescriptions[s]}`} data-source-chip={s} data-source-count={perSource[s].length} />
         ))}
-        <Chip label={String(missing.length)} glyph="⊘" tone="gold" name={`Named but missing resources (${missing.length}) — marked missing, never reconstructed. Open the register.`} onClick={() => setSheet({ kind: 'missing' })} data-open-missing />
+        <Chip label={String(missing.length)} icon="ban" tone="gold" name={`Named but missing resources (${missing.length}): marked missing, never reconstructed. Open the register.`} onClick={() => setSheet({ kind: 'missing' })} data-open-missing />
       </div>
 
       {/* classification chips */}
@@ -188,7 +190,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
             return (
               <span key={s.id} className={[styles.sectionTile, styles.namedOnly].join(' ')} role="img" aria-label={`${s.id} — ${namedOnlyTitle(s.title)}: named in the framework; no records supplied`} data-section-id={s.id} data-named-only>
                 <span className={styles.sectionGlyph} aria-hidden="true">
-                  ∅
+                  <Icon name="empty" size={20} weight="bold" />
                 </span>
                 <span className={styles.sectionName} aria-hidden="true">
                   {sectionShortName(s.title)}
@@ -208,7 +210,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
             >
               <Ring value={s.record_count > 0 ? count / s.record_count : 0} size={44} stroke={4} color={selected ? 'var(--blue)' : 'var(--teal)'}>
                 <span className={styles.sectionGlyph} aria-hidden="true">
-                  {sectionGlyph(s.title)}
+                  <Icon name={sectionIcon(s.title)} size={18} weight={selected ? 'fill' : 'regular'} />
                 </span>
               </Ring>
               <span className={styles.sectionName} aria-hidden="true">
@@ -233,7 +235,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
           {list.length === 0 ? (
             <div className={styles.empty}>
               <span className={styles.emptyGlyph} aria-hidden="true">
-                ∅
+                <Icon name="empty" size={72} />
               </span>
               <span className={styles.emptyLabel}>No match</span>
             </div>
@@ -244,9 +246,9 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
                 <Card key={r.id} href={`/sources/${encodeURIComponent(r.id)}`} name={`${r.id} — ${r.title}. ${g.name}. Open record.`} dense data-record-id={r.id}>
                   <div className={styles.recordRow}>
                     <span className={styles.recordGlyph} aria-hidden="true">
-                      {sectionGlyph(r.section_title)}
+                      <Icon name={sectionIcon(r.section_title)} size={16} weight="bold" />
                     </span>
-                    <span className={styles.recordTitle}>{r.title}</span>
+                    <span className={styles.recordTitle}>{recordTitle(r.family, r.title, familyLabels)}</span>
                     <GlyphPill glyph={g.glyph} tone={g.tone} name={g.name} data-classification={r.use_classification} />
                   </div>
                 </Card>
@@ -262,7 +264,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
           {missing.map((m) => (
             <Card key={m.id} dense onPress={() => setSheet({ kind: 'missing-item', id: m.id })} name={`${m.name} — marked missing, not reconstructed. Open.`} data-missing-id={m.id}>
               <div className={styles.missingRow}>
-                <GlyphPill glyph="⊘" tone="orange" name="Marked missing — not reconstructed; nothing is filled from imagination" />
+                <GlyphPill glyph="⊘" tone="orange" name="Marked missing, not reconstructed; nothing is filled from imagination" />
                 <span className={styles.missingName}>{m.name}</span>
               </div>
             </Card>
@@ -275,7 +277,6 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
           <div className={styles.sheetBody} data-missing-item={missingItem.id}>
             <div className={styles.row}>
               <GlyphPill glyph="⊘" label="Missing" tone="orange" name="Marked missing — not reconstructed" data-missing-marker />
-              <Chip static label={missingItem.id} name={`Register id ${missingItem.id}`} className={styles.mono} />
             </div>
             <p className={styles.sheetTitle}>{missingItem.name}</p>
             <section aria-labelledby="m-named">
@@ -317,7 +318,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
                     {coverage.by_classification[c]}
                   </span>
                   <span className={styles.glyphStatKey} aria-hidden="true">
-                    {g.glyph} {g.word}
+                    {g.word}
                   </span>
                 </div>
               );
@@ -325,7 +326,7 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
           </div>
           <div className={styles.ringRow}>
             <div className={styles.ringItem}>
-              <Ring value={hashRatio} size={72} stroke={7} color="var(--green)" label={`Hash verified: ${coverage.hash_verified_count} of ${coverage.record_count} records — ${coverage.hash_verification}`}>
+              <Ring value={hashRatio} size={72} stroke={7} color="var(--green)" label={`Hash verified: ${coverage.hash_verified_count} of ${coverage.record_count} records; ${coverage.hash_verification}`}>
                 <span className={styles.ringText} aria-hidden="true">
                   {coverage.hash_verified_count}/{coverage.record_count}
                 </span>
@@ -357,13 +358,13 @@ export function SourcesClient({ rows, sections, sourceDescriptions, classificati
           </div>
           <div className={styles.row}>
             <GlyphPill glyph={coverage.raw_sources_supplied ? '✓' : '◔'} label={coverage.raw_sources_supplied ? 'Raw hashed' : 'Raw pending'} tone={coverage.raw_sources_supplied ? 'green' : 'orange'} name={`${coverage.hash_verification}. Offsets: ${coverage.offset_convention}. When the raw sources arrive run ${coverage.verify_command}.`} data-raw-sources={coverage.raw_sources_supplied ? 'yes' : 'no'} />
-            <GlyphPill glyph="1,449" tone="neutral" name="The 1,449-occurrence punctuation audit is an audit (not supplied here), not 1,449 approved questions" />
-            <GlyphPill glyph={coverage.records_with_timestamp_pattern.length === 0 ? '—' : '!'} label="Timestamps" tone={coverage.records_with_timestamp_pattern.length === 0 ? 'neutral' : 'orange'} name={coverage.records_with_timestamp_pattern.length === 0 ? 'No timestamps in any template or excerpt — the sources are untimed text' : `Timestamp patterns found in ${coverage.records_with_timestamp_pattern.join(', ')} — review before display`} />
+            <GlyphPill icon="hash" label="1,449 audit" tone="neutral" name="The 1,449-occurrence punctuation audit is an audit (not supplied here), not 1,449 approved questions" />
+            <GlyphPill icon={coverage.records_with_timestamp_pattern.length === 0 ? 'check' : 'warning'} weight="bold" label={coverage.records_with_timestamp_pattern.length === 0 ? 'No timestamps' : 'Timestamps'} tone={coverage.records_with_timestamp_pattern.length === 0 ? 'neutral' : 'orange'} name={coverage.records_with_timestamp_pattern.length === 0 ? 'No timestamps in any template or excerpt: the sources are untimed text' : `Timestamp patterns found in ${coverage.records_with_timestamp_pattern.join(', ')}; review before display`} />
           </div>
           <section aria-labelledby="c-sha">
             <Caption id="c-sha">Package SHA-256</Caption>
             <p className={[styles.mono, styles.hash].join(' ')}>{coverage.package_sha256}</p>
-            <p className={styles.small}>docs/02-organized-question-bank.md — not the raw transcripts. {coverage.reviewed_call_records} records from the reviewed call (family V).</p>
+            <p className={styles.small}>Hashed over the organized question bank, not the raw transcripts. {coverage.reviewed_call_records} records come from the reviewed call.</p>
           </section>
         </div>
       </Sheet>

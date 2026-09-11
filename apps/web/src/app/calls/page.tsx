@@ -22,7 +22,7 @@ export default function CallsPage() {
     return {
       id: t.call_id,
       contact: contact?.name ?? facts.get('{prospect_name}') ?? 'Unknown',
-      company: location?.name ?? facts.get('{dealership_name}') ?? companyFromTitle(t.title) ?? '—',
+      company: location?.name ?? facts.get('{dealership_name}') ?? companyFromTitle(t.title) ?? 'Unknown dealership',
       duration_s: callDurationSeconds(t.turns),
       turns: analysis.turns.length,
       outcome: callOutcome(analysis),
