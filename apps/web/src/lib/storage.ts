@@ -10,7 +10,7 @@
  */
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ZodType } from 'zod';
 
 export const STORAGE_NAMESPACE = 'apohenia.v1.' as const;
@@ -121,6 +121,16 @@ export function clearAllStored(storage?: Storage | null): number {
   return keys.length;
 }
 
+/** Options for `useStoredState`. */
+export interface StoredStateOptions {
+  /**
+   * Coalesce writes: at most one localStorage write per `throttleMs` (the in-memory value updates
+   * immediately). The pending value is flushed on unmount and when the page is hidden. Use it for
+   * state that changes on a timer (the dial session ticks every 100 ms).
+   */
+  throttleMs?: number;
+}
+
 /**
  * Client-only stored state. Renders `initial` on the server and first client paint, then
  * hydrates from storage after mount (avoids SSR mismatch). `hydrated` tells the caller when
@@ -131,9 +141,13 @@ export function useStoredState<T>(
   key: string,
   schema: ZodType<T>,
   initial: T,
+  options: StoredStateOptions = {},
 ): [value: T, setValue: (next: T | ((prev: T) => T)) => void, hydrated: boolean, reset: () => void] {
   const [value, setValueState] = useState<T>(initial);
   const [hydrated, setHydrated] = useState(false);
+  const throttleMs = options.throttleMs ?? 0;
+  const pending = useRef<{ value: T } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Hydrate after mount only; the initial render must match the server.
@@ -144,19 +158,65 @@ export function useStoredState<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, schema]);
 
+  const flush = useCallback(() => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    const p = pending.current;
+    if (p) {
+      pending.current = null;
+      writeStored(key, schema, p.value);
+    }
+  }, [key, schema]);
+
+  // Flush coalesced writes when the page hides or the component unmounts.
+  useEffect(() => {
+    if (throttleMs <= 0) return;
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onHide);
+      flush();
+    };
+  }, [flush, throttleMs]);
+
   const setValue = useCallback(
     (next: T | ((prev: T) => T)) => {
       setValueState((prev) => {
         const resolved = typeof next === 'function' ? (next as (p: T) => T)(prev) : next;
-        writeStored(key, schema, resolved);
+        if (throttleMs <= 0) {
+          writeStored(key, schema, resolved);
+        } else {
+          pending.current = { value: resolved };
+          if (!timer.current) {
+            timer.current = setTimeout(() => {
+              timer.current = null;
+              const p = pending.current;
+              pending.current = null;
+              if (p) writeStored(key, schema, p.value);
+            }, throttleMs);
+          }
+        }
         return resolved;
       });
     },
-    [key, schema],
+    [key, schema, throttleMs],
   );
 
   /** Reset in-memory state to `initial` WITHOUT writing to storage (e.g. after clearAllStored). */
   const reset = useCallback(() => setValueState(initial), [initial]);
 
   return [value, setValue, hydrated, reset];
+}
+
+/** Read-modify-write outside React (e.g. merging a session's suppressions into the durable list). */
+export function updateStored<T>(key: string, schema: ZodType<T>, fallback: T, update: (prev: T) => T, storage?: Storage | null): T {
+  const next = update(readStored(key, schema, fallback, storage));
+  writeStored(key, schema, next, storage);
+  return next;
 }

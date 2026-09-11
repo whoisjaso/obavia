@@ -23,6 +23,8 @@ import { InterviewVersion } from './schemas/interview';
 import { ScriptNode, ScriptVersion, WordTrackVariant } from './schemas/scripts';
 import { OfferVersion } from './schemas/offers';
 import { Transcript } from './schemas/transcript';
+import { SyntheticProspectsSeed } from './schemas/dialer';
+import { syntheticProspectsSeed } from './dialer/seed';
 
 export const PLACEHOLDER_STATUS = 'placeholder — to be authored' as const;
 
@@ -99,6 +101,14 @@ export function loadSyntheticTranscripts(): SyntheticTranscriptsSeed {
   return parseSeed('synthetic_transcripts.json', SyntheticTranscriptsSeed, syntheticTranscriptsJson);
 }
 
+/**
+ * Synthetic prospects (M-core, additive): the CRM records the demo queue and /prospects read.
+ * Parsed by `dialer/seed.ts` (shared with client bundles); re-exported here for the loader convention.
+ */
+export function loadSyntheticProspects(): SyntheticProspectsSeed {
+  return syntheticProspectsSeed();
+}
+
 /** Parse every seed once; throws with the first invalid file. Used by tests and the build smoke check. */
 export function validateAllSeeds(): { name: string; placeholder: boolean; count: number }[] {
   const interview = loadIdentityInterview();
@@ -114,5 +124,6 @@ export function validateAllSeeds(): { name: string; placeholder: boolean; count:
     { name: 'apohenia_script_nodes.json', placeholder: isPlaceholderSeed(scripts), count: scripts.nodes.length },
     { name: 'offers.json', placeholder: isPlaceholderSeed(offers), count: offers.offer_versions.length },
     { name: 'synthetic_transcripts.json', placeholder: isPlaceholderSeed(transcripts), count: transcripts.transcripts.length },
+    { name: 'synthetic_prospects.json', placeholder: isPlaceholderSeed(loadSyntheticProspects()), count: loadSyntheticProspects().contacts.length },
   ];
 }

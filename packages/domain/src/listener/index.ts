@@ -1,97 +1,197 @@
 /**
- * Personal Meaning Listener — owning module agent: M-listener (addendum v3).
+ * Personal Meaning Listener — FROZEN public API (addendum v3). Owning module agent: M-listener.
  *
- * Pure TypeScript, no model: first-mention reference extraction from finalized prospect turns,
- * evidence validation, conversation-scoped memory with lifecycle actions, concept-based delayed
- * recall, and a one-suggestion policy with offer/metric guards.
+ * Pure TypeScript, no model, no network: first-mention reference extraction from finalized prospect
+ * turns, evidence validation, conversation-scoped memory with lifecycle actions, concept-based delayed
+ * recall, a one-suggestion policy with offer/metric guards, and UI-ready cards.
  *
- * `listenerFromTurns(turns, ctx)` is the ONE path for live and mock calls: it accepts transcript
- * turns and script context only — a practice scenario's hidden fact sheet cannot be passed in.
+ * Everything below is stable for the call room (M-core). Signatures:
+ *
+ *   listenerFromTurns(turns, ctx?)                       → ListenerState
+ *   listenerFromMemory(memory, ctx?)                     → ListenerState
+ *   applyTurn(state, turn, ctx?)                         → ListenerState
+ *   invalidateForRevision(state, revisedTurn)            → ListenerState
+ *   retrieveByConcept(state | refs, turnText, stageId?)  → Reference[]
+ *   suggestPrimary(state, { node, … })                   → ReferenceSuggestion | null
+ *   queueSuggestion(state, suggestion | null)            → ListenerState
+ *   pinReference / unpinReference / keepReference / dismissReference / forbidReuse /
+ *   rejectReference / correctReference / clarifyReference / markUsed / recordReaction /
+ *   declineSuggestion(state, referenceId, …)             → ListenerState
+ *   toCards(state)                                       → ReferenceCard[]
+ *
+ * Same path for live and mock: every entry point takes transcript turns + script context only. A
+ * practice scenario's hidden fact sheet is not a TranscriptTurn and cannot be passed in.
  */
-import type { TranscriptTurn } from '../schemas/transcript';
-import type { ListenerAction, Reference } from '../schemas/listener';
-import { normalizeTranscript, type NormalizedTranscript } from '../vocabulary/normalize';
-import { extractReferences, type ListenerContext, type NotEligible } from './extract';
-import { applyListenerActions, applyRevisions, eventVersionOf, invalidateFailedEvidence } from './memory';
 
 export const MODULE = 'listener' as const;
 
-export * from './lexicon';
-export * from './concepts';
-export * from './extract';
-export * from './memory';
-export * from './retrieve';
-export * from './suggest';
+// --- State -------------------------------------------------------------------------------------
 
-export interface ListenerResult {
-  call_id: string;
-  /** Number of provider events consumed (before dedupe). */
-  event_version: number;
-  references: Reference[];
-  not_eligible: NotEligible[];
-  normalized: NormalizedTranscript;
-}
+export {
+  /**
+   * `listenerFromTurns(turns: readonly TranscriptTurn[], ctx?: ListenerOptions): ListenerState`
+   * Build the whole state from raw provider events (dedupe + revisions + extraction + validation +
+   * action replay). Deterministic. `ctx.window: 'partial'` marks a transcript that does not start at
+   * the beginning (origin becomes `unknown`, never spontaneous by default).
+   */
+  listenerFromTurns,
+  /** `listenerFromMemory(memory: ListenerMemory, ctx?: ListenerContext): ListenerState` — restore after reload. */
+  listenerFromMemory,
+  /**
+   * `applyTurn(state, turn: TranscriptTurn, ctx?): ListenerState`
+   * Incremental: consume ONE event (partial/final/revision/duplicate). Duplicates never duplicate
+   * references or inflate counts; a revision invalidates dependents; a new final prospect turn drops the
+   * queued suggestion (ask `suggestPrimary` again for the new turn).
+   */
+  applyTurn,
+  /**
+   * `invalidateForRevision(state, revisedTurn: TranscriptTurn): ListenerState`
+   * Explicit revision path: drops any queued suggestion built on that utterance BEFORE recomputing, then
+   * behaves like `applyTurn`. Invalidated cards stay visible with state `invalidated` and a reason.
+   */
+  invalidateForRevision,
+  /** `pinReference(state, referenceId): ListenerState` — protects position, not accuracy. No-op on rejected/invalidated. */
+  pinReference,
+  /** `unpinReference(state, referenceId): ListenerState` */
+  unpinReference,
+  /** `keepReference(state, referenceId): ListenerState` — KEEP FOR LATER (held, no interruption, no personal-history question). */
+  keepReference,
+  /** `dismissReference(state, referenceId, reason?): ListenerState` — leaves the visible set; never resurrected by a late output. */
+  dismissReference,
+  /** `forbidReuse(state, referenceId): ListenerState` — "do not reuse this reference"; the card stays as evidence. */
+  forbidReuse,
+  /** `rejectReference(state, referenceId, turnId?): ListenerState` — the prospect rejected it; state `rejected`, never suggested again. */
+  rejectReference,
+  /**
+   * `correctReference(state, referenceId, field: 'relationship' | 'explained_meaning' | 'business_target', to, note): ListenerState`
+   * Rep correction; the original stays in `correction_history`, evidence becomes `corrected`, the quote is never rewritten.
+   */
+  correctReference,
+  /** `clarifyReference(state, referenceId): ListenerState` — CLARIFY MEANING pressed; the clarification question is on offer. */
+  clarifyReference,
+  /** `markUsed(state, referenceId, turnId?): ListenerState` — USE NOW / line said: records `used_at`, blocks an immediate repeat, clears the slot. */
+  markUsed,
+  /** `recordReaction(state, referenceId, reaction: 'accepted' | 'rejected' | 'unknown', turnId?): ListenerState` — `unknown` is neither. */
+  recordReaction,
+  /** `declineSuggestion(state, referenceId): ListenerState` — "Not now": hidden from the policy at this event version only. */
+  declineSuggestion,
+  /**
+   * `queueSuggestion(state, suggestion: ReferenceSuggestion | null): ListenerState`
+   * Put the ONE suggestion in the slot so `toCards` shows it on its card. Refused (slot cleared) when it is
+   * stale or its reference is dismissed/rejected/invalidated/do-not-reuse.
+   */
+  queueSuggestion,
+} from './state';
+export type { ListenerState, ListenerResult, ListenerOptions } from './state';
 
-export interface ListenerOptions extends ListenerContext {
-  /** Persisted rep/UI actions replayed over the extracted references. */
-  actions?: readonly ListenerAction[];
-}
+// --- Retrieval + suggestion --------------------------------------------------------------------
 
-/**
- * Raw provider events → dedupe/revisions (vocabulary pipeline) → references (latest + invalidated
- * by revision) → evidence validation → action replay. Deterministic: the same turns and actions
- * always produce the same references.
- */
-export function listenerFromTurns(turns: readonly TranscriptTurn[], options: ListenerOptions = {}): ListenerResult {
-  const normalized = normalizeTranscript(turns);
-  const eventVersion = eventVersionOf(turns);
-  const ctx: ListenerContext = { workspace_id: options.workspace_id, call_id: options.call_id, window: options.window };
-  const latest = extractReferences(normalized, turns, ctx);
-  let references = latest.references;
-  if (normalized.revisions.length > 0) {
-    const previous = extractReferences({ ...normalized, turns: normalized.previous_turns, revisions: [] }, turns, ctx);
-    references = applyRevisions(references, previous.references, normalized, eventVersion);
-  }
-  references = invalidateFailedEvidence(references, normalized.turns, eventVersion);
-  references = applyListenerActions(references, options.actions ?? []);
-  // Stable order: first appearance in the transcript. Nothing reorders as new evidence arrives.
-  const order = new Map(normalized.turns.map((t, i) => [t.utterance_id, i] as const));
-  references.sort((a, b) => (order.get(a.evidence.utterance_id) ?? 0) - (order.get(b.evidence.utterance_id) ?? 0) || a.evidence.span.start - b.evidence.span.start);
-  return {
-    call_id: options.call_id ?? turns[0]?.call_id ?? 'unknown-call',
-    event_version: eventVersion,
-    references,
-    not_eligible: latest.not_eligible,
-    normalized,
-  };
-}
+export {
+  /**
+   * `retrieveByConcept(state | readonly Reference[], currentTurnText: string, stageId?: string): Reference[]`
+   * Earlier references that share a CONCEPT with the current turn (no noun matching needed), best first,
+   * whole conversation, only reusable ones. Empty array is the normal case.
+   */
+  retrieveByConcept,
+  /** `rankByConcept(turnText, references, stageId?): RetrievedReference[]` — same, with matched concepts and score. */
+  rankByConcept,
+  /** `isReusable(reference): boolean` — held/pinned, final, not third-party, not rejected, not do-not-reuse. */
+  isReusable,
+} from './retrieve';
+export type { RetrievedReference } from './retrieve';
 
-/** Human-readable meaning-status text for a card. */
-export function meaningStatusText(r: Reference): string {
-  const labels: Record<Reference['semantics']['meaning_status'], string> = {
-    observed: 'observed — the relationship was stated in the turn',
-    inferred: 'inferred — interpretation of this sentence, not confirmed',
-    confirmed: 'confirmed — meaning supplied by the prospect',
-    unknown: 'unknown — ask before assuming',
-  };
-  return labels[r.semantics.meaning_status];
-}
+export {
+  /**
+   * `suggestPrimary(state, ctx: SuggestionContext): ReferenceSuggestion | null`
+   * At most one suggestion for the latest final prospect turn and `ctx.node`, grounded in one of the
+   * prospect's own references; `null` = abstain (normal). Reads the no-repeat id and "not now" declines
+   * from `state.memory`. Never a guarantee/promise/discount/unapproved price; painful analogies get a
+   * neutral acknowledgment with no domain word.
+   */
+  suggestPrimary,
+  /** `decideForState(state, ctx): SuggestionDecision` — `suggestPrimary` plus the policy's reason. */
+  decideForState,
+  /** `decideSuggestion(input: SuggestionInput): SuggestionDecision` — the policy over an explicit input (lower level). */
+  decideSuggestion,
+  /** `suggestionInputFor(state, ctx): SuggestionInput` — how the state becomes policy input (for tests/diagnostics). */
+  suggestionInputFor,
+  /** `currentProspectTurn(state): { utterance_id, text, speaker_role, is_final } | null` — latest FINAL prospect turn. */
+  currentProspectTurn,
+  /** `suggestionStillValid(references, suggestion): { ok, reason }` — refuses late/stale outputs and unusable references. */
+  suggestionStillValid,
+  /** `applySuggestion(references, suggestion, turnId, eventVersion): ApplyResult` — reference-level apply with the same refusal rules. */
+  applySuggestion,
+  /** `offerClaimGuard(text, approvedOffer?): { ok, reason? }` — rejects guarantees, promises, discounts, refunds, unapproved prices. */
+  offerClaimGuard,
+  /** `metricGuard(reference, text): { ok, reason? }` — a "profit, not revenue" reference never gets revenue substituted. */
+  metricGuard,
+  /** `labelFigure(reference, { metric, value }): { label, mismatch, note }` — a revenue figure is never relabelled as profit. */
+  labelFigure,
+  /** `templateFor(reference, conceptId?): { text, purpose } | null` — the grounded line for one reference/concept, or null. */
+  templateFor,
+} from './suggest';
+export type { SuggestionContext, SuggestionInput, SuggestionDecision, SuggestionNode, ApprovedOfferSummary, ApplyResult } from './suggest';
 
-/** One short meaning line for the collapsed card. */
-export function shortMeaning(r: Reference): string {
-  if (r.lifecycle.state === 'invalidated') return `Invalidated: ${r.lifecycle.reason ?? 'evidence retracted'}`;
-  if (r.lifecycle.state === 'rejected') return `Rejected by the prospect — not used again`;
-  const rel = r.semantics.relationship.replace(/^[^:]+:\s*/, '');
-  return rel.length > 90 ? `${rel.slice(0, 87)}…` : rel;
-}
+// --- Cards -------------------------------------------------------------------------------------
 
-export function originLabel(origin: Reference['semantics']['origin']): string {
-  const labels: Record<Reference['semantics']['origin'], string> = {
-    prospect_spontaneous: 'prospect said it unprompted',
-    prompted: 'prospect said it when asked for a comparison',
-    seller_introduced_prospect_confirmed: 'seller introduced, prospect confirmed (shared term)',
-    third_party: "someone else's frame — not the prospect's",
-    unknown: 'origin unknown (no preceding context)',
-  };
-  return labels[origin];
-}
+export {
+  /**
+   * `toCards(state): ReferenceCard[]`
+   * UI-ready cards in first-appearance order: { id, label, meaning_line, meaning_status, glyph, glyph_name,
+   * origin, origin_label, valence, evidence: { quote, turn_id, exact_expression, status }, state, state_line,
+   * pinned, kept_for_later, do_not_reuse, painful, represents, useful_when, confirmed_meaning?,
+   * prohibited_inferences, clarification?, actions: { keep, use, clarify }, suggestion?, concept_ids }.
+   */
+  toCards,
+  /** `toCard(reference): ReferenceCard` — one card without the suggestion. */
+  toCard,
+  /** `visibleCards(cards, max = 7): ReferenceCard[]` — held + pinned in order; pinned always survive the cap. */
+  visibleCards,
+  /** `shortMeaning(reference): string` — the one-line meaning for the collapsed card. */
+  shortMeaning,
+  /** `meaningStatusText(reference): string` — accessible name of the meaning glyph. */
+  meaningStatusText,
+  /** `meaningGlyph(reference): '◉' | '◌' | '✓' | '?' | '⊘'` */
+  meaningGlyph,
+  /** `originLabel(origin): string` */
+  originLabel,
+} from './cards';
+
+// --- Extraction + evidence (lower level; stable but not needed by the call room) ---------------
+
+export {
+  /** `extractReferences(normalized, rawTurns, ctx?): { references, not_eligible }` — the rule-based extractor over a transcript. */
+  extractReferences,
+  /** `extractTurn(turn, knownNames?): TurnExtraction` — candidates from ONE prospect turn. */
+  extractTurn,
+  /** `toCodePointOffset(text, utf16Index): number` — evidence spans are Unicode code-point offsets. */
+  toCodePointOffset,
+  /** `sliceCodePoints(text, start, end): string` */
+  sliceCodePoints,
+} from './extract';
+export type { ListenerContext, NotEligible, ExtractResult, TurnExtraction } from './extract';
+
+export {
+  /** `validateEvidence(evidence, normalizedTurns, speakerRole?): { ok, reason? }` — exact span, prospect turn, right revision. */
+  validateEvidence,
+  /** `validateProposal(proposal, normalizedTurns): { ok, reason? }` — any model/external proposal goes through the same validator. */
+  validateProposal,
+  /** `applyRevisions(latest, previous, normalized, eventVersion): Reference[]` — revision retraction → `invalidated`. */
+  applyRevisions,
+  /** `invalidateFailedEvidence(references, normalizedTurns, eventVersion): Reference[]` */
+  invalidateFailedEvidence,
+  /** `applyAction(references, action): Reference[]` — one persisted rep/UI action. */
+  applyAction,
+  /** `applyListenerActions(references, actions): Reference[]` — replay the action log (deterministic). */
+  applyListenerActions,
+  /** `eventVersionOf(rawTurns): number` */
+  eventVersionOf,
+} from './memory';
+export type { ValidationResult, ReferenceProposal } from './memory';
+
+// --- Lexicons (open; extend, never a closed detector) -------------------------------------------
+
+export { CONCEPTS, CONCEPT_BY_ID, conceptsForRelationship, conceptsForTurn, stagesForConcepts } from './concepts';
+export type { Concept } from './concepts';
+export { EMOTIONAL_LEXICON, PAINFUL_WORDS, IDIOMS, DOMAIN_WORDS, domainFor, domainWordIn, isPainful, containsIdiom } from './lexicon';
+export type { EmotionalEntry } from './lexicon';

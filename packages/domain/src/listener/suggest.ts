@@ -6,10 +6,12 @@
  * painful analogies get a neutral acknowledgment with no domain words and no upbeat same-domain line.
  */
 import type { Reference, ReferenceSuggestion } from '../schemas/listener';
+import type { NormalizedTurn } from '../vocabulary/normalize';
 import { escapeRegExp } from '../vocabulary/text';
 import { CONCEPT_BY_ID, conceptsForTurn } from './concepts';
 import { domainWordIn } from './lexicon';
-import { isReusable, retrieveByConcept } from './retrieve';
+import { isReusable, rankByConcept } from './retrieve';
+import type { ListenerState } from './state';
 
 export interface SuggestionNode {
   id: string;
@@ -31,6 +33,8 @@ export interface SuggestionInput {
   current_turn: { utterance_id: string; text: string; speaker_role: string; is_final: boolean } | null;
   node: SuggestionNode | null;
   event_version: number;
+  /** Number of rep/UI actions applied so far (stamped on the suggestion for staleness checks). */
+  input_action_count?: number;
   /** Reference used by the immediately preceding suggestion (if any). */
   last_suggestion_reference_id?: string | null;
   /** Reference ids the representative declined ("Not now") at this event version. */
@@ -143,14 +147,18 @@ function build(r: Reference, conceptId: string | undefined, input: SuggestionInp
       script_node_id: node.id,
       script_version_id: node.script_version_id,
       input_event_version: input.event_version,
+      ...(input.input_action_count === undefined ? {} : { input_action_count: input.input_action_count }),
       trigger_turn_id: input.current_turn?.utterance_id,
     },
     reason: `grounded in "${r.label}" (${r.evidence.turn_id})`,
   };
 }
 
-/** At most one suggestion; null when nothing is appropriate now. */
-export function suggestPrimary(input: SuggestionInput): SuggestionDecision {
+/**
+ * The policy over an explicit input (lower level). At most one suggestion; `suggestion: null` with a
+ * populated `reason` when nothing is appropriate now.
+ */
+export function decideSuggestion(input: SuggestionInput): SuggestionDecision {
   const node = input.node;
   if (!node) return { suggestion: null, reason: 'no current script node' };
   const notNow = new Set(input.not_now ?? []);
@@ -163,7 +171,17 @@ export function suggestPrimary(input: SuggestionInput): SuggestionDecision {
     const guard = offerClaimGuard(text, input.approved_offer);
     if (!guard.ok) return { suggestion: null, reason: guard.reason! };
     return {
-      suggestion: { reference_id: r.id, text, purpose: 'clarify_meaning', evidence_turn_id: r.evidence.turn_id, script_node_id: node.id, script_version_id: node.script_version_id, input_event_version: input.event_version, trigger_turn_id: input.current_turn?.utterance_id },
+      suggestion: {
+        reference_id: r.id,
+        text,
+        purpose: 'clarify_meaning',
+        evidence_turn_id: r.evidence.turn_id,
+        script_node_id: node.id,
+        script_version_id: node.script_version_id,
+        input_event_version: input.event_version,
+        ...(input.input_action_count === undefined ? {} : { input_action_count: input.input_action_count }),
+        trigger_turn_id: input.current_turn?.utterance_id,
+      },
       reason: 'clarification requested by the representative',
     };
   }
@@ -179,7 +197,7 @@ export function suggestPrimary(input: SuggestionInput): SuggestionDecision {
   const turn = input.current_turn;
   if (!turn || turn.speaker_role !== 'prospect' || !turn.is_final) return { suggestion: null, reason: 'no final prospect turn to respond to' };
   const asksClarification = ASKS_CLARIFICATION.test(turn.text);
-  const candidates = retrieveByConcept(turn.text, input.references, node.stage).filter((c) => {
+  const candidates = rankByConcept(turn.text, input.references, node.stage).filter((c) => {
     if (notNow.has(c.reference.id)) return false;
     if (input.last_suggestion_reference_id && c.reference.id === input.last_suggestion_reference_id && !asksClarification) return false;
     return true;
@@ -198,6 +216,83 @@ export function suggestPrimary(input: SuggestionInput): SuggestionDecision {
   return { suggestion: null, reason: 'matching references exist but none fits this node purpose without an unsupported claim — abstain' };
 }
 
+// ---------------------------------------------------------------------------------------------
+// State-based entry points (frozen API)
+// ---------------------------------------------------------------------------------------------
+
+/** The turn a suggestion may respond to: the most recent FINAL prospect turn, or null. */
+export function currentProspectTurn(state: Pick<ListenerState, 'normalized'>): SuggestionInput['current_turn'] {
+  const t = [...state.normalized.turns].reverse().find((x: NormalizedTurn) => x.speaker_role === 'prospect' && x.is_final);
+  return t ? { utterance_id: t.utterance_id, text: t.text, speaker_role: t.speaker_role, is_final: t.is_final } : null;
+}
+
+/** Script context for one suggestion. Only `node` is required; everything else defaults from the state. */
+export interface SuggestionContext {
+  /** The script node the rep is on (id, version, stage, why-now / intended answer). Null → abstain. */
+  node: SuggestionNode | null;
+  /** Override the turn to respond to (default: the latest final prospect turn in the state). */
+  current_turn?: SuggestionInput['current_turn'];
+  /** Approved-offer summary so an approved price may appear; any other price/guarantee is rejected. */
+  approved_offer?: ApprovedOfferSummary | null;
+  /** USE NOW on a card: build the line for this reference regardless of retrieval. */
+  forced_reference_id?: string | null;
+  /** CLARIFY MEANING on a card: offer its clarification question. */
+  clarify_reference_id?: string | null;
+}
+
+/** Build the policy input from a state: references, current turn, no-repeat id and "not now" declines. */
+export function suggestionInputFor(state: ListenerState, ctx: SuggestionContext): SuggestionInput {
+  const notNow = state.memory.actions.filter((a) => a.type === 'suggestion_not_now' && a.event_version === state.event_version).map((a) => a.reference_id);
+  return {
+    references: state.references,
+    current_turn: ctx.current_turn === undefined ? currentProspectTurn(state) : ctx.current_turn,
+    node: ctx.node,
+    event_version: state.event_version,
+    input_action_count: state.memory.actions.length,
+    last_suggestion_reference_id: state.memory.last_suggestion_reference_id,
+    not_now: notNow,
+    approved_offer: ctx.approved_offer ?? null,
+    forced_reference_id: ctx.forced_reference_id ?? null,
+    clarify_reference_id: ctx.clarify_reference_id ?? null,
+  };
+}
+
+/** Same as `suggestPrimary` but with the policy's reason (for logs, tests and the "why this" affordance). */
+export function decideForState(state: ListenerState, ctx: SuggestionContext): SuggestionDecision {
+  return decideSuggestion(suggestionInputFor(state, ctx));
+}
+
+/**
+ * Frozen API. At most ONE suggestion for the current turn and script node, grounded in one of the
+ * prospect's own references, or `null` (abstaining is the normal output). Never repeats the reference
+ * the rep just used, never uses a dismissed/rejected/invalidated/third-party reference, never emits a
+ * guarantee, promise, discount or unapproved price.
+ */
+export function suggestPrimary(state: ListenerState, ctx: SuggestionContext): ReferenceSuggestion | null {
+  return decideForState(state, ctx).suggestion;
+}
+
+/**
+ * Is a previously computed suggestion still honest against the current references? False when its
+ * reference is gone, dismissed/rejected/invalidated, do-not-reuse, or changed after the suggestion was
+ * computed (stale). Used to drop the queued suggestion and to refuse late outputs.
+ */
+export function suggestionStillValid(references: readonly Reference[], suggestion: ReferenceSuggestion, actionCount?: number): { ok: boolean; reason: string } {
+  if (actionCount !== undefined && suggestion.input_action_count !== undefined && suggestion.input_action_count !== actionCount) {
+    return { ok: false, reason: `stale: computed after ${suggestion.input_action_count} actions, the log now has ${actionCount}` };
+  }
+  const r = references.find((x) => x.id === suggestion.reference_id);
+  if (!r) return { ok: false, reason: 'reference no longer exists' };
+  if (r.lifecycle.state === 'dismissed' || r.lifecycle.state === 'rejected' || r.lifecycle.state === 'invalidated') {
+    return { ok: false, reason: `reference is ${r.lifecycle.state} — suggestion dropped` };
+  }
+  if (r.reuse.do_not_reuse) return { ok: false, reason: 'reference is marked do-not-reuse' };
+  if (r.updated_event_version > suggestion.input_event_version) {
+    return { ok: false, reason: `stale: computed at event ${suggestion.input_event_version}, reference changed at ${r.updated_event_version}` };
+  }
+  return { ok: true, reason: 'valid' };
+}
+
 export interface ApplyResult {
   ok: boolean;
   reason: string;
@@ -206,15 +301,9 @@ export interface ApplyResult {
 
 /** Accept a suggestion only if its reference is still usable and it is not stale. */
 export function applySuggestion(references: Reference[], suggestion: ReferenceSuggestion, turnId: string, eventVersion: number): ApplyResult {
-  const r = references.find((x) => x.id === suggestion.reference_id);
-  if (!r) return { ok: false, reason: 'reference no longer exists', references };
-  if (r.lifecycle.state === 'dismissed' || r.lifecycle.state === 'rejected' || r.lifecycle.state === 'invalidated') {
-    return { ok: false, reason: `reference is ${r.lifecycle.state} — suggestion dropped`, references };
-  }
-  if (r.reuse.do_not_reuse) return { ok: false, reason: 'reference is marked do-not-reuse', references };
-  if (r.updated_event_version > suggestion.input_event_version) {
-    return { ok: false, reason: `stale: computed at event ${suggestion.input_event_version}, reference changed at ${r.updated_event_version}`, references };
-  }
+  const valid = suggestionStillValid(references, suggestion);
+  if (!valid.ok) return { ok: false, reason: valid.reason, references };
+  const r = references.find((x) => x.id === suggestion.reference_id)!;
   const next = references.map((x) => (x.id === r.id ? { ...x, updated_event_version: Math.max(x.updated_event_version, eventVersion), reuse: { ...x.reuse, used_at: [...x.reuse.used_at, { turn_id: turnId, event_version: eventVersion }] } } : x));
   return { ok: true, reason: 'applied', references: next };
 }

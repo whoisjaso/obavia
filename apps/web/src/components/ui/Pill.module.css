@@ -1,0 +1,58 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+.glyph {
+  font-size: 13px;
+  line-height: 1;
+}
+.label {
+  line-height: 1;
+}
+.neutral {
+  color: var(--ink-2);
+}
+.orange {
+  color: var(--orange);
+  border-color: rgba(255, 159, 10, 0.4);
+  background: rgba(255, 159, 10, 0.1);
+}
+.purple {
+  color: var(--purple);
+  border-color: rgba(191, 90, 242, 0.4);
+  background: rgba(191, 90, 242, 0.1);
+}
+.gold {
+  color: var(--gold);
+  border-color: rgba(255, 214, 10, 0.4);
+  background: rgba(255, 214, 10, 0.1);
+}
+.green {
+  color: var(--green);
+  border-color: rgba(48, 209, 88, 0.4);
+  background: rgba(48, 209, 88, 0.1);
+}
+.red {
+  color: var(--red);
+  border-color: rgba(255, 69, 58, 0.4);
+  background: rgba(255, 69, 58, 0.1);
+}
+.teal {
+  color: var(--teal);
+  border-color: rgba(100, 210, 255, 0.4);
+  background: rgba(100, 210, 255, 0.1);
+}

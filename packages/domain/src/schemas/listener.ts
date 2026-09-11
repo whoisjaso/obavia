@@ -6,7 +6,7 @@
  * Owning module agent: M-listener. Additive to repo conventions; consumed by the call room and /calls.
  */
 import { z } from 'zod';
-import { SpeakerRole } from './transcript';
+import { SpeakerRole, TranscriptTurn } from './transcript';
 
 export const LISTENER_SCHEMA_VERSION = '1.0.0' as const;
 export const LISTENER_EXTRACTOR_VERSION = '1.0.0' as const;
@@ -150,6 +150,8 @@ export const ReferenceSuggestion = z.object({
   script_version_id: z.string(),
   /** Transcript event version the suggestion was computed from; stale when the reference moved on. */
   input_event_version: z.number().int().nonnegative(),
+  /** Length of the rep/UI action log when computed; any later action (pin, correct, dismiss…) makes it stale. */
+  input_action_count: z.number().int().nonnegative().optional(),
   /** The current turn that triggered retrieval, when there is one. */
   trigger_turn_id: z.string().optional(),
 });
@@ -205,3 +207,79 @@ export const SavedProspectReference = z.object({
   saved_by: z.literal('rep'),
 });
 export type SavedProspectReference = z.infer<typeof SavedProspectReference>;
+
+// ---------------------------------------------------------------------------------------------
+// State + cards (additive, addendum §5/§8/§9). The call room holds ONE `ListenerMemory` per call.
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Everything the listener needs to rebuild itself deterministically: the raw provider events consumed
+ * so far (the replay log — dedupe/revisions happen on every rebuild), the rep/UI action log, and the
+ * one-suggestion slot. Conversation-scoped; never written to a prospect profile automatically.
+ */
+export const ListenerMemory = z.object({
+  turns: z.array(TranscriptTurn),
+  actions: z.array(ListenerAction),
+  /** Reference used by the most recent suggestion the rep actually used — never suggested again immediately. */
+  last_suggestion_reference_id: z.string().nullable(),
+  /** The single suggestion currently on offer. Revisions, lifecycle changes and a new prospect turn drop it. */
+  queued_suggestion: ReferenceSuggestion.nullable(),
+});
+export type ListenerMemory = z.infer<typeof ListenerMemory>;
+
+/** Glyphs from the design system: ◉ observed · ◌ inferred · ✓ confirmed · ? unknown · ⊘ invalidated. */
+export const MeaningGlyph = z.enum(['◉', '◌', '✓', '?', '⊘']);
+export type MeaningGlyph = z.infer<typeof MeaningGlyph>;
+
+/**
+ * UI-ready card (addendum §5). Collapsed = `label` + `meaning_line`; expanded = the rest. Text fields are
+ * complete sentences the UI renders as-is; `evidence.quote` is the prospect's exact words and nothing else
+ * on the card may be shown as a quotation.
+ */
+export const ReferenceCard = z.object({
+  id: z.string(),
+  /** Large uppercase term/reference ("HOCKEY / NOBODY KNOWS WHO IS DEFENDING"). */
+  label: z.string(),
+  /** One short line under the label. */
+  meaning_line: z.string(),
+  meaning_status: ReferenceMeaningStatus,
+  /** Design-system glyph for `meaning_status` (⊘ when invalidated). */
+  glyph: MeaningGlyph,
+  /** Full accessible name for the glyph ("meaning inferred — interpretation of this sentence, not confirmed"). */
+  glyph_name: z.string(),
+  origin: ReferenceOrigin,
+  origin_label: z.string(),
+  valence: ReferenceValence,
+  evidence: z.object({
+    /** The exact supporting sentence as transcribed. */
+    quote: z.string(),
+    turn_id: z.string(),
+    exact_expression: z.string(),
+    status: EvidenceStatus,
+    timestamp: z.string().optional(),
+  }),
+  state: ReferenceState,
+  /** `state` explained for the card ("Rejected by the prospect — not used again"). */
+  state_line: z.string().optional(),
+  pinned: z.boolean(),
+  kept_for_later: z.boolean(),
+  do_not_reuse: z.boolean(),
+  painful: z.boolean(),
+  /** "What the comparison represents in this context." */
+  represents: z.string(),
+  /** "When it may be useful later." */
+  useful_when: z.string(),
+  /** The confirmed meaning with its evidence turn, only when the prospect supplied it. */
+  confirmed_meaning: z.object({ text: z.string(), evidence_turn_id: z.string() }).optional(),
+  /** Prohibitions shown beside the interpretation. */
+  prohibited_inferences: z.array(z.string()),
+  /** CLARIFY MEANING question, when one is on offer. */
+  clarification: z.string().optional(),
+  /** Which of the three actions are meaningful right now. */
+  actions: z.object({ keep: z.boolean(), use: z.boolean(), clarify: z.boolean() }),
+  /** The one primary suggestion, attached to the card it is grounded in (at most one card carries it). */
+  suggestion: ReferenceSuggestion.optional(),
+  concept_ids: z.array(z.string()),
+  source_domain: z.string().optional(),
+});
+export type ReferenceCard = z.infer<typeof ReferenceCard>;

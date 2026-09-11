@@ -16,7 +16,9 @@
     "./scripts": "./src/scripts/index.ts",
     "./offers": "./src/offers/index.ts",
     "./practice": "./src/practice/index.ts",
-    "./vocabulary": "./src/vocabulary/index.ts"
+    "./vocabulary": "./src/vocabulary/index.ts",
+    "./listener": "./src/listener/index.ts",
+    "./dialer": "./src/dialer/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

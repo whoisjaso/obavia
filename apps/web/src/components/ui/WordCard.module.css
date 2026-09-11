@@ -1,0 +1,71 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: var(--s-4) 18px;
+  border-radius: var(--r-tile);
+  border: 1px solid rgba(255, 214, 10, 0.22);
+  background: linear-gradient(180deg, rgba(255, 214, 10, 0.08), rgba(255, 214, 10, 0.02)), var(--bg-1);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+  animation: slideIn var(--dur) var(--ease);
+}
+.card:active {
+  transform: scale(0.98);
+}
+.provisional {
+  border-style: dotted;
+  opacity: 0.75;
+}
+.word {
+  font-size: var(--fs-their-words);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--gold);
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.glyph {
+  color: var(--gold);
+  font-size: 12px;
+}
+.pin {
+  color: var(--blue);
+  font-size: 13px;
+}
+.correction {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+  text-decoration: line-through;
+  text-decoration-color: var(--red);
+  text-decoration-thickness: 2px;
+}
+@keyframes slideIn {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

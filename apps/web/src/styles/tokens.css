@@ -1,51 +1,140 @@
-/* Apohenia design tokens — calm desktop palette. Never convey state by color alone. */
+/*
+ * Apohenia Design System v2 ("Arena") — tokens. Authoritative: docs/DESIGN_SYSTEM.md §1.
+ * Dark stage, one glowing action, big numbers, rings, cards, sheets. There is no light palette.
+ */
 :root {
-  --color-paper: #fafaf7;
-  --color-ink: #1b1b1b;
-  --color-muted: #5c5c5c;
-  --color-line: #e3e1da;
-  --color-accent: #1f4e79;
+  color-scheme: dark;
+
+  /* stage */
+  --bg: #0b0b0f; /* stage */
+  --bg-1: #15151c; /* card */
+  --bg-2: #1e1e27; /* raised card / chip */
+  --bg-3: #2a2a35; /* pressed */
+  --glass: rgba(21, 21, 28, 0.72); /* tab bar, headers — with backdrop-filter: blur(20px) saturate(140%) */
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  /* ink */
+  --ink: #f5f5f7;
+  --ink-2: #a1a1aa;
+  --ink-3: #6b6b75;
+
+  /* signal (iOS system colors) */
+  --green: #30d158; /* call, success, connected */
+  --red: #ff453a; /* end, do-not-call */
+  --gold: #ffd60a; /* THEIR WORDS */
+  --purple: #bf5af2; /* THEIR REFERENCES */
+  --blue: #0a84ff; /* selection, links, focus ring */
+  --orange: #ff9f0a; /* attention, requires review */
+  --teal: #64d2ff; /* mirrors / clarify */
+
+  /* type */
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --fs-micro: 11px;
+  --fs-caption: 13px;
+  --fs-body: 17px;
+  --fs-title: 22px;
+  --fs-large: 28px;
+  --fs-display: clamp(34px, 3.6vw, 44px); /* the script line */
+  --fs-their-words: clamp(28px, 3vw, 40px); /* THEIR WORDS / REFERENCES labels */
+  --fs-number: clamp(40px, 6vw, 64px); /* hero numbers, session timer */
+  --lh-tight: 1.1;
+  --lh-body: 1.4;
+
+  /* shape */
+  --r-card: 24px;
+  --r-sheet: 28px;
+  --r-tile: 20px;
+  --r-chip: 999px;
+  --r-hero: 50%;
+
+  /* space (8pt grid) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 180ms;
+  --dur: 320ms;
+  --dur-slow: 560ms;
+
+  /* focus */
+  --focus: 0 0 0 3px rgba(10, 132, 255, 0.55);
+
+  /* glow — hero only */
+  --glow-green: 0 0 0 12px rgba(48, 209, 88, 0.12), 0 0 60px rgba(48, 209, 88, 0.25);
+  --glow-red: 0 0 0 12px rgba(255, 69, 58, 0.12), 0 0 60px rgba(255, 69, 58, 0.25);
+
+  /* layout */
+  --col: 520px; /* phone-width column */
+  --rail: 380px; /* THEIR WORDS rail on wide in-call */
+  --tabbar-h: 84px;
+  --topbar-h: 44px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+    --dur-slow: 0ms;
+  }
+}
+
+/*
+ * Transitional aliases — v1 token names that Phase-2 route CSS modules still reference.
+ * They resolve to v2 DARK values only (no light palette survives). Delete an alias once no
+ * CSS module under apps/web/src/app references it.
+ */
+:root {
+  --color-paper: var(--bg);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-2);
+  --color-line: var(--line);
+  --color-accent: var(--blue);
   --color-accent-ink: #ffffff;
-  --color-surface: #ffffff;
-  --color-surface-sunken: #f2f1ec;
-  --color-warning-ink: #6b4a00;
-  --color-warning-surface: #fff7e0;
-  --color-success-ink: #1d5a2d;
-  --color-success-surface: #e8f4ea;
-  --color-info-ink: #1f4e79;
-  --color-info-surface: #e9f0f7;
-  --color-danger-ink: #7a1f1f;
+  --color-surface: var(--bg-1);
+  --color-surface-sunken: var(--bg-2);
+  --color-warning-ink: var(--orange);
+  --color-warning-surface: rgba(255, 159, 10, 0.12);
+  --color-success-ink: var(--green);
+  --color-success-surface: rgba(48, 209, 88, 0.12);
+  --color-info-ink: var(--teal);
+  --color-info-surface: rgba(100, 210, 255, 0.12);
+  --color-danger-ink: var(--red);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --font-sans: var(--font);
+  --font-size-xs: var(--fs-caption);
+  --font-size-sm: var(--fs-caption);
+  --font-size-md: var(--fs-body);
+  --font-size-lg: var(--fs-title);
+  --font-size-xl: var(--fs-large);
+  --font-size-2xl: var(--fs-number);
+  --font-size-their-words: var(--fs-their-words);
+  --line-height-tight: var(--lh-tight);
+  --line-height-body: var(--lh-body);
 
-  --font-size-xs: 13px;
-  --font-size-sm: 14px;
-  --font-size-md: 16px;
-  --font-size-lg: 20px;
-  --font-size-xl: 28px;
-  --font-size-2xl: 40px;
-  /* THEIR WORDS strip — large, stable, readable at desktop. */
-  --font-size-their-words: clamp(24px, 2vw, 36px);
+  --space-1: var(--s-1);
+  --space-2: var(--s-2);
+  --space-3: var(--s-3);
+  --space-4: var(--s-4);
+  --space-5: var(--s-5);
+  --space-6: var(--s-6);
+  --space-7: var(--s-7);
+  --space-8: var(--s-8);
 
-  --line-height-tight: 1.2;
-  --line-height-body: 1.5;
-
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
-
-  --radius: 6px;
-  --focus-ring: 2px solid var(--color-accent);
+  --radius: 14px;
+  --focus-ring: 2px solid var(--blue);
   --focus-offset: 2px;
-
-  --sidebar-width: 232px;
-  --content-max-width: 1120px;
-
-  --duration: 150ms;
+  --sidebar-width: 0px;
+  --content-max-width: 100%;
+  --duration: var(--dur-fast);
 }

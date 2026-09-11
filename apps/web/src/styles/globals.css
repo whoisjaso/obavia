@@ -1,5 +1,7 @@
 @import './tokens.css';
 
+/* Dark stage. No shadows on dark; depth comes from --bg-1/2/3 steps and a 1px --line border. */
+
 *,
 *::before,
 *::after {
@@ -7,36 +9,43 @@
 }
 
 html {
-  color-scheme: light;
+  color-scheme: dark;
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-body);
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
 }
 
 h1,
 h2,
 h3,
 h4 {
-  line-height: var(--line-height-tight);
   margin: 0;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
 }
 
 h1 {
-  font-size: var(--font-size-xl);
+  font-size: var(--fs-large);
 }
 h2 {
-  font-size: var(--font-size-lg);
+  font-size: var(--fs-title);
 }
 h3 {
-  font-size: var(--font-size-md);
+  font-size: var(--fs-body);
 }
 
 p {
@@ -44,13 +53,15 @@ p {
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--blue);
+  text-decoration: none;
 }
 
 code,
-pre {
+pre,
+kbd {
   font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  font-size: var(--fs-caption);
 }
 
 button,
@@ -61,39 +72,68 @@ textarea {
   color: inherit;
 }
 
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
 /* Visible focus everywhere, never removed. */
 :focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 
 ::selection {
-  background: var(--color-accent);
-  color: var(--color-accent-ink);
+  background: rgba(10, 132, 255, 0.45);
+  color: var(--ink);
 }
 
 /* Skip link: visually hidden until focused. */
 .skip-link {
-  position: absolute;
-  left: var(--space-3);
-  top: var(--space-3);
+  position: fixed;
+  left: var(--s-4);
+  top: var(--s-3);
   z-index: 100;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-accent);
-  color: var(--color-accent-ink);
-  border-radius: var(--radius);
-  transform: translateY(-200%);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-chip);
+  background: var(--blue);
+  color: #fff;
+  font-weight: 600;
+  transform: translateY(-300%);
+  transition: transform var(--dur-fast) var(--ease);
 }
 .skip-link:focus {
   transform: none;
 }
 
+/* Screen-reader-only utility (also used by the one visually hidden h1 per route). */
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced motion: durations are zeroed in tokens.css; this makes every remaining animation static. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    transition: none !important;
-    animation: none !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
 }

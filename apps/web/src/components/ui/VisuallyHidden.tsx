@@ -1,5 +1,4 @@
 import type { ElementType, ReactNode } from 'react';
-import styles from './ui.module.css';
 
 export interface VisuallyHiddenProps {
   children: ReactNode;
@@ -7,7 +6,7 @@ export interface VisuallyHiddenProps {
   as?: ElementType;
 }
 
-/** Content available to assistive technology but not visible. */
+/** Content available to assistive technology but not painted on the stage. */
 export function VisuallyHidden({ children, as: Tag = 'span' }: VisuallyHiddenProps) {
-  return <Tag className={styles.visuallyHidden}>{children}</Tag>;
+  return <Tag className="sr-only">{children}</Tag>;
 }

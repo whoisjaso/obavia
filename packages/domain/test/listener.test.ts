@@ -5,24 +5,44 @@
  */
 import { describe, expect, it } from 'vitest';
 import { PRACTICE_SCENARIOS, coachView, evaluatorView } from '../src/practice';
-import { Reference } from '../src/schemas/listener';
+import { ListenerMemory, Reference, ReferenceCard } from '../src/schemas/listener';
 import type { TranscriptTurn } from '../src/schemas/transcript';
 import { loadSyntheticTranscripts } from '../src/seeds';
 import { normalizeTranscript } from '../src/vocabulary/normalize';
 import {
   applyListenerActions,
   applySuggestion,
+  applyTurn,
+  clarifyReference,
   conceptsForTurn,
+  correctReference,
+  decideForState,
+  decideSuggestion,
+  declineSuggestion,
+  dismissReference,
   extractTurn,
+  forbidReuse,
+  invalidateForRevision,
+  keepReference,
   labelFigure,
+  listenerFromMemory,
   listenerFromTurns,
+  markUsed,
   metricGuard,
   offerClaimGuard,
+  pinReference,
+  queueSuggestion,
+  rankByConcept,
+  recordReaction,
+  rejectReference,
   retrieveByConcept,
   sliceCodePoints,
   suggestPrimary,
+  toCards,
+  unpinReference,
   validateEvidence,
   validateProposal,
+  visibleCards,
   type ListenerOptions,
   type SuggestionNode,
 } from '../src/listener';
@@ -83,7 +103,7 @@ function lastProspect(raw: TranscriptTurn[]) {
 
 function suggestFor(raw: TranscriptTurn[], node: SuggestionNode = ENTRY, options: ListenerOptions = {}) {
   const r = listenerFromTurns(raw, options);
-  return { result: r, decision: suggestPrimary({ references: r.references, current_turn: lastProspect(raw), node, event_version: r.event_version }) };
+  return { result: r, decision: decideSuggestion({ references: r.references, current_turn: lastProspect(raw), node, event_version: r.event_version }) };
 }
 
 describe('listener fixtures', () => {
@@ -156,10 +176,11 @@ describe('§10 item 3 — later "robotic" retrieves the earlier jazz reference o
     const robotic = 'Would a shared process make everyone sound robotic?';
     expect(robotic).not.toMatch(/jazz|band|solo|music/i);
     expect(conceptsForTurn(robotic)).toContain('coordination_vs_individuality');
-    const hits = retrieveByConcept(robotic, r.references);
-    expect(hits.map((h) => h.reference.label)).toEqual(['JAZZ / EVERYBODY WANTS TO PLAY A SOLO']);
+    const hits = retrieveByConcept(r, robotic);
+    expect(hits.map((h) => h.label)).toEqual(['JAZZ / EVERYBODY WANTS TO PLAY A SOLO']);
+    expect(rankByConcept(robotic, r.references)[0]?.matched_concepts).toEqual(['coordination_vs_individuality']);
     // The jazz utterance is seven turns earlier — well outside a 3-turn "recent" window.
-    const idx = r.normalized.turns.findIndex((t) => t.utterance_id === hits[0]!.reference.evidence.utterance_id);
+    const idx = r.normalized.turns.findIndex((t) => t.utterance_id === hits[0]!.evidence.utterance_id);
     expect(r.normalized.turns.length - 1 - idx).toBeGreaterThanOrEqual(7);
   });
 
@@ -198,7 +219,7 @@ describe('§10 item 5 — "ambushed" remains an unresolved term until clarificat
     expect(a.reuse.proposed_clarification).toBe(`When you say "ambushed," was it that the charges weren't disclosed, or that you were already committed before they appeared?`);
     expect(`${a.label} ${a.semantics.relationship} ${a.semantics.business_target}`).not.toMatch(/price objection/i);
     // Unknown meaning → only a clarification is offered, never an explanation invented for them.
-    const d = suggestPrimary({ references, current_turn: lastProspect(full.slice(0, 6)), node: ENTRY, event_version: 6, clarify_reference_id: a.id });
+    const d = decideSuggestion({ references, current_turn: lastProspect(full.slice(0, 6)), node: ENTRY, event_version: 6, clarify_reference_id: a.id });
     expect(d.suggestion?.purpose).toBe('clarify_meaning');
   });
 
@@ -229,7 +250,7 @@ describe('§10 item 6 — basketball injury: no injury history, team preference,
     expect(b.reuse.allowed_mapping).toMatch(/Neutral acknowledgment only/);
     expect(b.reuse.disallowed_mapping_examples.join(' ')).toContain('slam dunk');
     // Whatever the policy returns for this reference contains no domain word and no "slam dunk".
-    const forced = suggestPrimary({ references: result.references, current_turn: lastProspect(full), node: ENTRY, event_version: result.event_version, forced_reference_id: b.id });
+    const forced = decideSuggestion({ references: result.references, current_turn: lastProspect(full), node: ENTRY, event_version: result.event_version, forced_reference_id: b.id });
     expect(forced.suggestion?.text).not.toMatch(/basketball|slam dunk|leg|injur/i);
     expect(decision.suggestion?.text ?? '').not.toMatch(/basketball|slam dunk/i);
   });
@@ -277,7 +298,7 @@ describe('§10 item 9 — "My partner follows hockey; I don\'t understand it" do
     expect(third?.semantics.origin).toBe('third_party');
     expect(third?.reuse.do_not_reuse).toBe(true);
     expect(result.not_eligible.some((n) => /hockey.*without a comparison relationship/.test(n.reason))).toBe(true);
-    expect(retrieveByConcept('Who should be responsible for the first response?', result.references)).toEqual([]);
+    expect(retrieveByConcept(result.references, 'Who should be responsible for the first response?')).toEqual([]);
     expect(decision.suggestion).toBeNull();
     expect(JSON.stringify(result.references)).not.toMatch(/hockey fan|follows hockey": true/i);
   });
@@ -342,7 +363,7 @@ describe('§10 item 13 — a prospect rejects an analogy; later suggestions stop
     const j = base.references[0]!;
     const after = listenerFromTurns(raw, { actions: [{ type: 'reaction', reference_id: j.id, event_version: base.event_version, turn_id: 'syn-l-jazz-robotic-u12', reaction: 'rejected' }] });
     expect(after.references[0]!.lifecycle.state).toBe('rejected');
-    expect(suggestPrimary({ references: after.references, current_turn: lastProspect(raw), node: ENTRY, event_version: after.event_version }).suggestion).toBeNull();
+    expect(decideSuggestion({ references: after.references, current_turn: lastProspect(raw), node: ENTRY, event_version: after.event_version }).suggestion).toBeNull();
   });
 });
 
@@ -352,7 +373,7 @@ describe('§10 item 14 — a transcript revision retracts a phrase; cards and qu
     const before = listenerFromTurns(full.slice(0, 4));
     const a0 = before.references.find((r) => r.label === 'AMBUSHED')!;
     expect(a0.lifecycle.state).toBe('held');
-    const queued = suggestPrimary({ references: before.references, current_turn: lastProspect(full.slice(0, 4)), node: ENTRY, event_version: before.event_version, clarify_reference_id: a0.id }).suggestion!;
+    const queued = decideSuggestion({ references: before.references, current_turn: lastProspect(full.slice(0, 4)), node: ENTRY, event_version: before.event_version, clarify_reference_id: a0.id }).suggestion!;
     expect(queued.reference_id).toBe(a0.id);
 
     const after = listenerFromTurns(full);
@@ -362,7 +383,7 @@ describe('§10 item 14 — a transcript revision retracts a phrase; cards and qu
     expect(a1.lifecycle.correction_history).toEqual([{ at_event_version: after.event_version, field: 'evidence.exact_expression', from: 'ambushed', to: 'I felt the extra charges were unclear.', by: 'transcript_revision' }]);
     expect(a1.evidence.status).toBe('corrected');
     expect(applySuggestion(after.references, queued, 'syn-l-revision-retracts-u06', after.event_version).ok).toBe(false);
-    expect(retrieveByConcept('What are the full costs and the exit terms?', after.references)).toEqual([]);
+    expect(retrieveByConcept(after.references, 'What are the full costs and the exit terms?')).toEqual([]);
   });
   it('a revision that KEEPS the phrase does not invalidate it', () => {
     const raw = turns([['R', 'What happened?'], ['P', 'I felt ambushed by the extra charge.'], ['P', 'I felt ambushed by the extra charges.', { revision: 1, utterance: 2 }]]);
@@ -378,7 +399,7 @@ describe('§10 item 15 — a rejected reference is not resurrected by a late mod
     const raw = fixture('syn-l-jazz-robotic').turns;
     const base = listenerFromTurns(raw);
     const j = base.references[0]!;
-    const late = suggestPrimary({ references: base.references, current_turn: lastProspect(raw), node: ENTRY, event_version: base.event_version }).suggestion!;
+    const late = decideSuggestion({ references: base.references, current_turn: lastProspect(raw), node: ENTRY, event_version: base.event_version }).suggestion!;
     for (const action of [
       { type: 'dismiss' as const, reference_id: j.id, event_version: base.event_version + 1 },
       { type: 'reaction' as const, reference_id: j.id, event_version: base.event_version + 1, turn_id: 'x', reaction: 'rejected' as const },
@@ -387,13 +408,13 @@ describe('§10 item 15 — a rejected reference is not resurrected by a late mod
       const applied = applySuggestion(refs, late, 'syn-l-jazz-robotic-u12', base.event_version + 2);
       expect(applied.ok).toBe(false);
       expect(applied.references.find((r) => r.id === j.id)!.reuse.used_at).toEqual([]);
-      expect(suggestPrimary({ references: refs, current_turn: lastProspect(raw), node: ENTRY, event_version: base.event_version + 2 }).suggestion).toBeNull();
+      expect(decideSuggestion({ references: refs, current_turn: lastProspect(raw), node: ENTRY, event_version: base.event_version + 2 }).suggestion).toBeNull();
     }
     // A pin after the suggestion was computed also makes it stale (the reference moved on).
     const pinned = applyListenerActions(base.references, [{ type: 'pin', reference_id: j.id, event_version: base.event_version + 1 }]);
     expect(applySuggestion(pinned, late, 'x', base.event_version + 1).reason).toMatch(/stale/);
     // A fresh suggestion at the current version applies and records used_at.
-    const fresh = suggestPrimary({ references: pinned, current_turn: lastProspect(raw), node: ENTRY, event_version: base.event_version + 1 }).suggestion!;
+    const fresh = decideSuggestion({ references: pinned, current_turn: lastProspect(raw), node: ENTRY, event_version: base.event_version + 1 }).suggestion!;
     const ok = applySuggestion(pinned, fresh, 'syn-l-jazz-robotic-u12', base.event_version + 1);
     expect(ok.ok).toBe(true);
     expect(ok.references[0]!.reuse.used_at).toEqual([{ turn_id: 'syn-l-jazz-robotic-u12', event_version: base.event_version + 1 }]);
@@ -410,7 +431,7 @@ describe('§10 item 16 — several references remain visible and readable beside
     const pinnedLast = listenerFromTurns(full, { actions: [{ type: 'pin', reference_id: all.references[2]!.id, event_version: all.event_version }] });
     expect(pinnedLast.references.map((r) => r.id)).toEqual(all.references.map((r) => r.id));
     expect(pinnedLast.references[2]!.lifecycle.state).toBe('pinned');
-    const d = suggestPrimary({ references: pinnedLast.references, current_turn: lastProspect(full), node: ENTRY, event_version: all.event_version });
+    const d = decideSuggestion({ references: pinnedLast.references, current_turn: lastProspect(full), node: ENTRY, event_version: all.event_version });
     expect(d.suggestion?.script_node_id).toBe(ENTRY.id); // the suggestion references the node; it never replaces it
   });
 });
@@ -454,7 +475,7 @@ describe('§10 item 18 — a proposed analogy cannot introduce an unapproved off
       const r = listenerFromTurns(t.turns);
       const last = [...r.normalized.turns].reverse().find((x) => x.speaker_role === 'prospect');
       if (!last) continue;
-      const d = suggestPrimary({ references: r.references, current_turn: { utterance_id: last.utterance_id, text: last.text, speaker_role: last.speaker_role, is_final: last.is_final }, node: ENTRY, event_version: r.event_version });
+      const d = decideSuggestion({ references: r.references, current_turn: { utterance_id: last.utterance_id, text: last.text, speaker_role: last.speaker_role, is_final: last.is_final }, node: ENTRY, event_version: r.event_version });
       if (d.suggestion) expect(offerClaimGuard(d.suggestion.text).ok, d.suggestion.text).toBe(true);
     }
   });
@@ -552,7 +573,7 @@ describe('evidence exactness — Unicode code-point spans', () => {
     const raw = turns([['R', 'How is it?'], ['P', 'It is like a hockey team where nobody knows who is defending.']]).map((t) => (t.speaker_role === 'prospect' ? { ...t, is_final: false } : t));
     const r = listenerFromTurns(raw);
     expect(r.references[0]!.evidence.status).toBe('provisional');
-    expect(retrieveByConcept('Who should be responsible for the first response?', r.references)).toEqual([]);
+    expect(retrieveByConcept(r.references, 'Who should be responsible for the first response?')).toEqual([]);
   });
 });
 
@@ -600,16 +621,16 @@ describe('abstention and no-repeat policy', () => {
     const r = listenerFromTurns(raw);
     const j = r.references[0]!;
     const base = { references: r.references, current_turn: lastProspect(raw), node: ENTRY, event_version: r.event_version };
-    expect(suggestPrimary({ ...base, last_suggestion_reference_id: j.id }).suggestion).toBeNull();
-    expect(suggestPrimary({ ...base, current_turn: { ...base.current_turn, text: 'What do you mean, robotic in what sense?' }, last_suggestion_reference_id: j.id }).suggestion?.reference_id).toBe(j.id);
+    expect(decideSuggestion({ ...base, last_suggestion_reference_id: j.id }).suggestion).toBeNull();
+    expect(decideSuggestion({ ...base, current_turn: { ...base.current_turn, text: 'What do you mean, robotic in what sense?' }, last_suggestion_reference_id: j.id }).suggestion?.reference_id).toBe(j.id);
   });
   it('"Not now" hides the reference at that version; a dismissed card is never suggested', () => {
     const raw = fixture('syn-l-hockey-responsibilities').turns;
     const r = listenerFromTurns(raw);
     const h = r.references[0]!;
-    expect(suggestPrimary({ references: r.references, current_turn: lastProspect(raw), node: ENTRY, event_version: r.event_version, not_now: [h.id] }).suggestion).toBeNull();
+    expect(decideSuggestion({ references: r.references, current_turn: lastProspect(raw), node: ENTRY, event_version: r.event_version, not_now: [h.id] }).suggestion).toBeNull();
     const dismissed = listenerFromTurns(raw, { actions: [{ type: 'dismiss', reference_id: h.id, event_version: r.event_version }] });
-    expect(suggestPrimary({ references: dismissed.references, current_turn: lastProspect(raw), node: ENTRY, event_version: r.event_version }).suggestion).toBeNull();
+    expect(decideSuggestion({ references: dismissed.references, current_turn: lastProspect(raw), node: ENTRY, event_version: r.event_version }).suggestion).toBeNull();
   });
   it('returns at most one suggestion even when several references match', () => {
     const raw = turns([
@@ -634,5 +655,203 @@ describe('abstention and no-repeat policy', () => {
     expect(corrected.lifecycle.correction_history[0]).toMatchObject({ field: 'relationship', from: h.semantics.relationship, to: 'unclear ownership of the first reply', by: 'rep', note: 'said so again at u10' });
     expect(corrected.evidence.status).toBe('corrected');
     expect(corrected.evidence.exact_expression).toBe(h.evidence.exact_expression); // the quote is never rewritten
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Frozen state API (what the call room codes against): incremental applyTurn, lifecycle, cards.
+// ---------------------------------------------------------------------------------------------
+
+describe('frozen API — listenerFromTurns / applyTurn are the same path', () => {
+  it('applyTurn over every event reproduces listenerFromTurns over the whole transcript (references, versions, not_eligible)', () => {
+    for (const t of seed.transcripts) {
+      const whole = listenerFromTurns(t.turns, { call_id: t.call_id });
+      let state = listenerFromTurns([], { call_id: t.call_id });
+      for (const turn of t.turns) state = applyTurn(state, turn);
+      expect(state.references).toEqual(whole.references);
+      expect(state.event_version).toBe(whole.event_version);
+      expect(state.not_eligible).toEqual(whole.not_eligible);
+      expect(state.memory.turns).toEqual(t.turns);
+    }
+  });
+  it('the state carries a persistable memory; listenerFromMemory restores an identical state (schema-valid)', () => {
+    const raw = fixture('syn-l-hockey-responsibilities').turns;
+    let state = listenerFromTurns(raw, { call_id: 'syn-l-hockey-responsibilities' });
+    state = pinReference(state, state.references[0]!.id);
+    state = queueSuggestion(state, suggestPrimary(state, { node: ENTRY }));
+    expect(ListenerMemory.safeParse(state.memory).success).toBe(true);
+    const restored = listenerFromMemory(JSON.parse(JSON.stringify(state.memory)), state.context);
+    expect(restored.references).toEqual(state.references);
+    expect(restored.memory.queued_suggestion).toEqual(state.memory.queued_suggestion);
+    expect(restored.memory.queued_suggestion?.text).toContain('Using your hockey example');
+  });
+  it('applyTurn with a duplicate event changes nothing but the event version (item 20)', () => {
+    const raw = fixture('syn-l-hockey-responsibilities').turns;
+    const base = listenerFromTurns(raw);
+    const dup = applyTurn(base, { ...raw[3]!, provider_event_key: 'redelivered' });
+    expect(dup.references).toEqual(base.references);
+    expect(dup.references[0]!.lifecycle.occurrence_count).toBe(1);
+    expect(dup.event_version).toBe(base.event_version + 1);
+  });
+});
+
+describe('frozen API — suggestPrimary(state, ctx) and the one-suggestion slot', () => {
+  it('reads the current turn from the state; abstains with no node; queues exactly one suggestion on its card', () => {
+    const state = listenerFromTurns(fixture('syn-l-jazz-robotic').turns);
+    expect(suggestPrimary(state, { node: null })).toBeNull();
+    const s = suggestPrimary(state, { node: ENTRY });
+    expect(s?.text).toContain('Going back to your jazz example');
+    expect(s?.trigger_turn_id).toBe('syn-l-jazz-robotic-u12');
+    const queued = queueSuggestion(state, s);
+    const cards = toCards(queued);
+    expect(cards.filter((c) => c.suggestion).map((c) => c.label)).toEqual(['JAZZ / EVERYBODY WANTS TO PLAY A SOLO']);
+    expect(decideForState(state, { node: ENTRY }).reason).toMatch(/grounded in/);
+  });
+  it('markUsed clears the slot and blocks an immediate repeat; declineSuggestion hides it for this version only', () => {
+    let state = listenerFromTurns(fixture('syn-l-jazz-robotic').turns);
+    const s = suggestPrimary(state, { node: ENTRY })!;
+    state = markUsed(queueSuggestion(state, s), s.reference_id);
+    expect(state.memory.queued_suggestion).toBeNull();
+    expect(state.memory.last_suggestion_reference_id).toBe(s.reference_id);
+    expect(state.references[0]!.reuse.used_at).toEqual([{ turn_id: 'syn-l-jazz-robotic-u12', event_version: state.event_version }]);
+    expect(suggestPrimary(state, { node: ENTRY })).toBeNull(); // no immediate repeat
+    let fresh = listenerFromTurns(fixture('syn-l-jazz-robotic').turns);
+    fresh = declineSuggestion(fresh, fresh.references[0]!.id);
+    expect(suggestPrimary(fresh, { node: ENTRY })).toBeNull();
+    const next = applyTurn(fresh, turns([['P', 'Would a shared process make everyone sound robotic?']], 'syn-l-jazz-robotic').map((t) => ({ ...t, utterance_id: 'syn-l-jazz-robotic-u13', provider_event_key: 'ev-013', provider_sequence: 9, started_at: '2026-09-09T00:00:00.000Z' }))[0]!);
+    expect(suggestPrimary(next, { node: ENTRY })?.reference_id).toBe(fresh.references[0]!.id); // a new turn lifts "not now"
+  });
+  it('a new final prospect turn drops the queued suggestion (the conversation moved on)', () => {
+    const raw = fixture('syn-l-jazz-robotic').turns;
+    let state = listenerFromTurns(raw);
+    state = queueSuggestion(state, suggestPrimary(state, { node: ENTRY }));
+    expect(state.memory.queued_suggestion).not.toBeNull();
+    state = applyTurn(state, { ...raw[11]!, utterance_id: 'syn-l-jazz-robotic-u13', provider_event_key: 'ev-013', provider_sequence: 9, text: 'Thursday at ten works.' });
+    expect(state.memory.queued_suggestion).toBeNull();
+  });
+});
+
+describe('frozen API — lifecycle functions', () => {
+  const raw = fixture('syn-l-hockey-responsibilities').turns;
+  it('pin/unpin/keep/dismiss/forbidReuse/clarify/correct each return a new state and are recorded in memory.actions', () => {
+    const base = listenerFromTurns(raw);
+    const id = base.references[0]!.id;
+    const pinned = pinReference(base, id);
+    expect(base.references[0]!.lifecycle.state).toBe('held'); // no mutation
+    expect(pinned.references[0]!.lifecycle.state).toBe('pinned');
+    expect(unpinReference(pinned, id).references[0]!.lifecycle.state).toBe('held');
+    expect(keepReference(base, id).references[0]!.lifecycle.kept_for_later).toBe(true);
+    const dismissed = dismissReference(base, id, 'not useful');
+    expect(dismissed.references[0]!.lifecycle).toMatchObject({ state: 'dismissed', reason: 'not useful' });
+    expect(forbidReuse(base, id).references[0]!.reuse.do_not_reuse).toBe(true);
+    expect(clarifyReference(base, id).references[0]!.reuse.clarification_requested).toBe(true);
+    const corrected = correctReference(base, id, 'business_target', 'the inbound inquiry handoff', 'said at u10');
+    expect(corrected.references[0]!.semantics.business_target).toBe('the inbound inquiry handoff');
+    expect(corrected.references[0]!.lifecycle.correction_history[0]).toMatchObject({ field: 'business_target', by: 'rep', note: 'said at u10' });
+    expect(corrected.memory.actions.map((a) => a.type)).toEqual(['correct']);
+    expect(pinned.memory.actions[0]).toEqual({ type: 'pin', reference_id: id, event_version: base.event_version });
+  });
+  it('rejectReference / recordReaction: rejected → state rejected, no further suggestions; unknown is neither', () => {
+    const base = listenerFromTurns(raw);
+    const id = base.references[0]!.id;
+    const rejected = rejectReference(base, id);
+    expect(rejected.references[0]!.lifecycle.state).toBe('rejected');
+    expect(rejected.references[0]!.reuse.reactions).toEqual([{ turn_id: 'syn-l-hockey-responsibilities-u10', reaction: 'rejected' }]);
+    expect(suggestPrimary(rejected, { node: ENTRY })).toBeNull();
+    expect(pinReference(rejected, id).references[0]!.lifecycle.state).toBe('rejected'); // a pin cannot revive it
+    const unknown = recordReaction(base, id, 'unknown', 'syn-l-hockey-responsibilities-u10');
+    expect(unknown.references[0]!.lifecycle.state).toBe('held');
+    expect(suggestPrimary(unknown, { node: ENTRY })).not.toBeNull();
+  });
+  it('item 15 through the state: a late suggestion cannot be queued after dismiss/reject, and a stale one is refused', () => {
+    const base = listenerFromTurns(raw);
+    const id = base.references[0]!.id;
+    const late = suggestPrimary(base, { node: ENTRY })!;
+    expect(queueSuggestion(dismissReference(base, id), late).memory.queued_suggestion).toBeNull();
+    expect(queueSuggestion(rejectReference(base, id), late).memory.queued_suggestion).toBeNull();
+    expect(queueSuggestion(pinReference(base, id), late).memory.queued_suggestion).toBeNull(); // any action since → stale, recompute
+    expect(queueSuggestion(correctReference(base, id, 'business_target', 'the inbox', 'n'), late).memory.queued_suggestion).toBeNull();
+    expect(late.input_action_count).toBe(0);
+    expect(queueSuggestion(base, late).memory.queued_suggestion).toEqual(late);
+    // Dismissing while a suggestion is queued drops it too.
+    expect(dismissReference(queueSuggestion(base, late), id).memory.queued_suggestion).toBeNull();
+    expect(forbidReuse(queueSuggestion(base, late), id).memory.queued_suggestion).toBeNull();
+  });
+  it('item 14 through the state: invalidateForRevision drops the queued suggestion and invalidates the card', () => {
+    const full = fixture('syn-l-revision-retracts').turns;
+    let state = listenerFromTurns(full.slice(0, 4));
+    const a = state.references.find((r) => r.label === 'AMBUSHED')!;
+    state = queueSuggestion(state, suggestPrimary(state, { node: ENTRY, clarify_reference_id: a.id }));
+    expect(state.memory.queued_suggestion?.purpose).toBe('clarify_meaning');
+    const revised = invalidateForRevision(state, full[4]!);
+    expect(revised.memory.queued_suggestion).toBeNull();
+    const card = toCards(revised).find((c) => c.label === 'AMBUSHED')!;
+    expect(card.state).toBe('invalidated');
+    expect(card.glyph).toBe('⊘');
+    expect(card.meaning_line).toMatch(/^Invalidated: transcript revision 0→1 removed "ambushed"/);
+    expect(card.actions).toEqual({ keep: false, use: false, clarify: false });
+    // applyTurn with the same revision event reaches the same state.
+    expect(applyTurn(state, full[4]!).references).toEqual(revised.references);
+  });
+});
+
+describe('frozen API — toCards', () => {
+  it('cards are schema-valid, first-appearance ordered, and carry quote/turn/status/origin/valence/actions', () => {
+    const state = listenerFromTurns(fixture('syn-l-ambushed-explained').turns);
+    const cards = toCards(state);
+    for (const c of cards) expect(ReferenceCard.safeParse(c).success, c.label).toBe(true);
+    const a = cards.find((c) => c.label === 'AMBUSHED')!;
+    expect(a).toMatchObject({
+      meaning_status: 'confirmed',
+      glyph: '✓',
+      origin: 'prospect_spontaneous',
+      origin_label: 'prospect said it unprompted',
+      state: 'held',
+      pinned: false,
+      evidence: { quote: 'I felt ambushed by the extra charges.', turn_id: 'syn-l-ambushed-explained-u04', exact_expression: 'ambushed', status: 'final' },
+      confirmed_meaning: { text: "By then they had our website and we couldn't easily leave.", evidence_turn_id: 'syn-l-ambushed-explained-u08' },
+      valence: { polarity: 'negative', object: 'the extra charges — the explicit description, not an explanation of why' },
+    });
+    expect(a.glyph_name).toMatch(/^meaning confirmed/);
+    expect(a.useful_when).toMatch(/unexpected charges after commitment/);
+    expect(a.represents).toContain("they explained: By then they had our website");
+    expect(a.actions).toEqual({ keep: true, use: true, clarify: false }); // clarified already
+    // Before the explanation: unknown meaning, '?' glyph, clarify on offer.
+    const early = toCards(listenerFromTurns(fixture('syn-l-ambushed-explained').turns.slice(0, 6)))[0]!;
+    expect(early).toMatchObject({ meaning_status: 'unknown', glyph: '?', clarification: expect.stringContaining('When you say "ambushed,"') });
+    expect(early.actions.clarify).toBe(true);
+  });
+  it('third-party and painful references are cards with honest reuse text; rejected cards say so', () => {
+    const third = toCards(listenerFromTurns(fixture('syn-l-partner-hockey').turns)).find((c) => c.source_domain === 'hockey')!;
+    expect(third.origin).toBe('third_party');
+    expect(third.do_not_reuse).toBe(true);
+    expect(third.useful_when).toMatch(/someone else's frame/);
+    expect(third.actions.use).toBe(false);
+    const painful = toCards(listenerFromTurns(fixture('syn-l-basketball-injury').turns))[0]!;
+    expect(painful.painful).toBe(true);
+    expect(painful.useful_when).toMatch(/neutral acknowledgment/);
+    expect(`${painful.label} ${painful.meaning_line} ${painful.represents} ${painful.useful_when} ${painful.state_line ?? ''}`).not.toMatch(/slam dunk|injury history|dislikes basketball|broke (?:his|her|their)/i);
+    expect(painful.prohibited_inferences).toContain('no upbeat same-domain line (no "slam dunk")');
+    const rejected = toCards(listenerFromTurns(fixture('syn-l-jazz-rejected').turns))[0]!;
+    expect(rejected.state).toBe('rejected');
+    expect(rejected.meaning_line).toBe('Rejected by the prospect — not used again');
+    expect(rejected.state_line).toBe('Rejected by the prospect — not used again');
+  });
+  it('visibleCards keeps first-appearance order, caps held cards, never drops a pinned one, never shows dismissed', () => {
+    const lines: Line[] = [['R', 'Go on.']];
+    const domains = ['a hockey team where nobody knows who is defending', 'a jazz band where everybody wants to play a solo', 'a garden that you plant in spring and then never water', 'a chess game where I am always three moves behind the customer', 'a kitchen with three chefs and no menu', 'a relay race where the baton gets dropped between shifts', 'a sailboat where the crew argues about the rudder', 'an orchestra where nobody follows the conductor', 'a farm where the harvest comes in before the barn is built'];
+    for (const d of domains) lines.push(['P', `The follow-up is like ${d}.`], ['R', 'Ok.']);
+    let state = listenerFromTurns(turns(lines));
+    expect(state.references.length).toBeGreaterThanOrEqual(8);
+    const last = state.references[state.references.length - 1]!.id;
+    state = pinReference(state, last);
+    state = dismissReference(state, state.references[1]!.id);
+    const all = toCards(state);
+    const visible = visibleCards(all, 5);
+    expect(visible).toHaveLength(5);
+    expect(visible.map((c) => c.id)).toEqual(all.filter((c) => visible.some((v) => v.id === c.id)).map((c) => c.id)); // original order
+    expect(visible.some((c) => c.id === last)).toBe(true); // the pinned newest card survives the cap
+    expect(visible.some((c) => c.state === 'dismissed')).toBe(false);
+    expect(visibleCards(all, 1)).toHaveLength(3); // never fewer than three when available
   });
 });

@@ -2,101 +2,30 @@
  * Synthetic CRM records (brief §9) for /prospects and /pipeline. Every record is FICTIONAL.
  * Companies, locations, contacts and phone endpoints are separate; several locations may share one
  * switchboard and several contacts may share one number. Nothing here authorizes a call.
+ *
+ * The records live in `data/synthetic_prospects.json` (schema: `schemas/dialer.ts`, loader:
+ * `dialer/seed.ts`) so the sequential dialer and this CRM view read ONE source of truth.
  */
+import type { SyntheticCompany, SyntheticContact, SyntheticEndpoint, SyntheticLocation } from '../schemas/dialer';
+import { syntheticProspectsSeed } from '../dialer/seed';
 
-export type ContactPolicy = 'requires_review';
+export type { SyntheticCompany, SyntheticContact, SyntheticLocation } from '../schemas/dialer';
+/** @deprecated name kept for earlier callers — identical to `SyntheticEndpoint`. */
+export type PhoneEndpoint = SyntheticEndpoint;
+export type ContactPolicy = SyntheticEndpoint['contact_policy'];
 
-export interface SyntheticCompany {
-  id: string;
-  name: string;
-  kind: 'dealer_group' | 'single_store';
-}
+const seed = syntheticProspectsSeed();
 
-export interface SyntheticLocation {
-  id: string;
-  company_id: string;
-  name: string;
-  city: string;
-  state: string;
-  timezone: string;
-  /** Endpoint id of the shared switchboard, if any. */
-  switchboard_endpoint_id: string | null;
-}
-
-export interface PhoneEndpoint {
-  id: string;
-  /** E.164, fictional 555-01xx range. */
-  e164: string;
-  label: string;
-  source: 'synthetic';
-  verified_at: null;
-  contact_policy: ContactPolicy;
-  jurisdiction: 'unknown';
-}
-
-export interface SyntheticContact {
-  id: string;
-  location_id: string;
-  name: string;
-  role: string;
-  endpoint_ids: string[];
-  /** Synthetic call that used this contact, if any. */
-  call_id: string | null;
-}
-
-export const SYNTHETIC_ENDPOINTS: PhoneEndpoint[] = [
-  { id: 'ep-001', e164: '+15550100001', label: 'Riverbend Motors main line', source: 'synthetic', verified_at: null, contact_policy: 'requires_review', jurisdiction: 'unknown' },
-  { id: 'ep-002', e164: '+15550100002', label: 'Copper Ridge switchboard (shared by two locations)', source: 'synthetic', verified_at: null, contact_policy: 'requires_review', jurisdiction: 'unknown' },
-  { id: 'ep-003', e164: '+15550100003', label: 'Harbor Lane Motors internet desk (shared by two contacts)', source: 'synthetic', verified_at: null, contact_policy: 'requires_review', jurisdiction: 'unknown' },
-  { id: 'ep-004', e164: '+15550100004', label: 'Northgate Auto Plaza main line', source: 'synthetic', verified_at: null, contact_policy: 'requires_review', jurisdiction: 'unknown' },
-  { id: 'ep-005', e164: '+15550100005', label: 'Summit Trail Motors main line', source: 'synthetic', verified_at: null, contact_policy: 'requires_review', jurisdiction: 'unknown' },
-  { id: 'ep-006', e164: '+15550100006', label: 'Blue Heron Autos main line', source: 'synthetic', verified_at: null, contact_policy: 'requires_review', jurisdiction: 'unknown' },
-  { id: 'ep-007', e164: '+15550100007', label: 'Prairie Wind Motorcars main line', source: 'synthetic', verified_at: null, contact_policy: 'requires_review', jurisdiction: 'unknown' },
-  { id: 'ep-008', e164: '+15550100008', label: 'Ironwood Auto Mall main line', source: 'synthetic', verified_at: null, contact_policy: 'requires_review', jurisdiction: 'unknown' },
-  { id: 'ep-009', e164: '+15550100009', label: 'Copper Ridge — Marcus Ferreira direct', source: 'synthetic', verified_at: null, contact_policy: 'requires_review', jurisdiction: 'unknown' },
-];
-
-export const SYNTHETIC_COMPANIES: SyntheticCompany[] = [
-  { id: 'co-riverbend', name: 'Riverbend Motors', kind: 'single_store' },
-  { id: 'co-copper-ridge', name: 'Copper Ridge Auto Group', kind: 'dealer_group' },
-  { id: 'co-harbor-lane', name: 'Harbor Lane Motors', kind: 'single_store' },
-  { id: 'co-northgate', name: 'Northgate Auto Plaza', kind: 'single_store' },
-  { id: 'co-summit-trail', name: 'Summit Trail Motors', kind: 'single_store' },
-  { id: 'co-blue-heron', name: 'Blue Heron Autos', kind: 'single_store' },
-  { id: 'co-prairie-wind', name: 'Prairie Wind Motorcars', kind: 'single_store' },
-  { id: 'co-ironwood', name: 'Ironwood Auto Mall', kind: 'single_store' },
-];
-
-export const SYNTHETIC_LOCATIONS: SyntheticLocation[] = [
-  { id: 'loc-riverbend', company_id: 'co-riverbend', name: 'Riverbend Motors', city: 'Fictional City', state: 'TX', timezone: 'America/Chicago', switchboard_endpoint_id: null },
-  { id: 'loc-copper-north', company_id: 'co-copper-ridge', name: 'Copper Ridge North', city: 'Fictional City', state: 'TX', timezone: 'America/Chicago', switchboard_endpoint_id: 'ep-002' },
-  { id: 'loc-copper-south', company_id: 'co-copper-ridge', name: 'Copper Ridge South', city: 'Fictional City', state: 'TX', timezone: 'America/Chicago', switchboard_endpoint_id: 'ep-002' },
-  { id: 'loc-harbor-lane', company_id: 'co-harbor-lane', name: 'Harbor Lane Motors', city: 'Fictional Harbor', state: 'WA', timezone: 'America/Los_Angeles', switchboard_endpoint_id: null },
-  { id: 'loc-northgate', company_id: 'co-northgate', name: 'Northgate Auto Plaza', city: 'Fictional Heights', state: 'OH', timezone: 'America/New_York', switchboard_endpoint_id: null },
-  { id: 'loc-summit-trail', company_id: 'co-summit-trail', name: 'Summit Trail Motors', city: 'Fictional Ridge', state: 'CO', timezone: 'America/Denver', switchboard_endpoint_id: null },
-  { id: 'loc-blue-heron', company_id: 'co-blue-heron', name: 'Blue Heron Autos', city: 'Fictional Bay', state: 'FL', timezone: 'America/New_York', switchboard_endpoint_id: null },
-  { id: 'loc-prairie-wind', company_id: 'co-prairie-wind', name: 'Prairie Wind Motorcars', city: 'Fictional Plains', state: 'KS', timezone: 'America/Chicago', switchboard_endpoint_id: null },
-  { id: 'loc-ironwood', company_id: 'co-ironwood', name: 'Ironwood Auto Mall', city: 'Fictional Grove', state: 'MI', timezone: 'America/Detroit', switchboard_endpoint_id: null },
-];
-
-export const SYNTHETIC_CONTACTS: SyntheticContact[] = [
-  { id: 'ct-dana', location_id: 'loc-riverbend', name: 'Dana Whitlock', role: 'General manager', endpoint_ids: ['ep-001'], call_id: 'syn-a-profit-not-revenue' },
-  { id: 'ct-marcus', location_id: 'loc-copper-north', name: 'Marcus Ferreira', role: 'Dealer principal', endpoint_ids: ['ep-002', 'ep-009'], call_id: 'syn-b-staff-time' },
-  { id: 'ct-copper-south-gm', location_id: 'loc-copper-south', name: 'Unknown (switchboard only)', role: 'General manager — not identified', endpoint_ids: ['ep-002'], call_id: null },
-  { id: 'ct-priya', location_id: 'loc-harbor-lane', name: 'Priya Natarajan', role: 'General manager', endpoint_ids: ['ep-003'], call_id: 'syn-c-efficiency-confirmed' },
-  { id: 'ct-harbor-internet', location_id: 'loc-harbor-lane', name: 'Internet director (name not confirmed)', role: 'Internet director', endpoint_ids: ['ep-003'], call_id: null },
-  { id: 'ct-tom', location_id: 'loc-northgate', name: 'Tom Okafor', role: 'Owner', endpoint_ids: ['ep-004'], call_id: 'syn-d-gratification' },
-  { id: 'ct-elena', location_id: 'loc-summit-trail', name: 'Elena Marsh', role: 'General manager', endpoint_ids: ['ep-005'], call_id: 'syn-e-basketball' },
-  { id: 'ct-ray', location_id: 'loc-blue-heron', name: 'Ray Delgado', role: 'Owner', endpoint_ids: ['ep-006'], call_id: 'syn-f-revenue-rejected-quoted-other' },
-  { id: 'ct-simone', location_id: 'loc-prairie-wind', name: 'Simone Achterberg', role: 'General manager', endpoint_ids: ['ep-007'], call_id: 'syn-g-profit-prophet-revision' },
-  { id: 'ct-victor', location_id: 'loc-ironwood', name: 'Victor Lindqvist', role: 'Owner', endpoint_ids: ['ep-008'], call_id: 'syn-h-opt-out' },
-];
+export const SYNTHETIC_ENDPOINTS: readonly SyntheticEndpoint[] = seed.endpoints;
+export const SYNTHETIC_COMPANIES: readonly SyntheticCompany[] = seed.companies;
+export const SYNTHETIC_LOCATIONS: readonly SyntheticLocation[] = seed.locations;
+export const SYNTHETIC_CONTACTS: readonly SyntheticContact[] = seed.contacts;
 
 export interface ProspectRow {
   contact: SyntheticContact;
   location: SyntheticLocation;
   company: SyntheticCompany;
-  endpoints: PhoneEndpoint[];
+  endpoints: SyntheticEndpoint[];
   /** Other contacts sharing at least one endpoint. */
   shares_number_with: string[];
   /** Synthetic call H asked to be removed: suppressed pending review. */
@@ -109,7 +38,7 @@ export function prospectRows(): ProspectRow[] {
     const company = SYNTHETIC_COMPANIES.find((c) => c.id === location.company_id)!;
     const endpoints = contact.endpoint_ids.map((id) => SYNTHETIC_ENDPOINTS.find((e) => e.id === id)!);
     const shares = SYNTHETIC_CONTACTS.filter((o) => o.id !== contact.id && o.endpoint_ids.some((id) => contact.endpoint_ids.includes(id))).map((o) => o.name);
-    return { contact, location, company, endpoints, shares_number_with: shares, suppression: contact.call_id === 'syn-h-opt-out' ? 'opt_out_requested' : null };
+    return { contact, location, company, endpoints, shares_number_with: shares, suppression: contact.suppression };
   });
 }
 

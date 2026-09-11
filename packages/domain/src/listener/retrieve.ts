@@ -1,10 +1,11 @@
 /**
  * Delayed recall (addendum §6): retrieve earlier references by the CONCEPT under discussion in the
  * current turn — not by matching nouns. Works over the whole conversation store, independent of any
- * recent-turn window.
+ * recent-turn window: a "robotic" concern retrieves a jazz-band comparison with no music words present.
  */
 import type { Reference } from '../schemas/listener';
 import { CONCEPT_BY_ID, conceptsForTurn } from './concepts';
+import type { ListenerState } from './state';
 
 export interface RetrievedReference {
   reference: Reference;
@@ -24,7 +25,8 @@ export function isReusable(r: Reference): boolean {
   return true;
 }
 
-export function retrieveByConcept(currentTurnText: string, references: readonly Reference[], stage?: string): RetrievedReference[] {
+/** Scored retrieval (explainable): every match carries the shared concepts, stage fit and score. */
+export function rankByConcept(currentTurnText: string, references: readonly Reference[], stageId?: string): RetrievedReference[] {
   const turnConcepts = conceptsForTurn(currentTurnText);
   if (turnConcepts.length === 0) return [];
   const out: RetrievedReference[] = [];
@@ -32,9 +34,22 @@ export function retrieveByConcept(currentTurnText: string, references: readonly 
     if (!isReusable(reference)) return;
     const matched = reference.semantics.concept_ids.filter((c) => turnConcepts.includes(c));
     if (matched.length === 0) return;
-    const stage_match = stage !== undefined && matched.some((c) => (CONCEPT_BY_ID.get(c)?.stages ?? []).includes(stage));
+    const stage_match = stageId !== undefined && matched.some((c) => (CONCEPT_BY_ID.get(c)?.stages ?? []).includes(stageId));
     const score = matched.length * 10 + (stage_match ? 5 : 0) + (reference.lifecycle.state === 'pinned' ? 3 : 0) + (reference.lifecycle.kept_for_later ? 2 : 0) - index * 0.01;
     out.push({ reference, matched_concepts: matched, stage_match, score });
   });
   return out.sort((a, b) => b.score - a.score);
+}
+
+function referencesOf(source: ListenerState | readonly Reference[]): readonly Reference[] {
+  return Array.isArray(source) ? (source as readonly Reference[]) : (source as ListenerState).references;
+}
+
+/**
+ * Frozen API. References that share a concept with `currentTurnText`, best first. Only reusable
+ * references (held/pinned, final, not third-party, not rejected, not do-not-reuse) are returned;
+ * an empty array means "nothing to retrieve" and is the normal case.
+ */
+export function retrieveByConcept(source: ListenerState | readonly Reference[], currentTurnText: string, stageId?: string): Reference[] {
+  return rankByConcept(currentTurnText, referencesOf(source), stageId).map((h) => h.reference);
 }
