@@ -45,6 +45,22 @@ npm run build && npm start
 | **Sources** | All 207 curated records, searchable, with provenance and classification. | No |
 | **Me** | The identity interview, your profile, evidence, insights. | No |
 | **Queue / History / Follow-ups** | Prospect queue, call history with transcript review, follow-up lanes. | No |
+| **Import** | Queue → Import reads your own CSV (or pasted rows) in this browser. It shows you what it would import before storing anything: which rows are good, which are refused and why. | No |
+
+## Importing your own list
+
+Queue → Import takes a CSV with at least a name and a phone number per row. Column headers are
+matched loosely, so `Full Name`, `phone_number`, `Dealership` and `ST` all land where you expect.
+Phone numbers are normalised to US and Canadian format; anything else is refused rather than
+guessed at, and named in the report. Duplicates inside the file, and against what you already
+imported, are refused too.
+
+Nothing leaves the browser and nothing is stored until you confirm the report.
+
+Imported records sit in the queue marked **review**. They are not dialable, in demo or otherwise:
+the demo simulator plays synthetic transcripts only, and live calling needs the reviewed contact
+policy described in `docs/09-local-first-plan.md`. A row in a spreadsheet is not permission to call
+the person in it.
 
 The prospects in Dial are **synthetic** and the app says so with the ◐ Demo glyph on every screen.
 The simulator cannot place a real phone call, by design.

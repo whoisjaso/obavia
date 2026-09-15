@@ -48,6 +48,7 @@ export function buildQueue(seed: SyntheticProspectsSeed, options: BuildQueueOpti
       entrypoint: contact.entrypoint,
       inbound_action: contact.inbound_action,
       call_id: contact.call_id,
+      origin: 'synthetic',
       fictional: true,
     });
   }

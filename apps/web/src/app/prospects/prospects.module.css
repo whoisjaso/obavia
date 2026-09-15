@@ -222,3 +222,65 @@
     opacity: 1;
   }
 }
+
+/* import: file picker, paste box and the dry-run report */
+.fileInput {
+  display: none;
+}
+.paste {
+  width: 100%;
+  min-height: 104px;
+  padding: var(--s-3);
+  border-radius: var(--r-3);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-1);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  resize: vertical;
+}
+.paste::placeholder {
+  color: var(--ink-3);
+}
+.paste:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.importError {
+  font-size: var(--fs-body);
+  color: var(--red);
+  max-width: 34ch;
+}
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.rejected {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.rejectRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rejectLine {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.rejectWhy {
+  font-size: var(--fs-body);
+  color: var(--red);
+}
+.rejectCells {
+  font-size: var(--fs-small);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

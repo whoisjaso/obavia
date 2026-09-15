@@ -39,9 +39,15 @@ export const QueueItem = z.object({
   inbound_action: z.string().nullable(),
   /** Synthetic transcript this contact's demo call plays, when one was authored. */
   call_id: z.string().nullable(),
-  /** Always true: every record is fictional. */
-  fictional: z.literal(true),
-});
+  /** Where the record came from. Synthetic records are fixtures; imported records are real contacts. */
+  origin: z.enum(['synthetic', 'imported']).default('synthetic'),
+  /** True only for the synthetic seed. An imported row is real data and must never be marked fictional. */
+  fictional: z.boolean(),
+})
+  .refine((q) => q.fictional === (q.origin === 'synthetic'), {
+    message: 'fictional must be true for synthetic records and false for imported ones',
+    path: ['fictional'],
+  });
 export type QueueItem = z.infer<typeof QueueItem>;
 
 export const DialResult = z.enum(['no_answer', 'voicemail', 'gatekeeper', 'connected', 'failed']);

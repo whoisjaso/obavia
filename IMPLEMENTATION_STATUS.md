@@ -21,7 +21,7 @@ telephony, reviewed policy and the sequential-session flag*.
 
 ---
 
-## 1. Gates — exact commands and real results (integration round 3, one run each, in this order)
+## 1. Gates — exact commands and real results (integration round 4, one run each, in this order)
 
 Pre-flight: `git checkout -- apps/web/next-env.d.ts`, stray `next dev` processes killed.
 
@@ -30,16 +30,16 @@ Pre-flight: `git checkout -- apps/web/next-env.d.ts`, stray `next dev` processes
 | 1 | `npm run seed:validate` | 207 records, 0 length mismatches, 0 errors; parser outputs byte-identical (working tree unchanged after the rerun) |
 | 2 | `npm run typecheck` | clean — `tsc --noEmit` for `packages/domain`, `apps/web`, `tests` |
 | 3 | `npm run lint` | clean — `eslint . --max-warnings 0`, no output |
-| 4 | `npm test` | vitest: 13 files, **264 passed, 2 todo**, 0 failed |
+| 4 | `npm test` | vitest: 14 files, **296 passed, 2 todo**, 0 failed |
 | 5 | `npm run build` | Next 16 (Turbopack): 246 static pages; `/scripts` and `/today` dynamic |
-| 6 | `npm run e2e` | Playwright (Chromium, production server): **88 passed, 0 failed, 0 skipped**, 1.9 min, single run; `tests/e2e/dial.spec.ts:140` (desktop full loop) passed |
+| 6 | `npm run e2e` | Playwright (Chromium, production server): **91 passed, 0 failed, 0 skipped**, 1.6 min, single run; `tests/e2e/dial.spec.ts:140` (desktop full loop) passed |
 | 7 | `tests/e2e/screenshots.spec.ts` (inside gate 6) | 28 PNGs regenerated into `docs/screenshots/v2/` and each one inspected |
 
 `npm run verify:offsets` (`node scripts/verify-source-offsets.mjs`) exits 0 with *raw sources not supplied —
 verification pending* because `sources/source_a.txt` / `sources/source_b.txt` are not in the repo. No
 accessibility scanner (axe) has been run. No Docker build exists. Nothing has been deployed.
 
-Unit-test file inventory (13): `packages/domain/test/{dialer,interview,listener,offers,practice,queue-history,
+Unit-test file inventory (14): `packages/domain/test/{dialer,import,interview,listener,offers,practice,queue-history,
 schemas,scripts,sources-library,sources,vocabulary}.test.ts`, `apps/web/src/lib/{line-parts,storage}.test.ts`.
 E2E spec inventory (9): `tests/e2e/{calls,dial,interview,offers,practice,screenshots,scripts,smoke,sources}.spec.ts`.
 
@@ -118,7 +118,7 @@ E2E spec inventory (9): `tests/e2e/{calls,dial,interview,offers,practice,screens
 | Requirement | Files | Tests | Observed | Status |
 |---|---|---|---|---|
 | Separate companies / locations / contacts / endpoints; shared switchboard; shared numbers | `data/synthetic_prospects.json` (8 companies, 9 locations, 9 endpoints, 10 contacts, all fictional), `schemas/dialer.ts`, `dialer/seed.ts`, `vocabulary/crm.ts` | `dialer.test.ts` → *parses, is fictional, keeps locations/contacts/endpoints separate, and validates every item*, *crm.ts reads the same seed (one source of truth)* | | Verified by automated tests |
-| Manual entry / validated CSV import | `apps/web/src/app/prospects/ProspectsClient.tsx` (Import sheet) | `calls.spec.ts` → *cards with … search and Import sheets* | Import sheet explains what CSV import will require; **it does not import** | Not implemented (Increment 2); UI is an honest placeholder |
+| Validated CSV import | `packages/domain/src/dialer/import.ts`, `packages/domain/src/schemas/import.ts`, `apps/web/src/app/prospects/ProspectsClient.tsx` (Import sheet), key `dial.imported` | `import.test.ts` (32 tests); `calls.spec.ts` → *pasted rows produce a report…*, *a file with no phone column is refused…*, *the sequential session never dials an imported record* | A CSV is parsed in the browser, dry-run first: accepted rows, refused rows with a stated reason, duplicates against what is already imported. Confirming stores the records locally. Imported records are `requires_review` in every mode and are **excluded from the dial session** (which builds its queue from the synthetic seed alone) | Verified by automated tests (browser-local storage); server-side persistence Not implemented (Increment 2) |
 | Human-initiated preview dialing with cancellable countdown; checks re-run before every dial; wrap-up disposition required; pause on inbound / unresolved disposition / suppression | `packages/domain/src/dialer/{session,queue,simulator,stats}.ts`, `apps/web/src/app/DialClient.tsx` | `dialer.test.ts` → *starts in demo, arms the first allowed record, counts 3 → 2 → 1, then dials and rings*, *re-runs the checks at the end of the countdown…*, *connected → END_CALL → wrapup requires a disposition before the cooldown…*, *an inbound ring during an active call never drops the call…*, *an inbound ring while ringing cancels that dial…*; `dial.spec.ts` → *tap → countdown → Esc cancels (paused); Space resumes; tap again cancels*, full loop | **Demo simulator only**: the "call" is a synthetic transcript played on a schedule (`dialer/simulator.ts`); nothing is dialed | Verified by automated tests (simulator); live = Intentionally disabled |
 | Sequential session mode behind an admin policy flag; automatic dialing disabled until campaign/jurisdiction review | `dialer/session.ts` (`liveGateReasons`: `telephony_configured` ∧ `policy_reviewed` ∧ `sequential_session_flag`) | `dialer.test.ts` → *a live session REFUSES to start unless telephony, reviewed policy and the sequential flag are all true*, *in live mode refuses without the gate and returns requires_review with it*, *with the live gate satisfied but every record requires_review, the checks skip each record and the session ends queue_empty — nothing is dialed* | `DialClient.tsx` only ever builds `{ mode: 'demo' }`; no UI path reaches `mode: 'live'` | **Intentionally disabled pending telephony, reviewed policy and the sequential-session flag** |
 | Statuses attempted … do-not-call; connected ≠ qualified; "won" user-confirmed | `schemas/dialer.ts` (`DispositionKind`), `dialer/stats.ts` | `dialer.test.ts` → *counts dials, connects, conversations and next steps without inference*; `queue-history.test.ts` → *every glyph carries a full accessible name, and the outcome glyph never claims more than the label* | 9 disposition tiles; no "won" (needs a real outcome) | Verified by automated tests |

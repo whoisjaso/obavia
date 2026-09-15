@@ -10,5 +10,6 @@ export const MODULE = 'dialer' as const;
 export * from './session';
 export * from './simulator';
 export * from './queue';
+export * from './import';
 export * from './stats';
 export { syntheticProspectsSeed } from './seed';

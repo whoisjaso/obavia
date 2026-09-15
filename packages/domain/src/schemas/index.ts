@@ -7,3 +7,4 @@ export * from './vocabulary';
 export * from './practice';
 export * from './listener';
 export * from './dialer';
+export * from './import';

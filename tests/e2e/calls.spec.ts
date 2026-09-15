@@ -146,16 +146,106 @@ test.describe('Queue /prospects', () => {
     await search.getByRole('button', { name: 'Close Search' }).first().click();
     await expect(search).toBeHidden();
 
-    // Import tile → one-line sheet (Increment 2).
+    // Import tile → the CSV import sheet, which opens on the pick step.
     await page.locator('[data-import-tile]').click();
     const imp = page.locator('dialog[data-sheet="import"]');
     await expect(imp).toBeVisible();
-    await expect(imp).toContainText('Increment 2');
-    await imp.getByRole('button', { name: 'OK' }).click();
+    await expect(imp.locator('[data-import-step="pick"]')).toBeVisible();
+    await expect(imp).toContainText('A row is never permission to call.');
+    await page.keyboard.press('Escape');
     await expect(imp).toBeHidden();
 
     await page.waitForLoadState('networkidle');
     expect(errors).toEqual([]);
+  });
+});
+
+test.describe('Queue /prospects — CSV import', () => {
+  const CSV = ['name,phone,dealership,title,city,state', 'Ada Vance,(512) 555-0134,Vance Motors,Owner,Austin,tx', 'Ruiz Ortega,512.555.0187,Ortega Auto,GM,Dallas,TX', ',5125550190,No Name Co,,,', 'Bad Number,+44 20 7946 0958,Overseas,,,'].join('\n');
+
+  test('pasted rows produce a report, confirming stores them, and every imported record is review-only and never fictional', async ({ page }) => {
+    const errors = trackErrors(page);
+    await prime(page);
+    await page.goto('/prospects');
+    await expect(page.locator('[data-queue]')).toHaveAttribute('data-hydrated', 'true');
+    const before = await page.locator('[data-prospect-list] [data-prospect-card]').count();
+
+    await page.locator('[data-import-tile]').click();
+    const imp = page.locator('dialog[data-sheet="import"]');
+    await page.locator('[data-import-paste]').fill(CSV);
+    await page.locator('[data-import-read]').click();
+
+    // Report: two rows can be imported, two are refused, each with a stated reason.
+    await expect(imp.locator('[data-import-step="report"]')).toBeVisible();
+    const counts = imp.locator('[data-import-counts] [data-stat]');
+    await expect(counts.first()).toContainText('2');
+    await expect(imp.locator('[data-import-rejected]')).toContainText('no name');
+    await expect(imp.locator('[data-import-rejected]')).toContainText('not a 10-digit US or Canadian number');
+
+    await page.locator('[data-import-confirm]').click();
+    await expect(imp.locator('[data-import-step="done"]')).toBeVisible();
+    await imp.getByRole('button', { name: 'OK' }).click();
+    await expect(imp).toBeHidden();
+
+    // The two records join the queue, marked review — never "allow", never dialable.
+    await expect(page.locator('[data-prospect-list] [data-prospect-card]')).toHaveCount(before + 2);
+    const ada = page.locator('[data-prospect-list] [data-prospect-card]').filter({ hasText: 'Ada Vance' });
+    await expect(ada).toHaveAttribute('data-policy', 'requires_review');
+    await expect(ada.locator('[data-chip]')).toHaveAttribute('aria-label', /Requires review/);
+
+    // The record sheet marks it imported, not fictional, and still offers no dial control.
+    await ada.click();
+    const record = page.locator('dialog[data-sheet="record"]');
+    await expect(record).toBeVisible();
+    await expect(record.locator('[data-fictional-pill]')).toHaveCount(0);
+    await expect(record).toContainText('imported');
+    // The real number is named plainly: no "(fictional)" suffix, which only synthetic records carry.
+    await expect(record.locator('[data-record-phone]')).toHaveAttribute('aria-label', 'Number +15125550134');
+    await expect(record.getByRole('button', { name: /^(Call|Dial)\b/ })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+
+    // Re-importing the same rows adds nothing.
+    await page.locator('[data-import-tile]').click();
+    await page.locator('[data-import-paste]').fill(CSV);
+    await page.locator('[data-import-read]').click();
+    await expect(imp.locator('[data-import-rejected]')).toContainText('already imported');
+    await expect(page.locator('[data-import-confirm]')).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-prospect-list] [data-prospect-card]')).toHaveCount(before + 2);
+
+    await page.waitForLoadState('networkidle');
+    expect(errors).toEqual([]);
+  });
+
+  test('a file with no phone column is refused with the reason, and nothing is stored', async ({ page }) => {
+    await prime(page);
+    await page.goto('/prospects');
+    await expect(page.locator('[data-queue]')).toHaveAttribute('data-hydrated', 'true');
+    const before = await page.locator('[data-prospect-list] [data-prospect-card]').count();
+
+    await page.locator('[data-import-tile]').click();
+    await page.locator('[data-import-paste]').fill('name,city\nAda Vance,Austin');
+    await page.locator('[data-import-read]').click();
+    await expect(page.locator('[data-import-error]')).toContainText('phone number');
+    await expect(page.locator('[data-import-step="report"]')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-prospect-list] [data-prospect-card]')).toHaveCount(before);
+  });
+
+  test('the sequential session never dials an imported record', async ({ page }) => {
+    await prime(page, {
+      'dial.imported': {
+        records: [{ id: 'b1-2', source_row: 2, contact: 'Ada Vance', phone: '+15125550134', company: 'Vance Motors', role: 'Owner', city: 'Austin', state: 'TX', notes: '', fictional: false }],
+        batches: [{ id: 'b1', at: '2026-09-15T08:00:00.000Z', filename: 'dealers.csv', accepted: 1, rejected: 0 }],
+      },
+    });
+    await page.goto('/prospects');
+    await expect(page.locator('[data-prospect-list] [data-prospect-card]').filter({ hasText: 'Ada Vance' })).toHaveCount(1);
+
+    // The dialer's queue is built from the synthetic seed alone: the imported number is not in it.
+    await page.goto('/');
+    await expect(page.locator('[data-queue-count], [data-next-up]').first()).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('Vance Motors');
   });
 });
 

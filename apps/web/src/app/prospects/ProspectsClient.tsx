@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState, useSyncExternalStore } from 'react';
-import type { QueueItem, SyntheticProspectsSeed } from '@apohenia/domain/schemas';
-import { DialSuppressionList } from '@apohenia/domain/schemas';
-import { buildQueue, policyGlyph } from '@apohenia/domain/dialer';
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import type { ImportReport, QueueItem, SyntheticProspectsSeed } from '@apohenia/domain/schemas';
+import { DialSuppressionList, EMPTY_IMPORTED_LIST, ImportedList } from '@apohenia/domain/schemas';
+import { applyImport, buildQueue, dryRunImport, importedQueueItems, policyGlyph, problemText } from '@apohenia/domain/dialer';
 import { Avatar, Card, Chip, FictionalPill, GlyphPill, Icon, IconButton, NotAssessedLabel, Sheet, Stat, Tile, TileGrid, TopBar } from '@/components/ui';
 import { useStoredState } from '@/lib/storage';
 import { formatPhone } from '../dial-lib';
@@ -16,7 +16,13 @@ export interface ProspectsClientProps {
 
 const EMPTY_LIST: DialSuppressionList = [];
 
+/** Largest CSV accepted from the file picker (about 40k rows): past this the browser tab stalls. */
+const MAX_CSV_BYTES = 4_000_000;
+
 type SheetKind = { kind: 'search' } | { kind: 'record'; id: string } | { kind: 'import' };
+
+/** The import sheet walks pick → report → done; a fatal file stays on `pick` with the reason shown. */
+type ImportStage = { step: 'pick'; error: string | null } | { step: 'report'; report: ImportReport; filename: string | null } | { step: 'done'; added: number };
 
 /** Wall clock at 30-second resolution; null on the server and during hydration (no mismatch). */
 function useNow(): number | null {
@@ -54,9 +60,15 @@ function policyPill(item: QueueItem) {
  */
 export function ProspectsClient({ seed }: ProspectsClientProps) {
   const [suppression, , hydrated] = useStoredState('dial.suppression', DialSuppressionList, EMPTY_LIST);
+  const [imported, setImported] = useStoredState('dial.imported', ImportedList, EMPTY_IMPORTED_LIST);
   const suppressed = useMemo(() => suppression.map((s) => s.phone), [suppression]);
-  const queue = useMemo(() => buildQueue(seed, { mode: 'demo', suppressed }), [seed, suppressed]);
+  const synthetic = useMemo(() => buildQueue(seed, { mode: 'demo', suppressed }), [seed, suppressed]);
+  const mine = useMemo(() => importedQueueItems(imported.records, suppressed), [imported.records, suppressed]);
+  const queue = useMemo(() => [...mine, ...synthetic], [mine, synthetic]);
   const [sheet, setSheet] = useState<SheetKind | null>(null);
+  const [stage, setStage] = useState<ImportStage>({ step: 'pick', error: null });
+  const [pasted, setPasted] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const now = useNow();
 
@@ -66,9 +78,54 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
       ok: queue.filter((q) => q.policy_status === 'allow').length,
       review: queue.filter((q) => q.policy_status === 'requires_review').length,
       dnc: queue.filter((q) => q.policy_status === 'suppressed').length,
+      mine: mine.length,
     }),
-    [queue],
+    [queue, mine],
   );
+
+  /** Dry run only: the file is parsed in this browser and nothing is stored until the report is confirmed. */
+  const runDryRun = useCallback(
+    (text: string, filename: string | null) => {
+      const report = dryRunImport(text, { idPrefix: `b${Date.now()}`, existingPhones: imported.records.map((r) => r.phone) });
+      if (report.fatal !== null) {
+        setStage({ step: 'pick', error: report.fatal });
+        return;
+      }
+      setStage({ step: 'report', report, filename });
+    },
+    [imported.records],
+  );
+
+  const chooseFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) return;
+      if (file.size > MAX_CSV_BYTES) {
+        setStage({ step: 'pick', error: 'That file is larger than 4 MB. Split it and import the parts.' });
+        return;
+      }
+      try {
+        runDryRun(await file.text(), file.name);
+      } catch {
+        setStage({ step: 'pick', error: 'That file could not be read as text.' });
+      }
+    },
+    [runDryRun],
+  );
+
+  function confirmImport() {
+    if (stage.step !== 'report') return;
+    const before = imported.records.length;
+    const next = applyImport(imported, stage.report, { id: `b${Date.now()}`, at: new Date().toISOString(), filename: stage.filename });
+    setImported(next);
+    setStage({ step: 'done', added: next.records.length - before });
+    setPasted('');
+  }
+
+  function closeImport() {
+    setSheet(null);
+    setStage({ step: 'pick', error: null });
+    setPasted('');
+  }
   const results = useMemo(() => queue.filter((q) => matchesQuery(q, query)), [queue, query]);
   const selected = sheet?.kind === 'record' ? (queue.find((q) => q.id === sheet.id) ?? null) : null;
   const selectedClock = selected && now !== null ? localClock(selected.timezone, now) : null;
@@ -132,12 +189,12 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
 
       <div className={styles.stats} data-queue-stats>
         <Stat value={counts.all} icon="list" name="Records" />
-        <Stat value={counts.ok} icon="check" name="Allowed in demo" color="var(--green)" />
+        {counts.mine > 0 ? <Stat value={counts.mine} icon="hourglass" name="Imported: needs a reviewed contact policy before any call" color="var(--gold)" /> : <Stat value={counts.ok} icon="check" name="Allowed in demo" color="var(--green)" />}
         <Stat value={counts.dnc} icon="ban" name="Do not call" color="var(--red)" />
       </div>
 
       <TileGrid columns={2}>
-        <Tile icon="plus" label="Import" name="Import prospects. CSV import arrives in Increment 2" onClick={() => setSheet({ kind: 'import' })} data-import-tile />
+        <Tile icon="plus" label="Import" name="Import prospects from a CSV file. A row is never permission to call" onClick={() => setSheet({ kind: 'import' })} data-import-tile />
         <Tile icon="history" label="History" name="Call history" href="/calls" />
       </TileGrid>
 
@@ -197,7 +254,7 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
               ) : (
                 <NotAssessedLabel label="Local time unknown" name="Local time unknown: the time zone is not known to this browser" data-record-local />
               )}
-              <span className={styles.recordFact} role="img" aria-label={`Number ${selected.phone} (fictional)`} data-record-phone={selected.phone}>
+              <span className={styles.recordFact} role="img" aria-label={`Number ${selected.phone}${selected.origin === 'synthetic' ? ' (fictional)' : ''}`} data-record-phone={selected.phone}>
                 <span className={styles.recordFactGlyph} aria-hidden="true">
                   <Icon name="phone" size={16} weight="fill" />
                 </span>
@@ -206,7 +263,7 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
               {selectedEndpoint ? <Chip static icon="circle-dashed" label={selectedEndpoint.replace(/\s*\(.*\)\s*$/, '')} name={`Line: ${selectedEndpoint}. Demo, no real line`} /> : null}
             </div>
             <div className={styles.recordChips}>
-              <FictionalPill />
+              {selected.origin === 'synthetic' ? <FictionalPill /> : <Chip static icon="person" label="imported" name="Imported from your own CSV. This is real contact data, not a fixture" tone="teal" />}
               {selectedPolicy ? <Chip static icon={selected.policy_status === 'suppressed' ? 'ban' : selected.policy_status === 'requires_review' ? 'hourglass' : 'check'} label={selectedPolicy.word} name={selectedPolicy.name} tone={selected.policy_status === 'suppressed' ? 'red' : selected.policy_status === 'requires_review' ? 'gold' : 'green'} /> : null}
               <Chip
                 static
@@ -215,7 +272,7 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
                 name={selected.entrypoint === 'inbound' ? `Inbound: ${selected.inbound_action ?? 'the prospect acted first'}` : 'Cold: no prior action from the prospect'}
               />
               {selectedShared.length > 0 ? <Chip static icon="swap" label="shared" name={`Number shared with ${selectedShared.join(', ')}`} tone="teal" /> : null}
-              <Chip static icon="hourglass" label="unverified" name="Number never verified; jurisdiction unknown; no reviewed contact policy exists for any synthetic record" />
+              <Chip static icon="hourglass" label="unverified" name={selected.origin === 'synthetic' ? 'Number never verified; jurisdiction unknown; no reviewed contact policy exists for any synthetic record' : 'Number never verified; jurisdiction unknown; no reviewed contact policy exists for this number, so it is not dialable'} />
             </div>
             {selected.call_id ? <Card href={`/calls/${encodeURIComponent(selected.call_id)}`} name={`Open the synthetic call review for ${selected.contact}`} dense>
               <span className={styles.linkRow}>
@@ -226,16 +283,117 @@ export function ProspectsClient({ seed }: ProspectsClientProps) {
         ) : null}
       </Sheet>
 
-      {/* ---- import: one line, one glyph ---- */}
-      <Sheet open={sheet?.kind === 'import'} onClose={() => setSheet(null)} title="Import" data-sheet="import">
-        <div className={styles.importBody}>
-          <span className={styles.importGlyph} aria-hidden="true">
-            <Icon name="arrow-up" size={64} weight="bold" />
-          </span>
-          <Chip static icon="hourglass" label="Increment 2" name="CSV import is not built yet; it arrives in Increment 2 with secure persistence" tone="teal" />
-          <p className={styles.importLine}>CSV import arrives in Increment 2. A row is never permission to call.</p>
-          <Tile icon="check" label="OK" onClick={() => setSheet(null)} />
-        </div>
+      {/* ---- import: pick a file, read the report, then confirm ---- */}
+      <Sheet
+        open={sheet?.kind === 'import'}
+        onClose={closeImport}
+        title="Import"
+        tall={stage.step === 'report'}
+        data-sheet="import"
+        footer={
+          stage.step === 'report' ? (
+            <>
+              <Tile
+                icon="check"
+                label="Import"
+                size="sm"
+                tone="green"
+                name={`Import ${stage.report.accepted.length} ${stage.report.accepted.length === 1 ? 'record' : 'records'} into this browser`}
+                onClick={confirmImport}
+                disabled={stage.report.accepted.length === 0}
+                data-import-confirm
+              />
+              <Tile icon="x" label="Cancel" size="sm" onClick={closeImport} />
+            </>
+          ) : undefined
+        }
+      >
+        {stage.step === 'pick' ? (
+          <div className={styles.importBody} data-import-step="pick">
+            <span className={styles.importGlyph} aria-hidden="true">
+              <Icon name="arrow-up" size={64} weight="bold" />
+            </span>
+            <p className={styles.importLine}>A CSV with a name and a phone number in each row. Everything stays in this browser.</p>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".csv,.tsv,.txt,text/csv,text/plain"
+              className={styles.fileInput}
+              onChange={(e) => {
+                void chooseFile(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+              data-import-file
+            />
+            <TileGrid columns={2}>
+              <Tile icon="plus" label="Choose File" name="Choose a CSV file to read" onClick={() => fileInput.current?.click()} />
+              <Tile
+                icon="check"
+                label="Read Text"
+                name="Read the pasted rows below"
+                tone={pasted.trim() === '' ? undefined : 'green'}
+                disabled={pasted.trim() === ''}
+                onClick={() => runDryRun(pasted, null)}
+                data-import-read
+              />
+            </TileGrid>
+            <textarea
+              className={styles.paste}
+              aria-label="Paste CSV rows"
+              placeholder={'name,phone,dealership\nAda Vance,(512) 555-0134,Vance Motors'}
+              rows={4}
+              spellCheck={false}
+              value={pasted}
+              onChange={(e) => setPasted(e.target.value)}
+              data-import-paste
+            />
+            {stage.error !== null ? (
+              <p className={styles.importError} role="alert" data-import-error>
+                {stage.error}
+              </p>
+            ) : null}
+            <Chip static icon="hourglass" label="review" name="Imported numbers are marked review and are never dialed: no reviewed contact policy exists for them" tone="gold" />
+            <p className={styles.importLine}>A row is never permission to call.</p>
+          </div>
+        ) : stage.step === 'report' ? (
+          <div className={styles.report} data-import-step="report">
+            <div className={styles.stats} data-import-counts>
+              <Stat value={stage.report.accepted.length} icon="check" name="Rows that can be imported" color="var(--green)" />
+              <Stat value={stage.report.rejected.length} icon="ban" name="Rows that were refused" color={stage.report.rejected.length > 0 ? 'var(--red)' : undefined} />
+              <Stat value={stage.report.rows_read} icon="list" name="Rows read" />
+            </div>
+            {stage.report.missing_fields.length > 0 ? (
+              <p className={styles.importLine} data-import-missing>
+                No column for {stage.report.missing_fields.join(', ')}. Those stay empty.
+              </p>
+            ) : null}
+            {stage.report.rejected.length > 0 ? (
+              <div className={styles.rejected} data-import-rejected>
+                {stage.report.rejected.slice(0, 25).map((row) => (
+                  <Card key={row.source_row} dense name={`Row ${row.source_row} refused: ${row.problems.map(problemText).join(', ')}`}>
+                    <span className={styles.rejectRow}>
+                      <span className={styles.rejectLine}>Row {row.source_row}</span>
+                      <span className={styles.rejectWhy}>{row.problems.map(problemText).join(' · ')}</span>
+                      <span className={styles.rejectCells}>{row.cells.filter((c) => c !== '').join(' · ') || '(empty)'}</span>
+                    </span>
+                  </Card>
+                ))}
+                {stage.report.rejected.length > 25 ? <p className={styles.importLine}>and {stage.report.rejected.length - 25} more.</p> : null}
+              </div>
+            ) : null}
+            <p className={styles.importLine}>Imported records are marked review. Nothing here can be dialed.</p>
+          </div>
+        ) : (
+          <div className={styles.importBody} data-import-step="done">
+            <span className={styles.importGlyph} aria-hidden="true">
+              <Icon name="check" size={64} weight="bold" />
+            </span>
+            <p className={styles.importLine}>
+              {stage.added} {stage.added === 1 ? 'record' : 'records'} added to your queue, marked review.
+            </p>
+            <Tile icon="check" label="OK" onClick={closeImport} />
+          </div>
+        )}
       </Sheet>
     </div>
   );
