@@ -1,7 +1,10 @@
-node_modules/
-dist/
-.wrangler/
 .env
 .env.*
-*.log
-*.tmp
+!.env.example
+node_modules/
+.next/
+dist/
+coverage/
+*.pem
+*.key
+supabase/.temp/
