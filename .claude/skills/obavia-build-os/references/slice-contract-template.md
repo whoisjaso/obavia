@@ -26,3 +26,15 @@ entry · loading · empty · validation · partial data · stale data · unautho
 ## Validation commands
 ## Exit criteria
 ## What this unlocks next
+
+---
+# PLAN.md — task rule (from PAUL)
+Every task in PLAN.md has exactly four fields. If you cannot fill all four, the task is too vague — split it or research it first.
+```
+T-## <name>
+  files:  <exact paths this task may touch; nothing else>
+  action: <what changes, in one or two sentences>
+  verify: <the command or check that proves it, with expected output>
+  done:   <the observable condition that closes the task>
+```
+Tasks are ordered by dependency. A task with no verify is not a task. A worker returns the verify output, not the word done.
