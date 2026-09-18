@@ -1,8 +1,9 @@
 # STATE
-Active slice: none (M0 bootstrap pending)
-Branch: kit/build-os (kit added on top of legacy main; not yet merged)
+Active slice: none (M0 bootstrap in progress; S001 Candidate A recommended, not yet approved)
+Branch: kit/build-os (kit on top of legacy main; not yet merged; draft PR to be opened)
 Last commit: see git log
-Next safe action: make repo private; run prompts/01_BOOTSTRAP.md in a cloud session on branch kit/build-os; produce audit + first interview question.
-Open blockers: ADR-0001..0007 need Jason's approval; repo audit not yet run; legacy rental site disposition undecided.
+Next safe action: continue phased interview — ADR-0007 (repo disposition incl. PR #1 collision) next, then ADR-0002 (first slice). No application code until S001 SPEC is approved.
+Open blockers: repo still public · ADR-0002..0007 undecided · canonical Apohenia repo not named/in scope · 5 of 8 research inputs missing (research/SOURCES.md) · no Obavia Supabase project or env vars · Vercel build override fails on kit pushes.
 Session log:
 - 2026-09-18 kit assembled and committed to kit/build-os via GitHub API (no code written).
+- 2026-09-18 bootstrap audit (read-only) run in cloud session. Verified: 3 skills, 7 agents, 3 hooks loaded and hooks block live; Superpowers not loaded in cloud; BMAD script not run; no tests; legacy rental site classified (13 HTML pages, src/App.tsx, 38 MB uploads/). Found: open draft PR #1 (Sales OS dialer) also claims repo; Vercel project linked and red; Apohenia source in 6 separate private repos; Supabase has only triple-j-auto-investment. ADR-0001 RECORDED with Superpowers amendment. Planning edits applied under one bounded approval (DECISIONS, INBOX, INDEX, SOURCES, session prompt, STATE).

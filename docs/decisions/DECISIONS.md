@@ -1,11 +1,12 @@
 # Decisions
 Recorded decisions govern. "Proposed" ADRs await Jason's approval — the bootstrap session will ask for them one at a time.
 
-## ADR-0001 Runtime is Claude Code (cloud sessions) — proposed
+## ADR-0001 Runtime is Claude Code (cloud sessions) — RECORDED 2026-09-18 (Jason)
 Context: Playbook/Bootstrap were written for Codex + GPT-6 Astra. Cloud sessions (claude.ai/code, mobile, `claude --cloud`) support project skills in `.claude/skills/`, subagents in `.claude/agents/`, hooks via committed `.claude/settings.json`, and parallel sessions/projects. Personal `~/.claude` skills and user-only plugins do not sync; `/plugin` is unavailable in cloud.
 Decision: Claude Code is the single execution runtime. CLAUDE.md is the router; AGENTS.md is a thin pointer for any Codex use. BMAD/Spec Kit/Superpowers are reference methodologies; if any is installed it is committed to the repo and does not become a second roadmap authority.
 Alternatives: Codex-native (original plan; loses cloud/mobile steering and this kit's skills) · dual runtime (two sources of truth — rejected).
 Consequences: all skills/agents must be committed; background subagents are not restored after VM reclaim → state lives in files; rate limits shared → Max plan for full team.
+Amendment (2026-09-18, verified in bootstrap session): the Superpowers plugin registered in `.claude/settings.json` does not load in cloud sessions. It stays registered for desktop use only; no prompt or skill may depend on it. Cloud sessions use the committed skills and agents exclusively.
 Revisit: Codex ships equivalent cloud + skills sync and Jason prefers it.
 
 ## ADR-0002 First slice = existing-sale workspace (Candidate A), marketplace listing-to-conversation is Candidate B — proposed
@@ -24,4 +25,6 @@ Decision: mobile-first responsive web first; native iOS (SwiftUI) only after a b
 Decision: dealer reputation = observable transaction/operational metrics (response, status accuracy, registration completion) + buyer reviews; no editorial rating by Obavia; Obavia entity separate from Triple J and the family trust; Triple J disclosed as founding design partner and excluded from any ranking it could influence.
 ## ADR-0007 Repository disposition — proposed
 Context: `whoisjaso/obavia` already held a public rental-membership site under the same name.
-Decision (recommended): make the repo private; move legacy rental files to `legacy/rental-site/` (or a separate repo `obavia-rental`) in M0; the transaction platform owns the root. Alternative: new repo `obavia-platform` and leave this one alone.
+Complication found in bootstrap audit (2026-09-18): open draft PR #1 (branch `claude/admiring-cray-v05pza`, "Apohenia Sales OS" dialer/training app) also claims this repo's root and moves the rental site to `legacy/obavia/`. A Vercel project `obavia` is git-linked to this repo and builds every push with a `vite build` override (fails on kit branch: no root package.json). Three codebases contend for one repo.
+Decision (recommended): make the repo private; move legacy rental files to `legacy/rental-site/` in M0 with history preserved; the transaction platform owns the root; PR #1 is dispositioned separately (close, or re-home to its own repo) before any merge to main; Vercel build override corrected or unlinked.
+Alternatives: (b) new repo `obavia-platform`, leave this repo to the rental site and PR #1 · (c) merge PR #1 first and layer the platform kit on top (rejected: two products, one roadmap authority).
