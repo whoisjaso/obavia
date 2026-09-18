@@ -22,6 +22,6 @@ One concept, one authoritative home. If BMAD or another tool later produces prd.
 | Slice specs, plans, evidence, review packets | specs/S###-<outcome>/ |
 | Immutable research inputs | research/ (see research/SOURCES.md) |
 | Apohenia checker source (Stage 0) | external repo — canonical one TBD by Jason (candidates: whoisjaso/apohenia-deal-packet-checker, whoisjaso/apohenia-platform); not in this repo |
-| Legacy rental-membership site (pre-kit) | root HTML pages, src/, DESIGN.md, PRODUCT.md, screenshots/, uploads/ — to be classified in M0 audit |
+| Legacy rental-membership site (pre-kit) | REMOVED per ADR-0007 (2026-09-18); git history before 923de8f |
 
 Authority order on conflict: platform safety > recorded decisions & validated external constraints > shared product/architecture docs > approved slice SPEC > execution plan > research/chat > code (code shows current behavior; it is not authority to redefine intent). Record contradictions; do not vote; do not rewrite tests to hide disagreement.

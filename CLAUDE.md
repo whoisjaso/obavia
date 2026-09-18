@@ -22,7 +22,7 @@ You are working on Obavia, a Texas independent-dealer transaction platform. Jaso
 - "Done" means: implemented, tested (say where), not tested (say what), blockers, release status, next candidate. Not a worker saying done.
 
 ## Legacy note
-This repository previously held the OBAVIA rental-membership site (HTML pages, src/App.tsx, DESIGN.md, PRODUCT.md at root). The bootstrap audit must classify that code as legacy/rental and decide with Jason whether it moves to `legacy/` or a separate repo. Do not delete it silently.
+This repository previously held the OBAVIA rental-membership site and, on a separate branch, an "Apohenia Sales OS" dialer (PR #1). Jason decided on 2026-09-18 (ADR-0007) to remove both; the rental site is recoverable from git history before commit 923de8f. This repo is the transaction platform only. `main` still serves the old site until this branch merges.
 
 ## Stack facts (verify in repo before relying on them)
 Provisional: TypeScript, Next.js or equivalent mobile-first web, Supabase (Postgres + RLS + Storage), Vercel. If the repo differs, the repo wins; record the difference in `docs/architecture/ARCHITECTURE.md`.

@@ -1,7 +1,7 @@
-# OBAVIA
+# Obavia
 
-Static OBAVIA web system for Cloudflare Pages.
+Transaction platform for Texas independent used-car dealerships and the people who buy from them. Buyers are always free; dealers pay for the operating Workspace.
 
-The production home page is `index.html`, copied from `Obavia Home.dc.html`.
-The standalone admin, portal, membership, vehicle, and agreement surfaces are
-kept as static `.dc.html` files and share the local runtime in `support.js`.
+Start with `START_HERE.md`, then `CLAUDE.md`, `docs/INDEX.md`, and `docs/delivery/STATE.md`.
+
+No application code yet: the first slice (S001) is being specified under `specs/`. The rental-membership site that previously lived here was removed per ADR-0007 (2026-09-18); it remains in git history before commit 923de8f.

@@ -13,4 +13,4 @@
 
 **Positioning rules.** Never "dealers are shady." Never "nobody is buying cars." The dry-lot theme is an ad hypothesis ("Does your lot feel slower than it used to?"), not a factual claim.
 
-**Naming note.** The OBAVIA rental-membership site that previously lived in this repo is a different business line (Triple J rental fleet). Whether it keeps the Obavia name is an open founder decision (ADR-0007).
+**Naming note.** The OBAVIA rental-membership site that previously lived in this repo is a different business line (Triple J rental fleet). ADR-0007 (2026-09-18): it was removed from this repo; Obavia names the transaction platform only.
