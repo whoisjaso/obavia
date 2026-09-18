@@ -24,8 +24,8 @@ You are working on Obavia, a Texas independent-dealer transaction platform. Jaso
 ## Legacy note
 This repository previously held the OBAVIA rental-membership site and, on a separate branch, an "Apohenia Sales OS" dialer (PR #1). Jason decided on 2026-09-18 (ADR-0007) to remove both; the rental site is recoverable from git history before commit 923de8f. This repo is the transaction platform only. `main` still serves the old site until this branch merges.
 
-## Stack facts (verify in repo before relying on them)
-Provisional: TypeScript, Next.js or equivalent mobile-first web, Supabase (Postgres + RLS + Storage), Vercel. If the repo differs, the repo wins; record the difference in `docs/architecture/ARCHITECTURE.md`.
+## Stack facts
+Decided (ADR-0005, 2026-09-18): TypeScript; Next.js (App Router) on Vercel; Supabase (Postgres + RLS + Storage + Auth); Apohenia rules core forked in as a package; Vitest + Playwright. No application code exists yet on this branch. If the repo ever differs, record the difference in `docs/architecture/ARCHITECTURE.md`.
 
 ## Conventions
 - Conventional commits. Small commits. Branch per slice: `slice/S001-...`.

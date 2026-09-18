@@ -20,8 +20,10 @@ Revisit: paid-pilot evidence shows dealers value inquiry handling over paperwork
 Decision: buyer $0; dealer marketplace $0; Dealer Workspace $199/location/mo incl. 20 managed workspaces + $99/10 pack; Apohenia per-packet pricing continues; metered pass-through for voice/IDV/reports/credit/ad spend; no $99 lifetime founding lock (24-month founding term at most, core software only). Billable unit begins when the dealer activates the document/operating workflow — never on a sale (NL-4). Numbers are hypotheses to test.
 ## ADR-0004 Never-list is constitutional — proposed
 Decision: NL-1..NL-5 (guardrails skill) bind all code, copy, and AI until a counsel-reviewed ADR supersedes any item.
-## ADR-0005 Web is the reference client — proposed
+## ADR-0005 Web is the reference client — RECORDED 2026-09-18 (Jason)
 Decision: mobile-first responsive web first; native iOS (SwiftUI) only after a buyer has an active-deal reason to install. Frontend research's SwiftUI-first recommendation is deferred.
+Stack amendment (Jason, 2026-09-18): TypeScript throughout. Backend = Supabase (Postgres + RLS + Storage + Auth; edge functions where a server boundary is needed). The Apohenia rules/normalization/extraction core (`api/service/core/` in whoisjaso/apohenia-deal-packet-checker) is forked in as a package, not shared at the database. Front-end = Next.js on Vercel, App Router, server-enforced authorization on every sensitive read/write, EN/ES routing, Playwright + Vitest. Vanilla-JS uniformity with Apohenia was considered and rejected for lack of routing, i18n and test scaffolding.
+Open (next ADR): which Supabase project Obavia's data lives in.
 ## ADR-0006 Reputation is metrics-based, not opinion-based; Triple J disclosed as founding design partner — proposed
 Decision: dealer reputation = observable transaction/operational metrics (response, status accuracy, registration completion) + buyer reviews; no editorial rating by Obavia; Obavia entity separate from Triple J and the family trust; Triple J disclosed as founding design partner and excluded from any ranking it could influence.
 ## ADR-0007 Repository disposition — RECORDED 2026-09-18 (Jason)

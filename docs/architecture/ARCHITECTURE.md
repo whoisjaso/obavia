@@ -15,3 +15,6 @@ Verified in that repo's tracked files (not run here):
 - Supabase project ref in client config: `njzfiodjmbzyfvxusaem` (not visible to this session's Supabase MCP token, which sees only `triple-j-auto-investment`). Gap to resolve before any migration work.
 - Pilot evidence in repo: the paying pilot named is Triple J Auto (Jason's own dealership). No external paying dealer is documented in the repo. Per-packet price not in repo.
 Reuse for S001-A (inferred): rules engine, normalization, evidence model, schema pattern, state enums, idempotency pattern, OpenAPI boundary are extractable with no Base44 entanglement. Not reusable: deployment paths, GTM apps. Missing for Obavia: EN/ES, customer (buyer) side, relationship/invitation model, delivery/registration dimensions, claims-registry lint.
+
+## Stack decision (ADR-0005, 2026-09-18)
+TypeScript · Next.js App Router on Vercel · Supabase Postgres/RLS/Storage/Auth · Apohenia core forked as an internal package (rules, normalization, extraction policy, state enums) · Vitest (unit/parity) · Playwright (journeys, DOA/tenant-isolation) · claims-registry lint. Data home (own Supabase project vs Apohenia's) pending next ADR.
