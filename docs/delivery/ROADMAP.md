@@ -3,7 +3,7 @@ Ideas may change this file. They may not silently change NOW.
 
 ## NOW
 - M0 Bootstrap: repo audit (incl. legacy rental site disposition, ADR-0007); source map adopted; ADR-0001..0007 decided; first slice approved; truthful founding-dealer entry page (application + interview path, no credit/ID collection).
-- S001 (pending approval; see ADR-0002): Candidate A existing-sale workspace **or** Candidate B listing-to-conversation.
+- S001 (APPROVED 2026-09-18, ADR-0002): Candidate A existing-sale workspace. Candidate B parked (LATER, marketplace layer gate).
 
 ## NEXT (dependencies known)
 - S002 Conversation → shared deal (permissioned relationship; no silent merge; inquiry ≠ reservation).

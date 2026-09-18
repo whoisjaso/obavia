@@ -1,5 +1,5 @@
 # SPEC — S001-B Listing to conversation (Candidate B)
-Version 0.1 · Status: draft (alternative to A; do not build both) · Commit baseline: —
+Version 0.1 · Status: PARKED 2026-09-18 (ADR-0002) until ≥10 paying dealers retain · Commit baseline: —
 
 ## User outcome
 A verified dealer publishes one authorized vehicle; a free buyer inquires without an account wall; the dealer opens that exact buyer–vehicle case and replies; both see the same conversation state.

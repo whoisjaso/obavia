@@ -9,3 +9,10 @@ Format: date · idea · side · depends on · disposition (ACCEPT-current-prereq
 - 2026-09-18 · Legacy rental-membership site in this repo · platform · ADR-0007 · REJECT — removed 2026-09-18 per ADR-0007
 - 2026-09-18 · PR #1 "Apohenia Sales OS" dialer/training app on branch claude/admiring-cray-v05pza claims this repo's root · platform · ADR-0007 · REJECT — PR #1 closed 2026-09-18 per ADR-0007; branch delete pending (Jason, GitHub UI)
 - 2026-09-18 · Vercel project `obavia` git-linked to this repo runs `vite build` on every push; all kit pushes fail red · platform · ADR-0007 · ACCEPT-current-prerequisite (fix override or unlink; production action → Jason)
+- 2026-09-18 · Financed deals / eContracting hand-off · dealer/buyer · certified partner access · ACCEPT-later (ROADMAP LATER; not S001)
+- 2026-09-18 · BHPH servicing views · dealer · OCCC review; never a holder · ACCEPT-later (ROADMAP LATER)
+- 2026-09-18 · Public buyer scores / cross-dealer buyer scoring · buyer · FCRA · REJECT (ROADMAP PARKED; constitution #10)
+- 2026-09-18 · DMS migration / DMS-of-record · dealer · certification programs · REJECT as scope (overlay only; constitution #4)
+- 2026-09-18 · Marketplace automation (universal) · platform · dealer density · REJECT (ROADMAP PARKED)
+- 2026-09-18 · Broad AI autonomy (negotiation, unvalidated commitments) · platform · claims registry + consent · REJECT (NL-5; bounded AI only, ROADMAP LATER)
+- 2026-09-18 · S001 Candidate B listing-to-conversation · dealer/buyer · ≥10 paying dealers · ACCEPT-later (ADR-0002)

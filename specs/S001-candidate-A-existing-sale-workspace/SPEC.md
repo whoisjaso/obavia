@@ -1,5 +1,5 @@
 # SPEC — S001-A Existing-sale workspace (Candidate A — recommended)
-Version 0.1 · Status: draft (awaiting ADR-0002) · Approved by: — · Commit baseline: —
+Version 0.1 · Status: candidate approved by Jason 2026-09-18 (ADR-0002); v0.2 finalization pending before PLAN · Commit baseline: —
 
 ## User outcome
 A verified pilot dealer can turn a sale that already happened (or is in progress) into a shared workspace: attach the packet, run the Apohenia pre-submission check, invite the customer securely; the customer accepts the association and sees their documents, the separate status facts (paperwork / payment / delivery / registration), and the next action — without an app install, and without a paywall ever.

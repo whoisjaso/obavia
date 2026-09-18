@@ -9,10 +9,11 @@ Consequences: all skills/agents must be committed; background subagents are not 
 Amendment (2026-09-18, verified in bootstrap session): the Superpowers plugin registered in `.claude/settings.json` does not load in cloud sessions. It stays registered for desktop use only; no prompt or skill may depend on it. Cloud sessions use the committed skills and agents exclusively.
 Revisit: Codex ships equivalent cloud + skills sync and Jason prefers it.
 
-## ADR-0002 First slice = existing-sale workspace (Candidate A), marketplace listing-to-conversation is Candidate B — proposed
+## ADR-0002 First slice = existing-sale workspace (Candidate A), marketplace listing-to-conversation is Candidate B — RECORDED 2026-09-18 (Jason)
 Context: Spec v0.2 and the Codex prompt default to listing→inquiry→reply (needs buyer demand). Apohenia is in a paid pilot with a document/registration pain that exists today. Pessimist's Case: no marketplace value at 10 dealers; Solutions report: single-sided first, tenant zero = Triple J.
 Decision (recommended): Candidate A — dealer creates an existing-sale workspace → customer accepts secure association → dealer attaches permitted evidence/packet (Apohenia check) → customer sees documents/status/next action. Candidate B follows once ≥10 paying dealers retain.
 Alternatives: B first (validates marketplace UX earlier; zero revenue) · both (rejected: WIP limit).
+Decision (Jason, 2026-09-18): Candidate A approved as S001. Canonical Apohenia checker source: `whoisjaso/apohenia-deal-packet-checker` (private). Candidate B parked behind the ≥10-paying-dealers gate. SPEC v0.1 is a draft; v0.2 must be finalized (all sections, non-goals) before PLAN.md and any code.
 Revisit: paid-pilot evidence shows dealers value inquiry handling over paperwork.
 
 ## ADR-0003 Pricing shape — proposed
