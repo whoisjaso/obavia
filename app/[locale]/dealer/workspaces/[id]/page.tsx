@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import type { CheckVerdict, DocumentKind, Locale } from "@/lib/domain/types";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { currentStaffId } from "@/lib/auth";
 import * as store from "@/lib/store/memory";
 import { StateGrid } from "@/components/StateGrid";
 import { recordDeliveryAction, runPacketCheck, sendInvite, uploadDocument, uploadRegistrationEvidence } from "@/app/actions";
-import { headers } from "next/headers";
 
 const verdictTone: Record<CheckVerdict, "ok" | "warn" | "bad"> = {
   NO_KNOWN_BLOCKER: "ok",
@@ -36,30 +36,72 @@ export default async function DealPage({ params }: { params: Promise<{ locale: L
   const proto = h.get("x-forwarded-proto") ?? "http";
   const inviteUrl = rel && rel.status === "invited" ? `${proto}://${host}/${deal.buyer.preferredLocale}/c/${rel.inviteToken}` : null;
   const vehicleLabel = [deal.vehicle.year, deal.vehicle.make, deal.vehicle.model].filter(Boolean).join(" ") || deal.vehicle.vin;
+  const fmt = (iso: string) => new Date(iso).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
 
   return (
     <>
+      <p className="eyebrow">{t.nav.workspaces}</p>
       <h1>{deal.buyer.name}</h1>
-      <p className="muted">{vehicleLabel} · <code>{deal.vehicle.vin}</code>{deal.vehicle.decodeSource === "manual" ? " · manual VIN entry" : ""}</p>
+      <p className="lede">
+        {vehicleLabel}
+        {vehicleLabel !== deal.vehicle.vin && <> · <code>{deal.vehicle.vin}</code></>}
+      </p>
 
-      <section className="card" aria-labelledby="states-h">
+      <section className="chapter" aria-labelledby="states-h">
         <h2 id="states-h">{t.deal.states}</h2>
         <StateGrid states={deal.states} t={t} />
       </section>
 
-      <section className="card stack" aria-labelledby="packet-h">
-        <h2 id="packet-h">{t.deal.packet}</h2>
-        {docs.length === 0 ? <p className="muted" data-testid="packet-empty">—</p> : (
+      <section className="chapter" aria-labelledby="packet-h">
+        <div className="chapter-head">
+          <h2 id="packet-h">{t.deal.packet}</h2>
+          <form action={runPacketCheck}>
+            <input type="hidden" name="locale" value={locale} />
+            <input type="hidden" name="dealId" value={deal.id} />
+            <button className="btn primary" type="submit" data-testid="run-check">{t.deal.runCheck}</button>
+          </form>
+        </div>
+        {docs.length === 0 ? (
+          <p className="empty" data-testid="packet-empty">{t.deal.packetEmpty}</p>
+        ) : (
           <ul className="list" data-testid="packet-list">
             {docs.map((d) => (
-              <li key={d.id}>
-                <strong>{t.docKinds[d.kind]}</strong> · v{d.version} · {d.fileName}
-                <div className="small muted"><code>{d.sha256.slice(0, 12)}</code>{d.executed ? " · executed (immutable)" : ""}</div>
+              <li key={d.id} className="row between">
+                <span>
+                  <strong>{t.docKinds[d.kind]}</strong>
+                  <span className="muted"> · {d.fileName}</span>
+                </span>
+                <span className="small muted">v{d.version}{d.executed ? " · executed" : ""}</span>
               </li>
             ))}
           </ul>
         )}
-        <form action={uploadDocument} className="stack">
+
+        {check ? (
+          <div className={`verdict ${verdictTone[check.verdict]}`} data-testid="verdict" data-verdict={check.verdict}>
+            <div className="line">{t.verdict[check.verdict]}</div>
+            <div className="small muted">{t.deal.lastCheck} {fmt(check.ranAt)} · {check.ruleSetVersion}</div>
+            <p className="small muted" style={{ marginTop: 6 }}>{t.verdict.disclaimer}</p>
+            <h3>{t.deal.findings}</h3>
+            <div>
+              {check.findings.map((f) => (
+                <div className="finding" key={f.ruleId}>
+                  <span className={`tag ${f.status}`}>{f.status}</span>
+                  <div>
+                    <div>{f.evidence}</div>
+                    {f.question && <div className="muted">{t.deal.question}: {f.question}</div>}
+                    <code>{f.ruleId}</code>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="small muted" data-testid="no-check" style={{ marginTop: 10 }}>{t.deal.noCheck}</p>
+        )}
+
+        <h3>{t.deal.upload}</h3>
+        <form action={uploadDocument} className="surface stack">
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="dealId" value={deal.id} />
           <div className="field">
@@ -74,49 +116,25 @@ export default async function DealPage({ params }: { params: Promise<{ locale: L
           </div>
           <button className="btn" type="submit">{t.deal.uploadSubmit}</button>
         </form>
-        <form action={runPacketCheck}>
-          <input type="hidden" name="locale" value={locale} />
-          <input type="hidden" name="dealId" value={deal.id} />
-          <button className="btn primary" type="submit" data-testid="run-check">{t.deal.runCheck}</button>
-        </form>
-        {check ? (
-          <div className={`verdict ${verdictTone[check.verdict]}`} data-testid="verdict" data-verdict={check.verdict}>
-            <div style={{ fontWeight: 700 }}>{t.verdict[check.verdict]}</div>
-            <div className="small muted">{t.deal.lastCheck}: {new Date(check.ranAt).toLocaleString(locale)} · {check.ruleSetVersion}</div>
-            <p className="small muted">{t.verdict.disclaimer}</p>
-            <h3 className="small">{t.deal.findings}</h3>
-            <ul className="list">
-              {check.findings.map((f) => (
-                <li key={f.ruleId}>
-                  <span className={`pill ${f.status === "pass" ? "ok" : f.status === "review" ? "warn" : f.status === "blocker" ? "bad" : ""}`}>{f.status}</span>{" "}
-                  <code>{f.ruleId}</code>
-                  <div className="small">{f.evidence}</div>
-                  {f.question && <div className="small"><strong>{t.deal.question}:</strong> {f.question}</div>}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="muted" data-testid="no-check">{t.deal.noCheck}</p>
-        )}
       </section>
 
-      <section className="card stack" aria-labelledby="rel-h">
+      <section className="chapter" aria-labelledby="rel-h">
         <h2 id="rel-h">{t.deal.relationship}</h2>
         {rel ? (
           <p data-testid="relationship-status" data-status={rel.status}>
-            <span className={`pill ${rel.status === "accepted" ? "ok" : rel.status === "invited" ? "warn" : "bad"}`}>{t.relationship[rel.status]}</span>{" "}
-            <span className="small muted">{new Date(rel.invitedAt).toLocaleString(locale)} · {rel.inviteChannel}</span>
+            <span className={`ledger-inline ${rel.status}`} style={{ fontFamily: "var(--serif)", fontSize: "1.2rem" }}>{t.relationship[rel.status]}</span>
+            <span className="small muted"> · {fmt(rel.invitedAt)} · {rel.inviteChannel}</span>
           </p>
         ) : (
-          <p className="muted">—</p>
+          <p className="empty">{t.deal.notInvited}</p>
         )}
         {inviteUrl && (
           <p className="small">
-            {t.deal.inviteLink}: <a href={inviteUrl} data-testid="invite-link">{inviteUrl}</a>
+            {t.deal.inviteLink}:<br />
+            <a href={inviteUrl} data-testid="invite-link">{inviteUrl}</a>
           </p>
         )}
-        <form action={sendInvite}>
+        <form action={sendInvite} className="stack">
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="dealId" value={deal.id} />
           <p className="small muted">{t.deal.inviteHelp}</p>
@@ -124,13 +142,16 @@ export default async function DealPage({ params }: { params: Promise<{ locale: L
         </form>
       </section>
 
-      <section className="card stack" aria-labelledby="dlv-h">
+      <section className="chapter" aria-labelledby="dlv-h">
         <h2 id="dlv-h">{t.deal.delivery}</h2>
         {deliveries.map((d) => (
-          <p key={d.id} className="small">{new Date(d.at).toLocaleString(locale)} · {t.evidence[d.evidenceClass]}{d.note ? ` · ${d.note}` : ""}</p>
+          <p key={d.id}>
+            <span style={{ fontFamily: "var(--serif)", fontSize: "1.2rem" }}>{t.states.delivery.delivered}</span>
+            <span className="small muted"> · {fmt(d.at)} · {t.evidence[d.evidenceClass]}{d.note ? ` · ${d.note}` : ""}</span>
+          </p>
         ))}
         {deal.states.delivery !== "delivered" && (
-          <form action={recordDeliveryAction} className="stack">
+          <form action={recordDeliveryAction} className="surface stack">
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="dealId" value={deal.id} />
             <div className="field">
@@ -142,25 +163,28 @@ export default async function DealPage({ params }: { params: Promise<{ locale: L
               </select>
             </div>
             <div className="field">
-              <label htmlFor="note">Note</label>
+              <label htmlFor="note">{t.deal.note}</label>
               <input id="note" name="note" />
             </div>
-            <label className="row" style={{ fontWeight: 400 }}>
+            <label className="check">
               <input type="checkbox" name="confirm" required />
-              <span className="small">{t.deal.deliveryConfirm}</span>
+              <span>{t.deal.deliveryConfirm}</span>
             </label>
             <button className="btn primary" type="submit" data-testid="record-delivery">{t.deal.recordDelivery}</button>
           </form>
         )}
       </section>
 
-      <section className="card stack" aria-labelledby="reg-h">
+      <section className="chapter" aria-labelledby="reg-h">
         <h2 id="reg-h">{t.deal.registration}</h2>
         <p className="small muted">{t.deal.regHelp}</p>
         {regEvidence.map((r) => (
-          <p key={r.id} className="small">{new Date(r.at).toLocaleString(locale)} · {t.regEvidence[r.kind]} · {r.fileName}</p>
+          <p key={r.id}>
+            <span style={{ fontFamily: "var(--serif)", fontSize: "1.2rem" }}>{t.regEvidence[r.kind]}</span>
+            <span className="small muted"> · {fmt(r.at)} · {r.fileName}</span>
+          </p>
         ))}
-        <form action={uploadRegistrationEvidence} className="stack">
+        <form action={uploadRegistrationEvidence} className="surface stack">
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="dealId" value={deal.id} />
           <div className="field">
@@ -176,15 +200,19 @@ export default async function DealPage({ params }: { params: Promise<{ locale: L
             <input id="regFile" name="fileName" required placeholder="webdealer-receipt.pdf" />
           </div>
           <button className="btn" type="submit" data-testid="upload-reg-evidence" disabled={deal.states.registration === "not_ready"}>{t.deal.uploadRegEvidence}</button>
+          {deal.states.registration === "not_ready" && <p className="small muted">{t.deal.regNotReady}</p>}
         </form>
         {deal.reviewEligibleAt && <p className="small muted" data-testid="review-eligible">{t.deal.reviewEligibility}</p>}
       </section>
 
-      <section className="card" aria-labelledby="audit-h">
+      <section className="chapter" aria-labelledby="audit-h">
         <h2 id="audit-h">{t.deal.audit}</h2>
         <ul className="list small" data-testid="audit-list">
           {audit.map((a) => (
-            <li key={a.id}><code>{a.action}</code> · {new Date(a.at).toLocaleString(locale)} · {a.actorId}</li>
+            <li key={a.id} className="row between">
+              <code>{a.action}</code>
+              <span className="muted">{fmt(a.at)} · {a.actorId}</span>
+            </li>
           ))}
         </ul>
       </section>

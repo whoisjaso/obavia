@@ -16,16 +16,20 @@ export default async function LocaleLayout({
   return (
     <div lang={locale}>
       <header className="topbar">
-        <Link href={`/${locale}/dealer`} className="brand">
-          {t.appName}
-        </Link>
-        <nav aria-label="Primary">
-          <Link href={`/${locale}/dealer`}>{t.nav.today}</Link>
-          <Link href={`/${locale}/dealer/workspaces`}>{t.nav.workspaces}</Link>
-          <Link href={`/${other}/dealer`} hrefLang={other} lang={other}>
-            {t.nav.language}
+        <div className="topbar-inner">
+          <span className="ctx">Triple J Auto Investment</span>
+          <Link href={`/${locale}/dealer`} className="brand" aria-label={t.appName}>
+            <span className="mono" aria-hidden="true">O</span>
+            <span className="word">{t.appName}</span>
           </Link>
-        </nav>
+          <nav aria-label="Primary">
+            <Link href={`/${locale}/dealer`}>{t.nav.today}</Link>
+            <Link href={`/${locale}/dealer/workspaces`}>{t.nav.workspaces}</Link>
+            <Link href={`/${other}/dealer`} hrefLang={other} lang={other}>
+              {t.nav.language}
+            </Link>
+          </nav>
+        </div>
       </header>
       <main>{children}</main>
     </div>

@@ -10,14 +10,15 @@ export function NewWorkspaceForm({ locale, t }: { locale: Locale; t: Dictionary 
   const err = state && !state.ok ? state.error : null;
   const msg = err ? (t.newWorkspace.errors as Record<string, string>)[err] ?? t.common.error : null;
   return (
-    <form action={action} className="card stack" noValidate>
+    <form action={action} className="stack" noValidate>
       <input type="hidden" name="locale" value={locale} />
       {msg && (
-        <p role="alert" className="error" data-testid="form-error">{msg}</p>
+        <p role="alert" className="error" id="form-error" data-testid="form-error">{msg}</p>
       )}
       <div className="field">
-        <label htmlFor="vin">{t.newWorkspace.vin} <span className="help">{t.newWorkspace.vinHelp}</span></label>
-        <input id="vin" name="vin" maxLength={17} autoCapitalize="characters" required aria-invalid={err === "vin"} aria-describedby={err === "vin" ? "form-error" : undefined} />
+        <label htmlFor="vin">{t.newWorkspace.vin}</label>
+        <input id="vin" name="vin" maxLength={17} autoCapitalize="characters" required aria-invalid={err === "vin"} aria-describedby={err === "vin" ? "form-error" : "vin-help"} />
+        <span className="help" id="vin-help">{t.newWorkspace.vinHelp}</span>
       </div>
       <div className="field">
         <label htmlFor="buyerName">{t.newWorkspace.buyerName}</label>

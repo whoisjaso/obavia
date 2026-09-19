@@ -10,6 +10,7 @@ const en = {
     subtitle: "The things that need a person. Obavia handled the rest.",
     empty: "Nothing needs you right now.",
     open: "Open",
+    handled: "Everything else is moving on its own.",
   },
   workspaces: {
     title: "Workspaces",
@@ -39,6 +40,8 @@ const en = {
   },
   deal: {
     packet: "Packet",
+    packetEmpty: "No pages yet. Add the 130-U, bill of sale, odometer statement, and both sides of the title.",
+    notInvited: "Not invited yet.",
     upload: "Upload page",
     kind: "Page type",
     file: "File name",
@@ -61,6 +64,8 @@ const en = {
     uploadRegEvidence: "Upload submission evidence",
     regHelp: "You submit in webDEALER under your own credentials. Obavia only stores the receipt.",
     audit: "Activity",
+    note: "Note",
+    regNotReady: "Available once delivery is recorded.",
     states: "Status",
     reviewEligibility: "Review eligibility recorded",
   },
@@ -186,6 +191,7 @@ const es: Dict = {
     subtitle: "Lo que necesita a una persona. Obavia se encargó del resto.",
     empty: "Nada te necesita ahora mismo.",
     open: "Abrir",
+    handled: "Todo lo demás avanza por sí solo.",
   },
   workspaces: {
     title: "Espacios de trabajo",
@@ -215,6 +221,8 @@ const es: Dict = {
   },
   deal: {
     packet: "Paquete",
+    packetEmpty: "Aún no hay páginas. Agrega el 130-U, el contrato de compraventa, la declaración de odómetro y ambos lados del título.",
+    notInvited: "Aún no se ha invitado.",
     upload: "Subir página",
     kind: "Tipo de página",
     file: "Nombre del archivo",
@@ -237,6 +245,8 @@ const es: Dict = {
     uploadRegEvidence: "Subir comprobante de envío",
     regHelp: "Tú envías en webDEALER con tus propias credenciales. Obavia solo guarda el comprobante.",
     audit: "Actividad",
+    note: "Nota",
+    regNotReady: "Disponible cuando se registre la entrega.",
     states: "Estado",
     reviewEligibility: "Elegibilidad para reseña registrada",
   },

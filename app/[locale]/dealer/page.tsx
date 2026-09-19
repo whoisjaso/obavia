@@ -31,29 +31,36 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
   const staff = await currentStaffId();
   const org = getOrg(orgForStaff(staff) ?? "");
   const items = todayForStaff(staff);
+  const date = new Date().toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" });
   return (
     <>
+      <p className="eyebrow">{org?.name}</p>
       <h1>{t.today.title}</h1>
-      <p className="muted">{org?.name} · {t.today.subtitle}</p>
-      <section className="card" aria-labelledby="today-h">
+      <p className="lede">{date}. {t.today.subtitle}</p>
+
+      <section className="chapter" aria-labelledby="today-h">
         <h2 id="today-h" className="sr-only">{t.today.title}</h2>
         {items.length === 0 ? (
-          <p className="muted" data-testid="today-empty">{t.today.empty}</p>
+          <p className="empty" data-testid="today-empty">{t.today.empty}</p>
         ) : (
           <ul className="list" data-testid="today-list">
             {items.map((it) => (
-              <li key={it.dealId} className="row" style={{ justifyContent: "space-between" }}>
+              <li key={it.dealId} className="today-row">
                 <div>
-                  <div style={{ fontWeight: 600 }}>{it.title}</div>
-                  <div className="small muted">{reasons[locale][it.reasonKey]}</div>
+                  <div className="title">{it.title}</div>
+                  <div className="why">{reasons[locale][it.reasonKey]}</div>
                 </div>
                 <Link className="btn" href={`/${locale}/dealer/workspaces/${it.dealId}`}>{t.today.open}</Link>
               </li>
             ))}
           </ul>
         )}
+        <p className="small muted" style={{ marginTop: 14 }}>{t.today.handled}</p>
       </section>
-      <Link className="btn primary" href={`/${locale}/dealer/workspaces/new`}>{t.nav.newWorkspace}</Link>
+
+      <section className="chapter">
+        <Link className="btn primary" href={`/${locale}/dealer/workspaces/new`}>{t.nav.newWorkspace}</Link>
+      </section>
     </>
   );
 }

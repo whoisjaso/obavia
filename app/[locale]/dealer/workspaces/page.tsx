@@ -10,26 +10,32 @@ export default async function WorkspacesPage({ params }: { params: Promise<{ loc
   const deals = listDealsForStaff(await currentStaffId());
   return (
     <>
-      <div className="row" style={{ justifyContent: "space-between" }}>
+      <div className="row between">
         <h1>{t.workspaces.title}</h1>
         <Link className="btn primary" href={`/${locale}/dealer/workspaces/new`}>{t.workspaces.new}</Link>
       </div>
-      {deals.length === 0 ? (
-        <p className="card muted" data-testid="workspaces-empty">{t.workspaces.empty}</p>
-      ) : (
-        <ul className="list card" data-testid="workspaces-list">
-          {deals.map((d) => (
-            <li key={d.id}>
-              <Link href={`/${locale}/dealer/workspaces/${d.id}`} style={{ textDecoration: "none" }}>
-                <div style={{ fontWeight: 600 }}>{d.buyer.name}</div>
-                <div className="small muted">
-                  {t.workspaces.vehicle}: {d.vehicle.vin} · {t.workspaces.created}: {new Date(d.createdAt).toLocaleDateString(locale)}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <section className="chapter">
+        {deals.length === 0 ? (
+          <p className="empty" data-testid="workspaces-empty">{t.workspaces.empty}</p>
+        ) : (
+          <ul className="list" data-testid="workspaces-list">
+            {deals.map((d) => {
+              const vehicle = [d.vehicle.year, d.vehicle.make, d.vehicle.model].filter(Boolean).join(" ") || d.vehicle.vin;
+              return (
+                <li key={d.id} className="today-row">
+                  <Link href={`/${locale}/dealer/workspaces/${d.id}`} style={{ textDecoration: "none" }}>
+                    <div className="title">{d.buyer.name}</div>
+                    <div className="why">
+                      {vehicle} · {t.workspaces.created} {new Date(d.createdAt).toLocaleDateString(locale)}
+                    </div>
+                  </Link>
+                  <Link className="btn" href={`/${locale}/dealer/workspaces/${d.id}`}>{t.today.open}</Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </>
   );
 }

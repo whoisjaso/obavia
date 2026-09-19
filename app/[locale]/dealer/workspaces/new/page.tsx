@@ -7,9 +7,12 @@ export default async function NewWorkspacePage({ params }: { params: Promise<{ l
   const t = getDictionary(locale);
   return (
     <>
+      <p className="eyebrow">{t.nav.workspaces}</p>
       <h1>{t.newWorkspace.title}</h1>
-      <p className="muted">{t.newWorkspace.intro}</p>
-      <NewWorkspaceForm locale={locale} t={t} />
+      <p className="lede">{t.newWorkspace.intro}</p>
+      <section className="chapter">
+        <NewWorkspaceForm locale={locale} t={t} />
+      </section>
     </>
   );
 }
