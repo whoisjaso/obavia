@@ -46,7 +46,7 @@ test("show me what fits, adjust numbers with live preview; Spanish", async ({ pa
   await page.getByTestId("any-car").click();
   await expect(page.getByTestId("fitcard").first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("fitcard").first()).toHaveAttribute("data-fit", "likely");
-  await page.getByText("Adjust numbers").click();
+  await page.getByText("Adjust", { exact: true }).click();
   await expect(page.getByTestId("live")).toBeVisible({ timeout: 10_000 });
 
   await page.goto("/es");

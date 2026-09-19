@@ -57,12 +57,12 @@ const copy: Record<Locale, {
 }> = {
   en: {
     title: "What can I actually get?",
-    sub: "4 taps. No credit pull.",
+    sub: "No credit pull.",
     back: "Back",
     next: "Next",
     skip: "Not sure",
     credit: {
-      q: "How's your credit?",
+      q: "Credit?",
       opts: [
         { band: "super_prime", label: "Excellent", hint: "720 and up" },
         { band: "prime", label: "Good", hint: "660 to 719" },
@@ -70,26 +70,26 @@ const copy: Record<Locale, {
         { band: "subprime", label: "Building", hint: "Under 600 or none" },
       ],
     },
-    down: { q: "Cash down today?", hint: "More down, lower payment." },
-    monthly: { q: "Monthly payment that feels right?", hint: "Be honest. This drives everything." },
-    car: { q: "What do you want to drive?", bodies: { sedan: "Sedan", suv: "SUV", truck: "Truck", ev: "Electric" }, any: "Show me what fits", pick: "Pick one", from: "from" },
+    down: { q: "Cash down?", hint: "" },
+    monthly: { q: "Per month?", hint: "" },
+    car: { q: "Drive what?", bodies: { sedan: "Sedan", suv: "SUV", truck: "Truck", ev: "Electric" }, any: "Show me what fits", pick: "Pick one", from: "from" },
     result: {
-      crunch: "Running your numbers",
-      score: "Fit score",
-      fit: { likely: "Realistic", stretch: "A stretch", unlikely: "Out of reach" },
+      crunch: "",
+      score: "Likely",
+      fit: { likely: "Likely", stretch: "Maybe", unlikely: "Unlikely" },
       perMonth: "/mo",
       down: "down",
       months: "mo",
       asks: "asks",
-      why: "Why this score",
-      fits: "What fits you",
-      hint: (extra, monthly) => `${extra} more down gets it near ${monthly}/mo.`,
-      hintBudget: (max) => `Your payment covers cars up to about ${max}.`,
+      why: "Why",
+      fits: "You probably fit these",
+      hint: (extra, monthly) => `+${extra} down → ${monthly}/mo`,
+      hintBudget: (max) => `Up to ${max}`,
       talk: "Talk to a dealer",
-      adjust: "Adjust numbers",
-      another: "Try another car",
+      adjust: "Adjust",
+      another: "Other car",
       restart: "Start over",
-      estimate: "Estimates from what you told us. Not a credit decision or an offer. Houston-area asking ranges, not live listings.",
+      estimate: "Estimate. Not a credit decision.",
       error: "Something went wrong. Try again.",
     },
     sheet: {
@@ -107,12 +107,12 @@ const copy: Record<Locale, {
   },
   es: {
     title: "¿Qué me alcanza de verdad?",
-    sub: "4 toques. Sin consulta de crédito.",
+    sub: "Sin consulta de crédito.",
     back: "Atrás",
     next: "Siguiente",
     skip: "No sé",
     credit: {
-      q: "¿Cómo anda tu crédito?",
+      q: "¿Crédito?",
       opts: [
         { band: "super_prime", label: "Excelente", hint: "720 o más" },
         { band: "prime", label: "Bueno", hint: "660 a 719" },
@@ -120,26 +120,26 @@ const copy: Record<Locale, {
         { band: "subprime", label: "En construcción", hint: "Menos de 600 o sin crédito" },
       ],
     },
-    down: { q: "¿Cuánto enganche hoy?", hint: "Más enganche, pago más bajo." },
-    monthly: { q: "¿Qué pago mensual te queda bien?", hint: "Sé honesto. Esto define todo." },
-    car: { q: "¿Qué quieres manejar?", bodies: { sedan: "Sedán", suv: "SUV", truck: "Troca", ev: "Eléctrico" }, any: "Muéstrame qué me alcanza", pick: "Elige uno", from: "desde" },
+    down: { q: "¿Enganche?", hint: "" },
+    monthly: { q: "¿Al mes?", hint: "" },
+    car: { q: "¿Qué carro?", bodies: { sedan: "Sedán", suv: "SUV", truck: "Troca", ev: "Eléctrico" }, any: "Muéstrame qué me alcanza", pick: "Elige uno", from: "desde" },
     result: {
-      crunch: "Haciendo tus números",
-      score: "Puntaje de ajuste",
-      fit: { likely: "Realista", stretch: "Está justo", unlikely: "Fuera de alcance" },
+      crunch: "",
+      score: "Probable",
+      fit: { likely: "Probable", stretch: "Quizás", unlikely: "Poco probable" },
       perMonth: "/mes",
       down: "de enganche",
       months: "meses",
       asks: "pide",
-      why: "Por qué este puntaje",
-      fits: "Lo que te alcanza",
-      hint: (extra, monthly) => `${extra} más de enganche lo deja cerca de ${monthly}/mes.`,
-      hintBudget: (max) => `Tu pago cubre carros de hasta unos ${max}.`,
+      why: "Por qué",
+      fits: "Probablemente te alcanzan",
+      hint: (extra, monthly) => `+${extra} enganche → ${monthly}/mes`,
+      hintBudget: (max) => `Hasta ${max}`,
       talk: "Hablar con un dealer",
-      adjust: "Ajustar números",
-      another: "Probar otro carro",
+      adjust: "Ajustar",
+      another: "Otro carro",
       restart: "Empezar de nuevo",
-      estimate: "Estimaciones con lo que nos dijiste. No es una decisión de crédito ni una oferta. Rangos de precio en Houston, no anuncios en vivo.",
+      estimate: "Estimación. No es una decisión de crédito.",
       error: "Algo salió mal. Inténtalo de nuevo.",
     },
     sheet: {
@@ -166,6 +166,9 @@ const copy: Record<Locale, {
     },
   },
 };
+
+// Haptics where the platform allows it (Android Chrome; iOS ignores).
+const buzz = (pattern: number | number[]) => { try { navigator.vibrate?.(pattern); } catch { /* unsupported */ } };
 
 const money = (n: number, l: Locale) => new Intl.NumberFormat(l === "es" ? "es-US" : "en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
@@ -194,7 +197,10 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
         body: JSON.stringify({ locale, creditBand: next.creditBand, downPayment: next.downPayment, monthlyBudget: next.monthlyBudget, termMonths: next.termMonths, vehicle: next.vehicle ?? "" }),
       });
       if (!res.ok) throw new Error(String(res.status));
-      setResult((await res.json()) as AdvisorResult);
+      const r = (await res.json()) as AdvisorResult;
+      const h = r.cards.find((c) => c.primary) ?? r.cards[0];
+      buzz(h?.fit.fit === "likely" ? [20, 40, 20] : h?.fit.fit === "stretch" ? 25 : [40, 30, 40]);
+      setResult(r);
     } catch {
       setErr(true);
     } finally {
@@ -203,6 +209,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
   }
 
   function chooseCredit(band: CreditBand) {
+    buzz(10);
     setPicked(band);
     const next = { ...a, creditBand: band };
     setA(next);
@@ -210,6 +217,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
   }
 
   function chooseModel(m: Model | null) {
+    buzz(10);
     setPicked(m?.id ?? "any");
     const next = { ...a, vehicle: m?.name };
     setA(next);
@@ -256,7 +264,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
       {step === "down" && (
         <section className="screen" data-testid="step-down">
           <h1 className="q">{t.down.q}</h1>
-          <p className="qsub">{t.down.hint}</p>
+          
           <div className="bignum" data-testid="down-value">{money(a.downPayment, locale)}</div>
           <input type="range" className="slider" min={0} max={10000} step={250} value={a.downPayment} aria-label={t.down.q} data-testid="down-slider"
             onChange={(e) => setA({ ...a, downPayment: Number(e.target.value) })} />
@@ -274,7 +282,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
       {step === "monthly" && (
         <section className="screen" data-testid="step-monthly">
           <h1 className="q">{t.monthly.q}</h1>
-          <p className="qsub">{t.monthly.hint}</p>
+          
           <div className="bignum" data-testid="monthly-value">{money(a.monthlyBudget ?? 400, locale)}<span className="unit">{t.result.perMonth}</span></div>
           <input type="range" className="slider" min={200} max={1200} step={25} value={a.monthlyBudget ?? 400} aria-label={t.monthly.q} data-testid="monthly-slider"
             onChange={(e) => setA({ ...a, monthlyBudget: Number(e.target.value) })} />
@@ -311,7 +319,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
       )}
 
       {step === "result" && (
-        <section className="screen result" data-testid="step-result">
+        <section className={`screen result ${result && !busy ? `tone-${heroOf(result)?.fit.fit ?? ""}` : ""}`} data-testid="step-result">
           {busy && (
             <div className="crunch" aria-live="polite">
               <Ring value={0} spin />
@@ -396,7 +404,7 @@ function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: {
         <span className={`fitpill ${hero.fit.fit}`} data-testid="fit-label">{t.result.fit[hero.fit.fit]}</span>
         <div className="hero-title">{hero.title}</div>
         <div className="hero-pay"><Count to={e.paymentLow} locale={locale} /><span className="dash">–</span><Count to={e.paymentHigh} locale={locale} /><span className="unit">{t.result.perMonth}</span></div>
-        <div className="hero-sub">{money(down, locale)} {t.result.down} · {e.termMonths} {t.result.months} · {t.result.asks} {money(hero.priceLow, locale)}–{money(hero.priceHigh, locale)}</div>
+        <div className="hero-sub">{money(down, locale)} {t.result.down} · {e.termMonths} {t.result.months}</div>
         {hint && <div className="hero-hint">{hint}</div>}
         {reasons.length > 0 && (
           <details className="why">
@@ -406,6 +414,22 @@ function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: {
         )}
       </div>
 
+      {rest.length > 0 && (
+        <div className="fits" data-testid="alts">
+          <p className="eyebrow">{t.result.fits}</p>
+          {rest.map((c, i) => (
+            <div key={c.id} className={`alt ${c.fit.fit}`} style={{ animationDelay: `${120 + i * 90}ms` }} data-testid="fitcard" data-fit={c.fit.fit}>
+              <Ring value={c.fit.score} size={48} />
+              <div className="alt-body">
+                <div className="alt-pay">{money(c.estimate.paymentLow, locale)}–{money(c.estimate.paymentHigh, locale)}<span className="unit">{t.result.perMonth}</span></div>
+                <div className="alt-title">{c.title}</div>
+              </div>
+              <span className={`fitpill ${c.fit.fit}`}>{t.result.fit[c.fit.fit]}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="actions">
         <button type="button" className="cta" data-testid="talk" onClick={onTalk}>{t.result.talk}</button>
         <div className="row2">
@@ -413,22 +437,6 @@ function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: {
           <button type="button" className="ghost" onClick={onAnother}>{t.result.another}</button>
         </div>
       </div>
-
-      {rest.length > 0 && (
-        <div className="fits" data-testid="alts">
-          <p className="eyebrow">{t.result.fits}</p>
-          {rest.map((c) => (
-            <div key={c.id} className={`alt ${c.fit.fit}`} data-testid="fitcard" data-fit={c.fit.fit}>
-              <Ring value={c.fit.score} size={44} />
-              <div className="alt-body">
-                <div className="alt-title">{c.title}</div>
-                <div className="alt-pay">{money(c.estimate.paymentLow, locale)}–{money(c.estimate.paymentHigh, locale)}<span className="unit">{t.result.perMonth}</span></div>
-              </div>
-              <span className={`fitpill ${c.fit.fit}`}>{t.result.fit[c.fit.fit]}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       <p className="fineprint">{t.result.estimate}</p>
       <button type="button" className="ghost" onClick={onRestart}>{t.result.restart}</button>
@@ -469,7 +477,7 @@ function Ring({ value, label, size = 96, spin = false }: { value: number; label?
         <circle cx={size / 2} cy={size / 2} r={r} className="track" />
         <circle cx={size / 2} cy={size / 2} r={r} className="arc" strokeDasharray={c} strokeDashoffset={c * (1 - (spin ? 0.25 : v) / 100)} />
       </svg>
-      {!spin && <div className="ring-num" style={{ fontSize: size * 0.3 }}>{value}</div>}
+      {!spin && <div className="ring-num" style={{ fontSize: size * 0.28 }}>{value}<small>%</small></div>}
       {label && <div className="ring-label">{label}</div>}
     </div>
   );

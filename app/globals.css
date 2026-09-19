@@ -179,6 +179,13 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
 .ring .arc { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.9s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .ring.ok .arc { stroke: var(--ok); } .ring.warn .arc { stroke: var(--warn); } .ring.bad .arc { stroke: var(--bad); }
 .ring-num { font-weight: 800; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.ring-num small { font-size: 0.55em; font-weight: 700; margin-left: 1px; color: var(--ink-3); }
+.ring.ok .ring-num { color: #1f7a3c; } .ring.warn .ring-num { color: #8a5a00; } .ring.bad .ring-num { color: #b3261e; }
+.result.tone-likely .hero-card { background: color-mix(in srgb, var(--ok) 12%, var(--card)); }
+.result.tone-stretch .hero-card { background: color-mix(in srgb, var(--warn) 12%, var(--card)); }
+.result.tone-unlikely .hero-card { background: color-mix(in srgb, var(--bad) 10%, var(--card)); }
+.result.tone-unlikely .hero-pay, .result.tone-stretch .hero-pay { font-size: 32px; }
+.result.tone-unlikely .fits { box-shadow: 0 0 0 2px color-mix(in srgb, var(--ok) 45%, transparent); }
 .ring-label { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); white-space: nowrap; }
 .why { margin-top: 12px; border-top: 0.5px solid var(--sep); padding-top: 8px; }
 .why summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 15px; list-style: none; }
@@ -210,6 +217,9 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
 @media (prefers-reduced-motion: no-preference) {
   .sheet { animation: rise 0.22s ease-out; }
   .screen { animation: fade 0.2s ease-out; }
+  .hero-card { animation: pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .alt { animation: fade 0.3s ease-out both; }
+  @keyframes pop { from { transform: scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
   .ring.spin svg { animation: turn 1s linear infinite; }
   @keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes fade { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
