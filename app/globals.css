@@ -279,6 +279,9 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
 .srow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 0.5px solid var(--sep); }
 .srow:first-child { border-top: 0; }
 .sbody { flex: 1; min-width: 0; }
+.srow .alt-pay { font-size: 17px; white-space: nowrap; }
+.srow .alt-title { font-size: 13px; }
+.srow .chip { white-space: nowrap; padding: 8px 12px; font-size: 14px; }
 .sicon { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
 .sicon .bodyicon { fill: #fff; }
 .sicon.sedan { background: #0a84ff; } .sicon.suv { background: #30d158; } .sicon.truck { background: #ff9f0a; } .sicon.ev { background: #bf5af2; } .sicon.hatch, .sicon.coupe { background: #ff375f; } .sicon.minivan { background: #64d2ff; }
