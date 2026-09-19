@@ -11,6 +11,7 @@ export default defineConfig({
   },
   webServer: {
     command: "npm run build && npm run start",
+    env: { OBAVIA_DISABLE_MODEL: "1" },
     url: "http://127.0.0.1:3000",
     reuseExistingServer: true,
     timeout: 180_000,

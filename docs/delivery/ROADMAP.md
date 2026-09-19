@@ -3,7 +3,8 @@ Ideas may change this file. They may not silently change NOW.
 
 ## NOW
 - M0 Bootstrap: repo audit (incl. legacy rental site disposition, ADR-0007); source map adopted; ADR-0001..0007 decided; first slice approved; truthful founding-dealer entry page (application + interview path, no credit/ID collection).
-- S001 (APPROVED 2026-09-18, ADR-0002): Candidate A existing-sale workspace. Candidate B parked (LATER, marketplace layer gate).
+- S001 (RE-SCOPED 2026-09-19, ADR-0010): buyer chat "What can I actually get?" — self-reported budget/credit band/desired vehicle → estimated payment, fit, alternatives, path to a dealer. iOS-style front end.
+- S002 (was S001-A, ADR-0002): existing-sale dealer workspace (built as front end on in-memory store; backend pending).
 
 ## NEXT (dependencies known)
 - S002 Conversation → shared deal (permissioned relationship; no silent merge; inquiry ≠ reservation).

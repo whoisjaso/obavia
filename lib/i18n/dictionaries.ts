@@ -4,7 +4,7 @@ import type { Locale } from "@/lib/domain/types";
 // Financial/legal strings are flagged for native review with `// REVIEW`.
 const en = {
   appName: "Obavia",
-  nav: { today: "Today", workspaces: "Workspaces", newWorkspace: "New workspace", language: "Español" },
+  nav: { today: "Today", workspaces: "Workspaces", newWorkspace: "New workspace", language: "Español", dealers: "Dealers", buyers: "Buyers" },
   today: {
     title: "Today",
     subtitle: "The things that need a person. Obavia handled the rest.",
@@ -185,7 +185,7 @@ type Dict = typeof en;
 
 const es: Dict = {
   appName: "Obavia",
-  nav: { today: "Hoy", workspaces: "Espacios", newWorkspace: "Nuevo espacio", language: "English" },
+  nav: { today: "Hoy", workspaces: "Espacios", newWorkspace: "Nuevo espacio", language: "English", dealers: "Dealers", buyers: "Compradores" },
   today: {
     title: "Hoy",
     subtitle: "Lo que necesita a una persona. Obavia se encargó del resto.",
