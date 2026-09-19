@@ -16,9 +16,9 @@ Format: date · idea · side · depends on · disposition (ACCEPT-current-prereq
 - 2026-09-18 · Marketplace automation (universal) · platform · dealer density · REJECT (ROADMAP PARKED)
 - 2026-09-18 · Broad AI autonomy (negotiation, unvalidated commitments) · platform · claims registry + consent · REJECT (NL-5; bounded AI only, ROADMAP LATER)
 - 2026-09-18 · S001 Candidate B listing-to-conversation · dealer/buyer · ≥10 paying dealers · ACCEPT-later (ADR-0002)
-- 2026-09-19 · Dealers rate buyers incl. payment default (Jason re-opened) · dealer/buyer · FCRA analysis in research/2026-09-19_PROBLEM_AND_SOLUTION.md §8(a) · RESEARCH → decision: operational two-sided feedback (no financial fields) vs keep ban; conflicts constitution #10
-- 2026-09-19 · Lifetime founder price (Jason re-opened) · dealer · ADR-0003 · RESEARCH → decision: capped founding cohort $99 × 24 months recommended; lifetime rejected by discount-churn data
-- 2026-09-19 · Facebook Marketplace sync · dealer · Meta removed dealer catalogs 2023 · ACCEPT-later as post-assist + AIA feed only; never account automation
+- 2026-09-19 · Dealers rate buyers incl. payment default (Jason re-opened) · dealer/buyer · FCRA analysis in research/2026-09-19_PROBLEM_AND_SOLUTION.md §8(a) · ACCEPT-next (S006) per ADR-0011: operational two-sided feedback, no financial fields, consent-gated
+- 2026-09-19 · Lifetime founder price (Jason re-opened) · dealer · ADR-0003 · REJECT lifetime; ACCEPT founding $99 × 24 months capped cohort per ADR-0003 (recorded 2026-09-19)
+- 2026-09-19 · Facebook Marketplace sync · dealer · Meta removed dealer catalogs 2023 · ACCEPT-later as post-assist + AIA feed only per ADR-0012
 - 2026-09-19 · Dealers post their own cars, track sold, reviews · dealer · marketplace layer · DUPLICATE of ROADMAP LATER marketplace layer; listing + sold tracking are S002/S006 records
 - 2026-09-19 · Registration-speed tracker visible to buyers · buyer/dealer · S005 evidence + defamation-safe pattern · ACCEPT-next (S005)
 - 2026-09-19 · Mini CRM incl. BHPH profiles linked to vehicles · dealer · OCCC review; never a holder · ACCEPT-later (BHPH views) / customer↔vehicle link is S004 My Garage + dealer sale record

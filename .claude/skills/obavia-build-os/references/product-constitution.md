@@ -10,6 +10,6 @@ Change only via a recorded decision in docs/decisions/DECISIONS.md.
 7. English and Spanish are first-class paths, not translations bolted on.
 8. UX is a priority: mobile-first web; no app install required to finish a transaction.
 9. Verification distinguishes identity from authority. No single generic "Verified" badge.
-10. Reviews: one finalized record per author per transaction; append-only corrections with history; no suppression tools; no public buyer financial reputation.
+10. Feedback: two-sided, one finalized record per author per verified transaction; append-only corrections with history; no suppression tools. Dealer→buyer feedback is operational only (showed up, responsive, documents on time, respectful), never payment or default data, visible to other dealers only in aggregate with the buyer's consent. No public buyer financial reputation (ADR-0011).
 11. The never-list (see obavia-texas-guardrails) is a constitutional constraint until Obavia is licensed and capitalized to change it.
 12. Apohenia (the pre-submission Texas deal-packet checker) is Obavia's Stage 0 — the document/deal state machine at the core of the transaction object. It is not a separate product to be abandoned.

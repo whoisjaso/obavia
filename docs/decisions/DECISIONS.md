@@ -16,8 +16,8 @@ Alternatives: B first (validates marketplace UX earlier; zero revenue) · both (
 Decision (Jason, 2026-09-18): Candidate A approved as S001. Canonical Apohenia checker source: `whoisjaso/apohenia-deal-packet-checker` (private). Candidate B parked behind the ≥10-paying-dealers gate. SPEC v0.1 is a draft; v0.2 must be finalized (all sections, non-goals) before PLAN.md and any code.
 Revisit: paid-pilot evidence shows dealers value inquiry handling over paperwork.
 
-## ADR-0003 Pricing shape — proposed
-Decision: buyer $0; dealer marketplace $0; Dealer Workspace $199/location/mo incl. 20 managed workspaces + $99/10 pack; Apohenia per-packet pricing continues; metered pass-through for voice/IDV/reports/credit/ad spend; no $99 lifetime founding lock (24-month founding term at most, core software only). Billable unit begins when the dealer activates the document/operating workflow — never on a sale (NL-4). Numbers are hypotheses to test.
+## ADR-0003 Pricing shape — RECORDED 2026-09-19 (Jason; research/2026-09-19_MARKETING_AND_GTM.md §7)
+Decision: buyer $0 forever; dealer marketplace $0; Dealer Workspace $199/location/mo; founding cohort capped at the first 25–50 Texas dealers at $99/location/mo for 24 months, then standard (founding badge permanent, price not); Apohenia per-packet pricing continues; metered pass-through for SMS/IDV/e-sign/reports/ad spend. Lifetime lock rejected (customers acquired at 30%+ discount churn 4.2x faster; lifetime deals fail on support and API cost). Revenue share per sale rejected (NL-4, brokering). Buyer premium tier rejected (constitution #2). Billable unit begins when the dealer activates the document/operating workflow — never on a sale. Numbers remain hypotheses to test in founding interviews.
 ## ADR-0004 Never-list is constitutional — proposed
 Decision: NL-1..NL-5 (guardrails skill) bind all code, copy, and AI until a counsel-reviewed ADR supersedes any item.
 ## ADR-0005 Web is the reference client — RECORDED 2026-09-18 (Jason)
@@ -51,3 +51,26 @@ Decision: The buyer chat is the front door and the first slice. S001-A dealer wo
 Guardrails that survive the pivot (never-list, constitution #2/#6): buyer inputs are self-reported; Obavia never pulls credit, never decides credit, never says "approved" or "prequalified"; every number is labeled an estimate with its basis; market prices come from a seeded estimate table until a real listing/market feed exists; a "fit" is a math estimate, not a lender decision. AI runs through the Anthropic API with a deterministic engine doing the arithmetic; when no API credential is present the same engine answers with templated text so the product still works.
 Consequences: ROADMAP NOW changes: S001 = "What can I actually get?" buyer chat (this was already the consumer campaign hypothesis in INBOX). Dealer workspace becomes S002. Research gates on prequal (NL-3) and market data remain.
 Revisit: when a licensed prequalification partner or real market feed is connected.
+
+## ADR-0011 Two-sided transaction feedback; no buyer financial reputation — RECORDED 2026-09-19 (Jason)
+Context: Jason asked for dealers to rate buyers, including payment default, so bad actors carry a reputation. Research (research/2026-09-19_PROBLEM_AND_SOLUTION.md §8a, §9): sharing payment-default data across dealers makes Obavia a consumer reporting agency under FCRA (accuracy, dispute, permissible-purpose duties), adds ECOA and defamation exposure. Uber/Airbnb ratings survive because they are operational, not credit-related.
+Decision: Feedback is two-sided, one record per author per verified transaction, append-only corrections with history. Dealer→buyer feedback is operational only (showed up, responsive, documents on time, respectful) and never contains payment, default, or financial fields. Visibility: the transacting dealer always; other dealers only in aggregate and only when the buyer consents at inquiry time. No public buyer score. BHPH delinquency stays inside the dealer's own servicing view. Constitution #10 is amended to this wording.
+Alternatives rejected: public buyer financial reputation (FCRA CRA status); no dealer→buyer feedback at all (dealers lose the no-show signal they asked for).
+Consequences: S006 spec must include the consent gate and the field whitelist; claims registry gets "verified transaction feedback" entries.
+Revisit: only with counsel and FCRA registration, never as a solo bootstrapper.
+
+## ADR-0012 External marketplaces: post-assist and paid inventory ads only — RECORDED 2026-09-19 (Jason)
+Context: Jason asked for Facebook Marketplace sync. Meta removed dealer vehicle listing catalogs on 2023-01-30; no supported dealer listing API exists; third-party auto-posters automate personal accounts against Meta terms.
+Decision: Obavia provides post-assist (copy-ready listing text EN/ES, photo set, tracked deep link per platform) and, when the dealer wants spend, an Automotive Inventory Ads feed. Never scraping, never automation of a personal account. Inquiry attribution by link.
+Consequences: "Marketplace automation (universal)" stays PARKED; post-assist is a LATER item behind the marketplace layer.
+
+## ADR-0013 Private seller lane stays LATER — RECORDED 2026-09-19 (Jason)
+Decision: dealer lane ships first. Private sellers enter only behind the verification ladder (government ID + selfie, title/VIN match, lien check, history report) and a guided Texas 130-U path that Obavia never files. Research: 70% no-show rate, cloned listings, curbstoning, 29,200 Houston flood cars in one season.
+
+## ADR-0014 Web-first confirmed; app wrapper on active-deal reason — RECORDED 2026-09-19 (Jason)
+Decision: constitution #8 holds. PWA with Add-to-Home-Screen prompt after the first inquiry; Capacitor wrapper for the stores only when a buyer has an active deal to install for. Reaffirms ADR-0005.
+
+## ADR-0015 Research reports adopted as build inputs — RECORDED 2026-09-19 (Jason)
+Decision: research/2026-09-19_PROBLEM_AND_SOLUTION.md and research/2026-09-19_MARKETING_AND_GTM.md are reference inputs for every slice SPEC. Each SPEC cites the pains it addresses by table row. Research remains reference data: it does not change ROADMAP NOW without an ADR. The day-one build order in report 1 §10 is adopted as ROADMAP NEXT ordering.
+Consequences: persistence (Supabase schema, RLS, auth, store migration) becomes the active slice S00P immediately, since every later slice depends on it.
+
