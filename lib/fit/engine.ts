@@ -108,6 +108,7 @@ export type Fit = "likely" | "stretch" | "unlikely";
 
 export interface FitAssessment {
   fit: Fit;
+  score: number; // 0-100 fit score for display; an estimate, never a decision
   reasons: string[]; // plain-language, EN; UI localizes headline
   paymentToBudgetRatio?: number; // paymentHigh / monthlyBudget
   paymentToIncomeRatio?: number; // paymentHigh / monthlyIncome
@@ -149,7 +150,8 @@ export function assessFit(est: PaymentEstimate, profile: BuyerProfile, band: Rat
 
   const fit: Fit = score >= 2 ? "likely" : score >= 0 ? "stretch" : "unlikely";
   if (fit === "likely" && reasons.length === 0) reasons.push("The numbers line up with what lenders commonly fund.");
-  return { fit, reasons, paymentToBudgetRatio: pib, paymentToIncomeRatio: pti, downPaymentRatio: downRatio, ltv };
+  const pct = Math.max(8, Math.min(96, Math.round(55 + score * 11)));
+  return { fit, score: pct, reasons, paymentToBudgetRatio: pib, paymentToIncomeRatio: pti, downPaymentRatio: downRatio, ltv };
 }
 
 export function downPaymentToReach(targetMonthly: number, price: number, band: RateBand, termMonths: number): number {

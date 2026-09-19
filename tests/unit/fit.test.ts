@@ -31,6 +31,8 @@ describe("affordability engine", () => {
     const fit = assessFit(est, { creditScore: 700, downPayment: 600, monthlyBudget: 400 }, band);
     expect(fit.fit).not.toBe("likely");
     expect(fit.reasons.length).toBeGreaterThan(0);
+    expect(fit.score).toBeGreaterThanOrEqual(8);
+    expect(fit.score).toBeLessThan(60);
   });
   it("down payment to reach a target monthly", () => {
     const band = bandForScore(700);
