@@ -1,0 +1,28 @@
+# Architecture (provisional until repo audit)
+Keep the existing credible stack. One deployable modular app; clear domain/provider boundaries; no microservices; no universal integration engine before a real connector needs it.
+
+Provisional: Next.js (TypeScript) mobile-first web · Supabase Postgres with RLS + Storage with policies · server-side privileged keys only · Vercel · Vitest + Playwright.
+Provider adapters (each behind an interface, swappable): e-sign (BoldSign / Dropbox Sign / Documenso self-host) · SMS (Twilio, 10DLC) · IDV (Stripe Identity) · payments (Stripe Connect, dealer as MoR — NL-1) · VIN decode (NHTSA vPIC free → DataOne later) · LLM (Claude Haiku 4.5 for conversation drafting, Sonnet for reasoning; all output through claims registry) · OCR for packet checking (Gemini/Claude per Apohenia pipeline).
+Runtime for building: Claude Code cloud sessions (ADR-0001).
+Legacy: the rental-membership site was removed per ADR-0007 (2026-09-18). The repo root belongs to the transaction platform. Stack choice for S001 is still to be verified (no package.json yet).
+
+## Apohenia (Stage 0) audit facts — 2026-09-18, read-only, repo whoisjaso/apohenia-deal-packet-checker @ ce61b46
+Verified in that repo's tracked files (not run here):
+- Stack: TypeScript (erasable subset) + JS ES modules, Node ≥22, npm monorepo. No Next.js/Vite/Express. Backend = Supabase Edge Function (Deno) over a portable core (`api/service/core/`: rules, normalization, extraction, handlers, contract) with an OpenAPI 3.1 contract. Front-ends = vanilla HTML/JS (`apps/scan-web` dealer camera app on Vercel static; prototype/funnel/marketing apps). `apps/ios` SwiftUI scaffold parked.
+- Data: Postgres migrations (13) with RLS. Enums: `packet_status` (draft → scanning/analyzing → waiting_user/waiting_review/no_known_blocker/review_required/blocker_detected → archived), `finding_status` (pass/review/blocker/informational), `document_status`, `member_role` (owner, manager, title_clerk, employee, reviewer, support, sales). Tables: deal_packets, documents, document_pages, canonical_fields (versioned, never overwrite human-confirmed), extraction_runs, rules/rule_versions, memberships, entitlements, transaction_parties, submission_outcomes. Tenant → many dealerships; one active membership per user per tenant.
+- Checker: 8 deterministic Texas rules (tx-v1.3.0) over title front/back, 130-U, bill of sale, plate receipt, VTR-41-A, ID, lien release. Verdict NO_KNOWN_BLOCKER / REVIEW_REQUIRED / BLOCKER_DETECTED. LLM extraction: Claude primary, Gemini fallback; confidence ≥0.8 → canonical (authority=extraction), else proposed. No banned-language lint. English only.
+- Authz: Supabase Auth JWT + tenant scoping in handlers + RLS; Idempotency-Key on mutations. Tests: parity/handlers/extraction/failover/marketplace/rules; CI on PR/push.
+- Supabase project ref in client config: `njzfiodjmbzyfvxusaem` (not visible to this session's Supabase MCP token, which sees only `triple-j-auto-investment`). Gap to resolve before any migration work.
+- Pilot evidence in repo: the paying pilot named is Triple J Auto (Jason's own dealership). No external paying dealer is documented in the repo. Per-packet price not in repo.
+Reuse for S001-A (inferred): rules engine, normalization, evidence model, schema pattern, state enums, idempotency pattern, OpenAPI boundary are extractable with no Base44 entanglement. Not reusable: deployment paths, GTM apps. Missing for Obavia: EN/ES, customer (buyer) side, relationship/invitation model, delivery/registration dimensions, claims-registry lint.
+
+## Stack decision (ADR-0005, 2026-09-18)
+TypeScript · Next.js App Router on Vercel · Supabase Postgres/RLS/Storage/Auth · Apohenia core forked as an internal package (rules, normalization, extraction policy, state enums) · Vitest (unit/parity) · Playwright (journeys, DOA/tenant-isolation) · claims-registry lint. Data home (own Supabase project vs Apohenia's) pending next ADR.
+
+## Persistence (S00P, 2026-09-19)
+- `lib/store/types.ts` defines the `Store` interface; `lib/store/index.ts` picks Postgres when `DATABASE_URL` is set, memory otherwise. Pages and actions import only `@/lib/store`.
+- `lib/store/pg.ts` uses postgres.js with `prepare: false` (Supabase transaction pooler). Authorization is enforced in the store before any row is returned; RLS (`supabase/migrations/0001_init.sql`) is the second wall for future direct client access. `auth.uid()` maps to membership user id (staff) or person id (customer).
+- Ids stay text with the app's prefixes (`deal_`, `person_`, `rel_`, `inq_`). Deal states are one jsonb column validated by the transition table in code.
+- Tests: `tests/db/pg.test.ts` applies the migration plus `tests/db/auth_shim.sql` to a disposable Postgres (`npm run test:db`, local Postgres 16 on 5433 in the cloud session). Never apply the shim to Supabase.
+- Open: no Obavia Supabase project exists yet (2-free-project limit on the visible org). Migration is ready to apply with `supabase db push` or the MCP `apply_migration` once the project exists.
+
