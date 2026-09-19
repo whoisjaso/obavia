@@ -9,4 +9,6 @@
 | TRANSACTION_AND_PRICING_SPEC_v0_2.md | 2026-09-17 | information model, states, 32 acceptance tests, pricing hypotheses | MISSING — blocker for interview stages D/F; Jason to add (Obavia_Transaction_and_Pricing_Spec_v0_2.md) |
 | PESSIMISTS_CASE.md | Deep research, 2026-09-17 | every reason this fails; regulatory table; hidden nuances | yes |
 | SOLUTIONS_REPORT.md | Deep research, 2026-09-18 | solution per pessimist point; stakeholder complaints; 36-month plan; compliance program | yes |
+| 2026-09-19_PROBLEM_AND_SOLUTION.md | Deep research (5 parallel passes), 2026-09-19 | buyer/dealer/marketplace pains with evidence; competitor teardown; the Obavia system; decisions 8(a)-(f); legal map; build order; adversarial prompt | yes |
+| 2026-09-19_MARKETING_AND_GTM.md | Deep research, 2026-09-19 | positioning; ICP sizing; Meta credit-category rules; 9 campaign concepts EN/ES; channels; launch phases; pricing options; experiments ledger | yes |
 Interpretation rule: a recommendation is not a decision; a documented install method is not evidence it ran here; a passed test is not production safety.
