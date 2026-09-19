@@ -4,11 +4,9 @@ test("buyer flow: Good credit, $500 down, $400/mo, Tesla Model 3 → honest scor
   await page.goto("/en");
   await expect(page.getByTestId("step-credit")).toBeVisible();
   await page.getByTestId("credit-prime").click();
-  await expect(page.getByTestId("step-down")).toBeVisible();
+  await expect(page.getByTestId("step-budget")).toBeVisible();
   await page.getByTestId("down-slider").fill("500");
   await expect(page.getByTestId("down-value")).toContainText("$500");
-  await page.getByTestId("next").click();
-  await expect(page.getByTestId("step-monthly")).toBeVisible();
   await page.getByTestId("monthly-slider").fill("400");
   await page.getByTestId("next").click();
   await expect(page.getByTestId("step-car")).toBeVisible();
@@ -49,15 +47,19 @@ test("show me what fits, adjust numbers with live preview; Spanish", async ({ pa
   await page.goto("/en");
   await page.getByTestId("credit-near_prime").click();
   await page.getByTestId("next").click();
-  await page.getByTestId("next").click();
   await page.getByTestId("any-car").click();
   await expect(page.getByTestId("fitcard").first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("fitcard").first()).toHaveAttribute("data-fit", "likely");
   await page.getByText("Adjust", { exact: true }).click();
   await expect(page.getByTestId("live")).toBeVisible({ timeout: 10_000 });
+  // Returning buyer lands on the result, no re-entry.
+  await page.reload();
+  await expect(page.getByTestId("welcome")).toBeVisible();
+  await expect(page.getByTestId("fitcard").first()).toBeVisible();
 
+  await page.evaluate(() => localStorage.clear());
   await page.goto("/es");
   await expect(page.getByTestId("step-credit")).toContainText(/crédito/i);
   await page.getByTestId("credit-subprime").click();
-  await expect(page.getByTestId("step-down")).toContainText(/enganche/i);
+  await expect(page.getByTestId("step-budget")).toContainText(/enganche/i);
 });

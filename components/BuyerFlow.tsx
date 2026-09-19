@@ -10,8 +10,8 @@ import { Deck, type Body as DeckBody } from "@/components/Deck";
 // One question per screen. Big targets, one number at the end. The engine
 // (via /api/fit) is the only source of numbers; this file only asks and shows.
 
-type Step = "credit" | "down" | "monthly" | "car" | "result";
-const STEPS: Step[] = ["credit", "down", "monthly", "car"];
+type Step = "credit" | "budget" | "car" | "result";
+const STEPS: Step[] = ["credit", "budget", "car"];
 type Body = "sedan" | "suv" | "truck" | "ev";
 
 interface Model { id: string; name: string; from: number }
@@ -49,10 +49,11 @@ const MODELS: Record<Body, Model[]> = {
 const copy: Record<Locale, {
   title: string; sub: string; back: string; next: string; skip: string;
   credit: { q: string; opts: { band: CreditBand; label: string; hint: string }[] };
+  budget: { q: string };
   down: { q: string; hint: string };
   monthly: { q: string; hint: string };
   car: { q: string; bodies: Record<Body, string>; any: string; pick: string; from: string };
-  result: { crunch: string; score: string; fit: Record<"likely" | "stretch" | "unlikely", string>; perMonth: string; down: string; months: string; asks: string; why: string; fits: string; hint: (extra: string, monthly: string) => string; hintBudget: (max: string) => string; talk: string; adjust: string; another: string; restart: string; estimate: string; error: string };
+  result: { welcome: string; crunch: string; score: string; fit: Record<"likely" | "stretch" | "unlikely", string>; perMonth: string; down: string; months: string; asks: string; why: string; fits: string; hint: (extra: string, monthly: string) => string; hintBudget: (max: string) => string; talk: string; adjust: string; another: string; restart: string; estimate: string; error: string };
   sheet: { title: string; sub: string; name: string; contact: string; send: string; sent: string; sentSub: string; cancel: string; fail: string };
   reasons: Record<string, string>;
 }> = {
@@ -71,10 +72,12 @@ const copy: Record<Locale, {
         { band: "subprime", label: "Building", hint: "Under 600 or none" },
       ],
     },
-    down: { q: "Cash down?", hint: "" },
-    monthly: { q: "Per month?", hint: "" },
+    budget: { q: "Your numbers" },
+    down: { q: "Cash down", hint: "" },
+    monthly: { q: "Per month", hint: "" },
     car: { q: "Drive what?", bodies: { sedan: "Sedan", suv: "SUV", truck: "Truck", ev: "Electric" }, any: "Show me what fits", pick: "Pick one", from: "from" },
     result: {
+      welcome: "Welcome back. Your numbers are still here.",
       crunch: "",
       score: "Likely",
       fit: { likely: "Likely", stretch: "Maybe", unlikely: "Unlikely" },
@@ -121,10 +124,12 @@ const copy: Record<Locale, {
         { band: "subprime", label: "En construcción", hint: "Menos de 600 o sin crédito" },
       ],
     },
-    down: { q: "¿Enganche?", hint: "" },
-    monthly: { q: "¿Al mes?", hint: "" },
+    budget: { q: "Tus números" },
+    down: { q: "Enganche", hint: "" },
+    monthly: { q: "Al mes", hint: "" },
     car: { q: "¿Qué carro?", bodies: { sedan: "Sedán", suv: "SUV", truck: "Troca", ev: "Eléctrico" }, any: "Muéstrame qué me alcanza", pick: "Elige uno", from: "desde" },
     result: {
+      welcome: "Bienvenido de nuevo. Tus números siguen aquí.",
       crunch: "",
       score: "Probable",
       fit: { likely: "Probable", stretch: "Quizás", unlikely: "Poco probable" },
@@ -171,6 +176,11 @@ const copy: Record<Locale, {
 // Haptics where the platform allows it (Android Chrome; iOS ignores).
 const buzz = (pattern: number | number[]) => { try { navigator.vibrate?.(pattern); } catch { /* unsupported */ } };
 
+const RESUME_KEY = "obavia.resume.v1";
+
+// Tick at round numbers while dragging a slider, like a physical dial.
+function detent(v: number, every: number) { if (v % every === 0) buzz(4); return v; }
+
 const money = (n: number, l: Locale) => new Intl.NumberFormat(l === "es" ? "es-US" : "en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
 interface Answers { creditBand?: CreditBand; downPayment: number; monthlyBudget?: number; body?: Body; vehicle?: string; termMonths: number }
@@ -187,6 +197,21 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
   const [talkCard, setTalkCard] = useState<VehicleCard | null>(null);
 
   useEffect(() => { window.scrollTo({ top: 0 }); }, [step]);
+
+  // Returning buyer: land on the last result, no re-entry. Browser-local until accounts exist.
+  const [resumed, setResumed] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RESUME_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { a: Answers; result: AdvisorResult };
+      if (saved?.result?.cards?.length) { setA(saved.a); setResult(saved.result); setStep("result"); setResumed(true); }
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    if (!result) return;
+    try { localStorage.setItem(RESUME_KEY, JSON.stringify({ a, result })); } catch { /* private mode */ }
+  }, [result, a]);
 
   async function run(next: Answers) {
     setBusy(true);
@@ -215,7 +240,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
     setPicked(band);
     const next = { ...a, creditBand: band };
     setA(next);
-    window.setTimeout(() => { setPicked(null); setStep("down"); }, 220);
+    window.setTimeout(() => { setPicked(null); setStep("budget"); }, 220);
   }
 
   function chooseModel(m: Model | null) {
@@ -230,6 +255,8 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
     setA({ downPayment: 1000, monthlyBudget: 400, termMonths: 60 });
     setResult(null);
     setSheet("closed");
+    setResumed(false);
+    try { localStorage.removeItem(RESUME_KEY); } catch { /* ignore */ }
     setStep("credit");
   }
 
@@ -242,8 +269,8 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
         {step !== "credit" ? (
           <button type="button" className="backbtn" onClick={back} aria-label={t.back}>‹</button>
         ) : <span className="backbtn" aria-hidden />}
-        <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={step === "result" ? 4 : idx} aria-label={t.title}>
-          {STEPS.map((s, i) => <span key={s} className={i < (step === "result" ? 4 : idx) ? "on" : i === idx ? "now" : ""} />)}
+        <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={3} aria-valuenow={step === "result" ? 3 : idx} aria-label={t.title}>
+          {STEPS.map((s, i) => <span key={s} className={i < (step === "result" ? 3 : idx) ? "on" : i === idx ? "now" : ""} />)}
         </div>
       </div>
 
@@ -263,34 +290,25 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
         </section>
       )}
 
-      {step === "down" && (
-        <section className="screen" data-testid="step-down">
-          <h1 className="q">{t.down.q}</h1>
-          
-          <div className="bignum" data-testid="down-value">{money(a.downPayment, locale)}</div>
-          <input type="range" className="slider" min={0} max={10000} step={250} value={a.downPayment} aria-label={t.down.q} data-testid="down-slider"
-            onChange={(e) => setA({ ...a, downPayment: Number(e.target.value) })} />
-          <div className="ticks"><span>$0</span><span>$5,000</span><span>$10,000</span></div>
-          {result && <Live a={a} locale={locale} t={t} />}
-          <div className="chips">
-            {[500, 1000, 2000, 5000].map((v) => (
-              <button key={v} type="button" className={`chip ${a.downPayment === v ? "on" : ""}`} onClick={() => setA({ ...a, downPayment: v })}>{money(v, locale)}</button>
-            ))}
+      {step === "budget" && (
+        <section className="screen" data-testid="step-budget">
+          <h1 className="q">{t.budget.q}</h1>
+          <div className="dial" data-testid="step-down">
+            <div className="dial-label">{t.down.q}</div>
+            <div className="bignum" data-testid="down-value">{money(a.downPayment, locale)}</div>
+            <input type="range" className="slider" min={0} max={10000} step={250} value={a.downPayment} aria-label={t.down.q} data-testid="down-slider"
+              onChange={(e) => setA({ ...a, downPayment: detent(Number(e.target.value), 1000) })} />
+            <div className="ticks"><span>$0</span><span>$5,000</span><span>$10,000</span></div>
           </div>
-          <button type="button" className="cta" data-testid="next" onClick={() => setStep("monthly")}>{t.next}</button>
-        </section>
-      )}
-
-      {step === "monthly" && (
-        <section className="screen" data-testid="step-monthly">
-          <h1 className="q">{t.monthly.q}</h1>
-          
-          <div className="bignum" data-testid="monthly-value">{money(a.monthlyBudget ?? 400, locale)}<span className="unit">{t.result.perMonth}</span></div>
-          <input type="range" className="slider" min={200} max={1200} step={25} value={a.monthlyBudget ?? 400} aria-label={t.monthly.q} data-testid="monthly-slider"
-            onChange={(e) => setA({ ...a, monthlyBudget: Number(e.target.value) })} />
-          <div className="ticks"><span>$200</span><span>$700</span><span>$1,200</span></div>
+          <div className="dial" data-testid="step-monthly">
+            <div className="dial-label">{t.monthly.q}</div>
+            <div className="bignum" data-testid="monthly-value">{money(a.monthlyBudget ?? 400, locale)}<span className="unit">{t.result.perMonth}</span></div>
+            <input type="range" className="slider" min={200} max={1200} step={25} value={a.monthlyBudget ?? 400} aria-label={t.monthly.q} data-testid="monthly-slider"
+              onChange={(e) => setA({ ...a, monthlyBudget: detent(Number(e.target.value), 100) })} />
+            <div className="ticks"><span>$200</span><span>$700</span><span>$1,200</span></div>
+          </div>
+          {result && <Live a={a} locale={locale} t={t} />}
           <button type="button" className="cta" data-testid="next" onClick={() => (result ? run(a) : setStep("car"))}>{t.next}</button>
-          <button type="button" className="ghost" onClick={() => { const n = { ...a, monthlyBudget: undefined }; setA(n); if (result) run(n); else setStep("car"); }}>{t.skip}</button>
         </section>
       )}
 
@@ -331,11 +349,12 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
           {!busy && err && (
             <div className="crunch"><p className="error">{t.result.error}</p><button type="button" className="cta" onClick={() => run(a)}>{t.next}</button></div>
           )}
+          {!busy && result && resumed && <p className="welcome" data-testid="welcome">{t.result.welcome}</p>}
           {!busy && result && result.cards.length > 0 && (
-            <Result result={result} locale={locale} t={t} onTalk={(c) => { setTalkCard(c ?? null); setSheet("open"); }} onAdjust={() => setStep("down")} onAnother={() => setStep("car")} onRestart={restart} />
+            <Result result={result} locale={locale} t={t} onTalk={(c) => { setTalkCard(c ?? null); setSheet("open"); }} onAdjust={() => setStep("budget")} onAnother={() => setStep("car")} onRestart={restart} />
           )}
           {!busy && result && result.cards.length === 0 && (
-            <div className="crunch"><p>{result.summary}</p><button type="button" className="cta" onClick={() => setStep("monthly")}>{t.result.adjust}</button></div>
+            <div className="crunch"><p>{result.summary}</p><button type="button" className="cta" onClick={() => setStep("budget")}>{t.result.adjust}</button></div>
           )}
         </section>
       )}

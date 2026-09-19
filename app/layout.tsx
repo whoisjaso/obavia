@@ -3,8 +3,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Obavia",
-  description: "Tell Obavia your credit, your down payment, and the car you want. Honest numbers before you walk onto a lot.",
+  description: "What can I actually get? Honest car numbers before you walk onto a lot.",
+  applicationName: "Obavia",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Obavia" },
+  icons: { icon: "/icon.svg", apple: "/icon-192.png" },
 };
+export const viewport = { themeColor: "#0a84ff", width: "device-width", initialScale: 1, viewportFit: "cover" as const };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
