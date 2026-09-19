@@ -33,6 +33,22 @@ interface Db {
   deliveries: Map<string, DeliveryEvent>;
   regEvidence: Map<string, RegistrationEvidence>;
   audit: AuditEvent[];
+  inquiries: Map<string, Inquiry>;
+}
+
+export interface Inquiry {
+  id: string;
+  orgId: string;
+  createdAt: string;
+  name: string;
+  contact: string;
+  locale: Locale;
+  vehicle: string;
+  paymentLow: number;
+  paymentHigh: number;
+  downPayment: number;
+  creditBand: string;
+  status: "new" | "contacted";
 }
 
 declare global {
@@ -57,6 +73,7 @@ function seed(): Db {
     deliveries: new Map(),
     regEvidence: new Map(),
     audit: [],
+    inquiries: new Map(),
   };
   db.orgs.set(TENANT_ZERO_ORG, {
     id: TENANT_ZERO_ORG,
@@ -180,10 +197,28 @@ export function getPerson(personId: string) {
 export interface TodayItem {
   dealId: string;
   title: string;
-  reasonKey: "no_check" | "review_required" | "blocker" | "invite_pending" | "not_invited" | "registration_ready" | "disputed";
+  reasonKey: "no_check" | "review_required" | "blocker" | "invite_pending" | "not_invited" | "registration_ready" | "disputed" | "new_inquiry";
+  inquiry?: Inquiry;
+}
+export function createInquiry(input: Omit<Inquiry, "id" | "orgId" | "createdAt" | "status">): Inquiry {
+  // Pilot: every buyer inquiry routes to tenant zero. Real routing needs
+  // dealer inventory and consent records.
+  const inq: Inquiry = { id: `inq_${randomUUID()}`, orgId: TENANT_ZERO_ORG, createdAt: now(), status: "new", ...input };
+  db().inquiries.set(inq.id, inq);
+  audit("buyer", "inquiry.created", undefined, { vehicle: input.vehicle });
+  return inq;
+}
+export function listInquiries(userId: string): Inquiry[] {
+  const orgId = orgForStaff(userId);
+  return [...db().inquiries.values()].filter((i) => i.orgId === orgId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 export function todayForStaff(userId: string): TodayItem[] {
   const items: TodayItem[] = [];
+  for (const inq of listInquiries(userId)) {
+    if (inq.status !== "new") continue;
+    items.push({ dealId: "", title: `${inq.name} · ${inq.vehicle}`, reasonKey: "new_inquiry", inquiry: inq });
+    if (items.length >= 5) return items;
+  }
   for (const deal of listDealsForStaff(userId)) {
     const vehicleLabel =
       [deal.vehicle.year, deal.vehicle.make, deal.vehicle.model].filter(Boolean).join(" ") || deal.vehicle.vin;

@@ -108,3 +108,22 @@ export async function disputeAction(fd: FormData): Promise<void> {
   store.disputeRelationship(personId, dealId);
   revalidatePath(`/${locale}/me/deals/${dealId}`);
 }
+
+export async function createInquiryAction(fd: FormData): Promise<{ ok: boolean }> {
+  const locale = localeOf(fd);
+  const name = String(fd.get("name") ?? "").trim();
+  const contact = String(fd.get("contact") ?? "").trim();
+  if (!name || !contact) return { ok: false };
+  store.createInquiry({
+    name,
+    contact,
+    locale,
+    vehicle: String(fd.get("vehicle") ?? ""),
+    paymentLow: Number(fd.get("paymentLow") ?? 0),
+    paymentHigh: Number(fd.get("paymentHigh") ?? 0),
+    downPayment: Number(fd.get("downPayment") ?? 0),
+    creditBand: String(fd.get("creditBand") ?? ""),
+  });
+  revalidatePath(`/${locale}/dealer`);
+  return { ok: true };
+}

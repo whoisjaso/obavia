@@ -13,6 +13,7 @@ const reasons: Record<Locale, Record<string, string>> = {
     invite_pending: "Waiting for the customer to accept",
     registration_ready: "Delivered; registration not started",
     disputed: "Customer flagged this workspace",
+    new_inquiry: "New buyer from the app. Call them back.",
   },
   es: {
     no_check: "El paquete no se ha revisado",
@@ -22,6 +23,7 @@ const reasons: Record<Locale, Record<string, string>> = {
     invite_pending: "Esperando que el cliente acepte",
     registration_ready: "Entregado; registro sin iniciar",
     disputed: "El cliente reportó este espacio",
+    new_inquiry: "Nuevo comprador desde la app. Devuélvele la llamada.",
   },
 };
 
@@ -45,12 +47,16 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
         ) : (
           <ul className="list" data-testid="today-list">
             {items.map((it) => (
-              <li key={it.dealId} className="today-row">
+              <li key={it.inquiry?.id ?? it.dealId} className="today-row">
                 <div>
                   <div className="title">{it.title}</div>
                   <div className="why">{reasons[locale][it.reasonKey]}</div>
                 </div>
-                <Link className="btn" href={`/${locale}/dealer/workspaces/${it.dealId}`}>{t.today.open}</Link>
+                {it.inquiry ? (
+                  <a className="btn" href={it.inquiry.contact.includes("@") ? `mailto:${it.inquiry.contact}` : `tel:${it.inquiry.contact}`}>{it.inquiry.contact}</a>
+                ) : (
+                  <Link className="btn" href={`/${locale}/dealer/workspaces/${it.dealId}`}>{t.today.open}</Link>
+                )}
               </li>
             ))}
           </ul>

@@ -54,7 +54,7 @@ export function extractProfile(text: string, prev: BuyerProfile = {}): BuyerProf
     out.monthlyIncome = annual ? Math.round(income / 12) : income;
   }
 
-  const term = t.match(/\b(36|48|60|72|84)\s*(?:months|mo\b)/);
+  const term = t.match(/\b(36|48|60|72|84)\s*(?:months|meses|mo\b)/);
   if (term) out.termMonths = Number(term[1]);
 
   const city = t.match(/\b(?:in|near|around)\s+(houston|dallas|austin|san antonio|katy|pasadena|sugar land|the woodlands)\b/);

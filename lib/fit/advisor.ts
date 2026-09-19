@@ -123,11 +123,11 @@ const strings: Record<Locale, {
       monthly: "What monthly payment feels comfortable?",
     },
     summaryPrimary: (c, b, f, l, p) => {
-      const fitWord = c.fit.fit === "likely" ? "looks realistic" : c.fit.fit === "stretch" ? "is a stretch" : "is unlikely as things stand";
-      return `A ${c.title} typically asks ${f(c.priceLow, l)} to ${f(c.priceHigh, l)} around Houston. With ${f(p.downPayment ?? 0, l)} down and ${b.label} credit, a ${c.estimate.termMonths}-month loan lands around ${f(c.estimate.paymentLow, l)} to ${f(c.estimate.paymentHigh, l)} a month. That ${fitWord}. ${c.fit.reasons[0] ?? ""}`.trim();
+      const fitWord = c.fit.fit === "likely" ? "looks realistic" : c.fit.fit === "stretch" ? "is a stretch" : "is out of reach right now";
+      return `A ${c.title} ${fitWord} for you: about ${f(c.estimate.paymentLow, l)} to ${f(c.estimate.paymentHigh, l)} a month with ${f(p.downPayment ?? 0, l)} down.`;
     },
-    summaryBudget: (max, b) => `With ${b.label} credit and that monthly amount, vehicles priced up to about ${max} are in range. Here are a few that usually fit.`,
-    reach: (extra, monthly) => `To hold it near ${monthly} a month you would need about ${extra} more down.`,
+    summaryBudget: (max, b) => `With ${b.label} credit, cars up to about ${max} fit your monthly amount.`,
+    reach: (extra, monthly) => `About ${extra} more down would hold it near ${monthly} a month.`,
   },
   es: {
     needMore: "Puedo hacer los números en cuanto tenga un poco más de información.",
@@ -138,10 +138,10 @@ const strings: Record<Locale, {
       monthly: "¿Qué pago mensual te queda cómodo?",
     },
     summaryPrimary: (c, b, f, l, p) => {
-      const fitWord = c.fit.fit === "likely" ? "se ve realista" : c.fit.fit === "stretch" ? "está justo" : "es poco probable como están las cosas";
-      return `Un ${c.title} suele pedirse entre ${f(c.priceLow, l)} y ${f(c.priceHigh, l)} en Houston. Con ${f(p.downPayment ?? 0, l)} de enganche y crédito ${b.labelEs}, un préstamo a ${c.estimate.termMonths} meses queda cerca de ${f(c.estimate.paymentLow, l)} a ${f(c.estimate.paymentHigh, l)} al mes. Eso ${fitWord}.`;
+      const fitWord = c.fit.fit === "likely" ? "se ve realista" : c.fit.fit === "stretch" ? "está justo" : "queda fuera de alcance por ahora";
+      return `Un ${c.title} ${fitWord} para ti: unos ${f(c.estimate.paymentLow, l)} a ${f(c.estimate.paymentHigh, l)} al mes con ${f(p.downPayment ?? 0, l)} de enganche.`;
     },
-    summaryBudget: (max, b) => `Con crédito ${b.labelEs} y ese pago mensual, vehículos de hasta unos ${max} están a tu alcance. Aquí van algunos que suelen encajar.`,
-    reach: (extra, monthly) => `Para mantenerlo cerca de ${monthly} al mes necesitarías unos ${extra} más de enganche.`,
+    summaryBudget: (max, b) => `Con crédito ${b.labelEs}, carros de hasta unos ${max} caben en tu pago mensual.`,
+    reach: (extra, monthly) => `Unos ${extra} más de enganche lo dejarían cerca de ${monthly} al mes.`,
   },
 };
