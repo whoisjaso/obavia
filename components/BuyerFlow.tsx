@@ -5,7 +5,7 @@ import type { Locale } from "@/lib/domain/types";
 import type { AdvisorResult, VehicleCard } from "@/lib/fit/advisor";
 import type { CreditBand } from "@/lib/fit/engine";
 import { createInquiryAction } from "@/app/actions";
-import { Deck, type Body as DeckBody } from "@/components/Deck";
+import { Feed, type Body as DeckBody } from "@/components/Feed";
 
 // One question per screen. Big targets, one number at the end. The engine
 // (via /api/fit) is the only source of numbers; this file only asks and shows.
@@ -86,7 +86,7 @@ const copy: Record<Locale, {
       months: "mo",
       asks: "asks",
       why: "Why",
-      fits: "You probably fit these",
+      fits: "What fits you",
       hint: (extra, monthly) => `+${extra} down → ${monthly}/mo`,
       hintBudget: (max) => `Up to ${max}`,
       talk: "Talk to a dealer",
@@ -138,7 +138,7 @@ const copy: Record<Locale, {
       months: "meses",
       asks: "pide",
       why: "Por qué",
-      fits: "Probablemente te alcanzan",
+      fits: "Lo que te alcanza",
       hint: (extra, monthly) => `+${extra} enganche → ${monthly}/mes`,
       hintBudget: (max) => `Hasta ${max}`,
       talk: "Hablar con un dealer",
@@ -295,14 +295,14 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
       {step === "budget" && (
         <section className="screen" data-testid="step-budget">
           <h1 className="q">{t.budget.q}</h1>
-          <div className="dial" data-testid="step-down">
+          <div className="dial plain" data-testid="step-down">
             <div className="dial-label">{t.down.q}</div>
             <div className="bignum" data-testid="down-value">{money(a.downPayment, locale)}</div>
             <input type="range" className="slider" style={{ "--pct": `${(a.downPayment / 10000) * 100}%` } as React.CSSProperties} min={0} max={10000} step={250} value={a.downPayment} aria-label={t.down.q} data-testid="down-slider"
               onChange={(e) => setA({ ...a, downPayment: detent(Number(e.target.value), 1000) })} />
             <div className="ticks"><span>$0</span><span>$5,000</span><span>$10,000</span></div>
           </div>
-          <div className="dial" data-testid="step-monthly">
+          <div className="dial plain" data-testid="step-monthly">
             <div className="dial-label">{t.monthly.q}</div>
             <div className="bignum" data-testid="monthly-value">{money(a.monthlyBudget ?? 400, locale)}<span className="unit">{t.result.perMonth}</span></div>
             <input type="range" className="slider" style={{ "--pct": `${(((a.monthlyBudget ?? 400) - 200) / 1000) * 100}%` } as React.CSSProperties} min={200} max={1200} step={25} value={a.monthlyBudget ?? 400} aria-label={t.monthly.q} data-testid="monthly-slider"
@@ -420,43 +420,39 @@ function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: {
   if (hero.primary && hero.fit.fit !== "likely" && result.downToReach && result.downToReach > down && result.profile.monthlyBudget) {
     hint = t.result.hint(money(result.downToReach - down, locale), money(result.profile.monthlyBudget, locale));
   } else if (!hero.primary && result.maxPrice) hint = t.result.hintBudget(money(result.maxPrice, locale));
+  const heroScreen = (
+    <div className="hero-screen" data-testid="fitcard" data-fit={hero.fit.fit}>
+      <div className="hero-ring" data-testid="score" aria-label={`${hero.fit.score}%`}><Ring value={hero.fit.score} size={200} tone={hero.fit.fit} /></div>
+      <div className={`verdict-word big ${hero.fit.fit}`} data-testid="fit-label">{t.result.fit[hero.fit.fit]}</div>
+      <div className="hero-pay"><Count to={e.paymentLow} locale={locale} /><span className="dash">–</span><Count to={e.paymentHigh} locale={locale} /><span className="unit">{t.result.perMonth}</span></div>
+      <div className="hero-title">{hero.title} · {money(down, locale)} {t.result.down}</div>
+      {hint && <div className="hero-hint">{hint}</div>}
+      {reasons.length > 0 && (
+        <details className="why">
+          <summary>{t.result.why}</summary>
+          <ul>{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+        </details>
+      )}
+      <div className="hero-links">
+        <button type="button" className="link" onClick={onAdjust}>{t.result.adjust}</button>
+        <button type="button" className="link" onClick={onAnother}>{t.result.another}</button>
+        <button type="button" className="link" onClick={onRestart}>{t.result.restart}</button>
+      </div>
+      {rest.length > 0 && <div className="swipe-hint" aria-hidden>{t.result.fits} ↑</div>}
+      <p className="fineprint">{t.result.estimate}</p>
+    </div>
+  );
   return (
     <>
-      <div className={`hero-card ${hero.fit.fit}`} data-testid="fitcard" data-fit={hero.fit.fit}>
-        <div className="hero-ring" data-testid="score" aria-label={`${hero.fit.score}%`}><Ring value={hero.fit.score} size={150} tone={hero.fit.fit} /></div>
-        <div className={`verdict-word ${hero.fit.fit}`} data-testid="fit-label">{t.result.fit[hero.fit.fit]}</div>
-        <div className="hero-pay"><Count to={e.paymentLow} locale={locale} /><span className="dash">–</span><Count to={e.paymentHigh} locale={locale} /><span className="unit">{t.result.perMonth}</span></div>
-        <div className="hero-title">{hero.title} · {money(down, locale)} {t.result.down}</div>
-        {hint && <div className="hero-hint">{hint}</div>}
-        {reasons.length > 0 && (
-          <details className="why">
-            <summary>{t.result.why}</summary>
-            <ul>{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
-          </details>
-        )}
-      </div>
-
-      {rest.length > 0 && (
-        <div className="fits-deck">
-          <p className="eyebrow">{t.result.fits}</p>
-          <Deck
-            cards={rest}
-            locale={locale}
-            onTalk={(c) => onTalk(c)}
-            renderIcon={(body, size) => <BodyIcon body={body} size={size} />}
-            renderRing={(value, size, fit) => <Ring value={value} size={size} tone={fit} />}
-          />
-        </div>
-      )}
-
-      <div className="row2">
-        <button type="button" className="ghost" onClick={onAdjust}>{t.result.adjust}</button>
-        <button type="button" className="ghost" onClick={onAnother}>{t.result.another}</button>
-      </div>
-
-      <p className="fineprint">{t.result.estimate}</p>
-      <button type="button" className="ghost" onClick={onRestart}>{t.result.restart}</button>
-      <div className="sticky-cta"><button type="button" className="cta" data-testid="talk" onClick={() => onTalk()}>{t.result.talk}</button></div>
+      <Feed
+        cards={rest}
+        locale={locale}
+        hero={heroScreen}
+        onTalk={(c) => onTalk(c)}
+        renderIcon={(body, size) => <BodyIcon body={body} size={size} />}
+        renderRing={(value, size, fit) => <Ring value={value} size={size} tone={fit} />}
+      />
+      <div className="float-cta"><button type="button" className="cta pill" data-testid="talk" onClick={() => onTalk()}>{t.result.talk}</button></div>
     </>
   );
 }
