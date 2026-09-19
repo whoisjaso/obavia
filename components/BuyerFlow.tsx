@@ -269,9 +269,11 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
         {step !== "credit" ? (
           <button type="button" className="backbtn" onClick={back} aria-label={t.back}>‹</button>
         ) : <span className="backbtn" aria-hidden />}
-        <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={3} aria-valuenow={step === "result" ? 3 : idx} aria-label={t.title}>
-          {STEPS.map((s, i) => <span key={s} className={i < (step === "result" ? 3 : idx) ? "on" : i === idx ? "now" : ""} />)}
-        </div>
+        {step !== "result" && (
+          <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={3} aria-valuenow={idx} aria-label={t.title}>
+            {STEPS.map((s, i) => <span key={s} className={i < idx ? "on" : i === idx ? "now" : ""} />)}
+          </div>
+        )}
       </div>
 
       {step === "credit" && (
@@ -296,14 +298,14 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
           <div className="dial" data-testid="step-down">
             <div className="dial-label">{t.down.q}</div>
             <div className="bignum" data-testid="down-value">{money(a.downPayment, locale)}</div>
-            <input type="range" className="slider" min={0} max={10000} step={250} value={a.downPayment} aria-label={t.down.q} data-testid="down-slider"
+            <input type="range" className="slider" style={{ "--pct": `${(a.downPayment / 10000) * 100}%` } as React.CSSProperties} min={0} max={10000} step={250} value={a.downPayment} aria-label={t.down.q} data-testid="down-slider"
               onChange={(e) => setA({ ...a, downPayment: detent(Number(e.target.value), 1000) })} />
             <div className="ticks"><span>$0</span><span>$5,000</span><span>$10,000</span></div>
           </div>
           <div className="dial" data-testid="step-monthly">
             <div className="dial-label">{t.monthly.q}</div>
             <div className="bignum" data-testid="monthly-value">{money(a.monthlyBudget ?? 400, locale)}<span className="unit">{t.result.perMonth}</span></div>
-            <input type="range" className="slider" min={200} max={1200} step={25} value={a.monthlyBudget ?? 400} aria-label={t.monthly.q} data-testid="monthly-slider"
+            <input type="range" className="slider" style={{ "--pct": `${(((a.monthlyBudget ?? 400) - 200) / 1000) * 100}%` } as React.CSSProperties} min={200} max={1200} step={25} value={a.monthlyBudget ?? 400} aria-label={t.monthly.q} data-testid="monthly-slider"
               onChange={(e) => setA({ ...a, monthlyBudget: detent(Number(e.target.value), 100) })} />
             <div className="ticks"><span>$200</span><span>$700</span><span>$1,200</span></div>
           </div>
@@ -334,7 +336,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
               ))}
             </div>
           )}
-          <button type="button" className={a.body ? "ghost" : "cta"} data-testid="any-car" onClick={() => chooseModel(null)}>{t.car.any}</button>
+          <div className="sticky-cta"><button type="button" className="cta" data-testid="any-car" onClick={() => chooseModel(null)}>{t.car.any}</button></div>
         </section>
       )}
 
@@ -421,11 +423,10 @@ function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: {
   return (
     <>
       <div className={`hero-card ${hero.fit.fit}`} data-testid="fitcard" data-fit={hero.fit.fit}>
-        <Ring value={hero.fit.score} label={t.result.score} />
-        <span className={`fitpill ${hero.fit.fit}`} data-testid="fit-label">{t.result.fit[hero.fit.fit]}</span>
-        <div className="hero-title">{hero.title}</div>
+        <div className="hero-ring" data-testid="score" aria-label={`${hero.fit.score}%`}><Ring value={hero.fit.score} size={150} tone={hero.fit.fit} /></div>
+        <div className={`verdict-word ${hero.fit.fit}`} data-testid="fit-label">{t.result.fit[hero.fit.fit]}</div>
         <div className="hero-pay"><Count to={e.paymentLow} locale={locale} /><span className="dash">–</span><Count to={e.paymentHigh} locale={locale} /><span className="unit">{t.result.perMonth}</span></div>
-        <div className="hero-sub">{money(down, locale)} {t.result.down} · {e.termMonths} {t.result.months}</div>
+        <div className="hero-title">{hero.title} · {money(down, locale)} {t.result.down}</div>
         {hint && <div className="hero-hint">{hint}</div>}
         {reasons.length > 0 && (
           <details className="why">
@@ -443,21 +444,19 @@ function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: {
             locale={locale}
             onTalk={(c) => onTalk(c)}
             renderIcon={(body, size) => <BodyIcon body={body} size={size} />}
-            renderRing={(value, size) => <Ring value={value} size={size} />}
+            renderRing={(value, size, fit) => <Ring value={value} size={size} tone={fit} />}
           />
         </div>
       )}
 
-      <div className="actions">
-        <div className="sticky-cta"><button type="button" className="cta" data-testid="talk" onClick={() => onTalk()}>{t.result.talk}</button></div>
-        <div className="row2">
-          <button type="button" className="ghost" onClick={onAdjust}>{t.result.adjust}</button>
-          <button type="button" className="ghost" onClick={onAnother}>{t.result.another}</button>
-        </div>
+      <div className="row2">
+        <button type="button" className="ghost" onClick={onAdjust}>{t.result.adjust}</button>
+        <button type="button" className="ghost" onClick={onAnother}>{t.result.another}</button>
       </div>
 
       <p className="fineprint">{t.result.estimate}</p>
       <button type="button" className="ghost" onClick={onRestart}>{t.result.restart}</button>
+      <div className="sticky-cta"><button type="button" className="cta" data-testid="talk" onClick={() => onTalk()}>{t.result.talk}</button></div>
     </>
   );
 }
@@ -483,14 +482,14 @@ function Count({ to, locale }: { to: number; locale: Locale }) {
 }
 
 // Score ring. SVG stroke animates via CSS transition on the dash offset.
-function Ring({ value, label, size = 96, spin = false }: { value: number; label?: string; size?: number; spin?: boolean }) {
+function Ring({ value, label, size = 96, spin = false, tone }: { value: number; label?: string; size?: number; spin?: boolean; tone?: "likely" | "stretch" | "unlikely" }) {
   const [v, setV] = useState(0);
   useEffect(() => { const id = window.setTimeout(() => setV(value), 30); return () => window.clearTimeout(id); }, [value]);
   const r = (size - 10) / 2;
   const c = 2 * Math.PI * r;
-  const tone = value >= 66 ? "ok" : value >= 45 ? "warn" : "bad";
+  const toneClass = tone ? { likely: "ok", stretch: "warn", unlikely: "bad" }[tone] : value >= 66 ? "ok" : value >= 45 ? "warn" : "bad";
   return (
-    <div className={`ring ${tone} ${spin ? "spin" : ""}`} style={{ width: size, height: size }} data-testid={label ? "score" : undefined} aria-label={label ? `${label} ${value}` : undefined}>
+    <div className={`ring ${toneClass} ${spin ? "spin" : ""}`} style={{ width: size, height: size }} data-testid={label ? "score" : undefined} aria-label={label ? `${label} ${value}` : undefined}>
       <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} aria-hidden>
         <circle cx={size / 2} cy={size / 2} r={r} className="track" />
         <circle cx={size / 2} cy={size / 2} r={r} className="arc" strokeDasharray={c} strokeDashoffset={c * (1 - (spin ? 0.25 : v) / 100)} />
@@ -514,7 +513,7 @@ function BodyIcon({ body, size = 40 }: { body: DeckBody; size?: number }) {
   const key: Body = body === "hatch" || body === "coupe" ? "sedan" : body === "minivan" ? "suv" : body;
   const d: Record<Body, string> = {
     sedan: "M3 13l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5v4a1 1 0 0 1-1 1h-1a2 2 0 1 1-4 0H8a2 2 0 1 1-4 0H3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1zm3-1h12l-1.4-3.5H7.4L6 12z",
-    suv: "M2 11l2-4a2 2 0 0 1 2-1h9l3 4h2a2 2 0 0 1 2 2v4h-2a2 2 0 1 1-4 0H8a2 2 0 1 1-4 0H2v-5zm4-1h8l-1.8-2.5H6.8L6 10z",
+    suv: "M5 4h9l1 2h2v3h2a2 2 0 0 1 2 2v5h-2a2 2 0 1 1-4 0H9a2 2 0 1 1-4 0H3v-8l2-4zm1 2l-1.2 3H14l-1-3H6z",
     truck: "M1 8h12v8h1a2 2 0 1 1 4 0h5v-5l-3-4h-4V8H1zm14 1h3l2 2.6V12h-5V9z",
     ev: "M4 12l2-5a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 5v4h-1a2 2 0 1 1-4 0H9a2 2 0 1 1-4 0H4v-4zm8-4l-2 4h2l-1 3 3-4h-2l1-3h-1z",
   };

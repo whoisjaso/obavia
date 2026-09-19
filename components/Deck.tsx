@@ -42,7 +42,7 @@ export function Deck({ cards, locale, onTalk, renderIcon, renderRing }: {
   locale: Locale;
   onTalk: (card: VehicleCard) => void;
   renderIcon: (body: Body, size: number) => React.ReactNode;
-  renderRing: (value: number, size: number) => React.ReactNode;
+  renderRing: (value: number, size: number, fit: VehicleCard["fit"]["fit"]) => React.ReactNode;
 }) {
   const t = copy[locale];
   const [tab, setTab] = useState<"picks" | "saved">("picks");
@@ -106,7 +106,7 @@ export function Deck({ cards, locale, onTalk, renderIcon, renderRing }: {
               {cards.map((c, k) => <span key={c.id} className={k < i ? "done" : k === i ? "now" : ""} />)}
             </div>
             <div className="swipe-stack">
-              {cards[i + 1] && <div className="vcard under" aria-hidden><div className={`vcard-art ${cards[i + 1].body}`}>{renderIcon(cards[i + 1].body, 120)}</div></div>}
+              {cards[i + 1] && <div className="vcard under" aria-hidden><div className={`vcard-art ${cards[i + 1].body}`}>{renderIcon(cards[i + 1].body, 72)}</div></div>}
               <div
                 className={`vcard ${lean} ${fly ? "fly" : ""}`}
                 style={{ transform: `translateX(${x}px) rotate(${rot}deg)`, transition: fly || drag === 0 ? "transform 0.26s cubic-bezier(0.2,0.8,0.2,1)" : "none" }}
@@ -114,7 +114,7 @@ export function Deck({ cards, locale, onTalk, renderIcon, renderRing }: {
                 data-testid="vcard" data-id={card.id} data-fit={card.fit.fit}
               >
                 <div className={`vcard-art ${card.body}`}>
-                  {renderIcon(card.body, 120)}
+                  {renderIcon(card.body, 72)}
                   <span className="stamp yes">{t.save}</span>
                   <span className="stamp no">{t.pass}</span>
                 </div>
@@ -125,14 +125,14 @@ export function Deck({ cards, locale, onTalk, renderIcon, renderRing }: {
                       <div className="vcard-title">{card.title}</div>
                       <div className="vcard-sub">{t.asks} {money(card.priceLow, locale)}–{money(card.priceHigh, locale)}</div>
                     </div>
-                    {renderRing(card.fit.score, 64)}
+                    {renderRing(card.fit.score, 64, card.fit.fit)}
                   </div>
                 </div>
               </div>
             </div>
             <div className="deck-actions">
               <button type="button" className="round no" aria-label={t.pass} data-testid="pass" onClick={() => decide("left")}>✕</button>
-              <span className="seen">{t.seen(i + 1, total)}</span>
+              <span className="seen" aria-live="polite">{t.seen(i + 1, total)}</span>
               <button type="button" className="round yes" aria-label={t.save} data-testid="save" onClick={() => decide("right")}>♥</button>
             </div>
           </>
