@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import type { CheckVerdict, DocumentKind, Locale } from "@/lib/domain/types";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { currentStaffId } from "@/lib/auth";
-import * as store from "@/lib/store/memory";
+import { store, AuthzError } from "@/lib/store";
 import { StateGrid } from "@/components/StateGrid";
 import { recordDeliveryAction, runPacketCheck, sendInvite, uploadDocument, uploadRegistrationEvidence } from "@/app/actions";
 
@@ -21,16 +21,18 @@ export default async function DealPage({ params }: { params: Promise<{ locale: L
   const staff = await currentStaffId();
   let deal;
   try {
-    deal = store.getDealForStaff(staff, id);
+    deal = await store.getDealForStaff(staff, id);
   } catch {
     notFound(); // AC-1: cross-tenant URL yields nothing, not a hint
   }
-  const docs = store.listDocuments(deal.id);
-  const check = store.getCheck(deal.lastCheckId);
-  const rel = store.getRelationshipForDeal(deal.id);
-  const deliveries = store.listDeliveries(deal.id);
-  const regEvidence = store.listRegEvidence(deal.id);
-  const audit = store.listAudit(deal.id);
+  const [docs, check, rel, deliveries, regEvidence, audit] = await Promise.all([
+    store.listDocuments(deal.id),
+    store.getCheck(deal.lastCheckId),
+    store.getRelationshipForDeal(deal.id),
+    store.listDeliveries(deal.id),
+    store.listRegEvidence(deal.id),
+    store.listAudit(deal.id),
+  ]);
   const h = await headers();
   const host = h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? "http";

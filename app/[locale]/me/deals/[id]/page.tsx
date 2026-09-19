@@ -1,7 +1,7 @@
 import type { Locale } from "@/lib/domain/types";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { currentPersonId } from "@/lib/auth";
-import * as store from "@/lib/store/memory";
+import { store, AuthzError } from "@/lib/store";
 import { StateGrid } from "@/components/StateGrid";
 import { disputeAction } from "@/app/actions";
 
@@ -12,13 +12,11 @@ export default async function BuyerStatusPage({ params }: { params: Promise<{ lo
   let deal;
   try {
     if (!personId) throw new Error("no session");
-    deal = store.requireDealForCustomer(personId, id);
+    deal = await store.requireDealForCustomer(personId, id);
   } catch {
     return <p className="empty" role="alert" data-testid="unauthorized">{t.status.unauthorized}</p>; // AC-2, AC-7
   }
-  const org = store.getOrg(deal.orgId);
-  const rel = store.getRelationshipForDeal(deal.id);
-  const docs = store.listDocuments(deal.id);
+  const [org, rel, docs] = await Promise.all([store.getOrg(deal.orgId), store.getRelationshipForDeal(deal.id), store.listDocuments(deal.id)]);
   const vehicle = [deal.vehicle.year, deal.vehicle.make, deal.vehicle.model].filter(Boolean).join(" ") || deal.vehicle.vin;
   return (
     <>

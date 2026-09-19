@@ -21,6 +21,22 @@ import type {
 } from "@/lib/domain/types";
 import { initialStates, transition } from "@/lib/domain/states";
 import { RULE_SET_VERSION, runPresenceCheck, verdictFrom } from "@/lib/domain/check";
+import {
+  AuthzError,
+  OTHER_ORG,
+  OTHER_STAFF,
+  TENANT_ZERO_ORG,
+  TENANT_ZERO_STAFF,
+  contactMatches,
+  deriveToday,
+  type AcceptOutcome,
+  type Inquiry,
+  type NewDealInput,
+  type TodayItem,
+} from "./types";
+
+export { AuthzError, OTHER_ORG, OTHER_STAFF, TENANT_ZERO_ORG, TENANT_ZERO_STAFF };
+export type { AcceptOutcome, Inquiry, NewDealInput, TodayItem };
 
 interface Db {
   orgs: Map<string, DealerOrganization>;
@@ -36,30 +52,10 @@ interface Db {
   inquiries: Map<string, Inquiry>;
 }
 
-export interface Inquiry {
-  id: string;
-  orgId: string;
-  createdAt: string;
-  name: string;
-  contact: string;
-  locale: Locale;
-  vehicle: string;
-  paymentLow: number;
-  paymentHigh: number;
-  downPayment: number;
-  creditBand: string;
-  status: "new" | "contacted";
-}
-
 declare global {
   // eslint-disable-next-line no-var
   var __obaviaDb: Db | undefined;
 }
-
-export const TENANT_ZERO_ORG = "org_triplej";
-export const TENANT_ZERO_STAFF = "user_jason";
-export const OTHER_ORG = "org_other";
-export const OTHER_STAFF = "user_other";
 
 function seed(): Db {
   const db: Db = {
@@ -121,13 +117,6 @@ function now() {
 
 function audit(actorId: string, action: string, dealId?: string, detail?: Record<string, unknown>) {
   db().audit.push({ id: randomUUID(), at: now(), actorId, action, dealId, detail });
-}
-
-export class AuthzError extends Error {
-  constructor(msg = "unauthorized") {
-    super(msg);
-    this.name = "AuthzError";
-  }
 }
 
 // ---------- authorization helpers (server-enforced; RLS later) ----------
@@ -193,13 +182,6 @@ export function getPerson(personId: string) {
   return db().people.get(personId) ?? null;
 }
 
-// Today mode: the things that need a human, derived from state.
-export interface TodayItem {
-  dealId: string;
-  title: string;
-  reasonKey: "no_check" | "review_required" | "blocker" | "invite_pending" | "not_invited" | "registration_ready" | "disputed" | "new_inquiry";
-  inquiry?: Inquiry;
-}
 export function createInquiry(input: Omit<Inquiry, "id" | "orgId" | "createdAt" | "status">): Inquiry {
   // Pilot: every buyer inquiry routes to tenant zero. Real routing needs
   // dealer inventory and consent records.
@@ -213,36 +195,10 @@ export function listInquiries(userId: string): Inquiry[] {
   return [...db().inquiries.values()].filter((i) => i.orgId === orgId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 export function todayForStaff(userId: string): TodayItem[] {
-  const items: TodayItem[] = [];
-  for (const inq of listInquiries(userId)) {
-    if (inq.status !== "new") continue;
-    items.push({ dealId: "", title: `${inq.name} · ${inq.vehicle}`, reasonKey: "new_inquiry", inquiry: inq });
-    if (items.length >= 5) return items;
-  }
-  for (const deal of listDealsForStaff(userId)) {
-    const vehicleLabel =
-      [deal.vehicle.year, deal.vehicle.make, deal.vehicle.model].filter(Boolean).join(" ") || deal.vehicle.vin;
-    const title = `${deal.buyer.name} · ${vehicleLabel}`;
-    const check = getCheck(deal.lastCheckId);
-    const rel = getRelationshipForDeal(deal.id);
-    if (rel?.status === "disputed") items.push({ dealId: deal.id, title, reasonKey: "disputed" });
-    else if (!check) items.push({ dealId: deal.id, title, reasonKey: "no_check" });
-    else if (check.verdict === "BLOCKING_ISSUE_DETECTED") items.push({ dealId: deal.id, title, reasonKey: "blocker" });
-    else if (check.verdict === "REVIEW_REQUIRED") items.push({ dealId: deal.id, title, reasonKey: "review_required" });
-    else if (!rel) items.push({ dealId: deal.id, title, reasonKey: "not_invited" });
-    else if (rel.status === "invited") items.push({ dealId: deal.id, title, reasonKey: "invite_pending" });
-    else if (deal.states.delivery === "delivered" && deal.states.registration === "not_ready")
-      items.push({ dealId: deal.id, title, reasonKey: "registration_ready" });
-    if (items.length >= 5) break;
-  }
-  return items;
+  return deriveToday(listInquiries(userId), listDealsForStaff(userId), getCheck, getRelationshipForDeal);
 }
 
 // ---------- writes ----------
-export interface NewDealInput {
-  vehicle: Vehicle;
-  buyer: { name: string; phone?: string; email?: string; preferredLocale: Locale };
-}
 export function createDeal(userId: string, input: NewDealInput): Deal {
   const orgId = orgForStaff(userId);
   if (!orgId) throw new AuthzError();
@@ -330,16 +286,12 @@ export function inviteCustomer(userId: string, dealId: string): DealerCustomerRe
   return rel;
 }
 
-export type AcceptOutcome = { ok: true; personId: string; dealId: string } | { ok: false; reason: "invalid" | "expired" | "contact_mismatch" };
-
 export function respondToInvite(token: string, contact: string, decision: "accept" | "decline"): AcceptOutcome {
   const rel = getRelationshipByToken(token);
   if (!rel) return { ok: false, reason: "invalid" };
   if (rel.status !== "invited" || rel.expiresAt < now()) return { ok: false, reason: "expired" };
   const person = db().people.get(rel.personId);
-  const norm = (s?: string) => (s ?? "").replace(/\D/g, "").toLowerCase() || (s ?? "").trim().toLowerCase();
-  const matches = norm(contact) !== "" && (norm(contact) === norm(person?.phone) || contact.trim().toLowerCase() === (person?.email ?? "").toLowerCase());
-  if (!matches) return { ok: false, reason: "contact_mismatch" };
+  if (!contactMatches(contact, person ?? null)) return { ok: false, reason: "contact_mismatch" };
   rel.status = decision === "accept" ? "accepted" : "declined";
   rel.respondedAt = now();
   audit(rel.personId, `invite.${rel.status}`, rel.dealId);

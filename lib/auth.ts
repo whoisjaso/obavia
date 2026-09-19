@@ -2,7 +2,7 @@
 // principal. Supabase Auth replaces this; the store's authorization checks
 // stay exactly where they are.
 import { cookies } from "next/headers";
-import { TENANT_ZERO_STAFF } from "@/lib/store/memory";
+import { TENANT_ZERO_STAFF } from "@/lib/store/types";
 
 export const STAFF_COOKIE = "obavia_staff";
 export const PERSON_COOKIE = "obavia_person";

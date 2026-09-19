@@ -18,3 +18,11 @@ Reuse for S001-A (inferred): rules engine, normalization, evidence model, schema
 
 ## Stack decision (ADR-0005, 2026-09-18)
 TypeScript · Next.js App Router on Vercel · Supabase Postgres/RLS/Storage/Auth · Apohenia core forked as an internal package (rules, normalization, extraction policy, state enums) · Vitest (unit/parity) · Playwright (journeys, DOA/tenant-isolation) · claims-registry lint. Data home (own Supabase project vs Apohenia's) pending next ADR.
+
+## Persistence (S00P, 2026-09-19)
+- `lib/store/types.ts` defines the `Store` interface; `lib/store/index.ts` picks Postgres when `DATABASE_URL` is set, memory otherwise. Pages and actions import only `@/lib/store`.
+- `lib/store/pg.ts` uses postgres.js with `prepare: false` (Supabase transaction pooler). Authorization is enforced in the store before any row is returned; RLS (`supabase/migrations/0001_init.sql`) is the second wall for future direct client access. `auth.uid()` maps to membership user id (staff) or person id (customer).
+- Ids stay text with the app's prefixes (`deal_`, `person_`, `rel_`, `inq_`). Deal states are one jsonb column validated by the transition table in code.
+- Tests: `tests/db/pg.test.ts` applies the migration plus `tests/db/auth_shim.sql` to a disposable Postgres (`npm run test:db`, local Postgres 16 on 5433 in the cloud session). Never apply the shim to Supabase.
+- Open: no Obavia Supabase project exists yet (2-free-project limit on the visible org). Migration is ready to apply with `supabase db push` or the MCP `apply_migration` once the project exists.
+

@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { Locale } from "@/lib/domain/types";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { currentStaffId } from "@/lib/auth";
-import { listDealsForStaff } from "@/lib/store/memory";
+import { store } from "@/lib/store";
 
 export default async function WorkspacesPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   const t = getDictionary(locale);
-  const deals = listDealsForStaff(await currentStaffId());
+  const deals = await store.listDealsForStaff(await currentStaffId());
   return (
     <>
       <div className="row between">

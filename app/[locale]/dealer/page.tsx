@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Locale } from "@/lib/domain/types";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { currentStaffId } from "@/lib/auth";
-import { todayForStaff, getOrg, orgForStaff } from "@/lib/store/memory";
+import { store } from "@/lib/store";
 
 const reasons: Record<Locale, Record<string, string>> = {
   en: {
@@ -31,8 +31,8 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params;
   const t = getDictionary(locale);
   const staff = await currentStaffId();
-  const org = getOrg(orgForStaff(staff) ?? "");
-  const items = todayForStaff(staff);
+  const org = await store.getOrg((await store.orgForStaff(staff)) ?? "");
+  const items = await store.todayForStaff(staff);
   const date = new Date().toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" });
   return (
     <>
