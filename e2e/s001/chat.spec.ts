@@ -20,7 +20,14 @@ test("buyer flow: Good credit, $500 down, $400/mo, Tesla Model 3 → honest scor
   await expect(hero).toContainText("Tesla Model 3");
   await expect(hero).toHaveAttribute("data-fit", /stretch|unlikely/);
   await expect(page.getByTestId("score")).toBeVisible();
-  await expect(page.getByTestId("alts")).toBeVisible();
+  await expect(page.getByTestId("deck")).toBeVisible();
+  const firstPick = await page.getByTestId("vcard").getAttribute("data-id");
+  await page.getByTestId("save").click();
+  await page.getByTestId("pass").click();
+  await page.getByTestId("tab-saved").click();
+  await expect(page.getByTestId("saved-row")).toHaveCount(1);
+  expect(firstPick).toBeTruthy();
+  await page.getByTestId("tab-picks").click();
   await hero.locator("summary").click();
   await expect(hero.locator(".why li").first()).toBeVisible();
   const body = (await page.textContent("body")) ?? "";

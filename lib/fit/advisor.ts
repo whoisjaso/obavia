@@ -25,7 +25,10 @@ export interface VehicleCard {
   estimate: PaymentEstimate;
   fit: FitAssessment;
   primary: boolean; // the one the buyer asked for
+  body: MarketEntry["body"];
 }
+
+export interface AdviseOptions { alternatives?: number }
 
 export interface AdvisorResult {
   profile: BuyerProfile;
@@ -46,7 +49,7 @@ function bandOf(p: BuyerProfile): RateBand | null {
   return null;
 }
 
-export function advise(profile: BuyerProfile, latestText: string, locale: Locale): AdvisorResult {
+export function advise(profile: BuyerProfile, latestText: string, locale: Locale, opts: AdviseOptions = {}): AdvisorResult {
   const p = extractProfile(latestText, profile);
   const vehicle = findVehicle(latestText) ?? (p.desiredVehicle ? findVehicle(p.desiredVehicle) : null);
   if (vehicle) p.desiredVehicle = `${vehicle.make} ${vehicle.model}`;
@@ -74,22 +77,23 @@ export function advise(profile: BuyerProfile, latestText: string, locale: Locale
     const price = midPrice(vehicle);
     const est = estimatePayment(price, down, band!, term);
     const fit = assessFit(est, p, band!);
-    cards.push({ id: vehicle.id, title: label(vehicle), priceLow: vehicle.priceLow, priceHigh: vehicle.priceHigh, estimate: est, fit, primary: true });
+    cards.push({ id: vehicle.id, title: label(vehicle), priceLow: vehicle.priceLow, priceHigh: vehicle.priceHigh, estimate: est, fit, primary: true, body: vehicle.body });
     if (p.monthlyBudget && fit.fit !== "likely") downToReach = downPaymentToReach(p.monthlyBudget, price, band!, term);
   }
 
   const ceiling = maxPrice ?? (vehicle ? midPrice(vehicle) : 20000);
   const rank: Record<string, number> = { likely: 0, stretch: 1, unlikely: 2 };
-  const alts = alternativesUnder(ceiling, vehicle, 6)
+  const want = Math.max(1, Math.min(12, opts.alternatives ?? 3));
+  const alts = alternativesUnder(ceiling, vehicle, want * 2)
     .map((alt) => {
       const price = midPrice(alt);
       const est = estimatePayment(price, down, band!, term);
       const fit = assessFit(est, p, band!);
-      return { id: alt.id, title: label(alt), priceLow: alt.priceLow, priceHigh: alt.priceHigh, estimate: est, fit, primary: false } as VehicleCard;
+      return { id: alt.id, title: label(alt), priceLow: alt.priceLow, priceHigh: alt.priceHigh, estimate: est, fit, primary: false, body: alt.body } as VehicleCard;
     })
     .filter((c) => !p.monthlyBudget || c.fit.fit !== "unlikely")
     .sort((a, b) => rank[a.fit.fit] - rank[b.fit.fit] || a.estimate.paymentHigh - b.estimate.paymentHigh)
-    .slice(0, 3);
+    .slice(0, want);
   cards.push(...alts);
 
   const primary = cards.find((c) => c.primary);

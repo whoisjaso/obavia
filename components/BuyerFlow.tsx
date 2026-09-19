@@ -5,6 +5,7 @@ import type { Locale } from "@/lib/domain/types";
 import type { AdvisorResult, VehicleCard } from "@/lib/fit/advisor";
 import type { CreditBand } from "@/lib/fit/engine";
 import { createInquiryAction } from "@/app/actions";
+import { Deck, type Body as DeckBody } from "@/components/Deck";
 
 // One question per screen. Big targets, one number at the end. The engine
 // (via /api/fit) is the only source of numbers; this file only asks and shows.
@@ -183,6 +184,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
   const [err, setErr] = useState(false);
   const [sheet, setSheet] = useState<"closed" | "open" | "sent">("closed");
   const [picked, setPicked] = useState<string | null>(null);
+  const [talkCard, setTalkCard] = useState<VehicleCard | null>(null);
 
   useEffect(() => { window.scrollTo({ top: 0 }); }, [step]);
 
@@ -194,7 +196,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
       const res = await fetch("/api/fit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ locale, creditBand: next.creditBand, downPayment: next.downPayment, monthlyBudget: next.monthlyBudget, termMonths: next.termMonths, vehicle: next.vehicle ?? "" }),
+        body: JSON.stringify({ locale, creditBand: next.creditBand, downPayment: next.downPayment, monthlyBudget: next.monthlyBudget, termMonths: next.termMonths, vehicle: next.vehicle ?? "", alternatives: 8 }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const r = (await res.json()) as AdvisorResult;
@@ -330,7 +332,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
             <div className="crunch"><p className="error">{t.result.error}</p><button type="button" className="cta" onClick={() => run(a)}>{t.next}</button></div>
           )}
           {!busy && result && result.cards.length > 0 && (
-            <Result result={result} locale={locale} t={t} onTalk={() => setSheet("open")} onAdjust={() => setStep("down")} onAnother={() => setStep("car")} onRestart={restart} />
+            <Result result={result} locale={locale} t={t} onTalk={(c) => { setTalkCard(c ?? null); setSheet("open"); }} onAdjust={() => setStep("down")} onAnother={() => setStep("car")} onRestart={restart} />
           )}
           {!busy && result && result.cards.length === 0 && (
             <div className="crunch"><p>{result.summary}</p><button type="button" className="cta" onClick={() => setStep("monthly")}>{t.result.adjust}</button></div>
@@ -339,7 +341,7 @@ export function BuyerFlow({ locale }: { locale: Locale }) {
       )}
 
       {sheet === "open" && result && (
-        <InquirySheet locale={locale} t={t} hero={heroOf(result)} a={a} onClose={() => setSheet("closed")} onSent={() => setSheet("sent")} />
+        <InquirySheet locale={locale} t={t} hero={talkCard ?? heroOf(result)} a={a} onClose={() => setSheet("closed")} onSent={() => setSheet("sent")} />
       )}
       {sheet === "sent" && (
         <div className="scrim" role="presentation" onClick={() => setSheet("closed")}>
@@ -387,7 +389,7 @@ function heroOf(r: AdvisorResult): VehicleCard {
   return r.cards.find((c) => c.primary) ?? r.cards[0];
 }
 
-function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: { result: AdvisorResult; locale: Locale; t: Copy; onTalk: () => void; onAdjust: () => void; onAnother: () => void; onRestart: () => void }) {
+function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: { result: AdvisorResult; locale: Locale; t: Copy; onTalk: (card?: VehicleCard) => void; onAdjust: () => void; onAnother: () => void; onRestart: () => void }) {
   const hero = heroOf(result);
   const rest = result.cards.filter((c) => c !== hero);
   const e = hero.estimate;
@@ -415,23 +417,20 @@ function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: {
       </div>
 
       {rest.length > 0 && (
-        <div className="fits" data-testid="alts">
+        <div className="fits-deck">
           <p className="eyebrow">{t.result.fits}</p>
-          {rest.map((c, i) => (
-            <div key={c.id} className={`alt ${c.fit.fit}`} style={{ animationDelay: `${120 + i * 90}ms` }} data-testid="fitcard" data-fit={c.fit.fit}>
-              <Ring value={c.fit.score} size={48} />
-              <div className="alt-body">
-                <div className="alt-pay">{money(c.estimate.paymentLow, locale)}–{money(c.estimate.paymentHigh, locale)}<span className="unit">{t.result.perMonth}</span></div>
-                <div className="alt-title">{c.title}</div>
-              </div>
-              <span className={`fitpill ${c.fit.fit}`}>{t.result.fit[c.fit.fit]}</span>
-            </div>
-          ))}
+          <Deck
+            cards={rest}
+            locale={locale}
+            onTalk={(c) => onTalk(c)}
+            renderIcon={(body, size) => <BodyIcon body={body} size={size} />}
+            renderRing={(value, size) => <Ring value={value} size={size} />}
+          />
         </div>
       )}
 
       <div className="actions">
-        <button type="button" className="cta" data-testid="talk" onClick={onTalk}>{t.result.talk}</button>
+        <button type="button" className="cta" data-testid="talk" onClick={() => onTalk()}>{t.result.talk}</button>
         <div className="row2">
           <button type="button" className="ghost" onClick={onAdjust}>{t.result.adjust}</button>
           <button type="button" className="ghost" onClick={onAnother}>{t.result.another}</button>
@@ -492,14 +491,15 @@ function Gauge({ band }: { band: CreditBand }) {
   );
 }
 
-function BodyIcon({ body }: { body: Body }) {
+function BodyIcon({ body, size = 40 }: { body: DeckBody; size?: number }) {
+  const key: Body = body === "hatch" || body === "coupe" ? "sedan" : body === "minivan" ? "suv" : body;
   const d: Record<Body, string> = {
     sedan: "M3 13l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5v4a1 1 0 0 1-1 1h-1a2 2 0 1 1-4 0H8a2 2 0 1 1-4 0H3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1zm3-1h12l-1.4-3.5H7.4L6 12z",
     suv: "M2 11l2-4a2 2 0 0 1 2-1h9l3 4h2a2 2 0 0 1 2 2v4h-2a2 2 0 1 1-4 0H8a2 2 0 1 1-4 0H2v-5zm4-1h8l-1.8-2.5H6.8L6 10z",
     truck: "M1 8h12v8h1a2 2 0 1 1 4 0h5v-5l-3-4h-4V8H1zm14 1h3l2 2.6V12h-5V9z",
     ev: "M4 12l2-5a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l2 5v4h-1a2 2 0 1 1-4 0H9a2 2 0 1 1-4 0H4v-4zm8-4l-2 4h2l-1 3 3-4h-2l1-3h-1z",
   };
-  return <svg className="bodyicon" viewBox="0 0 24 24" width="40" height="40" aria-hidden><path d={d[body]} /></svg>;
+  return <svg className="bodyicon" viewBox="0 0 24 24" width={size} height={size} aria-hidden><path d={d[key]} /></svg>;
 }
 
 function InquirySheet({ locale, t, hero, a, onClose, onSent }: { locale: Locale; t: Copy; hero: VehicleCard; a: Answers; onClose: () => void; onSent: () => void }) {

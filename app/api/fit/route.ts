@@ -16,6 +16,7 @@ interface FitRequest {
   monthlyBudget?: number;
   termMonths?: number;
   vehicle?: string; // market alias, e.g. "Toyota Camry"; empty = whatever fits
+  alternatives?: number; // how many alternatives to return (1-12)
 }
 
 const BANDS: CreditBand[] = ["deep_subprime", "subprime", "near_prime", "prime", "super_prime"];
@@ -37,6 +38,6 @@ export async function POST(req: Request) {
     termMonths: num(body.termMonths, 84),
   };
   const vehicle = typeof body.vehicle === "string" ? body.vehicle.slice(0, 60) : "";
-  const result: AdvisorResult = advise(profile, vehicle, locale);
+  const result: AdvisorResult = advise(profile, vehicle, locale, { alternatives: num(body.alternatives, 12) });
   return NextResponse.json(result);
 }
