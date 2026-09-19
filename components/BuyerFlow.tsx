@@ -449,7 +449,7 @@ function Result({ result, locale, t, onTalk, onAdjust, onAnother, onRestart }: {
       )}
 
       <div className="actions">
-        <button type="button" className="cta" data-testid="talk" onClick={() => onTalk()}>{t.result.talk}</button>
+        <div className="sticky-cta"><button type="button" className="cta" data-testid="talk" onClick={() => onTalk()}>{t.result.talk}</button></div>
         <div className="row2">
           <button type="button" className="ghost" onClick={onAdjust}>{t.result.adjust}</button>
           <button type="button" className="ghost" onClick={onAnother}>{t.result.another}</button>
