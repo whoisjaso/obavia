@@ -38,3 +38,9 @@ Context: Apohenia's Supabase project (`njzfiodjmbzyfvxusaem`) holds live pilot p
 Decision: Obavia gets its own dedicated Supabase project (free tier for the pilot); Apohenia core enters as code, never as a shared database; tenant zero is a tenant, not the host. Jason authorized Claude to create it.
 Blocker (observed 2026-09-18): Supabase refused creation — the account has reached the 2-active-free-project limit. Options, all Jason's: pause/delete another free project, upgrade the org to Pro (~$25/mo recurring → spend approval), or create the project under a different Supabase account and grant this session access. No project exists yet.
 Consequences: S001-A migrations and RLS/DOA tests cannot start until the project exists. SPEC v0.2 and PLAN.md can still be written.
+
+## ADR-0009 Front end first for S001-A — RECORDED 2026-09-19 (Jason)
+Context: Supabase project creation is blocked (ADR-0008) and Jason said "just build the front end first, skip all this."
+Decision: Build the S001-A screens and journey now against a typed in-memory data layer (`lib/store/memory.ts`) with server-enforced authorization in the same functions the Supabase repository will implement. Session is a cookie stub (`lib/auth.ts`). The packet checker is a presence-only stub behind the same signature the Apohenia rules core will take. No production data, no persistence across restarts.
+Consequences: this is a horizontal layer, not a complete slice; nothing is pilot-ready until the Supabase backend, real auth, storage, and the Apohenia core land. Acceptance criteria AC-1..AC-12 are covered at the store/UI level by unit and Playwright tests, not by RLS. ADR-0003/0004/0006 remain proposed.
+Revisit: when the Obavia Supabase project exists.

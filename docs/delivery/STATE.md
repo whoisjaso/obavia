@@ -1,8 +1,8 @@
 # STATE
-Active slice: S001-A existing-sale workspace (approved 2026-09-18, ADR-0002). SPEC v0.1 draft → v0.2 finalization pending; no PLAN.md, no code yet.
-Branch: kit/build-os (kit on top of legacy main; not yet merged; draft PR to be opened)
+Active slice: S001-A existing-sale workspace (approved 2026-09-18, ADR-0002). Front end built first per ADR-0009 (2026-09-19) on an in-memory store; SPEC v0.2 and PLAN.md still pending; backend pending.
+Branch: kit/build-os (draft PR #2 open against main)
 Last commit: see git log
-Next safe action: Jason clears the Supabase free-project limit (ADR-0008) → interview ADR-0004/0003/0006 → SPEC v0.2 → PLAN.md → finalize SPEC v0.2 → PLAN.md → review packet. No application code before SPEC v0.2 is approved.
+Next safe action: Jason reviews the front end (npm run dev, or preview); then either (a) Supabase org/project → replace lib/store/memory.ts with a Supabase repository + RLS + DOA tests, or (b) fork Apohenia core into packages/ behind runPresenceCheck's signature. Fix Vercel build override so previews deploy.
 Open blockers: repo still public · branch claude/admiring-cray-v05pza still on remote (Jason) · Vercel build override still red (Jason) · ADR-0003/0004/0006 undecided, ADR-0008 data home pending · Apohenia Supabase project njzfiodjmbzyfvxusaem not reachable from this session's Supabase MCP · 5 of 8 research inputs missing (research/SOURCES.md) · Obavia Supabase project creation BLOCKED by 2-free-project limit (Jason: pause/upgrade/other account) · Vercel build override fails on kit pushes.
 Session log:
 - 2026-09-18 kit assembled and committed to kit/build-os via GitHub API (no code written).
@@ -12,3 +12,4 @@ Session log:
 - 2026-09-18 Apohenia repo audited read-only (explorer); facts recorded in docs/architecture/ARCHITECTURE.md. Only paying pilot named in that repo is Triple J itself.
 - 2026-09-18 ADR-0005 RECORDED: web-first; stack = TypeScript, Next.js on Vercel, Supabase, Apohenia core forked as package.
 - 2026-09-18 ADR-0008 RECORDED (own Supabase project). Creation attempted with approval; refused by Supabase free-project limit. Blocked on Jason.
+- 2026-09-19 ADR-0009: front end first. Next.js 16 app at repo root: Today mode, workspace list/new, deal workspace (packet, check, invite, delivery, registration, audit), customer accept, buyer status; EN/ES; in-memory store with server-enforced authz. Verified here: tsc clean; vitest 15/15; claims lint ok; next build ok; Playwright journey 1/1 (AC-1,2,3,4,5,7,8,11 exercised). Not done: persistence, real auth, file storage, Apohenia rules, vPIC, email/SMS send, WCAG audit, native ES review.

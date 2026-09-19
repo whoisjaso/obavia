@@ -8,3 +8,8 @@ coverage/
 *.pem
 *.key
 supabase/.temp/
+out/
+test-results/
+playwright-report/
+*.tsbuildinfo
+next-env.d.ts
