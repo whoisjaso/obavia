@@ -45,6 +45,34 @@
   .ctl:hover{background:#fff}
   .ctl svg{width:13px;height:13px}
 
+  /* film grain lives on the GPU: one tile, jumped 12 times a second */
+  .grain{position:absolute;inset:-60px;pointer-events:none;mix-blend-mode:multiply;opacity:.2;animation:grain 1s steps(1) infinite}
+  @keyframes grain{0%{transform:translate(0,0)}8%{transform:translate(-37px,21px)}17%{transform:translate(18px,-44px)}25%{transform:translate(-52px,-9px)}33%{transform:translate(41px,33px)}42%{transform:translate(-11px,48px)}50%{transform:translate(29px,-27px)}58%{transform:translate(-45px,40px)}67%{transform:translate(7px,-53px)}75%{transform:translate(50px,12px)}83%{transform:translate(-24px,-36px)}92%{transform:translate(35px,46px)}}
+
+  /* integrations */
+  .tools{position:relative;background:linear-gradient(#F6F9FF,#FFFFFF 60%);padding-block:88px 96px;text-align:center;overflow:hidden}
+  .tools .kicker{font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);margin:0 0 18px}
+  .tools h2{font:800 clamp(32px,4.4vw,52px)/1.04 var(--sans);letter-spacing:-.045em;color:var(--ink);margin:0 16px;text-wrap:balance}
+  .tools h2 span{color:#737B8C}
+  .tools .lede{max-width:600px;margin:18px auto 44px;padding-inline:16px;font:400 17px/1.6 var(--sans);color:#4B5468;text-wrap:balance}
+  .belt{overflow:hidden;padding-block:6px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
+  .belt + .belt{margin-top:12px}
+  .track{display:flex;gap:12px;width:max-content;list-style:none;margin:0;padding:0;animation:belt var(--dur,160s) linear infinite}
+  .belt.rev .track{animation-direction:reverse}
+  .belt:hover .track{animation-play-state:paused}
+  @keyframes belt{from{transform:translateX(0)}to{transform:translateX(calc(-50% - 6px))}}
+  .tool{display:inline-flex;align-items:center;gap:10px;height:50px;padding:0 20px 0 14px;border-radius:999px;background:rgba(255,255,255,.86);
+        box-shadow:inset 0 0 0 1px var(--line);font:600 14.5px/1 var(--sans);color:var(--navy);white-space:nowrap}
+  .tool svg{width:20px;height:20px;flex:none}
+  .tool .mono{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex:none;color:#fff;font:800 9.5px/1 var(--sans);letter-spacing:-.02em}
+  .tools .fine{margin:34px 16px 0;font:500 10.5px/1.5 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#737B8C}
+  @media (prefers-reduced-motion:reduce){
+    .grain{animation:none}
+    .track{animation:none;flex-wrap:wrap;justify-content:center;width:auto;padding-inline:16px}
+    .track [aria-hidden]{display:none}
+    .belt{-webkit-mask-image:none;mask-image:none}
+  }
+
   @media (max-width:720px){
     nav{height:60px;gap:12px}
     nav ul{display:none}
@@ -56,9 +84,10 @@
 
 <div class="stage" id="stage">
   <canvas id="sky" aria-hidden="true"></canvas>
+  <div class="grain" id="grain" aria-hidden="true"></div>
 
   <h1 class="sr">Your sales operation. Connected from lead to cash.</h1>
-  <p class="sr">For agency owners generating $100,000 to $1,000,000 per month. Obavia finds the stalled handoff, routes an evidence-backed next move to the right rep, and tracks what happens through to collected payment. The loop: detect, owner, evidence, approve, track, inspect. It repeats on every new opportunity.</p>
+  <p class="sr">For agency owners generating $100,000 to $1,000,000 per month. Word choice is a signal: a client who says Babe Ruth instead of LeBron James, or profit instead of revenue, is telling you what matters to them. Obavia finds the stalled handoff, routes an evidence-backed next move to the right rep, and tracks what happens through to collected payment. The loop: detect, owner, evidence, approve, track, inspect. It repeats on every new opportunity.</p>
   <p class="sr" aria-live="polite" id="caption"></p>
 
   <nav id="nav" aria-label="Primary">
@@ -88,6 +117,15 @@
     <button class="ctl" id="bSkip" type="button"><span>Skip intro</span></button>
   </div>
 </div>
+
+<section class="tools" aria-labelledby="toolsH">
+  <p class="kicker">Integrations</p>
+  <h2 id="toolsH">Your tools. <span>One workflow.</span></h2>
+  <p class="lede">Calls, calendars, CRMs, payments and messages feed one record per opportunity, so the words a client chose follow them from the first call to the collected payment.</p>
+  <div class="belt"><ul class="track" id="beltA"></ul></div>
+  <div class="belt rev"><ul class="track" id="beltB"></ul></div>
+  <p class="fine">Connections are in development. Availability varies by tool.</p>
+</section>
 
 <script>
 (() => {
@@ -137,7 +175,7 @@ function makeGrain(){
   const n=180, c=document.createElement('canvas'); c.width=c.height=n;
   const g=c.getContext('2d'), im=g.createImageData(n,n), r=rng(11);
   for(let i=0;i<n*n;i++){ let v=212+r()*43; if(r()<.004) v=170; im.data[i*4]=v-3; im.data[i*4+1]=v-1; im.data[i*4+2]=v; im.data[i*4+3]=255; }
-  g.putImageData(im,0,0); return ctx.createPattern(c,'repeat');
+  g.putImageData(im,0,0); const pat=ctx.createPattern(c,'repeat'); pat.__src=c.toDataURL(); return pat;
 }
 function makePaper(){
   const n=256, c=document.createElement('canvas'); c.width=c.height=n;
@@ -152,7 +190,7 @@ function makePaper(){
 /* A watercolor cumulus: gaussian lobes + fbm, lit from the upper left,
    with pigment pooling at the edges. */
 function makeCloud(seed){
-  const w=440, h=240, r=rng(seed*97+3);
+  const w=360, h=196, r=rng(seed*97+3);
   const n=4+Math.floor(r()*4), blobs=[];
   for(let i=0;i<n;i++){
     const f=i/(n-1), rad=h*(.19+.21*Math.sin(Math.PI*f)*(.75+.5*r()));
@@ -165,14 +203,14 @@ function makeCloud(seed){
     s=Math.min(s,1.4)*(1-ss(h*.66,h*.9,y));
     const edgeX=Math.min(x,w-x)/(w*.12), edgeY=Math.min(y,h-y)/(h*.12);
     s*=clamp(Math.min(edgeX,edgeY));
-    D[y*w+x]=s*1.05+(fbm(x/44,y/44,seed,5)-.5)*.9-.1;
+    D[y*w+x]=s*1.05+(fbm(x/36,y/36,seed,4)-.5)*.9-.1;
   }
   const c=document.createElement('canvas'); c.width=w; c.height=h;
   const g=c.getContext('2d'), im=g.createImageData(w,h);
   for(let y=0;y<h;y++) for(let x=0;x<w;x++){
     const i=y*w+x, d=D[i], a=ss(.22,.6,d);
     if(a<=0) continue;
-    const ux=Math.max(0,x-7), uy=Math.max(0,y-13), dul=D[uy*w+ux];
+    const ux=Math.max(0,x-6), uy=Math.max(0,y-11), dul=D[uy*w+ux];
     const shade=clamp(.55*ss(.3,1.25,dul)+.45*ss(.35,.98,y/h))*a;
     const e=a*(1-a)*4;
     let R=lerp(255,203,shade*.72), G=lerp(255,215,shade*.72), B=lerp(255,245,shade*.72);
@@ -220,7 +258,7 @@ function block(str, o){
 const LOOP = [
   ['Detect',  'No next step after the handoff'],
   ['Owner',   'Jordan (setter) → Alex (closer)'],
-  ['Evidence','Significance · 74% — AI match'],
+  ['Evidence','“Babe Ruth” ×3 · Significance 74%'],
   ['Approve', 'Manager signs off, in your method'],
   ['Track',   'Contacted, booked, attended'],
   ['Inspect', 'Payment evidence linked'],
@@ -279,10 +317,8 @@ function layout(){
   const S = (str,c,a,b) => block(str,{fs:sfs, weight:700, ls:-.035*sfs, maxW:sw, lh:1.08, color:c, stagger:.075, tIn:a, tOut:b});
   // each line fully evaporates before the next arrives (exit ≈ .65s + .035s/word)
   const story = [
-    [S('Some months, you’re fine.', C.ink, .3, 3.9)],
-    [S('Other months, you’re waiting on a *home run.*', C.ink, 4.8, 8.2)],
-    [S('You can’t fix what you *can’t see.*', C.ink, 9.1, 12.0)],
-    [S('Obavia connects *every stage.*', C.ink, 12.9, 16.0)],
+    [S('Word choice is a *signal.*', C.ink, 10.3, 12.4), S('Repeated words carry weight.', C.slate, 10.8, 12.4)],
+    [S('Obavia carries it through *every stage.*', C.ink, 13.3, 15.9)],
     [S('See where progress stops.', C.ink, 16.8, 19.9), S('Know what to do next.', C.slate, 17.4, 19.9)],
     [S('Then keep it moving.', C.ink, 20.8, 22.9), S('Every opportunity, every week.', C.slate, 21.3, 22.9)],
   ];
@@ -314,9 +350,109 @@ function layout(){
   for(let i=0;i<P.x.length;i++){ const a=Math.max(0,i-1), b=Math.min(P.x.length-1,i+1); const dx=P.x[b]-P.x[a], dy=P.y[b]-P.y[a], d=Math.hypot(dx,dy)||1; P.nx.push(-dy/d); P.ny.push(dx/d); }
   P.total=acc; P.stL=P.stS.map(i=>P.len[i]);
 
-  L = Object.assign(G, {storyCY, story:story.flat(), st, sp, P,
+  const panel = layoutPanel(G);
+  G.needH = Math.max(G.needH, G.navH+16+panel.h+60);
+  L = Object.assign(G, {storyCY, story:story.flat(), st, sp, P, panel,
        logo:{x:(G.m?16:Math.max(16,W/2-670))+(G.m?16:20), y:G.navH/2, r:G.m?14:17}});
   ctaEl.style.top = G.ctaY+'px';
+}
+/* Act I: the Active Listener. Why these words, and not others? */
+const WORDS = [
+  {chosen:'Babe Ruth', n:'×3', alts:['LeBron James','Michael Jordan','Michael Jackson'], t0:4.3},
+  {chosen:'profit',    n:'×4', alts:['revenue','sales','income'],                        t0:6.1},
+];
+function layoutPanel(G){
+  const m=G.m, pw=Math.min(720,W-32), pp=m?16:26, qfs=clamp(W*.021,17,25), rf=m?12.5:13.5, inner=pw-pp*2;
+  const quote=block('“Some months we’re fine. Other months, we’re waiting for someone to pull a *Babe Ruth* and save the quarter.”',
+    {fs:qfs, weight:700, ls:-.02*qfs, maxW:inner, lh:1.36, color:C.ink});
+  let y=pp; const hdrY=y; y+=12+18;
+  const spkY=y; y+=30+16;
+  const qY=y; y+=quote.h+16;
+  const divY=y; y+=1+16;
+  const labY=y; y+=12+12;
+  const rows=WORDS.map(r=>{
+    const items=[], gap=12, lh=32; let x=0, ry=0;
+    const put=(it)=>{ if(x>0 && x+it.w>inner){ x=0; ry+=lh; } it.x=x; it.y=ry; items.push(it); x+=it.w+gap; };
+    ctx.font=`600 ${rf}px ${FONT}`; setLS(0); put({k:'chip', t:r.chosen, w:ctx.measureText(r.chosen).width+26});
+    ctx.font=`500 11px ${MONO}`; put({k:'n', t:r.n, w:ctx.measureText(r.n).width});
+    setLS(.9); ctx.font=`500 9.5px ${MONO}`; put({k:'inst', t:'INSTEAD OF', w:ctx.measureText('INSTEAD OF').width}); setLS(0);
+    ctx.font=`500 ${rf}px ${FONT}`; r.alts.forEach((a,j)=>put({k:'alt', t:a, j, w:ctx.measureText(a).width}));
+    return {r, items, h:ry+28};
+  });
+  rows.forEach(rw=>{ rw.y=y; y+=rw.h+10; }); y+=8;
+  ctx.font=`600 12.5px ${FONT}`; const sigT='Significance · 74% — AI match', sigW=ctx.measureText(sigT).width+36;
+  const noteT='A cue to check with Marcus, not a conclusion.'; ctx.font=`500 12px ${FONT}`; const noteW=ctx.measureText(noteT).width;
+  const sigY=y, noteInline = sigW+16+noteW<=inner; y+=30+(noteInline?0:24);
+  y+=pp;
+  const avail=H-58-(G.navH+16), top=G.navH+16+Math.max(0,(avail-y)/2)*.8;
+  // where the chosen words sit inside the quote, for the highlighter
+  ctx.font=`${quote.weight} ${quote.fs}px ${FONT}`; setLS(quote.ls);
+  const em=[]; quote.lines.forEach((ln,li)=>{ let x=0; for(const w of ln.words){ if(w.em) em.push({x, y:li*quote.lhpx, w:w.w}); x+=w.w+quote.sp; } }); setLS(0);
+  // merge adjacent highlighted words on a line into one stroke
+  const hl=[]; for(const e of em){ const l=hl[hl.length-1]; if(l && l.y===e.y) l.w=e.x+e.w-l.x; else hl.push({...e}); }
+  return {x:W/2-pw/2, y:top, w:pw, h:y, pp, inner, rf, quote, hdrY, spkY, qY, divY, labY, rows, sigY, sigT, sigW, noteT, noteInline, hl};
+}
+function drawListener(t){
+  const pin=eo(ramp(t,.1,.7)), pout=ss(0,1,ramp(t,9.6,10.2)), A=pin*(1-pout); if(A<=0) return;
+  const P=L.panel, x=P.x, y=P.y+(1-pin)*14-pout*12, X=x+P.pp;
+  ctx.save(); ctx.globalAlpha=A;
+  // the card opens only when there is something to show: transcript first, word choice after
+  const hv=lerp(P.qY+P.quote.h+P.pp, P.h, eo(ramp(t,3.95,4.5)));
+  ctx.shadowColor='rgba(40,52,79,.10)'; ctx.shadowBlur=40; ctx.shadowOffsetY=14;
+  rr(x,y,P.w,hv,20); ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fill();
+  ctx.shadowColor='transparent'; ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.stroke();
+  REC('panel',x,y,P.w,hv,A);
+  ctx.save(); rr(x,y,P.w,hv,20); ctx.clip();
+  // header
+  ctx.textAlign='left'; ctx.font=`500 10px ${MONO}`; setLS(1); ctx.fillStyle=C.slate;
+  ctx.fillText('OBAVIA / ACTIVE LISTENER', X, y+P.hdrY+9);
+  const live=t<3.6, lab=live?'LISTENING':'CALL · EXCERPT A'; const lw=ctx.measureText(lab).width;
+  ctx.fillStyle=C.deep; ctx.fillText(lab, x+P.w-P.pp-lw, y+P.hdrY+9); setLS(0);
+  ctx.globalAlpha=A*(live?.55+.45*Math.sin(t*4)**2:1); ctx.beginPath(); ctx.arc(x+P.w-P.pp-lw-9, y+P.hdrY+5.5, 3, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha=A;
+  // speaker + waveform
+  const sy=y+P.spkY+15;
+  ctx.fillStyle=C.peri; ctx.beginPath(); ctx.arc(X+15,sy,15,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=C.navy; ctx.font=`700 10.5px ${FONT}`; ctx.textAlign='center'; ctx.fillText('MH',X+15,sy+3.8); ctx.textAlign='left';
+  ctx.font=`600 13.5px ${FONT}`; ctx.fillText('Marcus · Client', X+40, sy+4.5);
+  const wx=X+40+ctx.measureText('Marcus · Client').width+16, nb=Math.min(28, Math.floor((x+P.w-P.pp-wx)/5));
+  ctx.fillStyle=C.deep;
+  for(let i=0;i<nb;i++){ const talk=t>.5&&t<3.6, h=(talk?.3+.7*vn(i*.6,t*9,21):.18+.1*vn(i*.6,3,21))*16; ctx.fillRect(wx+i*5, sy-h/2, 2, h); }
+  // highlighter swipes under the chosen words, then the transcript
+  const q=P.quote, sw=eo(ramp(t,3.7,4.2));
+  if(sw>0) for(const h of P.hl){ rr(X+h.x-4, y+P.qY+h.y+q.fs*.12, (h.w+8)*sw, q.fs*1.12, 5); ctx.fillStyle='rgba(200,214,252,.95)'; ctx.fill(); }
+  ctx.font=`${q.weight} ${q.fs}px ${FONT}`; setLS(q.ls); ctx.fillStyle=C.ink;
+  const nw=q.lines.reduce((a,l)=>a+l.words.length,0), st=2.8/nw; let k=0;
+  q.lines.forEach((ln,li)=>{ let wx2=X; for(const w of ln.words){ const a=ramp(t,.6+k*st,.6+k*st+.22); if(a>0){ ctx.globalAlpha=A*a; ctx.fillText(w.t, wx2, y+P.qY+li*q.lhpx+q.fs*.98); } wx2+=w.w+q.sp; k++; } });
+  setLS(0); ctx.globalAlpha=A;
+  REC('p-quote', X, y+P.qY, P.inner, q.h, A);
+  // word choice
+  ctx.fillStyle=C.line; ctx.fillRect(X, y+P.divY, P.inner, 1);
+  ctx.globalAlpha=A*ramp(t,4.1,4.4); ctx.font=`500 9.5px ${MONO}`; setLS(1); ctx.fillStyle=C.deep;
+  ctx.fillText('WORD CHOICE', X, y+P.labY+9); setLS(0);
+  for(const rw of P.rows){
+    const t0=rw.r.t0;
+    for(const it of rw.items){
+      const ix=X+it.x, iy=y+rw.y+it.y, mid=iy+14;
+      if(it.k==='chip'){ const a=eo(ramp(t,t0,t0+.35)); if(a<=0) continue; ctx.globalAlpha=A*a;
+        rr(ix,iy,it.w,28,14); ctx.fillStyle=C.peri; ctx.fill(); ctx.fillStyle=C.navy; ctx.font=`600 ${P.rf}px ${FONT}`; ctx.fillText(it.t, ix+13, mid+P.rf*.36); }
+      else if(it.k==='n'){ const a=ramp(t,t0+.15,t0+.45); ctx.globalAlpha=A*a; ctx.fillStyle=C.navy; ctx.font=`500 11px ${MONO}`; ctx.fillText(it.t, ix, mid+4); }
+      else if(it.k==='inst'){ const a=ramp(t,t0+.25,t0+.55); ctx.globalAlpha=A*a*.9; ctx.fillStyle=C.slate; ctx.font=`500 9.5px ${MONO}`; setLS(.9); ctx.fillText(it.t, ix, mid+3.5); setLS(0); }
+      else { const a=ramp(t,t0+.4+it.j*.2,t0+.7+it.j*.2), sk=eo(ramp(t,t0+1.3+it.j*.12,t0+1.65+it.j*.12)); if(a<=0) continue;
+        ctx.globalAlpha=A*a*lerp(1,.5,sk); ctx.fillStyle=C.slate; ctx.font=`500 ${P.rf}px ${FONT}`; ctx.fillText(it.t, ix, mid+P.rf*.36);
+        if(sk>0){ ctx.strokeStyle=C.slate; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(ix-1, mid+1); ctx.lineTo(ix-1+(it.w+2)*sk, mid); ctx.stroke(); } }
+      REC('p-'+rw.r.chosen+it.k+(it.j??''), ix, iy+(it.k==='chip'?0:6), it.w, it.k==='chip'?28:16, A);
+    }
+  }
+  // significance: a cue to check, never a verdict
+  const sa=eo(ramp(t,7.6,8.1)); ctx.globalAlpha=A*sa;
+  const gy=y+P.sigY+(1-sa)*6;
+  rr(X,gy,P.sigW,30,15); ctx.fillStyle='#EEF3FF'; ctx.fill(); ctx.strokeStyle='#AFC1EE'; ctx.stroke();
+  ctx.fillStyle=C.deep; ctx.beginPath(); ctx.arc(X+15,gy+15,3.2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=C.navy; ctx.font=`600 12.5px ${FONT}`; ctx.fillText(P.sigT, X+26, gy+19.5);
+  ctx.globalAlpha=A*ramp(t,7.9,8.4); ctx.fillStyle=C.slate; ctx.font=`500 12px ${FONT}`;
+  const nx=P.noteInline?X+P.sigW+16:X, ny=P.noteInline?gy+19.5:gy+30+18; ctx.fillText(P.noteT, nx, ny);
+  REC('p-sig', X, gy, P.sigW, 30, A*sa);
+  ctx.restore(); ctx.restore();
 }
 function pathAt(l){
   const P=L.P; l=clamp(l,0,P.total);
@@ -338,11 +474,19 @@ function tipL(t){
 /* ============================================================
    RENDER
    ============================================================ */
-function drawSky(t){
-  const g=ctx.createLinearGradient(0,0,0,H);
+let bg=null;
+function bakeBg(){
+  bg=document.createElement('canvas'); bg.width=cv.width; bg.height=cv.height;
+  const b=bg.getContext('2d'); b.setTransform(DPR,0,0,DPR,0,0);
+  const g=b.createLinearGradient(0,0,0,H);
   g.addColorStop(0,'#DCE6FD'); g.addColorStop(.45,'#F2F6FF'); g.addColorStop(.8,'#F7F9FF'); g.addColorStop(1,'#E6EDFD');
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  b.fillStyle=g; b.fillRect(0,0,W,H);
+  if(paperPat){ b.globalCompositeOperation='multiply'; b.globalAlpha=.5; b.fillStyle=paperPat; b.fillRect(0,0,W,H); b.globalAlpha=1; b.globalCompositeOperation='source-over'; }
+  const v=b.createRadialGradient(W/2,H*.45,Math.min(W,H)*.3,W/2,H*.45,Math.max(W,H)*.85);
+  v.addColorStop(0,'rgba(168,188,236,0)'); v.addColorStop(1,'rgba(168,188,236,.16)');
+  b.fillStyle=v; b.fillRect(0,0,W,H);
 }
+function drawSky(){ if(bg) { ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(bg,0,0); ctx.restore(); } }
 function cloud(spr,x,y,w,a){
   if(a<=.004||!spr) return;
   const h=w*spr.height/spr.width; ctx.globalAlpha=a; ctx.drawImage(spr,x-w/2,y-h/2,w,h); ctx.globalAlpha=1;
@@ -405,15 +549,13 @@ function drawBlock(b,t){
       const o=b.tOut===Infinity?0:ss(0,1,ramp(t,b.tOut+k*.035,b.tOut+k*.035+.65));
       const a=p*(1-o);
       if(a>.003){
-        const blur=(1-p)*9+o*7;
-        ctx.filter = blur>.35 ? `blur(${blur.toFixed(1)}px)` : 'none';
         ctx.globalAlpha=a; ctx.fillStyle=wd.em?C.deep:b.color;
         ctx.fillText(wd.t, x, base+(1-p)*b.fs*.34-o*b.fs*.3);
       }
       x+=wd.w+b.sp; k++;
     }
   });
-  ctx.filter='none'; ctx.globalAlpha=1; setLS(0);
+  ctx.globalAlpha=1; setLS(0);
 }
 
 function drawLoader(p){
@@ -435,37 +577,6 @@ function drawLoader(p){
   ctx.fillText('VISUAL ASSETS READY', cx, cy+R+72); setLS(0);
 }
 
-function drawLeads(t){
-  if(t<0||t>10.5) return;
-  const y0=L.pathY-34, band=L.m?40:62;
-  for(let i=0;i<24;i++){
-    const e=.2+i*.29, dt=t-e; if(dt<0) continue;
-    const v=70+h2(i,1,3)*60, life=1.2+h2(i,2,3)*2.4, lost=h2(i,3,3)<.8;
-    let x, a=1, r=3.1;
-    if(lost && dt>life){ const d=dt-life; x=-20+life*v+v*(1-Math.exp(-d*1.6))/1.6; a=1-ss(0,1.5,d); r+=d*1.4; }
-    else x=-20+dt*v;
-    const y=y0+(h2(i,4,3)-.5)*2*band+Math.sin(dt*1.3+i)*9;
-    if(a<=0||x>W+20) continue;
-    ctx.globalAlpha=a*.28; ctx.fillStyle='#AFC1EE'; ctx.beginPath(); ctx.arc(x,y,r*2.6,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha=a; orb(x,y,r,a);
-  }
-  ctx.globalAlpha=1;
-}
-function drawHomeRun(t){
-  if(t<5 || t>8) return;
-  const blk=L.story[1], peak=blk.top+blk.h+(L.m?60:70), x0=W*.12, x1=W*.92, y0=L.pathY-20;
-  const pos=p=>({x:lerp(x0,x1,p), y:lerp(y0,y0-40,p)-Math.sin(Math.PI*p)*(y0-peak)});
-  const p=ramp(t,5.1,7.6), fade=1-ss(.78,1,p);
-  for(let k=16;k>=0;k--){
-    const q=p-k*.011; if(q<0) continue;
-    const s=pos(q), a=(1-k/17)*.5*fade;
-    ctx.globalAlpha=a; ctx.fillStyle='#9FB4E6'; ctx.beginPath(); ctx.arc(s.x,s.y,3.4*(1-k/22),0,Math.PI*2); ctx.fill();
-  }
-  const s=pos(p);
-  ctx.globalAlpha=.35*fade; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s.x,s.y,14,0,Math.PI*2); ctx.fill();
-  orb(s.x,s.y,4.6,fade); ctx.globalAlpha=1;
-}
-
 function strokeRun(a,b,boil,style){
   const P=L.P; if(b<=a) return;
   ctx.beginPath(); let first=true;
@@ -483,14 +594,6 @@ function strokeRun(a,b,boil,style){
 }
 function drawThread(t,boil){
   const P=L.P, tip=tipL(t);
-  // ghost route seen through the fog
-  const ghost=ramp(t,9,10.2)*(1-ramp(t,12.2,15.6))*.4;
-  if(ghost>0){
-    ctx.globalAlpha=ghost; ctx.setLineDash([2,7]); ctx.lineCap='round';
-    strokeRun(0,P.total,boil,{c:C.deep,w:1.3,wob:.4,dx:0,dy:0}); ctx.setLineDash([]);
-    for(const s of L.st){ ctx.strokeStyle=C.deep; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(s.x,s.y,7,0,Math.PI*2); ctx.stroke(); }
-    ctx.globalAlpha=1;
-  }
   if(tip<=0) return;
   const s2=P.stL[2], s3=P.stL[3], leak=t>16.95;
   ctx.lineCap='round'; ctx.lineJoin='round';
@@ -561,16 +664,8 @@ function drawStations(t){
     ctx.fillText(txt, W/2, cy); REC('cohort', W/2-ctx.measureText(txt).width/2, cy-f*.8, ctx.measureText(txt).width, f, cap);
     setLS(0); ctx.globalAlpha=1; }
 }
-function fogRow(t){
-  const P=L.P, a0=ramp(t,8.2,9.8)*.85; if(a0<=0) return;
-  const w=Math.max(W/3.6,230);
-  for(let k=0;k<7;k++){
-    const q=pathAt(P.total*(k+.5)/7), Tk=12.2+(k+.5)/7*3.4, lift=ss(Tk-.3,Tk+1,t);
-    cloud(sprites[(k*3)%8], q.x+Math.sin(t*.2+k)*14, q.y+6-lift*26, w, a0*(1-lift));
-  }
-}
 function stallBank(t){
-  const P=L.P, q=pathAt((P.stL[2]+P.stL[3])/2), a0=ramp(t,8.2,9.6)*.95; if(a0<=0) return;
+  const P=L.P, q=pathAt((P.stL[2]+P.stL[3])/2), a0=ramp(t,10.4,11.6)*.95; if(a0<=0) return;
   const part=eio(ramp(t,16.6,18.1)), w=Math.max(L.sp*2.3,210);
   const off=[[-.32,-.12,-1,-1],[.3,.06,1,.4],[0,.22,.2,1]];
   off.forEach(([ox,oy,dx,dy],i)=>{
@@ -632,13 +727,6 @@ function drawOpportunity(t){
   ctx.globalAlpha=a; ctx.strokeStyle=C.navy; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(q.x,q.y,8.5,0,Math.PI*2); ctx.stroke();
   orb(q.x,q.y,5.5,a); ctx.globalAlpha=1;
 }
-function drawGrain(t){
-  ctx.save(); ctx.globalCompositeOperation='multiply';
-  ctx.globalAlpha=.5; ctx.fillStyle=paperPat; ctx.fillRect(0,0,W,H);
-  const f=REDUCED?0:Math.floor(t*12), ox=h2(f,1,9)*180, oy=h2(f,2,9)*180;
-  ctx.globalAlpha=.2; ctx.translate(-ox,-oy); ctx.fillStyle=grainPat; ctx.fillRect(ox,oy,W,H);
-  ctx.restore();
-}
 let domState='';
 function setDom(navA, ctaA){
   const key=navA.toFixed(3)+'|'+ctaA.toFixed(3); if(key===domState) return; domState=key;
@@ -650,7 +738,7 @@ function setDom(navA, ctaA){
 function render(t){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   drawSky(t);
-  if(t < -1.4){ drawLoader(clamp(t+2.4)); drawGrain(t); setDom(0,0); return; }
+  if(t < -1.4){ drawLoader(clamp(t+2.4)); setDom(0,0); return; }
 
   const boil = REDUCED ? 0 : Math.floor(t*8);
   const intro = eo(ramp(t,-1.4,.8));
@@ -664,12 +752,10 @@ function render(t){
   drawThread(t,boil);
   drawFlow(t);
   drawStations(t);
-  drawLeads(t);
-  drawHomeRun(t);
-  fogRow(t);
   stallBank(t);
   layer(CL.near,t,intro,1);
 
+  drawListener(t);
   drawLoop(t);
   drawOpportunity(t);
   for(const b of L.story) drawBlock(b,t);
@@ -684,11 +770,7 @@ function render(t){
     if(a>0){ ctx.globalAlpha=a; ctx.textAlign='center'; ctx.fillStyle=C.ink; ctx.font=`600 26px ${FONT}`; ctx.fillText('100%',W/2,H/2-24+34+48-(1-a)*10); ctx.globalAlpha=1; }
   }
 
-  const v=ctx.createRadialGradient(W/2,H*.45,Math.min(W,H)*.3,W/2,H*.45,Math.max(W,H)*.85);
-  v.addColorStop(0,'rgba(168,188,236,0)'); v.addColorStop(1,'rgba(168,188,236,.16)');
-  ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
-  drawGrain(t);
-  setDom(ramp(t,-.5,.6), eo(ramp(t,.6,1.6)));
+  setDom(ramp(t,-.5,.6), eo(ramp(t,10.4,11.2)));
 }
 
 /* ============================================================
@@ -731,10 +813,11 @@ function pad(freqs,dur=7,gain=.022){
 const NOTES=[523.25,587.33,659.25,783.99,880,1046.5];
 const CUES=[
   [.6, ()=>pad([174.61,261.63,329.63,392],7.5)],
-  [2.1, ()=>whoosh(.9,.035,500,900)], [3.9, ()=>whoosh(.9,.03,480,860)],
-  [5.1, ()=>whoosh(2.4,.07,300,1300)], [5.2, ()=>chime(1318.5,.03)],
-  [8.4, ()=>pad([146.83,220,293.66,349.23],6.2,.02)],
-  [8.5, ()=>whoosh(2.8,.09,180,700)],
+  [3.72, ()=>chime(1318.5,.045)],                       // the highlighter lands on "Babe Ruth"
+  [5.6, ()=>whoosh(.7,.03,900,1500)], [7.0, ()=>whoosh(.7,.03,900,1500)],   // alternatives struck
+  [7.6, ()=>chime(1567.98,.04)],                         // significance
+  [9.7, ()=>whoosh(1.6,.06,300,900)],
+  [10.3, ()=>pad([146.83,220,293.66,349.23],6.2,.02)],
   ...NOTES.map((f,i)=>[TS(i), ()=>chime(f,.065)]),
   [16.6, ()=>whoosh(1.9,.15,240,1800)],
   ...[659.25,783.99,880,987.77,1174.66,1318.51].map((f,k)=>[LT(k), ()=>chime(f,.035)]),
@@ -745,17 +828,20 @@ function fireCues(a,b){ if(!SND.on||b<=a||b-a>1) return; for(const [ct,fn] of CU
 /* ============================================================
    DRIVER
    ============================================================ */
+const SPEED=1.15;                       // the film runs a touch brisker than its authored seconds
 let t=-2.4, prev=-2.4, last=performance.now(), paused=false, ready=false, realP=0, frozen=null;
+let QUALITY=1, onScreen=true, slowFrames=0, sampled=0;
 const hashF=/^#f(\d{1,3})$/.exec(location.hash||'');
 if(hashF) frozen=DUR*Math.min(100,+hashF[1])/100;
 
 function resize(){
-  DPR=Math.min(window.devicePixelRatio||1,1.75);
+  DPR=Math.min(window.devicePixelRatio||1,1.5)*QUALITY;
   W=document.documentElement.clientWidth; H=innerHeight;
   layout();
   for(let i=0;i<5 && L.needH>H+1;i++){ H=Math.ceil(L.needH); layout(); }   // too short: the hero grows and the page scrolls
   stage.style.height=H+'px';
   cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  bakeBg();
 }
 const capEl=document.getElementById('caption'); let capLast='';
 function caption(tt){
@@ -765,10 +851,16 @@ function caption(tt){
 }
 const bSkip=document.getElementById('bSkip');
 function frame(now){
-  const dt=Math.min(.05,(now-last)/1000); last=now;
+  const raw=(now-last)/1000, dt=Math.min(.05,raw); last=now;
+  requestAnimationFrame(frame);
+  if(!onScreen || document.hidden) return;              // nothing to draw while nobody is looking
+  if(ready && sampled<50 && QUALITY===1){                // slow device: drop to 1x pixels once
+    sampled++; if(raw>.026) slowFrames++;
+    if(sampled===50 && slowFrames>18){ QUALITY=.67; resize(); }
+  }
   if(!paused){
-    if(t<-1.4){ t=Math.min(-2.4+realP, t+dt/1.7); if(realP>=1 && t>=-1.4-1e-3) t=-1.4; if(REDUCED&&ready) t=DUR; }
-    else t+=dt;
+    if(t<-1.4){ t=Math.min(-2.4+realP, t+dt/1.0); if(realP>=1 && t>=-1.4-1e-3) t=-1.4; if(REDUCED&&ready) t=DUR; }
+    else t+=dt*SPEED;
   }
   const tt = (frozen!=null && ready) ? frozen : t;
   fireCues(prev,tt); prev=tt;
@@ -776,12 +868,12 @@ function frame(now){
   if(ready) caption(tt);
   const lbl = tt<DUR ? 'Skip intro' : 'Replay';
   if(bSkip.textContent!==lbl) bSkip.firstElementChild.textContent=lbl;
-  requestAnimationFrame(frame);
 }
 
 async function boot(){
   resize();
-  grainPat=makeGrain(); paperPat=makePaper(); realP=.1;
+  grainPat=makeGrain(); paperPat=makePaper(); bakeBg(); realP=.1;
+  document.getElementById('grain').style.background=`url(${grainPat.__src}) repeat`;
   requestAnimationFrame(frame);
   try{
     await Promise.race([
@@ -794,6 +886,24 @@ async function boot(){
   ready=true;
 }
 addEventListener('resize',resize);
+if('IntersectionObserver' in window) new IntersectionObserver(e=>{ onScreen=e[0].isIntersecting; }).observe(stage);
+
+/* integrations belt: every tool, twice, so the loop is seamless */
+const TOOLS = [[{"n":"Zoom","c":"#0B5CFF","p":"M5.033 14.649H.743a.74.74 0 0 1-.686-.458.74.74 0 0 1 .16-.808L3.19 10.41H1.06A1.06 1.06 0 0 1 0 9.35h3.957c.301 0 .57.18.686.458a.74.74 0 0 1-.161.808L1.51 13.59h2.464c.585 0 1.06.475 1.06 1.06zM24 11.338c0-1.14-.927-2.066-2.066-2.066-.61 0-1.158.265-1.537.686a2.061 2.061 0 0 0-1.536-.686c-1.14 0-2.066.926-2.066 2.066v3.311a1.06 1.06 0 0 0 1.06-1.06v-2.251a1.004 1.004 0 0 1 2.013 0v2.251c0 .586.474 1.06 1.06 1.06v-3.311a1.004 1.004 0 0 1 2.012 0v2.251c0 .586.475 1.06 1.06 1.06zM16.265 12a2.728 2.728 0 1 1-5.457 0 2.728 2.728 0 0 1 5.457 0zm-1.06 0a1.669 1.669 0 1 0-3.338 0 1.669 1.669 0 0 0 3.338 0zm-4.82 0a2.728 2.728 0 1 1-5.458 0 2.728 2.728 0 0 1 5.457 0zm-1.06 0a1.669 1.669 0 1 0-3.338 0 1.669 1.669 0 0 0 3.338 0z"},{"n":"Google Meet","c":"#00897B","p":"M5.53 2.13 0 7.75h5.53zm.398 0v5.62h7.608v3.65l5.47-4.45c-.014-1.22.031-2.25-.025-3.46-.148-1.09-1.287-1.47-2.236-1.36zM23.1 4.32c-.802.295-1.358.995-2.047 1.49-2.506 2.05-4.982 4.12-7.468 6.19 3.025 2.59 6.04 5.18 9.065 7.76 1.218.671 1.428-.814 1.328-1.64v-13a.828.828 0 0 0-.877-.825zM.038 8.15v7.7h5.53v-7.7zm13.577 8.1H6.008v5.62c3.864-.006 7.737.011 11.58-.009 1.02-.07 1.618-1.12 1.468-2.07v-2.51l-5.47-4.68v3.65zm-13.577 0c.02 1.44-.041 2.88.033 4.31.162.948 1.158 1.43 2.047 1.31h3.464v-5.62z"},{"n":"Microsoft Teams","c":"#6264A7","m":"T"},{"n":"Webex","c":"#000000","p":"M21.78 7.376c.512 1.181.032 2.644-1.11 3.106-2.157.888-3-1.295-3-1.295-.236-.55-.727-1.496-1.335-1.496-.204 0-.503 0-.94.844-.229.443-.434 1.185-.616 1.84l-.09.32c-.373-1.587-.821-3.454-1.536-4.816-.195-.38-.42-.74-.673-1.08a5.135 5.135 0 0 1 1.743-1.337 4.891 4.891 0 0 1 2.112-.463c1.045 0 2.765.338 4.227 2.227.167.206.317.424.448.654.278.441.52.904.726 1.383l.043.113zM.02 8.4C-.15 7.105.8 5.845 1.953 5.755c1.794-.157 2.36 1.385 2.455 1.89l.022.137c.07.44.29 1.838.48 2.744.078.4.244 1.013.353 1.416l.006.022.026.092c.11.4.232.799.362 1.193.185.548.399 1.085.641 1.61.47.955.93 1.45 1.367 1.45.203 0 .512 0 .96-.878.283-.59.512-1.208.684-1.845.373 1.598.811 3.128 1.495 4.456.205.406.444.794.715 1.16a5.124 5.124 0 0 1-1.742 1.338 4.88 4.88 0 0 1-2.112.461c-1.548 0-3.727-.698-5.339-4.005a22.407 22.407 0 0 1-1.078-2.824 26.848 26.848 0 0 1-.693-2.656 48.56 48.56 0 0 1-.215-1.114C.191 9.603.074 8.872.02 8.4zm22.047-2.645-.202-.022h-.052c.222.392.421.797.597 1.215l.053.113c.322.76.346 1.614.068 2.391a3.079 3.079 0 0 1-1.552 1.749 2.93 2.93 0 0 1-1.228.28 3.115 3.115 0 0 1-.854-.135c-.299 1.182-.768 2.634-1.195 3.511-.427.877-.93 1.451-1.378 1.451-.192 0-.501 0-.95-.877a10.746 10.746 0 0 1-.683-1.845 38.722 38.722 0 0 1-.396-1.575 12.67 12.67 0 0 1-.136-.598l-.002-.01c-.406-1.778-.865-3.645-1.655-5.142A8.263 8.263 0 0 0 11.52 4.8a5.136 5.136 0 0 0-1.748-1.34A4.892 4.892 0 0 0 7.654 3c-1.036 0-2.754.338-4.217 2.228.466.223.867.562 1.164.984.305.433.499.933.565 1.458.076.563.256 1.654.47 2.688l.001.007c.021.11.042.221.073.342.126-.34.25-.642.38-.955l.112-.271.128-.293c.235-.55.726-1.496 1.324-1.496.213 0 .513 0 .95.844.296.606.532 1.239.706 1.89.138.507.276 1.047.394 1.587.04.148.07.296.101.444l.006.028c.427 1.879.875 3.69 1.644 5.187.159.317.34.622.545.911.15.215.31.422.48.62 1.27 1.45 2.733 1.8 3.843 1.8 1.548 0 3.738-.698 5.35-4.006.822-1.7 1.515-4.208 1.772-5.48.256-1.27.449-2.419.534-3.115.04-.307.023-.618-.051-.918-.075-.299-.205-.579-.382-.825a2.247 2.247 0 0 0-.653-.607 2.143 2.143 0 0 0-.826-.296z"},{"n":"GoTo Meeting","c":"#F68D2E","p":"M21.3 13.72a3.158 3.158 0 0 0-3.462.124.632.632 0 0 1-.682.035l-3.137-1.81a.08.08 0 0 1 0-.137l3.12-1.8a.632.632 0 0 1 .685.036 3.158 3.158 0 0 0 3.47.139A3.194 3.194 0 0 0 22.442 6.1a3.158 3.158 0 0 0-5.924 1.773.633.633 0 0 1-.311.606l-3.136 1.811a.08.08 0 0 1-.118-.068V6.6a.632.632 0 0 1 .372-.573 3.158 3.158 0 1 0-2.64 0 .632.632 0 0 1 .373.573v3.622a.08.08 0 0 1-.119.068L7.804 8.48a.632.632 0 0 1-.311-.605 3.157 3.157 0 1 0-1.307 2.294.633.633 0 0 1 .687-.038l3.12 1.8a.08.08 0 0 1 0 .137L6.854 13.88a.632.632 0 0 1-.683-.035 3.158 3.158 0 0 0-3.461-.124 3.194 3.194 0 0 0-1.143 4.202 3.159 3.159 0 0 0 5.924-1.792.633.633 0 0 1 .31-.61l3.137-1.81a.08.08 0 0 1 .119.068V17.4a.632.632 0 0 1-.372.573 3.158 3.158 0 1 0 2.64 0 .633.633 0 0 1-.373-.573v-3.621a.08.08 0 0 1 .118-.069l3.137 1.812a.631.631 0 0 1 .31.609 3.159 3.159 0 0 0 5.924 1.792A3.194 3.194 0 0 0 21.3 13.72Z"},{"n":"Calendly","c":"#006BFF","p":"M19.655 14.262c.281 0 .557.023.828.064 0 .005-.005.01-.005.014-.105.267-.234.534-.381.786l-1.219 2.106c-1.112 1.936-3.177 3.127-5.411 3.127h-2.432c-2.23 0-4.294-1.191-5.412-3.127l-1.218-2.106a6.251 6.251 0 0 1 0-6.252l1.218-2.106C6.736 4.832 8.8 3.641 11.035 3.641h2.432c2.23 0 4.294 1.191 5.411 3.127l1.219 2.106c.147.252.271.519.381.786 0 .004.005.009.005.014-.267.041-.543.064-.828.064-1.816 0-2.501-.607-3.291-1.306-.764-.676-1.711-1.517-3.44-1.517h-1.029c-1.251 0-2.387.455-3.2 1.278-.796.805-1.233 1.904-1.233 3.099v1.411c0 1.196.437 2.295 1.233 3.099.813.823 1.949 1.278 3.2 1.278h1.034c1.729 0 2.676-.841 3.439-1.517.791-.703 1.471-1.306 3.287-1.301Zm.005-3.237c.399 0 .794-.036 1.179-.11-.002-.004-.002-.01-.002-.014-.073-.414-.193-.823-.349-1.218.731-.12 1.407-.396 1.986-.819 0-.004-.005-.013-.005-.018-.331-1.085-.832-2.101-1.489-3.03-.649-.915-1.435-1.719-2.331-2.395-1.867-1.398-4.088-2.138-6.428-2.138-1.448 0-2.855.28-4.175.841-1.273.543-2.423 1.315-3.407 2.299S2.878 6.552 2.341 7.83c-.557 1.324-.842 2.726-.842 4.175 0 1.448.281 2.855.842 4.174.542 1.274 1.314 2.423 2.298 3.407s2.129 1.761 3.407 2.299c1.324.556 2.727.841 4.175.841 2.34 0 4.561-.74 6.428-2.137a10.815 10.815 0 0 0 2.331-2.396c.652-.929 1.158-1.949 1.489-3.03 0-.004.005-.014.005-.018-.579-.423-1.255-.699-1.986-.819.161-.395.276-.804.349-1.218.005-.009.005-.014.005-.023.869.166 1.692.506 2.404 1.035.685.505.552 1.075.446 1.416C22.184 20.437 17.619 24 12.221 24c-6.625 0-12-5.375-12-12s5.37-12 12-12c5.398 0 9.963 3.563 11.471 8.464.106.341.239.915-.446 1.421-.717.529-1.535.873-2.404 1.034.128.716.128 1.45 0 2.166-.387-.074-.782-.11-1.182-.11-4.184 0-3.968 2.823-6.736 2.823h-1.029c-1.899 0-3.15-1.357-3.15-3.095v-1.411c0-1.738 1.251-3.094 3.15-3.094h1.034c2.768 0 2.552 2.823 6.731 2.827Z"},{"n":"Cal.com","c":"#292929","p":"M2.408 14.488C1.035 14.488 0 13.4 0 12.058c0-1.346.982-2.443 2.408-2.443.758 0 1.282.233 1.691.765l-.66.55a1.343 1.343 0 0 0-1.03-.442c-.93 0-1.44.711-1.44 1.57 0 .86.559 1.557 1.44 1.557.413 0 .765-.147 1.043-.443l.651.573c-.391.51-.929.743-1.695.743zM6.948 10.913h.89v3.49h-.89v-.51c-.185.362-.493.604-1.083.604-.943 0-1.695-.82-1.695-1.826 0-1.007.752-1.825 1.695-1.825.585 0 .898.241 1.083.604zm.026 1.758c0-.546-.374-.998-.964-.998-.568 0-.938.457-.938.998 0 .528.37.998.938.998.586 0 .964-.456.964-.998zM8.467 9.503h.89v4.895h-.89zM9.752 13.937a.53.53 0 0 1 .542-.528c.313 0 .533.242.533.528a.527.527 0 0 1-.533.537.534.534 0 0 1-.542-.537zM14.23 13.839c-.33.403-.832.658-1.426.658a1.806 1.806 0 0 1-1.84-1.826c0-1.007.778-1.825 1.84-1.825.572 0 1.07.241 1.4.622l-.687.577c-.172-.215-.396-.376-.713-.376-.568 0-.938.456-.938.998 0 .541.37.997.938.997.343 0 .58-.179.757-.42zM14.305 12.671c0-1.007.78-1.825 1.84-1.825 1.061 0 1.84.818 1.84 1.825 0 1.007-.779 1.826-1.84 1.826-1.06-.005-1.84-.82-1.84-1.826zm2.778 0c0-.546-.37-.998-.938-.998-.568-.004-.937.452-.937.998 0 .542.37.998.937.998.568 0 .938-.456.938-.998zM24 12.269v2.13h-.89v-1.911c0-.604-.281-.864-.704-.864-.396 0-.678.197-.678.864v1.91h-.89v-1.91c0-.604-.285-.864-.704-.864-.396 0-.744.197-.744.864v1.91h-.89v-3.49h.89v.484c.185-.376.52-.564 1.035-.564.489 0 .898.241 1.123.649.224-.417.554-.65 1.153-.65.731.005 1.299.56 1.299 1.442z"},{"n":"Google Calendar","c":"#4285F4","p":"M18.316 5.684H24v12.632h-5.684V5.684zM5.684 24h12.632v-5.684H5.684V24zM18.316 5.684V0H1.895A1.894 1.894 0 0 0 0 1.895v16.421h5.684V5.684h12.632zm-7.207 6.25v-.065c.272-.144.5-.349.687-.617s.279-.595.279-.982c0-.379-.099-.72-.3-1.025a2.05 2.05 0 0 0-.832-.714 2.703 2.703 0 0 0-1.197-.257c-.6 0-1.094.156-1.481.467-.386.311-.65.671-.793 1.078l1.085.452c.086-.249.224-.461.413-.633.189-.172.445-.257.767-.257.33 0 .602.088.816.264a.86.86 0 0 1 .322.703c0 .33-.12.589-.36.778-.24.19-.535.284-.886.284h-.567v1.085h.633c.407 0 .748.109 1.02.327.272.218.407.499.407.843 0 .336-.129.614-.387.832s-.565.327-.924.327c-.351 0-.651-.103-.897-.311-.248-.208-.422-.502-.521-.881l-1.096.452c.178.616.505 1.082.977 1.401.472.319.984.478 1.538.477a2.84 2.84 0 0 0 1.293-.291c.382-.193.684-.458.902-.794.218-.336.327-.72.327-1.149 0-.429-.115-.797-.344-1.105a2.067 2.067 0 0 0-.881-.689zm2.093-1.931l.602.913L15 10.045v5.744h1.187V8.446h-.827l-2.158 1.557zM22.105 0h-3.289v5.184H24V1.895A1.894 1.894 0 0 0 22.105 0zm-3.289 23.5l4.684-4.684h-4.684V23.5zM0 22.105C0 23.152.848 24 1.895 24h3.289v-5.184H0v3.289z"},{"n":"Acuity","c":"#1D1D1D","m":"A"},{"n":"HighLevel","c":"#155EEF","m":"HL"},{"n":"HubSpot","c":"#FF7A59","p":"M18.164 7.93V5.084a2.198 2.198 0 001.267-1.978v-.067A2.2 2.2 0 0017.238.845h-.067a2.2 2.2 0 00-2.193 2.193v.067a2.196 2.196 0 001.252 1.973l.013.006v2.852a6.22 6.22 0 00-2.969 1.31l.012-.01-7.828-6.095A2.497 2.497 0 104.3 4.656l-.012.006 7.697 5.991a6.176 6.176 0 00-1.038 3.446c0 1.343.425 2.588 1.147 3.607l-.013-.02-2.342 2.343a1.968 1.968 0 00-.58-.095h-.002a2.033 2.033 0 102.033 2.033 1.978 1.978 0 00-.1-.595l.005.014 2.317-2.317a6.247 6.247 0 104.782-11.134l-.036-.005zm-.964 9.378a3.206 3.206 0 113.215-3.207v.002a3.206 3.206 0 01-3.207 3.207z"},{"n":"Salesforce","c":"#00A1E0","m":"S"},{"n":"Pipedrive","c":"#017737","m":"P"},{"n":"Close","c":"#1463FF","m":"C"},{"n":"Zoho","c":"#E42527","p":"M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776zm3.985 4.344a.588.588 0 0 0-.612.603c0 .358.244.61.601.61a.582.582 0 0 0 .607-.608c0-.35-.242-.605-.596-.605zm5.545 0a.588.588 0 0 0-.612.603c0 .358.245.61.602.61a.582.582 0 0 0 .606-.608c0-.35-.24-.605-.596-.605zm-8.537.018a.047.047 0 0 0-.048.047v.085c0 .026.021.047.048.047h.52l-.623.9a.052.052 0 0 0-.009.027v.027c0 .026.021.047.048.047h.815a.047.047 0 0 0 .047-.047v-.085a.047.047 0 0 0-.047-.047h-.55l.606-.9a.05.05 0 0 0 .008-.026v-.028a.047.047 0 0 0-.047-.047zm5.303 0a.047.047 0 0 0-.047.047v1.086c0 .026.02.047.047.047h.135a.047.047 0 0 0 .047-.047v-.454h.545v.454c0 .026.02.047.047.047h.134a.047.047 0 0 0 .047-.047v-1.086a.047.047 0 0 0-.047-.047h-.134a.047.047 0 0 0-.047.047v.453h-.545v-.453a.047.047 0 0 0-.047-.047zm-2.324.164c.25 0 .372.194.372.425 0 .219-.109.425-.358.426-.242 0-.375-.197-.375-.419 0-.235.108-.432.36-.432zm5.545 0c.25 0 .372.194.372.425 0 .219-.108.425-.358.426-.242 0-.374-.197-.374-.419 0-.235.108-.432.36-.432z"},{"n":"Attio","c":"#0E0E0E","m":"A"},{"n":"Keap","c":"#36A635","m":"K"},{"n":"ActiveCampaign","c":"#004CFF","m":"AC"},{"n":"Slack","c":"#4A154B","m":"S"},{"n":"Discord","c":"#5865F2","p":"M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"},{"n":"WhatsApp","c":"#25D366","p":"M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"},{"n":"Telegram","c":"#26A5E4","p":"M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"},{"n":"Messenger","c":"#0866FF","p":"M12 0C5.24 0 0 4.952 0 11.64c0 3.499 1.434 6.521 3.769 8.61a.96.96 0 0 1 .323.683l.065 2.135a.96.96 0 0 0 1.347.85l2.381-1.053a.96.96 0 0 1 .641-.046A13 13 0 0 0 12 23.28c6.76 0 12-4.952 12-11.64S18.76 0 12 0m6.806 7.44c.522-.03.971.567.63 1.094l-4.178 6.457a.707.707 0 0 1-.977.208l-3.87-2.504a.44.44 0 0 0-.49.007l-4.363 3.01c-.637.438-1.415-.317-.995-.966l4.179-6.457a.706.706 0 0 1 .977-.21l3.87 2.505c.15.097.344.094.491-.007l4.362-3.008a.7.7 0 0 1 .364-.13"},{"n":"Gmail","c":"#EA4335","p":"M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"},{"n":"Outlook","c":"#0078D4","m":"O"},{"n":"Google Workspace","c":"#4285F4","m":"G"},{"n":"Microsoft 365","c":"#D83B01","m":"M"},{"n":"Twilio","c":"#F22F46","m":"T"},{"n":"RingCentral","c":"#FF8800","m":"R"},{"n":"Aircall","c":"#00B388","p":"M23.451 5.906a6.978 6.978 0 0 0-5.375-5.39C16.727.204 14.508 0 12 0S7.273.204 5.924.516a6.978 6.978 0 0 0-5.375 5.39C.237 7.26.034 9.485.034 12s.203 4.74.515 6.094a6.978 6.978 0 0 0 5.375 5.39C7.273 23.796 9.492 24 12 24s4.727-.204 6.076-.516a6.978 6.978 0 0 0 5.375-5.39c.311-1.354.515-3.578.515-6.094 0-2.515-.203-4.74-.515-6.094zm-5.873 12.396l-.003.001c-.428.152-1.165.283-2.102.377l-.147.014a.444.444 0 0 1-.45-.271 1.816 1.816 0 0 0-1.296-1.074c-.351-.081-.928-.134-1.58-.134s-1.229.053-1.58.134a1.817 1.817 0 0 0-1.291 1.062.466.466 0 0 1-.471.281 8 8 0 0 0-.129-.012c-.938-.094-1.676-.224-2.105-.377l-.003-.001a.76.76 0 0 1-.492-.713c0-.032.003-.066.005-.098.073-.979.666-3.272 1.552-5.89C8.5 8.609 9.559 6.187 10.037 5.714a1.029 1.029 0 0 1 .404-.26l.004-.002c.314-.106.892-.178 1.554-.178.663 0 1.241.071 1.554.178l.005.002a1.025 1.025 0 0 1 .405.26c.478.472 1.537 2.895 2.549 5.887.886 2.617 1.479 4.91 1.552 5.89.002.032.005.066.005.098a.76.76 0 0 1-.491.713z"},{"n":"Dialpad","c":"#6C3DFF","m":"D"},{"n":"Gong","c":"#8039DF","m":"G"},{"n":"Fathom","c":"#9187FF","p":"M14.185 0c-1.702.008-3.693.467-6.068 1.331C.115 4.244-1.581 7.881 1.33 15.883c2.912 8.002 6.55 9.698 14.552 6.786 8.002-2.913 9.699-6.55 6.786-14.552C20.62 2.491 18.214-.018 14.185 0zm2.77 6.57h1.253a.25.25 0 01.199.098.25.25 0 01.043.217L15.672 17.22a.25.25 0 01-.241.186h-1.254a.25.25 0 01-.242-.315l.169-.628.123-.457 2.486-9.252a.25.25 0 01.241-.185zm-9.184.808h.504a.25.25 0 01.25.25v.844a.25.25 0 01-.25.25h-.428a1.7 1.7 0 00-.258.012.221.221 0 00-.12.048.197.197 0 00-.049.078.886.886 0 00-.043.315v.641h.898a.25.25 0 01.25.25v.844a.25.25 0 01-.25.25h-.898v5.094a.25.25 0 01-.25.25h-.985a.25.25 0 01-.25-.25v-7.23a1.723 1.723 0 01.169-.78 1.395 1.395 0 01.453-.523c.37-.257.826-.341 1.257-.343zm3.85 2.344c.767 0 1.419.218 1.883.622.465.404.725.994.723 1.668v1.683l-.755 2.809h-.48a.25.25 0 01-.25-.25v-.187a1.84 1.84 0 01-.223.167c-.335.213-.79.352-1.39.352a2.936 2.936 0 01-1.337-.29 1.898 1.898 0 01-.883-.907 2.193 2.193 0 01-.187-.916 1.907 1.907 0 01.245-.99 1.724 1.724 0 01.646-.618c.52-.293 1.16-.396 1.788-.48H11.4c.342-.046.616-.075.827-.103a1.968 1.968 0 00.431-.088.147.147 0 00.065-.04l.01-.021a.319.319 0 00.009-.086v-.035a.809.809 0 00-.274-.638c-.178-.155-.458-.26-.847-.261-.385 0-.686.106-.89.262a.821.821 0 00-.338.588.25.25 0 01-.249.228H9.101a.25.25 0 01-.25-.261 2.139 2.139 0 01.825-1.593c.491-.391 1.165-.615 1.945-.615zm1.121 3.783c-.09.024-.187.047-.296.068-.303.06-.67.113-1.025.163a2.855 2.855 0 00-.692.171c-.196.082-.333.186-.407.308a.569.569 0 00-.08.307v.007a.604.604 0 00.062.275.554.554 0 00.176.198c.16.115.428.194.79.194.56-.002.915-.164 1.14-.39.223-.228.33-.542.332-.896v-.404z"},{"n":"Fireflies","c":"#E82C74","m":"F"},{"n":"Otter","c":"#1B4BD4","m":"O"},{"n":"Loom","c":"#625DF5","p":"M24 10.665h-7.018l6.078-3.509-1.335-2.312-6.078 3.509 3.508-6.077L16.843.94l-3.508 6.077V0h-2.67v7.018L7.156.94 4.844 2.275l3.509 6.077-6.078-3.508L.94 7.156l6.078 3.509H0v2.67h7.017L.94 16.844l1.335 2.313 6.077-3.508-3.509 6.077 2.312 1.335 3.509-6.078V24h2.67v-7.017l3.508 6.077 2.312-1.335-3.509-6.078 6.078 3.509 1.335-2.313-6.077-3.508h7.017v-2.67H24zm-12 4.966a3.645 3.645 0 1 1 0-7.29 3.645 3.645 0 0 1 0 7.29z"},{"n":"Vimeo","c":"#1AB7EA","p":"M23.9765 6.4168c-.105 2.338-1.739 5.5429-4.894 9.6088-3.2679 4.247-6.0258 6.3699-8.2898 6.3699-1.409 0-2.578-1.294-3.553-3.881l-1.9179-7.1138c-.719-2.584-1.488-3.878-2.312-3.878-.179 0-.806.378-1.8809 1.132l-1.129-1.457a315.06 315.06 0 003.501-3.1279c1.579-1.368 2.765-2.085 3.5539-2.159 1.867-.18 3.016 1.1 3.447 3.838.465 2.953.789 4.789.971 5.5069.5389 2.45 1.1309 3.674 1.7759 3.674.502 0 1.256-.796 2.265-2.385 1.004-1.589 1.54-2.797 1.612-3.628.144-1.371-.395-2.061-1.614-2.061-.574 0-1.167.121-1.777.391 1.186-3.8679 3.434-5.7568 6.7619-5.6368 2.4729.06 3.6279 1.664 3.4929 4.7969z"},{"n":"Wistia","c":"#58B7FE","p":"M23.69 6.605c.507-3.094-1.24-3.944-1.24-3.944s.073 2.519-4.555 3.053C13.787 6.188 0 5.83 0 5.83l4.43 5.081c1.2 1.378 1.838 1.537 3.187 1.633 1.349.09 4.327.058 6.345-.096 2.206-.169 5.35-.888 7.477-2.535 1.09-.843 2.039-2.016 2.25-3.308m.284 3.205s-.556 1.105-3.33 2.853c-1.182.744-3.637 1.535-6.793 1.84-1.705.166-4.842.031-6.188.031-1.354 0-1.974.285-3.187 1.652L0 21.23s1.55.008 2.72.008c1.17 0 8.488.425 11.735-.468 10.546-2.899 9.518-10.96 9.518-10.96Z"},{"n":"Vidyard","c":"#34495E","m":"V"}],[{"n":"Zapier","c":"#FF4F00","p":"M4.157 0A4.151 4.151 0 0 0 0 4.161v15.678A4.151 4.151 0 0 0 4.157 24h15.682A4.152 4.152 0 0 0 24 19.839V4.161A4.152 4.152 0 0 0 19.839 0H4.157Zm10.61 8.761h.03a.577.577 0 0 1 .23.038.585.585 0 0 1 .201.124.63.63 0 0 1 .162.431.612.612 0 0 1-.162.435.58.58 0 0 1-.201.128.58.58 0 0 1-.23.042.529.529 0 0 1-.235-.042.585.585 0 0 1-.332-.328.559.559 0 0 1-.038-.235.613.613 0 0 1 .17-.431.59.59 0 0 1 .405-.162Zm2.853 1.572c.03.004.061.004.095.004.325-.011.646.064.937.219.238.144.431.355.552.609.128.279.189.582.185.888v.193a2 2 0 0 1 0 .219h-2.498c.003.227.075.45.204.642a.78.78 0 0 0 .646.265.714.714 0 0 0 .484-.136.642.642 0 0 0 .23-.318l.915.257a1.398 1.398 0 0 1-.28.537c-.14.159-.321.284-.521.355a2.234 2.234 0 0 1-.836.136 1.923 1.923 0 0 1-1.001-.245 1.618 1.618 0 0 1-.665-.703 2.221 2.221 0 0 1-.227-1.036 1.95 1.95 0 0 1 .48-1.398 1.9 1.9 0 0 1 1.3-.488Zm-9.607.023c.162.004.325.026.48.079.207.065.4.174.563.314.26.302.393.692.366 1.088v2.276H8.53l-.109-.711h-.065c-.064.163-.155.31-.272.439a1.122 1.122 0 0 1-.374.264 1.023 1.023 0 0 1-.453.083 1.334 1.334 0 0 1-.866-.264.965.965 0 0 1-.329-.801.993.993 0 0 1 .076-.431 1.02 1.02 0 0 1 .242-.363 1.478 1.478 0 0 1 1.043-.303h.952v-.181a.696.696 0 0 0-.136-.454.553.553 0 0 0-.438-.154.695.695 0 0 0-.378.086.48.48 0 0 0-.193.254l-.99-.144a1.26 1.26 0 0 1 .257-.563c.14-.174.321-.302.533-.378.261-.091.54-.136.82-.129.053-.003.106-.007.163-.007Zm4.384.007c.174 0 .347.038.506.114.182.083.34.211.458.374.257.423.377.911.351 1.406a2.53 2.53 0 0 1-.355 1.448 1.148 1.148 0 0 1-1.009.517c-.204 0-.401-.045-.582-.136a1.052 1.052 0 0 1-.48-.457 1.298 1.298 0 0 1-.114-.234h-.045l.004 1.784h-1.059v-4.713h.904l.117.805h.057c.068-.208.177-.401.328-.56a1.129 1.129 0 0 1 .843-.344h.076v-.004Zm7.559.084h.903l.113.805h.053a1.37 1.37 0 0 1 .235-.484.813.813 0 0 1 .313-.242.82.82 0 0 1 .39-.076h.234v1.051h-.401a.662.662 0 0 0-.313.008.623.623 0 0 0-.272.155.663.663 0 0 0-.174.26.683.683 0 0 0-.027.314v1.875h-1.054v-3.666Zm-17.515.003h3.262v.896L3.73 13.104l.034.113h1.973l.042.9H2.4v-.9l1.931-1.754-.045-.117H2.441v-.896Zm11.815 0h1.055v3.659h-1.055V10.45Zm3.443.684.019.016a.69.69 0 0 0-.351.045.756.756 0 0 0-.287.204c-.11.155-.174.336-.189.522h1.545c-.034-.526-.257-.787-.74-.787h.003Zm-5.718.163c-.026 0-.057 0-.083.004a.78.78 0 0 0-.31.053.746.746 0 0 0-.257.189 1.016 1.016 0 0 0-.204.695v.064c-.015.257.057.507.204.711a.634.634 0 0 0 .253.196.638.638 0 0 0 .314.061.644.644 0 0 0 .578-.265c.14-.223.204-.48.189-.74a1.216 1.216 0 0 0-.181-.711.677.677 0 0 0-.503-.257Zm-4.509 1.266a.464.464 0 0 0-.268.102.373.373 0 0 0-.114.276c0 .053.008.106.027.155a.375.375 0 0 0 .087.132.576.576 0 0 0 .397.11v.004a.863.863 0 0 0 .563-.182.573.573 0 0 0 .211-.457v-.14h-.903Z"},{"n":"Make","c":"#6D00CC","p":"M13.38 3.498c-.27 0-.511.19-.566.465L9.85 18.986a.578.578 0 0 0 .453.678l4.095.826a.58.58 0 0 0 .682-.455l2.963-15.021a.578.578 0 0 0-.453-.678l-4.096-.826a.589.589 0 0 0-.113-.012zm-5.876.098a.576.576 0 0 0-.516.318L.062 17.697a.575.575 0 0 0 .256.774l3.733 1.877a.578.578 0 0 0 .775-.258l6.926-13.781a.577.577 0 0 0-.256-.776L7.762 3.658a.571.571 0 0 0-.258-.062zm11.74.115a.576.576 0 0 0-.576.576v15.426c0 .318.258.578.576.578h4.178a.58.58 0 0 0 .578-.578V4.287a.578.578 0 0 0-.578-.576Z"},{"n":"n8n","c":"#EA4B71","p":"M21.4737 5.6842c-1.1772 0-2.1663.8051-2.4468 1.8947h-2.8955c-1.235 0-2.289.893-2.492 2.111l-.1038.623a1.263 1.263 0 0 1-1.246 1.0555H11.289c-.2805-1.0896-1.2696-1.8947-2.4468-1.8947s-2.1663.8051-2.4467 1.8947H4.973c-.2805-1.0896-1.2696-1.8947-2.4468-1.8947C1.1311 9.4737 0 10.6047 0 12s1.131 2.5263 2.5263 2.5263c1.1772 0 2.1663-.8051 2.4468-1.8947h1.4223c.2804 1.0896 1.2696 1.8947 2.4467 1.8947 1.1772 0 2.1663-.8051 2.4468-1.8947h1.0008a1.263 1.263 0 0 1 1.2459 1.0555l.1038.623c.203 1.218 1.257 2.111 2.492 2.111h.3692c.2804 1.0895 1.2696 1.8947 2.4468 1.8947 1.3952 0 2.5263-1.131 2.5263-2.5263s-1.131-2.5263-2.5263-2.5263c-1.1772 0-2.1664.805-2.4468 1.8947h-.3692a1.263 1.263 0 0 1-1.246-1.0555l-.1037-.623A2.52 2.52 0 0 0 13.9607 12a2.52 2.52 0 0 0 .821-1.4794l.1038-.623a1.263 1.263 0 0 1 1.2459-1.0555h2.8955c.2805 1.0896 1.2696 1.8947 2.4468 1.8947 1.3952 0 2.5263-1.131 2.5263-2.5263s-1.131-2.5263-2.5263-2.5263m0 1.2632a1.263 1.263 0 0 1 1.2631 1.2631 1.263 1.263 0 0 1-1.2631 1.2632 1.263 1.263 0 0 1-1.2632-1.2632 1.263 1.263 0 0 1 1.2632-1.2631M2.5263 10.7368A1.263 1.263 0 0 1 3.7895 12a1.263 1.263 0 0 1-1.2632 1.2632A1.263 1.263 0 0 1 1.2632 12a1.263 1.263 0 0 1 1.2631-1.2632m6.3158 0A1.263 1.263 0 0 1 10.1053 12a1.263 1.263 0 0 1-1.2632 1.2632A1.263 1.263 0 0 1 7.579 12a1.263 1.263 0 0 1 1.2632-1.2632m10.1053 3.7895a1.263 1.263 0 0 1 1.2631 1.2632 1.263 1.263 0 0 1-1.2631 1.2631 1.263 1.263 0 0 1-1.2632-1.2631 1.263 1.263 0 0 1 1.2632-1.2632"},{"n":"Stripe","c":"#635BFF","p":"M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z"},{"n":"PayPal","c":"#002991","p":"M15.607 4.653H8.941L6.645 19.251H1.82L4.862 0h7.995c3.754 0 6.375 2.294 6.473 5.513-.648-.478-2.105-.86-3.722-.86m6.57 5.546c0 3.41-3.01 6.853-6.958 6.853h-2.493L11.595 24H6.74l1.845-11.538h3.592c4.208 0 7.346-3.634 7.153-6.949a5.24 5.24 0 0 1 2.848 4.686M9.653 5.546h6.408c.907 0 1.942.222 2.363.541-.195 2.741-2.655 5.483-6.441 5.483H8.714Z"},{"n":"Square","c":"#3E4348","p":"M4.01 0A4.01 4.01 0 000 4.01v15.98c0 2.21 1.8 4 4.01 4.01h15.98C22.2 24 24 22.2 24 19.99V4A4.01 4.01 0 0019.99 0H4zm1.62 4.36h12.74c.7 0 1.26.57 1.26 1.27v12.74c0 .7-.56 1.27-1.26 1.27H5.63c-.7 0-1.26-.57-1.26-1.27V5.63a1.27 1.27 0 011.26-1.27zm3.83 4.35a.73.73 0 00-.73.73v5.09c0 .4.32.72.72.72h5.1a.73.73 0 00.73-.72V9.44a.73.73 0 00-.73-.73h-5.1Z"},{"n":"QuickBooks","c":"#2CA01C","p":"M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm.642 4.1335c.9554 0 1.7296.776 1.7296 1.7332v9.0667h1.6c1.614 0 2.9275-1.3156 2.9275-2.933 0-1.6173-1.3136-2.9333-2.9276-2.9333h-.6654V7.3334h.6654c2.5722 0 4.6577 2.0897 4.6577 4.667 0 2.5774-2.0855 4.6666-4.6577 4.6666H12.642zM7.9837 7.333h3.3291v12.533c-.9555 0-1.73-.7759-1.73-1.7332V9.0662H7.9837c-1.6146 0-2.9277 1.316-2.9277 2.9334 0 1.6175 1.3131 2.9333 2.9277 2.9333h.6654v1.7332h-.6654c-2.5725 0-4.6577-2.0892-4.6577-4.6665 0-2.5771 2.0852-4.6666 4.6577-4.6666Z"},{"n":"Xero","c":"#13B5EA","p":"M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.585 14.655c-1.485 0-2.69-1.206-2.69-2.689 0-1.485 1.207-2.691 2.69-2.691 1.485 0 2.69 1.207 2.69 2.691s-1.207 2.689-2.69 2.689zM7.53 14.644c-.099 0-.192-.041-.267-.116l-2.043-2.04-2.052 2.047c-.069.068-.16.108-.258.108-.202 0-.368-.166-.368-.368 0-.099.04-.191.111-.263l2.04-2.05-2.038-2.047c-.075-.069-.113-.162-.113-.261 0-.203.166-.366.368-.366.098 0 .188.037.258.105l2.055 2.048 2.048-2.045c.069-.071.162-.108.26-.108.211 0 .375.165.375.366 0 .098-.029.188-.104.258l-2.056 2.055 2.055 2.051c.068.069.104.16.104.258 0 .202-.165.368-.365.368h-.01zm8.017-4.591c-.796.101-.882.476-.882 1.404v2.787c0 .202-.165.366-.366.366-.203 0-.367-.165-.368-.366v-4.53c0-.204.16-.366.362-.366.166 0 .316.125.346.289.27-.209.6-.317.93-.317h.105c.195 0 .359.165.359.368 0 .201-.164.352-.375.359 0 0-.09 0-.164.008l.053-.002zm-3.091 2.205H8.625c0 .019.003.037.006.057.02.105.045.211.083.31.194.531.765 1.275 1.829 1.29.33-.003.631-.086.9-.229.21-.12.391-.271.525-.428.045-.058.09-.112.12-.168.18-.229.405-.186.54-.083.164.135.18.391.045.57l-.016.016c-.21.27-.435.495-.689.66-.255.164-.525.284-.811.345-.33.09-.645.104-.975.06-1.095-.135-2.01-.93-2.28-2.01-.06-.21-.09-.42-.09-.645 0-.855.421-1.695 1.125-2.205.885-.615 2.085-.66 3-.075.63.405 1.035 1.021 1.185 1.771.075.419-.21.794-.734.81l.068-.046zm6.129-2.223c-1.064 0-1.931.865-1.931 1.931 0 1.064.866 1.931 1.931 1.931s1.931-.867 1.931-1.931c0-1.065-.866-1.933-1.931-1.933v.002zm0 2.595c-.367 0-.666-.297-.666-.666 0-.367.3-.665.666-.665.367 0 .667.299.667.665 0 .369-.3.667-.667.666zm-8.04-2.603c-.91 0-1.672.623-1.886 1.466v.03h3.776c-.203-.855-.973-1.494-1.891-1.494v-.002z"},{"n":"Chargebee","c":"#FF7846","m":"C"},{"n":"Whop","c":"#FA4616","m":"W"},{"n":"Gumroad","c":"#FF90E8","p":"M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0Zm-.007 5.12c4.48 0 5.995 3.025 6.064 4.744h-3.239c-.069-.962-.897-2.406-2.896-2.406-2.136 0-3.514 1.857-3.514 4.126 0 2.27 1.378 4.125 3.514 4.125 1.93 0 2.758-1.512 3.103-3.025h-3.103v-1.238h6.509v6.327h-2.855v-3.989c-.207 1.444-1.102 4.264-4.617 4.264-3.516 0-5.584-2.82-5.584-6.326 0-3.645 2.276-6.602 6.618-6.602z"},{"n":"Paddle","c":"#FDDD35","p":"M2.363 7.904v.849a3.95 3.95 0 0 1 3.65 2.425c.198.476.3.987.299 1.502h.791c0-1.04.416-2.037 1.157-2.772a3.962 3.962 0 0 1 2.792-1.149V7.91a3.959 3.959 0 0 1-3.65-2.425 3.893 3.893 0 0 1-.299-1.502h-.791c0 1.04-.416 2.037-1.157 2.772a3.96 3.96 0 0 1-2.792 1.149M13.105 2.51H6.312V0h6.793c4.772 0 8.532 3.735 8.532 8.314 0 4.58-3.76 8.314-8.532 8.314H9.156V24H6.312v-9.882h6.793c3.319 0 5.688-2.352 5.688-5.804 0-3.451-2.37-5.804-5.688-5.804"},{"n":"DocuSign","c":"#4C00FF","m":"D"},{"n":"PandaDoc","c":"#248567","m":"P"},{"n":"Google Docs","c":"#4285F4","p":"M14.727 6.727H14V0H4.91c-.905 0-1.637.732-1.637 1.636v20.728c0 .904.732 1.636 1.636 1.636h14.182c.904 0 1.636-.732 1.636-1.636V6.727h-6zm-.545 10.455H7.09v-1.364h7.09v1.364zm2.727-3.273H7.091v-1.364h9.818v1.364zm0-3.273H7.091V9.273h9.818v1.363zM14.727 6h6l-6-6v6z"},{"n":"Google Sheets","c":"#34A853","p":"M11.318 12.545H7.91v-1.909h3.41v1.91zM14.728 0v6h6l-6-6zm1.363 10.636h-3.41v1.91h3.41v-1.91zm0 3.273h-3.41v1.91h3.41v-1.91zM20.727 6.5v15.864c0 .904-.732 1.636-1.636 1.636H4.909a1.636 1.636 0 0 1-1.636-1.636V1.636C3.273.732 4.005 0 4.909 0h9.318v6.5h6.5zm-3.273 2.773H6.545v7.909h10.91v-7.91zm-6.136 4.636H7.91v1.91h3.41v-1.91z"},{"n":"Google Drive","c":"#4285F4","p":"M12.01 1.485c-2.082 0-3.754.02-3.743.047.01.02 1.708 3.001 3.774 6.62l3.76 6.574h3.76c2.081 0 3.753-.02 3.742-.047-.005-.02-1.708-3.001-3.775-6.62l-3.76-6.574zm-4.76 1.73a789.828 789.861 0 0 0-3.63 6.319L0 15.868l1.89 3.298 1.885 3.297 3.62-6.335 3.618-6.33-1.88-3.287C8.1 4.704 7.255 3.22 7.25 3.214zm2.259 12.653-.203.348c-.114.198-.96 1.672-1.88 3.287a423.93 423.948 0 0 1-1.698 2.97c-.01.026 3.24.042 7.222.042h7.244l1.796-3.157c.992-1.734 1.85-3.23 1.906-3.323l.104-.167h-7.249z"},{"n":"Dropbox","c":"#0061FF","p":"M6 1.807L0 5.629l6 3.822 6.001-3.822L6 1.807zM18 1.807l-6 3.822 6 3.822 6-3.822-6-3.822zM0 13.274l6 3.822 6.001-3.822L6 9.452l-6 3.822zM18 9.452l-6 3.822 6 3.822 6-3.822-6-3.822zM6 18.371l6.001 3.822 6-3.822-6-3.822L6 18.371z"},{"n":"Notion","c":"#000000","p":"M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"},{"n":"Airtable","c":"#18BFFF","p":"M11.992 1.966c-.434 0-.87.086-1.28.257L1.779 5.917c-.503.208-.49.908.012 1.116l8.982 3.558a3.266 3.266 0 0 0 2.454 0l8.982-3.558c.503-.196.503-.908.012-1.116l-8.957-3.694a3.255 3.255 0 0 0-1.272-.257zM23.4 8.056a.589.589 0 0 0-.222.045l-10.012 3.877a.612.612 0 0 0-.38.564v8.896a.6.6 0 0 0 .821.552L23.62 18.1a.583.583 0 0 0 .38-.551V8.653a.6.6 0 0 0-.6-.596zM.676 8.095a.644.644 0 0 0-.48.19C.086 8.396 0 8.53 0 8.69v8.355c0 .442.515.737.908.54l6.27-3.006.307-.147 2.969-1.436c.466-.22.43-.908-.061-1.092L.883 8.138a.57.57 0 0 0-.207-.044z"},{"n":"ClickUp","c":"#7B68EE","p":"M2 18.439l3.69-2.828c1.961 2.56 4.044 3.739 6.363 3.739 2.307 0 4.33-1.166 6.203-3.704L22 18.405C19.298 22.065 15.941 24 12.053 24 8.178 24 4.788 22.078 2 18.439zM12.04 6.15l-6.568 5.66-3.036-3.52L12.055 0l9.543 8.296-3.05 3.509z"},{"n":"Asana","c":"#F06A6A","p":"M18.78 12.653c-2.882 0-5.22 2.336-5.22 5.22s2.338 5.22 5.22 5.22 5.22-2.34 5.22-5.22-2.336-5.22-5.22-5.22zm-13.56 0c-2.88 0-5.22 2.337-5.22 5.22s2.338 5.22 5.22 5.22 5.22-2.338 5.22-5.22-2.336-5.22-5.22-5.22zm12-6.525c0 2.883-2.337 5.22-5.22 5.22-2.882 0-5.22-2.337-5.22-5.22 0-2.88 2.338-5.22 5.22-5.22 2.883 0 5.22 2.34 5.22 5.22z"},{"n":"monday.com","c":"#FF3D57","m":"m"},{"n":"Trello","c":"#0052CC","p":"M21.147 0H2.853A2.86 2.86 0 000 2.853v18.294A2.86 2.86 0 002.853 24h18.294A2.86 2.86 0 0024 21.147V2.853A2.86 2.86 0 0021.147 0zM10.34 17.287a.953.953 0 01-.953.953h-4a.954.954 0 01-.954-.953V5.38a.953.953 0 01.954-.953h4a.954.954 0 01.953.953zm9.233-5.467a.944.944 0 01-.953.947h-4a.947.947 0 01-.953-.947V5.38a.953.953 0 01.953-.953h4a.954.954 0 01.953.953z"},{"n":"Linear","c":"#5E6AD2","p":"M2.886 4.18A11.982 11.982 0 0 1 11.99 0C18.624 0 24 5.376 24 12.009c0 3.64-1.62 6.903-4.18 9.105L2.887 4.18ZM1.817 5.626l16.556 16.556c-.524.33-1.075.62-1.65.866L.951 7.277c.247-.575.537-1.126.866-1.65ZM.322 9.163l14.515 14.515c-.71.172-1.443.282-2.195.322L0 11.358a12 12 0 0 1 .322-2.195Zm-.17 4.862 9.823 9.824a12.02 12.02 0 0 1-9.824-9.824Z"},{"n":"Jira","c":"#0052CC","p":"M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.001 1.001 0 0 0 23.013 0Z"},{"n":"Typeform","c":"#262627","p":"M15.502 13.035c-.5 0-.756-.411-.756-.917 0-.505.252-.894.756-.894.513 0 .756.407.756.894-.004.515-.261.917-.756.917Zm-4.888-1.81c.292 0 .414.17.414.317 0 .357-.365.514-1.126.536 0-.442.253-.854.712-.854Zm-3.241 1.81c-.473 0-.67-.384-.67-.917 0-.527.202-.894.67-.894.477 0 .702.38.702.894 0 .537-.234.917-.702.917Zm-3.997-2.334h-.738l1.224 2.808c-.234.519-.36.648-.522.648-.171 0-.333-.138-.45-.259l-.324.43c.22.232.522.366.832.366.387 0 .685-.224.856-.626l1.413-3.371h-.725l-.738 2.012-.828-2.008Zm19.553.523c.36 0 .432.246.432.823v1.516H24v-1.914c0-.689-.473-.988-.91-.988-.386 0-.742.241-.94.688a.901.901 0 0 0-.891-.688c-.365 0-.73.232-.927.666v-.626h-.64v2.857h.64v-1.22c0-.617.324-1.114.765-1.114.36 0 .427.246.427.823v1.516h.64l-.005-1.225c0-.617.329-1.114.77-1.114Zm-5.1-.523h-.324v2.857h.639v-1.095c0-.693.306-1.163.76-1.163.118 0 .217.005.325.05l.099-.676c-.081-.009-.153-.018-.225-.018-.45 0-.774.309-.964.707V10.7h-.31Zm-2.327-.045c-.846 0-1.418.644-1.418 1.458 0 .845.58 1.475 1.418 1.475.85 0 1.431-.648 1.431-1.475-.004-.818-.594-1.458-1.431-1.458Zm-4.852 2.38c-.333 0-.581-.17-.685-.515.847-.036 1.675-.242 1.675-.988 0-.43-.423-.872-1.03-.872-.82 0-1.374.666-1.374 1.457 0 .828.545 1.476 1.36 1.476.567 0 .927-.228 1.21-.559l-.31-.42c-.329.335-.531.42-.846.42Zm-3.151-2.38c-.324 0-.648.188-.774.483v-.438h-.64v3.98h.64v-1.422c.135.205.445.34.72.34.85 0 1.3-.631 1.3-1.48-.004-.841-.445-1.463-1.246-1.463Zm-4.483-1.1H0v.622h1.18v3.38h.67v-3.38h1.166v-.622Zm9.502 1.145h-.383v.572h.383v2.285h.639v-2.285h.621v-.572h-.621v-.447c0-.286.117-.385.382-.385.1 0 .19.027.311.068l.144-.537c-.117-.067-.351-.094-.504-.094-.612 0-.972.367-.972 1.002v.393Z"},{"n":"Jotform","c":"#FF6100","m":"J"},{"n":"Google Forms","c":"#7248B9","p":"M14.727 6h6l-6-6v6zm0 .727H14V0H4.91c-.905 0-1.637.732-1.637 1.636v20.728c0 .904.732 1.636 1.636 1.636h14.182c.904 0 1.636-.732 1.636-1.636V6.727h-6zM7.91 17.318a.819.819 0 1 1 .001-1.638.819.819 0 0 1 0 1.638zm0-3.273a.819.819 0 1 1 .001-1.637.819.819 0 0 1 0 1.637zm0-3.272a.819.819 0 1 1 .001-1.638.819.819 0 0 1 0 1.638zm9 6.409h-6.818v-1.364h6.818v1.364zm0-3.273h-6.818v-1.364h6.818v1.364zm0-3.273h-6.818V9.273h6.818v1.363z"},{"n":"Meta","c":"#0467DF","p":"M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"},{"n":"Facebook","c":"#0866FF","p":"M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"},{"n":"Instagram","c":"#FF0069","p":"M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"},{"n":"LinkedIn","c":"#0A66C2","m":"in"},{"n":"YouTube","c":"#FF0000","p":"M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"},{"n":"TikTok","c":"#000000","p":"M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"},{"n":"X","c":"#000000","p":"M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"},{"n":"Google Ads","c":"#4285F4","p":"M3.9998 22.9291C1.7908 22.9291 0 21.1383 0 18.9293s1.7908-3.9998 3.9998-3.9998 3.9998 1.7908 3.9998 3.9998-1.7908 3.9998-3.9998 3.9998zm19.4643-6.0004L15.4632 3.072C14.3586 1.1587 11.9121.5028 9.9988 1.6074S7.4295 5.1585 8.5341 7.0718l8.0009 13.8567c1.1046 1.9133 3.5511 2.5679 5.4644 1.4646 1.9134-1.1046 2.568-3.5511 1.4647-5.4644zM7.5137 4.8438L1.5645 15.1484A4.5 4.5 0 0 1 4 14.4297c2.5597-.0075 4.6248 2.1585 4.4941 4.7148l3.2168-5.5723-3.6094-6.25c-.4499-.7793-.6322-1.6394-.5878-2.4784z"},{"n":"Google Analytics","c":"#E37400","p":"M22.84 2.9982v17.9987c.0086 1.6473-1.3197 2.9897-2.967 2.9984a2.9808 2.9808 0 01-.3677-.0208c-1.528-.226-2.6477-1.5558-2.6105-3.1V3.1204c-.0369-1.5458 1.0856-2.8762 2.6157-3.1 1.6361-.1915 3.1178.9796 3.3093 2.6158.014.1201.0208.241.0202.3619zM4.1326 18.0548c-1.6417 0-2.9726 1.331-2.9726 2.9726C1.16 22.6691 2.4909 24 4.1326 24s2.9726-1.3309 2.9726-2.9726-1.331-2.9726-2.9726-2.9726zm7.8728-9.0098c-.0171 0-.0342 0-.0513.0003-1.6495.0904-2.9293 1.474-2.891 3.1256v7.9846c0 2.167.9535 3.4825 2.3505 3.763 1.6118.3266 3.1832-.7152 3.5098-2.327.04-.1974.06-.3983.0593-.5998v-8.9585c.003-1.6474-1.33-2.9852-2.9773-2.9882z"},{"n":"Mailchimp","c":"#FFE01B","p":"M11.267 0C6.791-.015-1.82 10.246 1.397 12.964l.79.669a3.88 3.88 0 0 0-.22 1.792c.084.84.518 1.644 1.22 2.266.666.59 1.542.964 2.392.964 1.406 3.24 4.62 5.228 8.386 5.34 4.04.12 7.433-1.776 8.854-5.182.093-.24.488-1.316.488-2.267 0-.956-.54-1.352-.885-1.352-.01-.037-.078-.286-.172-.586-.093-.3-.19-.51-.19-.51.375-.563.382-1.065.332-1.35-.053-.353-.2-.653-.496-.964-.296-.311-.902-.63-1.753-.868l-.446-.124c-.002-.019-.024-1.053-.043-1.497-.014-.32-.042-.822-.197-1.315-.186-.668-.508-1.253-.911-1.627 1.112-1.152 1.806-2.422 1.804-3.511-.003-2.095-2.576-2.729-5.746-1.416l-.672.285A678.22 678.22 0 0 0 12.7.504C12.304.159 11.817.002 11.267 0zm.073.873c.166 0 .322.019.465.058.297.084 1.28 1.224 1.28 1.224s-1.826 1.013-3.52 2.426c-2.28 1.757-4.005 4.311-5.037 7.082-.811.158-1.526.618-1.963 1.253-.261-.218-.748-.64-.834-.804-.698-1.326.761-3.902 1.781-5.357C5.834 3.44 9.37.867 11.34.873zm3.286 3.273c.04-.002.06.05.028.074-.143.11-.299.26-.413.414a.04.04 0 0 0 .031.064c.659.004 1.587.235 2.192.574.041.023.012.103-.034.092-.915-.21-2.414-.369-3.97.01-1.39.34-2.45.863-3.224 1.426-.04.028-.086-.023-.055-.06.896-1.035 1.999-1.935 2.987-2.44.034-.018.07.019.052.052-.079.143-.23.447-.278.678-.007.035.032.063.062.042.615-.42 1.684-.868 2.622-.926zm3.023 3.205l.056.001a.896.896 0 0 1 .456.146c.534.355.61 1.216.638 1.845.015.36.059 1.229.074 1.478.034.571.184.651.487.751.17.057.33.098.563.164.706.198 1.125.4 1.39.658.157.162.23.333.253.497.083.608-.472 1.36-1.942 2.041-1.607.746-3.557.935-4.904.785l-.471-.053c-1.078-.145-1.693 1.247-1.046 2.201.417.615 1.552 1.015 2.688 1.015 2.604 0 4.605-1.111 5.35-2.072a.987.987 0 0 0 .06-.085c.036-.055.006-.085-.04-.054-.608.416-3.31 2.069-6.2 1.571 0 0-.351-.057-.672-.182-.255-.1-.788-.344-.853-.891 2.333.72 3.801.039 3.801.039a.072.072 0 0 0 .042-.072.067.067 0 0 0-.074-.06s-1.911.283-3.718-.378c.197-.64.72-.408 1.51-.345a11.045 11.045 0 0 0 3.647-.394c.818-.234 1.892-.697 2.727-1.356.281.618.38 1.299.38 1.299s.219-.04.4.073c.173.106.299.326.213.895-.176 1.063-.628 1.926-1.387 2.72a5.714 5.714 0 0 1-1.666 1.244c-.34.18-.704.334-1.087.46-2.863.935-5.794-.093-6.739-2.3a3.545 3.545 0 0 1-.189-.522c-.403-1.455-.06-3.2 1.008-4.299.065-.07.132-.153.132-.256 0-.087-.055-.179-.102-.243-.374-.543-1.669-1.466-1.409-3.254.187-1.284 1.31-2.189 2.357-2.135.089.004.177.01.266.015.453.027.85.085 1.223.1.625.028 1.187-.063 1.853-.618.225-.187.405-.35.71-.401.028-.005.092-.028.215-.028zm.022 2.18a.42.42 0 0 0-.06.005c-.335.054-.347.468-.228 1.04.068.32.187.595.32.765.175-.02.343-.022.498 0 .089-.205.104-.557.024-.942-.112-.535-.261-.872-.554-.868zm-3.66 1.546a1.724 1.724 0 0 0-1.016.326c-.16.117-.311.28-.29.378.008.032.031.056.088.063.131.015.592-.217 1.122-.25.374-.023.684.094.923.2.239.104.386.173.443.113.037-.038.026-.11-.031-.204-.118-.192-.36-.387-.618-.497a1.601 1.601 0 0 0-.621-.129zm4.082.81c-.171-.003-.313.186-.317.42-.004.236.131.43.303.432.172.003.314-.185.318-.42.004-.236-.132-.429-.304-.432zm-3.58.172c-.05 0-.102.002-.155.008-.311.05-.483.152-.593.247-.094.082-.152.173-.152.237a.075.075 0 0 0 .075.076c.07 0 .228-.063.228-.063a1.98 1.98 0 0 1 1.001-.104c.157.018.23.027.265-.026.01-.016.022-.049-.01-.1-.063-.103-.311-.269-.66-.275zm2.26.4c-.127 0-.235.051-.283.148-.075.154.035.363.246.466.21.104.443.063.52-.09.075-.155-.035-.364-.246-.467a.542.542 0 0 0-.237-.058zm-11.635.024c.048 0 .098 0 .149.003.73.04 1.806.6 2.052 2.19.217 1.41-.128 2.843-1.449 3.069-.123.02-.248.029-.374.026-1.22-.033-2.539-1.132-2.67-2.435-.145-1.44.591-2.548 1.894-2.811.117-.024.252-.04.398-.042zm-.07.927a1.144 1.144 0 0 0-.847.364c-.38.418-.439.988-.366 1.19.027.073.07.094.1.098.064.008.16-.039.22-.2a1.2 1.2 0 0 0 .017-.052 1.58 1.58 0 0 1 .157-.37.689.689 0 0 1 .955-.199c.266.174.369.5.255.81-.058.161-.154.469-.133.721.043.511.357.717.64.738.274.01.466-.143.515-.256.029-.067.005-.107-.011-.125-.043-.053-.113-.037-.18-.021a.638.638 0 0 1-.16.022.347.347 0 0 1-.294-.148c-.078-.12-.073-.3.013-.504.011-.028.025-.058.04-.092.138-.308.368-.825.11-1.317-.195-.37-.513-.602-.894-.65a1.135 1.135 0 0 0-.138-.01z"},{"n":"Klaviyo","c":"#232426","m":"K"},{"n":"Brevo","c":"#0B996E","p":"M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zM7.2 4.8h5.747c2.34 0 3.895 1.406 3.895 3.516 0 1.022-.348 1.862-1.09 2.588C17.189 11.812 18 13.22 18 14.785c0 2.86-2.64 5.016-6.164 5.016H7.199v-15zm2.085 1.952v5.537h.07c.233-.432.858-.796 2.249-1.226 2.039-.659 3.037-1.52 3.037-2.655 0-.998-.766-1.656-1.924-1.656H9.285zm4.87 5.266c-.766.385-1.67.748-2.76 1.11-1.229.387-2.11 1.386-2.11 2.407v2.315h2.365c2.387 0 4.149-1.34 4.149-3.155 0-1.067-.625-2.087-1.645-2.677z"},{"n":"Intercom","c":"#6AFDEF","p":"M21 0H3C1.343 0 0 1.343 0 3v18c0 1.658 1.343 3 3 3h18c1.658 0 3-1.342 3-3V3c0-1.657-1.342-3-3-3zm-5.801 4.399c0-.44.36-.8.802-.8.44 0 .8.36.8.8v10.688c0 .442-.36.801-.8.801-.443 0-.802-.359-.802-.801V4.399zM11.2 3.994c0-.44.357-.799.8-.799s.8.359.8.799v11.602c0 .44-.357.8-.8.8s-.8-.36-.8-.8V3.994zm-4 .405c0-.44.359-.8.799-.8.443 0 .802.36.802.8v10.688c0 .442-.36.801-.802.801-.44 0-.799-.359-.799-.801V4.399zM3.199 6c0-.442.36-.8.802-.8.44 0 .799.358.799.8v7.195c0 .441-.359.8-.799.8-.443 0-.802-.36-.802-.8V6zM20.52 18.202c-.123.105-3.086 2.593-8.52 2.593-5.433 0-8.397-2.486-8.521-2.593-.335-.288-.375-.792-.086-1.128.285-.334.79-.375 1.125-.09.047.041 2.693 2.211 7.481 2.211 4.848 0 7.456-2.186 7.479-2.207.334-.289.839-.25 1.128.086.289.336.25.84-.086 1.128zm.281-5.007c0 .441-.36.8-.801.8-.441 0-.801-.36-.801-.8V6c0-.442.361-.8.801-.8.441 0 .801.357.801.8v7.195z"},{"n":"Zendesk","c":"#03363D","p":"M12.914 2.904V16.29L24 2.905H12.914zM0 2.906C0 5.966 2.483 8.45 5.543 8.45s5.542-2.484 5.543-5.544H0zm11.086 4.807L0 21.096h11.086V7.713zm7.37 7.84c-3.063 0-5.542 2.48-5.542 5.543H24c0-3.06-2.48-5.543-5.543-5.543z"},{"n":"Webflow","c":"#146EF5","p":"m24 4.515-7.658 14.97H9.149l3.205-6.204h-.144C9.566 16.713 5.621 18.973 0 19.485v-6.118s3.596-.213 5.71-2.435H0V4.515h6.417v5.278l.144-.001 2.622-5.277h4.854v5.244h.144l2.72-5.244H24Z"},{"n":"WordPress","c":"#21759B","p":"M21.469 6.825c.84 1.537 1.318 3.3 1.318 5.175 0 3.979-2.156 7.456-5.363 9.325l3.295-9.527c.615-1.54.82-2.771.82-3.864 0-.405-.026-.78-.07-1.11m-7.981.105c.647-.03 1.232-.105 1.232-.105.582-.075.514-.93-.067-.899 0 0-1.755.135-2.88.135-1.064 0-2.85-.15-2.85-.15-.585-.03-.661.855-.075.885 0 0 .54.061 1.125.09l1.68 4.605-2.37 7.08L5.354 6.9c.649-.03 1.234-.1 1.234-.1.585-.075.516-.93-.065-.896 0 0-1.746.138-2.874.138-.2 0-.438-.008-.69-.015C4.911 3.15 8.235 1.215 12 1.215c2.809 0 5.365 1.072 7.286 2.833-.046-.003-.091-.009-.141-.009-1.06 0-1.812.923-1.812 1.914 0 .89.513 1.643 1.06 2.531.411.72.89 1.643.89 2.977 0 .915-.354 1.994-.821 3.479l-1.075 3.585-3.9-11.61.001.014zM12 22.784c-1.059 0-2.081-.153-3.048-.437l3.237-9.406 3.315 9.087c.024.053.05.101.078.149-1.12.393-2.325.609-3.582.609M1.211 12c0-1.564.336-3.05.935-4.39L7.29 21.709C3.694 19.96 1.212 16.271 1.211 12M12 0C5.385 0 0 5.385 0 12s5.385 12 12 12 12-5.385 12-12S18.615 0 12 0"},{"n":"Shopify","c":"#7AB55C","p":"M15.337 23.979l7.216-1.561s-2.604-17.613-2.625-17.73c-.018-.116-.114-.192-.211-.192s-1.929-.136-1.929-.136-1.275-1.274-1.439-1.411c-.045-.037-.075-.057-.121-.074l-.914 21.104h.023zM11.71 11.305s-.81-.424-1.774-.424c-1.447 0-1.504.906-1.504 1.141 0 1.232 3.24 1.715 3.24 4.629 0 2.295-1.44 3.76-3.406 3.76-2.354 0-3.54-1.465-3.54-1.465l.646-2.086s1.245 1.066 2.28 1.066c.675 0 .975-.545.975-.932 0-1.619-2.654-1.694-2.654-4.359-.034-2.237 1.571-4.416 4.827-4.416 1.257 0 1.875.361 1.875.361l-.945 2.715-.02.01zM11.17.83c.136 0 .271.038.405.135-.984.465-2.064 1.639-2.508 3.992-.656.213-1.293.405-1.889.578C7.697 3.75 8.951.84 11.17.84V.83zm1.235 2.949v.135c-.754.232-1.583.484-2.394.736.466-1.777 1.333-2.645 2.085-2.971.193.501.309 1.176.309 2.1zm.539-2.234c.694.074 1.141.867 1.429 1.755-.349.114-.735.231-1.158.366v-.252c0-.752-.096-1.371-.271-1.871v.002zm2.992 1.289c-.02 0-.06.021-.078.021s-.289.075-.714.21c-.423-1.233-1.176-2.37-2.508-2.37h-.115C12.135.209 11.669 0 11.265 0 8.159 0 6.675 3.877 6.21 5.846c-1.194.365-2.063.636-2.16.674-.675.213-.694.232-.772.87-.075.462-1.83 14.063-1.83 14.063L15.009 24l.927-21.166z"},{"n":"Wix","c":"#0C6EFC","p":"m0 7.354 2.113 9.292h.801a1.54 1.54 0 0 0 1.506-1.218l1.351-6.34a.171.171 0 0 1 .167-.137c.08 0 .15.058.167.137l1.352 6.34a1.54 1.54 0 0 0 1.506 1.218h.805l2.113-9.292h-.565c-.62 0-1.159.43-1.296 1.035l-1.26 5.545-1.106-5.176a1.76 1.76 0 0 0-2.19-1.324c-.639.176-1.113.716-1.251 1.365l-1.094 5.127-1.26-5.537A1.33 1.33 0 0 0 .563 7.354H0zm13.992 0a.951.951 0 0 0-.951.95v8.342h.635a.952.952 0 0 0 .951-.95V7.353h-.635zm1.778 0 3.158 4.66-3.14 4.632h1.325c.368 0 .712-.181.918-.486l1.756-2.59a.12.12 0 0 1 .197 0l1.754 2.59c.206.305.55.486.918.486h1.326l-3.14-4.632L24 7.354h-1.326c-.368 0-.712.181-.918.486l-1.772 2.617a.12.12 0 0 1-.197 0L18.014 7.84a1.108 1.108 0 0 0-.918-.486H15.77z"},{"n":"Squarespace","c":"#000000","p":"M22.655 8.719c-1.802-1.801-4.726-1.801-6.564 0l-7.351 7.35c-.45.45-.45 1.2 0 1.65.45.449 1.2.449 1.65 0l7.351-7.351c.899-.899 2.362-.899 3.264 0 .9.9.9 2.364 0 3.264l-7.239 7.239c.9.899 2.362.899 3.263 0l5.589-5.589c1.836-1.838 1.836-4.763.037-6.563zm-2.475 2.437c-.451-.45-1.201-.45-1.65 0l-7.354 7.389c-.9.899-2.361.899-3.262 0-.45-.45-1.2-.45-1.65 0s-.45 1.2 0 1.649c1.801 1.801 4.726 1.801 6.564 0l7.351-7.35c.449-.487.449-1.239.001-1.688zm-2.439-7.35c-1.801-1.801-4.726-1.801-6.564 0l-7.351 7.351c-.45.449-.45 1.199 0 1.649s1.2.45 1.65 0l7.395-7.351c.9-.899 2.371-.899 3.27 0 .451.45 1.201.45 1.65 0 .421-.487.421-1.199-.029-1.649h-.021zm-2.475 2.437c-.45-.45-1.2-.45-1.65 0l-7.351 7.389c-.899.9-2.363.9-3.265 0-.9-.899-.9-2.363 0-3.264l7.239-7.239c-.9-.9-2.362-.9-3.263 0L1.35 8.719c-1.8 1.8-1.8 4.725 0 6.563 1.801 1.801 4.725 1.801 6.564 0l7.35-7.351c.451-.488.451-1.238 0-1.688h.002z"},{"n":"ClickFunnels","c":"#0070C9","m":"CF"},{"n":"Kajabi","c":"#2E91FC","m":"K"},{"n":"Skool","c":"#E8A92E","m":"S"},{"n":"Circle","c":"#8669AE","p":"M20.788 3.832c-.101-.105-.197-.213-.301-.317-.103-.103-.211-.202-.32-.302A11.903 11.903 0 0 0 12 0a11.926 11.926 0 0 0-8.486 3.514C-1.062 8.09-1.16 15.47 3.213 20.168c.099.108.197.214.3.32.104.103.21.2.317.3A11.92 11.92 0 0 0 12 24c3.206 0 6.22-1.247 8.487-3.512 4.576-4.576 4.673-11.956.301-16.656zm-16.655.301A11.057 11.057 0 0 1 12 .874c2.825 0 5.49 1.048 7.55 2.958l-1.001 1.002A9.646 9.646 0 0 0 12 2.292a9.644 9.644 0 0 0-6.865 2.844A9.644 9.644 0 0 0 2.292 12c0 2.448.9 4.753 2.542 6.549L3.831 19.55C-.201 15.191-.101 8.367 4.133 4.133zm13.798 1.318v.002l-1.015 1.014A7.346 7.346 0 0 0 12 4.589 7.357 7.357 0 0 0 6.761 6.76 7.362 7.362 0 0 0 4.589 12a7.34 7.34 0 0 0 1.877 4.913l-1.014 1.016A8.77 8.77 0 0 1 3.167 12a8.77 8.77 0 0 1 2.588-6.245A8.771 8.771 0 0 1 12 3.167c2.213 0 4.301.809 5.931 2.284zM18.537 12c0 1.745-.681 3.387-1.916 4.622S13.746 18.538 12 18.538a6.491 6.491 0 0 1-4.296-1.621l-.001-.004c-.11-.094-.22-.188-.324-.291a6.027 6.027 0 0 1-.293-.326A6.47 6.47 0 0 1 5.466 12c0-1.746.679-3.387 1.914-4.621A6.488 6.488 0 0 1 12 5.465c1.599 0 3.105.576 4.295 1.62.111.096.224.19.326.295.104.104.2.214.295.324A6.482 6.482 0 0 1 18.537 12zM7.084 17.534h.001A7.349 7.349 0 0 0 12 19.413a7.35 7.35 0 0 0 5.239-2.174A7.354 7.354 0 0 0 19.412 12a7.364 7.364 0 0 0-1.876-4.916l1.013-1.012A8.777 8.777 0 0 1 20.834 12a8.765 8.765 0 0 1-2.589 6.246A8.764 8.764 0 0 1 12 20.834a8.782 8.782 0 0 1-5.93-2.285l1.014-1.015zm12.783 2.333A11.046 11.046 0 0 1 12 23.125a11.042 11.042 0 0 1-7.551-2.957l1.004-1.001a9.64 9.64 0 0 0 6.549 2.542 9.639 9.639 0 0 0 6.865-2.846A9.642 9.642 0 0 0 21.71 12a9.64 9.64 0 0 0-2.543-6.548l1.001-1.002c4.031 4.359 3.935 11.182-.301 15.417z"},{"n":"Instantly","c":"#1D6BFF","m":"I"},{"n":"lemlist","c":"#316BFF","m":"L"},{"n":"Smartlead","c":"#5B5BD6","m":"S"},{"n":"Clay","c":"#1A1A1A","m":"C"},{"n":"Apollo","c":"#E5B400","m":"A"},{"n":"OpenAI","c":"#101010","m":"AI"},{"n":"Claude","c":"#D97757","p":"m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"},{"n":"Gemini","c":"#8E75B2","p":"M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"},{"n":"Perplexity","c":"#1FB8CD","p":"M22.3977 7.0896h-2.3106V.0676l-7.5094 6.3542V.1577h-1.1554v6.1966L4.4904 0v7.0896H1.6023v10.3976h2.8882V24l6.932-6.3591v6.2005h1.1554v-6.0469l6.9318 6.1807v-6.4879h2.8882V7.0896zm-3.4657-4.531v4.531h-5.355l5.355-4.531zm-13.2862.0676 4.8691 4.4634H5.6458V2.6262zM2.7576 16.332V8.245h7.8476l-6.1149 6.1147v1.9723H2.7576zm2.8882 5.0404v-3.8852h.0001v-2.6488l5.7763-5.7764v7.0111l-5.7764 5.2993zm12.7086.0248-5.7766-5.1509V9.0618l5.7766 5.7766v6.5588zm2.8882-5.0652h-1.733v-1.9723L13.3948 8.245h7.8478v8.087z"}]];
+(function belts(){
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const lum=h=>{ const n=parseInt(h.slice(1),16); return (.2126*(n>>16&255)+.7152*(n>>8&255)+.0722*(n&255))/255; };
+  const tile=(t,hidden)=>{
+    const c=lum(t.c)>.82?'#28344F':t.c;
+    const ic=t.p?`<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="${c}" d="${t.p}"/></svg>`:`<span class="mono" style="background:${c}" aria-hidden="true">${esc(t.m)}</span>`;
+    return `<li class="tool"${hidden?' aria-hidden="true"':''}>${ic}${esc(t.n)}</li>`;
+  };
+  ['beltA','beltB'].forEach((id,i)=>{
+    const el=document.getElementById(id), list=TOOLS[i];
+    el.innerHTML=list.map(t=>tile(t,false)).join('')+list.map(t=>tile(t,true)).join('');
+    el.style.setProperty('--dur', (list.length*3.4)+'s');
+  });
+})();
 if(document.fonts){ document.fonts.addEventListener('loadingdone',()=>{ if(W) resize(); }); document.fonts.ready.then(()=>{ if(W) resize(); }); }
 
 /* controls */
