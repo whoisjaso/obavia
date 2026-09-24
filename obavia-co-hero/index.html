@@ -10,7 +10,8 @@
     --sans:'Manrope','Obavia Sans','Helvetica Neue',Arial,sans-serif;
     color-scheme:light;
   }
-  html,body{height:100%;margin:0;background:var(--sky);color:var(--navy);font-family:var(--sans);overflow:hidden}
+  html,body{margin:0;background:var(--sky);color:var(--navy);font-family:var(--sans)}
+  body{overflow-x:hidden}
   .stage{position:relative;height:100%;width:100%;overflow:hidden;background:var(--sky)}
   canvas#sky{position:absolute;inset:0;width:100%;height:100%;display:block}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -54,7 +55,7 @@
   <canvas id="sky" aria-hidden="true"></canvas>
 
   <h1 class="sr">Your sales operation. Connected from lead to cash.</h1>
-  <p class="sr">For agency owners generating $100,000 to $1,000,000 per month. Software for your agency's own sales team. Find where prospects stall, inspect the evidence and choose the next step.</p>
+  <p class="sr">For agency owners generating $100,000 to $1,000,000 per month. Obavia finds the stalled handoff, routes an evidence-backed next move to the right rep, and tracks what happens through to collected payment. The loop: detect, owner, evidence, approve, track, inspect. It repeats on every new opportunity.</p>
   <p class="sr" aria-live="polite" id="caption"></p>
 
   <nav id="nav" aria-label="Primary">
@@ -96,7 +97,7 @@
      t in [0, DUR]     the film
      t > DUR           the resolved hero, breathing
    ============================================================ */
-const DUR = 23;
+const DUR = 26.5;
 const FONT = "'Manrope','Obavia Sans','Helvetica Neue',Arial,sans-serif";
 const MONO = "'JetBrains Mono',ui-monospace,Menlo,monospace";
 const C = { ink:'#1C2436', navy:'#28344F', slate:'#737B8C', body:'#4B5468', deep:'#7D97C7', peri:'#C8D6FC', line:'#DCE4FA' };
@@ -188,6 +189,7 @@ const CL = (() => {
 })();
 
 /* ---------- layout ---------- */
+function REC(g,x,y,w,h,a){ if(window.__boxes && a>.35) window.__boxes.push({g,x,y,w,h}); }
 let W=0,H=0,DPR=1,L=null;
 function setLS(px){ if('letterSpacing' in ctx) ctx.letterSpacing = px.toFixed(2)+'px'; }
 function tokenize(str){
@@ -212,60 +214,106 @@ function block(str, o){
   const lh=o.fs*(o.lh||1.06);
   return Object.assign({lines, sp, lhpx:lh, h:lines.length*lh}, o);
 }
+const LOOP = [
+  ['Detect',  'No next step after the handoff'],
+  ['Owner',   'Jordan (setter) → Alex (closer)'],
+  ['Evidence','Significance · 74% — AI match'],
+  ['Approve', 'Manager signs off, in your method'],
+  ['Track',   'Contacted, booked, attended'],
+  ['Inspect', 'Payment evidence linked'],
+];
+const LT = k => 17.0 + k*.95;          // loop step k lights up
+const T_MOVE = LT(3)+.95, T_CASH = LT(5);
 function layout(){
-  const m = W<720;
+  const m = W<720, narrow = W<980;
   const navH = m?60:72;
-  const fs = clamp(Math.min(W*.062, H*.088), 34, 80);
   const maxW = Math.min(W-40, 1180);
-  const eyFs = m?11.5:13, subFs = clamp(W*.012,15,18.5);
-  const eyebrow = block('For agency owners generating $100,000–$1,000,000 per month.', {fs:eyFs, weight:500, ls:.1, maxW:Math.min(W-48,640), lh:1.5, color:C.slate, stagger:.012});
-  const h1a = block('Your sales operation.', {fs, weight:800, ls:-.045*fs, maxW, lh:1.04, color:C.ink, stagger:.07});
-  const h1b = block('Connected from lead to cash.', {fs, weight:800, ls:-.045*fs, maxW, lh:1.04, color:C.slate, stagger:.07});
-  const sub = block("Software for your agency’s own sales team. Find where prospects stall, inspect the evidence and choose the next step.", {fs:subFs, weight:400, ls:0, maxW:Math.min(W-48,560), lh:1.55, color:C.body, stagger:.018});
-  let y = navH + clamp(H*.07, 26, 90);
-  eyebrow.top=y; y+=eyebrow.h+(m?10:14);
-  h1a.top=y; y+=h1a.h; h1b.top=y; y+=h1b.h;
-  sub.top=y+(m?12:16); y=sub.top+sub.h;
-  const ctaY=y+22, ctaBottom=ctaY+48;
-  const pathY = Math.min(Math.max(ctaBottom+(m?120:130), H*.74), H-(m?104:100));
-  const storyCY = h1a.top + (h1a.h+h1b.h)/2;
+  const eyFs = m?11.5:13, subFs = clamp(W*.012,15,18.5), r0 = m?6:8;
+  let fs = clamp(Math.min(W*.062, H*.088), 30, 80), G;
+  for(let pass=0; pass<12; pass++){
+    const gap = clamp(H*.036, 16, 40);
+    const eyebrow = block('For agency owners generating $100,000–$1,000,000 per month.', {fs:eyFs, weight:500, ls:.1, maxW:Math.min(W-48,640), lh:1.5, color:C.slate, stagger:.012});
+    const h1a = block('Your sales operation.', {fs, weight:800, ls:-.045*fs, maxW, lh:1.04, color:C.ink, stagger:.07});
+    const h1b = block('Connected from lead to cash.', {fs, weight:800, ls:-.045*fs, maxW, lh:1.04, color:C.slate, stagger:.07});
+    const sub = block('Obavia finds the stalled handoff, routes an evidence-backed next move to the right rep, and tracks what happens through to collected payment.', {fs:subFs, weight:400, ls:0, maxW:Math.min(W-48,580), lh:1.55, color:C.body, stagger:.016});
+    const zoneTop = navH + clamp(H*.06, 18, 80);
+    let y = zoneTop;
+    eyebrow.top=y; y+=eyebrow.h+(m?10:14);
+    h1a.top=y; y+=h1a.h; h1b.top=y; y+=h1b.h;
+    sub.top=y+(m?12:16); y=sub.top+sub.h;
+    const zoneBot = y, ctaY = y+(m?20:24), ctaH = ctaEl.offsetHeight || (m?44:48), ctaBot = ctaY+ctaH;
 
-  const sfs = Math.max(28, fs*.8), sw = Math.min(W-40, 940);
+    // the loop strip
+    const cols = narrow?3:6, cg = narrow?8:12;
+    const gw = narrow ? Math.min(W-32,620) : Math.min(W-48,1080);
+    const cw = (gw-(cols-1)*cg)/cols, pad = m?10:12, ch = m?60:66;
+    const chips = LOOP.map(([lab,txt],k)=>{
+      let f = narrow?(m?11:12):12.5, b;
+      do { b = block(txt,{fs:f, weight:600, ls:0, maxW:cw-pad*2, lh:1.3, color:C.navy}); f-=.5; } while(b.lines.length>2 && f>9);
+      return {lab, b, k, w:cw, h:ch, pad};
+    });
+    const rows = narrow?2:1, capH = narrow?24:32;
+    const stripH = rows*ch+(rows-1)*cg+capH;
+
+    // the pipeline band: counts above, names + notes + caption below
+    const bandTop = r0+26, bandBot = r0+(m?50:60);
+    let stripTop = ctaBot+gap*1.1;
+    let pathY = stripTop+stripH+gap+bandTop;
+    const room = (H-64)-(pathY+bandBot);
+    if(room<0 && fs>30.5){ fs=Math.max(30,fs*.93); continue; }
+    if(room>0){ stripTop += room*.35; pathY += room*.7; }
+    chips.forEach((c,k)=>{
+      const col = k%cols, row = Math.floor(k/cols);
+      c.x = W/2-gw/2 + col*(cw+cg); c.y = stripTop + row*(ch+cg);
+    });
+    G = {needH: H-Math.min(0,room), m, narrow, navH, fs, eyebrow, h1a, h1b, sub, zoneTop, zoneBot, ctaY, ctaBot, chips, stripTop, stripH, capH, gw, pathY, r0};
+    break;
+  }
+  const {pathY} = G;
+  const storyCY = G.h1a.top + (G.h1a.h+G.h1b.h)/2;
+
+  const sfs = Math.max(26, G.fs*.8), sw = Math.min(W-40, 940);
   const S = (str,c,a,b) => block(str,{fs:sfs, weight:700, ls:-.035*sfs, maxW:sw, lh:1.08, color:c, stagger:.075, tIn:a, tOut:b});
+  // each line fully evaporates before the next arrives (exit ≈ .65s + .035s/word)
   const story = [
-    S("Some months, you’re fine.", C.ink, .3, 4.2),
-    S("Other months, you’re waiting on a *home run.*", C.ink, 4.5, 8.0),
-    S("You can’t fix what you *can’t see.*", C.ink, 8.4, 11.8),
-    S("Obavia connects *every stage.*", C.ink, 12.2, 15.9),
-    S("See where progress stops.", C.ink, 16.2, 19.9),
-    S("Know what to do next.", C.slate, 16.9, 19.9),
+    [S('Some months, you’re fine.', C.ink, .3, 3.9)],
+    [S('Other months, you’re waiting on a *home run.*', C.ink, 4.8, 8.2)],
+    [S('You can’t fix what you *can’t see.*', C.ink, 9.1, 12.0)],
+    [S('Obavia connects *every stage.*', C.ink, 12.9, 16.0)],
+    [S('See where progress stops.', C.ink, 16.8, 19.9), S('Know what to do next.', C.slate, 17.4, 19.9)],
+    [S('Then keep it moving.', C.ink, 20.8, 22.9), S('Every opportunity, every week.', C.slate, 21.3, 22.9)],
   ];
-  for(const b of story.slice(0,4)) b.top = storyCY - b.h/2;
-  const gh = story[4].h+story[5].h; story[4].top = storyCY-gh/2; story[5].top = story[4].top+story[4].h;
-  eyebrow.tIn=20.4; h1a.tIn=20.6; h1b.tIn=21.0; sub.tIn=21.6;
-  for(const b of [eyebrow,h1a,h1b,sub]) b.tOut=Infinity;
+  for(const grp of story){ // centred on the headline, never below the buttons
+    const h = grp.reduce((a,b)=>a+b.h,0);
+    let top = clamp(storyCY-h/2, G.zoneTop, G.ctaY-16-h);
+    for(const b of grp){ b.top=top; top+=b.h; }
+  }
+  G.eyebrow.tIn=23.8; G.h1a.tIn=24.0; G.h1b.tIn=24.35; G.sub.tIn=24.8;
+  for(const b of [G.eyebrow,G.h1a,G.h1b,G.sub]) b.tOut=Infinity;
 
-  // the thread: off-screen left, through six stations
-  const sp = Math.min((W-(m?92:120))/5.3, 200), amp = m?9:15, cx=W/2;
+  // stations sit on one baseline; the thread arcs up between them, clear of the labels
+  const sp = Math.min((W-(m?92:120))/5.3, 200), cx=W/2;
   const names = ['Capture','Connect','Book','Discover','Agree','Collect'];
   const counts = [200,160,140,70,14,12];
-  const st = names.map((n,i)=>({name:n, n:counts[i], x:cx+(i-2.5)*sp, y:pathY+Math.sin(i*1.25+.6)*amp}));
-  const ctrl = [{x:-80,y:pathY+40}, {x:st[0].x-sp*.9, y:pathY+26}, ...st, {x:st[5].x+sp, y:st[5].y}];
+  const st = names.map((n,i)=>({name:n, n:counts[i], x:cx+(i-2.5)*sp, y:pathY}));
+  const ctrl = [{x:-80,y:pathY+30}, {x:st[0].x-sp*.9, y:pathY+12}];
+  st.forEach((s,i)=>{ ctrl.push({x:s.x,y:s.y,st:i}); if(i<5) ctrl.push({x:s.x+sp/2, y:pathY-(m?5:7)}); });
+  ctrl.push({x:st[5].x+sp, y:pathY});
   const P={x:[],y:[],len:[],nx:[],ny:[],stS:[]};
   const cr=(p0,p1,p2,p3,k)=>.5*((2*p1)+(-p0+p2)*k+(2*p0-5*p1+4*p2-p3)*k*k+(-p0+3*p1-3*p2+p3)*k*k*k);
   for(let j=0;j<ctrl.length-2;j++){
     const p0=ctrl[Math.max(0,j-1)], p1=ctrl[j], p2=ctrl[j+1], p3=ctrl[Math.min(ctrl.length-1,j+2)];
-    if(j>=2) P.stS[j-2] = P.x.length; // sample index of station j-2
-    for(let s=0;s<36;s++){ const k=s/36; P.x.push(cr(p0.x,p1.x,p2.x,p3.x,k)); P.y.push(cr(p0.y,p1.y,p2.y,p3.y,k)); }
+    if(p1.st!=null) P.stS[p1.st]=P.x.length;
+    for(let s=0;s<24;s++){ const k=s/24; P.x.push(cr(p0.x,p1.x,p2.x,p3.x,k)); P.y.push(cr(p0.y,p1.y,p2.y,p3.y,k)); }
   }
   P.stS[5]=P.x.length; P.x.push(st[5].x); P.y.push(st[5].y);
   let acc=0; for(let i=0;i<P.x.length;i++){ if(i) acc+=Math.hypot(P.x[i]-P.x[i-1],P.y[i]-P.y[i-1]); P.len.push(acc); }
   for(let i=0;i<P.x.length;i++){ const a=Math.max(0,i-1), b=Math.min(P.x.length-1,i+1); const dx=P.x[b]-P.x[a], dy=P.y[b]-P.y[a], d=Math.hypot(dx,dy)||1; P.nx.push(-dy/d); P.ny.push(dx/d); }
   P.total=acc; P.stL=P.stS.map(i=>P.len[i]);
 
-  L = {m, navH, fs, eyebrow, h1a, h1b, sub, ctaY, pathY, storyCY, story, st, sp, P,
-       logo:{x:(m?16:Math.max(16,W/2-670))+(m?16:20), y:navH/2, r:m?14:17}};
-  ctaEl.style.top = ctaY+'px';
+  L = Object.assign(G, {storyCY, story:story.flat(), st, sp, P,
+       logo:{x:(G.m?16:Math.max(16,W/2-670))+(G.m?16:20), y:G.navH/2, r:G.m?14:17}});
+  ctaEl.style.top = G.ctaY+'px';
 }
 function pathAt(l){
   const P=L.P; l=clamp(l,0,P.total);
@@ -348,6 +396,7 @@ function drawBlock(b,t){
   let k=0;
   b.lines.forEach((ln,li)=>{
     let x=W/2-ln.w/2; const base=b.top+li*b.lhpx+b.fs*.86;
+    { const p=ramp(t,b.tIn,b.tIn+.8), o=b.tOut===Infinity?0:ramp(t,b.tOut,b.tOut+.65); REC('txt-'+b.lines[0].words[0].t+b.tIn, x, b.top+li*b.lhpx, ln.w, b.lhpx, p*(1-o)); }
     for(const wd of ln.words){
       const p=eo(ramp(t,b.tIn+k*b.stagger,b.tIn+k*b.stagger+.8));
       const o=b.tOut===Infinity?0:ss(0,1,ramp(t,b.tOut+k*.035,b.tOut+k*.035+.65));
@@ -471,8 +520,8 @@ function drawFlow(t){
     if(s>tip) continue;
     let x,y,a=.85*fin;
     if(s>dieL){
-      const f=(s-dieL)/(P.total*.14); if(f>=1) continue;
-      const q=pathAt(dieL); x=q.x+f*18; y=q.y+Math.pow(f,1.5)*64; a*=1-f;
+      const f=(s-dieL)/(P.total*.1); if(f>=1) continue;
+      const q=pathAt(dieL); x=q.x+f*10; y=q.y+Math.pow(f,1.2)*14; a*=(1-f)*(1-f);
       if(die===6) continue;
     } else { const q=pathAt(s); x=q.x; y=q.y; }
     ctx.globalAlpha=a; ctx.fillStyle=C.deep; ctx.beginPath(); ctx.arc(x,y,2.1,0,Math.PI*2); ctx.fill();
@@ -480,31 +529,34 @@ function drawFlow(t){
   ctx.globalAlpha=1;
 }
 function drawStations(t){
-  const m=L.m, r0=m?6:8;
+  const m=L.m, r0=L.r0;
   L.st.forEach((s,i)=>{
     const e=eo(ramp(t,TS(i)-.05,TS(i)+.5)); if(e<=0) return;
     const rip=ramp(t,TS(i),TS(i)+1.3);
     if(rip<1){ ctx.globalAlpha=(1-rip)*.45; ctx.strokeStyle=C.deep; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(s.x,s.y,r0+rip*22,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1; }
-    if(i===5){
-      const bloom=ramp(t,20.2,21.4);
-      if(bloom>0){ const R=44+Math.sin(t*.9)*3, g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,R);
-        g.addColorStop(0,`rgba(200,214,252,${.85*bloom})`); g.addColorStop(1,'rgba(200,214,252,0)');
-        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,R,0,Math.PI*2); ctx.fill(); }
-    }
-    orb(s.x,s.y,r0*(.5+.5*e)*(i===5?1+.15*ramp(t,20.2,21):1),e);
+    const bloom = i===5 ? ramp(t,T_CASH,T_CASH+1.1) : 0;
+    if(bloom>0){ const R=44+Math.sin(t*.9)*3, g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,R);
+      g.addColorStop(0,`rgba(200,214,252,${.85*bloom})`); g.addColorStop(1,'rgba(200,214,252,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,R,0,Math.PI*2); ctx.fill(); }
+    orb(s.x,s.y,r0*(.5+.5*e)*(1+.15*bloom),e);
     ctx.globalAlpha=e; ctx.textAlign='center'; ctx.fillStyle=C.navy;
-    ctx.font=`600 ${m?10.5:12.5}px ${FONT}`; setLS(0);
-    ctx.fillText(s.name, s.x, s.y+r0+(m?18:22));
-    if(i===5){ const v=ramp(t,20.5,21.3); ctx.globalAlpha=v; ctx.fillStyle=C.deep; ctx.font=`500 ${m?9:10.5}px ${MONO}`;
-      ctx.fillText('verified cash', s.x, s.y+r0+(m?31:38)); }
+    const nf=m?10.5:12.5; ctx.font=`600 ${nf}px ${FONT}`; setLS(0);
+    const ny=s.y+r0+(m?16:20); ctx.fillText(s.name, s.x, ny);
+    REC('st-'+i, s.x-ctx.measureText(s.name).width/2, ny-nf*.8, ctx.measureText(s.name).width, nf, e);
+    if(i===5){ const v=ramp(t,T_CASH+.15,T_CASH+.9); ctx.globalAlpha=v; ctx.fillStyle=C.deep; const f=m?9:10;
+      ctx.font=`500 ${f}px ${MONO}`; ctx.fillText('payment evidence', s.x, ny+(m?13:15));
+      REC('st-note', s.x-ctx.measureText('payment evidence').width/2, ny+(m?13:15)-f*.8, ctx.measureText('payment evidence').width, f, v); }
     const cn=ramp(t,16.3+i*.09,16.9+i*.09);
-    if(cn>0){ ctx.globalAlpha=cn*e; ctx.fillStyle=C.slate; ctx.font=`500 ${m?9.5:11}px ${MONO}`;
-      ctx.fillText(String(s.n), s.x, s.y-r0-(m?9:12)+(1-cn)*4); }
+    if(cn>0){ const f=m?9.5:11, cy=s.y-r0-(m?9:11); ctx.globalAlpha=cn*e; ctx.fillStyle=C.slate; ctx.font=`500 ${f}px ${MONO}`;
+      ctx.fillText(String(s.n), s.x, cy+(1-cn)*4);
+      REC('ct-'+i, s.x-ctx.measureText(String(s.n)).width/2, cy-f*.8, ctx.measureText(String(s.n)).width, f, cn*e); }
     ctx.globalAlpha=1;
   });
   const cap=ramp(t,16.6,17.4);
-  if(cap>0){ ctx.globalAlpha=cap*.9; ctx.fillStyle=C.slate; ctx.font=`500 ${m?9:10}px ${MONO}`; ctx.textAlign='center'; setLS(.4);
-    ctx.fillText('ILLUSTRATIVE COHORT · NOT LIVE DATA', W/2, L.pathY+(m?56:68)); setLS(0); ctx.globalAlpha=1; }
+  if(cap>0){ const f=m?9:10, cy=L.pathY+r0+(m?46:56), txt='ILLUSTRATIVE COHORT · NOT LIVE DATA';
+    ctx.globalAlpha=cap*.9; ctx.fillStyle=C.slate; ctx.font=`500 ${f}px ${MONO}`; ctx.textAlign='center'; setLS(.4);
+    ctx.fillText(txt, W/2, cy); REC('cohort', W/2-ctx.measureText(txt).width/2, cy-f*.8, ctx.measureText(txt).width, f, cap);
+    setLS(0); ctx.globalAlpha=1; }
 }
 function fogRow(t){
   const P=L.P, a0=ramp(t,8.2,9.8)*.85; if(a0<=0) return;
@@ -522,45 +574,60 @@ function stallBank(t){
     cloud(sprites[(i+2)%8], q.x+ox*L.sp+dx*part*L.sp*1.3+Math.sin(t*.25+i)*6, q.y+oy*L.sp+dy*part*30, w, a0*(1-part*.88));
   });
 }
-function drawCard(t){
-  const P=L.P, mid=(P.stL[2]+P.stL[3])/2, q=pathAt(mid), m=L.m;
-  const inA=eo(ramp(t,17.05,17.8)), out=ss(0,1,ramp(t,19.9,20.6)), a=inA*(1-out);
-  const pillA=ramp(t,20.4,21.2);
-  if(a>0){
-    const w=Math.min(300,W-32), pad=18, h=m?176:182;
-    const x=clamp(q.x-w/2,16,W-w-16), bot=q.y-(m?40:34), y=bot-h+(1-inA)*14-out*10;
-    ctx.save(); ctx.globalAlpha=a;
-    // pointer
-    ctx.strokeStyle='rgba(125,151,199,.8)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
-    ctx.beginPath(); ctx.moveTo(q.x,y+h); ctx.lineTo(q.x,q.y-9); ctx.stroke(); ctx.setLineDash([]);
-    ctx.beginPath(); ctx.arc(q.x,q.y,6,0,Math.PI*2); ctx.stroke();
-    ctx.shadowColor='rgba(40,52,79,.12)'; ctx.shadowBlur=34; ctx.shadowOffsetY=12;
-    rr(x,y,w,h,16); ctx.fillStyle='rgba(255,255,255,.94)'; ctx.fill();
-    ctx.shadowColor='transparent'; ctx.strokeStyle=C.line; ctx.stroke();
-    ctx.textAlign='left';
-    ctx.font=`500 10.5px ${MONO}`; setLS(.8); ctx.fillStyle=C.slate; ctx.fillText('BOOKED → ATTENDED', x+pad, y+pad+10);
-    setLS(0); ctx.font=`600 10px ${FONT}`; const tw=ctx.measureText('Illustrative').width+16;
-    rr(x+w-pad-tw,y+pad-2,tw,18,9); ctx.fillStyle='#EEF3FF'; ctx.fill(); ctx.fillStyle=C.deep; ctx.fillText('Illustrative', x+w-pad-tw+8, y+pad+10.5);
-    ctx.font=`800 32px ${FONT}`; setLS(-1.2); ctx.fillStyle=C.ink; ctx.fillText('50%', x+pad, y+pad+50);
-    const pw=ctx.measureText('50%').width; setLS(0);
-    ctx.font=`500 13px ${FONT}`; ctx.fillStyle=C.slate; ctx.fillText('attended', x+pad+pw+8, y+pad+50);
-    ctx.fillText('70 of 140 booked calls were missed.', x+pad, y+pad+72);
-    ctx.fillStyle=C.line; ctx.fillRect(x+pad,y+pad+88,w-pad*2,1);
-    ctx.font=`500 10.5px ${MONO}`; setLS(.8); ctx.fillStyle=C.deep; ctx.fillText('NEXT MOVE', x+pad, y+pad+110); setLS(0);
-    ctx.font=`600 14px ${FONT}`; ctx.fillStyle=C.navy;
-    const lines=['Confirm the agenda, timezone','and a reschedule option.'];
-    lines.forEach((s,i)=>ctx.fillText(s, x+pad, y+pad+132+i*19));
-    ctx.restore();
+function drawLoop(t){
+  const A=eo(ramp(t,16.5,17.1)); if(A<=0) return;
+  const hold=t>=DUR, cyc=hold?Math.floor((t-DUR)/1.6)%6:-1;
+  ctx.save(); ctx.textAlign='left';
+  for(const c of L.chips){
+    const k=c.k, on=ramp(t,LT(k),LT(k)+.45), next=k<5?LT(k+1):22.7;
+    const active = hold ? k===cyc : (t>=LT(k) && t<next);
+    const done = hold || t>=next;
+    const ca=eo(ramp(t,16.5+k*.05,17.1+k*.05)), y=c.y+(1-ca)*8;
+    ctx.globalAlpha=A*ca;
+    rr(c.x,y,c.w,c.h,12);
+    ctx.fillStyle = active ? 'rgba(238,243,255,.96)' : 'rgba(255,255,255,.8)'; ctx.fill();
+    ctx.strokeStyle = active ? '#AFC1EE' : C.line; ctx.lineWidth=1; ctx.stroke();
+    const lf=L.m?9:9.5, ly=y+c.pad+lf*.85;
+    ctx.font=`500 ${lf}px ${MONO}`; setLS(.9); ctx.fillStyle=C.deep;
+    const lab=String(k+1).padStart(2,'0')+'  '+c.lab.toUpperCase();
+    ctx.fillText(lab, c.x+c.pad, ly); setLS(0);
+    if(done || (on>0 && !active)){ // quiet check once the step is complete
+      ctx.globalAlpha=A*ca*(done?1:on); ctx.strokeStyle=C.deep; ctx.lineWidth=1.3; ctx.beginPath();
+      const cx=c.x+c.w-c.pad-8, cy=ly-3.5; ctx.moveTo(cx,cy); ctx.lineTo(cx+2.8,cy+2.8); ctx.lineTo(cx+8,cy-2.6); ctx.stroke();
+    } else if(active){
+      ctx.fillStyle=C.deep; ctx.beginPath(); ctx.arc(c.x+c.w-c.pad-4, ly-3.5, 3, 0, Math.PI*2); ctx.fill();
+    }
+    const b=c.b; ctx.globalAlpha=A*ca*lerp(.38,1,on);
+    ctx.font=`${b.weight} ${b.fs}px ${FONT}`; ctx.fillStyle=C.navy;
+    const ty=y+c.h-c.pad-(b.lines.length-1)*b.lhpx-b.fs*.22;
+    b.lines.forEach((ln,i)=>ctx.fillText(ln.words.map(w=>w.t).join(' '), c.x+c.pad, ty+i*b.lhpx));
+    REC('chip-'+k, c.x, y, c.w, c.h, A*ca);
   }
-  if(pillA>0){
-    ctx.save(); ctx.globalAlpha=pillA; ctx.font=`600 ${m?10.5:11.5}px ${FONT}`;
-    const label='Next move ready', tw=ctx.measureText(label).width+30, ph=m?22:24;
-    const x=clamp(q.x-tw/2,8,W-tw-8), y=q.y-(m?52:50)+(1-pillA)*6;
-    rr(x,y,tw,ph,ph/2); ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fill(); ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.stroke();
-    ctx.fillStyle=C.deep; ctx.beginPath(); ctx.arc(x+12,y+ph/2,3,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle=C.navy; ctx.textAlign='left'; ctx.fillText(label,x+20,y+ph/2+4);
-    ctx.restore();
+  // the loop closes: a return path back to step one
+  ctx.globalAlpha=A*.85; ctx.strokeStyle='rgba(125,151,199,.75)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+  const f=L.m?9:9.5, txt='REPEATS ON EVERY NEW OPPORTUNITY';
+  ctx.font=`500 ${f}px ${MONO}`; setLS(.8); const tw=ctx.measureText(txt).width;
+  const last=L.chips[L.chips.length-1], first=L.chips[0];
+  const bot=L.stripTop+L.stripH-L.capH, ay=bot+(L.narrow?14:16);
+  if(!L.narrow){
+    const x1=last.x+last.w/2, x0=first.x+first.w/2;
+    ctx.beginPath(); ctx.moveTo(x1,bot+2); ctx.lineTo(x1,ay); ctx.lineTo(x0,ay); ctx.lineTo(x0,bot+4); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x0-3.5,bot+8); ctx.lineTo(x0,bot+3); ctx.lineTo(x0+3.5,bot+8); ctx.stroke();
+    rr(W/2-tw/2-10, ay-8, tw+20, 16, 8); ctx.fillStyle='rgba(244,247,255,.96)'; ctx.fill();
   }
+  ctx.setLineDash([]); ctx.fillStyle=C.slate; ctx.textAlign='center'; ctx.fillText(txt, W/2, ay+f*.35);
+  REC('loopcap', W/2-tw/2, ay-f*.5, tw, f, A);
+  setLS(0); ctx.restore();
+}
+// the one opportunity the loop carries: stuck, owned, then moved through to payment
+function drawOpportunity(t){
+  const P=L.P, a=ramp(t,16.9,17.4)*(1-ramp(t,T_CASH+.3,T_CASH+.9)); if(a<=0) return;
+  const mv=eio(ramp(t,T_MOVE,T_CASH)), l=lerp((P.stL[2]+P.stL[3])/2,P.total,mv), q=pathAt(l);
+  const g=ctx.createRadialGradient(q.x,q.y,0,q.x,q.y,24); g.addColorStop(0,`rgba(255,255,255,${.9*a})`); g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(q.x,q.y,24,0,Math.PI*2); ctx.fill();
+  if(mv===0){ const p=frac((t-17)/1.5); ctx.globalAlpha=a*(1-p)*.5; ctx.strokeStyle=C.deep; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(q.x,q.y,7+p*14,0,Math.PI*2); ctx.stroke(); }
+  ctx.globalAlpha=a; ctx.strokeStyle=C.navy; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(q.x,q.y,8.5,0,Math.PI*2); ctx.stroke();
+  orb(q.x,q.y,5.5,a); ctx.globalAlpha=1;
 }
 function drawGrain(t){
   ctx.save(); ctx.globalCompositeOperation='multiply';
@@ -600,7 +667,8 @@ function render(t){
   stallBank(t);
   layer(CL.near,t,intro,1);
 
-  drawCard(t);
+  drawLoop(t);
+  drawOpportunity(t);
   for(const b of L.story) drawBlock(b,t);
   for(const b of [L.eyebrow,L.h1a,L.h1b,L.sub]) drawBlock(b,t);
 
@@ -617,7 +685,7 @@ function render(t){
   v.addColorStop(0,'rgba(168,188,236,0)'); v.addColorStop(1,'rgba(168,188,236,.16)');
   ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
   drawGrain(t);
-  setDom(ramp(t,-.5,.6), eo(ramp(t,22,22.9)));
+  setDom(ramp(t,-.5,.6), eo(ramp(t,.6,1.6)));
 }
 
 /* ============================================================
@@ -666,8 +734,8 @@ const CUES=[
   [8.5, ()=>whoosh(2.8,.09,180,700)],
   ...NOTES.map((f,i)=>[TS(i), ()=>chime(f,.065)]),
   [16.6, ()=>whoosh(1.9,.15,240,1800)],
-  [17.15, ()=>chime(1567.98,.025)],
-  [20.25, ()=>{ pad([130.81,196,261.63,329.63,392,493.88],9,.02); chime(1046.5,.06); setTimeout(()=>SND.on&&chime(1567.98,.04),180); setTimeout(()=>SND.on&&chime(2093,.025),380); }],
+  ...[659.25,783.99,880,987.77,1174.66,1318.51].map((f,k)=>[LT(k), ()=>chime(f,.035)]),
+  [T_CASH+.05, ()=>{ pad([130.81,196,261.63,329.63,392,493.88],9,.02); chime(1046.5,.06); setTimeout(()=>SND.on&&chime(1567.98,.04),180); setTimeout(()=>SND.on&&chime(2093,.025),380); }],
 ];
 function fireCues(a,b){ if(!SND.on||b<=a||b-a>1) return; for(const [ct,fn] of CUES) if(ct>a&&ct<=b) fn(); }
 
@@ -680,14 +748,16 @@ if(hashF) frozen=DUR*Math.min(100,+hashF[1])/100;
 
 function resize(){
   DPR=Math.min(window.devicePixelRatio||1,1.75);
-  W=stage.clientWidth; H=stage.clientHeight;
-  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  W=document.documentElement.clientWidth; H=innerHeight;
   layout();
+  for(let i=0;i<5 && L.needH>H+1;i++){ H=Math.ceil(L.needH); layout(); }   // too short: the hero grows and the page scrolls
+  stage.style.height=H+'px';
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
 }
 const capEl=document.getElementById('caption'); let capLast='';
 function caption(tt){
   let s=''; for(const b of L.story) if(tt>=b.tIn&&tt<b.tOut) s=b.lines.map(l=>l.words.map(w=>w.t).join(' ')).join(' ');
-  if(tt>=20.6) s='Your sales operation. Connected from lead to cash.';
+  if(tt>=24.0) s='Your sales operation. Connected from lead to cash.';
   if(s!==capLast){ capLast=s; capEl.textContent=s; }
 }
 const bSkip=document.getElementById('bSkip');
