@@ -386,7 +386,7 @@ export function Today({ me, go, api }: { me: string; go: Go; api: MovesApi }) {
       <div className="two">
         <div>
           <section className="next enter">
-            <div className="lbl">Next{call === 'live' ? <span className="live">On the call · {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')}</span> : first.hot && <span className="live">Waiting now</span>}</div>
+            <div className="lbl">Next{call === 'live' ? <span className="live">On the call · {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')}</span> : call === 'idle' && first.hot && <span className="live">Waiting now</span>}</div>
             <h2>{call === 'done' ? 'Logged' : `Call ${first.name}`}</h2>
             <div className="meta">{call === 'done' ? 'Nothing to type. The call, the time and what was said are on the record.' : `${first.next} · ${first.company}`}</div>
             <div className="acts">
