@@ -36,9 +36,6 @@
   #nav ul{display:flex;gap:30px;list-style:none;margin:0 0 0 22px;padding:0}
   #nav ul a{font-size:14px;color:#4B5468;text-decoration:none;font-weight:500}
   #nav ul a[aria-current]{color:var(--ink);font-weight:700}
-  .snd{margin-left:auto;width:38px;height:38px;border-radius:50%;border:0;display:grid;place-items:center;background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 1px var(--line);color:var(--navy);cursor:pointer}
-  .snd svg{width:15px;height:15px}
-  .snd[aria-pressed="true"]{background:var(--navy);color:#fff;box-shadow:none}
   .pill{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:48px;padding:0 26px;border-radius:999px;font:650 15px/1 var(--sans);text-decoration:none;white-space:nowrap;transition:background .3s,box-shadow .3s,transform .4s cubic-bezier(.2,.7,.2,1)}
   .pill.primary{background:var(--peri);color:var(--navy)}
   .pill.primary:hover{background:#B9CAF9;box-shadow:0 10px 26px -12px rgba(40,52,79,.4)}
@@ -46,7 +43,7 @@
   .pill.ghost:hover{background:#fff}
   .pill.light{background:#fff;color:var(--navy)}
   .pill:active{transform:scale(.98)}
-  #nav .join{margin-left:10px;height:42px;padding:0 22px;font-size:14px}
+  #nav .join{margin-left:auto;height:42px;padding:0 22px;font-size:14px}
   :focus-visible{outline:2px solid var(--navy);outline-offset:3px}
 
   main{position:relative;z-index:1}
@@ -157,7 +154,6 @@
     <li><a href="pricing.html" aria-current="page">Pricing</a></li>
     <li><a href="https://obavia.co/">About</a></li>
   </ul>
-  <button class="snd" id="snd" type="button" aria-pressed="false" aria-label="Sound off"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 5h2.5L8 2.2v9.6L4.5 9H2z" fill="currentColor"/><path class="wv" d="M10 4.6c.8.7.8 4.1 0 4.8M11.6 3c1.6 1.5 1.6 6.5 0 8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".25"/></svg></button>
   <a class="pill primary join" href="https://obavia.co/waitlist">Join the Waitlist</a>
 </nav>
 
@@ -248,7 +244,7 @@
   const nav=document.getElementById('nav');
   addEventListener('scroll',()=>nav.classList.toggle('solid',scrollY>24),{passive:true});
 
-  /* sound: soft, synthesized, off until asked for */
+  /* sound: soft, synthesized, wakes on the first tap */
   const S={ac:null,on:false};
   function init(){ const ac=new (window.AudioContext||window.webkitAudioContext)(); S.ac=ac; S.m=ac.createGain(); S.m.gain.value=0; S.m.connect(ac.destination);
     const len=ac.sampleRate*2.4, ir=ac.createBuffer(2,len,ac.sampleRate);
@@ -258,9 +254,9 @@
     gg.gain.setValueAtTime(0,t0); gg.gain.linearRampToValueAtTime(g,t0+.012); gg.gain.exponentialRampToValueAtTime(.0001,t0+2.2);
     [[f,1],[f*2.76,.2]].forEach(([fr,a])=>{ const o=ac.createOscillator(),og=ac.createGain(); o.frequency.value=fr; og.gain.value=a; o.connect(og); og.connect(gg); o.start(t0); o.stop(t0+2.3); }); }
   function tick(){ if(!S.on) return; const ac=S.ac,t0=ac.currentTime+.005,o=ac.createOscillator(),g=ac.createGain(); o.frequency.value=1900; g.gain.setValueAtTime(.012,t0); g.gain.exponentialRampToValueAtTime(.0001,t0+.07); o.connect(g); g.connect(S.m); o.start(t0); o.stop(t0+.09); }
-  const b=document.getElementById('snd');
-  b.onclick=()=>{ if(!S.ac) init(); S.on=!S.on; S.ac.resume(); S.m.gain.setTargetAtTime(S.on?.9:0,S.ac.currentTime,.3);
-    b.setAttribute('aria-pressed',S.on); b.setAttribute('aria-label',S.on?'Sound on':'Sound off'); b.querySelector('.wv').setAttribute('opacity',S.on?1:.25); if(S.on) chime(880,.04); };
+  function wake(){ removeEventListener('pointerdown',wake,true); removeEventListener('keydown',wake,true);
+    try{ if(!S.ac) init(); S.on=true; S.ac.resume(); S.m.gain.setTargetAtTime(.9,S.ac.currentTime,.3); }catch(e){} }
+  addEventListener('pointerdown',wake,true); addEventListener('keydown',wake,true);
   document.addEventListener('pointerdown',e=>{ if(e.target.closest('a,button,summary')) tick(); },{passive:true});
   document.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>{ if(d.open) chime(1174.66,.025); }));
 
