@@ -298,7 +298,7 @@
 const {snd:S, clamp, eo, eio, lerp, REDUCED} = OBV, $ = id => document.getElementById(id);
 
 /* the owner's line */
-OBV.funnel($('ownLine'),{label:'Illustrative agency, one month',delay:900,dur:3200,
+OBV.funnel($('ownLine'),{label:'Illustrative agency, one month',callout:true,delay:900,dur:3200,
   stages:[{n:'Leads',v:1200},{n:'Booked',v:744},{n:'Showed',v:372},{n:'Qualified',v:272},{n:'Won',v:78}],cash:468000});
 
 /* rank: close rate flatters the rep who disqualifies; cash per lead does not */
