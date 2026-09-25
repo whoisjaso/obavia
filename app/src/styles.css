@@ -292,3 +292,29 @@ button.cell:active,a.cell:active{background:#F1F4FB}
 .verdict .why{margin-top:10px;color:var(--ink);font-weight:600}
 .lead-card.rep h2{font-size:clamp(22px,2.4vw,27px);line-height:1.2}
 .q.big{margin:14px 0 0;font-size:18px;line-height:1.45}
+
+/* ---------- the handoff ---------- */
+.hand ol{margin:14px 0 0;padding:0;list-style:none;counter-reset:h;display:grid;gap:14px}
+.hand li{counter-increment:h;display:grid;grid-template-columns:26px 1fr;column-gap:10px;font:600 16px/1.45 var(--sans);color:#fff}
+.hand li::before{content:counter(h);grid-row:span 2;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center;font:700 13px/1 var(--sans)}
+.hand li b{display:block;font:700 13px/1.2 var(--sans);color:rgba(255,255,255,.62);margin-bottom:3px}
+.hand .use{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);font:600 15px/1.3 var(--sans);color:#fff}
+.hand .use span{font:700 13px/1 var(--sans);color:rgba(255,255,255,.62)}
+.hand .use q{quotes:"“" "”"}
+.hrow{position:relative;display:grid;grid-template-columns:120px minmax(0,1fr);gap:14px;padding:14px 18px}
+.hrow+.hrow::before{content:"";position:absolute;top:0;right:0;left:18px;height:1px;background:var(--sep)}
+.hrow .k{font:600 13.5px/1.35 var(--sans);color:var(--text2);padding-top:1px}
+.hrow b{display:block;font:650 15.5px/1.4 var(--sans);color:var(--ink)}
+.hrow small{display:block;margin-top:3px;font:500 14px/1.4 var(--sans);color:var(--text2)}
+.hrow em{font-style:normal;color:var(--tint);font-weight:650}
+.hrow .miss,.hrow b.miss{font:600 15px/1.4 var(--sans);color:var(--leak)}
+.hrow.qa{display:block}
+.hrow.qa b{margin-top:4px}
+.string{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;padding:16px 18px}
+.string .k{display:block;margin-bottom:8px;font:700 13px/1 var(--sans);color:var(--text2)}
+.st2{display:flex;align-items:center;gap:10px;padding:6px 0;font:600 15px/1.2 var(--sans);color:var(--text3)}
+.st2 i{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1.5px currentColor;flex:none;color:inherit}
+.st2.on{color:var(--ink)} .st2.on i{background:var(--good);box-shadow:none;color:#fff}
+.st2.gap{color:var(--leak)}
+.st2.next{color:var(--tint)} .st2.next i{box-shadow:inset 0 0 0 2px var(--tint)}
+@media (max-width:560px){.hrow{grid-template-columns:1fr;gap:4px}}

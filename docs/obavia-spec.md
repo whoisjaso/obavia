@@ -5,6 +5,7 @@ The single reference for what Obavia is, who it is for, what it does, and how it
 Companion docs:
 - `docs/obavia-positioning.md`: the build-vs-buy argument in full, with sources.
 - `docs/icp-language.md`: what the top of the market says, from transcripts, in their words.
+- `docs/sales-doctrine.md`: **the sales doctrine** we sell by and coach our clients' teams against (the string, the set, the close, the handoff, our own script).
 
 ---
 
@@ -96,6 +97,8 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 | Word-choice read | I vs we, my vs our, the one name they reach for. Probabilistic, never a label. Suggests what to say and what to avoid. | App (LeadSheet), Site (#person) |
 | Lead enrichment | Public footprint (location, business, size) beside the read, before the call. | Planned |
 | Rep pairing | Match the lead to the rep whose style fits the read. | Planned |
+| Setter → closer handoff | Written from the setter's call, no typing. A profile of the lead: what they want and what it implies, their labeled approach, the catalyst, the pain (since when, impact), the gap in numbers, the setter's identity label, the archetype and what they deem significant, what is already pre-handled, whether they watched the pre-call asset. Then three points to close (open, the pillar to lead with, the consequence), their words to use back, and the string: which steps the set hit and where the closer picks up. | App (lead sheet) |
+| String coverage | Which steps of the doctrine each setter and closer skip, from their calls; feeds the leak engine as a reason. | Planned |
 
 **Guardrail.** The read is about language, never identity. No inference of race, gender, age or any protected trait. The famous-name example (Babe Ruth chosen over Jordan, LeBron, Serena, Brady, Michael Jackson) is about the choice of reference, which signals what the person values, not who they are.
 

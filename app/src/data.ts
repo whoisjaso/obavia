@@ -83,11 +83,29 @@ export type LeadEvent = { t: string; what: string; detail?: string; src: 'Phone'
 export type Signal = { said: string; over: string; means: string };
 /** A name or picture they reached for, out of everything they could have said. */
 export type Reference = { name: string; over: string[]; means: string };
+/** The string: every step a sale has to hit, whoever hits it. The set covers the first five. */
+export const STRING = ['Goal', 'Approach', 'Catalyst', 'Pain', 'Gap', 'Do it yourself', 'Past attempts', 'Future', 'Consequence', 'Commitments'] as const;
+export type StringStep = (typeof STRING)[number];
+/** The setter's notes to the closer, written by Obavia from the call. */
+export type Handoff = {
+  from: string; when: string;
+  goal: string; implies: string;
+  approach: { said: string; label: string };
+  catalyst?: string;
+  pain?: { what: string; since: string; impact: string };
+  gap?: { now: string; want: string };
+  identity: string; significant: string;
+  handled: { q: string; a: string }[];
+  asset?: { name: string; watched: boolean; takeaway?: string };
+  hit: StringStep[];
+  close: { open: string; pillar: string; consequence: string; words: string[] };
+};
 export type Lead = {
   id: string; name: string; company: string; revenue: string; source: string;
   stage: (typeof STAGES)[number]; rep: string; next: string; due: string; hot?: boolean;
   quote: string; marks: string[]; signals: Signal[]; reference?: Reference;
   type: Significance; read: [Significance, number][]; say: string; avoid: string; events: LeadEvent[];
+  handoff?: Handoff;
 };
 
 /** The need behind each type, in plain words. */
@@ -114,7 +132,30 @@ export const LEADS: Lead[] = [
       { t: 'Mon 12:41', what: 'Discovery booked', detail: 'Wed 10:00 · agenda confirmed', src: 'Calendar' },
       { t: 'Wed 10:02', what: 'He showed', detail: '38 min', src: 'Calendar' },
       { t: 'Wed 10:40', what: 'Qualified', detail: '86 of 100', src: 'From the call' },
-    ] },
+    ],
+    handoff: {
+      from: 'jordan', when: 'Mon 12:41',
+      goal: 'The team closing without him on every big call.', implies: 'Right now every big deal waits on him.',
+      approach: { said: 'I jump on the big calls myself, and we do a Monday review.', label: 'the jump-in approach' },
+      catalyst: 'Lost two $20K deals in March while he was traveling. That was the moment.',
+      pain: { what: 'Revenue swings with his calendar', since: 'About 8 months', impact: 'He can’t take a week off. His last vacation, he took six calls.' },
+      gap: { now: '$240K a month, swinging by $60K', want: '$400K a month, steady, without him on the calls' },
+      identity: 'The closer the team waits on', significant: 'Being the one who steps up and saves the game. Credit for what he built.',
+      handled: [
+        { q: 'Why not just coach the reps yourself?', a: 'I’ve tried. I don’t have the hours, and they don’t hear it from me.' },
+        { q: 'Tried help before?', a: 'A sales coach last year. Bad result: generic scripts, nothing from his own calls.' },
+        { q: 'What would make it work this time?', a: 'Built from his own team’s calls, not a template.' },
+      ],
+      asset: { name: 'The six-minute leak breakdown', watched: true, takeaway: 'Show rate is where his money goes.' },
+      hit: ['Goal', 'Approach', 'Catalyst', 'Pain', 'Gap', 'Do it yourself', 'Past attempts'],
+      close: {
+        open: 'Confirm the jump-in approach in his words, then ask what he took from the video.',
+        pillar: 'Lead with “built from your own calls”. It answers exactly why the coach failed.',
+        consequence: 'At $400K he is still the one stepping up on every call, and the team never learns to hit.',
+        words: ['my team', 'save the quarter', 'Babe Ruth'],
+      },
+    },
+  },
   { id: 'priya', name: 'Priya Nair', company: 'Northline Media', revenue: '$410K/mo', source: 'Referral', stage: 'Showed', rep: 'maya', next: 'Send recap', due: 'Today 4:00 PM',
     quote: 'We did two-forty last month. I just need it predictable, we keep guessing.',
     marks: ['two-forty', 'predictable', 'guessing'],
@@ -163,7 +204,23 @@ export const LEADS: Lead[] = [
       { t: 'Tue 16:40', what: 'Lead came in', detail: 'Paid social', src: 'Form' },
       { t: 'Wed 09:05', what: 'Call connected', detail: '3m 12s · Jordan', src: 'Phone' },
       { t: 'Wed 09:08', what: 'Discovery booked', detail: 'Mon 3:00 · no agenda, no timezone', src: 'Calendar' },
-    ] },
+    ],
+    handoff: {
+      from: 'jordan', when: 'Wed 09:08',
+      goal: 'More calls, probably.', implies: 'Not clear yet. A soft goal usually hides the real one.',
+      approach: { said: 'Mostly referrals, and some Instagram.', label: 'the referral approach' },
+      identity: 'Easygoing. Says yes to everything', significant: 'Not letting anyone down.',
+      handled: [],
+      asset: { name: 'The six-minute leak breakdown', watched: false },
+      hit: ['Goal', 'Approach'],
+      close: {
+        open: 'Confirm the agenda and his timezone first. “Any time is fine” is a soft yes.',
+        pillar: 'Don’t pitch yet. Find the catalyst: what changed that made him book?',
+        consequence: 'Not uncovered yet. Get it before the pitch.',
+        words: ['any time is fine', 'I guess'],
+      },
+    },
+  },
   { id: 'elena', name: 'Elena Vasquez', company: 'Brightpath Agency', revenue: '$520K/mo', source: 'Podcast', stage: 'Qualified', rep: 'andre', next: 'Close call', due: 'Tomorrow 10:00',
     quote: 'Every agency like ours I talk to is dealing with this. Who else have you done it for?',
     marks: ['agency like ours', 'Who else'],
@@ -176,10 +233,33 @@ export const LEADS: Lead[] = [
     avoid: 'Making her feel like the first to try it.',
     events: [
       { t: 'Mon 11:00', what: 'Lead came in', detail: 'Podcast', src: 'Form' },
-      { t: 'Mon 11:20', what: 'Call connected', detail: '14m 02s · Andre', src: 'Phone' },
+      { t: 'Mon 11:20', what: 'Call connected', detail: '14m 02s · Jordan', src: 'Phone' },
       { t: 'Wed 14:00', what: 'She showed', detail: '52 min', src: 'Calendar' },
       { t: 'Wed 14:52', what: 'Qualified', detail: '81 of 100', src: 'From the call' },
-    ] },
+    ],
+    handoff: {
+      from: 'jordan', when: 'Mon 11:34',
+      goal: 'Hire two more closers without the close rate falling.', implies: 'New closers have been costing her money.',
+      approach: { said: 'We review calls on Fridays and keep a shared Loom library.', label: 'the Friday-review approach' },
+      catalyst: 'Hired three closers in the spring. Two washed out in 60 days and burned the podcast leads.',
+      pain: { what: 'New reps take 90 days to ramp', since: 'Since April', impact: 'About $80K of podcast leads went to reps who didn’t make it.' },
+      gap: { now: '$520K a month with 4 closers', want: '$750K a month with 6 closers, ramped in 30 days' },
+      identity: 'The operator who does it by the book', significant: 'What agencies like hers are doing. Proof from peers.',
+      handled: [
+        { q: 'Why not keep the Friday reviews?', a: 'They cover maybe ten calls. We run three hundred a week.' },
+        { q: 'Tried help before?', a: 'Looked at Gong last year, didn’t move forward: too heavy, nobody would use it.' },
+        { q: 'What changed now?', a: 'Losing podcast leads to reps who wash out.' },
+      ],
+      asset: { name: 'How an agency her size ramps reps', watched: true, takeaway: 'They ramped a rep in 30 days.' },
+      hit: ['Goal', 'Approach', 'Catalyst', 'Pain', 'Gap', 'Do it yourself', 'Past attempts', 'Future'],
+      close: {
+        open: 'Start with who else like her runs it: two agencies her size.',
+        pillar: 'Lead with trial mode: new reps proven on cheap leads before they touch a podcast lead.',
+        consequence: 'Another hiring round that burns $80K of leads, and a team that stays at four.',
+        words: ['agency like ours', 'burned', 'by the book'],
+      },
+    },
+  },
 ];
 
 export type MoveStatus = 'assigned' | 'doing' | 'checking' | 'worked' | 'missed';

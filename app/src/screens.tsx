@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AGENCY, BENCH, LEADS, NEED, PLAYBOOK, REASONS, REPS, STEPS, type Lead, type Move, type StepIndex } from './data';
 import { biggest, byId, cash, health, int, k, leaks, lift, money, pct, perLead, rate, teamCounts } from './engine';
 import { Avatar, Chev, Funnel, Ic, Status, Track, useCount } from './ui';
+import { Handoff } from './handoff';
 
 type Go = (to: string) => void;
 export type MovesApi = { moves: Move[]; assign: (rep: string, step: StepIndex) => Move; advance: (id: string) => void };
@@ -301,6 +302,8 @@ export function LeadSheet({ lead }: { lead: Lead }) {
       {!heard ? (
         <section className="sec"><div className="group"><p className="empty">Not heard yet. After the first call, their words and what they mean land here.</p></div></section>
       ) : (<>
+        {lead.handoff && <Handoff lead={lead} />}
+
         <section className="sec">
           <h2>In their words</h2>
           <div className="group"><Words lead={lead} /></div>

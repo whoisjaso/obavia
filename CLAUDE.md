@@ -98,4 +98,4 @@ Four ancestral entry points + two amplifiers. Design serves these silently.
 ---
 
 # Separate project in this repo: Obavia (sales software)
-Everything above is the vehicle-rental project. `obavia-co/`, `app/`, `films/` and `docs/obavia-*.md` / `docs/icp-language.md` are a different product: sales software for agency owners at $100K to $1M a month. For that work, the source of truth is **`docs/obavia-spec.md`** (positioning, feature spec with status, landing page spec, design system, go-to-market). Don't apply the rental doctrine to it, or its rules to the rental files.
+Everything above is the vehicle-rental project. `obavia-co/`, `app/`, `films/` and `docs/obavia-*.md` / `docs/icp-language.md` are a different product: sales software for agency owners at $100K to $1M a month. For that work, the source of truth is **`docs/obavia-spec.md`**, and the sales doctrine is **`docs/sales-doctrine.md`** (positioning, feature spec with status, landing page spec, design system, go-to-market). Don't apply the rental doctrine to it, or its rules to the rental files.
