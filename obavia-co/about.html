@@ -34,9 +34,9 @@
   .road.go .fill{width:40%}
   .rs{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
   .rs i{width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line);display:grid;place-items:center;font-style:normal;font:700 13px/1 var(--sans);color:var(--deep);transition:all .6s var(--ease)}
-  .rs.done i{background:var(--navy);color:#fff;box-shadow:none}
-  .rs.now i{background:#fff;box-shadow:inset 0 0 0 2px var(--deep),0 0 0 8px rgba(200,214,252,.5);animation:nowp 2.4s ease-in-out infinite}
-  @keyframes nowp{50%{box-shadow:inset 0 0 0 2px var(--deep),0 0 0 14px rgba(200,214,252,.15)}}
+  .rs.done i,.rs.now i{background:none;box-shadow:none}
+  .rs.now i{border-radius:50%;box-shadow:0 0 0 8px rgba(200,214,252,.5);animation:nowp 2.4s ease-in-out infinite}
+  @keyframes nowp{50%{box-shadow:0 0 0 14px rgba(200,214,252,.15)}}
   .rs div{display:flex;flex-direction:column;align-items:center;gap:6px}
   .rs b{font:750 17px/1.2 var(--sans);letter-spacing:-.02em;color:var(--ink)}
   .rs small{font:500 13px/1.3 var(--sans);color:var(--slate)}
@@ -108,9 +108,9 @@
     <div class="wrap">
       <div class="road" id="road">
         <span class="fill" aria-hidden="true"></span>
-        <div class="rs done"><i>✓</i><div><b>Research</b><small>Agency funnels, studied</small></div></div>
-        <div class="rs done"><i>✓</i><div><b>Design</b><small>The owner and team views</small></div></div>
-        <div class="rs now"><i>•</i><div><b>Build</b><small>Now</small></div></div>
+        <div class="rs done"><i data-obi="check" data-size="32"></i><div><b>Research</b><small>Agency funnels, studied</small></div></div>
+        <div class="rs done"><i data-obi="check" data-size="32"></i><div><b>Design</b><small>The owner and team views</small></div></div>
+        <div class="rs now"><i data-obi="now" data-size="32"></i><div><b>Build</b><small>Now</small></div></div>
         <div class="rs later"><i>4</i><div><b>Pilot</b><small>With waitlist agencies</small></div></div>
         <div class="rs later"><i>5</i><div><b>Launch</b><small>Core at $3,000 a month</small></div></div>
       </div>
