@@ -137,17 +137,7 @@ if(menuBtn && sheet){
   $$('a',sheet).forEach(a=>a.addEventListener('click',()=>setMenu(false)));
   addEventListener('resize',()=>{ if(innerWidth>860 && root.classList.contains('menu-open')) setMenu(false); });
 }
-// between pages: a breath of air, and a soft fade where the browser can't cross-fade documents itself
-const crossDoc = 'onpagereveal' in window;
-document.addEventListener('click',e=>{
-  const a = e.target.closest('a[href]'); if(!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target) return;
-  const url = new URL(a.href, location.href);
-  if(url.origin!==location.origin || !/\.html?$|\/$/.test(url.pathname) || (url.pathname===location.pathname && url.hash)) return;
-  S.whoosh(.8,.035,380,1300);
-  if(crossDoc || REDUCED) return;
-  e.preventDefault(); document.body.classList.add('leaving'); setTimeout(()=>{ location.href = url.href; },260);
-});
-addEventListener('pageshow',()=>document.body.classList.remove('leaving'));
+// page changes, the nav and the sky now live in shell.js
 
 /* ============================================================
    TEXT: split headings, reveals, counters, typing

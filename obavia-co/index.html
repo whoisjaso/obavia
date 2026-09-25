@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="o-home">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -15,7 +15,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="preload" as="image" href="sky/c1.webp">
-<script>try{document.documentElement.className+=' '+(sessionStorage.getItem('obv-intro')||matchMedia('(prefers-reduced-motion: reduce)').matches?'nointro':'intro intro-sky')}catch(e){document.documentElement.classList.add('nointro')}</script>
+<link rel="stylesheet" href="shell.css">
+<script>(function(){var h=document.documentElement;try{if(!sessionStorage.getItem('obv-intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
 <style>
 :root{
   --ink:#1C2436; --ink2:#737C8E; --body:#4B5468; --navy:#28344F; --tint:#4E6AA8;
@@ -27,7 +28,7 @@
 }
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--page);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body{margin:0;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 a{color:inherit}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 img{display:block;max-width:100%}
@@ -35,28 +36,6 @@ img{display:block;max-width:100%}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .wrap{width:min(1080px,calc(100% - 40px));margin:0 auto}
 .ico{width:1em;height:1em;flex:none}
-
-/* ---------- nav ---------- */
-.nav{position:fixed;inset:0 0 auto;z-index:40;height:56px;transition:background .5s var(--ease),box-shadow .5s}
-.nav.solid{background:rgba(246,248,253,.78);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);box-shadow:0 1px 0 var(--line)}
-.nav .wrap{height:100%;display:flex;align-items:center;gap:34px}
-.brand{display:flex;align-items:center;gap:9px;font:800 18px/1 var(--sans);letter-spacing:-.03em;text-decoration:none}
-.brand img{width:30px;height:30px}
-.nav ul{display:flex;gap:28px;list-style:none;margin:0 0 0 auto;padding:0}
-.nav ul a{font:600 14px/1 var(--sans);color:var(--body);text-decoration:none;transition:color .3s}
-.nav ul a:hover{color:var(--ink)}
-.nav .join{margin-left:6px;height:34px;padding:0 16px;font-size:14px;box-shadow:none}
-.menu{display:none;width:40px;height:40px;margin-right:-8px;place-items:center}
-.menu i{display:block;width:18px;height:1.8px;border-radius:2px;background:var(--ink);transition:transform .4s var(--out)}
-.menu i+i{margin-top:5px}
-.menu[aria-expanded="true"] i:first-child{transform:translateY(3.4px) rotate(45deg)}
-.menu[aria-expanded="true"] i:last-child{transform:translateY(-3.4px) rotate(-45deg)}
-.sheet{position:fixed;inset:0;z-index:39;padding:84px 24px 40px;background:rgba(246,248,253,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);opacity:0;visibility:hidden;transition:opacity .45s var(--ease),visibility .45s}
-.sheet.open{opacity:1;visibility:visible}
-.sheet a{display:block;padding:12px 0;font:800 34px/1.1 var(--sans);letter-spacing:-.035em;text-decoration:none;transform:translateY(10px);opacity:0;transition:transform .6s var(--out),opacity .6s}
-.sheet.open a{transform:none;opacity:1}
-.sheet a:nth-child(2){transition-delay:.04s}.sheet a:nth-child(3){transition-delay:.08s}.sheet a:nth-child(4){transition-delay:.12s}.sheet a:nth-child(5){transition-delay:.16s}
-.sheet .btn{margin-top:28px;display:inline-flex;height:54px;padding:0 30px;font:700 17px/1 var(--sans);letter-spacing:0}
 
 /* ---------- buttons ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 28px;border-radius:999px;background:var(--navy);color:#fff;font:700 16px/1 var(--sans);text-decoration:none;white-space:nowrap;box-shadow:0 16px 32px -18px rgba(28,36,54,.7);transition:transform .35s var(--ease),background .3s}
@@ -70,29 +49,8 @@ img{display:block;max-width:100%}
 [data-r]{opacity:0;transform:translateY(26px);filter:blur(6px);transition:opacity 1.1s var(--out),transform 1.3s var(--out),filter 1.1s var(--out);transition-delay:var(--d,0s)}
 [data-r].in{opacity:1;transform:none;filter:none}
 
-/* ---------- intro: the mark rises into its place ---------- */
-.intro-l{position:fixed;inset:0;z-index:60;pointer-events:none}
-.nointro .intro-l{display:none}
-.intro-l .bg{position:absolute;inset:0;background:linear-gradient(180deg,#D3E0FD 0%,#E2EAFE 55%,#EEF3FE 100%);transition:opacity 1.1s var(--ease)}
-.intro-l.out .bg{opacity:0}
-.intro-l img{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px;filter:drop-shadow(0 18px 30px rgba(40,52,79,.22));opacity:0;transform:scale(.86);animation:markIn .9s var(--out) .12s forwards;transform-origin:50% 50%}
-@keyframes markIn{to{opacity:1;transform:none}}
-html.intro{overflow:hidden}
-.intro .nav .brand img{opacity:0}
-.intro .nav ul,.intro .nav .join,.intro .nav .menu{opacity:0}
-.nav ul,.nav .join,.nav .menu{transition:opacity .9s var(--ease)}
-.hero .cl{transition:opacity 1.8s var(--ease),translate 2.4s var(--out)}
-.intro-sky .hero .cl{opacity:0!important;translate:0 44px}
-.hero .cl:nth-child(2){transition-delay:.12s}.hero .cl:nth-child(3){transition-delay:.24s}.hero .cl:nth-child(4){transition-delay:.06s}.hero .cl:nth-child(5){transition-delay:.18s}
-
-/* ---------- sky ---------- */
-.sky{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.cl{position:absolute;will-change:transform}
-.cl img{width:100%;animation:drift var(--t,90s) ease-in-out infinite alternate}
-@keyframes drift{to{transform:translateX(var(--dx,5vw))}}
-
 /* ---------- 1. hero ---------- */
-.hero{position:relative;min-height:100vh;min-height:100svh;padding:clamp(118px,17vh,168px) 0 0;overflow:hidden;background:linear-gradient(180deg,#D3E0FD 0%,#E4ECFE 42%,#F1F5FE 78%,var(--page) 100%)}
+.hero{position:relative;min-height:100vh;min-height:100svh;padding:clamp(118px,17vh,168px) 0 0}
 .hero .copy{position:relative;z-index:2;text-align:center}
 .hero h1{margin:0;font:800 clamp(44px,7.2vw,94px)/1.01 var(--sans);letter-spacing:-.05em}
 .hero h1 span{display:block;text-wrap:balance}
@@ -197,10 +155,10 @@ h2,.say li,.p,.lead{text-wrap:balance}
 .slot{position:relative;height:182px;margin-top:28px}
 .lv{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:14px;opacity:0;transform:translateY(10px);transition:opacity .6s var(--ease),transform .8s var(--out);pointer-events:none}
 .s1 .lv1,.s2 .lv2,.s3 .lv3,.s4 .lv4,.s5 .lv5{opacity:1;transform:none;pointer-events:auto}
-.wave{display:flex;align-items:center;gap:4px;height:64px}
-.wave i{width:3px;height:22%;border-radius:3px;background:var(--blue);animation:talk .9s ease-in-out infinite alternate}
-.wave i:nth-child(3n){animation-delay:-.3s}.wave i:nth-child(3n+1){animation-delay:-.6s}.wave i:nth-child(4n){animation-duration:.7s}.wave i:nth-child(5n){animation-duration:1.15s}
-@keyframes talk{to{height:92%}}
+.lv1{align-items:center}
+.wave{display:flex;align-items:center;justify-content:center;gap:5px;height:96px;width:100%}
+.wave i{flex:none;width:4px;height:var(--h);border-radius:4px;background:linear-gradient(180deg,#B9CAF4,var(--blue));transform:scaleY(.28);animation:talk var(--s) ease-in-out var(--dl) infinite alternate}
+@keyframes talk{to{transform:scaleY(1)}}
 .why{margin:0;font:600 15.5px/1.45 var(--sans);color:var(--body)}
 .swap{display:flex;align-items:center;gap:14px;font:750 20px/1 var(--sans);letter-spacing:-.02em}
 .swap .was{position:relative;color:#A9B1C2;font-weight:650}
@@ -262,9 +220,11 @@ h2,.say li,.p,.lead{text-wrap:balance}
 .price .fine{margin:10px auto 0;font:500 15.5px/1.5 var(--sans);color:var(--ink2)}
 
 /* 8. final */
-.final{overflow:hidden;background:linear-gradient(180deg,var(--page) 0%,#E6EDFE 55%,#D5E1FD 100%);padding-bottom:clamp(170px,22vw,280px)}
+.final{padding-bottom:clamp(150px,20vw,240px)}
 .final .copy{position:relative;z-index:2}
-.foot{padding:34px 0 44px;background:#D5E1FD}
+.foot{padding:34px 0 44px}
+.foot .brand{display:flex}
+.foot .brand img{width:28px;height:28px}
 .foot .wrap{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
 .foot nav{display:flex;gap:22px;flex-wrap:wrap;margin-left:auto}
 .foot a{font:600 14px/1 var(--sans);color:var(--body);text-decoration:none}
@@ -272,8 +232,6 @@ h2,.say li,.p,.lead{text-wrap:balance}
 
 /* ---------- small screens ---------- */
 @media (max-width:980px){
-  .nav ul,.nav .join{display:none}
-  .menu{display:grid;margin-left:auto}
   .zz{grid-template-columns:minmax(0,1fr)}
   .zz.rev .copy{order:0}
   .team .trio{grid-template-columns:minmax(0,1fr)}
@@ -307,6 +265,8 @@ h2,.say li,.p,.lead{text-wrap:balance}
   .o{grid-template-columns:minmax(0,1fr) auto;gap:5px 10px}
   .o span{grid-column:1;grid-row:1}.o b{grid-column:2;grid-row:1}.o i{grid-column:1/-1;grid-row:2}
   .swap{font-size:17px}
+  .wave{gap:3px;height:84px}
+  .wave i{width:3px}
   .bubble{font-size:16px;padding:15px 17px}
   .pts{grid-template-columns:minmax(0,1fr)}
   .cmp{grid-template-columns:minmax(0,1.35fr) minmax(0,.8fr) minmax(0,.8fr)}
@@ -330,36 +290,51 @@ h2,.say li,.p,.lead{text-wrap:balance}
   <symbol id="i-caret" viewBox="0 0 256 256"><path fill="currentColor" d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"/></symbol>
 </svg>
 
-<div class="intro-l" id="intro" aria-hidden="true"><i class="bg"></i><img src="favicon.svg" alt=""></div>
-<header class="nav" id="nav">
-  <div class="wrap">
-    <a class="brand" href="#top" aria-label="Obavia home"><img src="favicon.svg" alt="" id="navMark"></a>
-    <ul>
-      <li><a href="product.html">Product</a></li>
-      <li><a href="owners.html">Owners</a></li>
-      <li><a href="team.html">Team</a></li>
-      <li><a href="pricing.html">Pricing</a></li>
-      <li><a href="about.html">About</a></li>
-    </ul>
-    <a class="btn join" href="https://obavia.co/waitlist">Join the waitlist</a>
-    <button class="menu" id="menuBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><span><i></i><i></i></span></button>
+<div class="o-sky" aria-hidden="true">
+  <div class="c" data-p="0" style="--t:210s;--b:19s;top:4%;width:max(300px,30vw);opacity:0.55"><img src="sky/c1.webp" alt=""></div>
+  <div class="c" data-p="0.45" style="--t:190s;--b:16s;top:13%;width:max(340px,34vw);opacity:0.6"><img src="sky/c4.webp" alt=""></div>
+  <div class="c" data-p="0.2" style="--t:150s;--b:21s;top:27%;width:max(400px,42vw);opacity:0.72"><img src="sky/c6.webp" alt=""></div>
+  <div class="c" data-p="0.7" style="--t:170s;--b:18s;top:44%;width:max(380px,38vw);opacity:0.5"><img src="sky/c3.webp" alt=""></div>
+  <div class="c" data-p="0.35" style="--t:140s;--b:15s;top:57%;width:max(440px,46vw);opacity:0.66"><img src="sky/c5.webp" alt=""></div>
+  <div class="c" data-p="0.85" style="--t:115s;--b:20s;top:69%;width:max(560px,60vw);opacity:0.88"><img src="sky/c2.webp" alt=""></div>
+  <div class="c" data-p="0.1" style="--t:100s;--b:17s;top:80%;width:max(640px,70vw);opacity:0.94"><img src="sky/c7.webp" alt=""></div>
+  <div class="c" data-p="0.55" style="--t:125s;--b:22s;top:88%;width:max(600px,64vw);opacity:0.9"><img src="sky/c0.webp" alt=""></div>
+</div>
+<div class="o-load" id="oLoad" aria-hidden="true"><div class="bg"></div>
+  <svg class="o-logo" id="oLogo" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9EFFE"/><stop offset=".55" stop-color="#B8C8F1"/><stop offset="1" stop-color="#869FD6"/></linearGradient>
+      <radialGradient id="ol" cx=".75" cy=".35" r=".4"><stop offset="0" stop-color="#5A73B0" stop-opacity=".32"/><stop offset="1" stop-color="#5A73B0" stop-opacity="0"/></radialGradient>
+      <radialGradient id="oh"><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+      <clipPath id="oc"><circle cx="32" cy="32" r="30"/></clipPath>
+    </defs>
+    <circle class="halo" cx="50" cy="50" r="50" fill="url(#oh)"/>
+    <circle class="track" cx="50" cy="50" r="46"/>
+    <circle class="ring" cx="50" cy="50" r="46" pathLength="1"/>
+    <g class="orb"><g transform="translate(18 18)">
+      <circle cx="32" cy="32" r="30" fill="url(#og)"/>
+      <g clip-path="url(#oc)"><rect width="64" height="64" fill="url(#ol)"/>
+        <g transform="translate(32 32) rotate(-35.5)" fill="none" stroke-linecap="round">
+          <path class="rib sh" pathLength="1" transform="translate(1.5 1.2)" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#4E66A0" stroke-opacity=".3" stroke-width="7.6"/>
+          <path class="rib" pathLength="1" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#FFFFFF" stroke-width="7"/>
+        </g></g>
+    </g></g>
+  </svg>
+</div>
+<header class="o-nav" id="oNav">
+  <div class="o-wrap">
+    <a class="o-brand" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt="" id="oMark"></a>
+    <ul class="o-links"><li><a href="product.html">Product</a></li><li><a href="owners.html">Owners</a></li><li><a href="team.html">Team</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="about.html">About</a></li></ul>
+    <a class="o-join" href="https://obavia.co/waitlist">Join the waitlist</a>
+    <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
   </div>
 </header>
-<nav class="sheet" id="sheet" aria-label="Menu">
-  <a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a>
-  <a class="btn" href="https://obavia.co/waitlist">Join the waitlist</a>
-</nav>
+<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a class="o-join" href="https://obavia.co/waitlist">Join the waitlist</a></nav>
+<script src="shell.js"></script>
 
 <main>
 <!-- 1. the promise, and the product in the first screen -->
 <section class="hero" id="top">
-  <div class="sky" aria-hidden="true">
-    <div class="cl" data-k=".08" style="left:-9%;top:9%;width:max(420px,40vw);opacity:.75"><img src="sky/c1.webp" alt="" style="--t:110s;--dx:6vw"></div>
-    <div class="cl" data-k=".12" style="right:-12%;top:4%;width:max(460px,44vw);opacity:.7"><img src="sky/c4.webp" alt="" style="--t:130s;--dx:-5vw"></div>
-    <div class="cl" data-k=".2" style="left:52%;top:40%;width:max(360px,30vw);opacity:.45"><img src="sky/c6.webp" alt="" style="--t:95s;--dx:-4vw"></div>
-    <div class="cl" data-k=".32" style="left:-16%;bottom:-7%;width:max(620px,62vw)"><img src="sky/c2.webp" alt="" style="--t:120s;--dx:4vw"></div>
-    <div class="cl" data-k=".38" style="right:-18%;bottom:-9%;width:max(640px,64vw)"><img src="sky/c7.webp" alt="" style="--t:140s;--dx:-4vw"></div>
-  </div>
   <div class="wrap copy">
     <h1 data-r><span>Know why deals are lost.</span><span class="g">And fix it by Friday.</span></h1>
     <p class="lead" data-r style="--d:.12s">Obavia hears every sales call, finds the one step costing you the most, and gives each rep the fix. Nothing for your team to type.</p>
@@ -535,14 +510,9 @@ h2,.say li,.p,.lead{text-wrap:balance}
 
 <!-- 8. the ask -->
 <section class="sec final center" id="final">
-  <div class="sky" aria-hidden="true">
-    <div class="cl" style="left:-14%;bottom:-6%;width:max(620px,62vw)"><img src="sky/c3.webp" alt="" style="--t:120s;--dx:4vw"></div>
-    <div class="cl" style="right:-16%;bottom:-10%;width:max(640px,64vw)"><img src="sky/c0.webp" alt="" style="--t:140s;--dx:-4vw"></div>
-    <div class="cl" style="left:30%;bottom:6%;width:max(420px,40vw);opacity:.6"><img src="sky/c5.webp" alt="" style="--t:100s;--dx:-3vw"></div>
-  </div>
   <div class="wrap copy">
     <h2 data-r>Stop guessing <span class="g">where the money goes.</span></h2>
-    <p class="p" data-r style="--d:.1s">For agency owners doing $100K to $1M a month, with a team on the phones.</p>
+    <p class="p" data-r style="--d:.1s">Waitlist agencies are onboarded first.</p>
     <div class="cta" data-r style="--d:.2s"><a class="btn" href="https://obavia.co/waitlist">Join the waitlist</a></div>
   </div>
 </section>
@@ -596,42 +566,15 @@ function haptic() {
   l.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
   document.body.appendChild(l); l.click(); l.remove();
 }
-document.addEventListener('click', e => { if (e.target.closest('.btn,.more,.menu,.steps li')) { haptic(); tick(1900, .014); } });
-
-/* ---------- nav ---------- */
-const nav = $('#nav'), menuBtn = $('#menuBtn'), sheet = $('#sheet');
-menuBtn.addEventListener('click', () => {
-  const open = menuBtn.getAttribute('aria-expanded') !== 'true';
-  menuBtn.setAttribute('aria-expanded', open); sheet.classList.toggle('open', open);
-  document.body.style.overflow = open ? 'hidden' : '';
-});
-sheet.addEventListener('click', e => { if (e.target.closest('a')) { menuBtn.setAttribute('aria-expanded', 'false'); sheet.classList.remove('open'); document.body.style.overflow = ''; } });
+document.addEventListener('click', e => { if (e.target.closest('.steps li')) { haptic(); tick(1900, .014); } });
 
 /* ---------- reveal ---------- */
 const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -12% 0px' });
 $$('[data-r]').forEach(el => { if (el.closest('.hero')) return; io.observe(el); });
-const INTRO = document.documentElement.classList.contains('intro');
-let lineGo = !INTRO;
+let lineGo = false;
 const revealHero = () => $$('.hero [data-r]').forEach(el => el.classList.add('in'));
-if (!INTRO) requestAnimationFrame(() => setTimeout(revealHero, 80));
-else {
-  const intro = $('#intro'), mark = intro.querySelector('img'), html = document.documentElement;
-  const land = () => { html.classList.remove('intro'); intro.remove(); try { sessionStorage.setItem('obv-intro', '1'); } catch (e) {} };
-  setTimeout(() => {
-    const a = mark.getBoundingClientRect(), b = $('#navMark').getBoundingClientRect();
-    mark.style.animation = 'none'; mark.style.opacity = 1; mark.style.transform = 'none';
-    requestAnimationFrame(() => {
-      mark.style.transition = 'transform 1.2s cubic-bezier(.65,0,.25,1), filter 1.2s';
-      mark.style.transform = `translate(${b.left + b.width / 2 - (a.left + a.width / 2)}px,${b.top + b.height / 2 - (a.top + a.height / 2)}px) scale(${b.width / a.width})`;
-      mark.style.filter = 'drop-shadow(0 4px 8px rgba(40,52,79,.12))';
-      setTimeout(() => intro.classList.add('out'), 120);
-      setTimeout(() => html.classList.remove('intro-sky'), 280);
-      setTimeout(revealHero, 760);
-      setTimeout(() => { lineGo = true; }, 700);
-      setTimeout(land, 1240);
-    });
-  }, 1050);
-}
+const onReveal = () => { revealHero(); setTimeout(() => { lineGo = true; }, 380); };
+window.OSHELL && OSHELL.revealed ? onReveal() : addEventListener('o:reveal', onReveal, { once: true });
 const once = (el, fn, th = .35) => { const o = new IntersectionObserver(es => { if (es[0].isIntersecting) { o.disconnect(); fn(); } }, { threshold: th }); o.observe(el); };
 function count(el, to, fmt, dur = 1200) {
   if (REDUCED) { el.textContent = fmt(to); return; }
@@ -748,7 +691,10 @@ once($('#fixc'), () => {
 });
 
 /* ---------- 5. the read, step by step ---------- */
-$('#wave').innerHTML = '<i></i>'.repeat(34);
+$('#wave').innerHTML = Array.from({ length: 38 }, (_, i) => {
+  const env = Math.pow(Math.sin(Math.PI * (i + .5) / 38), .9), h = 18 + 78 * env * (.72 + .28 * Math.abs(Math.sin(i * 1.7)));
+  return `<i style="--h:${h.toFixed(0)}%;--s:${(.55 + (i * 37 % 11) / 22).toFixed(2)}s;--dl:${(-(i * 53 % 17) / 20).toFixed(2)}s"></i>`;
+}).join('');
 const scr = $('#scrolly'), lcard = $('#lcard'), steps = $$('#steps li'), prog = $('.stepsw .prog'), names = [...$('#names').children], person = $('#person');
 let lStep = 0, lFree = false, nameT = [];
 function fitPerson() {
@@ -796,14 +742,10 @@ hotA.addEventListener('click', () => {
 });
 hotB.addEventListener('click', () => { haptic(); tick(1800, .014); clearTimeout(phT); show(0); });
 
-/* ---------- scroll: parallax, nav, lines, the read ---------- */
-const clouds = $$('.hero .cl');
+/* ---------- scroll: lines and the read ---------- */
 let ticking = false;
 function onScroll() {
   ticking = false;
-  const y = scrollY;
-  nav.classList.toggle('solid', y > 12);
-  if (!REDUCED && y < innerHeight * 1.2) clouds.forEach(c => c.style.transform = `translate3d(0,${(y * +c.dataset.k).toFixed(1)}px,0)`);
   sayScroll(); personScroll();
 }
 addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });

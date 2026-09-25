@@ -18,14 +18,14 @@
   .constel{position:relative;max-width:1000px;height:360px;margin:30px auto 0}
   .constel canvas{position:absolute;inset:0;width:100%;height:100%}
 
-  .laws{max-width:980px;margin:40px auto 0;list-style:none;padding:0;counter-reset:law}
-  .law{display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px 24px;align-items:baseline;padding:44px 0;border-top:1px solid rgba(40,52,79,.08);opacity:.28;transition:opacity .8s var(--ease)}
+  .laws{max-width:980px;margin:40px auto 0;list-style:none;padding:0 24px}
+  .law{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 24px;align-items:baseline;padding:44px 0;border-top:1px solid rgba(40,52,79,.08);opacity:.28;transition:opacity .8s var(--ease)}
   .law:last-child{border-bottom:1px solid rgba(40,52,79,.08)}
   .law.on{opacity:1}
   .law .n{font:700 14px/1 var(--sans);color:var(--deep)}
   .law b{display:block;font:800 clamp(30px,4.4vw,56px)/1.02 var(--sans);letter-spacing:-.05em;color:var(--ink)}
-  .law p{grid-column:2;margin:0;max-width:560px;font:500 clamp(16px,1.5vw,19px)/1.5 var(--sans);color:var(--body)}
-  .law .bar{grid-column:2;height:2px;margin-top:14px;border-radius:2px;background:linear-gradient(90deg,var(--peri),var(--deep));transform:scaleX(0);transform-origin:left;transition:transform 1.2s var(--ease)}
+  .law p{margin:0;max-width:560px;font:500 clamp(16px,1.5vw,19px)/1.5 var(--sans);color:var(--body)}
+  .law .bar{height:2px;margin-top:14px;border-radius:2px;background:linear-gradient(90deg,var(--peri),var(--deep));transform:scaleX(0);transform-origin:left;transition:transform 1.2s var(--ease)}
   .law.on .bar{transform:scaleX(.18)}
 
   .road{position:relative;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));max-width:980px;margin:64px auto 0}
@@ -56,50 +56,69 @@
   }
   @media (prefers-reduced-motion:reduce){ .law{opacity:1} .rs.now i{animation:none} }
 </style>
+<link rel="stylesheet" href="shell.css">
+<script>(function(){var h=document.documentElement;try{if(!sessionStorage.getItem('obv-intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
 <body>
-
-<nav id="nav" aria-label="Primary">
-  <a class="logo" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt=""></a>
-  <ul>
-    <li><a href="product.html">Product</a></li>
-    <li><a href="owners.html">Owners</a></li>
-    <li><a href="team.html">Team</a></li>
-    <li><a href="pricing.html">Pricing</a></li>
-    <li><a href="about.html" aria-current="page">About</a></li>
-  </ul>
-  <a class="pill primary join" href="https://obavia.co/waitlist">Join the Waitlist</a>
-  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><i></i><i></i></button>
-</nav>
-<div class="sheet" id="sheet" aria-hidden="true">
-  <ul>
-    <li><a class="big" href="index.html" style="--i:0">Home <small>01</small></a></li>
-    <li><a class="big" href="product.html" style="--i:1">Product <small>02</small></a></li>
-    <li><a class="big" href="owners.html" style="--i:2">Owners <small>03</small></a></li>
-    <li><a class="big" href="team.html" style="--i:3">Team <small>04</small></a></li>
-    <li><a class="big" href="pricing.html" style="--i:4">Pricing <small>05</small></a></li>
-    <li><a class="big" href="about.html" aria-current="page" style="--i:5">About <small>06</small></a></li>
-  </ul>
-  <a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a>
+<div class="o-sky" aria-hidden="true">
+  <div class="c" data-p="0" style="--t:210s;--b:19s;top:4%;width:max(300px,30vw);opacity:0.55"><img src="sky/c1.webp" alt=""></div>
+  <div class="c" data-p="0.45" style="--t:190s;--b:16s;top:13%;width:max(340px,34vw);opacity:0.6"><img src="sky/c4.webp" alt=""></div>
+  <div class="c" data-p="0.2" style="--t:150s;--b:21s;top:27%;width:max(400px,42vw);opacity:0.72"><img src="sky/c6.webp" alt=""></div>
+  <div class="c" data-p="0.7" style="--t:170s;--b:18s;top:44%;width:max(380px,38vw);opacity:0.5"><img src="sky/c3.webp" alt=""></div>
+  <div class="c" data-p="0.35" style="--t:140s;--b:15s;top:57%;width:max(440px,46vw);opacity:0.66"><img src="sky/c5.webp" alt=""></div>
+  <div class="c" data-p="0.85" style="--t:115s;--b:20s;top:69%;width:max(560px,60vw);opacity:0.88"><img src="sky/c2.webp" alt=""></div>
+  <div class="c" data-p="0.1" style="--t:100s;--b:17s;top:80%;width:max(640px,70vw);opacity:0.94"><img src="sky/c7.webp" alt=""></div>
+  <div class="c" data-p="0.55" style="--t:125s;--b:22s;top:88%;width:max(600px,64vw);opacity:0.9"><img src="sky/c0.webp" alt=""></div>
 </div>
+<div class="o-load" id="oLoad" aria-hidden="true"><div class="bg"></div>
+  <svg class="o-logo" id="oLogo" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9EFFE"/><stop offset=".55" stop-color="#B8C8F1"/><stop offset="1" stop-color="#869FD6"/></linearGradient>
+      <radialGradient id="ol" cx=".75" cy=".35" r=".4"><stop offset="0" stop-color="#5A73B0" stop-opacity=".32"/><stop offset="1" stop-color="#5A73B0" stop-opacity="0"/></radialGradient>
+      <radialGradient id="oh"><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+      <clipPath id="oc"><circle cx="32" cy="32" r="30"/></clipPath>
+    </defs>
+    <circle class="halo" cx="50" cy="50" r="50" fill="url(#oh)"/>
+    <circle class="track" cx="50" cy="50" r="46"/>
+    <circle class="ring" cx="50" cy="50" r="46" pathLength="1"/>
+    <g class="orb"><g transform="translate(18 18)">
+      <circle cx="32" cy="32" r="30" fill="url(#og)"/>
+      <g clip-path="url(#oc)"><rect width="64" height="64" fill="url(#ol)"/>
+        <g transform="translate(32 32) rotate(-35.5)" fill="none" stroke-linecap="round">
+          <path class="rib sh" pathLength="1" transform="translate(1.5 1.2)" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#4E66A0" stroke-opacity=".3" stroke-width="7.6"/>
+          <path class="rib" pathLength="1" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#FFFFFF" stroke-width="7"/>
+        </g></g>
+    </g></g>
+  </svg>
+</div>
+<header class="o-nav" id="oNav">
+  <div class="o-wrap">
+    <a class="o-brand" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt="" id="oMark"></a>
+    <ul class="o-links"><li><a href="product.html">Product</a></li><li><a href="owners.html">Owners</a></li><li><a href="team.html">Team</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="about.html">About</a></li></ul>
+    <a class="o-join" href="https://obavia.co/waitlist">Join the waitlist</a>
+    <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
+  </div>
+</header>
+<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a class="o-join" href="https://obavia.co/waitlist">Join the waitlist</a></nav>
+<script src="shell.js"></script>
+
+
 
 <main>
   <section class="phero wrap">
-    <span class="tag" data-reveal><i></i>Why Obavia exists</span>
     <h1 class="h1" data-split>Your best rep knows something. <span>Make it the system.</span></h1>
     <p class="lede" data-reveal style="--d:.5s">Most agencies don’t need more leads first. They need to see what happens to the ones they already have.</p>
-    <div class="constel" id="constel" data-reveal style="--d:.6s" aria-hidden="true"><canvas id="cv"></canvas></div>
   </section>
 
   <section class="sec" id="laws" aria-labelledby="lawsH" style="padding-top:90px">
     <div class="wrap head" data-reveal><h2 class="h2" id="lawsH">What we believe. <span>Seven lines.</span></h2></div>
     <ol class="laws wrap" id="lawList">
-      <li class="law"><span class="n">01</span><div><b>Counted, not claimed.</b></div><p>Calls from the phone system. Shows from the calendar. Cash from payments. Nobody grades their own homework.</p><i class="bar"></i></li>
-      <li class="law"><span class="n">02</span><div><b>Cash per lead first.</b></div><p>Close rate is easy to flatter. Revenue per lead holds everything else still.</p><i class="bar"></i></li>
-      <li class="law"><span class="n">03</span><div><b>Every number opens.</b></div><p>A percentage without the conversation behind it is a rumor.</p><i class="bar"></i></li>
-      <li class="law"><span class="n">04</span><div><b>One move beats ten tips.</b></div><p>Specific, measured against the calls, and checked on a date.</p><i class="bar"></i></li>
-      <li class="law"><span class="n">05</span><div><b>The method stays. The words evolve.</b></div><p>Review on a calendar. Change on evidence.</p><i class="bar"></i></li>
-      <li class="law"><span class="n">06</span><div><b>The owner owns the record.</b></div><p>Numbers, recordings and history stay with the agency.</p><i class="bar"></i></li>
-      <li class="law"><span class="n">07</span><div><b>The team sees the rules.</b></div><p>Fair comparisons, the same leads, open standards. People play a game they can see.</p><i class="bar"></i></li>
+      <li class="law"><div><b>Counted, not claimed.</b></div><p>Calls from the phone system. Shows from the calendar. Cash from payments. Nobody grades their own homework.</p><i class="bar"></i></li>
+      <li class="law"><div><b>Cash per lead first.</b></div><p>Close rate is easy to flatter. Revenue per lead holds everything else still.</p><i class="bar"></i></li>
+      <li class="law"><div><b>Every number opens.</b></div><p>A percentage without the conversation behind it is a rumor.</p><i class="bar"></i></li>
+      <li class="law"><div><b>One move beats ten tips.</b></div><p>Specific, measured against the calls, and checked on a date.</p><i class="bar"></i></li>
+      <li class="law"><div><b>The method stays. The words evolve.</b></div><p>Review on a calendar. Change on evidence.</p><i class="bar"></i></li>
+      <li class="law"><div><b>The owner owns the record.</b></div><p>Numbers, recordings and history stay with the agency.</p><i class="bar"></i></li>
+      <li class="law"><div><b>The team sees the rules.</b></div><p>Fair comparisons, the same leads, open standards. People play a game they can see.</p><i class="bar"></i></li>
     </ol>
   </section>
 
@@ -120,7 +139,7 @@
 
   <section class="final-cta wrap head" data-reveal>
     <h2 class="h2">Built for agency owners. <span>Ready when you are.</span></h2>
-    <div class="cta-row"><a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a><a class="pill ghost" href="product.html">See how it works</a></div>
+    <div class="cta-row"><a class="pill primary" href="https://obavia.co/waitlist">Join the waitlist</a><a class="pill ghost" href="product.html">See how it works</a></div>
   </section>
 </main>
 
@@ -135,41 +154,6 @@
 <script>
 (() => {
 const {snd:S, clamp, eo, lerp, REDUCED} = OBV, $ = id => document.getElementById(id);
-
-/* one bright point, and what it knows spreading to everyone */
-const box=$('constel'), cv=$('cv'), ctx=cv.getContext('2d');
-let W=0,H=0, pts=[], vis=false, t0=0, lit=0;
-function rand(s){ return ()=>{ s=(s*16807)%2147483647; return (s-1)/2147483646; }; }
-function lay(){ const dpr=Math.min(devicePixelRatio||1,2); W=box.clientWidth; H=box.clientHeight; cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-  const r=rand(7), n=W<600?16:26; pts=[];
-  for(let i=0;i<n;i++){ const a=r()*Math.PI*2, d=.26+r()*.74; pts.push({x:W/2+Math.cos(a)*d*W*.46, y:H/2+Math.sin(a)*d*H*.44, ph:r()*6, d}); }
-  pts.sort((a,b)=>a.d-b.d); }
-lay(); addEventListener('resize',lay);
-if('IntersectionObserver' in window) new IntersectionObserver(e=>{ vis=e[0].isIntersecting; if(vis&&!t0) t0=performance.now()+700; },{threshold:.3}).observe(box); else vis=true;
-const NOTES=[523.25,587.33,659.25,783.99,880,1046.5];
-OBV.frame.push(now=>{
-  if(!vis) return;
-  ctx.clearRect(0,0,W,H);
-  const t=Math.max(0,(now-t0)/1000), cx=W/2, cy=H/2;
-  // the spread: one ring of light travelling out from the center
-  const R=REDUCED?9999:t*Math.max(W,H)*.22;
-  let k=0;
-  for(const p of pts){
-    const dist=Math.hypot(p.x-cx,p.y-cy), on=dist<R, f=on?clamp((R-dist)/120):0;
-    if(on) k++;
-    if(f>0){ ctx.strokeStyle=`rgba(125,151,199,${.35*f})`; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(p.x,p.y); ctx.stroke(); }
-    const b=.5+.5*Math.sin(now/900+p.ph);
-    ctx.fillStyle=on?`rgba(40,52,79,${.55+.35*f})`:`rgba(125,151,199,${.25+.1*b})`;
-    ctx.beginPath(); ctx.arc(p.x,p.y,on?3.2:2.4,0,Math.PI*2); ctx.fill();
-    if(on){ ctx.strokeStyle=`rgba(200,214,252,${.8*(1-f)})`; ctx.beginPath(); ctx.arc(p.x,p.y,3+f*10,0,Math.PI*2); ctx.stroke(); }
-  }
-  if(k>lit){ if(lit%3===0) S.chime(NOTES[Math.min(5,Math.floor(lit/4))],.02); lit=k; }
-  // the best rep
-  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,46); g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(1,'rgba(200,214,252,0)');
-  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,46,0,Math.PI*2); ctx.fill();
-  const og=ctx.createRadialGradient(cx-4,cy-5,1,cx,cy,12); og.addColorStop(0,'#fff'); og.addColorStop(.5,'#DCE5FD'); og.addColorStop(1,'#7D97C7');
-  ctx.fillStyle=og; ctx.beginPath(); ctx.arc(cx,cy,11+Math.sin(now/700)*.8,0,Math.PI*2); ctx.fill();
-});
 
 /* the seven lines: the one at your eye is the one that's lit */
 const laws=[...$('lawList').children]; let cur=-1;

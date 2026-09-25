@@ -106,33 +106,52 @@
       }
 </style>
 
-<nav id="nav" aria-label="Primary">
-  <a class="logo" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt=""></a>
-  <ul>
-    <li><a href="product.html">Product</a></li>
-    <li><a href="owners.html">Owners</a></li>
-    <li><a href="team.html">Team</a></li>
-    <li><a href="pricing.html" aria-current="page">Pricing</a></li>
-    <li><a href="about.html">About</a></li>
-  </ul>
-  <a class="pill primary join" href="https://obavia.co/waitlist">Join the Waitlist</a>
-  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><i></i><i></i></button>
-</nav>
-<div class="sheet" id="sheet" aria-hidden="true">
-  <ul>
-    <li><a class="big" href="index.html" style="--i:0">Home <small>01</small></a></li>
-    <li><a class="big" href="product.html" style="--i:1">Product <small>02</small></a></li>
-    <li><a class="big" href="owners.html" style="--i:2">Owners <small>03</small></a></li>
-    <li><a class="big" href="team.html" style="--i:3">Team <small>04</small></a></li>
-    <li><a class="big" href="pricing.html" aria-current="page" style="--i:4">Pricing <small>05</small></a></li>
-    <li><a class="big" href="about.html" style="--i:5">About <small>06</small></a></li>
-  </ul>
-  <a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a>
+<link rel="stylesheet" href="shell.css">
+<script>(function(){var h=document.documentElement;try{if(!sessionStorage.getItem('obv-intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
+<div class="o-sky" aria-hidden="true">
+  <div class="c" data-p="0" style="--t:210s;--b:19s;top:4%;width:max(300px,30vw);opacity:0.55"><img src="sky/c1.webp" alt=""></div>
+  <div class="c" data-p="0.45" style="--t:190s;--b:16s;top:13%;width:max(340px,34vw);opacity:0.6"><img src="sky/c4.webp" alt=""></div>
+  <div class="c" data-p="0.2" style="--t:150s;--b:21s;top:27%;width:max(400px,42vw);opacity:0.72"><img src="sky/c6.webp" alt=""></div>
+  <div class="c" data-p="0.7" style="--t:170s;--b:18s;top:44%;width:max(380px,38vw);opacity:0.5"><img src="sky/c3.webp" alt=""></div>
+  <div class="c" data-p="0.35" style="--t:140s;--b:15s;top:57%;width:max(440px,46vw);opacity:0.66"><img src="sky/c5.webp" alt=""></div>
+  <div class="c" data-p="0.85" style="--t:115s;--b:20s;top:69%;width:max(560px,60vw);opacity:0.88"><img src="sky/c2.webp" alt=""></div>
+  <div class="c" data-p="0.1" style="--t:100s;--b:17s;top:80%;width:max(640px,70vw);opacity:0.94"><img src="sky/c7.webp" alt=""></div>
+  <div class="c" data-p="0.55" style="--t:125s;--b:22s;top:88%;width:max(600px,64vw);opacity:0.9"><img src="sky/c0.webp" alt=""></div>
 </div>
+<div class="o-load" id="oLoad" aria-hidden="true"><div class="bg"></div>
+  <svg class="o-logo" id="oLogo" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9EFFE"/><stop offset=".55" stop-color="#B8C8F1"/><stop offset="1" stop-color="#869FD6"/></linearGradient>
+      <radialGradient id="ol" cx=".75" cy=".35" r=".4"><stop offset="0" stop-color="#5A73B0" stop-opacity=".32"/><stop offset="1" stop-color="#5A73B0" stop-opacity="0"/></radialGradient>
+      <radialGradient id="oh"><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+      <clipPath id="oc"><circle cx="32" cy="32" r="30"/></clipPath>
+    </defs>
+    <circle class="halo" cx="50" cy="50" r="50" fill="url(#oh)"/>
+    <circle class="track" cx="50" cy="50" r="46"/>
+    <circle class="ring" cx="50" cy="50" r="46" pathLength="1"/>
+    <g class="orb"><g transform="translate(18 18)">
+      <circle cx="32" cy="32" r="30" fill="url(#og)"/>
+      <g clip-path="url(#oc)"><rect width="64" height="64" fill="url(#ol)"/>
+        <g transform="translate(32 32) rotate(-35.5)" fill="none" stroke-linecap="round">
+          <path class="rib sh" pathLength="1" transform="translate(1.5 1.2)" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#4E66A0" stroke-opacity=".3" stroke-width="7.6"/>
+          <path class="rib" pathLength="1" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#FFFFFF" stroke-width="7"/>
+        </g></g>
+    </g></g>
+  </svg>
+</div>
+<header class="o-nav" id="oNav">
+  <div class="o-wrap">
+    <a class="o-brand" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt="" id="oMark"></a>
+    <ul class="o-links"><li><a href="product.html">Product</a></li><li><a href="owners.html">Owners</a></li><li><a href="team.html">Team</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="about.html">About</a></li></ul>
+    <a class="o-join" href="https://obavia.co/waitlist">Join the waitlist</a>
+    <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
+  </div>
+</header>
+<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a class="o-join" href="https://obavia.co/waitlist">Join the waitlist</a></nav>
+<script src="shell.js"></script>
 
 <main>
   <section class="hero wrap">
-    <span class="tag" data-reveal>Pricing</span>
     <h1 data-reveal style="--d:.08s">Your operation. <span>A clearly scoped plan.</span></h1>
     <p class="lede" data-reveal style="--d:.16s">Built around your own sales team, your process and your method.</p>
   </section>
@@ -145,7 +164,7 @@
       <p class="for">For a larger selling team.</p>
       <ul class="inc"><li>Up to 25 active sellers</li><li>15,000 meeting minutes a month, pooled</li><li>Owner view across the team</li></ul>
       <span class="spacer"></span>
-      <a class="pill ghost" href="https://obavia.co/waitlist">Join the Waitlist</a>
+      <a class="pill ghost" href="https://obavia.co/waitlist">Join the waitlist</a>
     </article>
     <article class="plan core" data-reveal>
       <span class="k">Most agencies</span>
@@ -154,7 +173,7 @@
       <p class="for">For an agency’s own sales team.</p>
       <ul class="inc"><li>Up to 10 active sellers</li><li>5,000 meeting minutes a month, pooled</li><li>The full connected workflow</li></ul>
       <span class="spacer"></span>
-      <a class="pill light" href="https://obavia.co/waitlist">Join the Waitlist</a>
+      <a class="pill light" href="https://obavia.co/waitlist">Join the waitlist</a>
     </article>
     <article class="plan" data-reveal style="--d:.1s">
       <span class="k">Multiple offers</span>
@@ -199,7 +218,7 @@
 
   <section class="final wrap">
     <h2 data-reveal>A clearer next step. <span>For your whole team.</span></h2>
-    <div class="cta" data-reveal style="--d:.1s"><a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a><a class="pill ghost" href="product.html">See how it works</a></div>
+    <div class="cta" data-reveal style="--d:.1s"><a class="pill primary" href="https://obavia.co/waitlist">Join the waitlist</a><a class="pill ghost" href="product.html">See how it works</a></div>
   </section>
 </main>
 
