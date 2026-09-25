@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Obavia · For owners</title>
+<meta name="description" content="For agency owners at $100K–$1M a month: one view of every lead, every rep and every stage, ranked on revenue per lead, with the calls behind every number and the biggest leak shown in dollars.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#F6F9FF">
+<meta property="og:title" content="Obavia · For owners">
+<meta property="og:description" content="See the whole operation. Change what matters.">
+<meta property="og:image" content="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+  /* the owner's board */
+  .ob-top{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:6px}
+  .ob-top .k{margin-bottom:10px}
+  .ob-top h3{margin:0;font:800 24px/1.1 var(--sans);letter-spacing:-.035em;color:var(--ink)}
+  .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+  .tile{border-radius:20px;padding:18px 20px;background:#F7F9FF;box-shadow:inset 0 0 0 1px #E6ECFB}
+  .tile .k{font-size:12px}
+  .tile b{display:block;margin-top:10px;font:800 28px/1 var(--sans);letter-spacing:-.045em;color:var(--ink)}
+  .tile small{display:block;margin-top:8px;font:600 12.5px/1.3 var(--sans);color:var(--slate)}
+  .tile small.up{color:var(--good)}
+  .tile.leak{background:#FFF8F1;box-shadow:inset 0 0 0 1px rgba(226,160,98,.45),0 0 26px -4px var(--leak-halo)}
+  .tile.leak b{font-size:21px;line-height:1.15;letter-spacing:-.03em}
+  .tile.leak small{color:var(--leak)}
+
+  /* rank on the right number */
+  .rank{max-width:760px;margin:60px auto 0;padding:26px 28px 24px}
+  .rank-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .rank-top .k{font-size:12.5px}
+  .rlist{position:relative;list-style:none;margin:0;padding:0;height:288px}
+  .rrow{position:absolute;left:0;right:0;top:calc(var(--r,0)*72px);height:62px;display:grid;grid-template-columns:22px 38px minmax(0,1fr) 92px 110px;align-items:center;gap:14px;padding:0 16px;border-radius:18px;background:#F8FAFF;transition:top .9s var(--ease-io),background .6s}
+  .rrow.first{background:#EAF0FF}
+  .rrow .rk{font:650 14px/1 var(--sans);color:var(--deep)}
+  .rrow .nm b{display:block;font:700 16px/1.1 var(--sans);color:var(--ink)}
+  .rrow .nm i{display:block;margin-top:4px;font:500 12.5px/1 var(--sans);font-style:normal;color:var(--slate)}
+  .rrow .m{text-align:right;font:600 15px/1 var(--sans);color:#A3ABBB;font-variant-numeric:tabular-nums;transition:color .5s,font-size .5s}
+  .rrow .m small{display:block;margin-top:5px;font:500 10.5px/1 var(--sans);color:#B5BCCA}
+  .rank[data-by="cr"] .m.cr,.rank[data-by="rpl"] .m.rpl{color:var(--ink);font-weight:800;font-size:18px}
+  .rank-cap{margin:18px 0 0;font:600 14.5px/1.45 var(--sans);color:var(--navy);min-height:1.45em;transition:opacity .4s}
+
+  /* where each rep leaks */
+  .heat{max-width:980px;margin:60px auto 0;padding:24px 24px 22px}
+  .hgrid{display:grid;grid-template-columns:minmax(120px,1.3fr) repeat(4,minmax(0,1fr)) minmax(70px,.9fr);gap:8px;align-items:center}
+  .hgrid .th{font:600 12px/1.25 var(--sans);color:var(--slate);text-align:center;padding-bottom:4px}
+  .hgrid .th:first-child,.hgrid .th:last-child{text-align:left}
+  .hrow{display:contents;cursor:pointer}
+  .hrow>*{transition:background .5s var(--ease)}
+  .hname{display:flex;align-items:center;gap:10px;height:60px;padding:0 10px;border-radius:16px 0 0 16px;font:700 15.5px/1 var(--sans);color:var(--ink)}
+  .hcell{display:flex;justify-content:center;align-items:center;height:60px}
+  .hcell .hp{width:100%;max-width:92px;opacity:.25;transform:scale(.9);transition:opacity .6s var(--ease),transform .7s var(--ease),box-shadow .9s var(--ease)}
+  .hcell .hp.on{opacity:1;transform:none}
+  .hrpl{height:60px;display:flex;align-items:center;padding:0 10px;border-radius:0 16px 16px 0;font:800 18px/1 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+  .hrow.sel .hname,.hrow.sel .hcell,.hrow.sel .hrpl{background:#EEF3FF}
+  .hdetail{display:flex;align-items:center;gap:12px;margin-top:18px;padding:16px 18px;border-radius:18px;background:var(--navy);color:#fff;font:600 15.5px/1.45 var(--sans)}
+  .hdetail b{color:#fff}
+  .hdetail .src{color:var(--peri);flex:none}
+
+  /* the leak, in dollars */
+  .leak-card{max-width:1040px;margin:60px auto 0;padding:32px 34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:44px;align-items:center}
+  .big-mod{margin-top:26px;font:800 clamp(52px,6vw,92px)/.9 var(--sans);letter-spacing:-.06em;color:var(--ink);white-space:nowrap}
+  .big-mod small{font-size:.45em;letter-spacing:-.03em;color:var(--slate)}
+  .lk-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .obars{display:grid;gap:14px}
+  .ob{display:grid;grid-template-columns:148px minmax(0,1fr) 70px;align-items:center;gap:14px}
+  .ob span{font:650 13.5px/1.2 var(--sans);color:var(--navy)}
+  .ob .t{height:14px;border-radius:14px;background:#EEF2FC;overflow:hidden}
+  .ob .t i{display:block;height:100%;width:var(--w);border-radius:14px;background:linear-gradient(90deg,#C8D6FC,#7D97C7);transform:scaleX(0);transform-origin:left;transition:transform 1.4s var(--ease) var(--d,0s)}
+  .obars.go .ob .t i{transform:none}
+  .ob.hot .t{box-shadow:0 0 22px -2px var(--leak-halo)}
+  .ob.hot .t i{background:linear-gradient(90deg,#F8D6B4,#E3A068)}
+  .ob b{font:800 16px/1 var(--sans);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+
+  /* capacity routing */
+  .route{position:relative;max-width:980px;margin:60px auto 0;height:330px;padding:0}
+  .src-lead{position:absolute;left:5%;top:50%;transform:translate(0,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;font:600 12.5px/1.2 var(--sans);color:var(--slate);text-align:center}
+  .src-lead i{width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#DCE5FD 45%,#98AEE3);box-shadow:0 0 0 8px rgba(200,214,252,.35)}
+  .lanes{position:absolute;right:4%;top:50%;transform:translateY(-50%);width:min(520px,58%);display:grid;gap:14px}
+  .lane{display:grid;grid-template-columns:38px minmax(0,1fr) 64px;align-items:center;gap:12px;padding:14px 16px;border-radius:20px;background:rgba(255,255,255,.94);box-shadow:inset 0 0 0 1px var(--line);transition:box-shadow .5s var(--ease)}
+  .lane .nm{font:700 15px/1 var(--sans);color:var(--ink)}
+  .lane .nm small{display:block;margin-top:5px;font:500 12px/1 var(--sans);color:var(--slate)}
+  .cap-t{height:8px;border-radius:8px;background:#EEF2FC;overflow:hidden;margin-top:8px}
+  .cap-t i{display:block;height:100%;border-radius:8px;background:var(--deep);width:var(--c);transition:width .8s var(--ease)}
+  .lane .pc{text-align:right;font:800 16px/1 var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
+  .lane.full .cap-t i{background:#E3A068}
+  .lane.bump{box-shadow:inset 0 0 0 1px rgba(226,160,98,.6),0 0 26px -4px var(--leak-halo)}
+  .lane.land{box-shadow:inset 0 0 0 1px rgba(94,190,142,.55),0 0 26px -4px var(--good-halo)}
+  .dotl{position:absolute;left:0;top:0;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--navy);box-shadow:0 0 0 6px rgba(125,151,199,.25);opacity:0;pointer-events:none}
+  .route-cap{text-align:center;margin-top:18px;font:600 14.5px/1.4 var(--sans);color:var(--navy);min-height:1.4em}
+  .route-cap i{font-style:normal;color:var(--slate);font-weight:500}
+
+  /* the morning brief */
+  .brief{max-width:720px;margin:60px auto 0;padding:30px 32px 28px}
+  .brief-h{display:flex;align-items:center;gap:12px;padding-bottom:18px;border-bottom:1px solid #EEF2FC}
+  .brief-h img{width:30px;height:30px}
+  .brief-h b{font:700 15px/1 var(--sans);color:var(--ink)}
+  .brief-h span{margin-left:auto;font:500 11px/1 var(--mono);letter-spacing:.08em;color:var(--deep)}
+  .blines{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:12px}
+  .blines li{min-height:1.5em;font:500 clamp(16px,1.6vw,18.5px)/1.5 var(--sans);color:var(--body)}
+  .blines li b{font-weight:750;color:var(--ink)}
+  .blines li.rec{margin-top:6px;padding:14px 16px;border-radius:16px;background:var(--navy);color:#fff}
+  .blines li.rec b{color:#fff}
+  .blines li.rec:empty{visibility:hidden}
+
+  /* ownership */
+  .own4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;max-width:1000px;margin:60px auto 0}
+  .ot{padding:24px 22px 22px}
+  .lock{width:30px;height:34px;color:var(--deep)}
+  .lock .sh{transform:translateY(-5px);transition:transform .6s var(--ease)}
+  .ot.on .lock .sh{transform:none}
+  .ot b{display:block;margin-top:18px;font:750 18px/1.2 var(--sans);letter-spacing:-.02em;color:var(--ink)}
+  .ot small{display:block;margin-top:8px;font:500 13px/1.4 var(--sans);color:var(--slate)}
+
+  @media (max-width:860px){
+    .tiles{grid-template-columns:minmax(0,1fr)}
+    .rank{padding:18px 14px 16px}
+    .rrow{grid-template-columns:18px 32px minmax(0,1fr) 62px 74px;gap:8px;padding:0 10px}
+    .rrow .av{width:32px;height:32px}
+    .rrow .m{font-size:13.5px}
+    .rrow .nm i{display:none}
+    .rank[data-by="cr"] .m.cr,.rank[data-by="rpl"] .m.rpl{font-size:15.5px}
+    .heat{padding:16px 10px}
+    .hgrid{grid-template-columns:minmax(72px,1fr) repeat(4,minmax(0,1fr));gap:5px}
+    .hgrid .th.rp,.hrpl{display:none}
+    .hname{height:52px;padding:0 6px;font-size:13px;border-radius:12px 0 0 12px}
+    .hname .av{display:none}
+    .hcell{height:52px}
+    .hrow.sel .hcell:last-of-type{border-radius:0 12px 12px 0}
+    .hcell .hp{min-width:0;padding:7px 4px 6px}
+    .hcell .hp b{font-size:14px}.hcell .hp span{font-size:9px}
+    .hgrid .th{font-size:10.5px}
+    .leak-card{grid-template-columns:minmax(0,1fr);padding:22px 18px;gap:28px}
+    .ob{grid-template-columns:110px minmax(0,1fr) 58px;gap:10px}
+    .route{height:420px}
+    .src-lead{left:50%;top:24px;transform:translateX(-50%)}
+    .lanes{right:auto;left:0;top:auto;bottom:0;transform:none;width:100%}
+    .brief{padding:22px 18px}
+    .own4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+</style>
+<body>
+
+<nav id="nav" aria-label="Primary">
+  <a class="logo" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt=""></a>
+  <ul>
+    <li><a href="product.html">Product</a></li>
+    <li><a href="owners.html" aria-current="page">Owners</a></li>
+    <li><a href="team.html">Team</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+  </ul>
+  <a class="pill primary join" href="https://obavia.co/waitlist">Join the Waitlist</a>
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><i></i><i></i></button>
+</nav>
+<div class="sheet" id="sheet" aria-hidden="true">
+  <ul>
+    <li><a class="big" href="index.html" style="--i:0">Home <small>01</small></a></li>
+    <li><a class="big" href="product.html" style="--i:1">Product <small>02</small></a></li>
+    <li><a class="big" href="owners.html" aria-current="page" style="--i:2">Owners <small>03</small></a></li>
+    <li><a class="big" href="team.html" style="--i:3">Team <small>04</small></a></li>
+    <li><a class="big" href="pricing.html" style="--i:4">Pricing <small>05</small></a></li>
+    <li><a class="big" href="about.html" style="--i:5">About <small>06</small></a></li>
+  </ul>
+  <a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a>
+</div>
+
+<main>
+  <section class="phero wrap">
+    <span class="tag" data-reveal><i></i>For agency owners · $100K–$1M a month</span>
+    <h1 class="h1" data-split>See the whole operation. <span>Change what matters.</span></h1>
+    <p class="lede" data-reveal style="--d:.5s">Every lead you paid for, every rep, every stage. Each number opens to the calls behind it.</p>
+    <div class="card stage-card" data-reveal style="--d:.7s">
+      <div class="ob-top"><div><span class="k mono">Your agency · this month</span><h3>From lead to cash</h3></div><span class="note">Illustrative · fictional team of five</span></div>
+      <div id="ownLine"></div>
+      <div class="tiles">
+        <div class="tile"><span class="k">Collected per lead</span><b data-count="390" data-fmt="money" data-delay="1800">$390</b><small class="up">+$34 on last month</small></div>
+        <div class="tile"><span class="k">Cash collected</span><b data-count="468000" data-fmt="k" data-delay="1900">$468K</b><small>From payments, not reports</small></div>
+        <div class="tile leak"><span class="k">Biggest leak</span><b>Booked → Showed</b><small>Half the calendar never showed</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="rank" aria-labelledby="rankH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="rankH">Rank on cash per lead. <span>Not close rate.</span></h2></div>
+    <div class="wrap">
+      <div class="card rank" id="rankCard" data-by="cr" data-reveal>
+        <div class="rank-top"><span class="k mono">Same month · same lead pool</span>
+          <div class="seg" role="group" aria-label="Rank by"><button type="button" data-by="cr" aria-pressed="true">Close rate</button><button type="button" data-by="rpl" aria-pressed="false">Revenue per lead</button></div></div>
+        <ol class="rlist" id="rlist">
+          <li class="rrow" data-cr="48" data-rpl="610"><span class="rk">1</span><span class="av c">RA</span><span class="nm"><b>Reza</b><i>Disqualifies early</i></span><span class="m cr">48%<small>close</small></span><span class="m rpl">$610<small>per lead</small></span></li>
+          <li class="rrow" data-cr="35.2" data-rpl="943"><span class="rk">2</span><span class="av d">DR</span><span class="nm"><b>Dana</b><i>Confirms every booking</i></span><span class="m cr">35%<small>close</small></span><span class="m rpl">$943<small>per lead</small></span></li>
+          <li class="rrow" data-cr="35" data-rpl="300"><span class="rk">3</span><span class="av b">JK</span><span class="nm"><b>Jordan</b><i>Most leads on the team</i></span><span class="m cr">35%<small>close</small></span><span class="m rpl">$300<small>per lead</small></span></li>
+          <li class="rrow" data-cr="31" data-rpl="880"><span class="rk">4</span><span class="av">MC</span><span class="nm"><b>Maya</b><i>Talks to everyone</i></span><span class="m cr">31%<small>close</small></span><span class="m rpl">$880<small>per lead</small></span></li>
+        </ol>
+        <p class="rank-cap" id="rankCap" aria-live="polite">Close rate puts Reza first.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="heat" aria-labelledby="heatH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="heatH">Where each rep leaks. <span>At a glance.</span></h2></div>
+    <div class="wrap">
+      <div class="card heat" data-reveal>
+        <div class="hgrid" id="hgrid" role="table" aria-label="Stage conversion by rep"></div>
+        <div class="hdetail" id="hdetail" aria-live="polite"></div>
+      </div>
+      <p class="fine">Tap a rep. Each stage is judged against its own benchmark, never one number for all.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="leak" aria-labelledby="leakH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="leakH">The biggest leak. <span>In dollars.</span></h2></div>
+    <div class="wrap">
+      <div class="card leak-card" id="leakCard" data-reveal>
+        <div>
+          <span class="k mono">Booked → Showed</span>
+          <div class="big-mod">+<span id="leakBig">$234K</span><small>/mo</small></div>
+          <div class="lk-chips"><span class="chip">Show rate 50% → 75%</span><span class="chip">At today’s fit and close rates</span><span class="chip dark"><i></i>Modeled, not promised</span></div>
+        </div>
+        <div class="obars" id="obars">
+          <div class="ob"><span>Lead → Booked</span><div class="t"><i style="--w:10%"></i></div><b>+$23K</b></div>
+          <div class="ob hot"><span>Booked → Showed</span><div class="t"><i style="--w:100%;--d:.15s"></i></div><b>+$234K</b></div>
+          <div class="ob"><span>Showed → Qualified</span><div class="t"><i style="--w:13%;--d:.3s"></i></div><b>+$31K</b></div>
+          <div class="ob"><span>Qualified → Won</span><div class="t"><i style="--w:65%;--d:.45s"></i></div><b>+$152K</b></div>
+        </div>
+      </div>
+      <p class="fine">Each stage modeled at its benchmark. A place to look first, before anyone says “train harder.”</p>
+    </div>
+  </section>
+
+  <section class="sec" id="cap" aria-labelledby="capH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="capH">Your best rep is full. <span>The next lead finds open hands.</span></h2></div>
+    <div class="wrap">
+      <div class="route" id="route" aria-hidden="true">
+        <div class="src-lead"><i></i>New lead<br>just now</div>
+        <div class="lanes">
+          <div class="lane full" id="laneD"><span class="av d">DR</span><div><span class="nm">Dana<small>Best per lead · booked solid</small></span><div class="cap-t"><i style="--c:98%"></i></div></div><span class="pc">98%</span></div>
+          <div class="lane" id="laneM"><span class="av">MC</span><div><span class="nm">Maya<small>Strong with direct buyers</small></span><div class="cap-t"><i id="capM" style="--c:72%"></i></div></div><span class="pc" id="pcM">72%</span></div>
+          <div class="lane" id="laneA"><span class="av c">AN</span><div><span class="nm">Andre<small>Open this afternoon</small></span><div class="cap-t"><i style="--c:64%"></i></div></div><span class="pc">64%</span></div>
+        </div>
+        <span class="dotl" id="dotl"></span>
+      </div>
+      <p class="route-cap" id="routeCap" aria-live="polite">&nbsp;</p>
+    </div>
+  </section>
+
+  <section class="sec" id="brief" aria-labelledby="briefH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="briefH">Every morning. <span>What changed, and why.</span></h2></div>
+    <div class="wrap">
+      <div class="card brief" id="briefCard" data-reveal>
+        <div class="brief-h"><img src="favicon.svg" alt=""><b>Morning brief</b><span>TUE · 7:00 AM</span></div>
+        <ul class="blines" id="blines">
+          <li data-html="Yesterday, <b>184 leads</b> came in.">Yesterday, 184 leads came in.</li>
+          <li data-html="Contact rate fell from <b>68%</b> to <b>55%</b>.">Contact rate fell from 68% to 55%.</li>
+          <li data-html="Most of it was <b>4 to 7 PM</b>: first calls took <b>18 minutes</b>, not 2.">Most of it was 4 to 7 PM: first calls took 18 minutes, not 2.</li>
+          <li data-html="Dana and Maya were <b>at capacity</b>.">Dana and Maya were at capacity.</li>
+          <li class="rec" data-html="Suggested: <b>add setter cover from 4 to 8 PM.</b>">Suggested: add setter cover from 4 to 8 PM.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="own" aria-labelledby="ownH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="ownH">Your numbers. Your recordings. <span>Your records.</span></h2></div>
+    <div class="wrap">
+      <div class="own4" id="own4">
+        <div class="card ot" data-reveal><svg class="lock" viewBox="0 0 30 34" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path class="sh" d="M9 15V10a6 6 0 0 1 12 0v5"/><rect x="4" y="15" width="22" height="16" rx="4"/><path d="M15 21.5v3.5"/></svg><b>Phone numbers</b><small>Stay with the agency, not the rep</small></div>
+        <div class="card ot" data-reveal style="--d:.08s"><svg class="lock" viewBox="0 0 30 34" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path class="sh" d="M9 15V10a6 6 0 0 1 12 0v5"/><rect x="4" y="15" width="22" height="16" rx="4"/><path d="M15 21.5v3.5"/></svg><b>Call recordings</b><small>Every call, searchable</small></div>
+        <div class="card ot" data-reveal style="--d:.16s"><svg class="lock" viewBox="0 0 30 34" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path class="sh" d="M9 15V10a6 6 0 0 1 12 0v5"/><rect x="4" y="15" width="22" height="16" rx="4"/><path d="M15 21.5v3.5"/></svg><b>Lead history</b><small>One thread per lead, kept</small></div>
+        <div class="card ot" data-reveal style="--d:.24s"><svg class="lock" viewBox="0 0 30 34" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path class="sh" d="M9 15V10a6 6 0 0 1 12 0v5"/><rect x="4" y="15" width="22" height="16" rx="4"/><path d="M15 21.5v3.5"/></svg><b>Payment accounts</b><small>Cash counted at the source</small></div>
+      </div>
+      <p class="fine">Reps get access. The company keeps ownership.</p>
+    </div>
+  </section>
+
+  <section class="final-cta wrap head" data-reveal>
+    <h2 class="h2">Control the operation. <span>Free the team to sell.</span></h2>
+    <div class="cta-row"><a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a><a class="pill ghost" href="team.html">See the team’s view</a></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap frow">
+    <a href="index.html" class="fbrand"><img src="favicon.svg" alt=""><b>Obavia</b></a>
+    <nav aria-label="Footer"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a href="ads.html">Films</a></nav>
+  </div>
+  <p class="wrap ffine">Product preview. Obavia is in development. People and figures shown are fictional and illustrative.</p>
+</footer>
+
+<script src="site.js"></script>
+<script>
+(() => {
+const {snd:S, clamp, eo, eio, lerp, REDUCED} = OBV, $ = id => document.getElementById(id);
+
+/* the owner's line */
+OBV.funnel($('ownLine'),{label:'Illustrative agency, one month',delay:900,dur:3200,
+  stages:[{n:'Leads',v:1200},{n:'Booked',v:744},{n:'Showed',v:372},{n:'Qualified',v:272},{n:'Won',v:78}],cash:468000});
+
+/* rank: close rate flatters the rep who disqualifies; cash per lead does not */
+const card=$('rankCard'), rows=[...$('rlist').children], btns=[...card.querySelectorAll('.seg button')], cap=$('rankCap');
+const CAPS={cr:'Close rate puts Reza first.', rpl:'Cash per lead puts Dana first. Reza drops to third.'};
+function rankBy(by,loud=true){
+  card.dataset.by=by; btns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.by===by));
+  [...rows].sort((a,b)=>b.dataset[by]-a.dataset[by]).forEach((r,i)=>{ r.style.setProperty('--r',i); r.querySelector('.rk').textContent=i+1; r.classList.toggle('first',i===0); });
+  cap.style.opacity=0; setTimeout(()=>{ cap.textContent=CAPS[by]; cap.style.opacity=1; },300);
+  if(loud){ S.chime(1046.5,.035); setTimeout(()=>S.chime(by==='rpl'?1318.5:880,.03),140); }
+}
+rankBy('cr',false);
+btns.forEach(b=>b.addEventListener('click',()=>{ auto=false; rankBy(b.dataset.by); }));
+let auto=true;
+OBV.onReveal(card,()=>setTimeout(()=>{ if(auto) rankBy('rpl'); },1900),.5);
+
+/* the heatmap */
+const HEAT=[
+  ['Dana','DR','d',[66,84,82,35],943,'Strong before the call. Share her booking confirmation with the team.'],
+  ['Maya','MC','',[64,71,80,31],880,'Steady at every stage. Next lift: the close.'],
+  ['Andre','AN','c',[63,74,86,22],710,'Great discovery. Closing is the place to coach.'],
+  ['Reza','RA','c',[58,48,70,48],610,'Show rate is the leak. He disqualifies before the call.'],
+  ['Jordan','JK','b',[61,32,73,35],300,'Show rate is the leak. One move already assigned.'],
+];
+const LAB={good:'Strong',norm:'On pace',leak:'Leak'};
+const g=$('hgrid');
+g.innerHTML=['Rep','Lead → Booked','Booked → Showed','Showed → Qualified','Qualified → Won','Per lead'].map((t,i)=>`<span class="th${i===5?' rp':''}" role="columnheader">${t}</span>`).join('')
+  +HEAT.map(([n,ini,c,v,r],k)=>`<div class="hrow" role="row" tabindex="0" data-k="${k}"><span class="hname" role="cell"><span class="av ${c}">${ini}</span>${n}</span>`
+    +v.map((x,i)=>{ const h=OBV.health(i,x); return `<span class="hcell" role="cell"><span class="hp" data-h="${h}"><b>${x}%</b><span>${LAB[h]}</span></span></span>`; }).join('')
+    +`<span class="hrpl" role="cell">$${r}</span></div>`).join('');
+const hrows=[...g.querySelectorAll('.hrow')], det=$('hdetail');
+function pick(k,loud=true){ hrows.forEach((r,i)=>r.classList.toggle('sel',i===k)); const [n,,,,,t]=HEAT[k];
+  det.innerHTML=`<span class="src">From the calls</span><span><b>${n}.</b> ${t}</span>`; if(loud) S.note(k+1,.03); }
+hrows.forEach((r,k)=>{ r.addEventListener('click',()=>pick(k)); r.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(k); } }); });
+pick(2,false);
+OBV.onReveal(g,()=>{ const cells=[...g.querySelectorAll('.hcell .hp')];
+  cells.forEach((p,i)=>setTimeout(()=>{ p.classList.add('on'); if(p.dataset.h!=='norm') setTimeout(()=>p.classList.add('lit'),200);
+    if(p.dataset.h==='leak') S.leak(); else if(p.dataset.h==='good' && i%2===0) S.tick(2600,.01); }, 120+(i%4)*110+Math.floor(i/4)*180)); },.35);
+
+/* the leak in dollars */
+OBV.onReveal($('leakCard'),()=>{ $('obars').classList.add('go'); OBV.count($('leakBig'),234000,{fmt:'k',dur:1600}); setTimeout(()=>S.leak(),900); },.4);
+
+/* capacity: the lead bounces off the full calendar and lands where it can */
+const route=$('route'), dot=$('dotl'), laneD=$('laneD'), laneM=$('laneM'), capM=$('capM'), pcM=$('pcM'), rcap=$('routeCap');
+let rVis=false, rT0=0, rPhase=-1;
+if('IntersectionObserver' in window) new IntersectionObserver(e=>{ rVis=e[0].isIntersecting; if(rVis&&!rT0) rT0=performance.now(); },{threshold:.4}).observe(route);
+const at=el=>{ const a=el.getBoundingClientRect(), r=route.getBoundingClientRect(); return {x:a.left-r.left+28, y:a.top-r.top+a.height/2}; };
+function srcPt(){ const s=route.querySelector('.src-lead i').getBoundingClientRect(), r=route.getBoundingClientRect(); return {x:s.left-r.left+s.width/2, y:s.top-r.top+s.height/2}; }
+const CAPT=['', 'Dana is booked solid.', 'Routed to Maya · open hands, strong with direct buyers.'];
+OBV.frame.push(now=>{
+  if(!rVis || REDUCED) return;
+  const T=5.2, t=(Math.max(0,now-rT0)/1000)%T, s=srcPt(), d=at(laneD), m=at(laneM);
+  let p, a=1, ph=0;
+  if(t<.5){ p=s; a=eo(t/.5); }
+  else if(t<1.5){ const k=eio((t-.5)/1); p={x:lerp(s.x,d.x,k), y:lerp(s.y,d.y,k)-Math.sin(k*Math.PI)*40}; }
+  else if(t<1.9){ ph=1; const k=(t-1.5)/.4; p={x:d.x-Math.sin(k*Math.PI)*22, y:d.y}; }
+  else if(t<2.9){ ph=1; const k=eio((t-1.9)/1); p={x:lerp(d.x,m.x,k)-Math.sin(k*Math.PI)*60, y:lerp(d.y,m.y,k)}; }
+  else if(t<3.3){ ph=2; p=m; a=1-(t-2.9)/.4; }
+  else { ph=2; p=m; a=0; }
+  dot.style.opacity=a.toFixed(3); dot.style.transform=`translate3d(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px,0)`;
+  laneD.classList.toggle('bump', t>1.45&&t<2.3); laneM.classList.toggle('land', t>2.9&&t<4.6);
+  const full = t>2.95; capM.style.setProperty('--c', full?'75%':'72%'); pcM.textContent = full?'75%':'72%';
+  const phase = t<.5?0:t<1.5?1:t<2.9?2:t<3.3?3:4;
+  if(phase!==rPhase){ rPhase=phase;
+    if(phase===0){ S.tick(2200,.012); rcap.innerHTML='A new lead arrives. <i>Who has room?</i>'; }
+    if(phase===2){ S.leak(); rcap.textContent=CAPT[1]; }
+    if(phase===3){ S.good(); rcap.innerHTML=CAPT[2]; } }
+});
+
+/* the morning brief types itself */
+const bl=[...$('blines').children];
+if(!REDUCED) bl.forEach(li=>li.textContent='');
+OBV.onReveal($('briefCard'),async()=>{
+  for(const li of bl){ await OBV.type(li,li.textContent||li.dataset.html.replace(/<[^>]+>/g,''),{cps:52}); li.innerHTML=li.dataset.html; await OBV.wait(280); }
+  S.chime(1318.5,.03);
+},.45);
+
+/* ownership: each lock closes */
+[...$('own4').children].forEach((t,i)=>OBV.onReveal(t,()=>setTimeout(()=>{ t.classList.add('on'); S.tick(1400+i*180,.016); },500+i*140),.6));
+})();
+</script>

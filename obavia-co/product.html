@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Obavia · How it works</title>
+<meta name="description" content="How Obavia works: one record per lead from first touch to collected cash, every stage judged against its own standard, every number opened to the calls behind it, clients paired with the right rep, and a method that learns.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#F6F9FF">
+<meta property="og:title" content="Obavia · How it works">
+<meta property="og:description" content="One record. From the first lead to the last dollar.">
+<meta property="og:image" content="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+  /* one record: sources merge into one thread */
+  .thread{max-width:1140px;margin:40px auto 0}
+  .thread svg{width:100%;height:auto;overflow:visible}
+  .thread .v{display:none}
+  .thread text{font-family:var(--sans)}
+  .th-src{font:600 13px var(--sans);fill:var(--slate)}
+  .th-stage{font:650 14px var(--sans);fill:var(--navy)}
+  .th-ev{font:500 11.5px var(--mono);fill:var(--deep);opacity:0;transition:opacity .5s}
+  .th-ev.on{opacity:1}
+  .bead{fill:#fff;stroke:#C4D1F3;stroke-width:1.5;transition:fill .5s,stroke .5s}
+  .bead.on{fill:var(--navy);stroke:var(--navy)}
+  .th-cash{font:800 22px var(--sans);fill:var(--ink);opacity:0;transition:opacity .6s}
+  .th-cash.on{opacity:1}
+
+  /* standards */
+  .stds{max-width:980px;margin:60px auto 0;padding:26px 28px 24px}
+  .stds-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .srow{display:grid;grid-template-columns:170px minmax(0,1fr) 90px;align-items:center;gap:22px;padding:18px 0;border-top:1px solid #EEF2FC}
+  .srow:first-of-type{border-top:0}
+  .srow>span{font:700 15px/1.3 var(--sans);color:var(--ink)}
+  .scale{position:relative;height:30px}
+  .scale .z{position:absolute;top:11px;height:8px}
+  .scale .z.l{left:0;border-radius:8px 0 0 8px;background:linear-gradient(90deg,#FCE3CB,#FCEBDA)}
+  .scale .z.n{background:#E7EEFE}
+  .scale .z.g{right:0;border-radius:0 8px 8px 0;background:linear-gradient(90deg,#DDF5E8,#C9EEDB)}
+  .scale .tk{position:absolute;top:24px;transform:translateX(-50%);font:500 10.5px/1 var(--mono);color:#A3ABBB}
+  .mk{position:absolute;top:15px;left:var(--x);width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--navy);box-shadow:0 0 0 5px rgba(255,255,255,.9),0 6px 14px -4px rgba(28,36,54,.5);transition:left 1s var(--ease-io)}
+  .srow .hp{justify-self:end;min-width:84px}
+  .stds .fine{margin-top:14px}
+
+  /* the calls behind a number */
+  .ev-card{max-width:800px;margin:60px auto 0;padding:26px 28px 24px}
+  .ev-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .ev-head .ttl{margin-right:auto}
+  .ev-head .ttl b{display:block;font:800 21px/1.1 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+  .ev-head .ttl small{display:block;margin-top:6px;font:600 13px/1 var(--sans);color:var(--slate)}
+  .ev-open{height:40px;padding:0 16px;border:0;border-radius:999px;background:var(--navy);color:#fff;font:700 13.5px/1 var(--sans);cursor:pointer}
+  .snips{display:grid;gap:10px;margin-top:20px}
+  .snip{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:center;padding:16px 18px;border-radius:18px;background:#F7F9FF;box-shadow:inset 0 0 0 1px #E6ECFB;opacity:0;transform:translateY(-10px) scale(.98);transition:opacity .6s var(--ease),transform .7s var(--ease)}
+  .snips.open .snip{opacity:1;transform:none}
+  .snips.open .snip:nth-child(2){transition-delay:.18s}.snips.open .snip:nth-child(3){transition-delay:.36s}
+  .snip q{font:650 16.5px/1.45 var(--sans);color:var(--ink);quotes:"“" "”"}
+  .snip q mark{background:#FCEBDA;border-radius:4px;padding:0 3px;color:inherit}
+  .snip .tg{justify-self:end;padding:7px 11px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1px rgba(226,160,98,.55);font:700 12px/1 var(--sans);color:var(--leak)}
+  .snip small{grid-column:1/-1;font:500 11px/1 var(--mono);letter-spacing:.04em;color:#A3ABBB}
+  .ev-sum{display:flex;align-items:center;gap:12px;margin-top:16px;padding:16px 18px;border-radius:18px;background:var(--navy);color:#fff;font:650 16px/1.45 var(--sans);opacity:0;transform:translateY(8px);transition:all .7s var(--ease) .6s}
+  .snips.open+.ev-sum{opacity:1;transform:none}
+  .ev-sum .src{color:var(--peri);flex:none}
+
+  /* six needs */
+  .ngrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:1100px;margin:60px auto 0}
+  .need{position:relative;height:210px;border:0;padding:0;background:none;cursor:pointer;perspective:900px;text-align:left;font:inherit;color:inherit}
+  .nf,.nk{position:absolute;inset:0;border-radius:24px;padding:26px;display:flex;flex-direction:column;justify-content:flex-end;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .8s var(--ease)}
+  .nf{background:linear-gradient(160deg,#FFFFFF,#EEF3FF);box-shadow:inset 0 0 0 1px var(--line)}
+  .nk{background:var(--navy);color:#fff;transform:rotateY(180deg)}
+  .need[aria-pressed="true"] .nf{transform:rotateY(-180deg)}
+  .need[aria-pressed="true"] .nk{transform:rotateY(0)}
+  .need:hover .nf{box-shadow:inset 0 0 0 1px #AFC1EE,0 26px 50px -36px rgba(40,52,79,.5)}
+  .nn{position:absolute;top:24px;left:26px;font:600 13px/1 var(--sans);color:var(--deep)}
+  .nb{position:absolute;top:18px;right:18px;padding:8px 12px;border-radius:999px;background:var(--navy);color:#fff;font:650 12.5px/1 var(--sans)}
+  .nf b{font:800 27px/1.1 var(--sans);letter-spacing:-.04em;color:var(--ink)}
+  .nf i{font:500 16px/1.4 var(--sans);font-style:normal;color:var(--body);margin-top:6px}
+  .nl{font:600 13px/1 var(--sans);color:#AFC1EE;margin-bottom:10px}
+  .nk b{font:750 24px/1.2 var(--sans);letter-spacing:-.03em}
+  .need.marcus .nf{background:linear-gradient(160deg,#FFFFFF,#DDE7FF);box-shadow:inset 0 0 0 1.5px #AFC1EE}
+
+  /* pairing */
+  .pair{position:relative;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1fr);gap:120px;align-items:center;max-width:1000px;margin:60px auto 0}
+  .pair svg.lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  .pair svg path{fill:none;stroke:#C4D1F3;stroke-width:1.5;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1.2s var(--ease),stroke .6s,stroke-width .6s}
+  .pair.go svg path{stroke-dashoffset:0}
+  .pair.best svg path.win{stroke:var(--navy);stroke-width:2.6}
+  .client{padding:24px 24px 22px}
+  .client .top{display:flex;align-items:center;gap:12px}
+  .client .top b{font:800 20px/1.1 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+  .traits{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .reps{display:grid;gap:12px}
+  .rp{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:14px;padding:16px 18px;border-radius:20px;background:rgba(255,255,255,.94);box-shadow:inset 0 0 0 1px var(--line);transition:box-shadow .6s var(--ease),transform .6s var(--ease)}
+  .rp .av{width:40px;height:40px}
+  .rp b{display:block;font:700 16px/1.1 var(--sans);color:var(--ink)}
+  .rp small{display:block;margin-top:5px;font:500 12.5px/1.2 var(--sans);color:var(--slate)}
+  .rp .pc{font:800 22px/1 var(--sans);letter-spacing:-.04em;color:var(--ink);text-align:right}
+  .rp .pc small{margin-top:4px;font-size:10.5px;letter-spacing:0;font-weight:600}
+  .pair.best .rp.win{box-shadow:inset 0 0 0 1px rgba(94,190,142,.6),0 0 30px -4px var(--good-halo);transform:translateX(-6px)}
+
+  /* the handoff */
+  .hand{display:grid;grid-template-columns:minmax(0,1fr) 90px minmax(0,1fr);align-items:center;max-width:980px;margin:60px auto 0}
+  .hc{padding:24px 24px 22px;min-height:220px}
+  .hc .k{margin-bottom:12px}
+  .hc h3{margin:0 0 16px;font:800 20px/1.1 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+  .words{display:flex;flex-wrap:wrap;gap:8px;min-height:86px}
+  .words .chip{transition:opacity .4s}
+  .arrow{display:grid;place-items:center;color:var(--deep)}
+  .arrow svg{width:46px;height:14px}
+  .flyer{position:fixed;z-index:30;pointer-events:none;transition:transform .9s var(--ease-io),opacity .3s}
+  .hc.recv .chip{opacity:0}
+  .hc.recv .chip.on{opacity:1}
+  .opens{margin-top:16px;padding:14px 16px;border-radius:16px;background:var(--navy);color:#fff;font:650 15px/1.45 var(--sans);opacity:0;transform:translateY(8px);transition:all .7s var(--ease)}
+  .opens.on{opacity:1;transform:none}
+
+  /* the method learns */
+  .learn{max-width:1060px;margin:60px auto 0;align-items:stretch}
+  .learn .card{padding:26px 26px 22px}
+  .learn h3{margin:10px 0 18px;font:800 21px/1.1 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+  .vers{display:grid;gap:10px}
+  .vr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:14px 16px;border-radius:16px;background:#F7F9FF;box-shadow:inset 0 0 0 1px #E6ECFB}
+  .vr b{font:700 15px/1.2 var(--sans);color:var(--ink)}
+  .vr small{grid-column:1/-1;font:500 12.5px/1.3 var(--sans);color:var(--slate)}
+  .vr .st{font:700 12px/1 var(--sans);padding:6px 10px;border-radius:999px}
+  .vr.old{opacity:.6}.vr.old b{text-decoration:line-through;text-decoration-color:rgba(183,119,59,.6)}
+  .vr.old .st{background:#FCEBDA;color:var(--leak)}
+  .vr.cur .st{background:var(--navy);color:#fff}
+  .ab{display:grid;gap:16px}
+  .abr{display:grid;grid-template-columns:120px minmax(0,1fr) 52px;align-items:center;gap:12px}
+  .abr span{font:650 13.5px/1.2 var(--sans);color:var(--navy)}
+  .abr span small{display:block;margin-top:3px;font:500 11.5px/1 var(--sans);color:var(--slate)}
+  .abr .t{height:16px;border-radius:16px;background:#EEF2FC;overflow:hidden}
+  .abr .t i{display:block;height:100%;width:var(--w);border-radius:16px;background:#C8D6FC;transform:scaleX(0);transform-origin:left;transition:transform 1.5s var(--ease) var(--d,0s)}
+  .abr.win .t i{background:linear-gradient(90deg,#AFC1EE,#7D97C7)}
+  .ab.go .abr .t i{transform:none}
+  .abr b{font:800 17px/1 var(--sans);color:var(--ink);text-align:right}
+  .promote{justify-self:start;display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:10px 14px;border-radius:999px;background:var(--good-tint);color:var(--good);font:700 13px/1 var(--sans);opacity:0;transform:scale(1.4) rotate(-4deg);transition:opacity .4s,transform .6s var(--ease)}
+  .promote.on{opacity:1;transform:rotate(-2deg)}
+
+  @media (prefers-reduced-motion:reduce){ .snip,.ev-sum,.opens,.promote{opacity:1!important;transform:none!important;transition:none!important} .hc.recv .chip{opacity:1} }
+  @media (max-width:860px){
+    .thread .h{display:none}.thread .v{display:block}
+    .thread{max-width:420px}
+    .stds{padding:18px 16px}
+    .srow{grid-template-columns:minmax(0,1fr) 76px;gap:10px 14px}
+    .srow .scale{grid-column:1/-1;grid-row:2}
+    .ev-card{padding:20px 16px}
+    .snip{grid-template-columns:minmax(0,1fr)}
+    .snip .tg{justify-self:start}
+    .ngrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .need{height:168px}
+    .nf,.nk{padding:18px;border-radius:20px}
+    .nn{top:16px;left:18px}
+    .nb{top:12px;right:12px;padding:6px 9px;font-size:11px}
+    .nf b{font-size:21px}.nf i{font-size:14px}.nk b{font-size:19px}
+    .pair{grid-template-columns:minmax(0,1fr);gap:18px}
+    .pair svg.lines{display:none}
+    .hand{grid-template-columns:minmax(0,1fr);gap:8px}
+    .arrow{transform:rotate(90deg);height:50px}
+    .hc{min-height:0}
+  }
+</style>
+<body>
+
+<nav id="nav" aria-label="Primary">
+  <a class="logo" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt=""></a>
+  <ul>
+    <li><a href="product.html" aria-current="page">Product</a></li>
+    <li><a href="owners.html">Owners</a></li>
+    <li><a href="team.html">Team</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+  </ul>
+  <a class="pill primary join" href="https://obavia.co/waitlist">Join the Waitlist</a>
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><i></i><i></i></button>
+</nav>
+<div class="sheet" id="sheet" aria-hidden="true">
+  <ul>
+    <li><a class="big" href="index.html" style="--i:0">Home <small>01</small></a></li>
+    <li><a class="big" href="product.html" aria-current="page" style="--i:1">Product <small>02</small></a></li>
+    <li><a class="big" href="owners.html" style="--i:2">Owners <small>03</small></a></li>
+    <li><a class="big" href="team.html" style="--i:3">Team <small>04</small></a></li>
+    <li><a class="big" href="pricing.html" style="--i:4">Pricing <small>05</small></a></li>
+    <li><a class="big" href="about.html" style="--i:5">About <small>06</small></a></li>
+  </ul>
+  <a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a>
+</div>
+
+<main>
+  <section class="phero wrap">
+    <span class="tag" data-reveal><i></i>How Obavia works</span>
+    <h1 class="h1" data-split>One record. <span>From the first lead to the last dollar.</span></h1>
+    <p class="lede" data-reveal style="--d:.5s">Every source feeds one thread per lead. Every step on it is counted by the system that saw it happen.</p>
+    <div class="thread" id="thread" data-reveal style="--d:.7s" role="img" aria-label="Leads from paid social, web forms and referrals merge into one thread: lead, contact, book, show, qualify, close, collect.">
+      <svg class="h" id="thH" viewBox="0 0 1140 250" aria-hidden="true"></svg>
+      <svg class="v" id="thV" viewBox="0 0 380 760" aria-hidden="true"></svg>
+    </div>
+  </section>
+
+  <section class="sec" id="standards" aria-labelledby="stdH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="stdH">Each stage. <span>Its own standard.</span></h2></div>
+    <div class="wrap">
+      <div class="card stds" id="stds" data-reveal>
+        <div class="stds-top"><span class="k mono">Benchmarks by stage</span>
+          <div class="seg" role="group" aria-label="Show"><button type="button" data-who="team" aria-pressed="true">Team</button><button type="button" data-who="jordan" aria-pressed="false">Jordan</button><button type="button" data-who="dana" aria-pressed="false">Dana</button></div></div>
+        <div id="srows"></div>
+        <p class="fine">A 50% show rate and a 50% close rate are not the same number. Each stage glows against its own line.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="evidence" aria-labelledby="evH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="evH">Every number opens. <span>To the calls behind it.</span></h2></div>
+    <div class="wrap">
+      <div class="card ev-card" id="evCard" data-reveal>
+        <div class="ev-head"><div class="ttl"><b>Booked → Showed</b><small>Jordan · this month · 14 no-shows</small></div><span class="hp lit" data-h="leak"><b>32%</b><span>Leak</span></span><button class="ev-open" id="evOpen" type="button" aria-expanded="false" aria-controls="snips">Open the calls</button></div>
+        <div class="snips" id="snips">
+          <div class="snip"><q>Yeah, Thursday works. <mark>What was this about again?</mark></q><span class="tg">No agenda</span><small>CALL 14 · 2:41 · NO-SHOW</small></div>
+          <div class="snip"><q><mark>I’ll probably be traveling</mark>, but put me down.</q><span class="tg">Soft yes</span><small>CALL 22 · 1:58 · NO-SHOW</small></div>
+          <div class="snip"><q>Sure, <mark>any time is fine</mark>.</q><span class="tg">No timezone</span><small>CALL 31 · 3:12 · NO-SHOW</small></div>
+        </div>
+        <div class="ev-sum"><span class="src">From 14 recordings</span><span>11 of 14 no-shows never had the agenda confirmed.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="needs" aria-labelledby="needsH">
+    <div class="wrap head" data-reveal>
+      <h2 class="h2" id="needsH">How they speak. <span>What they need.</span></h2>
+      <p class="lede">Six needs. Everyone carries two. Tap a need to see the fear behind it.</p>
+    </div>
+    <div class="wrap ngrid" id="ngrid"><button class="need marcus" type="button" data-reveal aria-pressed="false"><span class="nf"><span class="nn">01</span><span class="nb">Marcus · 74%</span><b>Status Seeker</b><i>To feel important</i></span><span class="nk"><span class="nl">Core fear</span><b>Being treated as insignificant</b></span></button><button class="need" type="button" data-reveal style="--d:.06s" aria-pressed="false"><span class="nf"><span class="nn">02</span><b>People Pleaser</b><i>To be approved of</i></span><span class="nk"><span class="nl">Core fear</span><b>Rejection</b></span></button><button class="need" type="button" data-reveal style="--d:.12s" aria-pressed="false"><span class="nf"><span class="nn">03</span><b>Belonger</b><i>To be accepted</i></span><span class="nk"><span class="nl">Core fear</span><b>Being cast out</b></span></button><button class="need" type="button" data-reveal style="--d:.18s" aria-pressed="false"><span class="nf"><span class="nn">04</span><b>Intellectual</b><i>To be seen as smart</i></span><span class="nk"><span class="nl">Core fear</span><b>Looking ignorant</b></span></button><button class="need" type="button" data-reveal style="--d:.24s" aria-pressed="false"><span class="nf"><span class="nn">05</span><b>Victim</b><i>To be pitied</i></span><span class="nk"><span class="nl">Core fear</span><b>Being dismissed</b></span></button><button class="need" type="button" data-reveal style="--d:.30s" aria-pressed="false"><span class="nf"><span class="nn">06</span><b>Dominator</b><i>To be seen as powerful</i></span><span class="nk"><span class="nl">Core fear</span><b>Looking weak</b></span></button></div>
+  </section>
+
+  <section class="sec" id="pairing" aria-labelledby="pairH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="pairH">The right rep. <span>For each client.</span></h2></div>
+    <div class="wrap">
+      <div class="pair" id="pair">
+        <svg class="lines" id="pairLines" aria-hidden="true"></svg>
+        <div class="card client" id="client" data-reveal>
+          <span class="k mono">Incoming · qualified</span>
+          <div class="top" style="margin-top:14px"><span class="av">MH</span><b>Marcus Hale</b></div>
+          <div class="traits"><span class="chip"><i></i>Direct</span><span class="chip"><i></i>Decides fast</span><span class="chip"><i></i>Wants numbers</span><span class="chip dark"><i></i>Significance type</span></div>
+        </div>
+        <div class="reps">
+          <div class="rp win" data-reveal><span class="av d">DR</span><div><b>Dana</b><small>With clients like him</small></div><span class="pc">34%<small>close</small></span></div>
+          <div class="rp" data-reveal style="--d:.08s"><span class="av c">AN</span><div><b>Andre</b><small>With clients like him</small></div><span class="pc">27%<small>close</small></span></div>
+          <div class="rp" data-reveal style="--d:.16s"><span class="av b">JK</span><div><b>Jordan</b><small>With clients like him</small></div><span class="pc">18%<small>close</small></span></div>
+        </div>
+      </div>
+      <p class="fine">Matched on real outcomes with similar clients, and only once there is enough of them. Never a guess about personality.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="handoff" aria-labelledby="handH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="handH">His words travel. <span>Setter to closer.</span></h2></div>
+    <div class="wrap">
+      <div class="hand" id="hand">
+        <div class="card hc" id="hcA" data-reveal><span class="k mono">Setter · Jordan</span><h3>Heard on the first call</h3>
+          <div class="words" id="wA"><span class="chip"><i></i>“Babe Ruth”</span><span class="chip"><i></i>“Some months I’m fine”</span><span class="chip"><i></i>“My team waits on one person”</span></div></div>
+        <div class="arrow" aria-hidden="true"><svg viewBox="0 0 46 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h42M37 1.5 43 7l-6 5.5"/></svg></div>
+        <div class="card hc recv" id="hcB" data-reveal style="--d:.1s"><span class="k mono">Closer · Dana</span><h3>Waiting before the call</h3>
+          <div class="words" id="wB"><span class="chip"><i></i>“Babe Ruth”</span><span class="chip"><i></i>“Some months I’m fine”</span><span class="chip"><i></i>“My team waits on one person”</span></div>
+          <p class="opens" id="opens">Opens with: “What would a steady month look like, without waiting on a Babe Ruth?”</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="learn" aria-labelledby="learnH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="learnH">The method stays. <span>The words evolve.</span></h2></div>
+    <div class="wrap grid2 learn">
+      <div class="card" data-reveal><span class="k mono">Versioned playbook</span><h3>Opener</h3>
+        <div class="vers">
+          <div class="vr old"><b>v3 · “What’s it costing you?”</b><span class="st">Retired</span><small>Booking rate fell from 31% to 24% in eight weeks</small></div>
+          <div class="vr cur"><b>v4 · “Which part gets worse if nothing changes?”</b><span class="st">Current</span><small>29% and holding · every call tagged with its version</small></div>
+        </div>
+      </div>
+      <div class="card" data-reveal style="--d:.12s"><span class="k mono">Tested, then promoted</span><h3>Price objection</h3>
+        <div class="ab" id="ab">
+          <div class="abr"><span>Control<small>300 calls</small></span><div class="t"><i style="--w:62%"></i></div><b>24%</b></div>
+          <div class="abr win"><span>Challenger<small>150 calls</small></span><div class="t"><i style="--w:80%;--d:.2s"></i></div><b>31%</b></div>
+          <span class="promote" id="promote">✓ Promoted to the team</span>
+        </div>
+      </div>
+    </div>
+    <p class="fine wrap">Review on a calendar. Change on evidence.</p>
+  </section>
+
+  <section class="final-cta wrap head" data-reveal>
+    <h2 class="h2">One record. <span>For your whole operation.</span></h2>
+    <div class="cta-row"><a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a><a class="pill ghost" href="pricing.html">See pricing</a></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap frow">
+    <a href="index.html" class="fbrand"><img src="favicon.svg" alt=""><b>Obavia</b></a>
+    <nav aria-label="Footer"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a href="ads.html">Films</a></nav>
+  </div>
+  <p class="wrap ffine">Product preview. Obavia is in development. People and figures shown are fictional and illustrative.</p>
+</footer>
+
+<script src="site.js"></script>
+<script>
+(() => {
+const {snd:S, clamp, eo, eio, lerp, REDUCED} = OBV, $ = id => document.getElementById(id);
+const NS='http://www.w3.org/2000/svg';
+const mk=(tag,attrs,parent)=>{ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); parent&&parent.appendChild(e); return e; };
+
+/* ---------- one record: three sources, one thread ---------- */
+const STAGES=['Lead','Contact','Book','Show','Qualify','Close','Collect'];
+const EVENTS=['lead.created','call.connected','meeting.booked','meeting.joined','qualified · 86','contract.signed','payment.captured'];
+const SRC=['Paid social','Web form','Referral'];
+function buildThread(svg,vert){
+  const g={beads:[],evs:[],srcPaths:[],svg};
+  const pos=vert ? STAGES.map((_,i)=>({x:190,y:170+i*86})) : STAGES.map((_,i)=>({x:330+i*128,y:125}));
+  const grad=mk('defs',{},svg), P0=pos[0], PN=pos[pos.length-1];   // user-space: a straight line has no bounding box to stretch a gradient over
+  const lg=mk('linearGradient',{id:'tg'+(vert?'v':'h'),gradientUnits:'userSpaceOnUse',x1:P0.x,y1:P0.y,x2:PN.x,y2:PN.y},grad);
+  mk('stop',{offset:0,'stop-color':'#C8D6FC'},lg); mk('stop',{offset:1,'stop-color':'#7D97C7'},lg);
+  const srcP=vert ? SRC.map((_,i)=>({x:60+i*130,y:34})) : SRC.map((_,i)=>({x:150,y:50+i*75}));
+  SRC.forEach((s,i)=>{ const a=srcP[i], b=pos[0];
+    const d=vert ? `M${a.x},${a.y+16} C${a.x},${a.y+80} ${b.x},${b.y-70} ${b.x},${b.y}` : `M${a.x},${a.y} C${a.x+110},${a.y} ${b.x-110},${b.y} ${b.x},${b.y}`;
+    g.srcPaths.push(mk('path',{d,fill:'none',stroke:'#D3DDF7','stroke-width':1.6},svg));
+    const t=mk('text',vert?{x:a.x,y:a.y,'text-anchor':'middle',class:'th-src'}:{x:a.x-16,y:a.y+4,'text-anchor':'end',class:'th-src'},svg); t.textContent=s; });
+  const last=pos[pos.length-1];
+  g.main=mk('path',{d:`M${pos[0].x},${pos[0].y} ${vert?'V':'H'}${vert?last.y:last.x}`,fill:'none',stroke:`url(#tg${vert?'v':'h'})`,'stroke-width':3,'stroke-linecap':'round'},svg);
+  STAGES.forEach((s,i)=>{ const p=pos[i];
+    const lab=mk('text',vert?{x:p.x-22,y:p.y+4,'text-anchor':'end',class:'th-stage'}:{x:p.x,y:p.y+36,'text-anchor':'middle',class:'th-stage'},svg); lab.textContent=s;
+    const ev=mk('text',vert?{x:p.x+22,y:p.y+4,'text-anchor':'start',class:'th-ev'}:{x:p.x,y:p.y-24,'text-anchor':'middle',class:'th-ev'},svg); ev.textContent=EVENTS[i]; g.evs.push(ev);
+    g.beads.push(mk('circle',{cx:p.x,cy:p.y,r:i===STAGES.length-1?9:7,class:'bead'},svg)); });
+  g.cash=mk('text',vert?{x:last.x+22,y:last.y+34,class:'th-cash'}:{x:last.x,y:last.y+70,'text-anchor':'middle',class:'th-cash'},svg); g.cash.textContent='$6,000';
+  g.glow=mk('circle',{r:18,fill:'rgba(200,214,252,.55)',opacity:0},svg);
+  g.dot=mk('circle',{r:6,fill:'#28344F',opacity:0},svg);
+  g.pos=pos; return g;
+}
+const TH=[buildThread($('thH'),false), buildThread($('thV'),true)];
+let thVis=false, thT0=0, thK=-1, thSrc=-1;
+if('IntersectionObserver' in window) new IntersectionObserver(e=>{ thVis=e[0].isIntersecting; if(thVis&&!thT0) thT0=performance.now(); },{threshold:.3}).observe($('thread'));
+OBV.frame.push(now=>{
+  if(!thVis) return;
+  const g = matchMedia('(max-width:860px)').matches ? TH[1] : TH[0];
+  if(REDUCED){ g.beads.forEach(b=>b.classList.add('on')); g.evs.forEach(e=>e.classList.add('on')); g.cash.classList.add('on'); return; }
+  const el=Math.max(0,now-thT0)/1000, T=8.4, t=el%T, cyc=Math.floor(el/T), si=cyc%3;
+  const sp=g.srcPaths[si], sl=sp.getTotalLength(), ml=g.main.getTotalLength();
+  let pt, k=-1;
+  if(t<1.1){ pt=sp.getPointAtLength(sl*eio(t/1.1)); }
+  else if(t<6.2){ const f=eio((t-1.1)/5.1); pt=g.main.getPointAtLength(ml*f); k=Math.min(STAGES.length-1,Math.floor(f*(STAGES.length-1)+.02)); }
+  else { pt=g.main.getPointAtLength(ml); k=STAGES.length-1; }
+  const fade = t>7.6 ? 1-(t-7.6)/.8 : 1;
+  g.dot.setAttribute('cx',pt.x); g.dot.setAttribute('cy',pt.y); g.dot.setAttribute('opacity',fade);
+  g.glow.setAttribute('cx',pt.x); g.glow.setAttribute('cy',pt.y); g.glow.setAttribute('opacity',.8*fade);
+  if(si!==thSrc){ thSrc=si; g.srcPaths.forEach((p,i)=>p.setAttribute('stroke',i===si?'#AFC1EE':'#D3DDF7')); }
+  if(k!==thK){
+    if(k<thK || k===-1){ g.beads.forEach(b=>b.classList.remove('on')); g.evs.forEach(e=>e.classList.remove('on')); g.cash.classList.remove('on'); }
+    for(let i=0;i<=k;i++){ g.beads[i].classList.add('on'); g.evs[i].classList.add('on'); }
+    if(k>thK && k>=0){ if(k===STAGES.length-1){ g.cash.classList.add('on'); S.arrive(); } else S.note(k,.028); }
+    thK=k;
+  }
+});
+
+/* ---------- standards: every stage against its own line ---------- */
+const SNAMES=['Lead → Booked','Booked → Showed','Showed → Qualified','Qualified → Won'];
+const BENCH=[{w:45,s:65},{w:55,s:75},{w:55,s:78},{w:20,s:38}];
+const VALS={team:[62,50,73,29], jordan:[61,32,73,35], dana:[66,84,82,35]};
+const LAB={good:'Strong',norm:'On pace',leak:'Leak'};
+$('srows').innerHTML=SNAMES.map((n,i)=>{ const b=BENCH[i];
+  return `<div class="srow"><span>${n}</span><div class="scale"><i class="z l" style="width:${b.w}%"></i><i class="z n" style="left:${b.w}%;width:${b.s-b.w}%"></i><i class="z g" style="left:${b.s}%"></i><span class="tk" style="left:${b.w}%">${b.w}</span><span class="tk" style="left:${b.s}%">${b.s}</span><i class="mk" style="--x:0%"></i></div><span class="hp" data-h="norm"><b>0%</b><span>On pace</span></span></div>`; }).join('');
+const srows=[...$('srows').children], sbtns=[...document.querySelectorAll('#stds .seg button')];
+function show(who,loud=true){
+  sbtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.who===who));
+  VALS[who].forEach((v,i)=>{ const r=srows[i], h=OBV.health(i,v), hp=r.querySelector('.hp');
+    r.querySelector('.mk').style.setProperty('--x',v+'%'); hp.dataset.h=h; hp.querySelector('b').textContent=v+'%'; hp.querySelector('span').textContent=LAB[h];
+    hp.classList.remove('lit'); setTimeout(()=>hp.classList.add('lit'),650);
+    if(loud) setTimeout(()=>h==='good'?S.good():h==='leak'?S.leak():S.tick(1900,.012),500+i*140); });
+}
+sbtns.forEach(b=>b.addEventListener('click',()=>{ stdAuto=false; show(b.dataset.who); }));
+let stdAuto=true;
+OBV.onReveal($('stds'),()=>{ show('team'); setTimeout(()=>{ if(stdAuto) show('jordan'); },3200); },.4);
+
+/* ---------- the calls behind the number ---------- */
+const snips=$('snips'), evOpen=$('evOpen');
+function openCalls(on){ snips.classList.toggle('open',on); evOpen.setAttribute('aria-expanded',on); evOpen.textContent=on?'Close the calls':'Open the calls';
+  if(on){ S.whoosh(.9,.035,500,1500); [0,1,2].forEach(i=>setTimeout(()=>S.note(i+2,.025),250+i*180)); } }
+evOpen.addEventListener('click',()=>openCalls(!snips.classList.contains('open')));
+OBV.onReveal($('evCard'),()=>setTimeout(()=>{ if(!snips.classList.contains('open')) openCalls(true); },1100),.45);
+
+/* ---------- six needs ---------- */
+document.querySelectorAll('.need').forEach(n=>n.addEventListener('click',()=>{ const on=n.getAttribute('aria-pressed')!=='true'; n.setAttribute('aria-pressed',on); S.chime(on?1174.66:880,.03); }));
+
+/* ---------- pairing ---------- */
+const pair=$('pair'), plines=$('pairLines'), client=$('client'), reps=[...pair.querySelectorAll('.rp')];
+function drawLines(){ plines.innerHTML=''; const P=pair.getBoundingClientRect(), c=client.getBoundingClientRect();
+  const x0=c.right-P.left, y0=c.top-P.top+c.height/2;
+  reps.forEach(r=>{ const b=r.getBoundingClientRect(), x1=b.left-P.left, y1=b.top-P.top+b.height/2;
+    const p=mk('path',{d:`M${x0},${y0} C${x0+60},${y0} ${x1-60},${y1} ${x1},${y1}`,class:r.classList.contains('win')?'win':''},plines);
+    p.style.setProperty('--len',Math.ceil(p.getTotalLength())); }); }
+drawLines(); addEventListener('resize',drawLines);
+OBV.onReveal(pair,()=>{ setTimeout(()=>{ drawLines(); requestAnimationFrame(()=>pair.classList.add('go')); S.whoosh(1.1,.03,400,1300); },700);
+  setTimeout(()=>{ pair.classList.add('best'); S.good(); },2100); },.4);
+
+/* ---------- the handoff: the words fly to the closer ---------- */
+const wA=[...$('wA').children], wB=[...$('wB').children];
+OBV.onReveal($('hand'),()=>{ wA.forEach((c,i)=>setTimeout(()=>{
+    const a=c.getBoundingClientRect(), b=wB[i].getBoundingClientRect();
+    if(REDUCED){ wB[i].classList.add('on'); return; }
+    const f=c.cloneNode(true); f.classList.add('flyer'); f.style.left=a.left+'px'; f.style.top=a.top+'px'; document.body.appendChild(f);
+    S.whoosh(.7,.025,600,1600);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transform=`translate(${b.left-a.left}px,${b.top-a.top}px)`; }));
+    setTimeout(()=>{ wB[i].classList.add('on'); f.remove(); S.note(i+3,.028); },950);
+  },900+i*520));
+  setTimeout(()=>{ $('opens').classList.add('on'); S.chime(1318.5,.03); },900+wA.length*520+900); },.45);
+
+/* ---------- the method learns ---------- */
+OBV.onReveal($('ab'),()=>{ $('ab').classList.add('go'); setTimeout(()=>{ $('promote').classList.add('on'); S.good(); },1900); },.5);
+})();
+</script>
