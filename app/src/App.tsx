@@ -5,18 +5,20 @@ import { useMoves, useRoute } from './store';
 import { Avatar, Ic } from './ui';
 import { LeadSheet, Leads, Leaks, Moves, Overview, RepSheet, Reps, Today } from './screens';
 import { Onboarding } from './Onboarding';
+import { MyReport, Report } from './report';
 import { sounds } from './sound';
 
 type Role = 'owner' | 'rep';
 const ME = 'jordan';
 const TEAM = teamCounts();
 const LEAKING = leaks(TEAM).filter(l => l.health === 'leak').length;
-const REP_PAGES = ['today', 'my-leads'];
+const REP_PAGES = ['today', 'my-report', 'my-leads'];
 const OB_KEY = 'obavia.onboarded.v1';
 
 const NAV: Record<Role, { to: string; label: string; icon: string; count?: number }[]> = {
   owner: [
     { to: 'overview', label: 'This month', icon: 'overview' },
+    { to: 'report', label: 'Report', icon: 'report' },
     { to: 'leaks/' + biggest(TEAM).step, label: 'Leaks', icon: 'leak', count: LEAKING },
     { to: 'reps', label: 'Reps', icon: 'reps' },
     { to: 'moves', label: 'Fixes', icon: 'move' },
@@ -24,6 +26,7 @@ const NAV: Record<Role, { to: string; label: string; icon: string; count?: numbe
   ],
   rep: [
     { to: 'today', label: 'Today', icon: 'today' },
+    { to: 'my-report', label: 'Report', icon: 'report' },
     { to: 'my-leads', label: 'My leads', icon: 'leads' },
   ],
 };
@@ -50,6 +53,8 @@ export default function App() {
     case 'reps': screen = <Reps go={go} />; if (arg) { sheet = <RepSheet id={arg} api={api} toast={toast} />; close = 'reps'; } break;
     case 'moves': screen = <Moves api={api} />; break;
     case 'leads': screen = <Leads go={go} />; break;
+    case 'report': screen = <Report go={go} />; break;
+    case 'my-report': screen = <MyReport me={ME} go={go} />; break;
     case 'today': screen = <Today me={ME} go={go} api={api} />; break;
     case 'my-leads': screen = <Leads go={go} mine={ME} />; break;
     default: screen = <Overview go={go} api={api} />;

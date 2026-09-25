@@ -72,7 +72,7 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 | Leak engine | The funnel (leads, booked, showed, closed, cash) with each step's loss in dollars. Picks the single biggest leak. | App (Overview, Leaks), Site (hero line) |
 | Why from calls | Every drop-off tagged with the reason and the exact words that gave it away. | App (Leaks), Site (#why) |
 | The fix loop | One fix, assigned to the rep who leaks most, checked Friday against their own calls, reported in dollars. | App (Moves, RepSheet), Site (#fix) |
-| Daily AI sales manager report | Every call of the day read; one report to reps, managers, the marketer and the owner. | Planned |
+| Daily AI sales manager report | Every call from yesterday read; sent at 7:00 AM. Owner page: the headline leak in dollars, rep by rep (one win or one fix each, with the quote), "was it the leads?" verdict, cash per lead by source, calls to watch today, who gets it. Rep page: what worked or one thing to fix, yesterday's numbers and earnings, today's one action, where they stand on cash per lead. | App (Report, Rep → Report) |
 
 ### The team
 
@@ -85,7 +85,7 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 | Month-over-month progress | Each rep's trend, so commission never feels random. | Planned |
 | Rep confidence read | Qualified show rate as a leading indicator of how a rep will perform on the same pool. | Planned |
 | What the top rep does differently | Their pre-call messages and words, surfaced for the rest to copy. | Planned |
-| Settle sales vs marketing | Separates lead quality (same pool across reps) from rep performance, with reasons. | Site (#why line), Planned |
+| Settle sales vs marketing | Separates lead quality (same pool across reps) from rep performance, with reasons. | Site (#why line), App (Report verdict) |
 | New-rep trial mode | First 100 leads tracked live: show rate vs the no-outreach baseline, no-show follow-up speed, dropped calls, hot transfers, days to ramp, closes. Calls pass or fail early; promotes passers up the tiers. | Planned |
 | Rep app | Today screen: one next action, one tap, logged the moment the call ends, soft sound and haptic. | App (Today), Site (#team phone) |
 
@@ -104,7 +104,7 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 | Feature | What it does | Status |
 |---|---|---|
 | Closer math | Goal ÷ cash per sale ÷ close ÷ show × cost per call = spend; booked per day ÷ calls per closer = closers. Shows which single rate, lifted, saves the most. | Site (#math, live sliders) |
-| Source attribution | Cold vs warm, by source, optimized on cash collected, never contracted revenue. | Planned |
+| Source attribution | Cold vs warm, by source, optimized on cash collected, never contracted revenue. | App (Report, by source), Planned live |
 | Pre-call asset measurement | Which confirmation video, testimonial page or setter message moves show rate. | Planned |
 | Capacity signals | When fulfillment is full: waitlist and descend into a lower offer, instead of cutting ad spend. | Planned |
 
@@ -121,6 +121,7 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 | 5 | `#game` | Revenue per lead | Board: Jordan climbs 32%→47% show, $300→$439 per lead, passes Reza | Close rate flatters. Revenue per lead doesn't. Reps see where they stand, and earn better leads by it. |
 | 6 | `#person` | The person | Sticky scrolly, 5 steps: I vs we, the names, the read | How a lead talks tells you what they need to hear. |
 | 7 | `#team` | The rep app | A phone with real app screenshots, tappable | One next action. One tap. On the record the moment the call ends. |
+| 7b | `#tools` | Your tools. One workflow. | Two belts of 65 real logos gliding opposite ways; scroll nudges, hover rests | Obavia reads the tools you already run. Nothing to switch, nothing to type. |
 | 8 | `#math` | What it takes | Live closer math sliders; the biggest lever named | Drag your rates. See what it takes, and which rate leaks the most. |
 | 9 | `#build` | Build vs buy | Honest comparison grid, then the price | Everything after the number is where the money is. |
 | 10 | `#final` | The ask | One button | Join the waitlist |
@@ -133,10 +134,10 @@ Inner pages (about, pricing, team, owners, product, ads) share the shell and hav
 
 **Color** (`obavia-co/shell.css` tokens):
 - ink `#1C2436`, body `#4B5468`, navy `#28344F` (primary button), tint `#4E6AA8`, line `rgba(28,36,54,.08)`
-- sky gradient `#D3E0FD → #E3EBFE → #EEF3FE → #F4F7FE`
+- sky gradient `#DCE6FD → #F2F6FF → #F7F9FF → #E6EDFD`
 - warm amber only where money leaks
 
-**Sky.** A fixed `.o-sky` with 8 pre-rendered clouds (`obavia-co/sky/c0 to c7.webp`) crossing the whole site (100 to 210s each) with a slow bob. Delays sync to the clock, so clouds continue across pages.
+**Sky.** The watercolor sky from the original obavia.co: a pale gradient (`#DCE6FD → #F2F6FF → #F7F9FF → #E6EDFD`) with a paper texture (multiply, 50%), a soft vignette, 16 watercolor cumulus sprites (`obavia-co/sky/w0 to w7.webp`) in far, mid and near layers drifting at 3 to 16 px/s, a white glow behind the words, and film grain (multiply, 20%). Drift is synced to the clock, so clouds continue across pages.
 
 **Shell** (`shell.css` + `shell.js`, loaded by every page):
 - Loader: the orb forms, the ribbon signs itself, a ring tracks real loading (min 1.6s), a pulse, then the mark flies into the nav. Once per session. Events `o:reveal` and `o:land`.

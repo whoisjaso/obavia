@@ -13,9 +13,18 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 if (!location.hash) scrollTo(0, 0);
 addEventListener('pageshow', e => { html.classList.remove('o-leaving'); if (e.persisted && !location.hash) scrollTo(0, 0); });
 
-/* the clouds keep time with the clock, so they never jump between pages */
-const now = Date.now() / 1000;
-$$('.o-sky .c').forEach(c => { const t = parseFloat(getComputedStyle(c).getPropertyValue('--t')) || 120; c.style.animationDelay = -((now + t * (+c.dataset.p || 0)) % t) + 's'; });
+/* the clouds keep time with the clock, so they never jump between pages.
+   Each drifts at its own speed in px/s, whatever the screen width. */
+const drift = () => {
+  const now = Date.now() / 1000, W = innerWidth;
+  $$('.o-sky .c').forEach(c => {
+    const span = W + c.offsetWidth, sp = +c.dataset.sp || 6, dur = span / sp;
+    const p = (((+c.dataset.bx || 0) * span + now * sp) % span) / span;
+    c.style.animationDuration = dur + 's'; c.style.animationDelay = -(p * dur) + 's';
+  });
+};
+drift();
+let driftT; addEventListener('resize', () => { clearTimeout(driftT); driftT = setTimeout(drift, 200); });
 
 /* sound after the first tap, and a tap you can feel */
 const SND = OS.snd = { ac: null, on: false };

@@ -19,7 +19,7 @@ const SAYS: Record<StepIndex, (p: string) => string> = {
   3: p => `${p} of qualified calls close.`,
 };
 
-function Head({ title, sub, right, back, go }: { title: string; sub?: string; right?: ReactNode; back?: [string, string]; go?: Go }) {
+export function Head({ title, sub, right, back, go }: { title: string; sub?: string; right?: ReactNode; back?: [string, string]; go?: Go }) {
   return (
     <header className="hdr enter">
       <div>
@@ -31,7 +31,7 @@ function Head({ title, sub, right, back, go }: { title: string; sub?: string; ri
   );
 }
 
-function Stat({ label, value, fmt, note }: { label: string; value: number; fmt: (v: number) => string; note?: string }) {
+export function Stat({ label, value, fmt, note }: { label: string; value: number; fmt: (v: number) => string; note?: string }) {
   const v = useCount(value);
   return <div className="stat"><span>{label}</span><b className="num">{fmt(v)}</b>{note && <small>{note}</small>}</div>;
 }
@@ -106,7 +106,7 @@ export function Overview({ go, api }: { go: Go; api: MovesApi }) {
 }
 
 /* ================= OWNER: ONE LEAK ================= */
-function Marked({ text, mark }: { text: string; mark: string }) {
+export function Marked({ text, mark }: { text: string; mark: string }) {
   const i = text.indexOf(mark);
   if (i < 0) return <>{text}</>;
   return <>{text.slice(0, i)}<mark>{mark}</mark>{text.slice(i + mark.length)}</>;

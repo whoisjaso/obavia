@@ -201,3 +201,34 @@ export const TREND: Record<StepIndex, number[]> = {
   2: [72, 74, 73, 71, 74, 73, 72, 73],
   3: [27, 29, 28, 30, 28, 29, 30, 29],
 };
+
+/* ---------- the daily report: yesterday, read from every call ---------- */
+export type DayNote = { kind: 'win' | 'miss'; text: string; quote?: string; mark?: string; call?: string };
+export type RepDay = { rep: string; booked: number; showed: number; won: number; note: DayNote; today: string; lead?: string };
+
+export const DAY = {
+  of: 'Thursday', sent: '7:00 AM', heard: 84, talk: '31h 20m',
+  reps: [
+    { rep: 'dana', booked: 6, showed: 5, won: 2, today: 'Marcus Hale at 2:00. Let him lead the story, then reflect his wins back.', lead: 'marcus',
+      note: { kind: 'win', text: 'Recapped their words before the price on both closes.', quote: 'So what you’re telling me is the team waits on you. That’s what we fix.', mark: 'the team waits on you', call: 'Call 588' } },
+    { rep: 'maya', booked: 7, showed: 5, won: 1, today: 'Send Priya Nair the recap by 4:00. Exact numbers, no hype.', lead: 'priya',
+      note: { kind: 'win', text: 'Asked who decides before booking. No calls without the owner.', quote: 'Before we book, will Sam be on it too?', mark: 'will Sam be on it', call: 'Call 579' } },
+    { rep: 'andre', booked: 8, showed: 5, won: 0, today: 'Recap first, then the price, then ask for the decision today.', lead: 'elena',
+      note: { kind: 'miss', text: 'Named the price before the recap on 4 of 5 calls.', quote: 'Six grand? Before I even know what I’m getting?', mark: 'Before I even know', call: 'Call 590' } },
+    { rep: 'reza', booked: 9, showed: 4, won: 1, today: 'Set a day, a time and their timezone on every booking.', lead: 'tom',
+      note: { kind: 'miss', text: 'Five no-shows. Four were booked for “any time”.', quote: 'Sure, any time is fine.', mark: 'any time is fine', call: 'Call 571' } },
+    { rep: 'jordan', booked: 6, showed: 6, won: 1, today: 'Call Lena Park now. She has been waiting since 1:14.', lead: 'lena',
+      note: { kind: 'win', text: 'Confirmed the agenda on every booking. All six showed.', quote: 'So Thursday at ten your time, and we’ll cover the leak, the fix, and the price.', mark: 'the leak, the fix, and the price', call: 'Call 566' } },
+  ] as RepDay[],
+  /** The same pool of leads, split by where they came from. */
+  sources: [
+    { src: 'Paid social', leads: 41, booked: 21, showed: 14, won: 3 },
+    { src: 'Referral', leads: 6, booked: 6, showed: 6, won: 2 },
+    { src: 'Podcast', leads: 11, booked: 9, showed: 5, won: 0 },
+  ],
+  sentTo: [
+    { who: 'Alex Rivera', role: 'Owner', gets: 'Everything' },
+    { who: 'Kai Brooks', role: 'Marketing', gets: 'Lead quality by source' },
+    { who: 'Five reps', role: 'Sales', gets: 'Their own page: one win or one fix, and their first call' },
+  ],
+};
