@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { MOVES, PLAYBOOK, type Move, type MoveStatus, type StepIndex } from './data';
 import { byId, rate } from './engine';
 
-/* Demo state lives in this browser only. The real workspace keeps it server-side. */
+/* Fixes are kept in this browser for now. Connected workspaces keep them server-side. */
 const KEY = 'obavia.app.moves.v1';
 const load = (): Move[] => { try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch { /* private mode */ } return MOVES; };
 
