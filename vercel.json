@@ -4,8 +4,6 @@
   "buildCommand": "",
   "outputDirectory": ".",
   "git": {
-    "deploymentEnabled": {
-      "claude/peaceful-lovelace-yrsr1f": false
-    }
+    "deploymentEnabled": false
   }
 }
