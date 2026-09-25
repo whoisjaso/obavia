@@ -184,6 +184,49 @@ h2,.say li,.p,.lead{text-wrap:balance}
 .lfree .scrolly{height:auto}
 .lfree .sticky{position:relative;height:auto;padding:30px 0}
 
+
+/* the game the whole team can see */
+.board{padding:10px 0 8px;overflow:hidden}
+.bh,.br{display:grid;grid-template-columns:6px 28px minmax(0,1.6fr) minmax(0,.8fr) minmax(0,.9fr) minmax(0,.8fr);align-items:center;gap:0 16px;padding:0 28px 0 0}
+.bh{height:48px;font:650 13.5px/1.2 var(--sans);color:var(--ink2)}
+.bh span:nth-child(n+4),.br>:nth-child(n+4){text-align:right}
+.rows{position:relative}
+.br{position:absolute;left:0;right:0;height:64px;border-top:1px solid var(--line);background:#fff;transition:transform 1s var(--out)}
+.br i.tier{height:34px;border-radius:0 4px 4px 0;background:var(--c)}
+.br .rk{font:700 14px/1 var(--sans);color:var(--ink2);text-align:center}
+.br .nm{display:flex;align-items:center;gap:12px;font:700 16px/1.2 var(--sans);letter-spacing:-.01em;min-width:0}
+.br .nm .av{width:36px;height:36px;font-size:12.5px}
+.br .nm small{display:block;font:600 12.5px/1.2 var(--sans);color:var(--green);opacity:0;transition:opacity .6s}
+.br.up .nm small{opacity:1}
+.br b{font:750 16px/1 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.01em;transition:color .6s}
+.br b.low{color:var(--amber)}
+.br b.big{font-size:17px}
+.bf{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0;padding:16px 28px 10px;border-top:1px solid var(--line);font:600 14px/1.4 var(--sans);color:var(--ink2)}
+.bf .tiers{display:flex;gap:14px;align-items:center}
+.bf .tiers i{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--c);margin-right:6px;vertical-align:-1px}
+/* closer math */
+.math{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;overflow:hidden}
+.math .in{padding:30px 32px;display:grid;gap:22px;border-right:1px solid var(--line)}
+.fld label{display:flex;justify-content:space-between;font:650 15px/1.2 var(--sans);color:var(--body)}
+.fld label b{font:800 17px/1 var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
+.fld input{width:100%;margin:12px 0 0;-webkit-appearance:none;appearance:none;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--blue) var(--f,50%),#E6ECF8 var(--f,50%));outline:none}
+.fld input::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(28,36,54,.25),0 0 0 .5px rgba(28,36,54,.1);cursor:grab}
+.fld input::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(28,36,54,.25)}
+.math .out{padding:30px 32px;display:grid;align-content:start;gap:0}
+.ol{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);font:600 15.5px/1.2 var(--sans);color:var(--body)}
+.ol b{font:800 22px/1 var(--sans);letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}
+.ol.k b{font-size:30px}
+.lever{margin-top:20px;padding:18px 20px;border-radius:18px;background:var(--mist);font:600 15.5px/1.5 var(--sans);color:var(--body)}
+.lever b{color:var(--ink)}
+@media (max-width:980px){ .math{grid-template-columns:minmax(0,1fr)} .math .in{border-right:0;border-bottom:1px solid var(--line)} }
+@media (max-width:640px){
+  .bh,.br{grid-template-columns:5px 20px minmax(0,1.5fr) minmax(0,.8fr) minmax(0,.9fr);gap:0 10px;padding-right:18px}
+  .bh span:nth-child(5),.br>:nth-child(5){display:none}
+  .br .nm{font-size:15px;gap:9px} .br .nm .av{display:none}
+  .math .in,.math .out{padding:24px 22px}
+  .bf{padding:14px 18px 8px}
+}
+
 /* 6. the team */
 .team .trio{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:clamp(30px,5vw,72px);align-items:center;margin-top:clamp(50px,7vw,84px)}
 .pts{display:grid;gap:44px}
@@ -372,7 +415,7 @@ h2,.say li,.p,.lead{text-wrap:balance}
   <div class="wrap zz">
     <div class="copy">
       <h2 data-r>The why is in the calls. <span class="g">Obavia hears every one.</span></h2>
-      <p class="p" data-r style="--d:.1s">Every call is tagged with the reason people drop out, in the words they actually used. You see the pattern without listening to a single recording, and without asking a rep to fill in a field.</p>
+      <p class="p" data-r style="--d:.1s">Every call is tagged with the reason people drop out, in the words they actually used. You see the pattern without listening to a single recording, and without asking a rep to fill in a field. When sales blames the leads and marketing blames sales, you settle it with the same facts for both.</p>
     </div>
     <div class="card calls" id="calls" data-r style="--d:.15s">
       <h3><b>Why 372 booked calls didn’t show</b></h3>
@@ -398,6 +441,21 @@ h2,.say li,.p,.lead{text-wrap:balance}
         <div><span class="lbl">Jordan’s show rate</span><b class="big"><s>32%</s><svg class="ico"><use href="#i-caret"/></svg><em id="rate">32%</em></b></div>
         <div class="up"><em id="gain">+$0K</em><small>a month, from one habit</small></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- the game the whole team can see -->
+<section class="sec" id="game">
+  <div class="wrap center">
+    <h2 data-r>One number the whole team plays by. <span class="g">Revenue per lead.</span></h2>
+    <p class="p" data-r style="--d:.1s">Close rate is easy to flatter. Revenue per lead holds everything else still. Obavia ranks every rep on it, shows where each one sits against the team, and moves reps up the lead tiers as they earn it. You coach with hard facts, and nobody grades their own homework.</p>
+  </div>
+  <div class="wrap" style="margin-top:clamp(40px,6vw,64px)">
+    <div class="card board" id="board" data-r style="--d:.15s">
+      <div class="bh"><span></span><span></span><span>This month</span><span>Show rate</span><span>Each call is worth</span><span>Per lead</span></div>
+      <div class="rows" id="rows"></div>
+      <p class="bf"><span id="boardNote">Team show rate is 50%. Anything below it glows.</span><span class="tiers"><span><i style="--c:#7D97C7"></i>Best leads</span><span><i style="--c:#B9CAF4"></i>Middle</span><span><i style="--c:#E1E8F7"></i>Newer</span></span></p>
     </div>
   </div>
 </section>
@@ -481,6 +539,34 @@ h2,.say li,.p,.lead{text-wrap:balance}
   </div>
 </section>
 
+<!-- closer math: what a million a month takes -->
+<section class="sec" id="math">
+  <div class="wrap center">
+    <h2 data-r>Do the math <span class="g">on a million a month.</span></h2>
+    <p class="p" data-r style="--d:.1s">Work backwards from the goal. Every number below is one of your rates, and Obavia tells you which one is leaking.</p>
+  </div>
+  <div class="wrap" style="margin-top:clamp(40px,6vw,64px)">
+    <div class="card math" data-r style="--d:.15s">
+      <div class="in">
+        <div class="fld"><label for="mGoal">Monthly goal <b id="vGoal"></b></label><input id="mGoal" type="range" min="100000" max="3000000" step="50000" value="1000000"></div>
+        <div class="fld"><label for="mAov">Cash collected per sale <b id="vAov"></b></label><input id="mAov" type="range" min="1000" max="30000" step="500" value="5000"></div>
+        <div class="fld"><label for="mShow">Show rate <b id="vShow"></b></label><input id="mShow" type="range" min="20" max="95" step="1" value="60"></div>
+        <div class="fld"><label for="mClose">Close rate on shown calls <b id="vClose"></b></label><input id="mClose" type="range" min="5" max="60" step="1" value="20"></div>
+        <div class="fld"><label for="mCpc">Cost per booked call <b id="vCpc"></b></label><input id="mCpc" type="range" min="25" max="1000" step="5" value="150"></div>
+      </div>
+      <div class="out" aria-live="polite">
+        <div class="ol"><span>Sales to close</span><b id="oClose"></b></div>
+        <div class="ol"><span>Calls that need to show</span><b id="oShow"></b></div>
+        <div class="ol"><span>Calls to book</span><b id="oBook"></b></div>
+        <div class="ol k"><span>Ad spend a month</span><b id="oSpend"></b></div>
+        <div class="ol"><span>A day</span><b id="oDay"></b></div>
+        <div class="ol"><span>Closers, at 8 calls a day</span><b id="oClosers"></b></div>
+        <p class="lever" id="lever"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- 7. the honest comparison, then the price -->
 <section class="sec" id="build">
   <div class="wrap center">
@@ -495,6 +581,7 @@ h2,.say li,.p,.lead{text-wrap:balance}
       <div class="t" role="cell">Hears every call</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
       <div class="t" role="cell">Knows why each deal was lost</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
       <div class="t" role="cell">Gives each rep the one fix</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
+      <div class="t" role="cell">Ranks and routes reps on revenue per lead</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
       <div class="t" role="cell">Checks if the fix worked, in dollars</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
       <div class="t" role="cell">Reads every lead before the call</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
       <div class="t" role="cell">Kept working for you, as your tools change</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
@@ -730,6 +817,60 @@ function personScroll() {
   else { const r = scr.getBoundingClientRect(), span = r.height - innerHeight; p = span > 0 ? clamp(-r.top / span) : 0; }
   setStep(Math.min(5, 1 + Math.floor(p * 5)));
 }
+
+
+/* ---------- the board: revenue per lead, tiers, and a rep moving up ---------- */
+const REPS = [
+  { n: 'Dana Ruiz', i: 'DR', t: 0, show: 84, call: 171, lead: 943 },
+  { n: 'Maya Chen', i: 'MC', t: 0, show: 71, call: 110, lead: 500 },
+  { n: 'Reza Amini', i: 'RA', t: 1, show: 42, call: 132, lead: 325 },
+  { n: 'Jordan Kim', i: 'JK', t: 1, show: 32, call: 154, lead: 300 },
+  { n: 'Andre Nunes', i: 'AN', t: 2, show: 52, call: 58, lead: 191 },
+];
+const TIER = ['#7D97C7', '#B9CAF4', '#E1E8F7'], TEAM_SHOW = 50, RH = 64, rowsEl = $('#rows');
+rowsEl.style.height = REPS.length * RH + 'px';
+const rowEls = REPS.map(r => {
+  const el = document.createElement('div'); el.className = 'br';
+  el.innerHTML = `<i class="tier" style="--c:${TIER[r.t]}"></i><span class="rk"></span><span class="nm"><span class="av">${r.i}</span><span>${r.n}<small>Up a place</small></span></span><b class="sh"></b><b class="cl">$${r.call}</b><b class="big ld"></b>`;
+  rowsEl.appendChild(el); return el;
+});
+function drawBoard() {
+  const order = REPS.map((r, k) => k).sort((a, b) => REPS[b].lead - REPS[a].lead);
+  order.forEach((k, pos) => {
+    const r = REPS[k], el = rowEls[k];
+    el.style.transform = `translateY(${pos * RH}px)`; el.style.zIndex = 5 - pos;
+    el.querySelector('.rk').textContent = pos + 1;
+    const sh = el.querySelector('.sh'); sh.textContent = Math.round(r.show) + '%'; sh.classList.toggle('low', r.show < TEAM_SHOW);
+    el.querySelector('.ld').textContent = '$' + Math.round(r.lead);
+  });
+}
+drawBoard();
+once($('#board'), () => setTimeout(() => {
+  const j = REPS[3], s0 = j.show, l0 = j.lead, t0 = performance.now();
+  $('#boardNote').textContent = 'Jordan’s fix lands mid-month. Watch him move.';
+  const step = now => { const k = eo(clamp((now - t0) / 1400)); j.show = s0 + (47 - s0) * k; j.lead = l0 + (439 - l0) * k; drawBoard(); if (k < 1) requestAnimationFrame(step); else { rowEls[3].classList.add('up'); chime([783.99, 1046.5, 1318.5], .026); } };
+  REDUCED ? (j.show = 47, j.lead = 439, drawBoard(), rowEls[3].classList.add('up')) : requestAnimationFrame(step);
+}, 900), .4);
+
+/* ---------- closer math ---------- */
+const M = id => $('#' + id), fmt$ = v => '$' + Math.round(v).toLocaleString('en-US'), fmtN = v => Math.round(v).toLocaleString('en-US');
+function mathRun(which) {
+  const g = +M('mGoal').value, aov = +M('mAov').value, sh = +M('mShow').value / 100, cl = +M('mClose').value / 100, cpc = +M('mCpc').value;
+  [['mGoal', g, v => v >= 1e6 ? '$' + (v / 1e6).toFixed(v % 1e6 ? 2 : 0).replace(/0$/, '') + 'M' : '$' + v / 1000 + 'K'], ['mAov', aov, fmt$], ['mShow', sh * 100, v => v + '%'], ['mClose', cl * 100, v => v + '%'], ['mCpc', cpc, fmt$]].forEach(([id, v, f]) => {
+    const el = M(id); el.style.setProperty('--f', ((el.value - el.min) / (el.max - el.min) * 100) + '%'); M('v' + id.slice(1)).textContent = f(v);
+  });
+  const closes = g / aov, shows = closes / cl, booked = shows / sh, spend = booked * cpc, closers = Math.ceil(booked / 20 / 8);
+  M('oClose').textContent = fmtN(closes); M('oShow').textContent = fmtN(shows); M('oBook').textContent = fmtN(booked);
+  M('oSpend').textContent = fmt$(spend); M('oDay').textContent = fmt$(spend / 30); M('oClosers').textContent = fmtN(closers);
+  // which single rate, lifted a little, saves the most
+  const withShow = spend - (closes / cl / Math.min(.95, sh + .1)) * cpc, withClose = spend - (closes / Math.min(.6, cl + .05) / sh) * cpc;
+  M('lever').innerHTML = withShow >= withClose
+    ? `Lift your show rate 10 points and the same month costs <b>${fmt$(withShow)} less</b> in ads. That is the leak Obavia goes after first.`
+    : `Lift your close rate 5 points and the same month costs <b>${fmt$(withClose)} less</b> in ads. That is the leak Obavia goes after first.`;
+  if (which) tick(1700 + (+M(which).value % 7) * 60, .006);
+}
+['mGoal', 'mAov', 'mShow', 'mClose', 'mCpc'].forEach(id => M(id).addEventListener('input', () => mathRun(id)));
+mathRun();
 
 /* ---------- 6. the phone: tap, talk, logged ---------- */
 const phone = $('#phone'), shots = [...phone.querySelectorAll('.scr img')], hotA = $('#hotA'), hotB = $('#hotB'), tryEl = $('#try');
