@@ -1,8 +1,14 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Obavia Sky Hero</title>
-<meta name="description" content="Obavia hero: a hand-textured sky film that shows a sales operation connected from lead to cash.">
+<title>Obavia</title>
+<meta name="description" content="Obavia hears what clients really mean and carries it from the first call to collected cash. Sales software for agency owners at $100K–$1M a month.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#F6F9FF">
+<meta property="og:title" content="Obavia">
+<meta property="og:description" content="Hear what clients really mean. Carry it from the first call to collected cash.">
+<meta property="og:image" content="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
@@ -62,246 +68,205 @@
   .grain{position:absolute;inset:-60px;pointer-events:none;mix-blend-mode:multiply;opacity:.2;animation:grain 1s steps(1) infinite}
   @keyframes grain{0%{transform:translate(0,0)}8%{transform:translate(-37px,21px)}17%{transform:translate(18px,-44px)}25%{transform:translate(-52px,-9px)}33%{transform:translate(41px,33px)}42%{transform:translate(-11px,48px)}50%{transform:translate(29px,-27px)}58%{transform:translate(-45px,40px)}67%{transform:translate(7px,-53px)}75%{transform:translate(50px,12px)}83%{transform:translate(-24px,-36px)}92%{transform:translate(35px,46px)}}
 
-  /* ---------- page ---------- */
-  .sec{position:relative;padding-block:128px;overflow:clip}
+  /* ---------- page: one continuous sky, big type, one line per idea ---------- */
+  #page{background:linear-gradient(#F6F9FF 0%,#FFFFFF 18%,#F4F7FF 42%,#FFFFFF 64%,#F3F6FF 82%,#E3EBFD 100%)}
+  .sec{position:relative;padding-block:140px}
   .wrap{max-width:1180px;margin-inline:auto;padding-inline:24px}
   .head{text-align:center;position:relative;z-index:2}
-  .kicker{font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);margin:0 0 18px}
-  .sec h2{font:800 clamp(34px,4.7vw,58px)/1.03 var(--sans);letter-spacing:-.045em;color:var(--ink);margin:0;text-wrap:balance}
+  .sec h2{font:800 clamp(38px,5.4vw,68px)/1.02 var(--sans);letter-spacing:-.05em;color:var(--ink);margin:0;text-wrap:balance}
   .sec h2 span{color:#737B8C;display:block}
-  .lede{max-width:600px;margin:20px auto 0;font:400 clamp(16px,1.3vw,18px)/1.6 var(--sans);color:#4B5468;text-wrap:balance}
-  .fine{margin:36px auto 0;padding-inline:16px;text-align:center;font:500 10.5px/1.5 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#737B8C}
-  .k{display:block;font:500 10.5px/1 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--deep);margin-bottom:12px}
-  .pcloud{position:absolute;left:var(--x);top:var(--y);width:var(--w);aspect-ratio:360/196;background:var(--cloud) center/contain no-repeat;opacity:.9;pointer-events:none;z-index:0;will-change:transform}
-  .js [data-reveal]{opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.7,.2,1) var(--d,0s),transform 1s cubic-bezier(.2,.7,.2,1) var(--d,0s)}
+  .lede{max-width:520px;margin:22px auto 0;font:400 clamp(17px,1.4vw,19px)/1.55 var(--sans);color:#4B5468;text-wrap:balance}
+  .fine{margin:40px auto 0;padding-inline:16px;text-align:center;font:500 12px/1.5 var(--sans);color:#8A92A3}
+  .k{display:block;font:600 13px/1 var(--sans);color:var(--deep);margin-bottom:10px}
+  .js [data-reveal]{opacity:0;transform:translateY(28px);transition:opacity 1.1s cubic-bezier(.2,.7,.2,1) var(--d,0s),transform 1.1s cubic-bezier(.2,.7,.2,1) var(--d,0s)}
   .js [data-reveal].in{opacity:1;transform:none}
 
   /* active listener */
-  .listen{background:linear-gradient(#F6F9FF,#FFFFFF);padding-bottom:40px}
-  .scrolly{position:relative;height:380vh}
+  .listen{padding-bottom:40px}
+  .scrolly{position:relative;height:360vh}
   .sticky{position:sticky;top:0;height:100vh;height:100svh;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
-  .lgrid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);min-width:0;gap:64px;align-items:center;width:100%;position:relative;z-index:2}
-  .lsteps{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-  .lsteps li{display:flex;gap:18px;padding:16px 18px;border-radius:16px;transition:background .6s,opacity .6s;opacity:.45}
-  .lsteps li.on{opacity:1;background:rgba(238,243,255,.9)}
-  .lsteps .n{font:500 11px/1.9 'JetBrains Mono',monospace;color:var(--deep)}
-  .lsteps b{font:700 19px/1.3 var(--sans);letter-spacing:-.02em;color:var(--ink)}
-  .lsteps p{margin:6px 0 0;font:400 15px/1.55 var(--sans);color:#4B5468}
-  .lnow{display:none}
-  .lcard{background:rgba(255,255,255,.94);border-radius:22px;box-shadow:0 30px 70px -40px rgba(40,52,79,.35),inset 0 0 0 1px var(--line);padding:26px 28px 28px}
-  .lc-top{display:flex;justify-content:space-between;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#737B8C}
-  .lc-top .live{color:var(--deep);display:inline-flex;align-items:center;gap:7px}
-  .lc-top .live i{width:6px;height:6px;border-radius:50%;background:var(--deep)}
-  .lc-spk{display:flex;align-items:center;gap:10px;margin:18px 0 14px;font:600 14px/1 var(--sans);color:var(--navy)}
-  .av{width:30px;height:30px;border-radius:50%;background:var(--peri);display:grid;place-items:center;font:700 10.5px/1 var(--sans);color:var(--navy);flex:none}
-  .wave{display:flex;align-items:center;gap:3px;height:18px;margin-left:8px}
-  .wave i{width:2px;height:30%;background:var(--deep);border-radius:1px;transition:height .35s}
-  .lc-q{margin:0;font:700 clamp(19px,1.8vw,23px)/1.42 var(--sans);letter-spacing:-.02em;color:var(--ink)}
-  .lc-q mark{color:inherit;background:linear-gradient(var(--peri),var(--peri)) no-repeat 0 62%/0% 80%;border-radius:4px;padding:0 3px;margin:0 -3px;transition:background-size .8s cubic-bezier(.2,.7,.2,1)}
-  .lc-part{margin-top:18px;padding-top:18px;border-top:1px solid var(--line);opacity:.14;transition:opacity .7s}
-  .ev{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-  .ev + .ev{margin-top:10px}
-  .chip{display:inline-flex;align-items:center;height:28px;padding:0 13px;border-radius:999px;background:var(--peri);font:600 13.5px/1 var(--sans);color:var(--navy)}
-  .x{font:500 12px/1 'JetBrains Mono',monospace;color:var(--navy);margin-right:4px}
-  .ts{font:500 11px/1 'JetBrains Mono',monospace;color:#737B8C;padding:5px 7px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--line);opacity:0;transform:translateY(4px);transition:opacity .5s var(--d),transform .5s var(--d)}
-  .alts{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin:0 0 8px;font:500 14.5px/1.4 var(--sans);color:#737B8C}
-  .lab{font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--deep)}
-  .alts s{text-decoration:none;position:relative;transition:opacity .5s var(--d)}
-  .alts s::after{content:"";position:absolute;left:-2px;right:-2px;top:56%;height:1.3px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .55s cubic-bezier(.2,.7,.2,1) var(--d)}
-  .sig{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:14px 0 0}
-  .pillsig{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 14px;border-radius:999px;background:#EEF3FF;box-shadow:inset 0 0 0 1px #AFC1EE;font:600 13px/1 var(--sans);color:var(--navy)}
-  .pillsig i{width:6px;height:6px;border-radius:50%;background:var(--deep)}
-  .stype{margin:10px 0 0;font:400 14px/1.55 var(--sans);color:#4B5468}
-  .stype b{font-weight:700;color:var(--navy)}
-  .note{margin:6px 0 0;font:500 12.5px/1.4 var(--sans);color:#737B8C}
-  .lc-res .who,.lc-res .why{display:block;font:500 10.5px/1.5 'JetBrains Mono',monospace;letter-spacing:.06em;color:var(--deep)}
-  .lc-res .why{color:#737B8C;margin-top:10px;letter-spacing:.02em}
-  .bubble{margin:10px 0 0;padding:16px 18px;border-radius:18px 18px 18px 6px;background:var(--navy);color:#fff;font:600 16px/1.45 var(--sans);letter-spacing:-.01em;transform:translateY(8px);transition:transform .7s cubic-bezier(.2,.7,.2,1)}
-  .lcard.s1 .wave i{animation:talk .9s ease-in-out infinite alternate}
-  .wave i:nth-child(3n){animation-delay:-.3s}.wave i:nth-child(3n+1){animation-delay:-.6s}.wave i:nth-child(4n){animation-duration:.7s}
-  @keyframes talk{from{height:20%}to{height:100%}}
-  .lcard.s2 .lc-q mark{background-size:100% 80%}
-  .lcard.s2 .lc-ev,.lcard.s3 .lc-int,.lcard.s4 .lc-res{opacity:1}
-  .lcard.s2 .ts{opacity:1;transform:none}
-  .lcard.s3 .alts s{opacity:.6}
-  .lcard.s3 .alts s::after{transform:scaleX(1)}
-  .lcard.s4 .bubble{transform:none}
-  .voice{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 13px;border-radius:999px;border:0;background:#EEF3FF;box-shadow:inset 0 0 0 1px #AFC1EE;font:600 12px/1 var(--sans);color:var(--navy);cursor:pointer;transition:background .3s,color .3s}
+  .lgrid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:72px;align-items:center;width:100%;min-width:0}
+  .lsteps{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+  .lsteps li{display:grid;grid-template-columns:34px 1fr;column-gap:10px;padding:18px 20px;border-radius:18px;opacity:.35;transition:opacity .6s,background .6s}
+  .lsteps li.on{opacity:1;background:rgba(232,239,255,.8)}
+  .lsteps .n{grid-row:span 2;font:600 13px/1.7 var(--sans);color:var(--deep)}
+  .lsteps b{font:750 22px/1.25 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+  .lsteps p{margin:4px 0 0;font:450 16px/1.45 var(--sans);color:#4B5468}
+  .lcard{background:rgba(255,255,255,.95);border-radius:28px;box-shadow:0 40px 90px -50px rgba(40,52,79,.45),inset 0 0 0 1px var(--line);padding:30px 32px 32px}
+  .lc-spk{display:flex;align-items:center;gap:12px;font:650 15px/1 var(--sans);color:var(--navy)}
+  .av{width:34px;height:34px;border-radius:50%;background:var(--peri);display:grid;place-items:center;font:700 11px/1 var(--sans);color:var(--navy);flex:none}
+  .lc-q{margin:22px 0 0;font:700 clamp(21px,2.1vw,28px)/1.38 var(--sans);letter-spacing:-.025em;color:var(--ink)}
+  .lc-q .self{background:linear-gradient(var(--deep),var(--deep)) no-repeat 0 100%/0% 3px;transition:background-size .7s cubic-bezier(.2,.7,.2,1),color .5s;padding-bottom:1px}
+  .lc-q mark{color:inherit;background:linear-gradient(var(--peri),var(--peri)) no-repeat 0 60%/0% 82%;border-radius:5px;padding:0 4px;margin:0 -4px;transition:background-size .8s cubic-bezier(.2,.7,.2,1)}
+  .lcard.m2 .lc-q .self{background-size:100% 3px;color:var(--navy)}
+  .lcard.m3 .lc-q mark{background-size:100% 82%}
+  .slot{position:relative;height:140px;margin-top:26px}
+  .lv{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:14px;opacity:0;transform:translateY(10px);transition:opacity .6s,transform .7s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+  .lcard.s1 .lv1,.lcard.s2 .lv2,.lcard.s3 .lv3,.lcard.s4 .lv4{opacity:1;transform:none;pointer-events:auto}
+  .bigwave{display:flex;align-items:center;gap:4px;height:64px}
+  .bigwave i{width:3px;height:20%;border-radius:3px;background:var(--deep);animation:talk .9s ease-in-out infinite alternate}
+  .bigwave i:nth-child(3n){animation-delay:-.3s}.bigwave i:nth-child(3n+1){animation-delay:-.6s}.bigwave i:nth-child(4n){animation-duration:.7s}.bigwave i:nth-child(5n){animation-duration:1.1s}
+  @keyframes talk{from{height:14%}to{height:100%}}
+  .pill-dark,.pill-soft{display:inline-flex;align-items:center;gap:10px;height:46px;padding:0 20px;border-radius:999px;font:650 16px/1 var(--sans)}
+  .pill-dark{background:var(--navy);color:#fff}
+  .pill-soft{background:#EEF3FF;color:var(--navy);box-shadow:inset 0 0 0 1px #AFC1EE}
+  .pill-dark i,.pill-soft i{width:8px;height:8px;border-radius:50%;background:var(--peri)}
+  .pill-soft i{background:var(--deep)}
+  .ghosts{display:flex;flex-wrap:wrap;gap:6px 18px;font:600 17px/1.2 var(--sans);color:#A9B1C2}
+  .ghosts s{text-decoration:none;position:relative}
+  .ghosts s::after{content:"";position:absolute;left:-2px;right:-2px;top:54%;height:1.5px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+  .lcard.s3 .ghosts s::after{transform:scaleX(1)}
+  .ghosts s:nth-child(2)::after{transition-delay:.12s}.ghosts s:nth-child(3)::after{transition-delay:.24s}
+  .bubble{margin:0;padding:18px 22px;border-radius:22px 22px 22px 8px;background:var(--navy);color:#fff;font:650 18px/1.4 var(--sans);letter-spacing:-.015em;max-width:100%}
+  .voice{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 15px;border-radius:999px;border:0;background:#EEF3FF;box-shadow:inset 0 0 0 1px #AFC1EE;font:650 13px/1 var(--sans);color:var(--navy);cursor:pointer;white-space:nowrap;transition:background .3s,color .3s}
   .voice svg{width:9px;height:9px}
   .voice:hover{background:#E2EAFE}
   .voice.playing{background:var(--navy);color:#fff;box-shadow:none}
   .voice:focus-visible{outline:2px solid var(--navy);outline-offset:3px}
-  .lc-spk .voice{margin-left:auto;order:3}
-  .lc-res .voice{margin-top:12px}
-  .lc-q.speaking .w{color:#A9B1C2;transition:color .18s}
+  .lc-spk .voice{margin-left:auto}
+  .lc-q.speaking .w{color:#B4BBCA;transition:color .18s}
   .lc-q.speaking .w.said{color:var(--ink)}
+  .lprog{position:absolute;left:50%;bottom:34px;width:120px;height:3px;margin-left:-60px;background:var(--line);border-radius:3px;overflow:hidden}
+  .lprog i{display:block;height:100%;background:var(--deep);transform-origin:left;transform:scaleX(0)}
   .lfree .scrolly{height:auto}
   .lfree .sticky{position:relative;height:auto;padding-block:48px 0}
   .lfree .lprog{display:none}
-  .lprog{position:absolute;left:50%;bottom:34px;width:140px;height:2px;margin-left:-70px;background:var(--line);border-radius:2px;overflow:hidden}
-  .lprog i{display:block;height:100%;background:var(--deep);transform-origin:left;transform:scaleX(0)}
 
   /* six needs */
-  .needs{background:linear-gradient(#FFFFFF,#F6F9FF)}
-  .ngrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:64px;position:relative;z-index:2}
-  .need{position:relative;background:rgba(255,255,255,.92);border-radius:20px;padding:24px 24px 22px;box-shadow:inset 0 0 0 1px var(--line);transition:box-shadow .6s,transform .6s cubic-bezier(.2,.7,.2,1),opacity 1s cubic-bezier(.2,.7,.2,1) var(--d,0s)}
-  .need:hover{transform:translateY(-3px);box-shadow:inset 0 0 0 1px #AFC1EE,0 24px 50px -34px rgba(40,52,79,.45)}
-  .ntop{display:flex;justify-content:space-between;align-items:center;min-height:24px}
-  .nn{font:500 11px/1 'JetBrains Mono',monospace;color:var(--deep);letter-spacing:.08em}
-  .nbadge{font:600 11.5px/1 var(--sans);color:var(--navy);padding:6px 10px;border-radius:999px;box-shadow:inset 0 0 0 1px #AFC1EE;background:#F3F6FF;opacity:0;transform:translateY(4px);transition:opacity .6s,transform .6s}
-  .nbadge.on{background:var(--navy);color:#fff;box-shadow:none}
-  .ngrid.lit .nbadge{opacity:1;transform:none}
-  .ngrid.lit .need.primary{box-shadow:inset 0 0 0 1.5px var(--navy),0 28px 60px -36px rgba(40,52,79,.5)}
-  .ngrid.lit .need.second{box-shadow:inset 0 0 0 1.5px #AFC1EE}
-  .need h3{margin:14px 0 0;font:750 21px/1.2 var(--sans);letter-spacing:-.03em;color:var(--ink)}
-  .nneed{margin:6px 0 0;font:600 14px/1.4 var(--sans);color:var(--deep)}
-  .nsum{margin:12px 0 0;font:400 15px/1.55 var(--sans);color:#4B5468}
-  .need dl{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line);display:grid;gap:4px}
-  .need dt{font:500 9.5px/1.4 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#737B8C;margin-top:6px}
-  .need dt:first-child{margin-top:0}
-  .need dd{margin:0;font:500 13.5px/1.5 var(--sans);color:var(--navy)}
+  .ngrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:64px}
+  .need{position:relative;height:210px;border:0;padding:0;background:none;cursor:pointer;perspective:900px;text-align:left;font:inherit;color:inherit}
+  .nf,.nk{position:absolute;inset:0;border-radius:24px;padding:26px;display:flex;flex-direction:column;justify-content:flex-end;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+  .nf{background:linear-gradient(160deg,#FFFFFF,#EEF3FF);box-shadow:inset 0 0 0 1px var(--line)}
+  .nk{background:var(--navy);color:#fff;transform:rotateY(180deg)}
+  .need[aria-pressed="true"] .nf{transform:rotateY(-180deg)}
+  .need[aria-pressed="true"] .nk{transform:rotateY(0)}
+  .need:hover .nf{box-shadow:inset 0 0 0 1px #AFC1EE,0 26px 50px -36px rgba(40,52,79,.5)}
+  .need:focus-visible{outline:2px solid var(--navy);outline-offset:4px;border-radius:24px}
+  .nn{position:absolute;top:24px;left:26px;font:600 13px/1 var(--sans);color:var(--deep)}
+  .nb{position:absolute;top:18px;right:18px;padding:8px 12px;border-radius:999px;background:var(--navy);color:#fff;font:650 12.5px/1 var(--sans)}
+  .nf b{font:800 27px/1.1 var(--sans);letter-spacing:-.04em;color:var(--ink)}
+  .nf i{font:500 16px/1.4 var(--sans);font-style:normal;color:#4B5468;margin-top:6px}
+  .nl{font:600 13px/1 var(--sans);color:#AFC1EE;margin-bottom:10px}
+  .nk b{font:750 24px/1.2 var(--sans);letter-spacing:-.03em}
+  .need.marcus .nf{background:linear-gradient(160deg,#FFFFFF,#DDE7FF);box-shadow:inset 0 0 0 1.5px #AFC1EE}
 
-  /* integrations belt: logos only, on air */
-  .tools{background:#FFFFFF;padding-block:120px 110px}
-  .tools .head{margin-bottom:56px}
-  .belt{overflow:hidden;padding-block:14px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
-  .track{display:flex;align-items:center;gap:64px;width:max-content;list-style:none;margin:0;padding:0 32px;will-change:transform}
-  .logo-i{display:flex;align-items:center;height:44px;flex:none}
+  /* integrations belt: official logos only */
+  .tools .head{margin-bottom:64px}
+  .belt{overflow:hidden;padding-block:16px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+  .track{display:flex;align-items:center;gap:72px;width:max-content;list-style:none;margin:0;padding:0 36px;will-change:transform}
+  .logo-i{display:flex;align-items:center;height:48px;flex:none}
   .logo-i img{display:block;user-select:none;-webkit-user-drag:none;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
-  .logo-i:hover img{transform:scale(1.06)}
+  .logo-i:hover img{transform:scale(1.07)}
 
   /* journey */
-  .journey{background:linear-gradient(#FFFFFF,#F6F9FF);padding-bottom:40px}
-  .journey .scrolly{height:420vh}
-  .jsticky{gap:40px}
+  .journey{padding-bottom:40px}
+  .journey .scrolly{height:380vh}
+  .jsticky{gap:56px}
   .jrail{width:100%}
-  .jline{position:relative;height:2px;background:var(--line);border-radius:2px}
-  .jline>i{position:absolute;inset:0;background:var(--deep);transform-origin:left;transform:scaleX(0);border-radius:2px}
-  .jtag{position:absolute;top:-38px;left:0;transform:translateX(-50%);white-space:nowrap;height:26px;padding:0 12px;display:inline-flex;align-items:center;border-radius:999px;background:var(--peri);font:600 12.5px/1 var(--sans);color:var(--navy);box-shadow:0 8px 20px -10px rgba(40,52,79,.4)}
-  .jnodes{list-style:none;margin:14px 0 0;padding:0;display:flex;justify-content:space-between;font:600 13px/1 var(--sans);color:#9AA2B3}
-  .jnodes li{transition:color .5s}
-  .jnodes li.on{color:var(--navy)}
-  .jview{width:100%;overflow:visible}
-  .jtrack{display:flex;gap:20px;padding-inline:max(24px,calc(50vw - 590px));will-change:transform}
-  .jcard{flex:none;width:min(380px,78vw);background:#fff;border-radius:20px;padding:26px;box-shadow:0 24px 60px -40px rgba(40,52,79,.4),inset 0 0 0 1px var(--line);opacity:.5;transform:scale(.97);transition:opacity .6s,transform .6s}
+  .jline{position:relative;height:3px;background:var(--line);border-radius:3px}
+  .jline>i{position:absolute;inset:0;background:var(--deep);transform-origin:left;transform:scaleX(0);border-radius:3px}
+  .jtag{position:absolute;top:-46px;left:0;transform:translateX(-50%);white-space:nowrap;height:34px;padding:0 16px;display:inline-flex;align-items:center;border-radius:999px;background:var(--peri);font:700 14px/1 var(--sans);color:var(--navy);box-shadow:0 12px 26px -12px rgba(40,52,79,.45)}
+  .jtrack{display:flex;gap:22px;padding-inline:max(24px,calc(50vw - 590px));will-change:transform}
+  .jcard{flex:none;width:min(360px,78vw);min-height:230px;border-radius:26px;padding:30px;background:#fff;box-shadow:0 30px 70px -46px rgba(40,52,79,.45),inset 0 0 0 1px var(--line);display:flex;flex-direction:column;justify-content:flex-end;opacity:.45;transform:scale(.96);transition:opacity .6s,transform .6s}
   .jcard.on{opacity:1;transform:none}
-  .jcard h3,.ph h3,.fs h3{margin:0;font:750 22px/1.2 var(--sans);letter-spacing:-.03em;color:var(--ink)}
-  .jcard p,.ph p,.fs p{margin:12px 0 0;font:400 15.5px/1.6 var(--sans);color:#4B5468}
-  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
-  .meta span{font:500 11px/1 'JetBrains Mono',monospace;color:var(--navy);padding:7px 9px;border-radius:8px;background:#F3F6FF}
-  .jfine{margin-top:0}
+  .jn{font:600 13px/1 var(--sans);color:var(--deep);margin-bottom:auto}
+  .jcard h3{margin:0;font:800 34px/1.05 var(--sans);letter-spacing:-.045em;color:var(--ink)}
+  .jcard p{margin:10px 0 0;font:450 17px/1.45 var(--sans);color:#4B5468}
 
   /* loop */
-  .loop{background:radial-gradient(60% 50% at 30% 60%,rgba(200,214,252,.45),transparent 70%),#F6F9FF}
-  .lpgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:72px;align-items:center;margin-top:72px;position:relative;z-index:2}
-  .ring{position:relative;width:min(440px,100%);aspect-ratio:1;margin-inline:auto}
+  .lpgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:72px;align-items:center;margin-top:72px}
+  .ring{position:relative;width:min(460px,100%);aspect-ratio:1;margin-inline:auto}
   .ring svg{position:absolute;inset:0;width:100%;height:100%}
-  .rnode{position:absolute;left:50%;top:50%;transform:rotate(calc(var(--a)*60deg)) translateY(-37.5%) rotate(calc(var(--a)*-60deg));width:0;height:0}
-  .rnode b{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;padding:9px 14px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1px var(--line),0 10px 24px -16px rgba(40,52,79,.4);font:650 13.5px/1 var(--sans);color:var(--navy);transition:background .5s,box-shadow .5s,color .5s}
-  .rnode.on b{background:var(--navy);color:#fff;box-shadow:0 12px 26px -12px rgba(40,52,79,.6)}
-  .orb{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#DCE5FD 45%,#98AEE3);box-shadow:0 0 0 6px rgba(200,214,252,.45)}
-  .rcore{position:absolute;inset:0;display:grid;place-content:center;text-align:center;font:500 10.5px/1.6 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#737B8C}
-  .rcore b{font:700 16px/1.3 var(--sans);letter-spacing:-.02em;text-transform:none;color:var(--navy)}
-  .phases{display:grid;gap:18px}
-  .ph{background:rgba(255,255,255,.9);border-radius:20px;padding:26px;box-shadow:inset 0 0 0 1px var(--line)}
-  .own{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:6px 4px 0}
-  .own p{margin:0;font:400 14.5px/1.6 var(--sans);color:#4B5468}
-  .own b{display:block;font:700 14.5px/1.5 var(--sans);color:var(--navy)}
+  .rnode{position:absolute;width:0;height:0}
+  .rnode b{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;padding:11px 17px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1px var(--line),0 12px 28px -18px rgba(40,52,79,.45);font:650 15px/1 var(--sans);color:var(--navy);transition:background .5s,color .5s,box-shadow .5s}
+  .rnode.on b{background:var(--navy);color:#fff;box-shadow:0 14px 30px -12px rgba(40,52,79,.6)}
+  .orb{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#DCE5FD 45%,#98AEE3);box-shadow:0 0 0 7px rgba(200,214,252,.45)}
+  .phases{display:grid;gap:14px}
+  .ph{border-radius:24px;padding:28px 30px;background:rgba(255,255,255,.9);box-shadow:inset 0 0 0 1px var(--line)}
+  .ph h3{margin:0;font:800 32px/1.08 var(--sans);letter-spacing:-.045em;color:var(--ink)}
+  .own{display:grid;grid-template-columns:1fr 1fr;gap:16px;background:transparent;box-shadow:none;padding:6px 8px}
+  .own p{margin:0;font:450 17px/1.45 var(--sans);color:#4B5468}
+  .own b{color:var(--navy);font-weight:700}
 
   /* leaderboard */
-  .board{background:#fff}
-  .bcard{max-width:720px;margin:64px auto 0;background:#fff;border-radius:22px;padding:26px 28px 24px;box-shadow:0 30px 70px -44px rgba(40,52,79,.4),inset 0 0 0 1px var(--line)}
-  .bc-top{display:flex;justify-content:space-between;align-items:center;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#737B8C}
-  .tag{padding:6px 9px;border-radius:999px;background:#EEF3FF;color:var(--deep);letter-spacing:.06em}
-  .tiers{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 12px}
-  .tiers span{padding:8px 14px;border-radius:999px;font:600 13px/1 var(--sans);color:#737B8C;box-shadow:inset 0 0 0 1px var(--line)}
+  .bcard{max-width:720px;margin:64px auto 0;background:#fff;border-radius:28px;padding:28px 30px 26px;box-shadow:0 40px 90px -54px rgba(40,52,79,.5),inset 0 0 0 1px var(--line)}
+  .tiers{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:22px}
+  .tiers span{padding:9px 15px;border-radius:999px;font:650 14px/1 var(--sans);color:#8A92A3;box-shadow:inset 0 0 0 1px var(--line)}
   .tiers .on{background:var(--navy);color:#fff;box-shadow:none}
-  .bc-sub{margin:0 0 16px;font:500 13px/1.5 var(--sans);color:#737B8C}
-  .rows{position:relative;list-style:none;margin:0;padding:0;height:198px}
-  .row{position:absolute;left:0;right:0;top:calc(var(--r,0)*66px);height:58px;display:grid;grid-template-columns:22px 34px minmax(0,150px) minmax(0,1fr) 70px;align-items:center;gap:12px;padding:0 14px;border-radius:14px;background:#F8FAFF;transition:top .9s cubic-bezier(.65,0,.35,1),background .6s}
-  .row.lead{background:#EEF3FF}
-  .rk{font:500 12px/1 'JetBrains Mono',monospace;color:var(--deep)}
-  .row b{font:650 15px/1 var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bar{height:6px;border-radius:6px;background:#E7EEFE;overflow:hidden}
-  .bar i{display:block;height:100%;width:calc(var(--w)*100%);background:var(--deep);border-radius:6px;transform-origin:left;transform:scaleX(0);transition:transform 1.2s cubic-bezier(.2,.7,.2,1),width 1.2s cubic-bezier(.2,.7,.2,1)}
+  .tiers em{margin-left:auto;font:600 12.5px/1 var(--sans);font-style:normal;color:var(--deep)}
+  .rows{position:relative;list-style:none;margin:0;padding:0;height:216px}
+  .row{position:absolute;left:0;right:0;top:calc(var(--r,0)*72px);height:62px;display:grid;grid-template-columns:22px 38px minmax(0,150px) minmax(0,1fr) 78px;align-items:center;gap:14px;padding:0 16px;border-radius:18px;background:#F8FAFF;transition:top .9s cubic-bezier(.65,0,.35,1),background .6s}
+  .row.lead{background:#EAF0FF}
+  .rk{font:650 14px/1 var(--sans);color:var(--deep)}
+  .row .av{width:38px;height:38px}
+  .row b{font:700 16px/1 var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar{height:8px;border-radius:8px;background:#E7EEFE;overflow:hidden}
+  .bar i{display:block;height:100%;width:calc(var(--w,0)*100%);background:var(--deep);border-radius:8px;transform-origin:left;transform:scaleX(0);transition:transform 1.2s cubic-bezier(.2,.7,.2,1),width 1.2s cubic-bezier(.2,.7,.2,1)}
   .bcard.in .bar i{transform:none}
-  .amt{font:600 14px/1 'JetBrains Mono',monospace;color:var(--navy);text-align:right;font-variant-numeric:tabular-nums}
-  .bc-event{display:flex;align-items:center;gap:10px;margin:18px 0 0;font:500 13.5px/1.5 var(--sans);color:var(--navy);opacity:0;transform:translateY(6px);transition:opacity .6s,transform .6s}
-  .bc-event i{width:18px;height:18px;border-radius:50%;background:var(--peri);flex:none;position:relative}
-  .bc-event i::after{content:"";position:absolute;left:5px;top:4px;width:6px;height:9px;border:solid var(--navy);border-width:0 1.6px 1.6px 0;transform:rotate(40deg) scale(.8)}
+  .amt{font:700 16px/1 var(--sans);color:var(--navy);text-align:right;font-variant-numeric:tabular-nums}
+  .bc-event{display:flex;align-items:center;gap:10px;margin:20px 0 0;font:600 15px/1.4 var(--sans);color:var(--navy);opacity:0;transform:translateY(6px);transition:opacity .6s,transform .6s}
+  .bc-event i{width:20px;height:20px;border-radius:50%;background:var(--peri);flex:none;position:relative}
+  .bc-event i::after{content:"";position:absolute;left:6px;top:4px;width:6px;height:10px;border:solid var(--navy);border-width:0 1.8px 1.8px 0;transform:rotate(40deg) scale(.8)}
   .bc-event.on{opacity:1;transform:none}
-  .bc-foot{margin:14px 0 0;font:500 10.5px/1.6 'JetBrains Mono',monospace;letter-spacing:.03em;color:#737B8C}
 
-  /* funnel */
-  .funnel{background:linear-gradient(#FFFFFF,#F6F9FF)}
-  .fgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:28px;margin-top:64px;align-items:start}
-  .fcard{background:#fff;border-radius:22px;padding:26px 28px;box-shadow:0 30px 70px -44px rgba(40,52,79,.4),inset 0 0 0 1px var(--line)}
-  .fbars{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:10px}
-  .fbars li{display:grid;grid-template-columns:86px minmax(0,1fr) 44px 52px;align-items:center;gap:14px;padding:6px 8px;border-radius:10px;transition:background .6s}
-  .fbars span{font:600 14px/1 var(--sans);color:var(--navy)}
-  .fbars i{height:12px;border-radius:12px;background:linear-gradient(90deg,#AFC1EE,#C8D6FC);transform-origin:left;transform:scaleX(0);width:calc(var(--v)*100%);transition:transform 1.1s cubic-bezier(.2,.7,.2,1) calc(var(--i)*.09s)}
-  .fbars b{font:600 13.5px/1 'JetBrains Mono',monospace;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
-  .fbars em{font:500 12px/1 'JetBrains Mono',monospace;font-style:normal;color:#737B8C;text-align:right}
-  .fcard.in .fbars i{transform:none}
-  .fcard.flag .stall{background:#EEF3FF}
-  .fcard.flag .stall i{background:linear-gradient(90deg,#28344F,#7D97C7)}
-  .fcard.flag .stall em{color:var(--navy);font-weight:600}
-  .fside{display:grid;gap:14px}
-  .fs{background:rgba(255,255,255,.92);border-radius:18px;padding:22px 24px;box-shadow:inset 0 0 0 1px var(--line)}
-  .fs h3{font-size:19px}
-  .fs p{font-size:14.5px;margin-top:8px}
+  /* price teaser */
+  .pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:48px;align-items:center}
+  .pgrid h2{text-align:left}
+  .pcard{display:flex;flex-direction:column;padding:38px 40px;border-radius:30px;background:linear-gradient(150deg,#28344F,#3A4A6E);color:#fff;text-decoration:none;box-shadow:0 50px 90px -50px rgba(40,52,79,.7);transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+  .pcard:hover{transform:translateY(-4px)}
+  .pcard .k{color:#C8D6FC}
+  .pcard .big{font:800 clamp(64px,8vw,104px)/.95 var(--sans);letter-spacing:-.06em;margin-top:8px}
+  .pcard .per{font:500 17px/1.4 var(--sans);color:#C8D6FC;margin-top:6px}
+  .pcard .go{display:inline-flex;align-items:center;gap:8px;margin-top:30px;font:650 16px/1 var(--sans)}
+  .pcard .go svg{width:14px;height:14px;transition:transform .4s}
+  .pcard:hover .go svg{transform:translateX(3px)}
+  .pcard:focus-visible{outline:2px solid var(--navy);outline-offset:4px}
 
   /* final */
-  .final{background:linear-gradient(#F6F9FF,#E3EBFD);padding-block:160px 150px}
-  .final h2 span{display:block}
-  .cta-row{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:36px}
-  .foot{background:#E3EBFD;padding-block:36px 90px;border-top:1px solid rgba(40,52,79,.08)}
+  .final{padding-block:170px 170px}
+  .cta-row{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:40px}
+  .foot{background:#E3EBFD;padding-block:36px 90px}
   .frow{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
-  .fbrand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font:800 18px/1 var(--sans);letter-spacing:-.03em;color:var(--ink)}
-  #footMark{width:30px;height:30px}
-  .foot nav{display:flex;gap:22px}
-  .foot nav a{font:500 14px/1 var(--sans);color:#4B5468;text-decoration:none}
-  .ffine{margin-top:22px;font:500 10.5px/1.6 'JetBrains Mono',monospace;letter-spacing:.03em;color:#737B8C}
+  .fbrand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font:800 19px/1 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+  #footMark{width:32px;height:32px}
+  .foot nav{display:flex;gap:24px}
+  .foot nav a{font:500 15px/1 var(--sans);color:#4B5468;text-decoration:none}
+  .ffine{margin-top:20px;font:500 12.5px/1.6 var(--sans);color:#8A92A3}
 
   @media (min-width:861px) and (max-width:1080px){ .ngrid{grid-template-columns:repeat(2,minmax(0,1fr))} }
   @media (max-width:860px){
-    .sec{padding-block:92px}
-    .lgrid{grid-template-columns:minmax(0,1fr);gap:14px}
+    .sec{padding-block:96px}
+    .lgrid{grid-template-columns:minmax(0,1fr);gap:16px}
     .lsteps{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
-    .sticky{padding-top:60px}
-    .lc-top{gap:10px}.lc-top span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .lc-spk b{white-space:nowrap}
-    .lc-top .live,.lc-spk .wave,.lc-res .why{display:none}
-    .voice{white-space:nowrap}
-    .lnow{min-height:0;margin-top:8px}
-    .lcard{padding:16px 16px 18px}
-    .lc-spk{margin:12px 0 10px}
-    .lc-q{font-size:18px}
-    .lc-part{margin-top:12px;padding-top:12px}
-    .alts{font-size:13.5px;margin-bottom:4px}
-    .sig{margin-top:8px}
-    .stype{font-size:13px;margin-top:8px}
-    .bubble{padding:12px 14px;font-size:14.5px}
-    .lc-res .voice{margin-top:10px}
-    .lsteps li{flex-direction:column;gap:4px;padding:10px 8px;opacity:.5}
-    .lsteps b{font-size:14px}
+    .lsteps li{display:flex;flex-direction:column;gap:2px;padding:10px 8px;border-radius:14px}
+    .lsteps b{font-size:13.5px;letter-spacing:-.01em}
     .lsteps p{display:none}
-    .lnow{display:block;margin:10px 4px 0;min-height:3.2em;font:400 14.5px/1.55 var(--sans);color:#4B5468}
-    .lcard{padding:18px 18px 20px}
-    .lc-part{margin-top:14px;padding-top:14px}
-    .bubble{font-size:15px}
-    .lpgrid,.fgrid{grid-template-columns:minmax(0,1fr);gap:40px}
-    .ngrid{grid-template-columns:minmax(0,1fr);gap:12px;margin-top:44px}
+    .lsteps .n{font-size:11px;line-height:1.2}
+    .sticky{padding-top:60px}
+    .lcard{padding:20px 20px 22px;border-radius:24px}
+    .lc-q{font-size:20px;margin-top:16px}
+    .slot{height:156px;margin-top:18px}
+    .pill-dark,.pill-soft{height:42px;padding:0 16px;font-size:14.5px}
+    .ghosts{font-size:15px}
+    .bubble{font-size:16px;padding:14px 16px}
+    .ngrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:44px}
+    .need{height:168px}
+    .nf,.nk{padding:18px;border-radius:20px}
+    .nn{top:16px;left:18px}
+    .nb{top:12px;right:12px;padding:6px 9px;font-size:11px}
+    .nf b{font-size:21px}.nf i{font-size:14px}.nk b{font-size:19px}
+    .track{gap:52px}.logo-i img{zoom:.86}
+    .jcard h3{font-size:29px}
+    .lpgrid,.pgrid{grid-template-columns:minmax(0,1fr);gap:40px}
+    .pgrid h2{text-align:center}
     .own{grid-template-columns:1fr}
-    .row{grid-template-columns:18px 30px minmax(0,1fr) 62px;gap:10px}
+    .ph h3{font-size:27px}
+    .rnode b{font-size:13px;padding:9px 13px}
+    .row{grid-template-columns:18px 34px minmax(0,1fr) 66px;gap:10px}
     .row .bar{display:none}
-    .fbars li{grid-template-columns:76px minmax(0,1fr) 36px 40px;gap:10px}
-    .track{gap:48px}
-    .logo-i img{zoom:.86}
+    .row .av{width:34px;height:34px}
   }
-  @media (max-width:720px) and (max-height:720px){
-    .lc-q{font-size:17px}.lnow,.why,.lc-top .live{display:none}.lc-spk{margin:12px 0 10px}
-  }
+  @media (max-width:720px) and (max-height:760px){ .lc-q{font-size:18px} }
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
     .grain{animation:none}
@@ -309,7 +274,8 @@
     .track [aria-hidden]{display:none}
     .belt{-webkit-mask-image:none;mask-image:none}
     .js [data-reveal]{opacity:1;transform:none;transition:none}
-    .wave i{animation:none!important}
+    .bigwave i{animation:none!important;height:40%}
+    .nf,.nk{transition:none}
   }
 
   @media (max-width:720px){
@@ -326,12 +292,12 @@
   <ul>
     <li><a href="#listen">Product</a></li>
     <li><a href="#journey">For Teams</a></li>
-    <li><a href="#loop">Pricing</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
     <li><a href="https://obavia.co/">Blog</a></li>
     <li><a href="https://obavia.co/">About</a></li>
   </ul>
   <button class="navsnd" id="bSound2" type="button" aria-pressed="false" aria-label="Sound off"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 5h2.5L8 2.2v9.6L4.5 9H2z" fill="currentColor"/><path class="wv" d="M10 4.6c.8.7.8 4.1 0 4.8M11.6 3c1.6 1.5 1.6 6.5 0 8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".25"/></svg></button>
-  <a class="pill primary join" href="#final">Join the Waitlist</a>
+  <a class="pill primary join" href="https://obavia.co/waitlist">Join the Waitlist</a>
 </nav>
 
 
@@ -350,7 +316,7 @@
   <canvas id="ink" aria-hidden="true"></canvas>
 
   <h1 class="sr">Your sales operation. Connected from lead to cash.</h1>
-  <p class="sr">For agency owners generating $100,000 to $1,000,000 per month. Word choice is a signal: a client who says Babe Ruth instead of LeBron James, or profit instead of revenue, is telling you what matters to them. Obavia maps those cues to six core needs, the significance types, and suggests the likely two for the rep to check. Obavia finds the stalled handoff, routes an evidence-backed next move to the right rep, and tracks what happens through to collected payment. The loop: detect, owner, evidence, approve, track, inspect. It repeats on every new opportunity.</p>
+  <p class="sr">For agency owners at $100K to $1M a month. Hear what clients really mean and carry it from the first call to collected cash. How a client speaks points to who they are: self-first language like “I’m” and “my” suggests a significance type. What a client chooses points to what matters: out of every name, he chose Babe Ruth.</p>
   <p class="sr" aria-live="polite" id="caption"></p>
 
 
@@ -367,45 +333,26 @@
 <main id="page">
 
 <section class="sec listen" id="listen" aria-labelledby="listenH">
-  <div class="pcloud" data-speed="-.12" style="--x:-8%;--y:40px;--w:520px"></div>
-  <div class="pcloud" data-speed=".08" style="--x:78%;--y:160px;--w:460px"></div>
   <div class="wrap head" data-reveal>
-    <p class="kicker">Active Listener</p>
     <h2 id="listenH">Human psychology. <span>A closer listen.</span></h2>
-    <p class="lede">People choose their words. When a client reaches for one phrase over every other, and keeps coming back to it, that choice is worth a second look.</p>
   </div>
   <div class="scrolly" id="listenScrolly">
     <div class="sticky">
       <div class="wrap lgrid">
-        <div>
-          <ol class="lsteps" id="lsteps">
-            <li class="on"><span class="n">01</span><div><b>Listen</b><p>Every word, kept as it was said. The transcript holds the client’s exact phrasing, not a summary of it.</p></div></li>
-            <li><span class="n">02</span><div><b>Evidence</b><p>Repetition is counted, with timestamps, so you can see where a phrase came back and how often.</p></div></li>
-            <li><span class="n">03</span><div><b>Interpret</b><p>Babe Ruth, not LeBron James. Profit, not revenue. A choice that specific points to a likely significance type, flagged as a cue to check, never a verdict.</p></div></li>
-            <li><span class="n">04</span><div><b>Respond</b><p>The rep gets a question built on the client’s own words, in your team’s method. The rep decides whether to ask it.</p></div></li>
-          </ol>
-          <p class="lnow" id="lnow" aria-live="polite">Every word, kept as it was said. The transcript holds the client’s exact phrasing, not a summary of it.</p>
-        </div>
-        <div class="lcard" id="lcard">
-          <div class="lc-top"><span>Obavia / Active Listener</span><span class="live"><i></i>Excerpt A · 0:19</span></div>
-          <div class="lc-spk"><span class="av">MH</span><b>Marcus · Client</b><button class="voice" id="vMarcus" type="button" hidden><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 1.5v7l6-3.5z" fill="currentColor"/></svg><span>Hear Marcus</span></button><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
-          <p class="lc-q">“Some months we’re fine. Other months, we’re waiting for someone to pull a <mark>Babe Ruth</mark> and save the quarter.”</p>
-          <div class="lc-part lc-ev">
-            <div class="ev"><span class="chip">Babe Ruth</span><span class="x">×3</span><span class="ts" style="--d:.1s">0:12</span><span class="ts" style="--d:.2s">4:38</span><span class="ts" style="--d:.3s">11:02</span></div>
-            <div class="ev"><span class="chip">profit</span><span class="x">×4</span><span class="ts" style="--d:.25s">2:05</span><span class="ts" style="--d:.35s">6:40</span><span class="ts" style="--d:.45s">9:15</span><span class="ts" style="--d:.55s">13:30</span></div>
-          </div>
-          <div class="lc-part lc-int">
-            <p class="alts"><span class="lab">Instead of</span><s style="--d:.1s">LeBron James</s><s style="--d:.25s">Michael Jordan</s><s style="--d:.4s">Michael Jackson</s></p>
-            <p class="alts"><span class="lab">Instead of</span><s style="--d:.3s">revenue</s><s style="--d:.45s">sales</s><s style="--d:.6s">income</s></p>
-            <p class="sig"><span class="pillsig"><i></i>Significance type · 74% — AI match</span></p>
-            <p class="stype"><b>Status Seeker</b>, the need to feel important. Second likely need: <b>Dominator</b>, the need to be perceived as powerful.</p>
-            <p class="note">A cue to check with Marcus, not a conclusion.</p>
-          </div>
-          <div class="lc-part lc-res">
-            <span class="who">Suggested for Jordan · Setter</span>
-            <p class="bubble">“What would a consistent month look like, without needing that home run?”</p>
-            <span class="why">Built on “Babe Ruth” and “some months”. Your method, the rep’s call.</span>
-            <button class="voice" id="vJordan" type="button" hidden><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 1.5v7l6-3.5z" fill="currentColor"/></svg><span>Hear the question</span></button>
+        <ol class="lsteps" id="lsteps">
+          <li class="on"><span class="n">01</span><b>Listen</b><p>Every word, exactly as said.</p></li>
+          <li><span class="n">02</span><b>How he speaks</b><p>I’m. My. Self-first language.</p></li>
+          <li><span class="n">03</span><b>What he chose</b><p>Babe Ruth, out of every name.</p></li>
+          <li><span class="n">04</span><b>Respond</b><p>Mirror his words. Then ask.</p></li>
+        </ol>
+        <div class="lcard s1" id="lcard">
+          <div class="lc-spk"><span class="av">MH</span><b>Marcus</b><button class="voice" id="vMarcus" type="button" hidden><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 1.5v7l6-3.5z" fill="currentColor"/></svg><span>Hear him</span></button></div>
+          <p class="lc-q">“Some months <span class="self">I’m</span> fine. Other months, <span class="self">my</span> team is waiting for someone to pull a <mark>Babe Ruth</mark> and save the quarter.”</p>
+          <div class="slot">
+            <div class="lv lv1" aria-hidden="true"><span class="bigwave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+            <div class="lv lv2"><span class="pill-dark"><i></i>Significance type · 74% — AI match</span></div>
+            <div class="lv lv3"><span class="ghosts"><s>LeBron James</s><s>Michael Jordan</s><s>Tom Brady</s></span><span class="pill-soft"><i></i>Babe Ruth · it matters to him</span></div>
+            <div class="lv lv4"><p class="bubble">“What would a steady month look like, without waiting on a Babe Ruth?”</p><button class="voice" id="vJordan" type="button" hidden><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 1.5v7l6-3.5z" fill="currentColor"/></svg><span>Hear the question</span></button></div>
           </div>
         </div>
       </div>
@@ -415,147 +362,90 @@
 </section>
 
 <section class="sec needs" id="needs" aria-labelledby="needsH">
-  <div class="pcloud" data-speed=".1" style="--x:74%;--y:60px;--w:520px"></div>
   <div class="wrap head" data-reveal>
-    <p class="kicker">The model</p>
-    <h2 id="needsH">Six needs. <span>Every person carries two.</span></h2>
-    <p class="lede">These needs form around what was missing early in life, and they drive much of adult social behavior. They surface in how people act, how they present themselves and the words they reach for. Obavia reads those cues and suggests a likely significance type for the rep to check.</p>
+    <h2 id="needsH">Six needs. <span>Everyone carries two.</span></h2>
+    <p class="lede">They show in how people speak. Tap a need to see the fear behind it.</p>
   </div>
-  <div class="wrap ngrid" id="ngrid">
-      <article class="need primary" data-reveal style="--d:0.00s"><div class="ntop"><span class="nn">01</span><span class="nbadge on">Marcus · 74% match</span></div><h3>The Status Seeker</h3><p class="nneed">The need to feel important</p><p class="nsum">Craves recognition, prestige and being seen as special.</p><dl><dt>Core fear</dt><dd>Being dismissed, mocked or treated as insignificant.</dd><dt>Often rooted in missing</dt><dd>Acknowledgement of achievements; feeling valued or celebrated.</dd></dl></article>
-      <article class="need" data-reveal style="--d:0.07s"><div class="ntop"><span class="nn">02</span></div><h3>The People Pleaser</h3><p class="nneed">The need for approval</p><p class="nsum">Seeks validation and positive feedback from others, constantly.</p><dl><dt>Core fear</dt><dd>Rejection, disapproval or disdain from others.</dd><dt>Often rooted in missing</dt><dd>Unconditional acceptance; consistent praise and encouragement.</dd></dl></article>
-      <article class="need" data-reveal style="--d:0.14s"><div class="ntop"><span class="nn">03</span></div><h3>The Belonger</h3><p class="nneed">The need for acceptance</p><p class="nsum">Wants to fit in, to be included and to feel part of a group.</p><dl><dt>Core fear</dt><dd>Criticism, alienation or being cast out socially.</dd><dt>Often rooted in missing</dt><dd>Feeling included, or accepted for who they were.</dd></dl></article>
-      <article class="need" data-reveal style="--d:0.21s"><div class="ntop"><span class="nn">04</span></div><h3>The Intellectual</h3><p class="nneed">The need to be perceived as intelligent</p><p class="nsum">Wants to be seen as smart, knowledgeable and mentally capable.</p><dl><dt>Core fear</dt><dd>Being perceived as stupid, ignorant or intellectually inferior.</dd><dt>Often rooted in missing</dt><dd>Recognition of their intellect; being heard and respected for their ideas.</dd></dl></article>
-      <article class="need" data-reveal style="--d:0.28s"><div class="ntop"><span class="nn">05</span></div><h3>The Victim</h3><p class="nneed">The need to be pitied</p><p class="nsum">Seeks sympathy, compassion and special consideration for their struggles.</p><dl><dt>Core fear</dt><dd>Being ignored, disbelieved or having their problems minimized.</dd><dt>Often rooted in missing</dt><dd>Emotional support in hard times; having their pain acknowledged.</dd></dl></article>
-      <article class="need second" data-reveal style="--d:0.35s"><div class="ntop"><span class="nn">06</span><span class="nbadge">Marcus · second need</span></div><h3>The Dominator</h3><p class="nneed">The need to be perceived as powerful</p><p class="nsum">Wants to be seen as strong, influential and in control. The alpha, type-A buyer.</p><dl><dt>Core fear</dt><dd>Being disrespected, challenged or seen as weak.</dd><dt>Often rooted in missing</dt><dd>A sense of empowerment, agency and control over their world.</dd></dl></article>
-  </div>
-  <p class="fine" data-reveal>Obavia’s working model for reading buyers. A type is a cue for the rep to confirm in conversation, never a label or a diagnosis.</p>
+  <div class="wrap ngrid" id="ngrid"><button class="need marcus" type="button" data-reveal style="--d:0.00s" aria-pressed="false"><span class="nf"><span class="nn">01</span><span class="nb">Marcus · 74%</span><b>Status Seeker</b><i>To feel important</i></span><span class="nk"><span class="nl">Core fear</span><b>Being treated as insignificant</b></span></button><button class="need" type="button" data-reveal style="--d:0.06s" aria-pressed="false"><span class="nf"><span class="nn">02</span><b>People Pleaser</b><i>To be approved of</i></span><span class="nk"><span class="nl">Core fear</span><b>Rejection</b></span></button><button class="need" type="button" data-reveal style="--d:0.12s" aria-pressed="false"><span class="nf"><span class="nn">03</span><b>Belonger</b><i>To be accepted</i></span><span class="nk"><span class="nl">Core fear</span><b>Being cast out</b></span></button><button class="need" type="button" data-reveal style="--d:0.18s" aria-pressed="false"><span class="nf"><span class="nn">04</span><b>Intellectual</b><i>To be seen as smart</i></span><span class="nk"><span class="nl">Core fear</span><b>Looking ignorant</b></span></button><button class="need" type="button" data-reveal style="--d:0.24s" aria-pressed="false"><span class="nf"><span class="nn">05</span><b>Victim</b><i>To be pitied</i></span><span class="nk"><span class="nl">Core fear</span><b>Being dismissed</b></span></button><button class="need" type="button" data-reveal style="--d:0.30s" aria-pressed="false"><span class="nf"><span class="nn">06</span><b>Dominator</b><i>To be seen as powerful</i></span><span class="nk"><span class="nl">Core fear</span><b>Looking weak</b></span></button></div>
 </section>
 
 <section class="sec tools" aria-labelledby="toolsH">
   <div class="wrap head" data-reveal>
-    <p class="kicker">Integrations</p>
     <h2 id="toolsH">Your tools. <span>One workflow.</span></h2>
-    <p class="lede">Calls, calendars, CRMs, payments and messages feed one record per opportunity, so the words a client chose follow them from the first call to the collected payment.</p>
   </div>
   <div class="belt" data-reveal><ul class="track" id="beltA"></ul></div>
   <div class="belt" data-reveal style="--d:.12s"><ul class="track" id="beltB"></ul></div>
-  <p class="fine" data-reveal>Connections are in development. Availability varies by tool. Logos are trademarks of their owners.</p>
+  <p class="fine" data-reveal>Connections in development · Logos are trademarks of their owners</p>
 </section>
 
 <section class="sec journey" id="journey" aria-labelledby="journeyH">
   <div class="wrap head" data-reveal>
-    <p class="kicker">For high-ticket sales teams</p>
-    <h2 id="journeyH">Every stage connected. <span>Every next move clear.</span></h2>
-    <p class="lede">One inbound opportunity, from the first inquiry to verified collection. The client’s own words travel with it, through every handoff.</p>
+    <h2 id="journeyH">Every stage connected. <span>His words go with it.</span></h2>
   </div>
   <div class="scrolly" id="jScrolly">
     <div class="sticky jsticky">
       <div class="wrap jrail">
-        <div class="jline"><i id="jfill"></i><span class="jtag" id="jtag">“Babe Ruth” ×3</span></div>
-        <ol class="jnodes" id="jnodes"><li class="on">Capture</li><li>Connect</li><li>Book</li><li>Discover</li><li>Agree</li><li>Collect</li></ol>
+        <div class="jline"><i id="jfill"></i><span class="jtag" id="jtag">Babe Ruth</span></div>
       </div>
-      <div class="jview"><div class="jtrack" id="jtrack">
-        <article class="jcard"><span class="k">01 · Capture</span><h3>The inquiry becomes a lead.</h3><p>“We need more consistent months.” The request, the source and the permission stay on one record.</p><div class="meta"><span>Search → Growth advisory page</span><span>Source retained</span></div></article>
-        <article class="jcard"><span class="k">02 · Connect</span><h3>One owner. The original context.</h3><p>Jordan reaches Marcus in a real two-way conversation and offers a discovery call. No answer is not contact.</p><div class="meta"><span>Jordan Lee · Setter</span></div></article>
-        <article class="jcard"><span class="k">03 · Book</span><h3>A meeting with a clear purpose.</h3><p>Understand what a consistent month would look like. Context is ready before the call starts.</p><div class="meta"><span>Sep 24 · 10:30 AM CT</span><span>Confirmed</span></div></article>
-        <article class="jcard"><span class="k">04 · Discover</span><h3>Fit, from what actually happened.</h3><p>Attendance is verified separately from the booking. Fit is judged against the offer, not a hunch.</p><div class="meta"><span>Attended</span><span>Qualified</span></div></article>
-        <article class="jcard"><span class="k">05 · Agree</span><h3>The context reaches the decision.</h3><p>Jordan hands off to Alex. “Babe Ruth” and “profit” go with it, so Alex starts where Marcus left off.</p><div class="meta"><span>Jordan → Alex</span><span>USD 12,000 contracted</span></div></article>
-        <article class="jcard"><span class="k">06 · Collect</span><h3>Count cash when it is verified.</h3><p>Processor confirmation matched to the same opportunity and counted once. A signature is not collected cash.</p><div class="meta"><span>USD 3,000 collected</span></div></article>
-      </div></div>
-      <p class="fine jfine">Illustrative journey. Fictional people and records.</p>
+      <div class="jview"><div class="jtrack" id="jtrack"><article class="jcard"><span class="jn">01</span><h3>Capture</h3><p>The inquiry becomes a lead.</p></article><article class="jcard"><span class="jn">02</span><h3>Connect</h3><p>One owner. His exact words.</p></article><article class="jcard"><span class="jn">03</span><h3>Book</h3><p>A call with a clear purpose.</p></article><article class="jcard"><span class="jn">04</span><h3>Discover</h3><p>Fit, from what actually happened.</p></article><article class="jcard"><span class="jn">05</span><h3>Agree</h3><p>His words reach the closer.</p></article><article class="jcard"><span class="jn">06</span><h3>Collect</h3><p>Cash, counted when verified.</p></article></div></div>
     </div>
   </div>
 </section>
 
 <section class="sec loop" id="loop" aria-labelledby="loopH">
-  <div class="pcloud" data-speed=".1" style="--x:-6%;--y:220px;--w:560px"></div>
   <div class="wrap head" data-reveal>
-    <p class="kicker">Why it keeps paying</p>
-    <h2 id="loopH">One loop. Every opportunity. <span>Every week.</span></h2>
-    <p class="lede">The first month puts a working change in place. Every month after keeps it working, across new opportunities, conversations and reps.</p>
+    <h2 id="loopH">One loop. <span>Every opportunity.</span></h2>
   </div>
   <div class="wrap lpgrid">
     <div class="ring" id="ring" data-reveal aria-hidden="true">
-      <svg viewBox="0 0 400 400"><circle cx="200" cy="200" r="150" fill="none" stroke="#DCE4FA" stroke-width="1.5"/><circle id="ringArc" cx="200" cy="200" r="150" fill="none" stroke="#7D97C7" stroke-width="2" stroke-linecap="round" stroke-dasharray="942.5" stroke-dashoffset="942.5" transform="rotate(-90 200 200)"/></svg>
+      <svg viewBox="0 0 400 400"><circle cx="200" cy="200" r="150" fill="none" stroke="#DCE4FA" stroke-width="1.5"/><circle id="ringArc" cx="200" cy="200" r="150" fill="none" stroke="#7D97C7" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="130 812.5" transform="rotate(-90 200 200)"/></svg>
       <span class="orb" id="ringOrb"></span>
-      <div class="rnode" style="--a:0"><b>Detect</b></div><div class="rnode" style="--a:1"><b>Owner</b></div><div class="rnode" style="--a:2"><b>Evidence</b></div>
-      <div class="rnode" style="--a:3"><b>Approve</b></div><div class="rnode" style="--a:4"><b>Track</b></div><div class="rnode" style="--a:5"><b>Inspect</b></div>
-      <div class="rcore"><span>Repeats on every</span><b>new opportunity</b></div>
+      <div class="rnode"><b>Detect</b></div><div class="rnode"><b>Owner</b></div><div class="rnode"><b>Evidence</b></div>
+      <div class="rnode"><b>Approve</b></div><div class="rnode"><b>Track</b></div><div class="rnode"><b>Inspect</b></div>
     </div>
     <div class="phases">
-      <div class="ph" data-reveal><span class="k">Month one</span><h3>A working change.</h3><p>Baseline the pipeline, find the neglected handoffs, and put one supported recovery path and one manager-approved coaching change into practice.</p></div>
-      <div class="ph" data-reveal style="--d:.1s"><span class="k">Every month after</span><h3>It keeps working.</h3><p>New opportunities stay covered. Guidance keeps up as offers, objections and reps change. Each change is checked against what happened next, then kept, refined or retired.</p></div>
-      <div class="own" data-reveal style="--d:.2s"><p><b>Obavia runs</b> detection, guidance, routing, tracking and upkeep.</p><p><b>Your manager owns</b> the method, the approvals and the team’s execution.</p></div>
+      <div class="ph" data-reveal><span class="k">Month one</span><h3>A working change.</h3></div>
+      <div class="ph" data-reveal style="--d:.1s"><span class="k">Every month after</span><h3>It keeps working.</h3></div>
+      <div class="ph own" data-reveal style="--d:.2s"><p><b>Obavia</b> runs the system.</p><p><b>Your manager</b> owns the method.</p></div>
     </div>
   </div>
 </section>
 
 <section class="sec board" id="board" aria-labelledby="boardH">
   <div class="wrap head" data-reveal>
-    <p class="kicker">Team leaderboard</p>
-    <h2 id="boardH">Progress the whole team can see. <span>A reason for every move.</span></h2>
-    <p class="lede">Comparable results within role and tier, ranked on collected cash, not activity counts.</p>
+    <h2 id="boardH">Progress the team can see. <span>Ranked on cash, not calls.</span></h2>
   </div>
   <div class="wrap"><div class="bcard" id="bcard" data-reveal>
-    <div class="bc-top"><span>Obavia / Team</span><span class="tag">Synthetic demo</span></div>
-    <div class="tiers" aria-label="Named tiers"><span>Coins</span><span>Cash</span><span>Stacks</span><span class="on">Bags</span><span>Diamonds</span></div>
-    <p class="bc-sub">Bags · $30,000 to under $100,000 net collected · September · Closers</p>
+    <div class="tiers" aria-label="Tiers"><span>Coins</span><span>Cash</span><span>Stacks</span><span class="on">Bags</span><span>Diamonds</span><em>Demo</em></div>
     <ol class="rows" id="rows">
-      <li class="row" data-rank="0" id="rMaya"><span class="rk">1</span><span class="av">MC</span><b>Maya Chen</b><span class="bar"><i style="--w:.97"></i></span><span class="amt">$1,500</span></li>
-      <li class="row" data-rank="1" id="rAlex"><span class="rk">2</span><span class="av">AM</span><b>Alex Morgan</b><span class="bar"><i style="--w:.77" id="alexBar"></i></span><span class="amt" id="alexAmt">$1,200</span></li>
-      <li class="row" data-rank="2" id="rSam"><span class="rk">3</span><span class="av">SP</span><b>Sam Patel</b><span class="bar"><i style="--w:.65"></i></span><span class="amt">$1,000</span></li>
+      <li class="row" data-rank="0" id="rMaya"><span class="rk">1</span><span class="av">MC</span><b>Maya Chen</b><span class="bar"><i id="mayaBar"></i></span><span class="amt">$1,500</span></li>
+      <li class="row" data-rank="1" id="rAlex"><span class="rk">2</span><span class="av">AM</span><b>Alex Morgan</b><span class="bar"><i id="alexBar"></i></span><span class="amt" id="alexAmt">$1,200</span></li>
+      <li class="row" data-rank="2" id="rSam"><span class="rk">3</span><span class="av">SP</span><b>Sam Patel</b><span class="bar"><i id="samBar"></i></span><span class="amt">$1,000</span></li>
     </ol>
-    <p class="bc-event" id="bcEvent"><i></i>Alex’s $14,000 collection is reconciled to an existing opportunity and eligible.</p>
-    <p class="bc-foot">Net collected per assigned opportunity · 40 assigned each, all matured. No pay change, XP or lead privilege is awarded.</p>
+    <p class="bc-event" id="bcEvent"><i></i>Alex closes $14,000. Verified.</p>
   </div></div>
 </section>
 
-<section class="sec funnel" id="funnel" aria-labelledby="funnelH">
-  <div class="wrap head" data-reveal>
-    <p class="kicker">For agency owners</p>
-    <h2 id="funnelH">See where progress stops. <span>Know what to do next.</span></h2>
-    <p class="lede">Follow each transition across your reps. Inspect the conversations behind a gap, choose one corrective step, then track what changes.</p>
+<section class="sec price" id="price" aria-labelledby="priceH">
+  <div class="wrap pgrid" data-reveal>
+    <div><h2 id="priceH">One plan to start. <span>Built for your team.</span></h2></div>
+    <a class="pcard" href="pricing.html"><span class="k">Core · planned</span><span class="big">$3,000</span><span class="per">per month</span><span class="go">See pricing <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 6h6M6.5 3.5 9 6 6.5 8.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
   </div>
-  <div class="wrap fgrid">
-    <div class="fcard" id="fcard" data-reveal>
-      <div class="bc-top"><span>Obavia / Business · September · Offer A</span><span class="tag">Synthetic</span></div>
-      <ol class="fbars">
-        <li style="--v:1;--i:0"><span>Lead</span><i></i><b>200</b><em>Cohort</em></li>
-        <li style="--v:.8;--i:1"><span>Contact</span><i></i><b>160</b><em>80%</em></li>
-        <li style="--v:.7;--i:2"><span>Booked</span><i></i><b>140</b><em>88%</em></li>
-        <li class="stall" style="--v:.35;--i:3"><span>Attended</span><i></i><b>70</b><em>50%</em></li>
-        <li style="--v:.21;--i:4"><span>Qualified</span><i></i><b>42</b><em>60%</em></li>
-        <li style="--v:.07;--i:5"><span>Won</span><i></i><b>14</b><em>33%</em></li>
-        <li style="--v:.06;--i:6"><span>Collected</span><i></i><b>12</b><em>86%</em></li>
-      </ol>
-    </div>
-    <div class="fside">
-      <div class="fs" data-reveal style="--d:.1s"><span class="k">Where it stalls</span><h3>70 missed appointments.</h3><p>Booked → Attended converts at 50%, the weakest transition in this cohort.</p></div>
-      <div class="fs" data-reveal style="--d:.2s"><span class="k">Inspect the evidence</span><h3>Agendas, timezones, replies.</h3><p>Compare attended and missed calls before choosing a fix.</p></div>
-      <div class="fs" data-reveal style="--d:.3s"><span class="k">Try next</span><h3>Confirm the agenda, timezone and a reschedule option.</h3><p>Then track Booked → Attended on the next comparable cohort: improved, unchanged or inconclusive.</p></div>
-    </div>
-  </div>
-  <p class="fine" data-reveal>Synthetic September cohort. An illustration, not measured rep performance or a promised uplift.</p>
 </section>
 
 <section class="sec final" id="final" aria-labelledby="finalH">
-  <div class="pcloud" data-speed="-.18" style="--x:-10%;--y:30px;--w:620px"></div>
-  <div class="pcloud" data-speed=".14" style="--x:70%;--y:-20px;--w:560px"></div>
-  <div class="pcloud" data-speed="-.08" style="--x:30%;--y:300px;--w:700px"></div>
   <div class="wrap head" data-reveal>
     <h2 id="finalH">Your agency. Your sales team. <span>A clearer next step.</span></h2>
-    <p class="lede">Built for agency owners generating $100,000–$1,000,000 per month, and the teams who sell for them.</p>
-    <div class="cta-row"><a class="pill primary" href="https://obavia.co/">Join the Waitlist</a><a class="pill ghost" href="https://obavia.co/product">Explore the Product</a></div>
+    <div class="cta-row"><a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a><a class="pill ghost" href="pricing.html">See Pricing</a></div>
   </div>
 </section>
 
 <footer class="foot">
   <div class="wrap frow">
     <a href="#top" class="fbrand" aria-label="Back to top"><canvas id="footMark" width="64" height="64" aria-hidden="true"></canvas><b>Obavia</b></a>
-    <nav aria-label="Footer"><a href="https://obavia.co/product">Product</a><a href="https://obavia.co/">Blog</a><a href="https://obavia.co/">About</a></nav>
+    <nav aria-label="Footer"><a href="pricing.html">Pricing</a><a href="https://obavia.co/product">Product</a><a href="https://obavia.co/">About</a></nav>
   </div>
-  <p class="wrap ffine">Illustrative product preview. Fictional people, conversations, records and results. The operational app is an early foundation; live workflows and connections are in development.</p>
+  <p class="wrap ffine">Product preview. People and figures shown are fictional.</p>
 </footer>
 </main>
 
@@ -707,10 +597,10 @@ function layout(){
   let fs = clamp(Math.min(W*.062, H*.088), 30, 80), G;
   for(let pass=0; pass<12; pass++){
     const gap = clamp(H*.036, 16, 40);
-    const eyebrow = block('For agency owners generating $100,000–$1,000,000 per month.', {fs:eyFs, weight:500, ls:.1, maxW:Math.min(W-48,640), lh:1.5, color:C.slate, stagger:.012});
+    const eyebrow = block('For agency owners at $100K–$1M a month.', {fs:eyFs, weight:500, ls:.1, maxW:Math.min(W-48,640), lh:1.5, color:C.slate, stagger:.012});
     const h1a = block('Your sales operation.', {fs, weight:800, ls:-.045*fs, maxW, lh:1.04, color:C.ink, stagger:.07});
     const h1b = block('Connected from lead to cash.', {fs, weight:800, ls:-.045*fs, maxW, lh:1.04, color:C.slate, stagger:.07});
-    const sub = block('Obavia finds the stalled handoff, routes an evidence-backed next move to the right rep, and tracks what happens through to collected payment.', {fs:subFs, weight:400, ls:0, maxW:Math.min(W-48,580), lh:1.55, color:C.body, stagger:.016});
+    const sub = block('Hear what clients really mean. Carry it from the first call to collected cash.', {fs:subFs, weight:400, ls:0, maxW:Math.min(W-48,580), lh:1.55, color:C.body, stagger:.016});
     const zoneTop = navH + clamp(H*.06, 18, 80);
     let y = zoneTop;
     eyebrow.top=y; y+=eyebrow.h+(m?10:14);
@@ -727,11 +617,11 @@ function layout(){
       do { b = block(txt,{fs:f, weight:600, ls:0, maxW:cw-pad*2, lh:1.3, color:C.navy}); f-=.5; } while(b.lines.length>2 && f>9);
       return {lab, b, k, w:cw, h:ch, pad};
     });
-    const rows = narrow?2:1, capH = narrow?24:32;
-    const stripH = rows*ch+(rows-1)*cg+capH;
+    chips.length=0;                                   // the loop lives on the page now; the hero stays clean
+    const capH = 0, stripH = 0;
 
     // the pipeline band: counts above, names + notes + caption below
-    const bandTop = r0+26, bandBot = r0+(m?50:60);
+    const bandTop = r0+14, bandBot = r0+(m?30:36);
     let stripTop = ctaBot+gap*1.1;
     let pathY = stripTop+stripH+gap+bandTop;
     const room = (H-64)-(pathY+bandBot);
@@ -751,8 +641,8 @@ function layout(){
   const S = (str,c,a,b) => block(str,{fs:sfs, weight:700, ls:-.035*sfs, maxW:sw, lh:1.08, color:c, stagger:.075, tIn:a, tOut:b});
   // each line fully evaporates before the next arrives (exit ≈ .65s + .035s/word)
   const story = [
-    [S('Word choice is a *signal.*', C.ink, 10.3, 12.4), S('Repeated words carry weight.', C.slate, 10.8, 12.4)],
-    [S('Obavia carries it through *every stage.*', C.ink, 13.3, 15.9)],
+    [S('His words → *who he is.*', C.ink, 10.3, 12.6), S('His choices → *what matters.*', C.slate, 10.9, 12.6)],
+    [S('Obavia carries it through *every stage.*', C.ink, 13.5, 15.9)],
     [S('See where progress stops.', C.ink, 16.8, 19.9), S('Know what to do next.', C.slate, 17.4, 19.9)],
     [S('Then keep it moving.', C.ink, 20.8, 22.9), S('Every opportunity, every week.', C.slate, 21.3, 22.9)],
   ];
@@ -791,105 +681,87 @@ function layout(){
   ctaEl.style.top = G.ctaY+'px';
 }
 /* Act I: the Active Listener. Why these words, and not others? */
-const WORDS = [
-  {chosen:'Babe Ruth', n:'×3', alts:['LeBron James','Michael Jordan','Michael Jackson'], t0:4.3},
-  {chosen:'profit',    n:'×4', alts:['revenue','sales','income'],                        t0:6.1},
-];
+/* Act I: the Active Listener.
+   How he speaks ("I'm", "my") points to who he is: a significance type.
+   What he chooses ("Babe Ruth", out of every name he could have used) points to what matters to him. */
+const QUOTE='“Some months I’m fine. Other months, my team is waiting for someone to pull a Babe Ruth and save the quarter.”';
+const SELF=new Set(['I’m','my']), CHOSEN=new Set(['Babe','Ruth']);
+const GHOSTS=['LeBron James','Michael Jordan','Tom Brady','Kobe','Michael Jackson','Serena'];
 function layoutPanel(G){
-  const m=G.m, pw=Math.min(720,W-32), pp=m?16:26, qfs=clamp(W*.021,17,25), rf=m?12.5:13.5, inner=pw-pp*2;
-  const quote=block('“Some months we’re fine. Other months, we’re waiting for someone to pull a *Babe Ruth* and save the quarter.”',
-    {fs:qfs, weight:700, ls:-.02*qfs, maxW:inner, lh:1.36, color:C.ink});
-  let y=pp; const hdrY=y; y+=12+18;
-  const spkY=y; y+=30+16;
-  const qY=y; y+=quote.h+16;
-  const divY=y; y+=1+16;
-  const labY=y; y+=12+12;
-  const rows=WORDS.map(r=>{
-    const items=[], gap=12, lh=32; let x=0, ry=0;
-    const put=(it)=>{ if(x>0 && x+it.w>inner){ x=0; ry+=lh; } it.x=x; it.y=ry; items.push(it); x+=it.w+gap; };
-    ctx.font=`600 ${rf}px ${FONT}`; setLS(0); put({k:'chip', t:r.chosen, w:ctx.measureText(r.chosen).width+26});
-    ctx.font=`500 11px ${MONO}`; put({k:'n', t:r.n, w:ctx.measureText(r.n).width});
-    setLS(.9); ctx.font=`500 9.5px ${MONO}`; put({k:'inst', t:'INSTEAD OF', w:ctx.measureText('INSTEAD OF').width}); setLS(0);
-    ctx.font=`500 ${rf}px ${FONT}`; r.alts.forEach((a,j)=>put({k:'alt', t:a, j, w:ctx.measureText(a).width}));
-    return {r, items, h:ry+28};
-  });
-  rows.forEach(rw=>{ rw.y=y; y+=rw.h+10; }); y+=8;
-  ctx.font=`600 12.5px ${FONT}`; const sigT='Significance type · 74% — AI match', sigW=ctx.measureText(sigT).width+36;
-  const noteInline = inner-sigW-16 >= 250;
-  const note=block('Status Seeker: the need to feel important. A cue to check with Marcus, not a conclusion.',
-    {fs:12, weight:500, ls:0, maxW:noteInline?inner-sigW-16:inner, lh:1.4, color:C.slate});
-  const sigY=y; y+= noteInline ? Math.max(30,note.h) : 30+10+note.h;
-  y+=pp;
-  const avail=H-58-(G.navH+16), top=G.navH+16+Math.max(0,(avail-y)/2)*.8;
-  // where the chosen words sit inside the quote, for the highlighter
+  const m=G.m, pw=Math.min(660,W-32), pp=m?18:28, qfs=clamp(W*.022,18,27), inner=pw-pp*2;
+  const quote=block(QUOTE,{fs:qfs, weight:700, ls:-.02*qfs, maxW:inner, lh:1.38, color:C.ink});
   ctx.font=`${quote.weight} ${quote.fs}px ${FONT}`; setLS(quote.ls);
-  const em=[]; quote.lines.forEach((ln,li)=>{ let x=0; for(const w of ln.words){ if(w.em) em.push({x, y:li*quote.lhpx, w:w.w}); x+=w.w+quote.sp; } }); setLS(0);
-  // merge adjacent highlighted words on a line into one stroke
-  const hl=[]; for(const e of em){ const l=hl[hl.length-1]; if(l && l.y===e.y) l.w=e.x+e.w-l.x; else hl.push({...e}); }
-  return {x:W/2-pw/2, y:top, w:pw, h:y, pp, inner, rf, quote, hdrY, spkY, qY, divY, labY, rows, sigY, sigT, sigW, note, noteInline, hl};
+  const self=[], chosen=[];
+  quote.lines.forEach((ln,li)=>{ let x=0; for(const w of ln.words){ const bare=w.t.replace(/[“”.,]/g,'');
+    const box={x, y:li*quote.lhpx, w:ctx.measureText(bare).width};
+    if(SELF.has(bare)) self.push(box); if(CHOSEN.has(bare)) chosen.push(box); x+=w.w+quote.sp; } });
+  setLS(0);
+  const ch=[]; for(const c of chosen){ const l=ch[ch.length-1]; if(l&&l.y===c.y) l.w=c.x+c.w-l.x; else ch.push({...c}); }
+  let y=pp; const spkY=y; y+=30+20; const qY=y; y+=quote.h+26;
+  ctx.font=`650 ${m?13:14}px ${FONT}`;
+  const p1={t:'Significance type · 74% — AI match', w:ctx.measureText('Significance type · 74% — AI match').width+40};
+  const p2={t:'Babe Ruth · it matters to him', w:ctx.measureText('Babe Ruth · it matters to him').width+40};
+  const side=p1.w+p2.w+14<=inner;
+  p1.x=0; p1.y=y; if(side){ p2.x=inner-p2.w; p2.y=y; y+=38; } else { p2.x=0; p2.y=y+48; y+=38+48; }
+  y+=pp;
+  const hOpen=qY+quote.h+pp;
+  const avail=H-58-(G.navH+16), top=G.navH+16+Math.max(0,(avail-y)/2)*.8;
+  return {x:W/2-pw/2, y:top, w:pw, h:y, hOpen, pp, inner, quote, spkY, qY, self, ch, p1, p2};
+}
+function curve(x0,y0,x1,y1,k){   // a drawn connector, revealed by k
+  const len=Math.hypot(x1-x0,y1-y0)*1.25; ctx.setLineDash([len*k,len*2]);
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.bezierCurveTo(x0,y0+(y1-y0)*.6,x1,y1-(y1-y0)*.6,x1,y1); ctx.stroke(); ctx.setLineDash([]);
 }
 function drawListener(t){
   const pin=eo(ramp(t,.1,.7)), pout=ss(0,1,ramp(t,9.6,10.2)), A=pin*(1-pout); if(A<=0) return;
-  const P=L.panel, x=P.x, y=P.y+(1-pin)*14-pout*12, X=x+P.pp;
+  const P=L.panel, x=P.x, y=P.y+(1-pin)*14-pout*12, X=x+P.pp, q=P.quote;
+  const hv=lerp(P.hOpen, P.h, eo(ramp(t,3.9,4.5)));
   ctx.save(); ctx.globalAlpha=A;
-  // the card opens only when there is something to show: transcript first, word choice after
-  const hv=lerp(P.qY+P.quote.h+P.pp, P.h, eo(ramp(t,3.95,4.5)));
-  ctx.shadowColor='rgba(40,52,79,.10)'; ctx.shadowBlur=40; ctx.shadowOffsetY=14;
-  rr(x,y,P.w,hv,20); ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fill();
+  ctx.shadowColor='rgba(40,52,79,.10)'; ctx.shadowBlur=44; ctx.shadowOffsetY=16;
+  rr(x,y,P.w,hv,24); ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fill();
   ctx.shadowColor='transparent'; ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.stroke();
   REC('panel',x,y,P.w,hv,A);
-  ctx.save(); rr(x,y,P.w,hv,20); ctx.clip();
-  // header
-  ctx.textAlign='left'; ctx.font=`500 10px ${MONO}`; setLS(1); ctx.fillStyle=C.slate;
-  ctx.fillText('OBAVIA / ACTIVE LISTENER', X, y+P.hdrY+9);
-  const live=t<3.6, lab=live?'LISTENING':'CALL · EXCERPT A'; const lw=ctx.measureText(lab).width;
-  ctx.fillStyle=C.deep; ctx.fillText(lab, x+P.w-P.pp-lw, y+P.hdrY+9); setLS(0);
-  ctx.globalAlpha=A*(live?.55+.45*Math.sin(t*4)**2:1); ctx.beginPath(); ctx.arc(x+P.w-P.pp-lw-9, y+P.hdrY+5.5, 3, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha=A;
-  // speaker + waveform
+  ctx.save(); rr(x,y,P.w,hv,24); ctx.clip();
+  // speaker, and his voice while he talks
   const sy=y+P.spkY+15;
   ctx.fillStyle=C.peri; ctx.beginPath(); ctx.arc(X+15,sy,15,0,Math.PI*2); ctx.fill();
   ctx.fillStyle=C.navy; ctx.font=`700 10.5px ${FONT}`; ctx.textAlign='center'; ctx.fillText('MH',X+15,sy+3.8); ctx.textAlign='left';
-  ctx.font=`600 13.5px ${FONT}`; ctx.fillText('Marcus · Client', X+40, sy+4.5);
-  const wx=X+40+ctx.measureText('Marcus · Client').width+16, nb=Math.min(28, Math.floor((x+P.w-P.pp-wx)/5));
+  ctx.font=`650 14px ${FONT}`; ctx.fillText('Marcus', X+40, sy+5);
+  const wx=X+40+ctx.measureText('Marcus').width+16, nb=Math.min(34, Math.floor((x+P.w-P.pp-wx)/5));
   ctx.fillStyle=C.deep;
-  for(let i=0;i<nb;i++){ const talk=t>.5&&t<3.6, h=(talk?.3+.7*vn(i*.6,t*9,21):.18+.1*vn(i*.6,3,21))*16; ctx.fillRect(wx+i*5, sy-h/2, 2, h); }
-  // highlighter swipes under the chosen words, then the transcript
-  const q=P.quote, sw=eo(ramp(t,3.7,4.2));
-  if(sw>0) for(const h of P.hl){ rr(X+h.x-4, y+P.qY+h.y+q.fs*.12, (h.w+8)*sw, q.fs*1.12, 5); ctx.fillStyle='rgba(200,214,252,.95)'; ctx.fill(); }
-  ctx.font=`${q.weight} ${q.fs}px ${FONT}`; setLS(q.ls); ctx.fillStyle=C.ink;
+  for(let i=0;i<nb;i++){ const talk=t>.5&&t<3.6, h=(talk?.3+.7*vn(i*.6,t*9,21):.14+.08*vn(i*.6,3,21))*18; ctx.fillRect(wx+i*5, sy-h/2, 2, h); }
+  // the marks: a soft underline for how he speaks, a highlighter for what he chose
+  const qy=y+P.qY, uk=eo(ramp(t,3.7,4.15)), hk=eo(ramp(t,5.3,5.8));
+  if(hk>0) for(const h of P.ch){ rr(X+h.x-5, qy+h.y+q.fs*.1, (h.w+10)*hk, q.fs*1.16, 6); ctx.fillStyle='rgba(200,214,252,.95)'; ctx.fill(); }
+  ctx.font=`${q.weight} ${q.fs}px ${FONT}`; setLS(q.ls);
   const nw=q.lines.reduce((a,l)=>a+l.words.length,0), st=2.8/nw; let k=0;
-  q.lines.forEach((ln,li)=>{ let wx2=X; for(const w of ln.words){ const a=ramp(t,.6+k*st,.6+k*st+.22); if(a>0){ ctx.globalAlpha=A*a; ctx.fillText(w.t, wx2, y+P.qY+li*q.lhpx+q.fs*.98); } wx2+=w.w+q.sp; k++; } });
+  q.lines.forEach((ln,li)=>{ let wx2=X; for(const w of ln.words){ const a=ramp(t,.6+k*st,.6+k*st+.22);
+    const bare=w.t.replace(/[“”.,]/g,''); ctx.fillStyle=SELF.has(bare)&&uk>0?C.navy:C.ink;
+    if(a>0){ ctx.globalAlpha=A*a; ctx.fillText(w.t, wx2, qy+li*q.lhpx+q.fs*.98); } wx2+=w.w+q.sp; k++; } });
   setLS(0); ctx.globalAlpha=A;
-  REC('p-quote', X, y+P.qY, P.inner, q.h, A);
-  // word choice
-  ctx.fillStyle=C.line; ctx.fillRect(X, y+P.divY, P.inner, 1);
-  ctx.globalAlpha=A*ramp(t,4.1,4.4); ctx.font=`500 9.5px ${MONO}`; setLS(1); ctx.fillStyle=C.deep;
-  ctx.fillText('WORD CHOICE', X, y+P.labY+9); setLS(0);
-  for(const rw of P.rows){
-    const t0=rw.r.t0;
-    for(const it of rw.items){
-      const ix=X+it.x, iy=y+rw.y+it.y, mid=iy+14;
-      if(it.k==='chip'){ const a=eo(ramp(t,t0,t0+.35)); if(a<=0) continue; ctx.globalAlpha=A*a;
-        rr(ix,iy,it.w,28,14); ctx.fillStyle=C.peri; ctx.fill(); ctx.fillStyle=C.navy; ctx.font=`600 ${P.rf}px ${FONT}`; ctx.fillText(it.t, ix+13, mid+P.rf*.36); }
-      else if(it.k==='n'){ const a=ramp(t,t0+.15,t0+.45); ctx.globalAlpha=A*a; ctx.fillStyle=C.navy; ctx.font=`500 11px ${MONO}`; ctx.fillText(it.t, ix, mid+4); }
-      else if(it.k==='inst'){ const a=ramp(t,t0+.25,t0+.55); ctx.globalAlpha=A*a*.9; ctx.fillStyle=C.slate; ctx.font=`500 9.5px ${MONO}`; setLS(.9); ctx.fillText(it.t, ix, mid+3.5); setLS(0); }
-      else { const a=ramp(t,t0+.4+it.j*.2,t0+.7+it.j*.2), sk=eo(ramp(t,t0+1.3+it.j*.12,t0+1.65+it.j*.12)); if(a<=0) continue;
-        ctx.globalAlpha=A*a*lerp(1,.5,sk); ctx.fillStyle=C.slate; ctx.font=`500 ${P.rf}px ${FONT}`; ctx.fillText(it.t, ix, mid+P.rf*.36);
-        if(sk>0){ ctx.strokeStyle=C.slate; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(ix-1, mid+1); ctx.lineTo(ix-1+(it.w+2)*sk, mid); ctx.stroke(); } }
-      REC('p-'+rw.r.chosen+it.k+(it.j??''), ix, iy+(it.k==='chip'?0:6), it.w, it.k==='chip'?28:16, A);
-    }
-  }
-  // significance: a cue to check, never a verdict
-  const sa=eo(ramp(t,7.6,8.1)); ctx.globalAlpha=A*sa;
-  const gy=y+P.sigY+(1-sa)*6;
-  rr(X,gy,P.sigW,30,15); ctx.fillStyle='#EEF3FF'; ctx.fill(); ctx.strokeStyle='#AFC1EE'; ctx.stroke();
-  ctx.fillStyle=C.deep; ctx.beginPath(); ctx.arc(X+15,gy+15,3.2,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle=C.navy; ctx.font=`600 12.5px ${FONT}`; ctx.fillText(P.sigT, X+26, gy+19.5);
-  ctx.globalAlpha=A*ramp(t,7.9,8.4); ctx.fillStyle=C.slate; ctx.font=`500 12px ${FONT}`;
-  const nk=P.note, nx=P.noteInline?X+P.sigW+16:X, ntop=P.noteInline?gy+Math.max(0,(30-nk.h)/2):gy+40;
-  nk.lines.forEach((ln,li)=>ctx.fillText(ln.words.map(w=>w.t).join(' '), nx, ntop+li*nk.lhpx+nk.fs*.95));
-  REC('p-note', nx, ntop, Math.max(...nk.lines.map(l=>l.w)), nk.h, A*ramp(t,7.9,8.4));
-  REC('p-sig', X, gy, P.sigW, 30, A*sa);
+  if(uk>0){ ctx.strokeStyle=C.deep; ctx.lineWidth=2.4; ctx.lineCap='round';
+    for(const u of P.self){ const uy=qy+u.y+q.fs*1.2; ctx.beginPath(); ctx.moveTo(X+u.x, uy); ctx.lineTo(X+u.x+u.w*uk, uy); ctx.stroke(); } }
+  REC('p-quote', X, qy, P.inner, q.h, A);
+  // every other name he could have said drifts off; Babe Ruth stays
+  if(hk>0 && P.ch.length){ const h0=P.ch[0], gx=X+h0.x+h0.w/2, gy=qy+h0.y+q.fs*.6;
+    ctx.textAlign='center'; ctx.font=`600 ${Math.round(q.fs*.62)}px ${FONT}`;
+    GHOSTS.forEach((g,i)=>{ const p=ramp(t,5.5+i*.14,7.3+i*.14); if(p<=0||p>=1) return;
+      const ang=-Math.PI/2+(i-(GHOSTS.length-1)/2)*.5, d=30+p*110;
+      ctx.globalAlpha=A*Math.sin(Math.PI*p)*.5; ctx.fillStyle=C.slate;
+      ctx.fillText(g, gx+Math.cos(ang)*d*1.6, gy+Math.sin(ang)*d*.55); });
+    ctx.textAlign='left'; ctx.globalAlpha=A; }
+  // the two readings, each tied back to its words
+  const pill=(p,k,dark)=>{ if(k<=0) return; const px=X+p.x, py=y+p.y+(1-k)*8; ctx.globalAlpha=A*k;
+    rr(px,py,p.w,38,19); ctx.fillStyle=dark?C.navy:'#EEF3FF'; ctx.fill(); if(!dark){ ctx.strokeStyle='#AFC1EE'; ctx.lineWidth=1; ctx.stroke(); }
+    ctx.fillStyle=dark?'#C8D6FC':C.deep; ctx.beginPath(); ctx.arc(px+19,py+19,3.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=dark?'#fff':C.navy; ctx.font=`650 ${L.m?13:14}px ${FONT}`; ctx.fillText(p.t, px+30, py+24.5);
+    REC('p-'+p.t.slice(0,4), px, py, p.w, 38, A*k); ctx.globalAlpha=A; };
+  ctx.strokeStyle='rgba(125,151,199,.8)'; ctx.lineWidth=1.3;
+  const c1=eo(ramp(t,4.1,4.6)), c2=eo(ramp(t,6.4,6.9));
+  if(c1>0 && P.self.length){ const u=P.self[P.self.length-1]; curve(X+u.x+u.w/2, qy+u.y+q.fs*1.35, X+P.p1.x+P.p1.w*.3, y+P.p1.y-4, c1); }
+  if(c2>0 && P.ch.length){ const h=P.ch[0]; curve(X+h.x+h.w/2, qy+h.y+q.fs*1.35, X+P.p2.x+P.p2.w*.5, y+P.p2.y-4, c2); }
+  pill(P.p1, eo(ramp(t,4.4,4.9)), true);
+  pill(P.p2, eo(ramp(t,6.7,7.2)), false);
   ctx.restore(); ctx.restore();
 }
 function pathAt(l){
@@ -949,12 +821,12 @@ function drawMark(x,y,r,a,rib,c=ctx){
   lobe.addColorStop(0,'rgba(90,115,176,.32)'); lobe.addColorStop(1,'rgba(90,115,176,0)');
   c.fillStyle=lobe; c.fillRect(x-r,y-r,2*r,2*r);
   if(rib>0){
-    const q=.25*r, path=()=>{ c.beginPath(); c.arc(0,-q,q,-.2,Math.PI*.5,true); c.arc(0,q,q,-Math.PI*.5,Math.PI*1.2,false); };
+    const q=.28*r, path=()=>{ c.beginPath(); c.arc(0,-q,q,-.2,Math.PI*.5,true); c.arc(0,q,q,-Math.PI*.5,Math.PI*1.2,false); };
     const len=q*2*Math.PI*1.1; c.lineCap='round';
     c.translate(x,y); c.rotate(-.62);
     c.setLineDash([len*rib,len*2]);
-    c.save(); c.translate(r*.05,r*.04); path(); c.strokeStyle='rgba(78,102,160,.3)'; c.lineWidth=r*.33; c.stroke(); c.restore();
-    path(); c.strokeStyle='#FFFFFF'; c.lineWidth=r*.3; c.stroke();
+    c.save(); c.translate(r*.05,r*.04); path(); c.strokeStyle='rgba(78,102,160,.3)'; c.lineWidth=r*.25; c.stroke(); c.restore();
+    path(); c.strokeStyle='#FFFFFF'; c.lineWidth=r*.22; c.stroke();
     c.setLineDash([]);
   }
   c.restore();
@@ -1087,20 +959,8 @@ function drawStations(t){
     const nf=m?10.5:12.5; ctx.font=`600 ${nf}px ${FONT}`; setLS(0);
     const ny=s.y+r0+(m?16:20); ctx.fillText(s.name, s.x, ny);
     REC('st-'+i, s.x-ctx.measureText(s.name).width/2, ny-nf*.8, ctx.measureText(s.name).width, nf, e);
-    if(i===5){ const v=ramp(t,T_CASH+.15,T_CASH+.9); ctx.globalAlpha=v; ctx.fillStyle=C.deep; const f=m?9:10;
-      ctx.font=`500 ${f}px ${MONO}`; ctx.fillText('payment evidence', s.x, ny+(m?13:15));
-      REC('st-note', s.x-ctx.measureText('payment evidence').width/2, ny+(m?13:15)-f*.8, ctx.measureText('payment evidence').width, f, v); }
-    const cn=ramp(t,16.3+i*.09,16.9+i*.09);
-    if(cn>0){ const f=m?9.5:11, cy=s.y-r0-(m?9:11); ctx.globalAlpha=cn*e; ctx.fillStyle=C.slate; ctx.font=`500 ${f}px ${MONO}`;
-      ctx.fillText(String(s.n), s.x, cy+(1-cn)*4);
-      REC('ct-'+i, s.x-ctx.measureText(String(s.n)).width/2, cy-f*.8, ctx.measureText(String(s.n)).width, f, cn*e); }
     ctx.globalAlpha=1;
   });
-  const cap=ramp(t,16.6,17.4);
-  if(cap>0){ const f=m?9:10, cy=L.pathY+r0+(m?46:56), txt='ILLUSTRATIVE COHORT · NOT LIVE DATA';
-    ctx.globalAlpha=cap*.9; ctx.fillStyle=C.slate; ctx.font=`500 ${f}px ${MONO}`; ctx.textAlign='center'; setLS(.4);
-    ctx.fillText(txt, W/2, cy); REC('cohort', W/2-ctx.measureText(txt).width/2, cy-f*.8, ctx.measureText(txt).width, f, cap);
-    setLS(0); ctx.globalAlpha=1; }
 }
 function stallBank(t){
   const P=L.P, q=pathAt((P.stL[2]+P.stL[3])/2), a0=ramp(t,10.4,11.6)*.95; if(a0<=0) return;
@@ -1111,6 +971,7 @@ function stallBank(t){
   });
 }
 function drawLoop(t){
+  if(!L.chips.length) return;
   const A=eo(ramp(t,16.5,17.1)); if(A<=0) return;
   const hold=t>=DUR, cyc=hold?Math.floor((t-DUR)/1.6)%6:-1;
   ctx.save(); ctx.textAlign='left';
@@ -1255,14 +1116,15 @@ function pad(freqs,dur=7,gain=.022){
 const NOTES=[523.25,587.33,659.25,783.99,880,1046.5];
 const CUES=[
   [.6, ()=>pad([174.61,261.63,329.63,392],7.5)],
-  [3.72, ()=>chime(1318.5,.045)],                       // the highlighter lands on "Babe Ruth"
-  [5.6, ()=>whoosh(.7,.03,900,1500)], [7.0, ()=>whoosh(.7,.03,900,1500)],   // alternatives struck
-  [7.6, ()=>chime(1567.98,.04)],                         // significance
+  [3.72, ()=>chime(987.77,.04)],                        // "I'm", "my": how he speaks
+  [4.45, ()=>chime(1318.5,.03)],                         // significance type
+  [5.35, ()=>chime(1174.66,.045)],                       // "Babe Ruth": what he chose
+  [5.55, ()=>whoosh(1.8,.035,700,1600)],                 // every other name drifts away
+  [6.75, ()=>chime(1567.98,.03)],
   [9.7, ()=>whoosh(1.6,.06,300,900)],
   [10.3, ()=>pad([146.83,220,293.66,349.23],6.2,.02)],
   ...NOTES.map((f,i)=>[TS(i), ()=>chime(f,.065)]),
   [16.6, ()=>whoosh(1.9,.15,240,1800)],
-  ...[659.25,783.99,880,987.77,1174.66,1318.51].map((f,k)=>[LT(k), ()=>chime(f,.035)]),
   [T_CASH+.05, ()=>{ pad([130.81,196,261.63,329.63,392,493.88],9,.02); chime(1046.5,.06); setTimeout(()=>SND.on&&chime(1567.98,.04),180); setTimeout(()=>SND.on&&chime(2093,.025),380); }],
 ];
 function fireCues(a,b){ if(!SND.on||b<=a||b-a>1) return; for(const [ct,fn] of CUES) if(ct>a&&ct<=b) fn(); }
@@ -1346,13 +1208,15 @@ function tick(f=2600,g=.014){ if(!SND.on) return; const ac=SND.ac,t0=ac.currentT
 let lastAir=0;
 const CUE={
   air(){ const n=performance.now(); if(!SND.on||n-lastAir<1400) return; lastAir=n; whoosh(1.3,.028,420,1150); },
-  step(k){ if(SND.on) chime([659.25,783.99,880,1046.5][k-1]||880,.04); },
+  step(k){ if(SND.on) chime([659.25,987.77,1174.66,1318.5][k-1]||880,.04); },
   stage(k){ if(SND.on) chime(NOTES[k]||880,.03); },
   node(k){ if(SND.on) chime([1318.5,1174.66,1046.5,1318.5,1567.98,1760][k],.014); },
+  flip(on){ if(SND.on) chime(on?1174.66:880,.03); },
   rank(){ if(!SND.on) return; chime(1046.5,.04); setTimeout(()=>SND.on&&chime(1318.5,.035),120); setTimeout(()=>SND.on&&chime(1567.98,.03),240); },
-  stall(){ if(!SND.on) return; pad([98,146.83,196],3.2,.022); chime(523.25,.03); },
   arrive(){ if(SND.on) pad([130.81,196,261.63,329.63,392],6,.018); },
 };
+// a soft touch on every press, when sound is on
+document.addEventListener('pointerdown',e=>{ if(e.target.closest('a,button')) tick(1900,.012); },{passive:true});
 
 /* reveal on scroll */
 const io = 'IntersectionObserver' in window ? new IntersectionObserver(es=>{ for(const e of es){ if(!e.isIntersecting) continue;
@@ -1361,9 +1225,9 @@ const io = 'IntersectionObserver' in window ? new IntersectionObserver(es=>{ for
   e.target.dispatchEvent(new Event('revealed')); } },{threshold:.18, rootMargin:'0px 0px -6% 0px'}) : null;
 document.querySelectorAll('[data-reveal]').forEach(el=> io ? io.observe(el) : el.classList.add('in'));
 
-/* integrations: real marks only, gliding on air; a flick of the scroll wheel nudges them */
+/* integrations: official logos, gliding; a flick of the scroll nudges them, a hover rests them */
 const esc=x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-const logo=(t,hid)=>{ const ar=t.w/t.h, h=ar<1.6?34:ar<3?30:26, w=Math.round(Math.min(h*ar,150));   // marks a touch taller than wordmarks, so they read at equal weight
+const logo=(t,hid)=>{ const ar=t.w/t.h, h=ar<1.6?38:ar<3?32:28, w=Math.round(Math.min(h*ar,160));
   return `<li class="logo-i"${hid?' aria-hidden="true"':''}><img src="${t.u}" alt="${hid?'':esc(t.n)}" width="${w}" height="${Math.round(w/ar)}" decoding="async" draggable="false"></li>`; };
 const belts=['beltA','beltB'].map((id,i)=>{ const el=$(id), list=LOGOS[i];
   el.innerHTML=list.map(t=>logo(t,false)).join('')+list.map(t=>logo(t,true)).join('');
@@ -1371,33 +1235,33 @@ const belts=['beltA','beltB'].map((id,i)=>{ const el=$(id), list=LOGOS[i];
   const b={el, dir:i?1:-1, x:0, v:0, w:0, hover:false};
   el.parentElement.addEventListener('pointerenter',()=>b.hover=true); el.parentElement.addEventListener('pointerleave',()=>b.hover=false);
   return b; });
-let beltsOn=false;
+let beltsOn=!io;
 const measureBelts=()=>belts.forEach((b,i)=>{ b.w=b.el.scrollWidth/2; b.x=i? -b.w*.5 : 0; });
-if(io){ new IntersectionObserver(e=>{ beltsOn=e[0].isIntersecting; },{rootMargin:'200px'}).observe(document.querySelector('.tools')); }
+if(io) new IntersectionObserver(e=>{ beltsOn=e[0].isIntersecting; },{rootMargin:'200px'}).observe(document.querySelector('.tools'));
+if(REDUCED) belts.forEach(b=>b.el.querySelectorAll('[aria-hidden]').forEach(n=>n.remove()));
+
+/* six needs: tap to turn a card and see the fear behind the need */
+document.querySelectorAll('.need').forEach(n=>n.addEventListener('click',()=>{ const on=n.getAttribute('aria-pressed')!=='true'; n.setAttribute('aria-pressed',on); CUE.flip(on); }));
 
 /* the scenes */
 const heroInner=$('heroInner'), controls=$('controls');
-const lScr=$('listenScrolly'), lcard=$('lcard'), lsteps=[...$('lsteps').children], lnow=$('lnow'), lprog=$('lprog');
-const jScr=$('jScrolly'), jtrack=$('jtrack'), jfill=$('jfill'), jtag=$('jtag'), jnodes=[...$('jnodes').children], jcards=[...jtrack.children];
+const lScr=$('listenScrolly'), lcard=$('lcard'), lsteps=[...$('lsteps').children], lprog=$('lprog'), listenSec=$('listen');
+const jScr=$('jScrolly'), jtrack=$('jtrack'), jfill=$('jfill'), jtag=$('jtag'), jcards=[...jtrack.children];
 const ring=$('ring'), ringOrb=$('ringOrb'), ringArc=$('ringArc'), rnodes=[...ring.querySelectorAll('.rnode')];
-const pclouds=[...document.querySelectorAll('.pcloud')];
-rnodes.forEach((n,k)=>{ const a=k*Math.PI/3; n.style.left=`calc(50% + ${(Math.sin(a)*37.5).toFixed(3)}%)`; n.style.top=`calc(50% - ${(Math.cos(a)*37.5).toFixed(3)}%)`; n.style.transform='none'; });
+rnodes.forEach((n,k)=>{ const a=k*Math.PI/3; n.style.left=`calc(50% + ${(Math.sin(a)*37.5).toFixed(3)}%)`; n.style.top=`calc(50% - ${(Math.cos(a)*37.5).toFixed(3)}%)`; });
 const snap=v=>{ const d=window.devicePixelRatio||1; return Math.round(v*d)/d; };
 const sprog=el=>{ const r=el.getBoundingClientRect(), span=r.height-innerHeight; return span>0?clamp(-r.top/span):0; };
 let lFree=false;
-const listenSec=$('listen');
 function fitListen(){ const st=$('lsteps').offsetHeight, cd=lcard.offsetHeight;
-  const need=innerWidth<860 ? st+(lnow.offsetParent?lnow.offsetHeight:0)+cd+110 : Math.max(st,cd)+80;   // stacked on phones, side by side above
+  const need=innerWidth<860 ? st+cd+110 : Math.max(st,cd)+90;   // stacked on phones, side by side above
   lFree=need>innerHeight; listenSec.classList.toggle('lfree',lFree); }
 addEventListener('resize',fitListen); (document.fonts?document.fonts.ready:Promise.resolve()).then(fitListen); fitListen();
 let lStep=0, jStep=-1, ringVis=false, ringT0=0, ringIdx=-1, ringPings=0;
 if(io) new IntersectionObserver(e=>{ ringVis=e[0].isIntersecting; if(ringVis&&!ringT0) ringT0=performance.now(); },{threshold:.35}).observe(ring);
-
 function setListen(k){
   if(k===lStep) return; lStep=k;
-  lcard.className='lcard'+(k===1?' s1':'')+(k>=2?' s2':'')+(k>=3?' s3':'')+(k>=4?' s4':'');
+  lcard.className='lcard s'+k+(k>=2?' m2':'')+(k>=3?' m3':'');
   lsteps.forEach((li,i)=>li.classList.toggle('on',i===k-1));
-  lnow.textContent=lsteps[k-1].querySelector('p').textContent;
   CUE.step(k);
 }
 setListen(1);
@@ -1412,35 +1276,27 @@ function page(now){
   const pg=y>vh*.6; controls.classList.toggle('page',pg); navEl.classList.toggle('page',pg);
   if(y<vh*1.3){ const hp=clamp(y/vh); heroInner.style.transform=`translate3d(0,${Math.round(y*.3)}px,0)`; heroInner.style.opacity=(1-hp*.85).toFixed(3); }
 
-  // Active Listener: four beats pinned to the scroll (or, on short screens, paced by the card itself)
   let lp;
   if(lFree){ const r=lcard.getBoundingClientRect(); lp=clamp((vh*.9-r.top)/(r.height*.95)); }
   else { lp=sprog(lScr); lprog.style.transform=`scaleX(${lp.toFixed(4)})`; }
-  setListen(lp<.22?1:lp<.47?2:lp<.72?3:4);
+  setListen(lp<.24?1:lp<.5?2:lp<.76?3:4);
 
-  // Journey: the track slides sideways, the client's words ride the thread
   const jp=sprog(jScr), max=Math.max(0,jtrack.scrollWidth-innerWidth);
   jtrack.style.transform=`translate3d(${snap(-jp*max)}px,0,0)`;
   jfill.style.transform=`scaleX(${jp.toFixed(4)})`;
   const lw=jtag.parentElement.clientWidth, tw=jtag.offsetWidth;
   jtag.style.left=clamp(jp*lw, tw/2, lw-tw/2).toFixed(1)+'px';
   const js=Math.min(5,Math.floor(jp*6));
-  if(js!==jStep){ jStep=js; jnodes.forEach((n,i)=>n.classList.toggle('on',i<=js)); jcards.forEach((c,i)=>c.classList.toggle('on',i===js)); if(jp>0&&jp<1) CUE.stage(js); }
+  if(js!==jStep){ jStep=js; jcards.forEach((c,i)=>c.classList.toggle('on',i===js)); if(jp>0&&jp<1) CUE.stage(js); }
 
-  // The loop: an orb circles the six steps, a comet of progress behind it
   if(ringVis && !REDUCED){
     const th=((now-ringT0)/1000)*(Math.PI*2/10), r=ring.clientWidth*.375, f=frac(th/(Math.PI*2));
     ringOrb.style.transform=`translate3d(${(Math.sin(th)*r).toFixed(1)}px,${(-Math.cos(th)*r).toFixed(1)}px,0)`;
-    ringArc.style.strokeDasharray='130 812.5'; ringArc.style.strokeDashoffset=(130-f*942.5).toFixed(1);
+    ringArc.style.strokeDashoffset=(130-f*942.5).toFixed(1);
     const k=Math.round(f*6)%6;
     if(k!==ringIdx){ ringIdx=k; rnodes.forEach((n,i)=>n.classList.toggle('on',i===k)); if(ringPings++<7) CUE.node(k); }
   }
 
-  // clouds drift at their own depth
-  for(const c of pclouds){ const r=c.getBoundingClientRect(); if(r.bottom<-200||r.top>vh+200) continue;
-    c.style.transform=`translate3d(0,${((r.top+r.height/2-vh/2)*+c.dataset.speed).toFixed(1)}px,0)`; }
-
-  // belts
   if(beltsOn){ for(const b of belts){ if(!b.w) continue;
     const target=REDUCED?0:(b.hover?0:30)+Math.min(120,Math.abs(vel)*.08);
     b.v+=(target-b.v)*.05; b.x+=b.dir*b.v*dt;
@@ -1450,33 +1306,21 @@ function page(now){
 requestAnimationFrame(page);
 addEventListener('resize',measureBelts);
 (document.fonts?document.fonts.ready:Promise.resolve()).then(measureBelts);
-if(REDUCED) belts.forEach(b=>b.el.querySelectorAll('[aria-hidden]').forEach(n=>n.remove()));
 
-/* leaderboard: a reconciled collection moves Alex up */
+/* leaderboard: a verified collection moves Alex up */
 const rows={maya:$('rMaya'), alex:$('rAlex'), sam:$('rSam')};
 const place=()=>Object.values(rows).forEach(r=>{ r.style.setProperty('--r',r.dataset.rank); r.querySelector('.rk').textContent=+r.dataset.rank+1; });
-place();
-$('rMaya').querySelector('.bar i').style.setProperty('--w',(1500/1550).toFixed(3));
-$('alexBar').style.setProperty('--w',(1200/1550).toFixed(3));
-$('rSam').querySelector('.bar i').style.setProperty('--w',(1000/1550).toFixed(3));
-rows.maya.classList.add('lead');
+place(); rows.maya.classList.add('lead');
+$('mayaBar').style.setProperty('--w',(1500/1550).toFixed(3)); $('alexBar').style.setProperty('--w',(1200/1550).toFixed(3)); $('samBar').style.setProperty('--w',(1000/1550).toFixed(3));
 $('bcard').addEventListener('revealed',()=>{
-  setTimeout(()=>{ $('bcEvent').classList.add('on'); if(SND.on) chime(987.77,.03); },1100);
+  setTimeout(()=>{ $('bcEvent').classList.add('on'); if(SND.on) chime(987.77,.03); },1000);
   setTimeout(()=>{ const a0=1200,a1=1550,T=1300,t0=performance.now(); let lastTick=0;
     (function up(n){ const k=eo(clamp((n-t0)/T)), v=Math.round(lerp(a0,a1,k)/10)*10;
       $('alexAmt').textContent='$'+v.toLocaleString('en-US'); $('alexBar').style.setProperty('--w',(v/1550).toFixed(3));
       if(n-lastTick>110&&k<1){ lastTick=n; tick(2400+k*900,.012); }
-      if(k<1) requestAnimationFrame(up); })(t0); },1700);
-  setTimeout(()=>{ rows.alex.dataset.rank=0; rows.maya.dataset.rank=1; place(); rows.maya.classList.remove('lead'); rows.alex.classList.add('lead'); CUE.rank(); },3300);
+      if(k<1) requestAnimationFrame(up); })(t0); },1600);
+  setTimeout(()=>{ rows.alex.dataset.rank=0; rows.maya.dataset.rank=1; place(); rows.maya.classList.remove('lead'); rows.alex.classList.add('lead'); CUE.rank(); },3200);
 });
-
-/* six needs: once the grid is read, Marcus's two needs light up */
-if(io) new IntersectionObserver((e,o)=>{ if(!e[0].isIntersecting) return; o.disconnect();
-  setTimeout(()=>{ $('ngrid').classList.add('lit'); if(SND.on){ chime(880,.035); setTimeout(()=>SND.on&&chime(1318.5,.03),160); } },1100); },{threshold:.35}).observe($('ngrid'));
-else $('ngrid').classList.add('lit');
-
-/* funnel: bars grow, then the weakest transition is flagged */
-$('fcard').addEventListener('revealed',()=>setTimeout(()=>{ $('fcard').classList.add('flag'); CUE.stall(); },1500));
 
 /* voices: the visitor presses play; the words light up as they are spoken */
 const TTS=window.speechSynthesis;
@@ -1504,7 +1348,7 @@ function say(btn,text,kind,words){
   if(words){ quoteEl.classList.add('speaking'); words.forEach(w=>{ const t=w.textContent.replace(/[“”]/g,''); const i=text.indexOf(t,acc); starts.push(i<0?acc:i); acc=(i<0?acc:i)+t.length; }); }
   const light=ci=>words&&words.forEach((w,i)=>w.classList.toggle('said',starts[i]<=ci));
   u.onboundary=e=>{ gotBoundary=true; light(e.charIndex); };
-  u.onstart=()=>{ if(words) fallback=setTimeout(function est(){ if(gotBoundary) return;   // voices without word events: pace it
+  u.onstart=()=>{ if(words) fallback=setTimeout(function(){ if(gotBoundary) return;   // voices without word events: pace it
       const per=1000/(14.5*u.rate), t0=performance.now();
       (function run(){ if(speaking!==btn||gotBoundary) return; light((performance.now()-t0)/per); if((performance.now()-t0)/per<text.length) requestAnimationFrame(run); })(); },450); };
   u.onend=u.onerror=()=>{ clearTimeout(fallback); if(speaking===btn){ light(1e9); setTimeout(()=>{ if(speaking===btn) stopVoice(); },900); } };
@@ -1512,9 +1356,9 @@ function say(btn,text,kind,words){
 }
 if(TTS && 'SpeechSynthesisUtterance' in window){
   const vm=$('vMarcus'), vj=$('vJordan'); vm.hidden=vj.hidden=false;
-  TTS.getVoices(); if(TTS.addEventListener) TTS.addEventListener('voiceschanged',()=>{});
-  vm.onclick=()=>say(vm,'Some months we’re fine. Other months, we’re waiting for someone to pull a Babe Ruth and save the quarter.','marcus',qWords);
-  vj.onclick=()=>say(vj,'What would a consistent month look like, without needing that home run?','jordan',null);
+  TTS.getVoices();
+  vm.onclick=()=>say(vm,'Some months I’m fine. Other months, my team is waiting for someone to pull a Babe Ruth and save the quarter.','marcus',qWords);
+  vj.onclick=()=>say(vj,'What would a steady month look like, without waiting on a Babe Ruth?','jordan',null);
   addEventListener('pagehide',stopVoice);
 }
 if(document.fonts){ document.fonts.addEventListener('loadingdone',()=>{ if(W) resize(); }); document.fonts.ready.then(()=>{ if(W) resize(); }); }
