@@ -88,6 +88,30 @@ Sources, all third-party channels (not Obavia's numbers):
 - **Front-end purchase ($1K–2K) before the call** lets sales talk only to buyers, and lets ads optimize on purchases daily.
 - **Email deliverability is broken for most** and nobody checks it.
 
+## 6. How the $5M floor hires and screens reps (Viral Coach, new-rep training)
+
+- **Trial period: 100 leads, at least 2 closes.** New reps get tier-three leads, the hardest and cheapest in the company, so a weak rep burns cheap leads, not expensive ones. Reps are screened on three things: lead efficiency, independence and actual selling.
+- **Lead efficiency is judged before the first close:**
+  - Show rate: about 30% if the rep does no outreach before the call, about double for reps who text, email and call before it. The lead pool is identical; only the pre-call effort differs.
+  - Fast follow-up on no-shows.
+  - Zero dropped calls. A missed booked call ends the trial.
+  - Hot transfers: pass double-booked calls in a Slack channel, and pick up others' live calls, which are usually tier-one or tier-two leads.
+- **Independence:**
+  - Start on the day you said you would.
+  - Get through training in 2 to 5 days.
+  - No hand-holding needed on tech. The top 5 reps never asked a single question beyond the onboarding material.
+- **Earned progression.** Out of the trial means tier-one and tier-two leads, double or triple bookings per hour, a dedicated setter or calendar management, and a top-of-market commission ceiling.
+- **Published records set expectations:**
+  - fastest first close: the first lead, in the first hour;
+  - fastest out of the trial: 2 days, 3 closes from 13 leads;
+  - best first month: $46K in commission on tier-three leads only.
+- **Reframe of "the leads are broke":** broke owners need marketing more than anyone, and a sophisticated rep should close an unsophisticated buyer.
+
+**For Obavia:** a new-rep trial mode.
+- Track a rep's first 100 leads live: show rate against the no-outreach baseline, speed of no-show follow-up, dropped calls, hot transfers passed and taken, days to ramp, and closes.
+- Say clearly whether a rep is on pace to pass, early, so the owner stops spending leads on a rep who won't make it.
+- Promote reps who pass up the lead tiers automatically.
+
 ## What this means for Obavia
 
 **Site copy.** Speak their language:
