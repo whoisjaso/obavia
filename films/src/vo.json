@@ -1,0 +1,86 @@
+{
+ "sales": [
+  {
+   "file": "vo/sales_0.wav",
+   "text": "Forty-seven minutes. Great call. Then he said, let me think about it.",
+   "sec": 4.127
+  },
+  {
+   "file": "vo/sales_1.wav",
+   "text": "He told you exactly what mattered. You just didn't catch it.",
+   "sec": 3.352
+  },
+  {
+   "file": "vo/sales_2b.wav",
+   "text": "He said I'm, not we're. My team, not our team. He needs to matter.",
+   "sec": 3.984
+  },
+  {
+   "file": "vo/sales_3b.wav",
+   "text": "He could have said Jordan. LeBron. Serena. He chose Babe Ruth. The one who saves the game.",
+   "sec": 5.884
+  },
+  {
+   "file": "vo/sales_4.wav",
+   "text": "Obavia listens with you, and hands you the next line.",
+   "sec": 3.201
+  },
+  {
+   "file": "vo/sales_5.wav",
+   "text": "Now he's the one leaning in.",
+   "sec": 1.595
+  },
+  {
+   "file": "vo/sales_6.wav",
+   "text": "Close on cash, not calls. And climb the board.",
+   "sec": 3.044
+  },
+  {
+   "file": "vo/sales_7.wav",
+   "text": "Obavia. Hear what they really mean.",
+   "sec": 2.139
+  }
+ ],
+ "owner": [
+  {
+   "file": "vo/owner_0.wav",
+   "text": "Some months, you're fine.",
+   "sec": 1.274
+  },
+  {
+   "file": "vo/owner_1.wav",
+   "text": "Other months, you're waiting on a Babe Ruth to save the quarter.",
+   "sec": 3.019
+  },
+  {
+   "file": "vo/owner_2.wav",
+   "text": "You have the leads. The reps. The calls. So where does the money go?",
+   "sec": 3.743
+  },
+  {
+   "file": "vo/owner_3.wav",
+   "text": "It leaks. In the handoffs. In the no-shows. In the words nobody heard.",
+   "sec": 4.077
+  },
+  {
+   "file": "vo/owner_4.wav",
+   "text": "Obavia hears every call, carries each client's words from setter to closer, and traces every deal to cash.",
+   "sec": 6.744
+  },
+  {
+   "file": "vo/owner_5.wav",
+   "text": "See where progress stops. Know exactly what to do next.",
+   "sec": 3.315
+  },
+  {
+   "file": "vo/owner_6.wav",
+   "text": "Not another dashboard. A loop that keeps working, every week.",
+   "sec": 3.317
+  },
+  {
+   "file": "vo/owner_7.wav",
+   "text": "Obavia. Your sales operation, connected from lead to cash.",
+   "sec": 3.969
+  }
+ ]
+}
