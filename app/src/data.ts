@@ -1,6 +1,7 @@
-/* Demo workspace: one fictional agency, one month.
-   Every number below is invented and every screen says so. The real app
-   fills these same shapes from the phone system, calendar and payments. */
+/* One agency, one month. The same shapes are filled from the phone system,
+   calendar and payments once they are connected. */
+
+export const AGENCY = { name: 'Northstar Agency', owner: 'Alex Rivera', initials: 'AR' };
 
 export const STAGES = ['Leads', 'Booked', 'Showed', 'Qualified', 'Won'] as const;
 export const STEPS = ['Lead → Booked', 'Booked → Showed', 'Showed → Qualified', 'Qualified → Won'] as const;
@@ -78,18 +79,35 @@ export const NEEDS: Record<Significance, { need: string; fear: string; open: str
 };
 
 export type LeadEvent = { t: string; what: string; detail?: string; src: 'Phone' | 'Calendar' | 'Payments' | 'Form' | 'From the call' };
+/** A word they used, and the word they could have used instead. */
+export type Signal = { said: string; over: string; means: string };
+/** A name or picture they reached for, out of everything they could have said. */
+export type Reference = { name: string; over: string[]; means: string };
 export type Lead = {
   id: string; name: string; company: string; revenue: string; source: string;
   stage: (typeof STAGES)[number]; rep: string; next: string; due: string; hot?: boolean;
-  quote: string; self: string[]; chose: string; matters: string;
-  type: Significance; typeConf: number; words: string[]; events: LeadEvent[];
+  quote: string; marks: string[]; signals: Signal[]; reference?: Reference;
+  type: Significance; read: [Significance, number][]; say: string; avoid: string; events: LeadEvent[];
+};
+
+/** The need behind each type, in plain words. */
+export const NEED: Record<Significance, string> = {
+  'Status Seeker': 'Needs to feel significant', 'People Pleaser': 'Needs approval', 'Belonger': 'Needs to belong',
+  'Intellectual': 'Needs to be seen as smart', 'Victim': 'Needs to be understood', 'Dominator': 'Needs to be in control',
 };
 
 export const LEADS: Lead[] = [
   { id: 'marcus', name: 'Marcus Hale', company: 'Hale Growth Co.', revenue: '$240K/mo', source: 'Paid social', stage: 'Qualified', rep: 'dana', next: 'Close call', due: 'Today 2:00 PM', hot: true,
-    quote: 'Some months I’m fine. Other months, my team is waiting for someone to pull a Babe Ruth and save the quarter.', self: ['I’m', 'my'], chose: 'Babe Ruth',
-    matters: 'A hero who saves the quarter. He wants steadiness without depending on one person.', type: 'Status Seeker', typeConf: 74,
-    words: ['“Babe Ruth”', '“Some months I’m fine”', '“My team waits on one person”'],
+    quote: 'Some months I’m fine. Other months, my team is waiting for someone to pull a Babe Ruth and save the quarter.',
+    marks: ['I’m', 'my', 'Babe Ruth'],
+    signals: [
+      { said: 'I’m fine', over: 'we’re fine', means: 'He puts himself at the center.' },
+      { said: 'my team', over: 'our team', means: 'He owns it. The team is his.' },
+    ],
+    reference: { name: 'Babe Ruth', over: ['Michael Jordan', 'LeBron James', 'Serena Williams', 'Tom Brady', 'Michael Jackson'], means: 'Baseball. A legend. The one who steps up and saves the game.' },
+    type: 'Status Seeker', read: [['Status Seeker', 74], ['Belonger', 15], ['People Pleaser', 11]],
+    say: '“You’ve built something most owners never reach. Let’s get every rep hitting like your Babe Ruth.”',
+    avoid: 'Talking down to him, or leading with other agencies’ results.',
     events: [
       { t: 'Mon 12:31', what: 'Lead came in', detail: 'Paid social · agency form', src: 'Form' },
       { t: 'Mon 12:33', what: 'Call connected', detail: '7m 42s · Jordan', src: 'Phone' },
@@ -98,9 +116,15 @@ export const LEADS: Lead[] = [
       { t: 'Wed 10:40', what: 'Qualified', detail: '86 of 100', src: 'From the call' },
     ] },
   { id: 'priya', name: 'Priya Nair', company: 'Northline Media', revenue: '$410K/mo', source: 'Referral', stage: 'Showed', rep: 'maya', next: 'Send recap', due: 'Today 4:00 PM',
-    quote: 'We did two-forty last month. I just need it predictable, we keep guessing.', self: ['I'], chose: 'predictable',
-    matters: 'Predictability. She is tired of guessing.', type: 'Intellectual', typeConf: 68,
-    words: ['“Predictable”', '“We keep guessing”'],
+    quote: 'We did two-forty last month. I just need it predictable, we keep guessing.',
+    marks: ['two-forty', 'predictable', 'guessing'],
+    signals: [
+      { said: 'two-forty', over: 'pretty good', means: 'She speaks in exact numbers.' },
+      { said: 'predictable', over: 'bigger', means: 'She wants certainty more than growth.' },
+    ],
+    type: 'Intellectual', read: [['Intellectual', 68], ['Belonger', 20], ['Status Seeker', 12]],
+    say: '“Here are your numbers, step by step. You’ll see exactly where the guessing comes from.”',
+    avoid: 'Hype, round numbers and big promises.',
     events: [
       { t: 'Tue 09:10', what: 'Lead came in', detail: 'Referral from Hale Growth', src: 'Form' },
       { t: 'Tue 09:12', what: 'Call connected', detail: '11m 05s · Maya', src: 'Phone' },
@@ -108,9 +132,15 @@ export const LEADS: Lead[] = [
       { t: 'Thu 11:31', what: 'She showed', detail: '44 min', src: 'Calendar' },
     ] },
   { id: 'tom', name: 'Tom Reyes', company: 'Reyes & Wolfe', revenue: '$180K/mo', source: 'Paid social', stage: 'Won', rep: 'reza', next: 'Hand to onboarding', due: 'Tomorrow',
-    quote: 'If it pays for itself by month two, we’re in. I don’t need the whole tour.', self: ['I'], chose: 'month two',
-    matters: 'Speed to payback. Wants the short version.', type: 'Dominator', typeConf: 71,
-    words: ['“By month two”', '“Not the whole tour”'],
+    quote: 'If it pays for itself by month two, we’re in. I don’t need the whole tour.',
+    marks: ['month two', 'I don’t need'],
+    signals: [
+      { said: 'by month two', over: 'eventually', means: 'He sets the deadline, not you.' },
+      { said: 'I don’t need the whole tour', over: 'walk me through it', means: 'He wants control of the pace.' },
+    ],
+    type: 'Dominator', read: [['Dominator', 71], ['Status Seeker', 19], ['Intellectual', 10]],
+    say: '“Two options. Both pay back by month two. You pick.”',
+    avoid: 'Long explanations and a full tour.',
     events: [
       { t: 'Mon 15:02', what: 'Lead came in', detail: 'Paid social', src: 'Form' },
       { t: 'Mon 15:04', what: 'Call connected', detail: '6m 10s · Reza', src: 'Phone' },
@@ -118,19 +148,32 @@ export const LEADS: Lead[] = [
       { t: 'Tue 10:24', what: 'Paid', detail: '$6,000', src: 'Payments' },
     ] },
   { id: 'lena', name: 'Lena Park', company: 'Park Studio', revenue: '$120K/mo', source: 'Web form', stage: 'Leads', rep: 'jordan', next: 'First call', due: 'Now', hot: true,
-    quote: '—', self: [], chose: '', matters: 'Not heard yet. First call not made.', type: 'Belonger', typeConf: 0, words: [],
+    quote: '', marks: [], signals: [], type: 'Belonger', read: [], say: '', avoid: '',
     events: [{ t: 'Today 1:14', what: 'Lead came in', detail: 'Web form · waiting 0:42', src: 'Form' }] },
   { id: 'sam', name: 'Sam Okafor', company: 'Okafor Digital', revenue: '$300K/mo', source: 'Paid social', stage: 'Booked', rep: 'jordan', next: 'Confirm agenda', due: 'Today 5:00 PM',
-    quote: 'Sure, any time is fine. What was this about again?', self: [], chose: 'any time', matters: 'Unclear. Agenda never confirmed.', type: 'People Pleaser', typeConf: 52,
-    words: ['“Any time is fine”'],
+    quote: 'Sure, any time is fine. What was this about again?',
+    marks: ['any time is fine', 'What was this about again?'],
+    signals: [
+      { said: 'any time is fine', over: 'Tuesday at three', means: 'He agrees easily. A soft yes, not a commitment.' },
+    ],
+    type: 'People Pleaser', read: [['People Pleaser', 52], ['Belonger', 28], ['Status Seeker', 20]],
+    say: '“So I don’t waste your time, here’s what we’ll cover. If Monday slips, just move it here.”',
+    avoid: 'Taking “sure” as a yes.',
     events: [
       { t: 'Tue 16:40', what: 'Lead came in', detail: 'Paid social', src: 'Form' },
       { t: 'Wed 09:05', what: 'Call connected', detail: '3m 12s · Jordan', src: 'Phone' },
       { t: 'Wed 09:08', what: 'Discovery booked', detail: 'Mon 3:00 · no agenda, no timezone', src: 'Calendar' },
     ] },
   { id: 'elena', name: 'Elena Vasquez', company: 'Brightpath Agency', revenue: '$520K/mo', source: 'Podcast', stage: 'Qualified', rep: 'andre', next: 'Close call', due: 'Tomorrow 10:00',
-    quote: 'Every agency like ours I talk to is dealing with this. Who else have you done it for?', self: [], chose: 'agency like ours', matters: 'Being in good company. Wants proof from peers.', type: 'Belonger', typeConf: 66,
-    words: ['“Agency like ours”', '“Who else”'],
+    quote: 'Every agency like ours I talk to is dealing with this. Who else have you done it for?',
+    marks: ['agency like ours', 'Who else'],
+    signals: [
+      { said: 'agency like ours', over: 'my agency', means: 'She sees herself as one of a group.' },
+      { said: 'Who else', over: 'What will it do', means: 'Proof from peers matters more than features.' },
+    ],
+    type: 'Belonger', read: [['Belonger', 66], ['People Pleaser', 20], ['Status Seeker', 14]],
+    say: '“Want to see how agencies your size run it, before we talk about yours?”',
+    avoid: 'Making her feel like the first to try it.',
     events: [
       { t: 'Mon 11:00', what: 'Lead came in', detail: 'Podcast', src: 'Form' },
       { t: 'Mon 11:20', what: 'Call connected', detail: '14m 02s · Andre', src: 'Phone' },

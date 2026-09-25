@@ -1,48 +1,42 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { STAGES, STEPS, type StepIndex } from './data';
 import { HEALTH_LABEL, biggest, health, k, perLead, rates, money, type Counts, type Health } from './engine';
 
-/* ---------- icons, drawn from the mark ---------- */
+/* ---------- icons: one weight, rounded, like the mark's ribbon ---------- */
 const GLYPH: Record<string, ReactNode> = {
-  overview: <><path d="M12.5 26.5v-5M17.5 26.5V17M22.5 26.5v-7M27.5 26.5V13.5" /></>,
-  leak: <path d="M12.5 13.5h15l-5.8 7.2v6.8l-3.4-1.8v-5z" />,
-  reps: <><circle cx="16.5" cy="17" r="3.4" /><circle cx="24.5" cy="17.8" r="2.8" /><path d="M11.5 27c.8-3.6 3-5.4 5-5.4s4.2 1.8 5 5.4M22.4 22.3c2.8-.6 5 1 5.9 4.7" /></>,
-  move: <><path d="M12.5 25.5c3.2-6.4 8.6-8 14.5-5.2" /><path d="M23.4 16.4l3.9 4-4.4 3.4" /></>,
-  leads: <><circle cx="20" cy="17.2" r="4" /><path d="M13 27.5c1.4-3.8 4-5.6 7-5.6s5.6 1.8 7 5.6" /></>,
-  today: <><circle cx="20" cy="20" r="7.2" /><path d="M20 16.4V20l2.6 1.8" /></>,
-  call: <path d="M13.2 18v4M17.4 13.5v13M21.6 15.8v8.4M25.8 17.6v4.8" />,
-  show: <><circle cx="20" cy="20" r="7.2" /><circle cx="20" cy="20" r="2.4" className="fill" /></>,
-  cash: <path d="M24.8 14.8c-1-1.8-2.8-2.8-4.9-2.8-2.8 0-4.8 1.6-4.8 3.8 0 5.2 9.9 3.1 9.9 8.6 0 2.4-2.2 4-5.2 4-2.2 0-4-.9-5-2.7" />,
-  check: <path d="M13.6 20.6l4.4 4.4 8.6-9" />,
-  play: <path d="M17 13.8v12.4l9.6-6.2z" />,
+  overview: <path d="M5 19.5v-6M10 19.5V6.5M15 19.5v-8M20 19.5v-11" />,
+  leak: <path d="M12 3.8c3.3 4 5.6 7.2 5.6 10.1a5.6 5.6 0 0 1-11.2 0c0-2.9 2.3-6.1 5.6-10.1z" />,
+  reps: <><circle cx="9" cy="8.5" r="3.2" /><path d="M3.5 19.5c.9-3.4 3-5.1 5.5-5.1s4.6 1.7 5.5 5.1" /><path d="M16 5.6a3 3 0 0 1 0 5.8M17.2 14.6c1.8.5 3 2.1 3.5 4.9" /></>,
+  move: <><path d="M4.5 18c2.4-6.3 7.6-8.7 14-6.2" /><path d="M15.4 7.6l3.8 4-4.3 3.6" /></>,
+  leads: <><circle cx="12" cy="8.6" r="3.6" /><path d="M5 19.8c1.3-3.6 3.9-5.5 7-5.5s5.7 1.9 7 5.5" /></>,
+  today: <><circle cx="12" cy="12" r="8" /><path d="M12 7.8V12l2.9 2" /></>,
+  phone: <path d="M7.4 4.5h2.2l1.4 3.8-1.8 1.2a9.6 9.6 0 0 0 5.3 5.3l1.2-1.8 3.8 1.4v2.2a2 2 0 0 1-2.2 2A14.5 14.5 0 0 1 5.4 6.7a2 2 0 0 1 2-2.2z" />,
+  calendar: <><rect x="4.5" y="5.5" width="15" height="14" rx="3" /><path d="M4.5 10h15M9 3.8v3.4M15 3.8v3.4" /></>,
+  card: <><rect x="3.5" y="6" width="17" height="12" rx="3" /><path d="M3.5 10.2h17M7 14.6h3.5" /></>,
+  check: <path d="M5.5 12.5l4.2 4.2 8.8-9.4" />,
+  chev: <path d="M9.5 6l6 6-6 6" />,
+  x: <path d="M7 7l10 10M17 7L7 17" />,
+  sound: <><path d="M5 10v4h3l4 3.5v-11L8 10z" /><path d="M15.5 9.2a4 4 0 0 1 0 5.6" /></>,
 };
-export function Icon({ name, size = 30, dim }: { name: keyof typeof GLYPH | string; size?: number; dim?: boolean }) {
-  const id = useId().replace(/:/g, '');
-  const g = GLYPH[name];
+export function Ic({ name, size = 22, w = 1.8, className = 'ic' }: { name: string; size?: number; w?: number; className?: string }) {
   return (
-    <svg className={'obi' + (dim ? ' dim' : '')} viewBox="0 0 40 40" width={size} height={size} aria-hidden="true">
-      <defs>
-        <linearGradient id={id + 'g'} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#E9EFFE" /><stop offset=".55" stopColor="#B8C8F1" /><stop offset="1" stopColor="#869FD6" /></linearGradient>
-        <radialGradient id={id + 'l'} cx=".74" cy=".34" r=".46"><stop offset="0" stopColor="#5A73B0" stopOpacity=".34" /><stop offset="1" stopColor="#5A73B0" stopOpacity="0" /></radialGradient>
-      </defs>
-      <circle cx="20" cy="20" r="19" fill={`url(#${id}g)`} /><circle cx="20" cy="20" r="19" fill={`url(#${id}l)`} />
-      <g className="s" transform="translate(.7 .9)">{g}</g><g className="g">{g}</g>
-      <path d="M6.4 15.2A14.6 14.6 0 0 1 14.6 6.5" fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="1.1" strokeLinecap="round" />
+    <svg className={className} viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {GLYPH[name]}
     </svg>
   );
 }
+export const Chev = () => <Ic name="chev" size={16} w={2.2} className="chev" />;
 
-export function Pill({ i, v, sm }: { i: StepIndex; v: number; sm?: boolean }) {
-  const h = health(i, v);
-  return <span className={`hp ${h}${sm ? ' sm' : ''}`}><b className="num">{Math.round(v)}%</b><span>{HEALTH_LABEL[h]}</span></span>;
+/** Leak / on pace / strong, as a coloured dot and a word. */
+export function Status({ h, children }: { h: Health; children?: ReactNode }) {
+  return <span className={'st ' + h}>{children ?? HEALTH_LABEL[h]}</span>;
+}
+export function Track({ w, h }: { w: number; h?: Health }) {
+  return <div className={'track' + (h && h !== 'norm' ? ' ' + h : '')}><i style={{ width: Math.max(2, Math.min(100, w)) + '%' }} /></div>;
 }
 
 export function Avatar({ initials, tint = 'a', lg }: { initials: string; tint?: string; lg?: boolean }) {
   return <span className={`av ${tint}${lg ? ' lg' : ''}`}>{initials}</span>;
-}
-
-export function Bar({ w, leak }: { w: number; leak?: boolean }) {
-  return <div className={'bar' + (leak ? ' leak' : '')}><i style={{ width: Math.max(2, Math.min(100, w)) + '%' }} /></div>;
 }
 
 export function Spark({ data, h, color = '#7D97C7' }: { data: number[]; h?: Health; color?: string }) {
@@ -76,7 +70,7 @@ export function useCount(to: number, dur = 900) {
 const HCOL: Record<Health, string> = { good: '#96E0BA', norm: '#C8D6FC', leak: '#F5C593' };
 const TINT: Record<Health, string> = { good: '118,214,166', norm: '', leak: '244,178,112' };
 
-export function Funnel({ c, compact, onStep, active }: { c: Counts; compact?: boolean; onStep?: (i: StepIndex) => void; active?: StepIndex }) {
+export function Funnel({ c, compact, onStep, active, callout }: { c: Counts; compact?: boolean; onStep?: (i: StepIndex) => void; active?: StepIndex; callout?: boolean }) {
   const box = useRef<HTMLDivElement>(null), cv = useRef<HTMLCanvasElement>(null);
   const [w, setW] = useState(0);
   const conv = rates(c), hs = conv.map((v, i) => health(i as StepIndex, v)), worst = biggest(c);
@@ -86,9 +80,9 @@ export function Funnel({ c, compact, onStep, active }: { c: Counts; compact?: bo
   const vert = w > 0 && w < (compact ? 420 : 560);
   const n = 5, endW = compact ? 90 : 150;
   const L = vert
-    ? { axis: 50, T: 70, pos: [0, 1, 2, 3, 4].map(i => 36 + i * (compact ? 78 : 92)), h: 0, endX: w / 2, endY: 0 }
-    : { axis: compact ? 62 : 134, T: compact ? 40 : Math.min(104, w * .09), pos: [0, 1, 2, 3, 4].map(i => 34 + i * ((w - endW - 60) / 4)), h: compact ? 150 : 290, endX: w - endW / 2, endY: compact ? 62 : 134 };
-  if (vert) { L.endY = L.pos[4] + 130; L.h = L.endY + 70; }
+    ? { axis: 50, T: 70, pos: [0, 1, 2, 3, 4].map(i => 30 + i * (compact ? 64 : 70)), h: 0, endX: w / 2, endY: 0 }
+    : { axis: compact ? 62 : 134, T: compact ? 40 : Math.min(104, w * .09), pos: [0, 1, 2, 3, 4].map(i => 34 + i * ((w - endW - 60) / 4)), h: compact ? 150 : 250, endX: w - endW / 2, endY: compact ? 62 : 134 };
+  if (vert) { L.endY = L.pos[4] + 104; L.h = L.endY + 62; }
   const th = c.map(v => L.T * (.14 + .86 * Math.sqrt(v / c[0])));
 
   useEffect(() => {
@@ -147,17 +141,17 @@ export function Funnel({ c, compact, onStep, active }: { c: Counts; compact?: bo
       aria-label={STAGES.map((s, i) => `${c[i]} ${s.toLowerCase()}`).join(', ') + `. ${money(perLead(c))} per lead.`}>
       <canvas ref={cv} aria-hidden="true" />
       {w > 0 && STAGES.map((s, i) => (
-        <div key={s} className="st" aria-hidden="true" style={vert ? { left: L.axis + L.T / 2 + 20, top: L.pos[i] - 20, transform: 'none', textAlign: 'left' } : { left: L.pos[i], top: L.axis - L.T / 2 - (compact ? 32 : 60) }}>
+        <div key={s} className={'stg' + (vert ? ' vert' : '')} aria-hidden="true" style={vert ? { left: L.axis + L.T / 2 + 20, top: L.pos[i] - 20 } : { left: L.pos[i], top: L.axis - L.T / 2 - (compact ? 32 : 60) }}>
           <b className="num">{c[i].toLocaleString('en-US')}</b>{(!compact || vert) && <span>{s}</span>}
         </div>
       ))}
       {w > 0 && conv.map((v, i) => (
-        <button key={i} type="button" className={`hp ${hs[i]}${compact ? ' sm' : ''}`} title={STEPS[i]} onClick={() => onStep?.(i as StepIndex)}
-          style={vert ? { left: w - 40, top: (L.pos[i] + L.pos[i + 1]) / 2 - 20 } : { left: (L.pos[i] + L.pos[i + 1]) / 2, top: L.axis + L.T / 2 + (compact ? 10 : 18) }}>
-          <b className="num">{Math.round(v)}%</b><span>{HEALTH_LABEL[hs[i]]}</span>
+        <button key={i} type="button" className={`rt ${hs[i]}${vert ? ' vert' : ''}`} title={STEPS[i]} aria-label={`${STEPS[i]}: ${Math.round(v)}%, ${HEALTH_LABEL[hs[i]]}`} onClick={() => onStep?.(i as StepIndex)}
+          style={vert ? { right: 0, top: (L.pos[i] + L.pos[i + 1]) / 2 - 20 } : { left: (L.pos[i] + L.pos[i + 1]) / 2, top: L.axis + L.T / 2 + (compact ? 10 : 18) }}>
+          <span className="num" style={{ font: 'inherit', color: 'inherit' }}>{Math.round(v)}%</span><span>{HEALTH_LABEL[hs[i]]}</span>
         </button>
       ))}
-      {w > 0 && !compact && !vert && worst.worth > 0 && (
+      {w > 0 && callout && !compact && !vert && worst.worth > 0 && (
         <div className="call" aria-hidden="true" style={{ left: (L.pos[worst.step] + L.pos[worst.step + 1]) / 2, top: L.axis + L.T / 2 + 70 }}>
           Biggest leak: {k(worst.worth)}<span>a month left on the table</span>
         </div>

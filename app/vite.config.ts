@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// The app ships as static files inside the site, at /app/ (Cloudflare Pages, no build step there).
+// The app is its own deploy (app.obavia.co), separate from the marketing site in ../obavia-co.
 export default defineConfig({
   plugins: [react()],
   base: './',
-  build: { outDir: '../obavia-co/app', emptyOutDir: true, assetsDir: 'assets' },
+  build: { outDir: 'dist', emptyOutDir: true, assetsDir: 'assets' },
 });
