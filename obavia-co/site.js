@@ -87,6 +87,34 @@ if(!HOST){
 }
 
 /* ============================================================
+   ICONS: drawn from the mark itself. The mark's orb and its
+   white ribbon stroke, so every symbol belongs to Obavia.
+   ============================================================ */
+const GLYPH = {
+  call:  '<path d="M13.2 18v4M17.4 13.5v13M21.6 15.8v8.4M25.8 17.6v4.8"/>',
+  show:  '<circle cx="20" cy="20" r="7.2"/><circle cx="20" cy="20" r="2.4" class="fill"/>',
+  cash:  '<path d="M24.8 14.8c-1-1.8-2.8-2.8-4.9-2.8-2.8 0-4.8 1.6-4.8 3.8 0 5.2 9.9 3.1 9.9 8.6 0 2.4-2.2 4-5.2 4-2.2 0-4-.9-5-2.7"/>',
+  own:   '<circle cx="20" cy="17.2" r="3.8"/><path d="M20 21v5.6"/>',
+  check: '<path d="M13.6 20.6l4.4 4.4 8.6-9"/>',
+  now:   '<circle cx="20" cy="20" r="3.2" class="fill"/><circle cx="20" cy="20" r="8.2"/>',
+};
+let obid = 0;
+OBV.icon = (name,size=34) => { const id='ob'+(obid++), g=GLYPH[name]||'';
+  return `<svg class="obi" viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true"><defs>`
+   +`<linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9EFFE"/><stop offset=".55" stop-color="#B8C8F1"/><stop offset="1" stop-color="#869FD6"/></linearGradient>`
+   +`<radialGradient id="${id}l" cx=".74" cy=".34" r=".46"><stop offset="0" stop-color="#5A73B0" stop-opacity=".34"/><stop offset="1" stop-color="#5A73B0" stop-opacity="0"/></radialGradient></defs>`
+   +`<circle cx="20" cy="20" r="19" fill="url(#${id}g)"/><circle cx="20" cy="20" r="19" fill="url(#${id}l)"/>`
+   +`<g class="obi-s" transform="translate(.7 .9)">${g}</g><g class="obi-g">${g}</g>`
+   +`<path d="M6.4 15.2A14.6 14.6 0 0 1 14.6 6.5" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.1" stroke-linecap="round"/></svg>`; };
+OBV.mark = (name,size) => `<svg class="obm" viewBox="10 10 20 20" width="${size}" height="${size}" aria-hidden="true"><g>${GLYPH[name]||''}</g></svg>`;
+const renderIcons = (root=document) => {
+  $$('[data-obi]',root).forEach(el=>{ el.innerHTML=OBV.icon(el.dataset.obi,+el.dataset.size||34); });
+  $$('[data-obm]',root).forEach(el=>{ el.innerHTML=OBV.mark(el.dataset.obm,+el.dataset.size||16); });
+};
+renderIcons();
+OBV.renderIcons = renderIcons;
+
+/* ============================================================
    SKY, NAV, MENU, TRANSITIONS
    ============================================================ */
 if(!HOST && !$('.skybg')){

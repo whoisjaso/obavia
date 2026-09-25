@@ -228,3 +228,21 @@ body.leaving main,body.leaving .foot{opacity:0;transform:translateY(-10px);filte
 }
 /* halos may spin past the edge; they never widen the page */
 main{overflow-x:clip}
+
+/* ---------- Obavia icons: the mark's orb, the mark's ribbon ---------- */
+.obi{display:block;overflow:visible;filter:drop-shadow(0 8px 14px rgba(78,102,160,.28))}
+.obi .obi-g,.obi .obi-s{fill:none;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}
+.obi .obi-g{stroke:#fff}
+.obi .obi-s{stroke:rgba(78,102,160,.34)}
+.obi .fill{fill:#fff;stroke:none}
+.obi .obi-s .fill{fill:rgba(78,102,160,.34)}
+.js .obi .obi-g>*:not(.fill),.js .obi .obi-s>*:not(.fill){stroke-dasharray:64;stroke-dashoffset:64;transition:stroke-dashoffset 1.3s var(--ease) .25s}
+.js .in .obi .obi-g>*,.js .in .obi .obi-s>*,.js .on .obi .obi-g>*,.js .on .obi .obi-s>*,.js .go .obi .obi-g>*,.js .go .obi .obi-s>*,.js .obi.drawn .obi-g>*,.js .obi.drawn .obi-s>*{stroke-dashoffset:0}
+.js .obi .fill{transform-origin:20px 20px;transform:scale(0);transition:transform .7s var(--ease) .9s}
+.js .in .obi .fill,.js .on .obi .fill,.js .go .obi .fill,.js .obi.drawn .fill{transform:none}
+.obm{display:inline-block;vertical-align:-.18em;overflow:visible}
+.obm g{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.obm .fill{fill:currentColor;stroke:none}
+.chev{display:inline-block;width:10px;height:10px;vertical-align:0;margin-right:3px}
+.chev path{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:reduce){ .js .obi .obi-g>*,.js .obi .obi-s>*{stroke-dashoffset:0!important;transition:none} .js .obi .fill{transform:none!important} }
