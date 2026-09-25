@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Obavia · About</title>
+<meta name="description" content="Why Obavia exists: agency owners already pay for leads. The best rep on the team is doing something the others are not. Obavia finds it, measures it and makes it everyone's.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#F6F9FF">
+<meta property="og:title" content="Obavia · About">
+<meta property="og:description" content="Your best rep knows something. Make it the system.">
+<meta property="og:image" content="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+  .constel{position:relative;max-width:1000px;height:360px;margin:30px auto 0}
+  .constel canvas{position:absolute;inset:0;width:100%;height:100%}
+
+  .laws{max-width:980px;margin:40px auto 0;list-style:none;padding:0;counter-reset:law}
+  .law{display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px 24px;align-items:baseline;padding:44px 0;border-top:1px solid rgba(40,52,79,.08);opacity:.28;transition:opacity .8s var(--ease)}
+  .law:last-child{border-bottom:1px solid rgba(40,52,79,.08)}
+  .law.on{opacity:1}
+  .law .n{font:500 12px/1 var(--mono);letter-spacing:.14em;color:var(--deep)}
+  .law b{display:block;font:800 clamp(30px,4.4vw,56px)/1.02 var(--sans);letter-spacing:-.05em;color:var(--ink)}
+  .law p{grid-column:2;margin:0;max-width:560px;font:500 clamp(16px,1.5vw,19px)/1.5 var(--sans);color:var(--body)}
+  .law .bar{grid-column:2;height:2px;margin-top:14px;border-radius:2px;background:linear-gradient(90deg,var(--peri),var(--deep));transform:scaleX(0);transform-origin:left;transition:transform 1.2s var(--ease)}
+  .law.on .bar{transform:scaleX(.18)}
+
+  .road{position:relative;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));max-width:980px;margin:64px auto 0}
+  .road::before{content:"";position:absolute;left:10%;right:10%;top:15px;height:2px;background:var(--line)}
+  .road .fill{position:absolute;left:10%;top:15px;height:2px;width:0;background:linear-gradient(90deg,var(--peri),var(--deep));transition:width 2.2s var(--ease)}
+  .road.go .fill{width:40%}
+  .rs{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+  .rs i{width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line);display:grid;place-items:center;font-style:normal;font:700 13px/1 var(--sans);color:var(--deep);transition:all .6s var(--ease)}
+  .rs.done i{background:var(--navy);color:#fff;box-shadow:none}
+  .rs.now i{background:#fff;box-shadow:inset 0 0 0 2px var(--deep),0 0 0 8px rgba(200,214,252,.5);animation:nowp 2.4s ease-in-out infinite}
+  @keyframes nowp{50%{box-shadow:inset 0 0 0 2px var(--deep),0 0 0 14px rgba(200,214,252,.15)}}
+  .rs div{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .rs b{font:750 17px/1.2 var(--sans);letter-spacing:-.02em;color:var(--ink)}
+  .rs small{font:500 13px/1.3 var(--sans);color:var(--slate)}
+  .rs.later b{color:#9AA2B3}
+
+  @media (max-width:860px){
+    .constel{height:280px}
+    .law{grid-template-columns:minmax(0,1fr);padding:34px 0}
+    .law p,.law .bar{grid-column:1}
+    .road{grid-template-columns:minmax(0,1fr);gap:22px;max-width:360px}
+    .road::before{left:15px;right:auto;top:15px;bottom:15px;width:2px;height:auto}
+    .road .fill{left:15px;top:15px;width:2px;height:0;transition:height 2.2s var(--ease)}
+    .road.go .fill{width:2px;height:45%}
+    .rs{flex-direction:row;align-items:center;text-align:left;gap:16px}
+    .rs i{flex:none}
+    .rs div{align-items:flex-start;gap:4px}
+  }
+  @media (prefers-reduced-motion:reduce){ .law{opacity:1} .rs.now i{animation:none} }
+</style>
+<body>
+
+<nav id="nav" aria-label="Primary">
+  <a class="logo" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt=""></a>
+  <ul>
+    <li><a href="product.html">Product</a></li>
+    <li><a href="owners.html">Owners</a></li>
+    <li><a href="team.html">Team</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html" aria-current="page">About</a></li>
+  </ul>
+  <a class="pill primary join" href="https://obavia.co/waitlist">Join the Waitlist</a>
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><i></i><i></i></button>
+</nav>
+<div class="sheet" id="sheet" aria-hidden="true">
+  <ul>
+    <li><a class="big" href="index.html" style="--i:0">Home <small>01</small></a></li>
+    <li><a class="big" href="product.html" style="--i:1">Product <small>02</small></a></li>
+    <li><a class="big" href="owners.html" style="--i:2">Owners <small>03</small></a></li>
+    <li><a class="big" href="team.html" style="--i:3">Team <small>04</small></a></li>
+    <li><a class="big" href="pricing.html" style="--i:4">Pricing <small>05</small></a></li>
+    <li><a class="big" href="about.html" aria-current="page" style="--i:5">About <small>06</small></a></li>
+  </ul>
+  <a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a>
+</div>
+
+<main>
+  <section class="phero wrap">
+    <span class="tag" data-reveal><i></i>Why Obavia exists</span>
+    <h1 class="h1" data-split>Your best rep knows something. <span>Make it the system.</span></h1>
+    <p class="lede" data-reveal style="--d:.5s">Most agencies don’t need more leads first. They need to see what happens to the ones they already have.</p>
+    <div class="constel" id="constel" data-reveal style="--d:.6s" aria-hidden="true"><canvas id="cv"></canvas></div>
+  </section>
+
+  <section class="sec" id="laws" aria-labelledby="lawsH" style="padding-top:90px">
+    <div class="wrap head" data-reveal><h2 class="h2" id="lawsH">What we believe. <span>Seven lines.</span></h2></div>
+    <ol class="laws wrap" id="lawList">
+      <li class="law"><span class="n">01</span><div><b>Counted, not claimed.</b></div><p>Calls from the phone system. Shows from the calendar. Cash from payments. Nobody grades their own homework.</p><i class="bar"></i></li>
+      <li class="law"><span class="n">02</span><div><b>Cash per lead first.</b></div><p>Close rate is easy to flatter. Revenue per lead holds everything else still.</p><i class="bar"></i></li>
+      <li class="law"><span class="n">03</span><div><b>Every number opens.</b></div><p>A percentage without the conversation behind it is a rumor.</p><i class="bar"></i></li>
+      <li class="law"><span class="n">04</span><div><b>One move beats ten tips.</b></div><p>Specific, measured against the calls, and checked on a date.</p><i class="bar"></i></li>
+      <li class="law"><span class="n">05</span><div><b>The method stays. The words evolve.</b></div><p>Review on a calendar. Change on evidence.</p><i class="bar"></i></li>
+      <li class="law"><span class="n">06</span><div><b>The owner owns the record.</b></div><p>Numbers, recordings and history stay with the agency.</p><i class="bar"></i></li>
+      <li class="law"><span class="n">07</span><div><b>The team sees the rules.</b></div><p>Fair comparisons, the same leads, open standards. People play a game they can see.</p><i class="bar"></i></li>
+    </ol>
+  </section>
+
+  <section class="sec" id="now" aria-labelledby="nowH">
+    <div class="wrap head" data-reveal><h2 class="h2" id="nowH">Where we are. <span>Building, in the open.</span></h2></div>
+    <div class="wrap">
+      <div class="road" id="road">
+        <span class="fill" aria-hidden="true"></span>
+        <div class="rs done"><i>✓</i><div><b>Research</b><small>Agency funnels, studied</small></div></div>
+        <div class="rs done"><i>✓</i><div><b>Design</b><small>The owner and team views</small></div></div>
+        <div class="rs now"><i>•</i><div><b>Build</b><small>Now</small></div></div>
+        <div class="rs later"><i>4</i><div><b>Pilot</b><small>With waitlist agencies</small></div></div>
+        <div class="rs later"><i>5</i><div><b>Launch</b><small>Core at $3,000 a month</small></div></div>
+      </div>
+      <p class="fine">Obavia is in development. The waitlist is free, and nothing is sold before it’s ready.</p>
+    </div>
+  </section>
+
+  <section class="final-cta wrap head" data-reveal>
+    <h2 class="h2">Built for agency owners. <span>Ready when you are.</span></h2>
+    <div class="cta-row"><a class="pill primary" href="https://obavia.co/waitlist">Join the Waitlist</a><a class="pill ghost" href="product.html">See how it works</a></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap frow">
+    <a href="index.html" class="fbrand"><img src="favicon.svg" alt=""><b>Obavia</b></a>
+    <nav aria-label="Footer"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a href="ads.html">Films</a></nav>
+  </div>
+  <p class="wrap ffine">Product preview. Obavia is in development. People and figures shown are fictional and illustrative.</p>
+</footer>
+
+<script src="site.js"></script>
+<script>
+(() => {
+const {snd:S, clamp, eo, lerp, REDUCED} = OBV, $ = id => document.getElementById(id);
+
+/* one bright point, and what it knows spreading to everyone */
+const box=$('constel'), cv=$('cv'), ctx=cv.getContext('2d');
+let W=0,H=0, pts=[], vis=false, t0=0, lit=0;
+function rand(s){ return ()=>{ s=(s*16807)%2147483647; return (s-1)/2147483646; }; }
+function lay(){ const dpr=Math.min(devicePixelRatio||1,2); W=box.clientWidth; H=box.clientHeight; cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  const r=rand(7), n=W<600?16:26; pts=[];
+  for(let i=0;i<n;i++){ const a=r()*Math.PI*2, d=.26+r()*.74; pts.push({x:W/2+Math.cos(a)*d*W*.46, y:H/2+Math.sin(a)*d*H*.44, ph:r()*6, d}); }
+  pts.sort((a,b)=>a.d-b.d); }
+lay(); addEventListener('resize',lay);
+if('IntersectionObserver' in window) new IntersectionObserver(e=>{ vis=e[0].isIntersecting; if(vis&&!t0) t0=performance.now()+700; },{threshold:.3}).observe(box); else vis=true;
+const NOTES=[523.25,587.33,659.25,783.99,880,1046.5];
+OBV.frame.push(now=>{
+  if(!vis) return;
+  ctx.clearRect(0,0,W,H);
+  const t=Math.max(0,(now-t0)/1000), cx=W/2, cy=H/2;
+  // the spread: one ring of light travelling out from the center
+  const R=REDUCED?9999:t*Math.max(W,H)*.22;
+  let k=0;
+  for(const p of pts){
+    const dist=Math.hypot(p.x-cx,p.y-cy), on=dist<R, f=on?clamp((R-dist)/120):0;
+    if(on) k++;
+    if(f>0){ ctx.strokeStyle=`rgba(125,151,199,${.35*f})`; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(p.x,p.y); ctx.stroke(); }
+    const b=.5+.5*Math.sin(now/900+p.ph);
+    ctx.fillStyle=on?`rgba(40,52,79,${.55+.35*f})`:`rgba(125,151,199,${.25+.1*b})`;
+    ctx.beginPath(); ctx.arc(p.x,p.y,on?3.2:2.4,0,Math.PI*2); ctx.fill();
+    if(on){ ctx.strokeStyle=`rgba(200,214,252,${.8*(1-f)})`; ctx.beginPath(); ctx.arc(p.x,p.y,3+f*10,0,Math.PI*2); ctx.stroke(); }
+  }
+  if(k>lit){ if(lit%3===0) S.chime(NOTES[Math.min(5,Math.floor(lit/4))],.02); lit=k; }
+  // the best rep
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,46); g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(1,'rgba(200,214,252,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,46,0,Math.PI*2); ctx.fill();
+  const og=ctx.createRadialGradient(cx-4,cy-5,1,cx,cy,12); og.addColorStop(0,'#fff'); og.addColorStop(.5,'#DCE5FD'); og.addColorStop(1,'#7D97C7');
+  ctx.fillStyle=og; ctx.beginPath(); ctx.arc(cx,cy,11+Math.sin(now/700)*.8,0,Math.PI*2); ctx.fill();
+});
+
+/* the seven lines: the one at your eye is the one that's lit */
+const laws=[...$('lawList').children]; let cur=-1;
+OBV.frame.push(()=>{
+  const mid=innerHeight*.5; let best=-1, bd=1e9;
+  laws.forEach((l,i)=>{ const r=l.getBoundingClientRect(), d=Math.abs(r.top+r.height/2-mid); if(d<bd && r.top<innerHeight*.85 && r.bottom>innerHeight*.15){ bd=d; best=i; } });
+  if(best!==cur){ laws.forEach((l,i)=>l.classList.toggle('on',i===best)); if(best>=0) S.note(best,.026); cur=best; }
+});
+
+/* where we are */
+OBV.onReveal($('road'),()=>{ $('road').classList.add('go'); [0,1,2].forEach(i=>setTimeout(()=>S.note(i+2,.03),300+i*600)); },.4);
+})();
+</script>

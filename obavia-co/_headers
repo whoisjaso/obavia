@@ -1,0 +1,7 @@
+# Cloudflare Pages: served from obavia-co/ as the output directory
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/ads/*
+  Cache-Control: public, max-age=604800
