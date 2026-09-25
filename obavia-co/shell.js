@@ -117,7 +117,6 @@ function fly() {
     setTimeout(() => { html.classList.remove('o-veil'); fire('o:reveal'); }, 520);
     setTimeout(() => {
       html.classList.remove('o-intro'); load.remove(); fire('o:land');
-      try { sessionStorage.setItem('obv-intro', '1'); } catch (e) {}
     }, 1260);
   }, 480);
 }

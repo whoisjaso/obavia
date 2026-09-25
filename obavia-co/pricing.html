@@ -107,7 +107,7 @@
 </style>
 
 <link rel="stylesheet" href="shell.css">
-<script>(function(){var h=document.documentElement;try{if(!sessionStorage.getItem('obv-intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
+<script>(function(){var h=document.documentElement;try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
 <div class="o-sky" aria-hidden="true">
   <i class="paper"></i>
   <div class="c far" data-bx="0.0009" data-sp="5.10" style="--wf:0.3968;top:14.97%;opacity:0.604"><img src="sky/w0.webp" alt=""></div>

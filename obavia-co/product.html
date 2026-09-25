@@ -163,7 +163,7 @@
   }
 </style>
 <link rel="stylesheet" href="shell.css">
-<script>(function(){var h=document.documentElement;try{if(!sessionStorage.getItem('obv-intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
+<script>(function(){var h=document.documentElement;try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
 <body>
 <div class="o-sky" aria-hidden="true">
   <i class="paper"></i>
