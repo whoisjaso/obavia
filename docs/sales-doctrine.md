@@ -143,3 +143,44 @@ Our ICP: agency owners at $100K to $1M a month with a team on the phones.
   2. **The read on every lead.** You mentioned your closers go in cold. Every closer gets the handoff: who this person is, what they deem significant, and the three points that close them.
   3. **The fix, checked Friday.** You mentioned coaching doesn't stick. One fix per rep, checked against their own calls, in dollars. (Accountability goes third.)
 - **Ask.** "It's $3,000 a month to know why every deal is lost and fix it by Friday. How would you like to proceed?"
+
+---
+
+## 8. The offer (the part the script can't fix)
+
+A script converts demand the offer creates. When ads, funnel and sales all look broken at once, the offer is usually the cause. Source: `docs/icp-language.md` §7.
+
+**Match the message to the awareness stage.** Every lead sits somewhere between lost and most aware:
+
+| Stage | Sell | Obavia example |
+|---|---|---|
+| Lost (unaware) | The goal, made vivid (the dream house) | "What would your month look like if every rep closed like your best one?" |
+| Problem aware | The pain, named exactly (the burning building) | "Half your booked calls never show. Here's why." |
+| Solution aware | Why us over the others they're comparing | "Dashboards show where. We show why, and fix it by Friday." |
+| Product aware / most aware | The decision | Terms, start date, the founding seat |
+
+In the set, the goal question ("what made you want to look at this?") tells you the stage. The handoff carries it to the closer.
+
+**Every objection is an offer change waiting to happen.** Log it, count it, price it, then change the offer so it never comes up again:
+- **Budget:** change the terms before the price.
+- **Trust or authority:** a refundable start. Meet the team, bring the partner, get a full refund if it isn't right.
+- **"Sounds great if it works":** a guarantee on the outcome they named, with simple conditions.
+- **"I need X first":** add X. Each objection removed opens a colder audience.
+
+**Front end sells what they want. The back end delivers what they need.** Earn trust with a result before offering more. Never pitch an upsell to a skeptical new client.
+
+**Guardrails.** Guarantees and refunds are promises: only offer what we will honour, in writing, with plain conditions. No fake deadlines, no fake scarcity. The founding cap is real.
+
+### Obavia's own offer (draft, needs the owner's decision)
+
+- **Front end:** the leak found and the first fix assigned in the first two weeks, from the team's own calls.
+- **Terms:** monthly, not annual up front. Budget objections get terms, never a discount.
+- **Refundable start:** the first two weeks, with a full refund if the first read on their calls isn't worth it.
+- **Guarantee (to decide):** for example, "we find at least $X a month of leak in your first 30 days, or you don't pay." Conditions: tools connected and calls recorded.
+- **Objection-driven additions:**
+  - "We'd have to set it up": we connect every tool for them.
+  - "My reps won't use it": nothing to type, and the rep app pays them back in their own number.
+- **Back end, after trust:**
+  - the handoff and trial mode for their setters;
+  - offer analysis from their own objections;
+  - the daily report for their marketer.

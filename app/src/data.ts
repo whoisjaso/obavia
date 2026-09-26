@@ -90,6 +90,7 @@ export type StringStep = (typeof STRING)[number];
 export type Handoff = {
   from: string; when: string;
   goal: string; implies: string;
+  awareness: { stage: 'Lost' | 'Problem aware' | 'Solution aware' | 'Product aware' | 'Most aware'; sell: string };
   approach: { said: string; label: string };
   catalyst?: string;
   pain?: { what: string; since: string; impact: string };
@@ -135,6 +136,7 @@ export const LEADS: Lead[] = [
     ],
     handoff: {
       from: 'jordan', when: 'Mon 12:41',
+      awareness: { stage: 'Problem aware', sell: 'The burning building: he already feels the swings. Name them, then the fix.' },
       goal: 'The team closing without him on every big call.', implies: 'Right now every big deal waits on him.',
       approach: { said: 'I jump on the big calls myself, and we do a Monday review.', label: 'the jump-in approach' },
       catalyst: 'Lost two $20K deals in March while he was traveling. That was the moment.',
@@ -207,6 +209,7 @@ export const LEADS: Lead[] = [
     ],
     handoff: {
       from: 'jordan', when: 'Wed 09:08',
+      awareness: { stage: 'Lost', sell: 'No problem named yet. Sell the dream house: what a steady month would look like.' },
       goal: 'More calls, probably.', implies: 'Not clear yet. A soft goal usually hides the real one.',
       approach: { said: 'Mostly referrals, and some Instagram.', label: 'the referral approach' },
       identity: 'Easygoing. Says yes to everything', significant: 'Not letting anyone down.',
@@ -239,6 +242,7 @@ export const LEADS: Lead[] = [
     ],
     handoff: {
       from: 'jordan', when: 'Mon 11:34',
+      awareness: { stage: 'Solution aware', sell: 'She is comparing. Show why ours works where Gong went unused.' },
       goal: 'Hire two more closers without the close rate falling.', implies: 'New closers have been costing her money.',
       approach: { said: 'We review calls on Fridays and keep a shared Loom library.', label: 'the Friday-review approach' },
       catalyst: 'Hired three closers in the spring. Two washed out in 60 days and burned the podcast leads.',
@@ -305,6 +309,13 @@ export const DAY = {
     { src: 'Paid social', leads: 41, booked: 21, showed: 14, won: 3 },
     { src: 'Referral', leads: 6, booked: 6, showed: 6, won: 2 },
     { src: 'Podcast', leads: 11, booked: 9, showed: 5, won: 0 },
+  ],
+  /** Every objection heard yesterday, and the offer change that would stop it coming up. */
+  objections: [
+    { said: '“We need to think about the price.”', tag: 'Budget', count: 9, lost: 3, change: 'Offer monthly terms before any discount. Same price, spread out.' },
+    { said: '“I have to run it by my partner.”', tag: 'Authority', count: 6, lost: 2, change: 'A refundable start: bring the partner to onboarding, full refund if it isn’t right.' },
+    { said: '“Sounds great, if it actually works.”', tag: 'Trust', count: 5, lost: 2, change: 'Guarantee the outcome they named, with simple conditions.' },
+    { said: '“We’d need to set all that up first.”', tag: 'Readiness', count: 3, lost: 1, change: 'Add setup to the offer. We connect every tool for them.' },
   ],
   sentTo: [
     { who: 'Alex Rivera', role: 'Owner', gets: 'Everything' },

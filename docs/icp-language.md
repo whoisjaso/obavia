@@ -112,6 +112,65 @@ Sources, all third-party channels (not Obavia's numbers):
 - Say clearly whether a rep is on pace to pass, early, so the owner stops spending leads on a rep who won't make it.
 - Promote reps who pass up the lead tiers automatically.
 
+## 7. The offer decides everything (Viral Coach, offer breakdown)
+
+**Every jump in revenue came from a change in the offer:**
+- $0 to $120K, $300K and $500K a month in the first three months;
+- past the $1M ceiling;
+- $1.3M to $3M a month in under 30 days.
+
+"Most people study how to market, how to sell, how to keep clients. A good offer does all of that at once."
+
+**The trap: an offer that only works on warm traffic.**
+- Months 1 to 3 looked like scale, but under half the revenue came from paid ads. The rest was organic viewers who already liked him.
+- He raised ad spend and almost none of it converted. He burned hundreds of thousands and ended up half a million in debt.
+- The offer was "work with me". That makes sense to a fan and means nothing to a stranger scrolling past.
+- When ads, funnel and sales all seem broken at once, the problem is usually the offer.
+
+**Traffic is a continuum, not a count of touch points** (after Eugene Schwartz):
+
+| Stage | Who they are | Where they come from |
+|---|---|---|
+| Most aware | Fans who buy at launch | Your audience. Easy, but slow to grow and it has a ceiling |
+| Product aware | Comparing a few providers | Referrals and word of mouth. You can't choose when they come |
+| Solution aware | Know the fix exists, shopping for it | Search, directories. Scalable but price-competitive: they arrive guarded, comparing |
+| Problem aware | Know it hurts, don't know the fix | Interruption ads that name the pain. Less competition, more flexible buyers |
+| Unaware ("lost") | Don't know they have a problem | Sell the goal, not the fix: "How much better would your business be if a million people saw it?" |
+
+- **Burning building vs dream house.** People sprint out of a burning building (the problem). The unaware have none, so sell the dream house (the goal) and make it vivid.
+- If you can sell to the lost, you can sell to everyone warmer than them.
+
+**Build the offer from the objections on sales calls.** Founders should be on the calls early. Write down every objection, then ask what would have to change in the offer for it never to come up.
+
+| Objection | Offer change |
+|---|---|
+| Budget | Change the terms before the price: monthly, or half down and half financed. Same price, more closes |
+| "I've been burned by agencies" | Position as the opposite: anti-agency, set it up so they can run it themselves, even staff their replacement. Charge more on the front end |
+| "Ads don't work" | Turned into their best ad angle: "Get clients without paid ads" |
+| "Sounds great if it works" | Performance guarantee on the exact outcome they said they want, with simple conditions (pay on time, participate) |
+| "I just saw your ad yesterday" (no trust) | A 7-day refundable deposit: meet the delivery team, full refund if they don't like it. "To learn more, you have to buy first" |
+| "I need to ask my partner" | The same refundable deposit, with the partner brought to the onboarding call |
+| "I need X first" (an editor, gear, socials, a website) | Add X to the offer. Each one removed opens a colder audience, raises the price, and makes the client harder to leave |
+
+- Cold-traffic objections almost all come back to "I don't need it that badly". Budget, timing and authority move with how badly they need it.
+
+**The back end is where the money is.**
+- Sell what the cold buyer wants up front. Diagnose what they actually need once they're inside.
+- Don't pitch upsells to a skeptical new client. Earn trust with results first, then offer the next thing when it's a no-brainer: "that video hit a million views; turning it into an ad is obvious."
+- Back-end revenue is commonly 3 to 5 times the front end, because paying customers are the warmest traffic there is.
+
+**For Obavia:**
+- **Objections into offer changes.** Obavia hears every call, so it can rank every objection by how often it comes up and the dollars it costs, and suggest the offer change that removes it (terms, guarantee, refundable deposit, a new deliverable). Owners do this by hand, if at all.
+- **Awareness stage on every lead.** Read from their own words on the first call (lost, problem, solution, product or most aware). It goes in the handoff so the closer sells the burning building or the dream house.
+- **Organic vs paid, on cash.** The exact blind spot that cost him half a million: which cash came from ads and which from organic. This is part of source attribution.
+- **Back-end signals.** Spot expansion moments in client calls (a result just landed, a new need was named) so the upsell comes when trust is earned, not before.
+- **Our own offer.** Sell Obavia so it works on cold traffic:
+  - the goal for the unaware ("What would your month look like if every rep closed like your best one?");
+  - the leak for the problem aware;
+  - terms before discounts;
+  - a refundable start;
+  - a guarantee only if we can honour it.
+
 ## What this means for Obavia
 
 **Site copy.** Speak their language:

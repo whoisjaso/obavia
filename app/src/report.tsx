@@ -79,6 +79,19 @@ export function Report({ go }: { go: Go }) {
           </section>
 
           <section className="sec">
+            <h2>Objections, and the offer fix</h2>
+            <p className="sub">What stopped yesterday’s deals, and what would stop it coming up again.</p>
+            <div className="group">
+              {DAY.objections.map(o => (
+                <div key={o.tag} className="cell nolead obj">
+                  <div className="t"><b>{o.said}</b><small>{o.tag} · heard {o.count} times · {o.lost} {o.lost === 1 ? "deal" : "deals"} lost · {k(o.lost * DEAL)}</small><p className="fix-line">{o.change}</p></div>
+                  <div className="v" style={{ alignSelf: 'start' }}><span className="num">{o.count}</span></div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="sec">
             <h2>By source</h2>
             <p className="sub">What marketing sees. Cash per lead, never contracted revenue.</p>
             <div className="group">

@@ -99,6 +99,9 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 | Rep pairing | Match the lead to the rep whose style fits the read. | Planned |
 | Setter → closer handoff | Written from the setter's call, no typing. A profile of the lead: what they want and what it implies, their labeled approach, the catalyst, the pain (since when, impact), the gap in numbers, the setter's identity label, the archetype and what they deem significant, what is already pre-handled, whether they watched the pre-call asset. Then three points to close (open, the pillar to lead with, the consequence), their words to use back, and the string: which steps the set hit and where the closer picks up. | App (lead sheet) |
 | String coverage | Which steps of the doctrine each setter and closer skip, from their calls; feeds the leak engine as a reason. | Planned |
+| Awareness stage | Each lead's stage (lost, problem, solution, product or most aware), read from their own words on the first call. Carried in the handoff, so the closer knows whether to sell the problem or the goal. | App (lead sheet handoff) |
+| Objections into offer changes | Every objection from every call, ranked by count and dollars lost, each with the offer change that removes it (terms, refundable start, guarantee, a new deliverable). | App (Report) |
+| Back-end signals | Moments in client calls where a result just landed or a new need was named, so the next offer comes after trust, not before. | Planned |
 
 **Guardrail.** The read is about language, never identity. No inference of race, gender, age or any protected trait. The famous-name example (Babe Ruth chosen over Jordan, LeBron, Serena, Brady, Michael Jackson) is about the choice of reference, which signals what the person values, not who they are.
 
@@ -107,7 +110,7 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 | Feature | What it does | Status |
 |---|---|---|
 | Closer math | Goal ÷ cash per sale ÷ close ÷ show × cost per call = spend; booked per day ÷ calls per closer = closers. Shows which single rate, lifted, saves the most. | Site (#math, live sliders) |
-| Source attribution | Cold vs warm, by source, optimized on cash collected, never contracted revenue. | App (Report, by source), Planned live |
+| Source attribution | Cold vs warm and organic vs paid, by source, on cash collected, never contracted revenue. It catches the offer that only sells to warm traffic. | App (Report, by source), Planned live |
 | Pre-call asset measurement | Which confirmation video, testimonial page or setter message moves show rate. | Planned |
 | Capacity signals | When fulfillment is full: waitlist and descend into a lower offer, instead of cutting ad spend. | Planned |
 
@@ -184,6 +187,7 @@ Note: the root `CLAUDE.md` and the `*.dc.html` files belong to a separate projec
 
 - Live data: which phone systems, calendars, CRMs and payment tools to integrate first (likely GoHighLevel, HubSpot, Close, Aircall, Zoom, Calendly, Stripe).
 - The founding cohort size and its price.
+- Obavia's own offer (draft in `docs/sales-doctrine.md` §8): monthly terms, a refundable start, and whether to guarantee a leak found in 30 days.
 - Whether trial mode and lead routing ship in v1 or follow the fix loop.
 - Validate the build-vs-buy estimates in owner interviews.
 - App deploy: create the Cloudflare project (root `app`, build `npm run build`, output `dist`, domain app.obavia.co).

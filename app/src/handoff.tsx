@@ -40,6 +40,7 @@ export function Handoff({ lead }: { lead: Lead }) {
         <h2>Who they are</h2>
         <div className="group">
           <Row k="Wants"><b>{h.goal}</b><small>{h.implies}</small></Row>
+          <Row k="Awareness"><b>{h.awareness.stage}</b><small>{h.awareness.sell}</small></Row>
           <Row k="Their approach"><b>“{h.approach.said}”</b><small>Labeled <em>{h.approach.label}</em></small></Row>
           <Row k="Catalyst" miss={!h.catalyst}><b>{h.catalyst}</b></Row>
           <Row k="Pain" miss={!h.pain}>{h.pain && <><b>{h.pain.what} · {h.pain.since}</b><small>{h.pain.impact}</small></>}</Row>
