@@ -73,7 +73,7 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 | Leak engine | The funnel (leads, booked, showed, closed, cash) with each step's loss in dollars. Picks the single biggest leak. | App (Overview, Leaks), Site (hero line) |
 | Why from calls | Every drop-off tagged with the reason and the exact words that gave it away. | App (Leaks), Site (#why) |
 | The fix loop | One fix, assigned to the rep who leaks most, checked Friday against their own calls, reported in dollars. | App (Moves, RepSheet), Site (#fix) |
-| Daily AI sales manager report | Every call from yesterday read; sent at 7:00 AM. Owner page: the headline leak in dollars, rep by rep (one win or one fix each, with the quote), "was it the leads?" verdict, cash per lead by source, calls to watch today, who gets it. Rep page: what worked or one thing to fix, yesterday's numbers and earnings, today's one action, where they stand on cash per lead. | App (Report, Rep → Report) |
+| Daily AI sales manager report | Every call from yesterday read; sent at 7:00 AM. Owner page: the headline leak in dollars, rep by rep (one win or one fix each, with the quote), "was it the leads?" verdict, show rate by days from booking to the call, who leads compared you to, objections with the offer fix, cash per lead by source, calls to watch today, who gets it. Rep page: what worked or one thing to fix, yesterday's numbers and earnings, today's one action, where they stand on cash per lead. | App (Report, Rep → Report) |
 
 ### The team
 
@@ -101,6 +101,7 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 | String coverage | Which steps of the doctrine each setter and closer skip, from their calls; feeds the leak engine as a reason. | Planned |
 | Awareness stage | Each lead's stage (lost, problem, solution, product or most aware), read from their own words on the first call. Carried in the handoff, so the closer knows whether to sell the problem or the goal. | App (lead sheet handoff) |
 | Objections into offer changes | Every objection from every call, ranked by count and dollars lost, each with the offer change that removes it (terms, refundable start, guarantee, a new deliverable). | App (Report) |
+| Who they compared you to | Every alternative a lead names on a call (a tool, a hire, a coach, building it in-house), counted in the report with what to sell against each, and listed per lead in the handoff as "Also looking at". The real competition, from the customer's side. | App (Report, lead sheet handoff) |
 | Back-end signals | Moments in client calls where a result just landed or a new need was named, so the next offer comes after trust, not before. | Planned |
 
 **Guardrail.** The read is about language, never identity. No inference of race, gender, age or any protected trait. The famous-name example (Babe Ruth chosen over Jordan, LeBron, Serena, Brady, Michael Jackson) is about the choice of reference, which signals what the person values, not who they are.
@@ -111,7 +112,9 @@ Status: **Site** = shown on the landing page. **App** = built in the `app/` prot
 |---|---|---|
 | Closer math | Goal ÷ cash per sale ÷ close ÷ show × cost per call = spend; booked per day ÷ calls per closer = closers. Shows which single rate, lifted, saves the most. | Site (#math, live sliders) |
 | Source attribution | Cold vs warm and organic vs paid, by source, on cash collected, never contracted revenue. It catches the offer that only sells to warm traffic. | App (Report, by source), Planned live |
-| Pre-call asset measurement | Which confirmation video, testimonial page or setter message moves show rate. | Planned |
+| Days from booking to the call | Show rate by how far out each call was booked. Every day out, the lead is back in the feed seeing other offers. | App (Report) |
+| Pre-call asset measurement | Which confirmation video, testimonial page, email or setter message moves show rate, and how soon after booking the first one lands. | Planned |
+| Touch path | Where the lead first saw you and what they saw after, from their own words on the call. Feeds source attribution. | Planned |
 | Capacity signals | When fulfillment is full: waitlist and descend into a lower offer, instead of cutting ad spend. | Planned |
 
 ## 5. Landing page
@@ -181,7 +184,7 @@ Inner pages (about, pricing, team, owners, product, ads) share the shell and hav
 | `films/` | Remotion source for the ads (Kokoro TTS voice) |
 | `docs/` | This spec, positioning, ICP language |
 
-Note: the root `CLAUDE.md` and the `*.dc.html` files belong to a separate project (a Houston vehicle rental house) that shares this repo. Keep them apart.
+Note: the old vehicle rental project has been removed. The root `CLAUDE.md` still carries its rules until the owner replaces it.
 
 ## 9. Open decisions
 

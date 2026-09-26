@@ -122,6 +122,15 @@ A weak set shows up here as missing steps, with a plain instruction to the close
 - The read is probable, never certain, and it is about language, never identity or protected traits.
 - No fake urgency and no fake scarcity. A "no" after the three commitments is a real no.
 
+### Between the click and the call
+
+Leads are hyper-aware and hyper-sophisticated: one click and the feed swarms them with every alternative for days (`docs/icp-language.md` §8). So:
+
+- **Shorten the gap.** Book calls as close to the booking as possible. Obavia shows show rate by days out.
+- **The set starts the sale.** The setter hands over proof, not just questions.
+- **Sell against what they've seen.** Assume they already know the other options. The handoff lists who they named; the closer sells against it, with the mechanism and the process in the open.
+- **Radical transparency beats claims.** Real results, real numbers, published.
+
 ---
 
 ## 7. Obavia's own script (how we sell Obavia)
@@ -135,6 +144,7 @@ Our ICP: agency owners at $100K to $1M a month with a team on the phones.
 - **Pain.** How long, what it has cost in dollars, and whether they can take a week off.
 - **Gap.** Revenue now against the target, closers now against closers needed. The closer math on the site does this in public.
 - **Do it yourself.** "Why not build the dashboard yourself?" This is our build-vs-buy argument, in their mouth: the dashboard was never the problem, the why was.
+- **Who they're comparing us to.** Usually Gong, hiring a sales manager, a coach, or building a dashboard. Sell against each one: recording isn't the fix; a manager hears ten calls a week; a coach brings a template; a dashboard shows where, never why.
 - **Objection tree.** They have usually tried Gong, a sales manager, or a coach. Bad result? Their criteria become our pitch: "nobody used it" → "nothing to type"; "generic" → "built from your own calls".
 - **Future pace.** The team hitting like their best rep, and the owner off the calls.
 - **Consequence.** Another quarter where the owner is the one who has to step up and save it.

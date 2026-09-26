@@ -171,6 +171,59 @@ Sources, all third-party channels (not Obavia's numbers):
   - a refundable start;
   - a guarantee only if we can honour it.
 
+## 8. Hyper-aware, hyper-sophisticated leads (Jeremy Haynes, the new Meta)
+
+**The algorithm swarms anyone who shows interest.**
+- Meta has around 52,000 data points per user. It shows unrelated ads until one gets a click, then serves that category again and again: feed, reels, stories, every Meta app, for days, until it is exhausted.
+- One click on a Tokyo chocolate cake and every ad after it was dessert.
+- So one click takes a lead from a base desire to knowing every option, everyone's process and everyone's price. In Eugene Schwartz's terms, the market goes to maximum awareness and sophistication in a few scrolls.
+
+**Schwartz's four stages of sophistication.**
+1. Make the claim. Nobody else is offering it.
+2. Outspend competitors when they show up.
+3. Sell a unique mechanism: how you do it differently.
+4. Show the whole process that produces the outcome. They have likely tried, and bought, before.
+
+Meta puts almost every market at stage 4.
+
+**The click-to-call gap is where buyers erode.**
+- Every high-ticket funnel (webinar, low ticket to high ticket, DM ads, call funnel) has days between the click and the call. The lead spends those days back in the feed, being swarmed.
+- **Shorten the cycle.** Advertise a webinar no more than about 72 hours out. Book calls close to the booking.
+- **Setters start the sale.** Not selfish qualification: hand over assets that build trust and make you their source of truth.
+
+**Back-end selling systems.**
+1. **Confirmation page.** Not "thanks for booking". Start the education: sell against the other options they have already seen, and show your process and mechanism.
+2. **Email.** The same message.
+3. **Setters.** Reach out and actually help.
+4. **AI.** Make sure the models say good things about you.
+5. **Content (hammer them).** Join the swarm with short- and long-form content back in their feed.
+
+**Radical transparency builds trust.**
+- Nick (done-for-you short-term rentals) lists every past deal: address, link to the real financials, link to a video breakdown.
+- Result: a 75%+ show rate and a 40%+ close rate on a $20K+ paid-in-full offer.
+- Haynes publishes his dispute and refund rates.
+- For buyers with little money, sell safety: lower their risk and make the risk reversal feel safer than the alternatives.
+
+**Know what you're actually compared to. Five perspectives:**
+1. Yours.
+2. Your customers'. This matters more than yours: talk to the good and the bad ones.
+3. Secret shopping (funnel hacking).
+4. AI's view of you against the others.
+5. The algorithm's. Use burner accounts to get targeted by your own ads and see who shows up next to you.
+
+The real competitor is often not the obvious one. A Lamborghini buyer may be weighing a Tesla, not a Ferrari. Don't reflexively price below the others; charging above them can position you as the premium.
+
+**Be everywhere, in quality.** Buyers come through multi-platform, multi-touch paths ("I saw you here, then here, and converted here"). Being present where competitors are not is an advantage.
+
+**For Obavia:**
+- **Days from booking to the call.** Show rate by how far out the call was booked, so the owner sees what the gap costs. Built into the daily report.
+- **Who they compared you to.** Every alternative a lead names on a call (Gong, hiring a sales manager, a coach, building it in-house), counted, with what to sell against each. It's the customer's perspective, from every call instead of a few interviews. Built into the report and the handoff.
+- **Pre-call asset measurement** already covers which confirmation page, email or setter message moves show rate. It now includes speed: how soon after booking the first asset lands.
+- **The touch path.** From the calls: where the lead first saw you and what they saw after ("I found you on YouTube, then saw the ad"). Adds to source attribution.
+- **Our own funnel.**
+  - The waitlist confirmation starts the education instead of just saying thanks.
+  - Our proof is published openly, the way Nick lists his deals: leaks found and fixes checked, in dollars.
+
 ## What this means for Obavia
 
 **Site copy.** Speak their language:

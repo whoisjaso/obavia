@@ -319,4 +319,5 @@ button.cell:active,a.cell:active{background:#F1F4FB}
 .st2.next{color:var(--tint)} .st2.next i{box-shadow:inset 0 0 0 2px var(--tint)}
 @media (max-width:560px){.hrow{grid-template-columns:1fr;gap:4px}}
 .obj{align-items:start}
+.cmp+.cmp{margin-top:10px}
 .obj .fix-line{margin:8px 0 0;padding:10px 12px;border-radius:12px;background:var(--tint-bg);font:600 14.5px/1.4 var(--sans);color:var(--navy)}

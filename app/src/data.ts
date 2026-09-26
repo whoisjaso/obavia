@@ -98,6 +98,8 @@ export type Handoff = {
   identity: string; significant: string;
   handled: { q: string; a: string }[];
   asset?: { name: string; watched: boolean; takeaway?: string };
+  /** Who else they named on the call, and what to sell against it. */
+  compared: { to: string; against: string }[];
   hit: StringStep[];
   close: { open: string; pillar: string; consequence: string; words: string[] };
 };
@@ -149,6 +151,10 @@ export const LEADS: Lead[] = [
         { q: 'What would make it work this time?', a: 'Built from his own team’s calls, not a template.' },
       ],
       asset: { name: 'The six-minute leak breakdown', watched: true, takeaway: 'Show rate is where his money goes.' },
+      compared: [
+        { to: 'Hiring a sales manager', against: 'A manager hears ten calls a week. This hears every one, from day one.' },
+        { to: 'Another sales coach', against: 'The last one sold him a template. This is built from his own calls.' },
+      ],
       hit: ['Goal', 'Approach', 'Catalyst', 'Pain', 'Gap', 'Do it yourself', 'Past attempts'],
       close: {
         open: 'Confirm the jump-in approach in his words, then ask what he took from the video.',
@@ -215,6 +221,7 @@ export const LEADS: Lead[] = [
       identity: 'Easygoing. Says yes to everything', significant: 'Not letting anyone down.',
       handled: [],
       asset: { name: 'The six-minute leak breakdown', watched: false },
+      compared: [],
       hit: ['Goal', 'Approach'],
       close: {
         open: 'Confirm the agenda and his timezone first. “Any time is fine” is a soft yes.',
@@ -255,6 +262,10 @@ export const LEADS: Lead[] = [
         { q: 'What changed now?', a: 'Losing podcast leads to reps who wash out.' },
       ],
       asset: { name: 'How an agency her size ramps reps', watched: true, takeaway: 'They ramped a rep in 30 days.' },
+      compared: [
+        { to: 'Gong', against: 'Gong records the calls. This tells each rep the one fix, and nobody has to open it.' },
+        { to: 'Building it in-house', against: 'The dashboard was never the problem. The why was.' },
+      ],
       hit: ['Goal', 'Approach', 'Catalyst', 'Pain', 'Gap', 'Do it yourself', 'Past attempts', 'Future'],
       close: {
         open: 'Start with who else like her runs it: two agencies her size.',
@@ -309,6 +320,19 @@ export const DAY = {
     { src: 'Paid social', leads: 41, booked: 21, showed: 14, won: 3 },
     { src: 'Referral', leads: 6, booked: 6, showed: 6, won: 2 },
     { src: 'Podcast', leads: 11, booked: 9, showed: 5, won: 0 },
+  ],
+  /** Days from booking to the call. Every day out, they see other offers. */
+  gap: [
+    { when: 'Same or next day', booked: 12, showed: 11 },
+    { when: '2 to 3 days', booked: 14, showed: 10 },
+    { when: '4 days or more', booked: 10, showed: 4 },
+  ],
+  /** Who leads said they were also looking at, and what to sell against it. */
+  compared: [
+    { to: 'Gong', count: 7, against: 'Recording calls isn’t the fix. One change per rep, checked Friday, is.' },
+    { to: 'Hiring a sales manager', count: 6, against: 'A manager hears ten calls a week. Obavia hears all of them.' },
+    { to: 'A sales coach', count: 4, against: 'Coaches bring a template. This is built from their own calls.' },
+    { to: 'Building a dashboard', count: 3, against: 'The dashboard shows where. It never shows why.' },
   ],
   /** Every objection heard yesterday, and the offer change that would stop it coming up. */
   objections: [

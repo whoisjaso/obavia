@@ -45,6 +45,7 @@ export function Handoff({ lead }: { lead: Lead }) {
           <Row k="Catalyst" miss={!h.catalyst}><b>{h.catalyst}</b></Row>
           <Row k="Pain" miss={!h.pain}>{h.pain && <><b>{h.pain.what} · {h.pain.since}</b><small>{h.pain.impact}</small></>}</Row>
           <Row k="The gap" miss={!h.gap}>{h.gap && <><b>{h.gap.want}</b><small>Now: {h.gap.now}</small></>}</Row>
+          <Row k="Also looking at" miss={!h.compared.length}>{h.compared.map(c => <div key={c.to} className="cmp"><b>{c.to}</b><small>{c.against}</small></div>)}</Row>
           <Row k="Identity"><b>{h.identity}</b><small>{setter}’s label. Use it back to them.</small></Row>
           <Row k="Archetype"><b>{lead.type}{lead.read[0] ? ` · ${lead.read[0][1]}%` : ''}</b><small>{NEED[lead.type]}. Significant to them: {h.significant.charAt(0).toLowerCase() + h.significant.slice(1)}</small></Row>
         </div>

@@ -17,6 +17,8 @@ const byClose = [...DAY.reps].sort((a, b) => b.won / b.showed - a.won / a.showed
 const best = byClose[0], worst = byClose[byClose.length - 1];
 const allShowed = DAY.reps.find(d => d.showed === d.booked);
 const mostMissed = [...DAY.reps].sort((a, b) => (b.booked - b.showed) - (a.booked - a.showed))[0];
+const far = DAY.gap[DAY.gap.length - 1], near = DAY.gap[0];
+const pct = (a: number, b: number) => Math.round((a / b) * 100) + '%';
 const TODAY = LEADS.filter(l => /^(Today|Now)/.test(l.due));
 
 function Note({ d }: { d: RepDay }) {
@@ -75,6 +77,32 @@ export function Report({ go }: { go: Go }) {
             <div className="group pad verdict">
               <p><b>No.</b> On the same pool, {first(best.rep)} closed {best.won} of {best.showed} and {first(worst.rep)} closed {worst.won} of {worst.showed}.</p>
               <p className="why">The difference, from the calls: {worst.note.text.charAt(0).toLowerCase() + worst.note.text.slice(1)}</p>
+            </div>
+          </section>
+
+          <section className="sec">
+            <h2>Days from booking to the call</h2>
+            <p className="sub">Every day out, they see other offers. Booked {far.when.toLowerCase()}, {pct(far.showed, far.booked)} showed. Same or next day, {pct(near.showed, near.booked)}.</p>
+            <div className="group">
+              {DAY.gap.map(g => (
+                <div key={g.when} className="cell nolead">
+                  <div className="t"><b>{g.when}</b><small>{g.showed} of {g.booked} showed</small></div>
+                  <div className="v"><span className="num">{pct(g.showed, g.booked)}</span></div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="sec">
+            <h2>Who they compared you to</h2>
+            <p className="sub">Named by leads on yesterday’s calls, and what to sell against each.</p>
+            <div className="group">
+              {DAY.compared.map(c => (
+                <div key={c.to} className="cell nolead obj">
+                  <div className="t"><b>{c.to}</b><small>Named on {c.count} calls</small><p className="fix-line">{c.against}</p></div>
+                  <div className="v" style={{ alignSelf: 'start' }}><span className="num">{c.count}</span></div>
+                </div>
+              ))}
             </div>
           </section>
 
