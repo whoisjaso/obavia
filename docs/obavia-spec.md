@@ -187,7 +187,11 @@ Inner pages (about, pricing, team, owners, product, ads) share the shell and hav
 
 Note: the old vehicle rental project has been removed. The root `CLAUDE.md` still carries its rules until the owner replaces it.
 
-## 9. Open decisions
+## 9. The build plan
+
+Phased with BMAD to launch on Saturday, April 24, 2027: `docs/plan/roadmap.md`.
+
+## 10. Open decisions
 
 - Live data: which phone systems, calendars, CRMs and payment tools to integrate first (likely GoHighLevel, HubSpot, Close, Aircall, Zoom, Calendly, Stripe).
 - The founding cohort size and its price.
