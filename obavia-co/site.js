@@ -97,6 +97,8 @@ const GLYPH = {
   own:   '<circle cx="20" cy="17.2" r="3.8"/><path d="M20 21v5.6"/>',
   check: '<path d="M13.6 20.6l4.4 4.4 8.6-9"/>',
   now:   '<circle cx="20" cy="20" r="3.2" class="fill"/><circle cx="20" cy="20" r="8.2"/>',
+  leak:  '<path d="M12.5 13.5h15l-5.8 7.2v6.8l-3.4-1.8v-5z"/>',
+  move:  '<path d="M12.5 25.5c3.2-6.4 8.6-8 14.5-5.2"/><path d="M23.4 16.4l3.9 4-4.4 3.4"/>',
 };
 let obid = 0;
 OBV.icon = (name,size=34) => { const id='ob'+(obid++), g=GLYPH[name]||'';
@@ -135,17 +137,7 @@ if(menuBtn && sheet){
   $$('a',sheet).forEach(a=>a.addEventListener('click',()=>setMenu(false)));
   addEventListener('resize',()=>{ if(innerWidth>860 && root.classList.contains('menu-open')) setMenu(false); });
 }
-// between pages: a breath of air, and a soft fade where the browser can't cross-fade documents itself
-const crossDoc = 'onpagereveal' in window;
-document.addEventListener('click',e=>{
-  const a = e.target.closest('a[href]'); if(!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target) return;
-  const url = new URL(a.href, location.href);
-  if(url.origin!==location.origin || !/\.html?$|\/$/.test(url.pathname) || (url.pathname===location.pathname && url.hash)) return;
-  S.whoosh(.8,.035,380,1300);
-  if(crossDoc || REDUCED) return;
-  e.preventDefault(); document.body.classList.add('leaving'); setTimeout(()=>{ location.href = url.href; },260);
-});
-addEventListener('pageshow',()=>document.body.classList.remove('leaving'));
+// page changes, the nav and the sky now live in shell.js
 
 /* ============================================================
    TEXT: split headings, reveals, counters, typing
@@ -234,7 +226,14 @@ OBV.funnel = (el,cfg) => {
   el.innerHTML = '<canvas aria-hidden="true"></canvas>'
     + st.map(s=>`<div class="fnl-st" aria-hidden="true"><b class="num">0</b><span>${s.n}</span></div>`).join('')
     + conv.map((c,i)=>`<div class="hp" data-h="${hs[i]}" aria-hidden="true"><b class="num">${Math.round(c)}%</b><span>${HLAB[hs[i]]}</span></div>`).join('')
+    + (cfg.callout && !cfg.compact ? `<div class="fnl-call" aria-hidden="true"><b></b><span>a month left on the table</span></div>` : '')
     + `<div class="fnl-end" aria-hidden="true"><div class="orb" style="--blend:${OBV.blend(hs)};--os:${cfg.compact?64:104}px"><b class="num">${FMT.money(rpl)}</b></div><span>${cfg.endLabel||'per lead'}</span></div>`;
+  // the biggest leak, in dollars: lift each stage to its benchmark, keep everything downstream as it is
+  const deal = cfg.cash/Math.max(1,st[n-1].v);
+  const lift = conv.map((c,i)=>{ const tgt=((cfg.bench||BENCH)[i]||{s:c}).s; if(c>=tgt) return 0;
+    let extra=st[i].v*tgt/100-st[i+1].v; for(let j=i+1;j<n-1;j++) extra*=st[j+1].v/st[j].v; return extra*deal; });
+  const worst = lift.reduce((a,v,i)=>v>lift[a]?i:a,0);
+  F_LEAK: { const call=el.querySelector('.fnl-call'); if(call && lift[worst]>0) call.querySelector('b').textContent='Biggest leak: '+FMT.k(lift[worst]); else if(call) call.remove(); }
   const cv = $('canvas',el), ctx = cv.getContext('2d');
   const labs = $$('.fnl-st',el), pills = $$('.hp',el), end = $('.fnl-end',el);
   const F = {el, cfg, conv, hs, rpl, p:0, shown:-1, fired:-1, vis:false, parts:[], last:performance.now(), L:null};
@@ -258,6 +257,7 @@ OBV.funnel = (el,cfg) => {
       pills.forEach((p,i)=>{ p.style.left=(w-44)+'px'; p.style.top=((L.pos[i]+L.pos[i+1])/2-21)+'px'; });
     }
     end.style.left=L.endX+'px'; end.style.top=L.endY+'px';
+    const call=$('.fnl-call',el); if(call){ const p=pills[worst]; call.style.left=vert?(L.w-6)+'px':p.style.left; call.style.top=(parseFloat(p.style.top)+(vert?48:52))+'px'; call.classList.toggle('vert',vert); }
     L.th = st.map(s=>L.T*(.14+.86*Math.sqrt(s.v/st[0].v)));
     L.start = L.pos[0]-(vert?20:22); L.stop = L.pos[n-1]; L.total = (L.stop-L.start) + (vert ? Math.hypot(L.endX-L.axis,L.endY-60-L.stop)+60 : (L.endX-(compact?32:52))-L.stop);
     el.style.height = L.h+'px';
@@ -347,6 +347,7 @@ OBV.funnel = (el,cfg) => {
         const h=hs[i]; once('p'+i,()=>setTimeout(()=>h==='good'?S.good():h==='leak'?S.leak():S.tick(1800,.014),260)); }
       else if(!on) p.classList.remove('on','lit'); });
     const done = F.p>=.985; F.k = k; F.done = done;
+    const call=$('.fnl-call',el); if(call) call.classList.toggle('on', pillK>=worst);
     if(done && !end.classList.contains('on')){ end.classList.add('on'); once('end',S.arrive); } else if(!done) end.classList.remove('on');
   }
   F.set = p => { F.p = clamp(p); reached(); if(REDUCED||!F.vis) draw(0); };

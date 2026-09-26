@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Obavia · Join the waitlist</title>
+<meta name="description" content="Join the Obavia waitlist for launch updates. Free to join. No account or payment.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="canonical" href="https://obavia.co/waitlist">
+<meta name="theme-color" content="#F6F9FF">
+<meta property="og:title" content="Join the Obavia waitlist">
+<meta property="og:description" content="Know why deals are lost. And fix it by Friday.">
+<meta property="og:image" content="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+  .wl{min-height:100vh;min-height:100svh;display:grid;place-items:center;padding:120px 20px 80px}
+  .wl-in{width:min(640px,100%);text-align:center}
+  .wl h1{margin:0;font:800 clamp(40px,6vw,64px)/1.02 var(--sans);letter-spacing:-.05em;color:var(--ink)}
+  .wl h1 span{display:block;color:#737C8E}
+  .wl .intro{margin:18px auto 0;max-width:380px;font:500 18px/1.5 var(--sans);color:var(--body)}
+  .wl-card{width:min(460px,100%);margin:34px auto 0;padding:26px;border-radius:28px;background:rgba(255,255,255,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 1px 2px rgba(28,36,54,.04),0 40px 90px -50px rgba(40,52,79,.45);text-align:left}
+  .wl label{display:block;margin:0 0 8px;font:650 14px/1 var(--sans);color:var(--body)}
+  .wl input{display:block;width:100%;height:54px;margin:0 0 18px;padding:0 16px;border:0;border-radius:14px;background:#F2F5FB;box-shadow:inset 0 0 0 1px rgba(28,36,54,.06);font:600 17px/1 var(--sans);color:var(--ink);transition:box-shadow .25s,background .25s}
+  .wl input::placeholder{color:#A3ABBB;font-weight:500}
+  .wl input:focus{outline:0;background:#fff;box-shadow:inset 0 0 0 2px #7D97C7}
+  .wl .trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+  .wl button{display:flex;align-items:center;justify-content:center;width:100%;height:56px;margin-top:6px;border:0;border-radius:999px;background:#28344F;color:#fff;font:700 17px/1 var(--sans);cursor:pointer;transition:background .3s,transform .3s var(--ease),opacity .3s}
+  .wl button:hover{background:#1E2940}
+  .wl button:active{transform:scale(.98)}
+  .wl button:disabled{opacity:.5;cursor:default;transform:none}
+  .wl .status:empty{display:none}
+  .wl .status{margin:14px 0 0;font:600 15px/1.45 var(--sans);color:#A8611F;text-align:center}
+  .wl .note{margin:18px 0 0;font:500 14.5px/1.5 var(--sans);color:#737C8E;text-align:center}
+  .wl .done{display:none;text-align:center;padding:10px 0 4px}
+  .wl .done i{display:grid;place-items:center;width:56px;height:56px;margin:0 auto 16px;border-radius:50%;background:#E9F7EF;color:#2E8A60}
+  .wl .done b{display:block;font:800 26px/1.15 var(--sans);letter-spacing:-.035em;color:var(--ink)}
+  .wl .done p{margin:10px 0 0;font:500 16px/1.5 var(--sans);color:var(--body)}
+  .wl.ok form,.wl.ok .note{display:none}
+  .wl.ok .done{display:block;animation:wlin .8s var(--ease) both}
+  @keyframes wlin{from{opacity:0;transform:translateY(10px)}}
+  @media (prefers-reduced-motion:reduce){.wl.ok .done{animation:none}}
+</style>
+<link rel="stylesheet" href="shell.css">
+<script>(function(){var h=document.documentElement;try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
+<body>
+<div class="o-sky" aria-hidden="true">
+  <i class="paper"></i>
+  <div class="c far" data-bx="0.0009" data-sp="5.10" style="--wf:0.3968;top:14.97%;opacity:0.604"><img src="sky/w0.webp" alt=""></div>
+  <div class="c far" data-bx="0.1753" data-sp="4.66" style="--wf:0.2936;top:34.38%;opacity:0.646"><img src="sky/w1.webp" alt=""></div>
+  <div class="c far" data-bx="0.3063" data-sp="4.56" style="--wf:0.3670;top:19.49%;opacity:0.539"><img src="sky/w2.webp" alt=""></div>
+  <div class="c far" data-bx="0.4580" data-sp="3.89" style="--wf:0.3349;top:26.08%;opacity:0.696"><img src="sky/w3.webp" alt=""></div>
+  <div class="c far" data-bx="0.5912" data-sp="3.43" style="--wf:0.2867;top:54.13%;opacity:0.531"><img src="sky/w4.webp" alt=""></div>
+  <div class="c far" data-bx="0.7376" data-sp="3.22" style="--wf:0.3667;top:38.30%;opacity:0.683"><img src="sky/w5.webp" alt=""></div>
+  <div class="c far" data-bx="0.9014" data-sp="5.90" style="--wf:0.3552;top:41.84%;opacity:0.625"><img src="sky/w6.webp" alt=""></div>
+  <i class="glow"></i>
+  <div class="c mid" data-bx="0.0921" data-sp="7.70" style="--wf:0.3464;top:84.76%;opacity:0.756"><img src="sky/w3.webp" alt=""></div>
+  <div class="c mid" data-bx="0.2425" data-sp="10.07" style="--wf:0.3541;top:50.85%;opacity:0.757"><img src="sky/w4.webp" alt=""></div>
+  <div class="c mid" data-bx="0.4427" data-sp="9.81" style="--wf:0.4914;top:69.68%;opacity:0.789"><img src="sky/w5.webp" alt=""></div>
+  <div class="c mid" data-bx="0.6331" data-sp="7.53" style="--wf:0.3622;top:64.97%;opacity:0.811"><img src="sky/w6.webp" alt=""></div>
+  <div class="c mid" data-bx="0.8322" data-sp="8.35" style="--wf:0.4412;top:58.00%;opacity:0.724"><img src="sky/w7.webp" alt=""></div>
+  <div class="c near" data-bx="0.0821" data-sp="15.31" style="--wf:0.6096;top:106.45%;opacity:0.950"><img src="sky/w5.webp" alt=""></div>
+  <div class="c near" data-bx="0.3286" data-sp="14.12" style="--wf:0.5234;top:106.44%;opacity:0.950"><img src="sky/w6.webp" alt=""></div>
+  <div class="c near" data-bx="0.5779" data-sp="15.35" style="--wf:0.6921;top:106.24%;opacity:0.950"><img src="sky/w7.webp" alt=""></div>
+  <div class="c near" data-bx="0.8213" data-sp="14.19" style="--wf:0.6935;top:106.75%;opacity:0.950"><img src="sky/w0.webp" alt=""></div>
+  <i class="grain"></i>
+</div>
+<div class="o-load" id="oLoad" aria-hidden="true"><div class="bg"></div>
+  <svg class="o-logo" id="oLogo" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9EFFE"/><stop offset=".55" stop-color="#B8C8F1"/><stop offset="1" stop-color="#869FD6"/></linearGradient>
+      <radialGradient id="ol" cx=".75" cy=".35" r=".4"><stop offset="0" stop-color="#5A73B0" stop-opacity=".32"/><stop offset="1" stop-color="#5A73B0" stop-opacity="0"/></radialGradient>
+      <radialGradient id="oh"><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+      <clipPath id="oc"><circle cx="32" cy="32" r="30"/></clipPath>
+    </defs>
+    <circle class="halo" cx="50" cy="50" r="50" fill="url(#oh)"/>
+    <circle class="track" cx="50" cy="50" r="46"/>
+    <circle class="ring" cx="50" cy="50" r="46" pathLength="1"/>
+    <g class="orb"><g transform="translate(18 18)">
+      <circle cx="32" cy="32" r="30" fill="url(#og)"/>
+      <g clip-path="url(#oc)"><rect width="64" height="64" fill="url(#ol)"/>
+        <g transform="translate(32 32) rotate(-35.5)" fill="none" stroke-linecap="round">
+          <path class="rib sh" pathLength="1" transform="translate(1.5 1.2)" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#4E66A0" stroke-opacity=".3" stroke-width="7.6"/>
+          <path class="rib" pathLength="1" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#FFFFFF" stroke-width="7"/>
+        </g></g>
+    </g></g>
+  </svg>
+</div>
+<header class="o-nav" id="oNav">
+  <div class="o-wrap">
+    <a class="o-brand" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt="" id="oMark"></a>
+    <ul class="o-links"><li><a href="product.html">Product</a></li><li><a href="owners.html">Owners</a></li><li><a href="team.html">Team</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="about.html">About</a></li></ul>
+    <a class="o-join" href="waitlist.html">Join the waitlist</a>
+    <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
+  </div>
+</header>
+<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a class="o-join" href="waitlist.html">Join the waitlist</a></nav>
+<script src="shell.js"></script>
+
+
+
+<main>
+<section class="wl" id="wl" aria-labelledby="wlTitle">
+  <div class="wl-in">
+    <h1 id="wlTitle" tabindex="-1">Join the waitlist. <span>Be first in.</span></h1>
+    <p class="intro">Launch updates, and first call on the founding seats. Obavia isn’t open yet.</p>
+    <div class="wl-card">
+      <form id="wlForm" novalidate>
+        <label for="wlName">Full name</label>
+        <input id="wlName" name="fullName" type="text" autocomplete="name" maxlength="160" placeholder="Your full name" required>
+        <label for="wlEmail">Work email</label>
+        <input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@agency.com" required>
+        <div class="trap" aria-hidden="true"><label for="wlSite">Website</label><input id="wlSite" name="website" tabindex="-1" autocomplete="off"></div>
+        <button type="submit" id="wlBtn">Join the waitlist</button>
+        <p class="status" id="wlStatus" role="status" aria-live="polite"></p>
+      </form>
+      <div class="done" id="wlDone">
+        <i><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></svg></i>
+        <b>You’re on the list.</b>
+        <p>We’ll write when the founding seats open.</p>
+      </div>
+    </div>
+    <p class="note">Free to join. No account or payment.</p>
+    <noscript><p class="note">Turn on JavaScript to join the waitlist.</p></noscript>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap frow">
+    <a href="index.html" class="fbrand" aria-label="Obavia home"><img src="favicon.svg" alt=""></a>
+    <nav aria-label="Footer"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a href="ads.html">Films</a></nav>
+  </div>
+</footer>
+<script>
+/* The waitlist posts to the same backend obavia.co has always used:
+   POST /api/waitlist {fullName, email, website} on obavia.co itself. */
+(() => {
+const $ = id => document.getElementById(id);
+const wrap = $('wl'), form = $('wlForm'), name = $('wlName'), email = $('wlEmail'), btn = $('wlBtn'), status = $('wlStatus');
+const live = ['https://obavia.co', 'https://www.obavia.co'].includes(location.origin);
+const endpoint = live ? location.origin + '/api/waitlist' : null;
+if (!endpoint) status.textContent = 'Signups open on obavia.co. This preview doesn’t save them.';
+const say = t => { status.textContent = t; };
+let busy = false;
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const full = name.value.normalize('NFC').trim().replace(/\s+/gu, ' ');
+  if (!full || [...full].length > 160) { say('Please enter your full name.'); name.focus(); return; }
+  if (!email.checkValidity() || !email.value.trim()) { say('Please check your email address.'); email.focus(); return; }
+  if (busy || !endpoint) return;
+  busy = true; btn.disabled = true; btn.textContent = 'Joining…'; say('');
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 12000); let retry = 0;
+  try {
+    const r = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'omit', signal: ctl.signal,
+      body: JSON.stringify({ fullName: full, email: email.value.trim(), website: $('wlSite').value }) });
+    const d = await r.json().catch(() => null);
+    if (r.ok && d && d.status === 'accepted') {
+      wrap.classList.add('ok'); $('wlTitle').focus();
+      if (window.OSHELL) { OSHELL.haptic(); OSHELL.tone(987.77, .03, 1.2); OSHELL.tone(1318.5, .026, 1.4, .1); }
+      return;
+    }
+    if (r.status === 422) say(d && d.error === 'invalid_full_name' ? 'Please check your full name and try again.' : 'Please check your email address and try again.');
+    else if (r.status === 429) { const v = r.headers.get('Retry-After'); retry = Math.max(1, Number(v) || Math.ceil((Date.parse(v) - Date.now()) / 1000) || 30); say(`Please wait ${retry} seconds, then try again.`); }
+    else say('We couldn’t save that yet. Please try again.');
+  } catch { say('We couldn’t reach the waitlist. Check your connection and try again.'); }
+  finally {
+    clearTimeout(to); busy = false; btn.textContent = 'Join the waitlist';
+    if (retry) setTimeout(() => { btn.disabled = false; }, Math.min(retry, 86400) * 1000); else btn.disabled = false;
+  }
+});
+})();
+</script>
+</body>
+</html>

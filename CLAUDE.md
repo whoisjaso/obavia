@@ -94,3 +94,8 @@ Four ancestral entry points + two amplifiers. Design serves these silently.
 - **Standard weekly rate CONFIRMED $350/wk** as the economy/Standard-class default (per-vehicle rate is authoritative; exotics far higher). Was a hybrid-positioning open item; now resolved.
 - Doctrine names Playfair Display / Plus Jakarta Sans as *examples*; we use Bodoni Moda / Montserrat (kept unless the user asks to swap). NB: `OBAVIA Admin.dc.html` display type is currently **Cormorant Garamond** (predates the Bodoni switch) — leave unless asked to align.
 - Build scope so far: cinematic Home hero + fullscreen menu (`Obavia Home.dc.html`); both rental agreements; **Admin operations console** (fleet + auto unit numbering + Add Vehicle, per-vehicle rate records, enriched rental detail, documents search). Still to come: Standards page, public fleet "watch-listing," member dashboard refinements, reciprocity tools (cost calculator, Houston guide).
+
+---
+
+# Separate project in this repo: Obavia (sales software)
+Everything above is the vehicle-rental project. `obavia-co/`, `app/`, `films/` and `docs/obavia-*.md` / `docs/icp-language.md` are a different product: sales software for agency owners at $100K to $1M a month. For that work, the source of truth is **`docs/obavia-spec.md`**, and the sales doctrine is **`docs/sales-doctrine.md`** (positioning, feature spec with status, landing page spec, design system, go-to-market). Don't apply the rental doctrine to it, or its rules to the rental files.

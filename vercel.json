@@ -2,8 +2,12 @@
   "framework": null,
   "installCommand": "",
   "buildCommand": "",
-  "outputDirectory": ".",
-  "git": {
-    "deploymentEnabled": false
-  }
+  "outputDirectory": "obavia-co",
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/teams", "destination": "/team", "permanent": true },
+    { "source": "/for-teams", "destination": "/team", "permanent": true },
+    { "source": "/setup", "destination": "/product", "permanent": true }
+  ],
+  "git": { "deploymentEnabled": false }
 }
