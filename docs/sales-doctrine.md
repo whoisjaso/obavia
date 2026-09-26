@@ -6,6 +6,41 @@ Read with `docs/obavia-spec.md` (what we build) and `docs/icp-language.md` (how 
 
 ---
 
+## 0. The architecture: the NCI decision process
+
+Every sale runs the same ten operations, in the same order. Only the compression changes: a two-minute setter call and a sixty-minute close run the same architecture at different lengths. Andres' script below is one compression of it. Obavia scores every call against the ten operations, not against a script.
+
+| # | Operation | Stage | What it does (our working definition) | Where it sits in the script |
+|---|---|---|---|---|
+| 01 | **Self install** | Pre-flight | The rep's own state before the call: composure, authority, the homework done | §2 the homework |
+| 02 | **Frame install** | In-flight | Set the frame for the call: who leads, the agenda, the time, why they're here | §3 intent; §4 open |
+| 03 | **Read** | In-flight | Read the person: their need (significance type), their word choice, their awareness stage | §3 goal and approach |
+| 04 | **Pain surface** | In-flight | Bring the real problem up in their own words: the catalyst, the pain, the gap | §3 catalyst, pain, gap |
+| 05 | **Future cast** | In-flight | Make the future they want specific and felt | §4 future pace |
+| 06 | **Stakes compress** | In-flight | Make the cost of waiting concrete and near | §4 consequence and the three commitments |
+| 07 | **Bypass** | In-flight | Take resistance out before it forms | §4 do it yourself and the objection tree |
+| 08 | **Bridge** | In-flight | Connect what they said to the offer | §4 transition and the three pillars |
+| 09 | **Smooth offer** | In-flight | Make the offer easy to accept: terms, recommit, the ask | §4 recommit and ask |
+| 10 | **Lock** | Post-flight | Secure the decision so it holds: payment, next step, onboarding, no remorse | After the ask |
+
+Red dot to green dot: the lead starts at resistance and ends at commitment.
+
+**The axes.** Underneath the operations, every call moves the lead on six axes:
+- Focus;
+- Openness;
+- Connection;
+- Suggestibility;
+- Compliance;
+- Expectancy.
+
+Three high is enough for a decision. Obavia reads all six from each call and names the one to raise next (the handoff's "Where they stand").
+
+**Ethics, non-negotiable.** Help people change fast, for their interests, not just ours. A lead who doesn't need it doesn't get sold. This matches the guardrails in §6.
+
+*Note: the operation names and order come from the NCI decision process. The one-line definitions are our working reading until we write them from the NCI source material.*
+
+---
+
 ## 1. The string
 
 A sale is a string from the first time they see you to the money. Every step on it has to be hit, whoever hits it: the setter, the closer, an ad or a video.
@@ -100,7 +135,8 @@ Andres' closers open with "I have a couple of notes here from John." Setters wri
 - **Archetype:** the probable significance type from their word choice, and what they deem significant.
 - **Already handled:** the do-it-yourself answer, the objection-tree path and what changed, and the criteria from a past bad result.
 - **Pre-call asset:** whether they watched it, and their takeaway.
-- **The string:** which steps were hit and which are missing, so the closer knows where to pick up.
+- **The ten operations:** which were run on the set and which are missing, so the closer knows where to pick up.
+- **Where they stand:** the six axes from the last call, how many are high, and the one to raise next.
 - **For the close:** three crucial points that decide the purchase:
   - how to open (their words, confirmed);
   - the pillar to lead with (the key to the castle, answering why the last attempt failed);
@@ -111,7 +147,7 @@ A weak set shows up here as missing steps, with a plain instruction to the close
 
 ### Coaching against the doctrine
 
-- **String coverage per rep:** the steps a setter skips most, from their calls. This joins the leak engine as a reason ("set skipped the catalyst on 62% of calls").
+- **Operation coverage per rep:** the NCI operations each rep skips or runs out of order, from their calls. This joins the leak engine as a reason ("frame install skipped on 62% of Reza's bookings").
 - **Talk-time in the pitch:** pitches that run long, measured against the close rate.
 - **Pre-handling:** calls where do-it-yourself or the planned objection came up at the end are flagged as "not pre-handled".
 - **Commitments:** closes attempted without the three commitments.

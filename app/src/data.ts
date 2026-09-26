@@ -83,9 +83,12 @@ export type LeadEvent = { t: string; what: string; detail?: string; src: 'Phone'
 export type Signal = { said: string; over: string; means: string };
 /** A name or picture they reached for, out of everything they could have said. */
 export type Reference = { name: string; over: string[]; means: string };
-/** The string: every step a sale has to hit, whoever hits it. The set covers the first five. */
-export const STRING = ['Goal', 'Approach', 'Catalyst', 'Pain', 'Gap', 'Do it yourself', 'Past attempts', 'Future', 'Consequence', 'Commitments'] as const;
-export type StringStep = (typeof STRING)[number];
+/** The NCI decision process: ten operations every sale runs, in order. The setter owns the first four. */
+export const OPS = ['Self install', 'Frame install', 'Read', 'Pain surface', 'Future cast', 'Stakes compress', 'Bypass', 'Bridge', 'Smooth offer', 'Lock'] as const;
+export type Op = (typeof OPS)[number];
+/** The six axes of influence. Three high is enough for a decision. */
+export const AXES = ['Focus', 'Openness', 'Connection', 'Suggestibility', 'Compliance', 'Expectancy'] as const;
+export type Axis = (typeof AXES)[number];
 /** The setter's notes to the closer, written by Obavia from the call. */
 export type Handoff = {
   from: string; when: string;
@@ -100,7 +103,9 @@ export type Handoff = {
   asset?: { name: string; watched: boolean; takeaway?: string };
   /** Who else they named on the call, and what to sell against it. */
   compared: { to: string; against: string }[];
-  hit: StringStep[];
+  hit: Op[];
+  /** Where they stand on each axis after the last call, 0 to 100, with the one to raise next. */
+  axes: Record<Axis, number>; raise: string;
   close: { open: string; pillar: string; consequence: string; words: string[] };
 };
 export type Lead = {
@@ -155,7 +160,9 @@ export const LEADS: Lead[] = [
         { to: 'Hiring a sales manager', against: 'A manager hears ten calls a week. This hears every one, from day one.' },
         { to: 'Another sales coach', against: 'The last one sold him a template. This is built from his own calls.' },
       ],
-      hit: ['Goal', 'Approach', 'Catalyst', 'Pain', 'Gap', 'Do it yourself', 'Past attempts'],
+      hit: ['Self install', 'Frame install', 'Read', 'Pain surface'],
+      axes: { Focus: 82, Openness: 74, Connection: 58, Suggestibility: 46, Compliance: 52, Expectancy: 71 },
+      raise: 'Connection. Use his words back, “my team” and “Babe Ruth”, before any pillar.',
       close: {
         open: 'Confirm the jump-in approach in his words, then ask what he took from the video.',
         pillar: 'Lead with “built from your own calls”. It answers exactly why the coach failed.',
@@ -222,7 +229,9 @@ export const LEADS: Lead[] = [
       handled: [],
       asset: { name: 'The six-minute leak breakdown', watched: false },
       compared: [],
-      hit: ['Goal', 'Approach'],
+      hit: ['Self install', 'Read'],
+      axes: { Focus: 38, Openness: 44, Connection: 61, Suggestibility: 70, Compliance: 66, Expectancy: 30 },
+      raise: 'Focus. Install the frame first: a day, a time and what the call will cover.',
       close: {
         open: 'Confirm the agenda and his timezone first. “Any time is fine” is a soft yes.',
         pillar: 'Don’t pitch yet. Find the catalyst: what changed that made him book?',
@@ -266,7 +275,9 @@ export const LEADS: Lead[] = [
         { to: 'Gong', against: 'Gong records the calls. This tells each rep the one fix, and nobody has to open it.' },
         { to: 'Building it in-house', against: 'The dashboard was never the problem. The why was.' },
       ],
-      hit: ['Goal', 'Approach', 'Catalyst', 'Pain', 'Gap', 'Do it yourself', 'Past attempts', 'Future'],
+      hit: ['Self install', 'Frame install', 'Read', 'Pain surface', 'Future cast'],
+      axes: { Focus: 77, Openness: 69, Connection: 72, Suggestibility: 41, Compliance: 55, Expectancy: 80 },
+      raise: 'Suggestibility. Lead with two agencies her size that ramped a rep in 30 days.',
       close: {
         open: 'Start with who else like her runs it: two agencies her size.',
         pillar: 'Lead with trial mode: new reps proven on cheap leads before they touch a podcast lead.',

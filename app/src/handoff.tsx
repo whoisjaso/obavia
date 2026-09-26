@@ -1,10 +1,11 @@
 /* The handoff: the setter's notes to the closer, written by Obavia from the
    call. A profile of the lead, and the three points that decide the close. */
-import { NEED, STRING, type Lead } from './data';
+import { AXES, NEED, OPS, type Lead } from './data';
 import { byId } from './engine';
 import { Ic } from './ui';
 
-const SET = STRING.slice(0, 5), CLOSE = STRING.slice(5);
+const SET = OPS.slice(0, 4), CLOSE = OPS.slice(4);
+const HIGH = 65;
 
 function Row({ k, children, miss }: { k: string; children?: React.ReactNode; miss?: boolean }) {
   return (
@@ -19,7 +20,8 @@ export function Handoff({ lead }: { lead: Lead }) {
   const h = lead.handoff!;
   const setter = byId(h.from).name.split(' ')[0];
   const skipped = SET.filter(s => !h.hit.includes(s));
-  const next = STRING.find(s => !h.hit.includes(s));
+  const next = OPS.find(s => !h.hit.includes(s));
+  const high = AXES.filter(a => h.axes[a] >= HIGH).length;
   return (
     <>
       <section className="sec">
@@ -67,15 +69,28 @@ export function Handoff({ lead }: { lead: Lead }) {
       </section>
 
       <section className="sec">
-        <h2>The string</h2>
-        <p className="sub">{skipped.length ? `The set skipped ${skipped.join(', ').replace(/, ([^,]*)$/, ' and $1')}. Cover ${skipped.length > 1 ? 'them' : 'it'} first.` : next ? `Pick up at ${next.toLowerCase()}.` : 'Every step hit. Ask for the decision.'}</p>
+        <h2>Where they stand</h2>
+        <p className="sub">{high} of 6 axes high. {high >= 3 ? 'Enough to decide.' : 'Three is enough to decide.'}</p>
+        <div className="group axes">
+          {AXES.map(a => (
+            <div key={a} className={'ax' + (h.axes[a] >= HIGH ? ' hi' : '')}>
+              <span>{a}</span><i><b style={{ width: h.axes[a] + '%' }} /></i><em className="num">{h.axes[a]}</em>
+            </div>
+          ))}
+          <p className="raise"><b>Raise next</b>{h.raise}</p>
+        </div>
+      </section>
+
+      <section className="sec">
+        <h2>The ten operations</h2>
+        <p className="sub">{skipped.length ? `The set skipped ${skipped.join(', ').replace(/, ([^,]*)$/, ' and $1').toLowerCase()}. Run ${skipped.length > 1 ? 'them' : 'it'} first.` : next ? `Pick up at ${next.toLowerCase()}.` : 'Every operation run. Lock it in.'}</p>
         <div className="group string">
-          {[['The set', SET], ['The close', CLOSE]].map(([t, steps]) => (
+          {[['The set', SET, 0], ['The close', CLOSE, 4]].map(([t, steps, from]) => (
             <div key={t as string}>
               <span className="k">{t as string}</span>
-              {(steps as readonly string[]).map(s => { const on = h.hit.includes(s as never), gap = !on && SET.includes(s as never); return (
+              {(steps as readonly string[]).map((s, i) => { const on = h.hit.includes(s as never), gap = !on && SET.includes(s as never); return (
                 <div key={s} className={'st2' + (on ? ' on' : gap ? ' gap' : '') + (s === next ? ' next' : '')}>
-                  <i>{on && <Ic name="check" size={12} w={3} />}</i>{s}
+                  <i>{on ? <Ic name="check" size={12} w={3} /> : <small>{(from as number) + i + 1}</small>}</i>{s}
                 </div>); })}
             </div>
           ))}
