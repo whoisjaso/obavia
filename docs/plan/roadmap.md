@@ -2,6 +2,12 @@
 
 This is how Obavia gets built, one phase at a time, using the BMAD method. Each phase ends at a gate. Nothing in a later phase starts until the gate before it passes. Spikes are the one exception: small, throwaway tests of a risky integration.
 
+**The experience comes first.** A 10 out of 10 engine behind a 6 out of 10 experience loses to the tools owners already have. So:
+- the UX spec leads the PRD;
+- every story is designed before it's built;
+- a story isn't done until it passes the experience bar below;
+- launch waits on the experience as much as on accuracy.
+
 Read with `docs/obavia-spec.md` (what we build), `docs/sales-doctrine.md` (what it coaches against) and `docs/icp-language.md` (how the market talks).
 
 **Why BMAD.** Obavia is one product with a long build, several integrations, an AI core that has to be right, and a price that has to be earned. BMAD writes the brief, the PRD, the UX spec and the architecture *before* any story is coded, then builds epic by epic, one story at a time. Those documents become the context every coding session reads, so the build doesn't drift across seven months.
@@ -49,18 +55,24 @@ BMAD agents: Analyst, PM.
 
 ## Phase 2. Planning (Oct 19 to Nov 6)
 
-BMAD agents: PM, UX Designer.
+BMAD agents: UX Designer first, then PM.
 
-1. **`docs/plan/prd.md`.**
+1. **`docs/plan/ux.md` leads.** The UX spec is written first. The PRD serves it, never the other way round.
    - Functional requirements for every v1 feature, each tied to a spec row.
    - Non-functional requirements: accuracy, latency, uptime, privacy, cost per call.
    - Success metrics, and what is out of scope.
-2. **`docs/plan/ux.md`.**
+2. **The UX spec covers:**
    - Onboarding, step by step: sign up, connect each tool, first calls ingested, first read, first report.
    - Every screen in the prototype, with its empty, loading and error states.
    - The owner, the rep and the marketer journeys.
    - Rules: one next action, nothing to type.
-3. **Pricing and terms.** Monthly terms, the refundable start, the founding cap and price, written as they will appear on the site.
+   - The sensory system:
+     - one sound set and one haptic set, each with a meaning;
+     - motion timings and easing;
+     - how every tap, success, warning and arrival feels.
+   - Clickable prototypes of every v1 screen, tested with five owners before any code. Five-second test: can they say where they're losing money?
+3. **`docs/plan/prd.md`.**
+4. **Pricing and terms.** Monthly terms, the refundable start, the founding cap and price, written as they will appear on the site.
 
 **Gate:**
 - The PRD and the UX spec are approved.
@@ -89,7 +101,12 @@ BMAD agents: Architect, Scrum Master, with a test architect.
 
 ## Phase 4. Implementation (Nov 30 to Apr 16)
 
-BMAD cycle for every story: Scrum Master writes it, Dev builds it, a code review and QA check it, done. Each sprint ends with a demo to the design partners and a retrospective.
+BMAD cycle for every story:
+1. The Scrum Master writes it.
+2. UX attaches the screen and its states.
+3. Dev builds it.
+4. A code review, QA and an experience review check it.
+5. Done. Each sprint ends with a demo to the design partners and a retrospective.
 
 | Sprint | Dates | Epic | Done means |
 |---|---|---|---|
@@ -102,7 +119,7 @@ BMAD cycle for every story: Scrum Master writes it, Dev builds it, a code review
 | 7 | Feb 22 to Mar 5 | **E6 Daily report** | The owner, rep and marketer pages, sent at 7:00 AM local: objections with the offer fix, days booked out, compared-to, by source |
 | 8 | Mar 8 to Mar 19 | **E7 Fix loop** + **E8 The lead** | One fix per rep, checked Friday in dollars; the word-choice read on every lead |
 | 9 | Mar 22 to Apr 2 | **E8 Handoff** + **E9 Team** | Setter-to-closer handoff with the string; Today screen; revenue-per-lead board |
-| 10 | Apr 5 to Apr 16 | **Hardening** (no new features) | The quality bar below, a security review, load tests, and the onboarding run cold by someone new |
+| 10 | Apr 5 to Apr 16 | **Hardening and polish** (no new features) | The experience bar on every screen, the quality bar below, a security review, load tests, and onboarding run cold by someone new |
 
 ## Launch week (Apr 19 to Apr 23)
 
@@ -112,6 +129,24 @@ BMAD cycle for every story: Scrum Master writes it, Dev builds it, a code review
 - **Operations.** Support, a status page and a written incident response.
 
 ---
+
+## The experience bar (every story, every sprint)
+
+A story ships only when all of these hold:
+
+| Check | Bar |
+|---|---|
+| The answer first | The number that matters is readable in under 5 seconds, on a phone, before any sentence |
+| Words | At most one short line per section. If it needs a caption, it's redesigned |
+| One next action | One primary action per screen, reachable with the thumb |
+| Every state | Empty, loading, error and success are designed, never default |
+| Feel | Every tap has its sound (after the first tap) and haptic. Motion is eased, never janky, 60fps on a mid-range phone |
+| Speed | Any screen interactive in under 1 second on 4G. No spinners over 300 ms without a skeleton |
+| Consistency | Same sky, type, colors, sounds and haptics as every other screen. No new pattern without a reason |
+| Nothing to type | The core loop never needs the owner or a rep to type |
+| Accessible | Readable contrast, reduced motion respected, works with VoiceOver |
+
+The design partners score the experience every sprint (1 to 10). Launch needs 9 or higher from all three.
 
 ## The quality bar (what justifies $3,000 a month)
 
@@ -124,6 +159,7 @@ Launch waits on these, not on feature count:
 | Handoff usefulness | Closers at the design partners rate it useful on at least 80% of calls |
 | Report delivery | At 7:00 AM local on at least 99% of days |
 | Nothing to type | No rep has to enter anything for the core loop to work |
+| Experience | 9 out of 10 or higher from every design partner; a new owner completes onboarding without help |
 | Found money | Every design partner shown at least one leak worth at least $10K a month, from their own calls |
 | Privacy | Consent captured, data scoped per agency, deletion on request |
 
@@ -137,7 +173,7 @@ Cut from the bottom of this list first:
 5. The touch path, and the speed of the pre-call asset.
 6. Back-end signals.
 
-The core loop never moves: capture, why from calls, leak engine, daily report and the fix loop.
+The experience bar never moves either. Cut a feature before shipping one that feels unfinished. The core loop never moves: capture, why from calls, leak engine, daily report and the fix loop.
 
 ## How we run it
 

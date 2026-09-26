@@ -48,6 +48,8 @@ Use these words on the page and in the app. Do not invent jargon.
 
 ## 3. Experience principles
 
+**The experience is the product.** An owner at $1M a month already has GoHighLevel, HubSpot and Salesforce: powerful, crowded, and full of words. A 10 out of 10 engine behind a 6 out of 10 experience loses to them. When the backend and the experience compete for time, the experience wins. The app uses the same psychology it teaches: it reads the owner the way Obavia reads a lead.
+
 These decide every screen, on the site and in the app.
 
 1. **Show, don't preach.** Every section is a problem headline, a visual that proves the answer, and at most one short line. If a screen needs a caption to be understood, redesign the screen.
@@ -57,7 +59,10 @@ These decide every screen, on the site and in the app.
 5. **Nothing to type.** Anything the system can read, it reads.
 6. **Feedback you can feel.** A soft sine chime (after first tap) and a haptic tick on taps. Never on scroll.
 7. **Motion explains or it doesn't ship.** Slow, eased, deliberate. Respect reduced motion.
-8. **Honest.** Real screenshots, real math, no fake urgency, no fake scarcity, no invented testimonials. The only cap we state is a real one.
+8. **The answer before the explanation.** The owner sees the number that matters (the leak, in dollars) in under five seconds, before a single sentence. Words are a last resort.
+9. **One visual language.** Sky, type, color, motion, sound and haptics mean the same thing everywhere. A green tick sounds and feels the same on every screen.
+10. **Status, not homework.** Every screen shows where they stand and what changed since they last looked. It never asks them to go and find it.
+11. **Honest.** Real screenshots, real math, no fake urgency, no fake scarcity, no invented testimonials. The only cap we state is a real one.
 
 **Banned.** Decorative pills, chips and badges. Disclaimer captions ("illustrative", "demo", "sample"). Em and en dashes in copy. The wordmark as text (the mark alone). Emoji. Div mockups of the product where a real screenshot exists. Stock photography.
 
