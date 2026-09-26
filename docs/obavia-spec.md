@@ -176,7 +176,8 @@ Inner pages (about, pricing, team, owners, product, ads) share the shell and hav
 
 | Path | What |
 |---|---|
-| `obavia-co/` | Static marketing site, deployed as-is on Cloudflare Pages (output dir `obavia-co`). Publicly served: no internal docs here. |
+| `obavia-co/` | Static marketing site, served at obavia.co by the `obavia-waitlist` Worker (see `deploy/site/`). Publicly served: no internal docs here. |
+| `deploy/site/` | The obavia.co Worker and its deploy (GitHub Action "Deploy obavia.co"): new site, same waitlist API, emails and database. |
 | `obavia-co/index.html` | Home, self-contained |
 | `obavia-co/shell.css`, `shell.js` | Shared nav, sky, loader, page transitions, sound, haptics |
 | `obavia-co/sky/`, `shots/`, `ads/` | Clouds, real app screenshots, rendered films |

@@ -1,0 +1,9 @@
+// Local test only (wrangler dev). The deploy keeps the live Worker's own bindings.
+{
+  "name": "obavia-waitlist-local",
+  "main": "worker.js",
+  "compatibility_date": "2026-06-28",
+  "assets": { "directory": "dist", "binding": "ASSETS", "run_worker_first": true },
+  "d1_databases": [{ "binding": "WAITLIST_DB", "database_name": "local", "database_id": "local" }],
+  "vars": { "PUBLIC_ORIGIN": "https://localhost:8787" }
+}
