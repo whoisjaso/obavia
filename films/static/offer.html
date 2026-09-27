@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- Static ads, offer layout: a bold field, one giant word, a tilted card of what they get,
+     one button and one honest line. Render with render.cjs. ?v=<variant>&f=story|feed -->
+<html lang="en">
+<meta charset="utf-8">
+<style>
+  @font-face{font-family:Manrope;font-weight:600;src:url(../public/fonts/manrope-latin-600-normal.woff2)}
+  @font-face{font-family:Manrope;font-weight:700;src:url(../public/fonts/manrope-latin-700-normal.woff2)}
+  @font-face{font-family:Manrope;font-weight:800;src:url(../public/fonts/manrope-latin-800-normal.woff2)}
+  :root{--ink:#161D2E;--paper:#F7F9FF;--w:1080px;--h:1920px}
+  *{box-sizing:border-box;margin:0}
+  html,body{width:var(--w);height:var(--h);overflow:hidden}
+  body{position:relative;font-family:Manrope,sans-serif;-webkit-font-smoothing:antialiased;background:#3F5A99}
+  .field{position:absolute;inset:0;background:
+    radial-gradient(140% 90% at 110% 100%,#DCE6FD 0 34%,transparent 34.2%),
+    radial-gradient(150% 100% at 110% 100%,#B8C8F1 0 44%,transparent 44.2%),
+    radial-gradient(160% 110% at 110% 100%,#869FD6 0 54%,transparent 54.2%),
+    linear-gradient(170deg,#34497F 0%,#4E6AA8 60%,#6F88C4 100%)}
+  .ad{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding-top:var(--top);text-align:center;color:var(--paper)}
+  .mark{width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+  .mark img{width:92px;height:92px}
+  .kick{margin-top:44px;font:700 58px/1.1 Manrope;letter-spacing:-.025em}
+  .big{white-space:nowrap;margin-top:6px;font:800 var(--bs)/.86 Manrope;letter-spacing:-.06em;text-transform:uppercase}
+  .sub{margin-top:18px;font:800 76px/1 Manrope;letter-spacing:-.04em}
+  .card{width:820px;margin-top:var(--cardm);border-radius:34px;background:#fff;transform:rotate(3deg);color:var(--ink);text-align:left;
+    box-shadow:0 2px 4px rgba(22,29,46,.08),0 40px 80px -30px rgba(16,24,48,.55)}
+  .row{display:flex;align-items:center;gap:22px;padding:34px 40px}
+  .row+.row{border-top:1px solid rgba(22,29,46,.08)}
+  .row span{flex:1;font:600 44px/1.1 Manrope;letter-spacing:-.015em;color:#3A4254}
+  .row b{font:800 46px/1 Manrope;letter-spacing:-.02em}
+  .row i{width:58px;height:58px;border-radius:50%;background:#DCE6FD;display:grid;place-items:center;flex:none}
+  .row i svg{width:30px;height:30px}
+  .cta{position:absolute;left:50%;bottom:var(--ctab);transform:translateX(-50%);display:flex;align-items:center;gap:22px;
+    padding:30px 52px;border-radius:30px;background:#fff;font:700 58px/1 Manrope;letter-spacing:-.02em;color:var(--ink);white-space:nowrap;
+    box-shadow:0 30px 60px -30px rgba(16,24,48,.55)}
+  .cta svg{width:54px;height:54px}
+  .fine{position:absolute;right:56px;bottom:var(--fineb);font:600 38px/1 Manrope;color:#28344F}
+  body.feed{--h:1350px}
+</style>
+<body>
+<div class="field"></div>
+<div class="ad">
+  <div class="mark"><img src="../public/mark.svg" alt=""></div>
+  <p class="kick" id="k"></p>
+  <p class="big" id="b"></p>
+  <p class="sub" id="s"></p>
+  <div class="card" id="card"></div>
+</div>
+<div class="cta"><svg viewBox="0 0 24 24" fill="none" stroke="#3E7BEA" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg><span>Join the waitlist</span></div>
+<p class="fine">Free to join. No card.</p>
+<script>
+const V = {
+  type:  { k: 'Your reps type', b: 'Nothing', s: 'Obavia reads every call.', rows: [['CRM notes', 'Automatic'], ['Why they didn’t buy', 'Tagged'], ['Closer handoff', 'Written']] },
+  why:   { k: 'Stop guessing', b: 'Why', s: 'deals die. From every call.', rows: [['“Need to think”', 'Price'], ['“Ask my partner”', 'Authority'], ['“Any time is fine”', 'No-show']] },
+  friday:{ k: 'One fix per rep.', b: 'Friday', s: 'checked in dollars.', rows: [['The leak', 'Found'], ['The rep', 'Named'], ['The fix', 'Checked']] },
+};
+const plus = '<svg viewBox="0 0 24 24" fill="none" stroke="#28344F" stroke-width="3.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+const q = new URLSearchParams(location.search), v = V[q.get('v')] || V.type, feed = q.get('f') === 'feed';
+document.body.classList.toggle('feed', feed);
+const st = document.documentElement.style;
+st.setProperty('--top', feed ? '70px' : '230px'); st.setProperty('--bs', feed ? '220px' : '270px');
+st.setProperty('--cardm', feed ? '46px' : '90px'); st.setProperty('--ctab', feed ? '120px' : '300px'); st.setProperty('--fineb', feed ? '44px' : '150px');
+document.getElementById('k').textContent = v.k;
+document.getElementById('b').textContent = v.b;
+document.getElementById('s').textContent = v.s;
+const big = document.getElementById('b');
+document.fonts.ready.then(() => { let size = parseFloat(getComputedStyle(big).fontSize); while (big.scrollWidth > 900 && size > 60) { size -= 4; big.style.fontSize = size + 'px'; } document.body.dataset.ready = '1'; });
+document.getElementById('card').innerHTML = v.rows.map(([a, b]) => `<div class="row"><span>${a}</span><b>${b}</b><i>${plus}</i></div>`).join('');
+</script>
+</body>
+</html>
