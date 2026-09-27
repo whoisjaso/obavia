@@ -145,6 +145,17 @@ Inner pages (about, pricing, team, owners, product, ads) share the shell and hav
 
 ## 6. Design system
 
+**The feel (the reference every screen is held to).** Soft, clean, smooth and straight to the point, like the best consumer ads and apps:
+- **One big headline, left aligned.** Heavy, tight and short. It says the outcome, not the feature.
+- **Obavia speaks once.** One short message in a soft grey bubble, with the number in bold: "No-shows cost you $13K last week. Want me to send Reza the fix?"
+- **The owner answers with one tap.** A light blue reply ("Yes please!") is the whole interaction. No forms, no menus to learn.
+- **One button, white and floating, with a soft shadow.**
+- **White fading to soft blue at the bottom.** Nothing else on screen: no borders, no dividers, no second idea.
+
+Anyone should be able to use it with no explanation, in seconds. If a screen needs instructions, it isn't done.
+
+**Static ads** follow the same layout: `films/static/`, rendered with `node films/static/render.cjs` in story (1080×1920) and feed (1080×1350) formats.
+
 **Type.** Manrope everywhere (fallback Helvetica Neue, Arial). Headlines 800, tight tracking (about -0.035em). Body 400 to 500.
 
 **Color** (`obavia-co/shell.css` tokens):
@@ -168,7 +179,7 @@ Inner pages (about, pricing, team, owners, product, ads) share the shell and hav
 
 **Icons.** Phosphor, inlined as SVG `<symbol>`s. No emoji.
 
-**App.** iOS-clean: large titles, grouped lists, sheets, a tab bar, one next action on Today. Same sky, type and sound.
+**App.** iOS-clean: large titles, grouped lists, sheets, a tab bar, one next action on Today. Same sky, type and sound. The core interaction is the one in the feel above: Obavia states what it found in one line and offers the next move, and the owner or rep answers with one tap.
 
 ## 7. Go-to-market
 

@@ -1,0 +1,66 @@
+<!doctype html>
+<!-- Static ads: one headline, Obavia speaking once, the owner saying yes, one button.
+     Render with render.cjs. ?v=<variant>&f=story|feed -->
+<html lang="en">
+<meta charset="utf-8">
+<style>
+  @font-face{font-family:Manrope;font-weight:600;src:url(../public/fonts/manrope-latin-600-normal.woff2)}
+  @font-face{font-family:Manrope;font-weight:700;src:url(../public/fonts/manrope-latin-700-normal.woff2)}
+  @font-face{font-family:Manrope;font-weight:800;src:url(../public/fonts/manrope-latin-800-normal.woff2)}
+  :root{--ink:#161D2E;--body:#3A4254;--bubble:#EDEFF3;--me:#CFE0FB;--w:1080px;--h:1920px}
+  *{box-sizing:border-box;margin:0}
+  html,body{width:var(--w);height:var(--h);overflow:hidden}
+  body{position:relative;font-family:Manrope,sans-serif;-webkit-font-smoothing:antialiased;
+    background:linear-gradient(180deg,#FFFFFF 0%,#FFFFFF 52%,#EEF2F8 70%,#C9D6E8 88%,#AFC2DC 100%)}
+  .glow{position:absolute;inset:0;background:radial-gradient(60% 40% at 50% 38%,rgba(255,255,255,.9),rgba(255,255,255,0))}
+  .ad{position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--top) 110px 0}
+  h1{font:800 var(--hs)/1.02 Manrope;letter-spacing:-.045em;color:var(--ink);max-width:880px}
+  .who{align-self:center;display:flex;flex-direction:column;align-items:center;margin-top:var(--gap1)}
+  .av{width:168px;height:168px;border-radius:50%;background:#fff;display:grid;place-items:center;
+    box-shadow:0 2px 6px rgba(22,29,46,.06),0 30px 60px -24px rgba(40,58,100,.35)}
+  .av img{width:132px;height:132px}
+  .name{margin-top:-22px;padding:14px 30px;border-radius:999px;background:#fff;font:600 38px/1 Manrope;color:var(--ink);
+    box-shadow:0 12px 30px -14px rgba(40,58,100,.35)}
+  .them{align-self:center;width:800px;margin-top:40px;padding:34px 40px;border-radius:44px;background:var(--bubble);
+    font:600 40px/1.34 Manrope;letter-spacing:-.012em;color:var(--body)}
+  .them b{font-weight:800;color:var(--ink)}
+  .me{align-self:flex-end;margin:32px -20px 0 0;padding:26px 36px;border-radius:40px;background:var(--me);
+    font:600 40px/1 Manrope;color:var(--ink);position:relative}
+  .cta{position:absolute;left:50%;bottom:var(--ctab);transform:translateX(-50%);display:flex;align-items:center;gap:22px;
+    padding:30px 52px;border-radius:30px;background:#fff;font:700 58px/1 Manrope;letter-spacing:-.02em;color:var(--ink);white-space:nowrap;
+    box-shadow:0 2px 4px rgba(22,29,46,.05),0 30px 60px -30px rgba(40,58,100,.45)}
+  .cta svg{width:54px;height:54px}
+  .tile{position:absolute;left:110px;bottom:var(--tileb);width:150px;height:150px;border-radius:38px;background:#fff;display:grid;place-items:center;
+    box-shadow:0 2px 6px rgba(22,29,46,.06),0 26px 50px -22px rgba(40,58,100,.4)}
+  .tile img{width:104px;height:104px}
+  body.feed{--h:1350px}
+  body.feed .tile{display:none}
+</style>
+<body>
+<div class="glow"></div>
+<div class="ad">
+  <h1 id="h"></h1>
+  <div class="who"><div class="av"><img src="../public/mark.svg" alt=""></div><div class="name">Obavia</div></div>
+  <p class="them" id="t"></p>
+  <p class="me" id="m"></p>
+</div>
+<div class="tile"><img src="../public/mark.svg" alt=""></div>
+<div class="cta"><svg viewBox="0 0 24 24" fill="none" stroke="#3E7BEA" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg><span id="c"></span></div>
+<script>
+const V = {
+  leak:   { h: 'Let Obavia find your leak.', t: 'No-shows cost you <b>$13K</b> last week. Want me to send Reza the fix?', m: 'Yes please!' },
+  price:  { h: 'Know why they didn’t buy.', t: 'Three deals died on price. Want me to offer <b>monthly terms</b> first?', m: 'Do it.' },
+  closer: { h: 'Every closer, briefed.', t: 'Marcus wants his team closing <b>without him</b>. Send Dana the three points?', m: 'Send them.' },
+};
+const q = new URLSearchParams(location.search), v = V[q.get('v')] || V.leak, feed = q.get('f') === 'feed';
+document.body.classList.toggle('feed', feed);
+const s = document.documentElement.style;
+s.setProperty('--top', feed ? '120px' : '300px'); s.setProperty('--hs', feed ? '104px' : '118px');
+s.setProperty('--gap1', feed ? '44px' : '70px'); s.setProperty('--ctab', feed ? '110px' : '330px'); s.setProperty('--tileb', feed ? '230px' : '560px');
+document.getElementById('h').textContent = v.h;
+document.getElementById('t').innerHTML = v.t;
+document.getElementById('m').textContent = v.m;
+document.getElementById('c').textContent = q.get('cta') || 'Join the waitlist';
+</script>
+</body>
+</html>
