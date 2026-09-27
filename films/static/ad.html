@@ -14,7 +14,7 @@
     background:linear-gradient(180deg,#FFFFFF 0%,#FFFFFF 52%,#EEF2F8 70%,#C9D6E8 88%,#AFC2DC 100%)}
   .glow{position:absolute;inset:0;background:radial-gradient(60% 40% at 50% 38%,rgba(255,255,255,.9),rgba(255,255,255,0))}
   .ad{position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--top) 110px 0}
-  h1{font:800 var(--hs)/1.02 Manrope;letter-spacing:-.045em;color:var(--ink);max-width:880px}
+  h1{text-wrap:balance;font:800 var(--hs)/1.02 Manrope;letter-spacing:-.045em;color:var(--ink);max-width:880px}
   .who{align-self:center;display:flex;flex-direction:column;align-items:center;margin-top:var(--gap1)}
   .av{width:168px;height:168px;border-radius:50%;background:#fff;display:grid;place-items:center;
     box-shadow:0 2px 6px rgba(22,29,46,.06),0 30px 60px -24px rgba(40,58,100,.35)}
@@ -50,6 +50,9 @@
 const V = {
   leak:   { h: 'Let Obavia find your leak.', t: 'No-shows cost you <b>$13K</b> last week. Want me to send Reza the fix?', m: 'Yes please!' },
   price:  { h: 'Know why they didn’t buy.', t: 'Three deals died on price. Want me to offer <b>monthly terms</b> first?', m: 'Do it.' },
+  babe:   { h: 'Hear what they really mean.', t: 'Marcus said “<b>my</b> team” and chose <b>Babe Ruth</b>. He needs to feel significant. Open with his wins?', m: 'Yes please!' },
+  we:     { h: 'Know who’s buying.', t: 'Priya says “<b>we</b>,” never “I.” She buys what peers trust. Lead with agencies like hers?', m: 'Do it.' },
+  softyes:{ h: 'Catch the soft yes.', t: 'Sam said “<b>any time is fine</b>.” That’s a no-show waiting. Lock a day and a time?', m: 'Lock it.' },
   closer: { h: 'Every closer, briefed.', t: 'Marcus wants his team closing <b>without him</b>. Send Dana the three points?', m: 'Send them.' },
 };
 const q = new URLSearchParams(location.search), v = V[q.get('v')] || V.leak, feed = q.get('f') === 'feed';
