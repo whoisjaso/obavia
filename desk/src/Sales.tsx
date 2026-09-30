@@ -17,7 +17,7 @@ export function Sales() {
     <main className="wrap">
       <div className="top">
         <span className="who"><span className="lgmini" style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: dealer.brand.accent, color: '#fff', font: '800 12px/1 var(--sans)', overflow: 'hidden' }}>{dealer.brand.logo ? <img src={dealer.brand.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#fff' }} /> : dealer.brand.monogram}</span>{dealer.dba}</span>
-        <a className="link" href="#/past" onClick={feel.tap}>Past Sales</a>
+        <span style={{ display: 'flex', gap: 18 }}><a className="link" href="#/reach" onClick={feel.tap}>Reach</a><a className="link" href="#/past" onClick={feel.tap}>Past Sales</a></span>
       </div>
       <h1 className="h1 enter">Handle A Sale</h1>
       {example && <span className="example">Example data</span>}

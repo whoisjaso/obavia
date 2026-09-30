@@ -6,8 +6,9 @@ import { EXAMPLE_DEALER, type DealerConfig } from './lib/config';
 import type { DocType } from './lib/plan';
 import type { AgreementState, Buyer, Sale, StepData, Vehicle } from './lib/sale';
 import { EXAMPLE_LOT, exampleSales } from './data';
+import { MARKETPLACE_TERMS, termsHash, type Consent } from './lib/consent';
 
-type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[] };
+type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>> };
 const KEY = 'obavia.desk.v1';
 
 function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales() }; }
@@ -55,3 +56,11 @@ export function completeSale(id: string) {
   set({ ...state, lot: state.lot.filter(v => v.id !== s.vehicle.id), sales: state.sales.map(x => (x.id === id ? { ...x, status: 'completed', completedAt: new Date().toISOString() } : x)) });
 }
 export function addVehicle(v: Vehicle) { set({ ...state, lot: [v, ...state.lot] }); }
+
+/** Record that the dealer accepted the Marketplace terms on screen now. */
+export function acceptMarketplace(name: string) {
+  const c: Consent = { id: 'marketplace', version: MARKETPLACE_TERMS.version, hash: termsHash(MARKETPLACE_TERMS), name: name.trim(), licence: state.dealer.licence, at: new Date().toISOString(), timeZone: state.dealer.timeZone };
+  set({ ...state, consents: { ...state.consents, marketplace: c } });
+}
+/** Withdrawing consent switches the feature off. */
+export function withdrawMarketplace() { const { marketplace: _, ...rest } = state.consents ?? {}; set({ ...state, consents: rest }); }

@@ -29,3 +29,26 @@ describe('Texas dealer index', () => {
     expect(searchDealers(idx, 'P171632')[0].name).toMatch(/Triple J Auto Investment/);
   });
 });
+
+describe('Marketplace consent', async () => {
+  const { MARKETPLACE_TERMS, consentIsCurrent, isSignatureName, termsHash } = await import('./consent');
+  it('says the account is theirs and that Obavia is not liable, before anything turns on', () => {
+    const text = MARKETPLACE_TERMS.terms.map(t => t.title + ' ' + t.body).join(' ') + MARKETPLACE_TERMS.agreement;
+    expect(text).toMatch(/your own Facebook account/);
+    expect(text).toMatch(/restrict/);
+    expect(text).toMatch(/isn’t liable|isn’t responsible/);
+  });
+  it('only counts consent for the exact words on screen now', () => {
+    const c = { id: 'marketplace' as const, version: MARKETPLACE_TERMS.version, hash: termsHash(MARKETPLACE_TERMS), name: 'Jason Example', licence: 'P171632', at: '', timeZone: 'America/Chicago' };
+    expect(consentIsCurrent(c, MARKETPLACE_TERMS)).toBe(true);
+    const changed = { ...MARKETPLACE_TERMS, agreement: MARKETPLACE_TERMS.agreement + ' ' };
+    expect(consentIsCurrent(c, changed)).toBe(false);
+    expect(consentIsCurrent(undefined, MARKETPLACE_TERMS)).toBe(false);
+  });
+  it('needs a full name, not initials or a blank', () => {
+    expect(isSignatureName('Jason Example')).toBe(true);
+    expect(isSignatureName('María De La Cruz')).toBe(true);
+    expect(isSignatureName('J')).toBe(false);
+    expect(isSignatureName('jason')).toBe(false);
+  });
+});

@@ -125,7 +125,7 @@ The example we started from: 5,000 queries cost us $400, so we charge $600 and k
 | **Google** (free vehicle listings, Business Profile posts) | A Merchant Center vehicle feed; the Business Profile API | **Yes**, through the official feed and API |
 | **Facebook Page and Instagram posts** | Meta Graph API (Pages, Instagram content publishing) | **Yes**, official API, the dealer's own business accounts |
 | **Facebook Automotive Inventory Ads** (paid; can take top slots in the Marketplace vehicle feed) | A vehicle catalog feed, and the dealer pays Meta for the ads | **Yes.** We build the feed; ad spend is the dealer's. |
-| **Facebook Marketplace** (organic) | Only a real person posting from their own profile. Partner catalog feeds stopped reaching Marketplace on Sept 13, 2021. Business Pages lost vehicle listings on Jan 30, 2023. | **No bots on personal profiles.** Meta's terms forbid sharing account access. We **prefill the listing on the salesperson's phone and they tap Post.** Safe and still fast. |
+| **Facebook Marketplace** (organic) | Only a real person posting from their own profile. Partner catalog feeds stopped reaching Marketplace on Sept 13, 2021. Business Pages lost vehicle listings on Jan 30, 2023. | **Yes, as assisted posting, opt-in.** We prepare the listing and fill it into Facebook **on the salesperson's own device, signed in as them**. They review it and tap Post. We never store a Facebook password or run an account from our servers. It turns on only after the dealer accepts the terms in `docs/legal/marketplace-posting-terms.md`: their account, Facebook may restrict it, and Obavia isn't liable. |
 | **CarGurus, Cars.com, Autotrader** | A paid dealer subscription on each site plus an inventory feed (usually CSV over FTP, the HomeNet-style route) | **Yes, as the feed.** The dealer still pays each marketplace. We never promise free listings there. |
 | **TikTok, YouTube Shorts** | Official content posting APIs | **Yes, later** (walk-around video) |
 
@@ -154,7 +154,7 @@ The same pattern as TryGTM, aimed at selling cars, not booking B2B calls. The de
 - **Consent:** no SMS without TCPA consent on record. "STOP" ends every channel, permanently.
 - **Email:** CAN-SPAM identity and unsubscribe on every email.
 - **Advertising:** the advertised price must match the price on the lot. We apply the FTC and Texas rules for vehicle advertising, and the Buyers Guide carries through. The AI can't invent equipment, history or financing terms.
-- **Accounts:** no automation on anyone's personal social account.
+- **Accounts:** our servers never sign into anyone's personal social account or store a social password. Marketplace posting runs only on the salesperson's own device, only after the dealer has accepted the Marketplace terms (recorded with the terms version).
 
 ### The meter (the same idea as TryGTM's credits, in dealer words)
 The dealer never sees "credits". They see **cars posted, conversations handled and texts sent**. Internally each action has a cost and a price.
@@ -210,8 +210,41 @@ Every screen follows the Desk rule: one question per screen, big and centered, t
 
 ---
 
-## 7. Decisions for the owner
-1. Is **Reach** a name we keep, or should it be something else?
-2. Do we build the per-car website ourselves (recommended: it is what Reach publishes to and what the AEO upsell sells) or partner?
-3. Which SMS provider (Twilio is what TryGTM uses)? This also unblocks the onboarding verification code.
-4. Is price comparison against the market a v1 feature (it means paying for a comps data source) or v2?
+## 7. Decisions (answered September 30, 2026)
+1. **Name:** Reach stays.
+2. **Website:** we build it ourselves, as an upsell to the Desk: the Obavia website engine (section 8).
+3. **Texting and calling:** Telnyx first (you already use it), behind our own interface with Twilio as the backup. Email goes through Resend. The reasoning and prices are in `docs/plan/messaging.md`.
+4. **Facebook Marketplace:** we do the posting, opt-in, on the salesperson's own device, after they accept the no-liability terms (section 4).
+5. **Still open:** is market price comparison v1 or v2?
+
+---
+
+## 8. The Obavia website engine
+
+**What it is:** an autonomous engine that builds and keeps every dealer's website up to date. **The Desk is the source of truth.** The site is a live view of the lot, so no one ever edits the website by hand.
+
+### How it works
+1. **Brand, set once at onboarding:** the logo, colour, dealership name, address, hours and licence number we already collect. The engine generates a theme from them in Obavia's clean, page-by-page style, not a template farm.
+2. **Every car becomes a page, automatically.** When a car is added in the Desk or Reach intake, the engine writes its page from the **real VIN decode, photos, price and Buyers Guide** (the rule is **no invented equipment, history or claims**), publishes it and pings the search engines. When a car sells, its page becomes "Sold, see similar" instead of a dead link.
+3. **Found by Google and by AI assistants (SEO and AEO):**
+   - schema.org `AutoDealer` and `Car`/`Vehicle` structured data on every page;
+   - a sitemap updated on every inventory change;
+   - fast static pages;
+   - plain-language answers to the questions buyers ask ("Do you finance with no credit?", "What's the out-the-door price?"), built from the dealer's real terms.
+
+   That's how AI search answers name this dealer.
+4. **Everything on the site feeds the Desk and Reach:**
+   - "Text me about this car" and lead forms go to the Reach inbox, answered in minutes;
+   - the credit application, or the buy-here-pay-here pre-qualification, becomes a sale started in the Desk;
+   - the payment page for buy-here-pay-here customers posts to their account.
+5. **The same feeds as Reach:** the Google vehicle listings feed, the Meta catalog and the marketplace feeds all come from the same inventory record.
+6. **Hosting:** static pages on Cloudflare Pages, on the dealer's own domain (we set up DNS), rebuilt within seconds of an inventory change. **Estimate:** hosting costs close to nothing per dealer. The real costs are the AI copy per car (cents) and the domain.
+7. **The rules are the same as the Desk and Reach:** advertised price equals lot price, the Buyers Guide carries through, the Texas dealer licence number is displayed, and every text message has recorded consent.
+
+### How it's sold
+- **Included** with Reach, which publishes to it.
+- **$99/month on its own** for a Desk customer who doesn't want Reach yet.
+- **Migration** of an existing dealer website (a one-time fee) keeps their old page addresses redirecting, so they don't lose Google ranking.
+
+### Build order inside the plan
+After Reach Intake and Publish, because both need the same inventory record, and before Speed to lead, because the site is where most leads start.

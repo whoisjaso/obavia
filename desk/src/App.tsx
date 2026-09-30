@@ -3,6 +3,7 @@ import { Desk, GuideRedirect, Step } from './Corridor';
 import { Onboarding } from './Onboarding';
 import { Paper } from './Paper';
 import { Past, Sales, Start } from './Sales';
+import { MarketplaceConsent, Reach } from './Reach';
 import type { DocType } from './lib/plan';
 import { getSale, useStore } from './store';
 import { useHash } from './ui';
@@ -14,6 +15,7 @@ export function App() {
   const [, a, id, b, c, d] = h.split('/');
   if (a === 'new') return <Start />;
   if (a === 'past') return <Past />;
+  if (a === 'reach') return id === 'marketplace' ? <MarketplaceConsent /> : <Reach />;
   if ((a === 'sale' || a === 'sign') && id && !getSale(id)) return <Sales />;
   if (a === 'sign') return <Ceremony id={id} />;
   if (a === 'sale') {
