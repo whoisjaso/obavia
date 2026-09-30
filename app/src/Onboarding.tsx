@@ -55,25 +55,25 @@ export function Onboarding({ done }: { done: (to: string) => void }) {
           <div className="ob-step" key="0">
             <img className="mark-lg" src="./mark.svg" alt="" />
             <h1>See where your sales leak.</h1>
-            <p className="lede">Connect three tools. Obavia reads the last 30 days and shows you the one step costing you the most, in dollars.</p>
+            <p className="lede">Explore an example agency. See how calls, meetings and payments could reveal the sales step costing you the most.</p>
             <div style={{ flex: 1, minHeight: 40 }} />
-            <div className="foot"><button className="btn primary block" onClick={next}>Get started</button></div>
+            <div className="foot"><button className="btn primary block" onClick={next}>Explore the example</button></div>
           </div>
         )}
 
         {step === 1 && (
           <div className="ob-step" key="1">
-            <h1>Connect what you already use.</h1>
-            <p className="lede">Nothing new for your team to learn. They keep working the way they do.</p>
+            <h1>Preview your tools.</h1>
+            <p className="lede">These example connections show the workflow. No accounts are connected.</p>
             <div className="group">
               {TOOLS.map(t => (
                 <div key={t.id} className="cell conn">
                   <span className="ic"><Ic name={t.icon} size={21} /></span>
                   <div className="t"><b>{t.name}</b><small>{t.what}</small></div>
                   <div className="v">
-                    {on[t.id] === 'ok' ? <span className="state ok"><Ic name="check" size={17} w={2.4} className="okc" />Connected</span>
-                      : on[t.id] === 'wait' ? <span className="spin" aria-label="Connecting" />
-                      : <button className="btn tinted sm" onClick={() => connect(t.id)}>Connect</button>}
+                    {on[t.id] === 'ok' ? <span className="state ok"><Ic name="check" size={17} w={2.4} className="okc" />Preview ready</span>
+                      : on[t.id] === 'wait' ? <span className="spin" aria-label="Loading preview" />
+                      : <button className="btn tinted sm" onClick={() => connect(t.id)}>Preview</button>}
                   </div>
                 </div>
               ))}
@@ -86,7 +86,7 @@ export function Onboarding({ done }: { done: (to: string) => void }) {
         {step === 2 && (
           <div className="ob-step" key="2">
             <h1>Two quick numbers.</h1>
-            <p className="lede">So every leak is shown in your money, not a percentage.</p>
+            <p className="lede">Explore the sample report. These inputs do not connect accounts or change the example dataset.</p>
             <div className="group">
               <div className="field"><label htmlFor="ob-name">Agency</label><input id="ob-name" value={name} onChange={e => setName(e.target.value)} /></div>
               <div className="field"><label htmlFor="ob-deal">A won deal is worth</label>
@@ -94,13 +94,13 @@ export function Onboarding({ done }: { done: (to: string) => void }) {
               </div>
             </div>
             <div style={{ flex: 1, minHeight: 40 }} />
-            <div className="foot"><button className="btn primary block" disabled={!name.trim() || !deal} onClick={next}>Read my last 30 days</button></div>
+            <div className="foot"><button className="btn primary block" disabled={!name.trim() || !deal} onClick={next}>Open the example report</button></div>
           </div>
         )}
 
         {step === 3 && (
           <div className="ob-step" key="3">
-            <h1>Reading your month.</h1>
+            <h1>Loading the example month.</h1>
             <p className="lede">Every lead, call, meeting and payment, lined up from first touch to cash.</p>
             <div className="group reading">
               {READ.map((r, i) => (
@@ -115,14 +115,14 @@ export function Onboarding({ done }: { done: (to: string) => void }) {
 
         {step === 4 && (
           <div className="ob-step reveal" key="4">
-            <p className="lede" style={{ margin: 0 }}>Your biggest leak</p>
+            <p className="lede" style={{ margin: 0 }}>Example opportunity gap</p>
             <div className="amt num">{k(worth)}<small>a month</small></div>
             <span className="where">{STEPS[top.step]} · {pct(top.pct)}</span>
-            <p className="lede">Half of your booked calls never show up. That one step is worth more than every other fix combined.</p>
+            <p className="lede">In this example, half of the booked calls never show up. The displayed value is an estimate from synthetic data, not recovered revenue.</p>
             <div style={{ flex: 1, minHeight: 40 }} />
             <div className="foot">
               <button className="btn primary block" onClick={() => done('leaks/' + top.step)}>Show me why</button>
-              <button className="btn plain" onClick={() => done('overview')}>Go to my month</button>
+              <button className="btn plain" onClick={() => done('overview')}>Go to the example month</button>
             </div>
           </div>
         )}

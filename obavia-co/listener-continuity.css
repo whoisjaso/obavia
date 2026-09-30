@@ -1,0 +1,17 @@
+/* A reading connection through the panel gutters, never across words. */
+.primary-listener .listener{position:relative}
+.listener-continuity{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:hidden;opacity:0;transition:opacity .2s ease}
+.listener-continuity.is-connected{opacity:.6}
+.listener-continuity path{fill:none;stroke:#677AF7;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.listener-continuity circle{fill:#E7EEFE;stroke:#677AF7;stroke-width:1.2}
+@media(prefers-reduced-motion:reduce){.listener-continuity{transition:none}}
+/* One speaker identity beside the illustrative waveform, on the existing turn clock. */
+.primary-listener .listener-speaker-ready .listener-header{display:none}
+.primary-listener .listener .listener-speaker-row{display:flex;align-items:center;gap:12px;min-height:28px;margin-bottom:6px;max-width:100%}
+.primary-listener .listener .listener-speaker-row .person{min-width:0;gap:0}
+.primary-listener .listener .listener-speaker-row .avatar{display:none}
+.primary-listener .listener .listener-speaker-row .person strong{display:block;font-size:13px;line-height:1.5;white-space:nowrap;color:#28344f}
+.primary-listener .listener .listener-speaker-row .wave{flex:0 0 76px;width:76px;max-width:76px;height:20px;margin:0;gap:3px;overflow:hidden}
+.primary-listener .listener[data-beat=respond] .listener-speaker-row{justify-content:flex-end}
+.primary-listener .listener[data-beat=respond] .listener-speaker-row .person strong{color:#4050a8}
+@media(prefers-reduced-motion:reduce){.primary-listener .listener .listener-speaker-row *{transition:none!important}}

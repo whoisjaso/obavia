@@ -104,6 +104,7 @@ export default function App() {
           <a className="brand" href="#/overview"><img src="./mark.svg" alt="" />Obavia</a>
           {roleSeg}
         </div>
+        <div role="note" style={{ fontSize: 12, padding: "0 24px 8px", color: "var(--muted)" }}>Example workspace · Synthetic data</div>
         <div className="page" key={page + (page === 'leaks' ? arg : '')}>{screen}</div>
       </main>
 

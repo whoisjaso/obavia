@@ -1,0 +1,2 @@
+/* Page transitions are driven by the shared matched exit/entry clock. */
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}

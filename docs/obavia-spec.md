@@ -202,7 +202,7 @@ Anyone should be able to use it with no explanation, in seconds. If a screen nee
 | `films/` | Remotion source for the ads (Kokoro TTS voice) |
 | `docs/` | This spec, positioning, ICP language |
 
-Note: the old vehicle rental project has been removed. The root `CLAUDE.md` still carries its rules until the owner replaces it.
+The old vehicle rental project is removed. Root `CLAUDE.md` now describes the current sales-software product and its deployment boundaries.
 
 ## 9. The build plan
 
