@@ -1,0 +1,9 @@
+/* Restrained, platform-independent control icons. No font or emoji glyphs. */
+.control-chevron,.disclosure-chevron{display:inline-block;width:16px;height:16px;flex-shrink:0;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+summary{list-style:none}summary::-webkit-details-marker{display:none}summary::marker{content:''}
+.disclosure-chevron{width:13px;height:13px;margin-right:7px;vertical-align:-2px;transform:rotate(0deg);transition:transform .18s ease}
+details[open]>summary>.disclosure-chevron{transform:rotate(90deg)}
+.playback-options summary:after{content:none}
+.journal-icon>.control-chevron{width:24px;height:24px;vertical-align:0}
+@media(prefers-reduced-motion:reduce){.disclosure-chevron{transition:none}}
+.motion-paused .disclosure-chevron{transition:none}

@@ -1,0 +1,26 @@
+name: Deploy obavia.co
+on:
+  push:
+    branches: [main]
+    paths: ['obavia-co/**', 'deploy/site/**', '.github/workflows/deploy-site.yml']
+  workflow_dispatch:
+concurrency:
+  group: deploy-site
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: vars.CLOUDFLARE_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: deploy/site/build.sh
+      - run: npx --yes wrangler@4 pages deploy deploy/site/dist --project-name obavia --branch main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

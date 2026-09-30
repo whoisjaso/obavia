@@ -1,0 +1,8 @@
+.mobile-details-context{display:none}
+@media(max-width:700px){
+ .journey-panel>.journey-kicker,.journey-panel .jm-events li p:not(.mobile-essential-context),.journey-panel>.jm-branch{display:none}
+ .mobile-details-context{display:block;margin-top:12px}.mobile-details-context p{font-size:13px;line-height:1.6;margin:8px 0}.mobile-details-context .jm-branch{display:block;margin:12px 0 0}
+ .competition-story-title,.fn-heading>p{display:none}.competition-story-copy{margin-top:10px}.fn-gap small,.fn-intervention small{display:none}
+ .waitlist-page .site-header .mobile-nav{margin-left:auto}.waitlist-page .header-link,.waitlist-page .waitlist-eyebrow,.waitlist-page .public-footer nav,.waitlist-page .footer-brand{display:none}.waitlist-page .public-footer{display:block;padding-top:0;border-top:0}.waitlist-page .waitlist-main{min-height:calc(100svh - 145px);padding-top:60px}
+}
+@media(max-width:700px) and (max-height:700px){.hero h1 .hero-benefits,.hero h1>br{display:none}.hero{padding-top:20px}}

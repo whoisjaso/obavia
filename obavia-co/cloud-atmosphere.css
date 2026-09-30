@@ -1,0 +1,65 @@
+/* Shared atmosphere: photographic cloud texture, composited native-scroll depth.
+   Content stays above decoration; no pointer, layout, or scroll interception. */
+html{scroll-behavior:smooth}
+body{isolation:isolate}
+.cloud-atmosphere{position:fixed;inset:-80px 0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
+.cloud-layer{position:absolute;inset:0;background:url('./assets/obavia-clouds.webp') center bottom/cover no-repeat;will-change:transform;opacity:.48;transform:translate3d(0,var(--cloud-near,0px),0)}
+.cloud-layer-far{inset:-10% -15%;background-position:65% 18%;transform:translate3d(0,var(--cloud-far,0px),0) rotate(180deg);opacity:.2}
+/* Keep the central reading column white while cloud forms remain at the edges. */
+.cloud-atmosphere:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.8) 25%,rgba(255,255,255,.86) 70%,transparent)}
+.hero{background:transparent}
+.entrance{background:#f6f9ff;overflow:hidden;color:#28344f}
+.entrance:before,.entrance:after{content:'';position:absolute;inset:-8%;z-index:-2;background:url('./assets/obavia-clouds.webp') center bottom/cover no-repeat;pointer-events:none}
+.entrance:after{transform:rotate(180deg);opacity:.48}
+.entrance img{opacity:.82;filter:none}
+.entrance .arrival-count{color:#28344f;font-family:Obavia Sans,Arial,sans-serif;font-weight:500}
+.entrance .arrival-count i{color:#5b729d}
+.entrance.arrived{transition:opacity .34s ease,visibility .34s}
+/* Same-document movement stays native. Cross-document transitions are progressive
+   enhancement: no click interception, fetch router, or delayed navigation. */
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:cloud-page-out 120ms ease-out both}
+::view-transition-new(root){animation:cloud-page-in 280ms ease-out both}
+@keyframes cloud-page-out{to{opacity:0}}
+@keyframes cloud-page-in{from{opacity:0}to{opacity:1}}
+@media(max-width:700px){.cloud-layer{background-size:auto 105%;background-position:15% bottom;opacity:.46}.cloud-layer-far{background-position:85% bottom;opacity:.22}.cloud-atmosphere:after{background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.82) 32%,rgba(255,255,255,.85) 74%,rgba(255,255,255,.12))}.entrance:before,.entrance:after{background-size:auto 100%;background-position:48% bottom}}
+.motion-paused .cloud-layer{will-change:auto}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.cloud-layer{transform:none!important;will-change:auto}.cloud-layer-far{transform:rotate(180deg)!important}.entrance{display:none}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+
+/* Verified Apohenia intro typography: Barlow Condensed 800, tabular count,
+   0.04em tracking and raised 0.4em percentage. Palette follows Obavia. */
+.entrance{background:#e7eefe;flex-direction:column;gap:clamp(20px,4vw,34px)}
+.entrance:before,.entrance:after{inset:-12%;background-color:#e7eefe;background-blend-mode:multiply;background-size:cover;background-position:18% bottom;opacity:.9}
+.entrance:after{background-position:82% bottom;opacity:.5;transform:rotate(180deg)}
+.entrance img{width:clamp(84px,15vw,124px);height:auto;opacity:.96;filter:drop-shadow(0 0 35px #ffffffb0)}
+.entrance .arrival-count{display:flex;align-items:baseline;justify-content:center;font-family:"Obavia Condensed",Arial,sans-serif;font-weight:800;font-size:clamp(3.4rem,12vw,5.6rem);font-variant-numeric:tabular-nums;letter-spacing:.04em;line-height:1;color:#28344f;text-transform:uppercase;margin:0}
+.entrance .arrival-count i{color:#607ab4;font-size:.4em;font-style:normal;margin-left:.16em;transform:translateY(-.7em)}
+.entrance.arrived{transition:opacity .45s cubic-bezier(.2,.7,.2,1),visibility .45s}
+@media(max-width:700px){.entrance:before{background-size:auto 115%;background-position:10% bottom}.entrance:after{background-size:auto 115%;background-position:90% bottom}}
+@media(prefers-reduced-motion:reduce){.entrance.arrived{transition:none}}
+
+/* Home arrival: white into clouds, then a soft reveal of the page. */
+.entrance{background:#fff}
+.entrance.loading:before{animation:arrival-cloud-in 680ms ease-out both}
+.entrance.loading:after{animation:arrival-cloud-far-in 820ms ease-out both}
+.entrance.loading img{animation:arrival-letter-in 620ms 170ms ease-out both}
+.entrance.loading .arrival-count{animation:arrival-letter-in 620ms 290ms ease-out both}
+.entrance.loading .arrival-label{animation:arrival-letter-in 620ms 390ms ease-out both}
+.entrance.arrived{transition:opacity .65s ease,visibility .65s}
+@keyframes arrival-cloud-in{from{opacity:0}to{opacity:.9}}
+@keyframes arrival-cloud-far-in{from{opacity:0}to{opacity:.5}}
+@keyframes arrival-letter-in{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.entrance,.entrance *,.entrance:before,.entrance:after{animation:none!important;transition:none!important}.brand-pending body>:not(.entrance){opacity:1!important}}
+
+/* Continuous atmosphere uses independent translate, preserving scroll depth.
+   Closed loops and overscan keep every edge covered without moving content. */
+.cloud-layer{inset:-32px;animation:atmosphere-near-drift 28s ease-in-out -7s infinite;will-change:transform,translate}
+.cloud-layer-far{inset:-10% -15%;animation:atmosphere-far-drift 36s ease-in-out -9s infinite}
+@keyframes atmosphere-near-drift{0%,100%{translate:-12px 5px}50%{translate:12px -5px}}
+@keyframes atmosphere-far-drift{0%,100%{translate:10px -4px}50%{translate:-10px 4px}}
+.entrance:before{animation:atmosphere-near-drift 28s ease-in-out -7s infinite}
+.entrance:after{animation:atmosphere-far-drift 36s ease-in-out -9s infinite}
+.entrance.loading:before{animation:arrival-cloud-in 680ms ease-out both,atmosphere-near-drift 28s ease-in-out -7s infinite}
+.entrance.loading:after{animation:arrival-cloud-far-in 820ms ease-out both,atmosphere-far-drift 36s ease-in-out -9s infinite}
+.motion-paused .cloud-layer,.motion-paused .entrance:before,.motion-paused .entrance:after{animation-play-state:paused;will-change:auto}
+@media(prefers-reduced-motion:reduce){.cloud-layer,.entrance:before,.entrance:after{animation:none!important;translate:none!important;will-change:auto}}

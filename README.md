@@ -1,7 +1,12 @@
-# OBAVIA
+# Obavia
 
-Static OBAVIA web system for Cloudflare Pages.
+Know why deals are lost. And fix it by Friday.
 
-The production home page is `index.html`, copied from `Obavia Home.dc.html`.
-The standalone admin, portal, membership, vehicle, and agreement surfaces are
-kept as static `.dc.html` files and share the local runtime in `support.js`.
+| Folder | What |
+|---|---|
+| `obavia-co/` | Marketing site, static. Deploy with `obavia-co/` as the output directory. |
+| `app/` | The product: `cd app && npm install && npm run dev` |
+| `films/` | Remotion ads |
+| `docs/` | Spec, sales doctrine, positioning, market language |
+
+Start with `docs/obavia-spec.md`.

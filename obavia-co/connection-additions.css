@@ -1,0 +1,13 @@
+/* Official marks keep their source colors and intrinsic proportions. */
+.logo-group .logo-with-name{display:flex;justify-content:center;gap:10px}
+.logo-with-name span{font-family:Manrope,Arial,sans-serif;font-size:15px;line-height:1.25;color:#f5f6f7;white-space:nowrap}
+.logo-group .logo-slack{width:32px;height:32px;flex:none}
+.logo-group .logo-google-calendar{width:34px;height:34px;flex:none}
+.logo-group .logo-zapier{width:116px}
+.logo-group .logo-cal-com{width:108px}
+/* Eight marks retain the previous linear travel speed. */
+.logo-track{animation-duration:80s}
+@media(max-width:600px){.logo-track{animation-duration:64s}.logo-with-name span{font-size:12px}.logo-group .logo-with-name{gap:8px}.logo-group .logo-google-calendar{width:30px;height:30px}.logo-group .logo-slack{width:30px;height:30px}.logo-group .logo-zapier{width:108px}.logo-group .logo-cal-com{width:98px}}
+
+/* The existing page animation setting also pauses the logo conveyor. */
+.motion-paused .logo-track{animation-play-state:paused}
