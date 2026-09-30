@@ -8,7 +8,7 @@ import type { DocType } from './lib/plan';
 import { Sheet } from './Sheet';
 import { advance } from './Corridor';
 import { fileDocument, getSale, mergeStep, useStore } from './store';
-import { Choice, Ic, Pad, feel, go } from './ui';
+import { Choice, Ic, Pad, backward, feel, go } from './ui';
 
 export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) {
   const { dealer } = useStore();
@@ -36,7 +36,7 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
 
   return (
     <main className="wrap">
-      <div className="top"><button className="back" onClick={() => { feel.tap(); history.back(); }}><Ic n="chev" s={18} w={2.4} />Back</button><span className="progress">{DOC_TITLE[doc]} · {Math.min(idx + 1, total)} Of {total}</span></div>
+      <div className="top"><button className="back" onClick={() => { feel.tap(); backward(); history.back(); }}><Ic n="chev" s={18} w={2.4} />Back</button><span className="progress">{DOC_TITLE[doc]} · {Math.min(idx + 1, total)} Of {total}</span></div>
       <div className="bar"><i style={{ width: `${(Math.min(idx + 1, total) / total) * 100}%` }} /></div>
 
       {cur ? (

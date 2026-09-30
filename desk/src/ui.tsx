@@ -1,26 +1,50 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import type { Receipt as R } from './lib/money';
 import { usd } from './lib/money';
 
 /* ---------- feel: soft tones after a tap, a haptic tick, never on scroll ---------- */
 let ac: AudioContext | null = null;
-function chime(freqs: number[], gain = 0.03, gap = 0.09) {
+/** A soft, rounded tone: slow attack, low pass, short tail. Never loud. */
+function chime(freqs: number[], gain = 0.012, gap = 0.1, tail = 0.7) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   try { ac ??= new AudioContext(); if (ac.state === 'suspended') ac.resume(); } catch { return; }
   const a = ac!;
   freqs.forEach((f, i) => {
-    const t0 = a.currentTime + 0.01 + i * gap, o = a.createOscillator(), g = a.createGain();
-    o.type = 'sine'; o.frequency.value = f;
-    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(gain, t0 + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.9);
-    o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + 1);
+    const t0 = a.currentTime + 0.01 + i * gap, o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter();
+    o.type = 'sine'; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = 1800;
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(gain, t0 + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t0 + tail);
+    o.connect(lp).connect(g).connect(a.destination); o.start(t0); o.stop(t0 + tail + 0.05);
   });
 }
-export const haptic = () => { try { navigator.vibrate?.(8); } catch { /* no haptics */ } };
+export const haptic = () => { try { navigator.vibrate?.(6); } catch { /* no haptics */ } };
+let lastKey = 0;
 export const feel = {
-  tap: () => { haptic(); chime([1318.5], 0.016); },
-  next: () => { haptic(); chime([987.77, 1318.5], 0.024); },
-  done: () => { haptic(); chime([659.25, 987.77, 1318.5, 1760], 0.03, 0.12); },
+  tap: () => { haptic(); chime([659.25], 0.009, 0, 0.45); },
+  next: () => { haptic(); chime([523.25, 783.99], 0.011, 0.08, 0.6); },
+  done: () => { haptic(); chime([523.25, 659.25, 783.99, 1046.5], 0.012, 0.11, 0.9); },
+  /** A barely-there tick on each keystroke. */
+  key: () => { const t = performance.now(); if (t - lastKey < 40) return; lastKey = t; chime([392 + Math.random() * 40], 0.006, 0, 0.12); },
 };
+
+/* ---------- the sky: watercolor clouds drifting behind every screen ---------- */
+const CLOUDS: [number, number, number, number, number][] = [
+  // image, width (vw fraction), top %, opacity, seconds to cross
+  [0, 0.40, 8, 0.6, 260], [1, 0.30, 30, 0.65, 300], [2, 0.36, 18, 0.55, 280], [3, 0.34, 46, 0.7, 330],
+  [4, 0.29, 62, 0.55, 360], [5, 0.37, 78, 0.68, 310], [6, 0.35, 90, 0.62, 240], [7, 0.44, 55, 0.72, 380],
+];
+export function Sky() {
+  return (
+    <div className="sky" aria-hidden="true">
+      <i className="glow" />
+      {CLOUDS.map(([n, w, top, op, t], i) => (
+        <span key={i} className="cloud" style={{ top: `${top}%`, width: `calc(max(100vw, 720px) * ${w})`, opacity: op, animationDuration: `${t}s`, animationDelay: `-${(i * 0.137 % 1) * t}s` }}>
+          <img src={`./sky/w${n}.webp`} alt="" />
+        </span>))}
+      <i className="paper" style={{ backgroundImage: "url(./sky/paper.png)" }} />
+    </div>
+  );
+}
 
 /* ---------- icons ---------- */
 const G: Record<string, ReactNode> = {
@@ -48,7 +72,7 @@ export function Ic({ n, s = 22, w = 1.9 }: { n: string; s?: number; w?: number }
   return <svg viewBox="0 0 24 24" width={s} height={s} fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{G[n]}</svg>;
 }
 export const Chev = () => <span className="chev"><Ic n="chev" s={16} w={2.2} /></span>;
-export const Back = ({ to, label = 'Back' }: { to: string; label?: string }) => <a className="back" href={to} onClick={feel.tap}><Ic n="chev" s={18} w={2.4} />{label}</a>;
+export const Back = ({ to, label = 'Back' }: { to: string; label?: string }) => <a className="back" href={to} onClick={() => { feel.tap(); backward(); }}><Ic n="chev" s={18} w={2.4} />{label}</a>;
 
 /* ---------- a car, drawn in its own colour (visual, not text) ---------- */
 export function CarArt({ color = '#9AA6BF', body = 'Sedan', w = 150 }: { color?: string; body?: string; w?: number }) {
@@ -117,9 +141,25 @@ export function Pad({ locked, onChange }: { locked?: boolean; onChange: (dataUrl
   );
 }
 
+/* ---------- screen to screen: the old one dissolves up into the sky, the next one settles in ---------- */
+type VT = { finished: Promise<void> };
+let dir: 'fwd' | 'back' = 'fwd';
+/** Run a state change as a soft cross-screen transition. Falls back to an instant swap. */
+export function transition(update: () => void, d: 'fwd' | 'back' = 'fwd') {
+  const start = (document as Document & { startViewTransition?: (cb: () => void) => VT }).startViewTransition;
+  if (!start || matchMedia('(prefers-reduced-motion: reduce)').matches) { update(); return; }
+  document.documentElement.dataset.dir = d;
+  start.call(document, () => flushSync(update)).finished.finally(() => { delete document.documentElement.dataset.dir; });
+}
+/** Mark the next hash change as going back, so the screens move the other way. */
+export const backward = () => { dir = 'back'; };
+
 export function useHash() {
   const [h, setH] = useState(location.hash.slice(1) || '/');
-  useEffect(() => { const f = () => { setH(location.hash.slice(1) || '/'); scrollTo(0, 0); }; addEventListener('hashchange', f); return () => removeEventListener('hashchange', f); }, []);
+  useEffect(() => {
+    const f = () => { const d = dir; dir = 'fwd'; transition(() => { setH(location.hash.slice(1) || '/'); scrollTo(0, 0); }, d); };
+    addEventListener('hashchange', f); return () => removeEventListener('hashchange', f);
+  }, []);
   return h;
 }
 export const go = (to: string) => { location.hash = to; };

@@ -14,18 +14,19 @@ export function saleReceipt(s: Sale, dealer: DealerConfig) {
   return computeMoney({ money: s.step.money, funding: s.step.funding?.type, tradeIn: parseMoney(bos.tradeAllowance) ?? 0, fees: dealer.fees });
 }
 
-export function Letterhead({ dealer }: { dealer: DealerConfig }) {
+export function Letterhead({ dealer, title, no }: { dealer: DealerConfig; title?: string; no?: string }) {
   return (
-    <div className="lh">
-      <span className="logo" style={{ background: dealer.brand.accent }}>{dealer.brand.logo ? <img src={dealer.brand.logo} alt="" /> : dealer.brand.monogram}</span>
-      <span><b>{dealer.legalName}</b><small>{dealer.street}, {dealer.city}, {dealer.state} {dealer.zip} · {dealer.phone} · Dealer licence {dealer.licence}</small></span>
-    </div>
+    <header className="lh">
+      <span className="logo" style={{ background: dealer.brand.logo ? '#fff' : dealer.brand.accent }}>{dealer.brand.logo ? <img src={dealer.brand.logo} alt="" /> : dealer.brand.monogram}</span>
+      <span className="who"><b>{dealer.dba || dealer.legalName}</b><small>{dealer.street}<br />{dealer.city}, {dealer.state} {dealer.zip}<br />{dealer.phone} · Licence {dealer.licence}</small></span>
+      {title && <span className="doc"><b>{title}</b>{no && <small className="num">{no}</small>}</span>}
+    </header>
   );
 }
 
 const Row = ({ k, v }: { k: string; v: string }) => <tr><td>{k}</td><td>{v}</td></tr>;
 
-export function Sheet({ doc, sale, dealer, buyerSig, dealerSig }: { doc: DocType; sale: Sale; dealer: DealerConfig; buyerSig?: string | null; dealerSig?: boolean }) {
+export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc: DocType; sale: Sale; dealer: DealerConfig; buyerSig?: string | null; dealerSig?: boolean; compact?: boolean }) {
   const v = sale.vehicle, b = sale.buyer, r = saleReceipt(sale, dealer);
   const p = sale.step.paperwork?.[doc] ?? {}, bos = sale.step.paperwork?.billOfSale ?? {};
   const car = `${v.year} ${v.make} ${v.model}`;
@@ -38,18 +39,40 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig }: { doc: DocType
   const body = (() => {
     switch (doc) {
       case 'billOfSale': case 'salvageBillOfSale': return (<>
-        <table><tbody>
-          <Row k="Vehicle" v={car} /><Row k="VIN" v={v.vin} /><Row k="Odometer" v={`${v.mileage?.toLocaleString() ?? ''} mi, ${odo}`} />
-          <Row k="Buyer" v={b.fullName} /><Row k="Address" v={`${b.address}, ${b.city}, ${b.state} ${b.zip}`} />
-        </tbody></table>
-        <table className="num"><tbody>
-          <Row k="Sale price" v={usd(r.salePrice)} /><Row k="Sales tax" v={usd(r.tax)} /><Row k="Title fee" v={usd(r.title)} />
-          <Row k="Documentary fee" v={usd(r.doc)} /><Row k="Registration fee" v={usd(r.registration)} />
-          {r.tradeIn > 0 && <Row k={`Trade-in: ${bos.tradeDesc ?? ''}`} v={`−${usd(r.tradeIn)}`} />}
-          <Row k="Total" v={usd(r.total)} /><Row k={`Paid today (${funding?.type === 'cash' ? bos.payMethod ?? 'Cash' : 'Financing'}${lender ? `, ${lender}` : ''})`} v={usd(r.paidToday)} />
-        </tbody></table>
-        {r.balance > 0 && <p className="key">Balance owed by the buyer to the seller under this bill of sale: {usd(r.balance)}, secured by a lien in favor of {dealer.legalName}.</p>}
-        <p>{bos.asIs === 'warranty' ? `Sold with a warranty: ${bos.warrantyLength ?? ''}.` : 'Sold as is, with no warranty, as stated on the Buyer’s Guide.'}</p>
+        <section className="parties">
+          <div><h4>Seller</h4><b>{dealer.legalName}</b><span>{dealer.street}, {dealer.city}, {dealer.state} {dealer.zip}</span><span>Dealer licence {dealer.licence}</span></div>
+          <div><h4>Buyer</h4><b>{b.fullName}</b><span>{b.address}, {b.city}, {b.state} {b.zip}</span><span>{b.phone}</span></div>
+        </section>
+        <section className="vehicle">
+          <h4>Vehicle</h4>
+          <div className="cells">
+            <div className="wide"><small>Year, make, model</small><b>{car}</b></div>
+            <div><small>Body</small><b>{v.bodyStyle}</b></div>
+            <div className="wide"><small>VIN</small><b className="mono">{v.vin}</b></div>
+            <div><small>Odometer</small><b className="num">{v.mileage?.toLocaleString() ?? '—'} mi</b></div>
+          </div>
+          <p className="fine">The seller states the odometer reading is {odo}.{doc === 'salvageBillOfSale' ? ' This vehicle carries a salvage title.' : sale.vehicle.titleStatus === 'rebuilt_salvage' ? ' This vehicle carries a rebuilt salvage title.' : ''}</p>
+        </section>
+        <section className="money">
+          <h4>Price</h4>
+          <table className="num"><tbody>
+            <Row k="Sale price" v={usd(r.salePrice)} /><Row k={`Sales tax (${(dealer.fees.taxRate * 100).toFixed(2)}%)`} v={usd(r.tax)} /><Row k="Title fee" v={usd(r.title)} />
+            <Row k="Registration fee" v={usd(r.registration)} /><Row k="Documentary fee" v={usd(r.doc)} />
+            {r.tradeIn > 0 && <Row k={`Trade-in${bos.tradeDesc ? `: ${bos.tradeDesc}` : ''}`} v={`−${usd(r.tradeIn)}`} />}
+          </tbody><tfoot>
+            <tr className="total"><td>Total</td><td style={{ color: dealer.brand.accent }}>{usd(r.total)}</td></tr>
+            <Row k={`Paid today · ${funding?.type === 'cash' ? bos.payMethod ?? 'Cash' : 'Financing'}${lender ? `, ${lender}` : ''}`} v={usd(r.paidToday)} />
+            <tr className={r.balance > 0 ? 'owed' : ''}><td>Balance</td><td>{usd(r.balance)}</td></tr>
+          </tfoot></table>
+          {r.balance > 0 && <p className="key">Balance owed by the buyer to the seller under this bill of sale: {usd(r.balance)}, secured by a lien in favor of {dealer.legalName}.</p>}
+        </section>
+        <section className="terms">
+          <h4>Terms</h4>
+          <p>{bos.asIs === 'warranty' ? `Sold with a warranty: ${bos.warrantyLength ?? ''}, as stated on the Buyer’s Guide.` : 'Sold as is, with no warranty, as stated on the Buyer’s Guide, which is part of this sale.'} </p>
+          {/* Texas doc-fee notice (43 TAC §215.155). Wording to be confirmed with counsel before the first live sale. */}
+          <p className="notice">A documentary fee is not an official fee. A documentary fee is not required by law, but may be charged to buyers for handling documents relating to the sale. A documentary fee may not exceed a reasonable amount agreed to by the parties. This notice is required by law.</p>
+          <p>The seller transfers the vehicle above to the buyer for the price stated, and the buyer accepts it.</p>
+        </section>
       </>);
       case 'form130U': return (<>
         <p className="official">Printed on the official TxDMV Form 130-U. These are the fields that will be filled.</p>
@@ -95,15 +118,16 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig }: { doc: DocType
     }
   })();
 
+  const accent = dealer.brand.accent;
   return (
-    <div className="sheet">
-      <Letterhead dealer={dealer} />
-      <h3>{DOC_TITLE[doc]}</h3>
+    <article className={'sheet' + (compact ? ' compact' : '')} style={{ ['--doc' as string]: accent }}>
+      <i className="band" />
+      <Letterhead dealer={dealer} title={DOC_TITLE[doc]} no={`${date}${sale.vehicle.stock ? ` · Stock ${sale.vehicle.stock}` : ''}`} />
       {body}
-      <div className="sig">
-        <div>{buyerSig && <img src={buyerSig} alt="Buyer signature" />}Buyer · {b.fullName} · {date}</div>
-        <div>{dealerSig && <span style={{ position: 'absolute', left: 0, bottom: 22, font: 'italic 600 20px/1 Georgia,serif', color: '#28344F' }}>{dealer.signer.name}</span>}Seller · {dealer.signer.name}, {dealer.signer.title} · {date}</div>
-      </div>
-    </div>
+      {!compact && <footer className="sig">
+        <div><span className="ink">{buyerSig && <img src={buyerSig} alt="Buyer signature" />}</span><b>Buyer</b><small>{b.fullName} · {date}</small></div>
+        <div><span className="ink">{dealerSig && <em>{dealer.signer.name}</em>}</span><b>Seller</b><small>{dealer.signer.name}, {dealer.signer.title} · {date}</small></div>
+      </footer>}
+    </article>
   );
 }

@@ -9,7 +9,7 @@ import { applyPlanAnswer, PLAN_FREEZERS, type PlanQuestion, type SalePlan } from
 import { buildGuideSteps, ID_FIELDS, nextOpenStep, signedCount, type IdKey, type Sale } from './lib/sale';
 import { saleReceipt } from './Sheet';
 import { getSale, mergeStep, setLanguage, setVehicleTitle, useStore } from './store';
-import { Back, CarArt, Chev, Choice, Ic, Receipt, feel, go } from './ui';
+import { Back, CarArt, Chev, Choice, Ic, Receipt, backward, feel, go } from './ui';
 
 export const stepRoute = (id: string, key: string) =>
   key.startsWith('document:') ? `/sale/${id}/paper/${key.slice(9)}` : key === 'packet' ? `/sale/${id}/packet` : `/sale/${id}/guide/${encodeURIComponent(key)}`;
@@ -125,7 +125,7 @@ export function Step({ id, stepKey }: { id: string; stepKey: string }) {
 
   return (
     <main className="wrap">
-      <div className="top"><button className="back" onClick={() => { feel.tap(); history.length > 1 ? history.back() : go(`/sale/${id}`); }}><Ic n="chev" s={18} w={2.4} />Back</button>
+      <div className="top"><button className="back" onClick={() => { feel.tap(); backward(); history.length > 1 ? history.back() : go(`/sale/${id}`); }}><Ic n="chev" s={18} w={2.4} />Back</button>
         <span className="progress num">Step {idx + 1} Of {steps.length}</span></div>
       <div className="bar"><i style={{ width: `${((idx + 1) / steps.length) * 100}%` }} /></div>
       <section className="enter" key={stepKey}><h1 className="q">{step.question}</h1>{body}</section>
