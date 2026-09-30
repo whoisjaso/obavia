@@ -269,3 +269,40 @@ a{color:inherit;text-decoration:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.sky .cloud{transform:translateX(calc(var(--x,30) * 1vw))}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 @media (max-width:520px){.choices.grid2{grid-template-columns:1fr}.systems{grid-template-columns:1fr 1fr}.states{grid-template-columns:1fr 1fr}.code{gap:7px}.code span{height:62px;font-size:28px}}
 @media print{.sky,.top,.dock,.bar,.progress,.noprint{display:none!important}.wrap{padding:0;max-width:none}.paper{box-shadow:none}.paper .scroll{max-height:none;overflow:visible;padding:0}}
+
+/* ---------- big, centered, one thing per screen ----------
+   Question screens center their content in the space above the dock, so the
+   question and the answer sit where the eye already is. Long screens (lists,
+   grids, paper) simply start at the top: the spacers shrink to nothing. */
+.center section.enter{display:flex;flex-direction:column;min-height:calc(100svh - 250px)}
+.center section.enter::before,.center section.enter::after{content:"";flex:1 1 0;min-height:0}
+.center .q{text-align:center;font-size:clamp(34px,8vw,52px);line-height:1.02;margin-inline:auto;max-width:14em}
+.center .q + .note,.center .note{text-align:center;margin-inline:auto;max-width:30em}
+.center .choices,.center .field,.center .money,.center .pair,.center .code,.center .idcard,.center .logo-found,.center .receipt,.center .hero,.center .group,.center .pad,.center .padrow{width:100%;max-width:560px;margin-inline:auto}
+.center .choices{margin-top:30px}
+.center .choice{min-height:80px;padding:18px 22px;border-radius:22px}
+.center .choice b{font-size:19px}
+.center .input.big{text-align:center}
+.center .money .input{text-align:center;padding-inline:52px}
+.center .example{align-self:center}
+.center .h2{text-align:center}
+.center .swatches{max-width:560px;margin-inline:auto;width:100%}
+.center .paper{width:100%;max-width:640px;margin-inline:auto}
+.center .states,.center .systems,.center .lot{width:100%}
+.center .mark{align-self:center}
+.center .textlink{align-self:center}
+.hint{margin:14px auto 0;text-align:center;font:550 14.5px/1.45 var(--sans);color:var(--muted);max-width:32em}
+.field.search{position:relative}
+.field.search svg{position:absolute;left:18px;top:50%;translate:0 -50%;color:var(--faint);pointer-events:none}
+.field.search .input{padding-left:50px}
+.h2.kind{margin:30px 0 4px;font:750 13px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.btn.more{align-self:center;margin-top:18px}
+
+/* system tiles: the vendor's own mark, big, like an app on a home screen */
+.systems{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px;margin-top:16px}
+.sys{min-height:156px;gap:14px;padding:20px 12px 16px}
+.sys .ico{width:84px;height:84px;border-radius:22px;padding:10px;background:#fff;box-shadow:0 0 0 1px var(--line),0 10px 24px -16px rgba(28,36,54,.55)}
+.sys .ico img{width:100%;height:100%;object-fit:contain}
+.sys .ico.wide{width:100%;max-width:150px;height:84px;padding:14px 16px}
+.sys b{font:750 15px/1.2 var(--sans)}
+@media (max-width:520px){.systems{grid-template-columns:repeat(2,1fr)}.center .q{font-size:clamp(32px,9vw,40px)}}

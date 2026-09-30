@@ -35,7 +35,7 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
   const wet = doc === 'powerOfAttorney';
 
   return (
-    <main className="wrap">
+    <main className="wrap center">
       <div className="top"><button className="back" onClick={() => { feel.tap(); backward(); history.back(); }}><Ic n="chev" s={18} w={2.4} />Back</button><span className="progress">{DOC_TITLE[doc]} · {Math.min(idx + 1, total)} Of {total}</span></div>
       <div className="bar"><i style={{ width: `${(Math.min(idx + 1, total) / total) * 100}%` }} /></div>
 

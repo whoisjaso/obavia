@@ -57,7 +57,7 @@ export async function readRows(buf) {
   const kind = sniff(buf);
   if (kind === 'xlsx' || kind === 'xls') {
     const XLSX = await import('xlsx');
-    const wb = XLSX.read(buf, { type: 'buffer', cellDates: false, raw: false });
+    const wb = XLSX.read(buf, { type: 'buffer', dense: true, cellDates: false, cellFormula: false, cellHTML: false, cellStyles: false });
     const ws = wb.Sheets[wb.SheetNames[0]];
     return { kind, rows: XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' }).map(r => r.map(c => String(c ?? '').trim())) };
   }

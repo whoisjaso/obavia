@@ -115,7 +115,7 @@ export function Start() {
   const first = b.fullName.trim().split(/\s+/)[0] || 'The Buyer';
 
   return (
-    <main className="wrap">
+    <main className="wrap center">
       <div className="top">{at ? <button className="back" onClick={() => { feel.tap(); setEditing(false); to(pages[at - 1], 'back'); }}><Ic n="chev" s={18} w={2.4} />Back</button> : <Back to="#/" label="Sales" />}<span className="progress">{LABEL[page]}</span></div>
       <div className="bar"><i style={{ width: `${((at + 1) / pages.length) * 100}%` }} /></div>
 

@@ -124,7 +124,7 @@ export function Step({ id, stepKey }: { id: string; stepKey: string }) {
   })();
 
   return (
-    <main className="wrap">
+    <main className="wrap center">
       <div className="top"><button className="back" onClick={() => { feel.tap(); backward(); history.length > 1 ? history.back() : go(`/sale/${id}`); }}><Ic n="chev" s={18} w={2.4} />Back</button>
         <span className="progress num">Step {idx + 1} Of {steps.length}</span></div>
       <div className="bar"><i style={{ width: `${((idx + 1) / steps.length) * 100}%` }} /></div>
