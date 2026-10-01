@@ -242,6 +242,42 @@ There is **no self-serve sign-up**, so we have to request it. From PayNearMe's d
 4. **Pilot:** Triple J's own notes, dealer-paid fees, with counsel sign-off on wording, consent and fees. Turn it on only with the owner's go-ahead.
 
 
+## 7. Money from outside the processor: Zelle, Cash App, Venmo, checks
+
+Buyers will keep paying however they like. **Every payment ends up in one ledger** through four routes:
+
+| Route | What arrives | How the Desk knows whose it is |
+|---|---|---|
+| Processor (PayNearMe) | Card, debit, ACH, Cash App Pay, PayPal, cash at retail | The callback carries our note id. Exact |
+| Bank feed (Plaid, read-only) | Zelle, ACH, checks, cash deposits | Zelle and ACH carry the sender's name; checks and cash don't |
+| Receipt emails | Personal Cash App and Venmo | The receipt names the payer. In the bank these arrive only as one lump "cash out", with no names |
+| The counter | Cash, money orders | Recorded in the Desk |
+
+**The matching engine** (`desk/src/lib/match.ts`, 9 tests, plus 2 for the Plaid reader):
+- **Set aside:** money going out, pending items, processor settlements (already counted from callbacks) and Cash App or Venmo cash-outs (already counted from their receipts). Nothing is counted twice.
+- **Same payment seen twice:** a Zelle in both the bank feed and the email is kept once.
+- **Score against every open note**, 0 to 1:
+  - name: full 1, first initial and last name 0.85, last name only 0.55;
+  - amount: exactly what's owed 1, whole installments or the payoff 0.9, anything up to the payoff 0.3;
+  - date: near a due date.
+- **Verdicts:**
+  - **Sure:** 0.85 or higher, well clear of the next note.
+  - **Likely:** 0.5 or higher.
+  - **Unsure:** below 0.5. A nameless check or cash deposit is never "sure".
+- **The dealer confirms with one tap.** It posts to the note, and the buyer and dealer texts go out exactly as for a processor payment.
+- **The confirmed sender is remembered**, so next time a cousin's Zelle is sure.
+
+**Desk:** Payments, then To Match. Each page shows one amount and asks one question ("Jordan Rivera?"), with Yes, Someone Else or Not A Car Payment.
+
+**Server:** `server/bank/plaid.ts` pages Plaid `/transactions/sync` and keeps only posted money coming in (Plaid shows inflows as negative amounts).
+
+**To turn on:**
+1. A Plaid account; the dealer links the bank read-only.
+2. Receipt forwarding: the dealer forwards Cash App and Venmo receipts to a Desk address, or connects the inbox.
+3. Confirm the description and subject formats against Triple J's real bank lines and receipts.
+
+**Cost:** Plaid bills Obavia per linked bank account. That's software cost, covered by the subscription. The dealer pays nothing extra for Zelle or Cash App.
+
 ---
 
 # Reach: every channel, and how each really connects

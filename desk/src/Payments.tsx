@@ -4,10 +4,11 @@
 import { useState } from 'react';
 import { METHOD_LABEL, amountToAsk, digest, money, paymentTexts, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
 import { parseMoney } from './lib/money';
+import { inbox } from './lib/match';
 import { getLoans, recordPayment, setReminders, useStore } from './store';
 import { Back, Ic, feel, go, transition } from './ui';
 
-const nice = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...opts });
+export const nice = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...opts });
 const longDay = (d: string) => nice(d, { weekday: 'long', month: 'long', day: 'numeric' });
 const first = (n: string) => n.split(' ')[0];
 const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
@@ -20,7 +21,7 @@ function line(s: Standing) {
 }
 
 /** A big stacked choice that goes somewhere. */
-function Go({ to, label, gloss, icon, tone }: { to: string; label: string; gloss?: string; icon?: string; tone?: 'late' | 'warn' | 'good' }) {
+export function Go({ to, label, gloss, icon, tone }: { to: string; label: string; gloss?: string; icon?: string; tone?: 'late' | 'warn' | 'good' }) {
   return (
     <a className="choice" href={`#${to}`} onClick={feel.next}>
       {tone ? <span className={`dot big ${tone}`} aria-hidden="true" /> : icon && <span className="art"><Ic n={icon} s={24} /></span>}
@@ -32,8 +33,9 @@ function Go({ to, label, gloss, icon, tone }: { to: string; label: string; gloss
 
 /* ---------- 1. Who needs you today? ---------- */
 export function Payments() {
-  const { dealer, loans = [], example } = useStore();
+  const { dealer, loans = [], example, money: incoming = [], matched = {}, payers } = useStore();
   const t = today(dealer.timeZone), d = digest(loans, t);
+  const toMatch = inbox(incoming, loans, t, matched, payers);
   const sum = (xs: { cents: number }[]) => money(xs.reduce((a, x) => a + x.cents, 0));
   const head = d.late.length ? `${d.late.length} Late.` : d.dueToday.length ? `${d.dueToday.length} Due Today.` : 'All Current.';
   return (
@@ -44,6 +46,7 @@ export function Payments() {
         <div className="choices">
           {d.late.length > 0 && <Go to="/payments/list/late" tone="late" label="Late" gloss={sum(d.late)} />}
           {d.dueToday.length > 0 && <Go to="/payments/list/today" tone="warn" label="Due Today" gloss={sum(d.dueToday)} />}
+          {toMatch.length > 0 && <Go to="/payments/match" icon="bank" label="To Match" gloss={`${toMatch.length} from Zelle, Cash App and the bank`} />}
           <Go to="/payments/list/all" icon="sheet" label="Every Account" />
         </div>
         {example && <span className="example">Example data</span>}

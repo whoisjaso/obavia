@@ -7,14 +7,16 @@ import type { DocType } from './lib/plan';
 import type { AgreementState, Buyer, Sale, StepData, Vehicle } from './lib/sale';
 import { EXAMPLE_LOT, exampleSales } from './data';
 import { MARKETPLACE_TERMS, termsHash, type Consent } from './lib/consent';
-import { addDays, openLoan, takePayment, today, type Frequency, type Loan, type Method } from './lib/loans';
+import { addDays, amountToAsk, openLoan, standing, takePayment, today, type Frequency, type Loan, type Method } from './lib/loans';
+import { fromReceipt, normName, type Money, type Payers } from './lib/match';
 import { PER_YEAR } from './lib/paperwork';
 import { parseMoney } from './lib/money';
 
-type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[] };
+type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[];
+  money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers };
 const KEY = 'obavia.desk.v1';
 
-function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales(), loans: exampleLoans(EXAMPLE_DEALER.timeZone), receiptNo: 1000 }; }
+function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales(), loans: exampleLoans(EXAMPLE_DEALER.timeZone), money: exampleMoney(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), receiptNo: 1000 }; }
 
 /** Example in-house notes, dated from today so every state shows: due today, late, late with a charge, current, paid off. */
 export function exampleLoans(tz: string): Loan[] {
@@ -32,10 +34,25 @@ export function exampleLoans(tz: string): Loan[] {
     mk('ex-current', 'Alex Placeholder', '(555) 010-1187', '2017 Ford Fusion SE · Stock 115', 560000, 17.5, 78, 'weekly', addDays(t, -12), [[0, 0], [7, 0], [9, 0]]),
   ];
 }
+/** Example money from outside the processor, the way it would arrive from the bank feed and receipt emails. */
+export function exampleMoney(loans: Loan[], tz: string): Money[] {
+  const t = today(tz), by = (id: string) => loans.find(l => l.id === id);
+  const owe = (id: string) => { const l = by(id); return l ? amountToAsk(standing(l, t)) : 0; };
+  const usd = (c: number) => (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const bank = (id: string, text: string, cents: number, on = t): Money => ({ id, source: 'bank', on, cents, text });
+  return [
+    bank('ex-b1', 'ZELLE FROM JORDAN RIVERA ON ' + t.slice(5).replace('-', '/') + ' REF # 8812', owe('ex-due')),
+    fromReceipt('ex-e1', t, `D Example sent you $${usd(owe('ex-late'))}`, 'cash@square.com')!,
+    bank('ex-b2', 'CASH APP*CASH OUT', owe('ex-late')),
+    bank('ex-b3', 'ZELLE FROM TIA SAMPLE', by('ex-fee')?.paymentCents ?? 0, addDays(t, -1)),
+    bank('ex-b4', 'PAYNEARME SETTLEMENT', 25256, addDays(t, -1)),
+    bank('ex-b5', 'MOBILE DEPOSIT REF 0019', 50000, addDays(t, -2)),
+  ].filter(m => m.cents > 0);
+}
 function load(): State {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); return s; }
+    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); return s; }
   } catch { /* private mode */ }
   return fresh();
 }
@@ -91,6 +108,17 @@ export function recordPayment(loanId: string, cents: number, method: Method, on:
   set({ ...state, receiptNo: receipt, loans: getLoans().map(l => (l.id === loanId ? takePayment(l, { on, cents, method }, receipt) : l)) });
   return receipt;
 }
+/* ---------- money from outside the processor ---------- */
+/** The dealer confirms whose payment this is: it posts to that note, and the sender is remembered for next time. */
+export function matchMoney(m: Money, loanId: string): number {
+  const receipt = (state.receiptNo ?? 1000) + 1;
+  const loans = getLoans().map(l => (l.id === loanId ? takePayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id }, receipt) : l));
+  const payers = m.from ? { ...state.payers, [normName(m.from)]: loanId } : state.payers;
+  set({ ...state, receiptNo: receipt, loans, payers, matched: { ...state.matched, [m.id]: { loanId, receipt } } });
+  return receipt;
+}
+/** Not a car payment (a refund from a supplier, a personal deposit): set it aside for good. */
+export function dismissMoney(id: string) { set({ ...state, matched: { ...state.matched, [id]: { loanId: null } } }); }
 export function setReminders(loanId: string, on: boolean) { set({ ...state, loans: getLoans().map(l => (l.id === loanId ? { ...l, remindersOn: on } : l)) }); }
 /** When an in-house sale completes, its note opens from the financing answers. */
 function loanFromSale(s: Sale, total: number): Loan | null {

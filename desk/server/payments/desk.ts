@@ -14,7 +14,7 @@ export interface NoteStore {
 }
 export type DealerContact = { dealerId: string; name: string; textFrom: string; alertTo: string[]; timeZone: string };
 
-const METHOD: Record<NonNullable<PaymentUpdate['method']>, Method> = { ach: 'ach', cash: 'cash', cash_app: 'cash_app', credit: 'card', debit: 'card', paypal: 'other', other: 'other' };
+const METHOD: Record<NonNullable<PaymentUpdate['method']>, Method> = { ach: 'ach', cash: 'cash', cash_app: 'cash_app', credit: 'card', debit: 'card', paypal: 'paypal', other: 'other' };
 
 export class PaymentDesk {
   constructor(private notes: NoteStore, private messenger: Messenger, private dealerOf: (note: Loan) => Promise<DealerContact | null>, private clock: () => Date = () => new Date()) {}

@@ -8,13 +8,13 @@
    payments on request (§348.405). The rate ceiling is the owner's to confirm. */
 
 export type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
-export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'other';
+export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'venmo' | 'paypal' | 'other';
 /** Where a payment stands with the processor. Cash at the counter is cleared at once; a bank (ACH)
     payment is clearing for up to four business days and can still come back; a card can be charged back. */
 export type PaymentStatus = 'cleared' | 'clearing' | 'returned' | 'refunded' | 'charged_back';
 export type Payment = { id: string; on: string; cents: number; method: Method; receipt: number; note?: string; by?: string;
   status?: PaymentStatus;                 // missing = cleared (every desk payment before processors existed)
-  via?: 'desk' | 'text_link' | 'autopay' | 'portal' | 'retail_cash';
+  via?: 'desk' | 'text_link' | 'autopay' | 'portal' | 'retail_cash' | 'matched';   // matched: found in the bank feed or a receipt email, confirmed by the dealer
   processorId?: string;                   // the processor's id for this payment, to match callbacks
   reverse?: { on: string; code?: string; reason?: string };
 };
@@ -37,7 +37,7 @@ export type Loan = {
 
 export const PER_YEAR: Record<Frequency, number> = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 };
 export const TEXAS_LATE = { graceDays: 15, pct: 5 } as const;
-export const METHOD_LABEL: Record<Method, string> = { cash: 'Cash', card: 'Card', ach: 'Bank (ACH)', check: 'Check', money_order: 'Money Order', zelle: 'Zelle', cash_app: 'Cash App', other: 'Other' };
+export const METHOD_LABEL: Record<Method, string> = { cash: 'Cash', card: 'Card', ach: 'Bank (ACH)', check: 'Check', money_order: 'Money Order', zelle: 'Zelle', cash_app: 'Cash App', venmo: 'Venmo', paypal: 'PayPal', other: 'Other' };
 
 /* ---------- calendar days ---------- */
 const toUTC = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return Date.UTC(y, m - 1, dd); };
