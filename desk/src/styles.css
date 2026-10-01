@@ -524,3 +524,8 @@ section:has(> .q2) > h1.q{display:none}
 .sms.two{display:grid;gap:6px}
 .sms.two small{margin:8px 0 0 6px}
 .bubble.you{background:#E3F2EA}
+
+/* Close the day */
+.done-mark.bad{background:var(--red);box-shadow:0 18px 40px -18px rgba(190,40,40,.6)}
+.done-mark .bang{font:800 40px/1 var(--sans);color:#fff}
+.center h2.sub{margin-top:40px;font:700 15px/1.2 var(--sans);letter-spacing:.02em;color:var(--muted)}

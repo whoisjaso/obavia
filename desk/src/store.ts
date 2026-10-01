@@ -9,14 +9,15 @@ import { EXAMPLE_LOT, exampleSales } from './data';
 import { MARKETPLACE_TERMS, termsHash, type Consent } from './lib/consent';
 import { addDays, amountToAsk, openLoan, standing, takePayment, today, type Frequency, type Loan, type Method } from './lib/loans';
 import { fromReceipt, normName, type Money, type Payers } from './lib/match';
+import { cashOn, type CashDay } from './lib/cashday';
 import { PER_YEAR } from './lib/paperwork';
 import { parseMoney } from './lib/money';
 
 type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[];
-  money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers };
+  money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay> };
 const KEY = 'obavia.desk.v1';
 
-function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales(), loans: exampleLoans(EXAMPLE_DEALER.timeZone), money: exampleMoney(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), receiptNo: 1000 }; }
+function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales(), loans: exampleLoans(EXAMPLE_DEALER.timeZone), money: exampleMoney(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), cashDays: exampleCashDays(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), receiptNo: 1000 }; }
 
 /** Example in-house notes, dated from today so every state shows: due today, late, late with a charge, current, paid off. */
 export function exampleLoans(tz: string): Loan[] {
@@ -47,12 +48,19 @@ export function exampleMoney(loans: Loan[], tz: string): Money[] {
     bank('ex-b3', 'ZELLE FROM TIA SAMPLE', by('ex-fee')?.paymentCents ?? 0, addDays(t, -1)),
     bank('ex-b4', 'PAYNEARME SETTLEMENT', 25256, addDays(t, -1)),
     bank('ex-b5', 'MOBILE DEPOSIT REF 0019', 50000, addDays(t, -2)),
+    bank('ex-b6', 'BRANCH DEPOSIT', cashOn(loans, addDays(t, -7)).cents, addDays(t, -6)),   // banks the cash day a week ago
   ].filter(m => m.cents > 0);
+}
+/** Example closed cash days: one banked, one counted and waiting, one not banked in time. */
+export function exampleCashDays(loans: Loan[], tz: string): Record<string, CashDay> {
+  const t = today(tz), out: Record<string, CashDay> = {};
+  for (const n of [7, 5, 3]) { const d = addDays(t, -n), c = cashOn(loans, d).cents; if (c) out[d] = { date: d, countedCents: c, closedAt: d }; }
+  return out;
 }
 function load(): State {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); return s; }
+    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); if (!s.cashDays && s.example) s.cashDays = exampleCashDays(s.loans ?? [], s.dealer.timeZone); return s; }
   } catch { /* private mode */ }
   return fresh();
 }
@@ -116,6 +124,10 @@ export function matchMoney(m: Money, loanId: string): number {
   const payers = m.from ? { ...state.payers, [normName(m.from)]: loanId } : state.payers;
   set({ ...state, receiptNo: receipt, loans, payers, matched: { ...state.matched, [m.id]: { loanId, receipt } } });
   return receipt;
+}
+/** Close the cash day with what's in the drawer. Counting again replaces the count. */
+export function closeCashDay(date: string, countedCents: number) {
+  set({ ...state, cashDays: { ...state.cashDays, [date]: { date, countedCents, closedAt: new Date().toISOString() } } });
 }
 /** Not a car payment (a refund from a supplier, a personal deposit): set it aside for good. */
 export function dismissMoney(id: string) { set({ ...state, matched: { ...state.matched, [id]: { loanId: null } } }); }

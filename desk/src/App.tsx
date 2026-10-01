@@ -5,6 +5,7 @@ import { Paper } from './Paper';
 import { Past, Sales, Start } from './Sales';
 import { Account, AccountPage, PaymentList, Payments, TakePayment } from './Payments';
 import { MatchList, MatchOne } from './Match';
+import { CashTaken, CloseDay } from './Cash';
 import { Channel, MarketplaceConsent, Reach, ReachGroup } from './Reach';
 import type { DocType } from './lib/plan';
 import { getSale, useStore } from './store';
@@ -19,6 +20,8 @@ export function App() {
   if (a === 'past') return <Past />;
   if (a === 'reach') return id === 'marketplace' ? <MarketplaceConsent /> : id === 'g' && b ? <ReachGroup key={b} group={b as 'phone'} /> : id ? <Channel id={id} /> : <Reach />;
   if (a === 'payments') {
+    if (id === 'cash' && b) return <CashTaken key={b} id={b} />;
+    if (id === 'close') return <CloseDay />;
     if (id === 'match') return b ? <MatchOne key={b} id={decodeURIComponent(b)} /> : <MatchList />;
     if (id === 'list') return <PaymentList key={b} which={(b === 'late' || b === 'today' ? b : 'all')} />;
     if (id && b === 'pay') return <TakePayment key={id} id={id} />;

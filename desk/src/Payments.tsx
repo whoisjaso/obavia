@@ -2,16 +2,17 @@
    Home asks "who needs you?", a list shows those people, an account shows one
    number and one action, and everything else is a tap away on its own page. */
 import { useState } from 'react';
-import { METHOD_LABEL, amountToAsk, digest, money, paymentTexts, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
+import { METHOD_LABEL, amountToAsk, money, paymentTexts, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
 import { parseMoney } from './lib/money';
 import { inbox } from './lib/match';
+import { cashOn, dayState, expected, withBanking } from './lib/cashday';
 import { getLoans, recordPayment, setReminders, useStore } from './store';
 import { Back, Ic, feel, go, transition } from './ui';
 
 export const nice = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...opts });
 const longDay = (d: string) => nice(d, { weekday: 'long', month: 'long', day: 'numeric' });
-const first = (n: string) => n.split(' ')[0];
-const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+export const first = (n: string) => n.split(' ')[0];
+export const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 
 function line(s: Standing) {
   if (s.status === 'paid_off') return { tag: 'Paid Off', tone: 'good' as const, text: 'Paid in full' };
@@ -31,22 +32,31 @@ export function Go({ to, label, gloss, icon, tone }: { to: string; label: string
   );
 }
 
-/* ---------- 1. Who needs you today? ---------- */
+/* ---------- 1. Who's expected today? One tap for cash at the counter. ---------- */
+const SHOW = 6;
 export function Payments() {
-  const { dealer, loans = [], example, money: incoming = [], matched = {}, payers } = useStore();
-  const t = today(dealer.timeZone), d = digest(loans, t);
-  const toMatch = inbox(incoming, loans, t, matched, payers);
-  const sum = (xs: { cents: number }[]) => money(xs.reduce((a, x) => a + x.cents, 0));
-  const head = d.late.length ? `${d.late.length} Late.` : d.dueToday.length ? `${d.dueToday.length} Due Today.` : 'All Current.';
+  const { dealer, loans = [], example, money: incoming = [], matched = {}, payers, cashDays = {} } = useStore();
+  const [all, setAll] = useState(false);
+  const t = today(dealer.timeZone);
+  const bank = withBanking(cashDays, incoming);
+  const toMatch = inbox(incoming, loans, t, { ...matched, ...bank.deposits }, payers);
+  const exp = expected(loans, t), shown = all ? exp : exp.slice(0, SHOW);
+  const cashToday = cashOn(loans, t).cents;
+  const flagged = Object.values(bank.days).filter(d => d.date < t && ['short', 'not_banked'].includes(dayState(loans, d, d.date, t))).length;
+  const closeGloss = flagged ? `${plural(flagged, 'day')} to look at` : bank.days[t] ? `Closed · ${money(bank.days[t].countedCents)}` : `${money(cashToday)} in cash today`;
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/" label="Sales" /></div>
       <section className="enter" key="home">
-        <h1 className="q">{head}</h1>
+        <h1 className="q">{exp.length ? 'Expected Today.' : 'All Current.'}</h1>
+        {exp.length > 0 && <div className="choices">
+          {shown.map(e => <Go key={e.loan.id} to={`/payments/cash/${e.loan.id}`} tone={e.late ? 'late' : 'warn'} label={e.loan.buyer.name}
+            gloss={`${money(e.cents)} · ${e.late ? `${plural(e.daysLate, 'day')} late` : 'due today'}`} />)}
+          {!all && exp.length > SHOW && <button className="textlink" onClick={() => { feel.tap(); setAll(true); }}>Show All {exp.length}</button>}
+        </div>}
         <div className="choices">
-          {d.late.length > 0 && <Go to="/payments/list/late" tone="late" label="Late" gloss={sum(d.late)} />}
-          {d.dueToday.length > 0 && <Go to="/payments/list/today" tone="warn" label="Due Today" gloss={sum(d.dueToday)} />}
           {toMatch.length > 0 && <Go to="/payments/match" icon="bank" label="To Match" gloss={`${toMatch.length} from Zelle, Cash App and the bank`} />}
+          <Go to="/payments/close" icon="cash" label="Close The Day" gloss={closeGloss} tone={flagged ? 'late' : undefined} />
           <Go to="/payments/list/all" icon="sheet" label="Every Account" />
         </div>
         {example && <span className="example">Example data</span>}

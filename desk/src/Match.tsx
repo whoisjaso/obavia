@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { METHOD_LABEL, money, paymentTexts, standing, today } from './lib/loans';
 import { inbox, type Suggestion } from './lib/match';
+import { withBanking } from './lib/cashday';
 import { Go, nice } from './Payments';
 import { dismissMoney, getLoans, matchMoney, useStore } from './store';
 import { Back, Ic, feel, go, transition } from './ui';
@@ -14,8 +15,9 @@ const title = (s: string) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase
 const fromLine = (s: Suggestion) => [METHOD_LABEL[s.money.rail ?? 'other'], s.money.from ? title(s.money.from) : s.money.source === 'bank' ? 'No name on it' : '', nice(s.money.on)].filter(Boolean).join(' · ');
 
 function useInbox() {
-  const { dealer, loans = [], money: all = [], matched = {}, payers } = useStore();
-  return { t: today(dealer.timeZone), loans, box: inbox(all, loans, today(dealer.timeZone), matched, payers), dealer, matched };
+  const { dealer, loans = [], money: all = [], matched = {}, payers, cashDays = {} } = useStore();
+  const banked = withBanking(cashDays, all).deposits;      // deposits that banked a cash day aren't payments to match
+  return { t: today(dealer.timeZone), loans, box: inbox(all, loans, today(dealer.timeZone), { ...matched, ...banked }, payers), dealer, matched };
 }
 
 export function MatchList() {

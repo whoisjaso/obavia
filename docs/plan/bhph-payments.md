@@ -278,6 +278,26 @@ Buyers will keep paying however they like. **Every payment ends up in one ledger
 
 **Cost:** Plaid bills Obavia per linked bank account. That's software cost, covered by the subscription. The dealer pays nothing extra for Zelle or Cash App.
 
+## 8. Cash at the counter: one tap, then checked automatically
+
+Counter cash leaves no digital signal, so it can't be detected. The rule: **automate whatever leaves a signal; cut what doesn't to one tap with the answer filled in; then check that tap automatically.**
+
+- **Expected Today** (the Payments home) lists everyone due today or behind, most behind first, with the amount owed.
+  - Tap a name, then "Yes, $126.28 Cash". The payment posts, a receipt number is issued, and the buyer and the owner are texted.
+  - "Different Amount Or Way" opens the full payment flow.
+  - Anyone who already paid today drops off the list.
+- **Check 1, the buyer:** every cash payment texts a receipt. Cash taken but not recorded means no receipt, and the buyer calls.
+- **Check 2, the drawer:** **Close The Day** shows the day's counter cash (7-Eleven cash and Zelle excluded).
+  - If the drawer matches, one tap: "Counted, It's $X".
+  - Otherwise "It's Different", then enter the count. The day shows **Short** or **Over** by the exact amount.
+- **Check 3, the bank:**
+  - A branch, teller or ATM cash deposit in the bank feed that equals a closed day's count marks that day **Banked**. Mobile check deposits don't count.
+  - Each deposit banks one day, the oldest that fits, within 10 days.
+  - Those deposits never appear in To Match.
+  - A closed day not banked within 3 days is flagged, and the Payments home shows "N days to look at".
+- **Code:** `desk/src/lib/cashday.ts` (4 tests), `desk/src/Cash.tsx`.
+- **Not yet:** one deposit covering several days, and splitting a day across two deposits. The owner resolves those by hand until real Triple J deposits show the pattern.
+
 ---
 
 # Reach: every channel, and how each really connects
