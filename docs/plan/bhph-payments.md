@@ -77,7 +77,7 @@ Research date: October 1, 2026, read from each company's own pages and developer
 | **Carpay** | A customer app for buy here pay here payers. Pay by app, by texting PAY, by phone or on the web. Reminders, autopay, and "real-time" sync with the dealer's system. Says "$0 additional out-of-pocket" for the dealer. | A partner to integrate with when a dealer already uses it, not our main processor. |
 | **FrazerPay / PayMyCar** | Frazer's own processor and pay site. | Only for Frazer dealers. Shows what dealers expect: recurring payments on the due date, automatic posting and emailed receipts. |
 | **Stripe** | General processor. | **Not for notes.** Stripe lists "Loan repayments with credit cards" as **prohibited**, and "Lending services" as **restricted** (approval needed). Fine for Obavia's own subscription billing. |
-| **A white-label processor for software platforms (e.g. Finix)** | Lets Obavia run payments under its own brand and earn on each transaction. | Later, once volume justifies it. **To confirm:** that it underwrites auto lending and debt repayment. |
+| **A white-label processor for software platforms (e.g. Finix)** | Lets Obavia run payments under its own brand and earn on each transaction. | **Ruled out for notes.** Finix's own list marks "non-bank lenders: … any consumer financing services" and "loan repayments on a credit card" as **prohibited** for platform sub-merchants. See §6. |
 
 **Card rules that shape the choice.**
 - Visa and Mastercard have lower-fee **debt repayment programs**, but only for **debit and prepaid cards**, and only for lenders registered under financial-institution category codes (**6012 or 6051**). Fees run about **0.65% + $0.15, capped at $2.00** on exempt Visa debit.
@@ -92,7 +92,7 @@ PayNearMe and REPAY handle both.
 
 **Recommendation:** start with **PayNearMe**, with **REPAY** as the alternative. Keep cash at the counter in the Desk as it is today.
 - **No payment processing turns on without the owner's go-ahead.**
-- **Do not charge buyers convenience fees until the OCCC or counsel confirms they're allowed** under Finance Code ch. 348. We didn't find a published OCCC answer.
+- **Do not charge buyers convenience fees until counsel confirms the setup.** The Texas independent dealers' association (TIADA) reads Finance Code §348.108 as **not authorizing** dealer convenience fees. See §6.
 
 ## 2. How the Desk knows where every payment stands
 
@@ -171,6 +171,58 @@ Every payment has a status. The ledger counts a payment while it is cleared or c
 3. Move notes from the browser into D1 (or Supabase).
 4. Deploy the Worker with `PAYNEARME_CALLBACK_SECRET`, and have the owner set the dealership alert numbers.
 5. Get counsel review of the wording and consent, OCCC confirmation on fees, and the dealer's ch. 348 licence.
+
+## 6. Deep dive: which option is best (October 1)
+
+Sources: each company's own site and docs, Finix's and Stripe's published business lists, the PayNearMe partner list, and TIADA's Texas guidance. Read through Firecrawl.
+
+### The verdict
+
+**PayNearMe first. REPAY as the backup. Nothing else is a real option for the notes.**
+
+| Rank | Option | Why |
+|---|---|---|
+| 1 | **PayNearMe** | **It is the only one whose callback API is public**, so the webhook, ledger and two-sided texts are already built against it. It takes **cash at 7-Eleven and CVS**, which matters most for buyers without bank accounts. It has one-tap text pay links, autopay and every major method. Its partner list shows it already plugs into dealer and loan software: abcoa Deal Pack, AFS Vanguard, Allied Business Systems, AutoMatrix, Credex Systems, DealerSocket IDMS, Emotive and GOLDPoint. Industry maps name it as the subprime and buy here pay here default for cash and text pay. |
+| 2 | **REPAY** | **It runs a formal partner program** for software companies ("integrations up and running in as few as 90 days"). It covers card, debit, ACH, IVR, text pay and portals, owns Payix and integrated with Emotive in 2025. **Its API is behind the partner agreement**, so we can't build against it until we sign. |
+| — | **Carpay, BlytzPay** | **These are buyer-facing pay apps that sit on top of a dealer's system**, not processors we would build on. Carpay's own comparison page calls the DMS "the system of record" and itself "servicing and payments". To them, the Desk is that system. **Treat them as integrations or competitors, not rails.** |
+| — | **Finix and other white-label payments for software platforms** | **Ruled out.** Finix lists consumer financing and credit-card loan repayment as **prohibited** for platform sub-merchants. This is the model that would have let Obavia earn on each payment. |
+| — | **Stripe, Square, Helcim and other general processors** | **Ruled out for notes.** Stripe prohibits credit-card loan repayments and restricts lending. General processors either refuse or require special approval for consumer lending. Moov, for example, supports debit-only debt repayment. Keep Stripe for Obavia's own subscription billing. |
+| — | **Building our own** | **Not now.** It would mean money transmission questions, Nacha origination, card-network registration and fraud losses. The specialists already carry all of that. |
+
+### The Texas fee rule that shapes the business model
+
+TIADA (Texas Independent Automobile Dealers Association) reads Finance Code **§348.108**, which lists every charge allowed on a retail installment contract, as follows.
+- **Dealers may not charge or keep convenience fees.** This covers "expedited payment" and "processing" fees too. **A dealer may not receive "any incentive from a third party for utilizing a payment processing service."**
+- **A processor's fee is allowed only if all of these hold:**
+  - the **entire fee goes to the processor**;
+  - the dealer gets **no direct or indirect benefit** from it;
+  - the fee is **optional**, so another method is free (cash at the counter);
+  - the dealer **keeps documentation** of all four.
+
+What that means for us:
+- **Obavia must never pass a payment rebate or revenue share to the dealer.** That would be an "incentive".
+- **Whether Obavia itself may take a share of a buyer-paid fee is unresolved.** Until counsel clears it, **Obavia earns from the subscription, not from payments.**
+- **Default: the dealer absorbs processing.** A buyer fee is possible only as the processor's own optional fee, with cash at the counter always free. The Desk already records cash payments, so the free method exists.
+
+### What to get on the calls
+
+**PayNearMe** (Schedule a demo; "Partner with us"):
+1. ISV/partner terms: can Obavia hold one platform account and onboard each dealer under it, or must each dealer contract directly?
+2. Pricing: fee per method (card, debit, ACH, cash at retail), who pays, any monthly minimums. Can the fee be dealer-paid only?
+3. Smart Links API: can we create a pay link for an amount and our note id, and send it in our own text?
+4. Autopay: are the mandate and the Nacha authorization handled on their page?
+5. Sandbox: the signature header name and an example signed callback.
+6. Does a buy here pay here dealer qualify as category 5521, or under the lender debt-repayment rates?
+
+**REPAY** (partner program): API docs, a sandbox, the same fee and onboarding questions, and the integration timeline.
+
+### Order of work
+
+1. **Today:** nothing is processing. Cash and counter payments in the Desk are live in preview.
+2. **This week:** request a PayNearMe demo and a REPAY partner call. Send the questions above.
+3. **Sandbox:** confirm the header and format, and run our webhook tests against real signed callbacks.
+4. **Pilot:** Triple J's own notes, dealer-paid fees, with counsel sign-off on wording, consent and fees. Turn it on only with the owner's go-ahead.
+
 
 ---
 
