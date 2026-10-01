@@ -119,12 +119,14 @@ export class Verifier {
     }
     if (result !== 'accepted') return { ok: false, reason: result as 'rejected' | 'expired' | 'too_many_attempts' };
     const { phone, email, street, city, zip } = c.record;
-    return { ok: true, token: await issueToken(this.secret, { licence: licence.toUpperCase(), via: channel }, now), profile: { phone: phone ? formatPhone(phone) : undefined, email, street, city, zip } };
+    return { ok: true, token: await issueToken(this.secret, { licence: licence.toUpperCase(), via: channel }, now, SESSION_TTL_S), profile: { phone: phone ? formatPhone(phone) : undefined, email, street, city, zip } };
   }
 }
 
 /* ---------- the token a verified dealer carries into setup ---------- */
 
+/** A verified dealer stays signed in on that device for 30 days. */
+export const SESSION_TTL_S = 30 * 86400;
 export type TokenClaims = { licence: string; via: Channel; iat: number; exp: number };
 export async function issueToken(secret: string, c: { licence: string; via: Channel }, now = new Date(), ttlS = 86400) {
   const iat = Math.floor(now.getTime() / 1000);

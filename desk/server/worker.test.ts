@@ -97,3 +97,19 @@ describe('PayNearMe webhook', () => {
     expect(p.sent.map(m => m.to)).toEqual(['+18324107788', '+17134883602']);
   });
 });
+
+describe('Desk sync', () => {
+  it('needs a signed-in dealer, and merges only into that dealer', async () => {
+    const { a } = app();
+    const { issueToken } = await import('./service');
+    let got: { dealer?: string; n?: number } = {};
+    a.desk = { secret: 's'.repeat(32), sync: { async upsert(dealerId, notes) { got = { dealer: dealerId, n: notes.length }; return { notes, refused: [] }; } } };
+    const n = { id: 'n1', payments: [] };
+    expect((await route(post('/api/desk/sync', { notes: [n] }), a)).status).toBe(401);
+    const token = await issueToken('s'.repeat(32), { licence: 'P171632', via: 'sms' });
+    expect((await route(post('/api/desk/sync', { notes: 'x' }, { Authorization: `Bearer ${token}` }), a)).status).toBe(400);
+    const r = await route(post('/api/desk/sync', { notes: [n] }, { Authorization: `Bearer ${token}` }), a);
+    expect(r.status).toBe(200);
+    expect(got).toEqual({ dealer: 'P171632', n: 1 });
+  });
+});

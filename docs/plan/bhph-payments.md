@@ -392,6 +392,25 @@ That's answered by records made at the sale, not by arguments.
 - **Settings:** the "Tonight's Text" page shows the exact text, an on/off switch, and a time (6, 7, 8 or 9 PM).
 - **Not yet:** the Worker's scheduled send, which goes through the Messenger to the owner's alert numbers. It needs notes stored server-side.
 
+## 12. Live: the server keeps the notes, and the hourly job sends
+
+- **Signing in:** a verified dealer's device keeps its token for 30 days (`SESSION_TTL_S`). It's the same token the verification code returns, stored on the device.
+- **Sync** (`POST /api/desk/sync`, with that token):
+  - **What the Desk sends:** its notes, tonight's text setting, and the few facts only it knows today: payments to match, today's cash state, and flagged cash days.
+  - **How notes merge** (`src/lib/sync.ts`, 2 tests): the server merges each note, keeping every payment once. On the same payment, the server's status wins, because it heard from the processor.
+  - **Ownership:** a note id that belongs to another dealer is refused.
+  - **Receipts:** the server's receipt counter moves past the highest receipt seen, so the Desk and the server never issue the same number.
+  - **When it runs:** the Desk syncs 1.5 seconds after any change, and takes back what the server added. Example notes (`ex-…`) never leave the browser.
+- **The hourly job** (`server/jobs.ts`, 3 tests; Cloudflare cron `0 * * * *`). For each dealership, in its own time zone:
+  - **At 10 AM:** each buyer's reminder due today, if reminders are on for that note.
+  - **At the owner's chosen hour:** tonight's text to the alert numbers. It uses today's Desk facts if the Desk reported today; otherwise payments only.
+  - **Never twice:** every send is claimed first in `sent_job`, so a re-run never repeats a text. Texts go through the Messenger, so STOP, the gate and the log apply.
+- **Schema:** `sent_job` and `dealer_setting`. Re-apply `server/schema.sql`.
+- **To turn on:**
+  1. Deploy the Worker. The cron trigger is in `wrangler.toml`.
+  2. Set `VITE_API_BASE` on the Desk.
+  3. Add Triple J's `dealer_line` row, with its Telnyx number and alert numbers.
+
 ---
 
 # Reach: every channel, and how each really connects

@@ -1,6 +1,9 @@
 /* The Desk API (desk/server/worker.ts). With no VITE_API_BASE the app runs
    in preview: no code is sent and any six digits pass. */
 
+import type { Loan } from './loans';
+import type { SyncBody } from './sync';
+
 export type Profile = { phone?: string; email?: string; street?: string; city?: string; zip?: string };
 export type Channel = 'sms' | 'email';
 export type StartResult = { ok: true; sentTo: string } | { ok: false; reason: string };
@@ -14,6 +17,19 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     const r = await fetch(`${BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     return await r.json() as T;
   } catch { return { ok: false, reason: 'offline' } as T; }
+}
+
+/* ---------- the signed-in device ---------- */
+const SESSION = 'obavia.desk.session';
+export const session = { get: () => { try { return localStorage.getItem(SESSION); } catch { return null; } }, set: (t: string) => { try { localStorage.setItem(SESSION, t); } catch { /* private mode */ } } };
+
+export type SyncResult = { ok: true; notes: Loan[]; refused: string[] } | { ok: false; reason: string };
+export async function syncDesk(body: SyncBody): Promise<SyncResult> {
+  const token = session.get(); if (!live || !token) return { ok: false, reason: 'offline' };
+  try {
+    const r = await fetch(`${BASE}/api/desk/sync`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    return await r.json() as SyncResult;
+  } catch { return { ok: false, reason: 'offline' }; }
 }
 
 export const startVerify = (licence: string, channel: Channel) => post<StartResult>('/api/verify/start', { licence, channel });

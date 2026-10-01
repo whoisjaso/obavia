@@ -70,3 +70,12 @@ CREATE INDEX IF NOT EXISTS note_by_dealer ON note (dealer_id);
 CREATE TABLE IF NOT EXISTS receipt_counter (dealer_id TEXT PRIMARY KEY, last INTEGER NOT NULL);
 -- Who at the dealership is texted when a payment comes in, comma-separated E.164.
 ALTER TABLE dealer_line ADD COLUMN alert_to TEXT;
+-- The hourly job: each reminder and evening text is claimed once, by key.
+CREATE TABLE IF NOT EXISTS sent_job (key TEXT PRIMARY KEY, at TEXT NOT NULL);
+-- The owner's evening text, and the few facts only the Desk knows (to match, cash), as of a date.
+CREATE TABLE IF NOT EXISTS dealer_setting (
+  dealer_id    TEXT PRIMARY KEY,
+  evening_on   INTEGER NOT NULL DEFAULT 0,
+  evening_hour INTEGER NOT NULL DEFAULT 19,
+  facts        TEXT                          -- JSON DeskFacts
+);

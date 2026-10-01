@@ -5,15 +5,20 @@
      POST /api/messages       Bearer INTERNAL_API_TOKEN, SendRequest -> SendOutcome
      POST /webhooks/telnyx    signed by Telnyx
      POST /webhooks/paynearme signed by PayNearMe: payments, declines, returns, chargebacks
+     POST /api/desk/sync      Bearer session token from verify; {notes, facts, evening} -> {ok, notes, refused}
+   Hourly (cron): reminders due today and tonight's text, per dealer time zone (server/jobs.ts).
    Config in server/wrangler.toml; secrets with `wrangler secret put`. */
 import { FakeProvider } from './messaging/fake';
 import { Telnyx } from './messaging/telnyx';
 import type { MessagingProvider } from './messaging/types';
-import { Messenger, ResendEmail, Verifier, type Channel, type Contact, type ContactBook, type EmailSender, type SendRequest } from './service';
+import { Messenger, ResendEmail, Verifier, readToken, type Channel, type Contact, type ContactBook, type EmailSender, type SendRequest } from './service';
 import { D1Store, type D1 } from './store';
 import { PaymentDesk } from './payments/desk';
 import { ack, parseCallback, verifySignature } from './payments/paynearme';
 import { D1NoteStore } from './payments/d1';
+import { runJobs } from './jobs';
+import type { Loan } from '../src/lib/loans';
+import type { SyncBody } from '../src/lib/sync';
 
 type R2Object = { json<T>(): Promise<T> };
 type R2 = { get(key: string): Promise<R2Object | null> };
@@ -49,7 +54,9 @@ export class R2ContactBook implements ContactBook {
 
 /* ---------- the app, independent of where its parts come from ---------- */
 
-export type App = { messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[]; payments?: { desk: PaymentDesk; secret: string } };
+export type DeskSync = { upsert(dealerId: string, notes: Loan[], facts?: SyncBody['facts'], evening?: SyncBody['evening']): Promise<{ notes: Loan[]; refused: string[] }> };
+export type App = { messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[]; payments?: { desk: PaymentDesk; secret: string }; desk?: { sync: DeskSync; secret: string } };
+const MAX_SYNC = 900 * 1024;
 
 const MAX_BODY = 64 * 1024;
 const LICENCE = /^[A-Z]\d{4,7}$/;
@@ -69,9 +76,10 @@ export async function route(req: Request, app: App): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
   if (req.method === 'GET' && url.pathname === '/health') return json({ ok: true }, 200, h);
   if (req.method !== 'POST') return json({ ok: false, reason: 'not_found' }, 404, h);
-  if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY) return json({ ok: false, reason: 'too_large' }, 413, h);
+  const limit = url.pathname === '/api/desk/sync' ? MAX_SYNC : MAX_BODY;
+  if (Number(req.headers.get('content-length') ?? 0) > limit) return json({ ok: false, reason: 'too_large' }, 413, h);
   const raw = await req.text();
-  if (raw.length > MAX_BODY) return json({ ok: false, reason: 'too_large' }, 413, h);
+  if (raw.length > limit) return json({ ok: false, reason: 'too_large' }, 413, h);
 
   // The webhook must see the exact bytes Telnyx signed, so it is handled before any parsing.
   if (url.pathname === '/webhooks/telnyx') return new Response(null, { status: await app.messenger.webhook(raw, req.headers) });
@@ -92,6 +100,15 @@ export async function route(req: Request, app: App): Promise<Response> {
     if (!LICENCE.test(licence) || (channel !== 'sms' && channel !== 'email')) return json({ ok: false, reason: 'bad_request' }, 400, h);
     const r = url.pathname.endsWith('start') ? await app.verifier.start(licence, channel) : await app.verifier.check(licence, channel, String(body.code ?? ''));
     return json(r, r.ok ? 200 : r.reason === 'rate_limited' || r.reason === 'too_many_attempts' ? 429 : r.reason === 'unknown_licence' ? 404 : 422, h);
+  }
+
+  if (url.pathname === '/api/desk/sync') {
+    const claims = app.desk ? await readToken(app.desk.secret, (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')) : null;
+    if (!app.desk || !claims) return json({ ok: false, reason: 'unauthorised' }, 401, h);
+    const b = body as Partial<SyncBody>;
+    if (!Array.isArray(b.notes) || b.notes.some(n => typeof n?.id !== 'string' || !Array.isArray(n.payments))) return json({ ok: false, reason: 'bad_request' }, 400, h);
+    const r = await app.desk.sync.upsert(claims.licence, b.notes, b.facts, b.evening);
+    return json({ ok: true, ...r }, 200, h);
   }
 
   if (url.pathname === '/api/messages') {
@@ -126,6 +143,7 @@ export function build(env: Env): App {
   const notes = new D1NoteStore(env.DB);
   return {
     messenger,
+    desk: { sync: notes, secret: env.SESSION_SECRET },
     payments: env.PAYNEARME_CALLBACK_SECRET ? { desk: new PaymentDesk(notes, messenger, n => notes.dealerFor(n)), secret: env.PAYNEARME_CALLBACK_SECRET } : undefined,
     verifier: new Verifier(provider, store, new R2ContactBook(env.DEALERS), email, env.SESSION_SECRET),
     internalToken: env.INTERNAL_API_TOKEN ?? '',
@@ -137,5 +155,11 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     try { return await route(req, build(env)); }
     catch (e) { console.error('[desk-api]', e instanceof Error ? e.message : e); return json({ ok: false, reason: 'server_error' }, 500); }
+  },
+  /** Hourly: reminders and tonight's text (see wrangler.toml [triggers]). */
+  async scheduled(_ev: unknown, env: Env): Promise<void> {
+    const app = build(env), notes = new D1NoteStore(env.DB);
+    const done = await runJobs(notes, app.messenger);
+    console.log('[desk-jobs]', JSON.stringify(done));
   },
 };

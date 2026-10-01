@@ -4,7 +4,7 @@
    verified with a code sent to the contact on its licence record. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EXAMPLE_DEALER, type DealerConfig } from './lib/config';
-import { SAY, checkVerify, live, startVerify, type Profile } from './lib/api';
+import { SAY, checkVerify, live, session, startVerify, type Profile } from './lib/api';
 import { SHAPES } from './lib/shapes';
 import { STATES, hasList as listFor, loadDealerIndex, maskPhone, searchDealers, type DealerIndex, type DealerRecord } from './lib/dealers';
 import { finishOnboarding } from './store';
@@ -89,7 +89,7 @@ export function Onboarding() {
     if (!live || !picked || (via !== 'sms' && via !== 'email')) { setTimeout(() => go(4), 350); return; }
     const r = await checkVerify(picked.licence, via, v);
     if (!r.ok) { feel.tap(); setSay(SAY[r.reason] ?? SAY.offline); setCode(''); return; }
-    setProfile(r.profile); go(4);
+    session.set(r.token); setProfile(r.profile); go(4);
   }
   const go = (n: number) => { feel.next(); transition(() => { setI(n); scrollTo(0, 0); }); };
   const TOTAL = 8;

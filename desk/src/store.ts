@@ -9,7 +9,10 @@ import { EXAMPLE_LOT, exampleSales } from './data';
 import { MARKETPLACE_TERMS, termsHash, type Consent } from './lib/consent';
 import { addDays, amountToAsk, openLoan, standing, takePayment, today, type Frequency, type Loan, type Method } from './lib/loans';
 import { fromReceipt, normName, type Money, type Payers, type Suggestion } from './lib/match';
-import { cashOn, type CashDay } from './lib/cashday';
+import { cashOn, dayState, withBanking, type CashDay } from './lib/cashday';
+import { live, session, syncDesk } from './lib/api';
+import { inbox } from './lib/match';
+import { maxReceipt, mergeNote } from './lib/sync';
 import type { Attempt, OnFile } from './lib/autopay';
 import { conditionFromSale, type ServiceEntry } from './lib/condition';
 import { PER_YEAR } from './lib/paperwork';
@@ -85,7 +88,29 @@ function load(): State {
 
 let state = load();
 const subs = new Set<() => void>();
-function set(next: State) { state = next; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* ignore */ } subs.forEach(f => f()); }
+function set(next: State, fromServer = false) { state = next; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* ignore */ } subs.forEach(f => f()); if (!fromServer) scheduleSync(); }
+
+/* ---------- keeping the server's copy in step ----------
+   With a live API and a signed-in device, every change is sent a moment
+   later, and whatever the server added (processor payments, returns) comes
+   back merged in. Example notes (ex-…) never leave the browser. */
+let syncTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleSync() {
+  if (!live || !session.get()) return;
+  clearTimeout(syncTimer); syncTimer = setTimeout(() => { void syncNow(); }, 1500);
+}
+export async function syncNow() {
+  const mine = getLoans().filter(l => !l.id.startsWith('ex-'));
+  if (!mine.length && !state.evening) return;
+  const t = today(state.dealer.timeZone), bank = withBanking(state.cashDays ?? {}, state.money ?? []);
+  const toMatch = inbox(state.money ?? [], getLoans(), t, { ...state.matched, ...bank.deposits }, state.payers).length;
+  const flaggedDays = Object.values(bank.days).filter(d => d.date < t && ['short', 'not_banked'].includes(dayState(getLoans(), d, d.date, t))).length;
+  const r = await syncDesk({ notes: mine, evening: state.evening, facts: { on: t, toMatch, cashState: dayState(getLoans(), bank.days[t], t, t), flaggedDays } });
+  if (!r.ok) return;
+  const back = new Map(r.notes.map(n => [n.id, n]));
+  const loans = getLoans().map(l => back.has(l.id) ? mergeNote(back.get(l.id)!, l) : l);
+  set({ ...state, loans, receiptNo: Math.max(state.receiptNo ?? 1000, maxReceipt(loans)) }, true);
+}
 
 export const useStore = () => useSyncExternalStore(f => { subs.add(f); return () => subs.delete(f); }, () => state);
 export const getSale = (id: string) => state.sales.find(s => s.id === id);

@@ -27,3 +27,7 @@ database_id = "REPLACE_WITH_D1_ID"
 [[r2_buckets]]
 binding = "DEALERS"
 bucket_name = "obavia-dealers"
+
+# Hourly: buyer reminders at 10 AM and the owner's evening text, each in the dealer's time zone.
+[triggers]
+crons = ["0 * * * *"]
