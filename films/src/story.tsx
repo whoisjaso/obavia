@@ -57,7 +57,13 @@ const Line: React.FC<{ toks: Tok[]; at: number; out?: number; size?: number; per
 const Shimmer: React.FC<{ text: string; size?: number; f0?: number }> = ({ text, size = 34, f0 = 0 }) => {
   const f = useCurrentFrame();
   const p = ((f - f0) % 45) / 45;
-  return <span style={{ font: `600 ${size}px/1.2 ${F}`, letterSpacing: "-0.01em", background: `linear-gradient(90deg, rgba(200,214,252,.45) 0%, rgba(200,214,252,.45) ${p * 100 - 18}%, #fff ${p * 100}%, rgba(200,214,252,.45) ${p * 100 + 18}%, rgba(200,214,252,.45) 100%)`, WebkitBackgroundClip: "text", color: "transparent" }}>{text}</span>;
+  const mask = `linear-gradient(90deg, transparent ${p * 100 - 20}%, #000 ${p * 100}%, transparent ${p * 100 + 20}%)`;
+  return (
+    <span style={{ position: "relative", display: "inline-block", font: `600 ${size}px/1.2 ${F}`, letterSpacing: "-0.01em" }}>
+      <span style={{ color: "rgba(200,214,252,.5)" }}>{text}</span>
+      <span style={{ position: "absolute", left: 0, top: 0, color: "#fff", WebkitMaskImage: mask, maskImage: mask }}>{text}</span>
+    </span>
+  );
 };
 
 const Tick: React.FC<{ s?: number; color?: string }> = ({ s = 26, color = GOOD }) => (
@@ -72,7 +78,7 @@ const Step: React.FC<{ at: number; done: number; text: string; doneText?: string
   const d = spring({ frame: f - done, fps, config: theme.spring.bouncy });
   const isDone = f >= done;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, height: size * 1.5, opacity: Math.min(1, s), filter: `blur(${(1 - Math.min(1, s)) * 10}px)`, transform: `translateY(${(1 - s) * 14}px)` }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 14, height: size * 1.5, opacity: Math.min(1, s) ** 2, transform: `translateY(${(1 - s) * 14}px)` }}>
       <span style={{ width: size * 0.9, display: "inline-flex", justifyContent: "center", transform: `scale(${isDone ? d : 1})` }}>
         {isDone ? <Tick s={size * 0.85} /> : <Mark size={size * 0.8} style={{ filter: `drop-shadow(0 0 10px ${GLOW})` }} />}
       </span>
