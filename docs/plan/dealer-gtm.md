@@ -47,7 +47,7 @@ Their subprocessor list and product page spell out the stack. None of it is exot
 | LinkedIn and mailbox connection | Unipile |
 | SMS | Twilio |
 | Sending domains and DNS | Namecheap, Cloudflare |
-| Billing | Stripe |
+| Billing | Whop (owner's decision, October 1) |
 
 **The agent is not one big AI.** It is **eleven small jobs on timers**, each with one task:
 
@@ -203,7 +203,7 @@ The upsell path is: **Desk → Reach → website → more rooftops**.
 2. **Intake and Publish** first. They are visible from day one and prove "post once" at the pilot lot (Triple J).
 3. **One inbox and Speed to lead** next. This is where Reach earns its fee.
 4. **Follow-up, Aged inventory, Re-engage, Report.**
-5. **The meter and Stripe prepaid billing** before the second dealer.
+5. **The meter and Whop prepaid billing** before the second dealer.
 6. **Agency and group workspaces** after five paying lots.
 
 Every screen follows the Desk rule: one question per screen, big and centered, the answer is the next tap. The whole Reach setup should be three taps: pick the car, check the photos, **Post Everywhere**.

@@ -76,7 +76,7 @@ Research date: October 1, 2026, read from each company's own pages and developer
 | **REPAY** | Auto-finance specialist. Card, debit and ACH, text-to-pay, phone payments (IVR), a pay portal and autopay. Payments "automatically post back to your DMS". Has a partner program for software companies like us. | **Strong second.** We need its API docs through the partner program. |
 | **Carpay** | A customer app for buy here pay here payers. Pay by app, by texting PAY, by phone or on the web. Reminders, autopay, and "real-time" sync with the dealer's system. Says "$0 additional out-of-pocket" for the dealer. | A partner to integrate with when a dealer already uses it, not our main processor. |
 | **FrazerPay / PayMyCar** | Frazer's own processor and pay site. | Only for Frazer dealers. Shows what dealers expect: recurring payments on the due date, automatic posting and emailed receipts. |
-| **Stripe** | General processor. | **Not for notes.** Stripe lists "Loan repayments with credit cards" as **prohibited**, and "Lending services" as **restricted** (approval needed). Fine for Obavia's own subscription billing. |
+| **Stripe** | General processor. | **Not for notes.** Stripe lists "Loan repayments with credit cards" as **prohibited**, and "Lending services" as **restricted** (approval needed). Obavia's own subscription bills through **Whop** (owner's decision, October 1). |
 | **A white-label processor for software platforms (e.g. Finix)** | Lets Obavia run payments under its own brand and earn on each transaction. | **Ruled out for notes.** Finix's own list marks "non-bank lenders: … any consumer financing services" and "loan repayments on a credit card" as **prohibited** for platform sub-merchants. See §6. |
 
 **Card rules that shape the choice.**
@@ -186,8 +186,8 @@ Sources: each company's own site and docs, Finix's and Stripe's published busine
 | 2 | **REPAY** | **It runs a formal partner program** for software companies ("integrations up and running in as few as 90 days"). It covers card, debit, ACH, IVR, text pay and portals, owns Payix and integrated with Emotive in 2025. **Its API is behind the partner agreement**, so we can't build against it until we sign. |
 | — | **Carpay, BlytzPay** | **These are buyer-facing pay apps that sit on top of a dealer's system**, not processors we would build on. Carpay's own comparison page calls the DMS "the system of record" and itself "servicing and payments". To them, the Desk is that system. **Treat them as integrations or competitors, not rails.** |
 | — | **Finix and other white-label payments for software platforms** | **Ruled out.** Finix lists consumer financing and credit-card loan repayment as **prohibited** for platform sub-merchants. This is the model that would have let Obavia earn on each payment. |
-| — | **Stripe, Square, Helcim and other general processors** | **Ruled out for notes.** Stripe prohibits credit-card loan repayments and restricts lending. General processors either refuse or require special approval for consumer lending. Moov, for example, supports debit-only debt repayment. Keep Stripe for Obavia's own subscription billing. |
-| — | **Whop** | **Ruled out for notes.** Whop's own rules prohibit "debt and lending services … consumer lending that require state or federal licensing", and a buy here pay here note needs an OCCC ch. 348 licence. It is built for digital products: no cash at retail, cards at 2.7% + $0.30, ACH 1.5% (max $5). Possible for Obavia's own subscription, but Stripe already covers that. |
+| — | **Stripe, Square, Helcim and other general processors** | **Ruled out for notes.** Stripe prohibits credit-card loan repayments and restricts lending. General processors either refuse or require special approval for consumer lending. Moov, for example, supports debit-only debt repayment. Obavia's own subscription bills through Whop. |
+| — | **Whop** | **Ruled out for notes.** Whop's own rules prohibit "debt and lending services … consumer lending that require state or federal licensing", and a buy here pay here note needs an OCCC ch. 348 licence. It is built for digital products: no cash at retail, cards at 2.7% + $0.30, ACH 1.5% (max $5). **Obavia's own subscription bills through Whop** (owner's decision, October 1). On a $3,000 month, ACH costs $5 against $81.30 by card, so invoices should default to ACH. |
 | — | **Building our own** | **Not now.** It would mean money transmission questions, Nacha origination, card-network registration and fraud losses. The specialists already carry all of that. |
 
 ### The Texas fee rule that shapes the business model
@@ -204,6 +204,23 @@ What that means for us:
 - **Obavia must never pass a payment rebate or revenue share to the dealer.** That would be an "incentive".
 - **Whether Obavia itself may take a share of a buyer-paid fee is unresolved.** Until counsel clears it, **Obavia earns from the subscription, not from payments.**
 - **Default: the dealer absorbs processing.** A buyer fee is possible only as the processor's own optional fee, with cash at the counter always free. The Desk already records cash payments, so the free method exists.
+
+
+### How access to PayNearMe works (request, not self-serve)
+
+There is **no self-serve sign-up**, so we have to request it. From PayNearMe's developer docs:
+- **Sales and an NDA come first.** "Once you've signed your NDA, your Sales representative will invite you to your site's portal". API keys and the full developer docs are in that portal. The sandbox is `api.paynearme-sandbox.com`.
+- **Two roles, and Obavia needs both.**
+  1. **Triple J as a client.** It signs as a merchant and gets its own "site". Its account rep invites it to the portal.
+  2. **Obavia as a Third-Party Proxy Partner (3PPP).** This is a software company that processes payments **on behalf of** PayNearMe clients through the **Proxy Site API**. That API covers `create_payment_method`, `make_payment`, `cancel_payment`, `schedule_auto_pay`, `find_orders`, and `get_smart_token` for text pay links.
+- **3PPP steps:**
+  1. Request access through Merchant Services or Account Management.
+  2. **PayNearMe's Compliance team needs the client's written authorization** for the partner.
+  3. Obavia receives API keys.
+  4. PayNearMe enables proxy access on the client's site.
+  5. Joint testing.
+  6. The client schedules go-live.
+- **This fits the model for every future dealer.** Each one signs with PayNearMe as a client and authorizes Obavia. Obavia never holds the money, which keeps us clear of money transmission.
 
 ### What to get on the calls
 
