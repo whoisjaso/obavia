@@ -1,0 +1,208 @@
+/* Buy here pay here: the note the dealer carries, and every payment on it.
+   Money is in whole cents; dates are calendar days (YYYY-MM-DD) in the
+   dealer's time zone. Interest is simple interest on the unpaid principal,
+   counted by the day (actual/365), the way most BHPH notes are serviced.
+   Texas, Finance Code ch. 348: a late charge only after the 15th day past
+   due, at most 5% of the installment, once per installment (§348.107);
+   a written receipt for every cash payment (§348.406); a statement of
+   payments on request (§348.405). The rate ceiling is the owner's to confirm. */
+
+export type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
+export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'other';
+export type Payment = { id: string; on: string; cents: number; method: Method; receipt: number; note?: string; by?: string };
+export type Loan = {
+  id: string; saleId?: string;
+  buyer: { name: string; phone: string };
+  vehicle: string;                 // "2016 Honda Accord LX · Stock 104"
+  principalCents: number;          // amount financed
+  apr: number;                     // percent, e.g. 18
+  count: number; frequency: Frequency;
+  firstDue: string;                // YYYY-MM-DD
+  paymentCents: number;            // the installment
+  late: { graceDays: number; pct: number };
+  payments: Payment[];
+  remindersOn: boolean;
+  openedOn: string;
+};
+
+export const PER_YEAR: Record<Frequency, number> = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 };
+export const TEXAS_LATE = { graceDays: 15, pct: 5 } as const;
+export const METHOD_LABEL: Record<Method, string> = { cash: 'Cash', card: 'Card', ach: 'Bank (ACH)', check: 'Check', money_order: 'Money Order', zelle: 'Zelle', cash_app: 'Cash App', other: 'Other' };
+
+/* ---------- calendar days ---------- */
+const toUTC = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return Date.UTC(y, m - 1, dd); };
+const fromUTC = (t: number) => new Date(t).toISOString().slice(0, 10);
+export const addDays = (d: string, n: number) => fromUTC(toUTC(d) + n * 86400000);
+export const daysBetween = (a: string, b: string) => Math.round((toUTC(b) - toUTC(a)) / 86400000);
+function addMonths(d: string, n: number, day?: number) {
+  const [y, m, dd] = d.split('-').map(Number);
+  const want = day ?? dd, first = new Date(Date.UTC(y, m - 1 + n, 1));
+  const last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  return fromUTC(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(want, last)));
+}
+/** Today in the dealer's zone, as YYYY-MM-DD. */
+export const today = (tz: string, at = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(at);
+
+/* ---------- the schedule ---------- */
+export function installmentCents(principalCents: number, apr: number, count: number, f: Frequency) {
+  if (count <= 0) return 0;
+  const r = apr / 100 / PER_YEAR[f];
+  const p = r === 0 ? principalCents / count : (principalCents * r) / (1 - Math.pow(1 + r, -count));
+  return Math.round(p);
+}
+export function dueDates(firstDue: string, count: number, f: Frequency): string[] {
+  const day = Number(firstDue.slice(8));
+  return Array.from({ length: count }, (_, k) => {
+    if (f === 'weekly') return addDays(firstDue, 7 * k);
+    if (f === 'biweekly') return addDays(firstDue, 14 * k);
+    if (f === 'monthly') return addMonths(firstDue, k, day);
+    // semimonthly: the first-due day and fifteen days later, every month
+    const second = day + 15 > 28 ? day - 15 : day + 15;
+    const lowFirst = day <= 15;
+    const month = Math.floor(k / 2), isFirst = k % 2 === 0;
+    if (lowFirst) return addMonths(firstDue, month, isFirst ? day : second);
+    return addMonths(firstDue, month + (isFirst ? 0 : 1), isFirst ? day : second);
+  });
+}
+
+export function openLoan(x: { id: string; saleId?: string; buyer: Loan['buyer']; vehicle: string; principalCents: number; apr: number; count: number; frequency: Frequency; firstDue: string; openedOn: string }): Loan {
+  return { ...x, paymentCents: installmentCents(x.principalCents, x.apr, x.count, x.frequency), late: { ...TEXAS_LATE }, payments: [], remindersOn: true };
+}
+
+/* ---------- where the account stands ---------- */
+export type Installment = { n: number; due: string; cents: number; paidCents: number; paidOn?: string; lateFeeCents: number; state: 'paid' | 'paid_late' | 'partial' | 'due' | 'late' | 'upcoming' };
+export type Standing = {
+  asOf: string;
+  installments: Installment[];
+  pastDueCents: number;            // installments due by today, not yet covered
+  daysLate: number;                // since the oldest unpaid due date
+  feesOwedCents: number;           // late charges assessed and unpaid
+  principalCents: number;          // unpaid principal after the last payment
+  accruedCents: number;            // interest since the last payment
+  payoffCents: number;             // to close the note today
+  paidCents: number; interestPaidCents: number; feesPaidCents: number;
+  next?: { n: number; due: string; cents: number };
+  status: 'current' | 'due_today' | 'late' | 'paid_off';
+};
+
+const sorted = (p: Payment[]) => [...p].sort((a, b) => a.on.localeCompare(b.on) || a.receipt - b.receipt);
+
+export function standing(loan: Loan, asOf: string): Standing {
+  const dates = dueDates(loan.firstDue, loan.count, loan.frequency);
+  const pays = sorted(loan.payments).filter(p => p.on <= asOf);
+
+  // 1. Walk the payments by date: interest accrues by the day; each payment pays late charges, then interest, then principal.
+  let principal = loan.principalCents, since = loan.openedOn, interestPaid = 0, feesPaid = 0, paid = 0;
+  const feeDue: { on: string; cents: number }[] = [];   // late charges, as installments pass the 15th day unpaid
+  // Coverage of installments is measured on payments toward the installment (everything except fees).
+  const inst: Installment[] = dates.map((due, n) => ({ n: n + 1, due, cents: loan.paymentCents, paidCents: 0, lateFeeCents: 0, state: 'upcoming' }));
+  let pool = 0, k = 0;
+  const coverTo = (on: string) => { while (k < inst.length && pool >= inst[k].cents - inst[k].paidCents) { pool -= inst[k].cents - inst[k].paidCents; inst[k].paidCents = inst[k].cents; inst[k].paidOn = on; k++; } if (k < inst.length && pool > 0) { inst[k].paidCents += pool; pool = 0; } };
+  const assessFees = (upTo: string) => {
+    for (const i of inst) {
+      if (i.lateFeeCents) continue;
+      const lateDay = addDays(i.due, loan.late.graceDays + 1);           // the 16th day past due
+      const coveredBy = i.paidOn && i.paidCents >= i.cents ? i.paidOn : undefined;
+      if (lateDay <= upTo && (!coveredBy || coveredBy >= lateDay)) {
+        i.lateFeeCents = Math.round(i.cents * loan.late.pct / 100);
+        feeDue.push({ on: lateDay, cents: i.lateFeeCents });
+      }
+    }
+  };
+  let carry = 0;                                                      // interest earned but not yet paid; never compounded
+  for (const p of pays) {
+    assessFees(p.on);
+    const feesOutstanding = feeDue.reduce((t, f) => t + f.cents, 0) - feesPaid;
+    const interest = carry + Math.round(principal * (loan.apr / 100) * Math.max(0, daysBetween(since, p.on)) / 365);
+    let left = p.cents;
+    const toFees = Math.min(left, feesOutstanding); left -= toFees; feesPaid += toFees;
+    const toInterest = Math.min(left, interest); left -= toInterest; interestPaid += toInterest; carry = interest - toInterest;
+    const toPrincipal = Math.min(left, principal); left -= toPrincipal; principal -= toPrincipal;
+    since = p.on; paid += p.cents;
+    pool += p.cents - toFees; coverTo(p.on);
+  }
+  assessFees(asOf);
+  const feesOwed = feeDue.reduce((t, f) => t + f.cents, 0) - feesPaid;
+  const accrued = carry + (principal > 0 ? Math.round(principal * (loan.apr / 100) * Math.max(0, daysBetween(since, asOf)) / 365) : 0);
+
+  // 2. Label each installment.
+  for (const i of inst) {
+    const covered = i.paidCents >= i.cents;
+    if (covered) i.state = i.lateFeeCents ? 'paid_late' : 'paid';
+    else if (i.due < asOf) i.state = i.paidCents > 0 ? 'partial' : 'late';
+    else if (i.due === asOf) i.state = 'due';
+    else i.state = i.paidCents > 0 ? 'partial' : 'upcoming';
+  }
+  const dueByNow = inst.filter(i => i.due <= asOf);
+  const pastDue = dueByNow.reduce((t, i) => t + (i.cents - i.paidCents), 0);
+  const oldest = inst.find(i => i.paidCents < i.cents && i.due < asOf);
+  const nextI = inst.find(i => i.paidCents < i.cents);
+  const paidOff = principal <= 0 && feesOwed <= 0;
+  const status: Standing['status'] = paidOff ? 'paid_off' : oldest ? 'late' : nextI?.due === asOf ? 'due_today' : 'current';
+  return {
+    asOf, installments: inst, pastDueCents: pastDue, daysLate: oldest ? daysBetween(oldest.due, asOf) : 0,
+    feesOwedCents: Math.max(0, feesOwed), principalCents: Math.max(0, principal), accruedCents: accrued,
+    payoffCents: Math.max(0, principal) + accrued + Math.max(0, feesOwed),
+    paidCents: paid, interestPaidCents: interestPaid, feesPaidCents: feesPaid,
+    next: nextI && !paidOff ? { n: nextI.n, due: nextI.due, cents: nextI.cents - nextI.paidCents } : undefined,
+    status,
+  };
+}
+
+/** What to ask for at the counter: everything past due, plus late charges owed; otherwise the next installment. */
+export function amountToAsk(s: Standing) {
+  if (s.status === 'paid_off') return 0;
+  return s.pastDueCents > 0 ? s.pastDueCents + s.feesOwedCents : (s.next?.cents ?? 0) + s.feesOwedCents;
+}
+
+export function takePayment(loan: Loan, p: Omit<Payment, 'id' | 'receipt'>, receipt: number): Loan {
+  if (!(p.cents > 0)) throw new Error('A payment must be more than zero.');
+  return { ...loan, payments: [...loan.payments, { ...p, id: `p${receipt}`, receipt }] };
+}
+
+/* ---------- reminders, for the buyer and for the owner ---------- */
+export type Reminder = { on: string; kind: 'before' | 'due' | 'late' | 'late_fee'; n: number; text: string };
+const usd = (c: number) => '$' + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const day = (d: string) => new Date(toUTC(d)).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' });
+
+/** The texts a buyer will get for the next unpaid installment: four at most, then once a week while it's still late. */
+export function reminderPlan(loan: Loan, s: Standing, dealerName: string): Reminder[] {
+  if (!loan.remindersOn || !s.next || s.status === 'paid_off') return [];
+  const i = s.installments[s.next.n - 1], first = loan.buyer.name.split(' ')[0];
+  const owed = i.cents - i.paidCents;
+  const plan: Reminder[] = [
+    { on: addDays(i.due, -3), kind: 'before', n: i.n, text: `Hi ${first}, a reminder from ${dealerName}: your payment of ${usd(owed)} is due ${day(i.due)}.` },
+    { on: i.due, kind: 'due', n: i.n, text: `Hi ${first}, your ${dealerName} payment of ${usd(owed)} is due today.` },
+    { on: addDays(i.due, 3), kind: 'late', n: i.n, text: `Hi ${first}, we haven’t received your ${usd(owed)} payment due ${day(i.due)}. Reply or call us if you need help.` },
+    { on: addDays(i.due, loan.late.graceDays - 2), kind: 'late_fee', n: i.n, text: `Hi ${first}, your ${usd(owed)} payment is now ${loan.late.graceDays - 2} days late. A late charge of ${usd(Math.round(i.cents * loan.late.pct / 100))} applies if it isn’t paid by ${day(addDays(i.due, loan.late.graceDays))}.` },
+  ];
+  const ahead = plan.filter(r => r.on >= s.asOf);
+  if (ahead.length || s.status !== 'late') return ahead;
+  // Still late after every step above: one plain text a week, on the same weekday it fell due, until it's caught up.
+  const sinceDue = daysBetween(i.due, s.asOf), on = addDays(s.asOf, (7 - (sinceDue % 7)) % 7);
+  return [{ on, kind: 'late', n: i.n, text: `Hi ${first}, your ${dealerName} account is ${usd(s.pastDueCents + s.feesOwedCents)} past due. Reply or call us and we’ll work it out with you.` }];
+}
+
+export function receiptText(loan: Loan, p: Payment, after: Standing, dealerName: string) {
+  const next = after.next ? ` Next payment ${usd(after.next.cents)} due ${day(after.next.due)}.` : ' Paid in full. Thank you.';
+  return `${dealerName} receipt #${p.receipt}: received ${usd(p.cents)} by ${METHOD_LABEL[p.method].toLowerCase()} on ${day(p.on)} for the ${loan.vehicle.split(' · ')[0]}. Balance ${usd(after.payoffCents)}.${next}`;
+}
+
+export type Digest = { dueToday: { loan: Loan; cents: number }[]; late: { loan: Loan; cents: number; days: number }[]; collectedCents: number; collectedCount: number };
+export function digest(loans: Loan[], asOf: string): Digest {
+  const d: Digest = { dueToday: [], late: [], collectedCents: 0, collectedCount: 0 };
+  for (const l of loans) {
+    const s = standing(l, asOf);
+    if (s.status === 'late') d.late.push({ loan: l, cents: s.pastDueCents + s.feesOwedCents, days: s.daysLate });
+    else if (s.status === 'due_today') d.dueToday.push({ loan: l, cents: s.next!.cents });
+    for (const p of l.payments) if (p.on === asOf) { d.collectedCents += p.cents; d.collectedCount++; }
+  }
+  d.late.sort((a, b) => b.days - a.days);
+  return d;
+}
+/** The owner's morning text. */
+export function ownerText(d: Digest, dealerName: string) {
+  const sum = (xs: { cents: number }[]) => usd(xs.reduce((t, x) => t + x.cents, 0));
+  return `${dealerName} today: ${d.dueToday.length} due (${sum(d.dueToday)}), ${d.late.length} late (${sum(d.late)}). Collected so far: ${usd(d.collectedCents)}.`;
+}
+export { usd as money };

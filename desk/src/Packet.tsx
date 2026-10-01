@@ -4,8 +4,8 @@ import { useRef, useState } from 'react';
 import { DOC_MEANS, DOC_TITLE } from './lib/documents';
 import type { DocType } from './lib/plan';
 import { owedDocuments, signedCount } from './lib/sale';
-import { Sheet } from './Sheet';
-import { completeSale, fileDocument, getSale, useStore } from './store';
+import { Sheet, saleReceipt } from './Sheet';
+import { completeSale, fileDocument, getSale, openNoteForSale, useStore } from './store';
 import { Back, Ic, Pad, feel, go } from './ui';
 
 export function Packet({ id }: { id: string }) {
@@ -37,7 +37,7 @@ export function Packet({ id }: { id: string }) {
       <div className="dock"><div className="in">
         {signable.length > 0 && allFiled
           ? <button className="btn primary block" onClick={() => { feel.next(); go(`/sign/${id}`); }}><Ic n="pen" s={20} />Sign The Packet</button>
-          : s.status !== 'completed' && <button className="btn primary block" disabled={!allFiled} onClick={() => { feel.done(); completeSale(id); go('/'); }}>Complete Sale</button>}
+          : s.status !== 'completed' && <button className="btn primary block" disabled={!allFiled} onClick={() => { feel.done(); openNoteForSale(id, saleReceipt(s, dealer).total); completeSale(id); go('/'); }}>Complete Sale</button>}
         <button className="textlink" onClick={() => print()}>Print Everything</button>
       </div></div>
     </main>
