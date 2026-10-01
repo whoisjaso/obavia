@@ -17,11 +17,13 @@ import type { Attempt, OnFile } from './lib/autopay';
 import { conditionFromSale, type ServiceEntry } from './lib/condition';
 import { PER_YEAR } from './lib/paperwork';
 import { parseMoney } from './lib/money';
+import { idleTooLong, type Staff } from './lib/staff';
 
 type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[];
   money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay>;
   autoPost?: boolean; autoPosted?: AutoPosted[]; noAuto?: string[];
-  evening?: { on: boolean; hour: number } };
+  evening?: { on: boolean; hour: number };
+  staff?: Staff[]; at?: string };   // at: who is signed in at the desk
 export type AutoPosted = { moneyId: string; loanId: string; receipt: number; on: string; addedPayer?: string };
 const KEY = 'obavia.desk.v1';
 
@@ -156,14 +158,14 @@ export const getLoans = () => state.loans ?? [];
 /** Record a payment and hand back its receipt number. */
 export function recordPayment(loanId: string, cents: number, method: Method, on: string): number {
   const receipt = (state.receiptNo ?? 1000) + 1;
-  set({ ...state, receiptNo: receipt, loans: getLoans().map(l => (l.id === loanId ? takePayment(l, { on, cents, method }, receipt) : l)) });
+  set({ ...state, receiptNo: receipt, loans: getLoans().map(l => (l.id === loanId ? takePayment(l, { on, cents, method, by: state.at }, receipt) : l)) });
   return receipt;
 }
 /* ---------- money from outside the processor ---------- */
 /** The dealer confirms whose payment this is: it posts to that note, and the sender is remembered for next time. */
 export function matchMoney(m: Money, loanId: string): number {
   const receipt = (state.receiptNo ?? 1000) + 1;
-  const loans = getLoans().map(l => (l.id === loanId ? takePayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id }, receipt) : l));
+  const loans = getLoans().map(l => (l.id === loanId ? takePayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id, by: state.at }, receipt) : l));
   const payers = m.from ? { ...state.payers, [normName(m.from)]: loanId } : state.payers;
   set({ ...state, receiptNo: receipt, loans, payers, matched: { ...state.matched, [m.id]: { loanId, receipt } } });
   return receipt;
@@ -185,7 +187,7 @@ export function setPayday(loanId: string, payday: number) {
 }
 /** Close the cash day with what's in the drawer. Counting again replaces the count. */
 export function closeCashDay(date: string, countedCents: number) {
-  set({ ...state, cashDays: { ...state.cashDays, [date]: { date, countedCents, closedAt: new Date().toISOString() } } });
+  set({ ...state, cashDays: { ...state.cashDays, [date]: { date, countedCents, closedAt: new Date().toISOString(), countedBy: state.at } } });
 }
 /** Posts every sure match without asking, and keeps what's needed to undo it. */
 export function runAutoPost(candidates: Suggestion[]) {
@@ -231,6 +233,33 @@ export function openNoteForSale(id: string, total: number) {
   const s = getSale(id); if (!s || getLoans().some(l => l.saleId === id)) return;
   const l = loanFromSale(s, total); if (l) set({ ...state, loans: [l, ...getLoans()] });
 }
+/* ---------- who is at the desk ---------- */
+const ACTIVE = 'obavia.desk.active';
+let lastActive = (() => { try { return Number(localStorage.getItem(ACTIVE)) || 0; } catch { return 0; } })();
+/** Called on every tap; written down at most every 15 seconds. */
+export function touchDesk(now = Date.now()) {
+  if (now - lastActive < 15_000) return;
+  lastActive = now; try { localStorage.setItem(ACTIVE, String(now)); } catch { /* ignore */ }
+}
+export const me = () => state.staff?.find(s => s.id === state.at);
+/** Locked: people have been added, and nobody is signed in or the screen sat idle too long. */
+export const deskLocked = (now = Date.now()) => !!state.staff?.length && (!me() || idleTooLong(lastActive, now));
+export function signIn(id: string) { lastActive = 0; touchDesk(); set({ ...state, at: id }); }
+export function lockDesk() { set({ ...state, at: undefined }); }
+/** The first person added is signed in, so the owner isn't locked out of what they just set up. */
+export function addStaff(s: Staff) {
+  const first = !state.staff?.length;
+  set({ ...state, staff: [...(state.staff ?? []), s], at: first ? s.id : state.at });
+  if (first) { lastActive = 0; touchDesk(); }
+}
+/** Never removes the last owner. Their name stays on what they did. */
+export function removeStaff(id: string) {
+  const rest = (state.staff ?? []).filter(s => s.id !== id);
+  if (state.staff?.some(s => s.role === 'owner') && !rest.some(s => s.role === 'owner')) return false;
+  set({ ...state, staff: rest, at: state.at === id ? undefined : state.at });
+  return true;
+}
+
 /** Reach: channels the dealer wants switched on when they're ready. */
 export function toggleReachWanted(id: string) {
   const w = new Set(state.reachWanted ?? []); w.has(id) ? w.delete(id) : w.add(id);

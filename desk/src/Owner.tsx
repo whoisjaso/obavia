@@ -6,8 +6,9 @@ import { evening, hourLabel } from './lib/evening';
 import { METHOD_LABEL, daysBetween, money, today } from './lib/loans';
 import { autoPostable, inbox, read } from './lib/match';
 import { nice } from './Payments';
-import { runAutoPost, setAutoPost, setEvening, undoAutoPost, useStore } from './store';
-import { Back, Ic, feel } from './ui';
+import { me, runAutoPost, setAutoPost, setEvening, undoAutoPost, useStore } from './store';
+import { can } from './lib/staff';
+import { Back, Ic, feel, go } from './ui';
 
 export const UNDO_DAYS = 2;
 
@@ -33,26 +34,27 @@ export function useEvening() {
 export function Posted() {
   const { dealer, loans = [], money: all = [], autoPosted = [], autoPost } = useStore();
   const t = today(dealer.timeZone);
+  const owner = can(me(), 'undo');
   const rows = [...autoPosted].reverse().map(a => ({ a, l: loans.find(x => x.id === a.loanId), m: (x => x && read(x))(all.find(x => x.id === a.moneyId)) }));
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/payments" label="Payments" /></div>
       <section className="enter" key="posted">
         <h1 className="q">Posted For You.</h1>
-        <p className="note">Sure matches post on their own. Undo any for {UNDO_DAYS} days.</p>
+        <p className="note">Sure matches post on their own.{owner ? ` Undo any for ${UNDO_DAYS} days.` : ''}</p>
         <div className="list-plain stack">
           {rows.map(({ a, l, m }) => <div key={a.moneyId}>
             <b>{l?.buyer.name ?? 'A note'} · {money(m?.cents ?? 0)}</b>
             <span>{METHOD_LABEL[m?.rail ?? 'other']}{m?.from ? ` from ${m.from.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}` : ''} · {nice(a.on)} · receipt #{a.receipt}</span>
-            {daysBetween(a.on, t) <= UNDO_DAYS && <small><button className="textlink undo" onClick={() => { feel.tap(); undoAutoPost(a.moneyId); }}>Undo</button></small>}
+            {owner && daysBetween(a.on, t) <= UNDO_DAYS && <small><button className="textlink undo" onClick={() => { feel.tap(); undoAutoPost(a.moneyId); }}>Undo</button></small>}
           </div>)}
         </div>
         {!rows.length && <p className="note">Nothing yet.</p>}
-        <div className="choices">
+        {owner && <div className="choices">
           <button className="choice" aria-pressed={!!autoPost} onClick={() => { feel.tap(); setAutoPost(!autoPost); }}>
             <span className="t"><b>Post Sure Ones For Me</b></span><span className="tick">{autoPost && <Ic n="check" s={15} w={3} />}</span>
           </button>
-        </div>
+        </div>}
       </section>
     </main>
   );
@@ -61,6 +63,7 @@ export function Posted() {
 export function EveningText() {
   const { evening: e = { on: false, hour: 19 } } = useStore();
   const ev = useEvening();
+  if (!can(me(), 'settings')) { go('/payments'); return null; }
   const set = (x: Partial<typeof e>) => { feel.tap(); setEvening({ ...e, ...x }); };
   return (
     <main className="wrap center">

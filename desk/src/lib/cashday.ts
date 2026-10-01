@@ -11,7 +11,7 @@ import type { Money } from './match';
 export const BANK_WITHIN = 3;          // days after close before an unbanked day is flagged
 const MATCH_WINDOW = 10;               // how far after a cash day its deposit may arrive
 
-export type CashDay = { date: string; countedCents: number; closedAt: string; bankedBy?: string; bankedOn?: string };
+export type CashDay = { date: string; countedCents: number; closedAt: string; countedBy?: string; bankedBy?: string; bankedOn?: string };
 export type DayState = 'open' | 'counted' | 'short' | 'over' | 'banked' | 'not_banked';
 
 /** Counter cash only: paid in cash, taken at the desk (not cash at a 7-Eleven through the processor). */

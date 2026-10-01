@@ -5,7 +5,8 @@ import { cashOn, dayState, expected, withBanking, type DayState } from './lib/ca
 import { money, paymentTexts, standing, today } from './lib/loans';
 import { parseMoney } from './lib/money';
 import { first, nice, plural } from './Payments';
-import { closeCashDay, recordPayment, useStore } from './store';
+import { closeCashDay, me, recordPayment, useStore } from './store';
+import { can, cashBy } from './lib/staff';
 import { Back, Ic, feel, go, transition } from './ui';
 
 /* ---------- Took cash? ---------- */
@@ -61,7 +62,8 @@ const WORD: Record<DayState, string> = { open: 'Open', counted: 'Waiting for the
 const TONE: Record<DayState, string> = { open: '', counted: 'warn', short: 'bad', over: 'warn', banked: 'good', not_banked: 'bad' };
 
 export function CloseDay() {
-  const { dealer, loans = [], cashDays = {}, money: incoming = [] } = useStore();
+  const { dealer, loans = [], cashDays = {}, money: incoming = [], staff = [] } = useStore();
+  const name = (id?: string) => staff.find(s => s.id === id)?.name.split(' ')[0];
   const t = today(dealer.timeZone);
   const days = withBanking(cashDays, incoming).days;
   const c = cashOn(loans, t), d = days[t], state = dayState(loans, d, t, t);
@@ -90,7 +92,7 @@ export function CloseDay() {
         {!d ? <>
           <p className="big-amount num">{money(c.cents)}</p>
           <h1 className="q">{c.cents ? 'Cash Today.' : 'No Cash Today.'}</h1>
-          {c.items.length > 0 && <div className="list-plain">{c.items.map(x => <div key={x.p.id}><b className="num">{money(x.p.cents)}</b><span>{x.loan.buyer.name}</span><small className="num">#{x.p.receipt}</small></div>)}</div>}
+          {c.items.length > 0 && <div className="list-plain">{c.items.map(x => <div key={x.p.id}><b className="num">{money(x.p.cents)}</b><span>{x.loan.buyer.name}</span><small className="num">{staff.length && name(x.p.by) ? `${name(x.p.by)} · ` : ''}#{x.p.receipt}</small></div>)}</div>}
           {c.cents > 0 && <div className="dock"><div className="in">
             <button className="btn primary block" onClick={() => { feel.done(); closeCashDay(t, c.cents); }}>Counted, It’s {money(c.cents)}</button>
             <button className="textlink" onClick={() => { feel.tap(); to(() => setCounting(true)); }}>It’s Different</button>
@@ -99,7 +101,9 @@ export function CloseDay() {
           <span className={`done-mark pop ${state === 'short' ? 'bad' : ''}`}>{state === 'short' ? <b className="bang">!</b> : <Ic n="check" s={38} w={3} />}</span>
           <h1 className="q">{state === 'short' ? `Short ${money(-diff)}.` : state === 'over' ? `Over ${money(diff)}.` : 'Closed.'}</h1>
           <p className="note">{state === 'banked' ? `Banked ${nice(d.bankedOn!)}` : diff ? `${money(d.countedCents)} counted · ${money(c.cents)} recorded` : `${money(d.countedCents)} counted. We’ll match it when it’s banked.`}</p>
-          <button className="textlink" onClick={() => { feel.tap(); setAmt((d.countedCents / 100).toFixed(2)); to(() => setCounting(true)); }}>Count Again</button>
+          {state === 'short' && staff.length > 0 && <div className="list-plain">{cashBy(c.items.map(x => x.p), staff).map(x => <div key={x.id}><b>{x.name}</b><span className="num">took {money(x.cents)}</span></div>)}</div>}
+          {d.countedBy && staff.length > 0 && <p className="note">Counted by {name(d.countedBy) ?? 'someone removed'}</p>}
+          {can(me(), 'recount') && <button className="textlink" onClick={() => { feel.tap(); setAmt((d.countedCents / 100).toFixed(2)); to(() => setCounting(true)); }}>Count Again</button>}
         </>}
         {earlier.length > 0 && <>
           <h2 className="sub">Earlier</h2>

@@ -8,7 +8,8 @@ import { useMoney } from './Owner';
 import { cashOn, dayState, expected } from './lib/cashday';
 import { WEEKDAY, signal } from './lib/autopay';
 import { methodText } from './Autopay';
-import { getLoans, recordPayment, setReminders, useStore } from './store';
+import { getLoans, me, recordPayment, setReminders, useStore } from './store';
+import { can } from './lib/staff';
 import { Back, Ic, feel, go, transition } from './ui';
 
 export const nice = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...opts });
@@ -72,7 +73,7 @@ export function Payments() {
         {needs.length > 0 && <div className="choices">
           <Go to="/payments/needs" tone={needs.some(x => x.tone === 'late') ? 'late' : 'warn'} label={`${needs.length} ${needs.length === 1 ? 'Thing Needs' : 'Things Need'} You`} gloss={needs.map(x => x.label).join(' · ')} />
         </div>}
-        <p className="links"><a href="#/payments/list/all" onClick={feel.tap}>Every Account</a><a href="#/payments/close" onClick={feel.tap}>Close The Day</a><a href="#/payments/evening" onClick={feel.tap}>Tonight’s Text</a></p>
+        <p className="links"><a href="#/payments/list/all" onClick={feel.tap}>Every Account</a><a href="#/payments/close" onClick={feel.tap}>Close The Day</a>{can(me(), 'settings') && <a href="#/payments/evening" onClick={feel.tap}>Tonight’s Text</a>}<a href="#/people" onClick={feel.tap}>People</a></p>
         {example && <span className="example">Example data</span>}
       </section>
     </main>

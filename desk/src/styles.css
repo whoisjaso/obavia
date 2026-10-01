@@ -560,3 +560,19 @@ section:has(> .q2) > h1.q{display:none}
 .textlink.undo{display:inline;margin:0;padding:6px 0;font-size:15px}
 .links{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px;margin:26px auto 0}
 .links a{font:650 15px/1 var(--sans);color:var(--accent);padding:8px 2px}
+/* who is at the desk: name chip, faces, PIN dots and the round keypad */
+.top a.who{color:var(--ink)}
+.top .whoname{font:700 15px/1 var(--sans);color:var(--muted)}
+.face{display:grid;place-items:center;border-radius:50%;background:var(--accent-bg);color:var(--accent);font:800 18px/1 var(--sans)}
+.choice .art.face{width:44px;height:44px}
+.face.big{align-self:center;width:84px;height:84px;font-size:34px;margin-bottom:18px;box-shadow:0 18px 40px -20px rgba(40,70,140,.55);animation:pop .5s var(--spring)}
+.pin{display:flex;justify-content:center;gap:18px;margin:26px auto 30px}
+.pin i{width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--accent);transition:background .2s var(--ease),transform .3s var(--spring)}
+.pin i.on{background:var(--accent);transform:scale(1.08)}
+.pin.shake{animation:shake .42s var(--ease)}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,76px);gap:16px 26px;justify-content:center;margin:0 auto}
+.keypad button{width:76px;height:76px;border-radius:50%;background:var(--panel);box-shadow:0 0 0 1px var(--line),0 10px 24px -18px rgba(28,36,54,.4);font:600 30px/1 var(--sans);color:var(--ink);font-variant-numeric:tabular-nums;transition:transform .2s var(--spring),background .2s var(--ease)}
+.keypad button:active{transform:scale(.92);background:var(--accent-bg)}
+.keypad button.del{background:none;box-shadow:none;font-size:24px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.pin.shake,.face.big{animation:none}}

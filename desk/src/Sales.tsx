@@ -4,18 +4,19 @@ import { usd } from './lib/money';
 import type { TitleStatus } from './lib/plan';
 import { signedCount, type Buyer, type Sale, type Vehicle } from './lib/sale';
 import { checkDigitOk, decodeVin, isValidVin } from './lib/vin';
-import { addVehicle, startSale, useStore } from './store';
+import { addVehicle, me, startSale, useStore } from './store';
 import { Back, CarArt, Chev, Choice, Ic, feel, go, transition } from './ui';
 
 
 /* ---------- /  : open sales, one primary action ---------- */
 export function Sales() {
   const { dealer, sales, example } = useStore();
+  const who = me();
   const open = sales.filter(s => s.status === 'in_progress');
   return (
     <main className="wrap center">
       <div className="top">
-        <span className="who"><span className="lgmini" style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: dealer.brand.accent, color: '#fff', font: '800 12px/1 var(--sans)', overflow: 'hidden' }}>{dealer.brand.logo ? <img src={dealer.brand.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#fff' }} /> : dealer.brand.monogram}</span></span>
+        <a className="who" href="#/people" onClick={feel.tap} aria-label="People at the desk"><span className="lgmini" style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: dealer.brand.accent, color: '#fff', font: '800 12px/1 var(--sans)', overflow: 'hidden' }}>{dealer.brand.logo ? <img src={dealer.brand.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#fff' }} /> : dealer.brand.monogram}</span>{who && <span className="whoname">{who.name.split(' ')[0]}</span>}</a>
         <span style={{ display: 'flex', gap: 18 }}><a className="link" href="#/payments" onClick={feel.tap}>Payments</a><a className="link" href="#/reach" onClick={feel.tap}>Reach</a><a className="link" href="#/past" onClick={feel.tap}>Past</a></span>
       </div>
       <section className="enter" key="home">

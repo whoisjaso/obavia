@@ -10,17 +10,27 @@ import { AutopaySetup, History } from './Autopay';
 import { ConditionPage } from './Condition';
 import { EveningText, Posted } from './Owner';
 import { Channel, MarketplaceConsent, Reach, ReachGroup } from './Reach';
+import { AddPerson, Lock, People } from './People';
 import type { DocType } from './lib/plan';
-import { getSale, useStore } from './store';
+import { useEffect, useState } from 'react';
+import { deskLocked, getSale, touchDesk, useStore } from './store';
 import { useHash } from './ui';
 
 export function App() {
   const { onboarded } = useStore();
   const h = useHash();
+  const [, tick] = useState(0);
+  useEffect(() => {   // every tap keeps the desk awake; a minute's check locks it once it sits idle
+    const awake = () => touchDesk(), i = setInterval(() => tick(n => n + 1), 60_000);
+    addEventListener('pointerdown', awake); addEventListener('keydown', awake);
+    return () => { clearInterval(i); removeEventListener('pointerdown', awake); removeEventListener('keydown', awake); };
+  }, []);
   if (!onboarded) return <Onboarding />;
+  if (deskLocked()) return <Lock />;
   const [, a, id, b, c, d] = h.split('/');
   if (a === 'new') return <Start />;
   if (a === 'past') return <Past />;
+  if (a === 'people') return id === 'add' ? <AddPerson /> : <People />;
   if (a === 'reach') return id === 'marketplace' ? <MarketplaceConsent /> : id === 'g' && b ? <ReachGroup key={b} group={b as 'phone'} /> : id ? <Channel id={id} /> : <Reach />;
   if (a === 'payments') {
     if (id === 'cash' && b) return <CashTaken key={b} id={b} />;

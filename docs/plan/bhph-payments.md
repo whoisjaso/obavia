@@ -431,3 +431,24 @@ Facebook ended dealer vehicle listings on Marketplace from Pages and feeds on **
 | Your website | Built by Obavia from the Desk | Part of Reach |
 
 The Desk's Reach screen lists all of these with each company's own logo. A dealer taps "I Want This" for the channels they want; that choice is recorded, and nothing is posted yet. Logo sources: our existing set; Simple Icons (CC0) for Instagram, TikTok, Google and YouTube; offerup.com's own SVG; and the public-domain Craigslist wordmark from Wikimedia Commons.
+
+## 13. Who is at the desk
+
+Counter cash is the one payment with no outside signal, so the Desk needs to know who took it. Each person at the desk now signs in with their own PIN on the shared device.
+
+- **Setup:** the owner opens People (the logo on the Sales screen, or the People link on Payments) and starts with themselves, then adds each person: their name, what they can do, then a four-digit PIN typed twice. Easy PINs (`1111`, `1234`) are refused.
+- **Signing in:** "Who's At The Desk?" shows a big name for each person, then a round keypad. With one person, the keypad shows straight away.
+- **Lock:** the screen locks after 10 idle minutes, or from Lock The Desk or Switch Person. After 5 wrong tries, the next try waits 30 seconds.
+- **What carries a name:**
+  - every cash payment and every confirmed match;
+  - the drawer count.
+  - On a short day, Close The Day shows how much each person took and who counted.
+- **Desk role:** sales and payments only. These stay with owners:
+  - adding or removing people;
+  - Tonight's Text;
+  - the auto-post switch;
+  - undoing an automatic post;
+  - recounting a closed drawer.
+- **Nobody added:** no lock at all. The owner is the only user, as before.
+- **Storage:** the PIN is salted and hashed (SHA-256) on the device; the plain PIN is never stored. It is a screen lock that names the person. The device sign-in to the dealership is still the 30-day session from verification.
+- **Not built yet:** the staff list is kept on the device and is not synced, so each device sets up its own people. Syncing it, and per-person sign-in on the server, comes with multi-device use.
