@@ -126,7 +126,7 @@ Every payment has a status. The ledger counts a payment while it is cleared or c
 
 | Event | Buyer gets | Dealership gets |
 |---|---|---|
-| Payment received | "Triple J Auto: we received your $126.28 payment (receipt #1001). Balance $5,889.43. Next payment $126.28 due Friday, October 16." | "Payment in: $126.28 from Maria Example, 2016 Honda Accord LX. Balance $5,889.43." |
+| Payment received | "Triple J Auto: we received your $126.28 payment (receipt #1001). Balance $5,894.43. Next payment $126.28 due Friday, October 16." | "Payment in: $126.28 from Maria Example, 2016 Honda Accord LX. Balance $5,894.43." |
 | Bank payment started | "…your $126.28 bank payment is on its way and usually clears in 3 to 4 business days…" | "Bank payment started: … Clearing." |
 | Bank payment returned | "…came back from your bank (insufficient funds). Please call us or reply to pay another way." | "Payment returned: … Their account is $X past due." |
 | Card declined | "…didn't go through. Please try another card or reply and we'll help." | "Payment declined: …" |
