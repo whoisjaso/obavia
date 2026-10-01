@@ -18,6 +18,7 @@ import { conditionFromSale, type ServiceEntry } from './lib/condition';
 import { PER_YEAR } from './lib/paperwork';
 import { parseMoney } from './lib/money';
 import { idleTooLong, type Staff } from './lib/staff';
+import { promiseState, type PayPromise } from './lib/promise';
 
 type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[];
   money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay>;
@@ -236,6 +237,25 @@ export function openNoteForSale(id: string, total: number) {
   const s = getSale(id); if (!s || getLoans().some(l => l.saleId === id)) return;
   const l = loanFromSale(s, total); if (l) set({ ...state, loans: [l, ...getLoans()] });
 }
+/* ---------- promise to pay ---------- */
+/** A new promise replaces any still open: the latest word is the one that counts. Earlier ones stay on record. */
+export function addPromise(loanId: string, p: Omit<PayPromise, 'id' | 'by'>) {
+  const id = 'pp' + Date.now().toString(36);
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, promises: [...(l.promises ?? []).filter(x => !['waiting', 'today'].includes(promiseState(l, x, p.made))), { ...p, id, by: state.at }] }) });
+}
+export function removePromise(loanId: string, id: string) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, promises: (l.promises ?? []).filter(x => x.id !== id) }) });
+}
+/* ---------- coming from Frazer ---------- */
+/** Adds the notes and cars that aren't here yet. Returns how many came in. */
+export function importNotes(loans: Loan[], cars: Vehicle[]) {
+  const haveL = new Set(getLoans().map(l => l.id)), haveC = new Set(state.lot.map(v => v.id));
+  const nl = loans.filter(l => !haveL.has(l.id)), nc = cars.filter(c => !haveC.has(c.id));
+  const top = Math.max(state.receiptNo ?? 1000, ...nl.flatMap(l => l.payments.map(p => p.receipt < 900000 ? p.receipt : 0)));
+  set({ ...state, loans: [...nl, ...getLoans()], lot: [...nc, ...state.lot], receiptNo: top });
+  return { notes: nl.length, cars: nc.length };
+}
+
 /* ---------- who is at the desk ---------- */
 const ACTIVE = 'obavia.desk.active';
 let lastActive = (() => { try { return Number(localStorage.getItem(ACTIVE)) || 0; } catch { return 0; } })();

@@ -477,3 +477,33 @@ Each note now records the buyer's language (`Loan.language`). It comes from the 
 - Counsel confirms what Texas requires when a credit sale is negotiated in Spanish.
 - The FTC Used Car Rule already requires the Spanish Buyers Guide when a sale is conducted in Spanish.
 - The marketing opt-out footer and the 10DLC campaign keyword list are still English only; they change when Reach marketing is built.
+
+## 15. Promise to pay
+
+"I can't make Friday, I'll be in Monday with $250": two taps on the account, under **They Promised A Day**.
+1. **When:** today, tomorrow, the next Friday or Monday, their payday if autopay knows it, or any date.
+2. **How much:** everything they're behind, one payment, or another amount.
+
+While the promise stands:
+- the due and late texts wait, and the buyer gets one reminder the morning it's due, in their language;
+- the late-charge notice still goes out;
+- someone promised for a later day leaves Expected Today, and someone promised today comes first, marked "Promised $X today".
+
+A promise is kept by money paid between the day it was made and the day promised. If it passes unpaid, or only partly paid:
+- it goes to the top of **Needs You** as **Broke A Promise**, and into that night's evening text;
+- one broken promise in 60 days shows amber;
+- two show red, read like won't-pay.
+
+A new promise replaces the one still open; earlier ones stay in History. This mirrors Frazer's promise date, which collectors use instead of the due date.
+
+## 16. Coming from Frazer
+
+Frazer's Export Data (Miscellaneous, then 8 Export Data) writes a .csv or tab-separated .txt from 250+ fields, with column headers if the dealer ticks **Include Column Headers**. The Desk's import (**Coming From Frazer?** on Payments, or `#/import`) reads it.
+
+- **Reading:** every column is read by meaning (`desk/src/lib/importer.ts` lists the names each field may carry). A field we can't place is asked once, as "Which column is the interest rate?", with the file's own sample values beside each column.
+- **Two ways in:**
+  - **From the sale:** an accounts file with amount financed, rate, term, schedule and first due date, plus a payments file. The note is rebuilt payment by payment. If the export carries Frazer's current balance, every note is checked against it: "matches Frazer to the penny" or "$14.50 apart, look at it".
+  - **From today's balance:** only balance, rate, payment, schedule and next due. The note is carried over from today and marked that way.
+- **Inventory:** an inventory file (VIN, year, make, model, price) adds cars to the lot.
+- **Nothing is lost silently:** accounts that can't come over are listed with the reason. An account already in the Desk is never brought in twice. Imported payments keep Frazer's receipt numbers.
+- **Before the first real move:** Frazer's exact header names aren't published. Run the import on one real Triple J export and add any header it asks about to the importer. A balance that is off usually means a fee or adjustment Frazer holds separately; the review lists each one before anything is brought in.

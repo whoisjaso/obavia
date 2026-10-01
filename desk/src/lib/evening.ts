@@ -4,6 +4,8 @@
 import { cashOn, type DayState } from './cashday';
 import { counts, money, type Loan } from './loans';
 import { signal } from './autopay';
+import { promiseState } from './promise';
+import { addDays } from './loans';
 
 export type EveningFacts = {
   dealerName: string; date: string; loans: Loan[];
@@ -32,6 +34,11 @@ export function evening(f: EveningFacts): Evening {
     const s = signal(l, f.date), fresh = (l.attempts ?? []).some(a => a.on === f.date) || (l.autopay?.history ?? []).some(h => h.on === f.date && h.event !== 'added');
     if (s.tone === 'red' && fresh) needs.push(`${first(l.buyer.name)}: ${s.headline.toLowerCase()}`);
     else if (s.tone === 'amber' && fresh) needs.push(`${first(l.buyer.name)}: ${s.headline.split(' · ')[0].toLowerCase()}`);
+  }
+  // a promise that passed yesterday without the money: news tonight
+  for (const l of f.loans) if ((l.promises ?? []).some(p => p.on === addDays(f.date, -1) && ['broken', 'partly'].includes(promiseState(l, p, f.date)))) {
+    const n = `${first(l.buyer.name)}: broke a promise`;
+    if (!needs.some(x => x.startsWith(first(l.buyer.name) + ':'))) needs.unshift(n);
   }
   if (f.toMatch) needs.push(`${plural(f.toMatch, 'payment')} to match`);
   const cashToday = cashOn(f.loans, f.date).cents;

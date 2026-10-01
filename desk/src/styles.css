@@ -576,3 +576,8 @@ section:has(> .q2) > h1.q{display:none}
 .keypad button:active{transform:scale(.92);background:var(--accent-bg)}
 .keypad button.del{background:none;box-shadow:none;font-size:24px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.pin.shake,.face.big{animation:none}}
+/* coming from Frazer */
+.steps-plain{max-width:520px;margin:22px auto 0;padding-left:1.4em;text-align:left;display:grid;gap:12px;font:500 17px/1.45 var(--sans);color:var(--muted)}
+.steps-plain b{color:var(--ink);font-weight:700}
+.file-btn{position:relative;overflow:hidden;cursor:pointer;display:grid;place-items:center}
+.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}

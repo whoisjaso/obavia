@@ -13,6 +13,7 @@
      never for codes the card networks say will never be approved. */
 
 import { addDays, daysBetween, type Lang, type Loan } from './loans';
+import { brokenPromises } from './promise';
 
 export type Funding = 'debit' | 'credit' | 'prepaid' | 'unknown';
 export type OnFile =
@@ -126,8 +127,11 @@ export function signal(l: LoanX, asOf: string): Signal {
   if (wont) return { tone: 'red', headline: read(wont).label, detail: `On purpose · ${wont.on}` };
   const removed = l.autopay?.history.filter(h => daysBetween(h.on, asOf) <= 60).find(h => h.event === 'removed' || h.event === 'turned_off');
   if (removed && !l.autopay?.on) return { tone: 'red', headline: 'Took their card off autopay', detail: removed.on };
+  const broken = brokenPromises(l, asOf);
+  if (broken.length >= 2) return { tone: 'red', headline: `Broke ${broken.length} promises`, detail: broken[0].on };
   const cant = recent(30).filter(a => read(a).reading === 'cant');
   if (cant.length) return { tone: 'amber', headline: cant.length > 1 ? `Short on money · ${cant.length} declines` : 'Short on money', detail: cant[0].on };
+  if (broken.length) return { tone: 'amber', headline: 'Broke a promise', detail: broken[0].on };
   const fix = recent(30).find(a => read(a).reading === 'fix' || read(a).reading === 'unclear');
   if (fix) return { tone: 'amber', headline: read(fix).label, detail: fix.on };
   return l.autopay?.on ? { tone: 'good', headline: 'Autopay on' } : { tone: 'none', headline: 'No autopay' };
@@ -151,6 +155,7 @@ export function timeline(l: LoanX): Moment[] {
     ...(l.autopay?.history ?? []).map(h => ({ on: h.on, tone: h.event === 'added' ? 'none' as const : 'red' as const,
       text: { added: 'Autopay turned on', removed: 'Card taken off autopay', replaced: 'Changed the card', turned_off: 'Autopay turned off' }[h.event] })),
     ...(l.service ?? []).map(e => ({ on: e.on, tone: 'amber' as const, text: `${e.kind === 'complaint' ? 'Complaint' : 'Repair'}: ${e.what}` })),
+    ...(l.promises ?? []).map(p => ({ on: p.made, tone: 'none' as const, text: `Promised $${(p.cents / 100).toFixed(2)} by ${new Date(p.on + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' })}` })),
   ];
   return m.sort((a, b) => b.on.localeCompare(a.on));
 }

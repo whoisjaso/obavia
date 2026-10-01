@@ -9,6 +9,7 @@
 
 import type { Attempt, Autopay } from './autopay';
 import type { Condition, ServiceEntry } from './condition';
+import { openPromise, promiseReminder, type PayPromise } from './promise';
 
 export type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'venmo' | 'paypal' | 'other';
@@ -17,7 +18,7 @@ export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle'
 export type PaymentStatus = 'cleared' | 'clearing' | 'returned' | 'refunded' | 'charged_back';
 export type Payment = { id: string; on: string; cents: number; method: Method; receipt: number; note?: string; by?: string;
   status?: PaymentStatus;                 // missing = cleared (every desk payment before processors existed)
-  via?: 'desk' | 'text_link' | 'autopay' | 'portal' | 'retail_cash' | 'matched';   // matched: found in the bank feed or a receipt email, confirmed by the dealer
+  via?: 'desk' | 'text_link' | 'autopay' | 'portal' | 'retail_cash' | 'matched' | 'imported';   // matched: found in the bank feed or a receipt email, confirmed by the dealer
   processorId?: string;                   // the processor's id for this payment, to match callbacks
   reverse?: { on: string; code?: string; reason?: string };
 };
@@ -42,6 +43,8 @@ export type Loan = {
   attempts?: Attempt[];            // charges that failed, with the reason code
   condition?: Condition;           // the car's condition as signed at the sale
   service?: ServiceEntry[];        // complaints and repairs since
+  promises?: PayPromise[];         // "I'll pay Monday": the account works from the promise
+  imported?: { from: 'frazer'; on: string; account: string; theirBalanceCents?: number; mode: 'history' | 'balance' };
 };
 
 export const PER_YEAR: Record<Frequency, number> = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 };
@@ -182,14 +185,21 @@ export function takePayment(loan: Loan, p: Omit<Payment, 'id' | 'receipt'>, rece
 }
 
 /* ---------- reminders, for the buyer and for the owner ---------- */
-export type Reminder = { on: string; kind: 'before' | 'due' | 'late' | 'late_fee'; n: number; text: string };
+export type Reminder = { on: string; kind: 'before' | 'due' | 'late' | 'late_fee' | 'promise'; n: number; text: string };
 const usd = (c: number) => '$' + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const day = (d: string) => new Date(toUTC(d)).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' });
 /** "viernes, 2 de octubre" */
 const dia = (d: string) => new Date(toUTC(d)).toLocaleDateString('es-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' });
 
-/** The texts a buyer will get for the next unpaid installment: four at most, then once a week while it's still late. In the buyer's language. */
+/** The texts a buyer will get for the next unpaid installment: four at most, then once a week while it's still late. In the buyer's language.
+    While they've promised a day, the due and late texts wait for it: one reminder that morning instead. */
 export function reminderPlan(loan: Loan, s: Standing, dealerName: string): Reminder[] {
+  const plan = basePlan(loan, s, dealerName), p = loan.remindersOn ? openPromise(loan, s.asOf) : undefined;
+  if (!p) return plan;
+  return [...plan.filter(r => r.kind === 'late_fee' || (r.kind !== 'late' && r.on > p.on)),
+    { on: p.on, kind: 'promise' as const, n: s.next?.n ?? 0, text: promiseReminder(loan, p, dealerName) }].sort((a, b) => a.on.localeCompare(b.on));
+}
+function basePlan(loan: Loan, s: Standing, dealerName: string): Reminder[] {
   if (!loan.remindersOn || !s.next || s.status === 'paid_off') return [];
   const i = s.installments[s.next.n - 1], first = loan.buyer.name.split(' ')[0], es = loan.language === 'es', d = es ? dia : day;
   const owed = i.cents - i.paidCents, fee = usd(Math.round(i.cents * loan.late.pct / 100)), lateDays = loan.late.graceDays - 2, feeDay = d(addDays(i.due, loan.late.graceDays));

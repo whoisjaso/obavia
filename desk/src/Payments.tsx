@@ -10,6 +10,7 @@ import { WEEKDAY, signal } from './lib/autopay';
 import { methodText } from './Autopay';
 import { getLoans, me, recordPayment, setLoanLanguage, setReminders, useStore } from './store';
 import { can } from './lib/staff';
+import { brokenPromises, openPromise } from './lib/promise';
 import { Back, Ic, feel, go, transition } from './ui';
 
 export const nice = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...opts });
@@ -47,6 +48,8 @@ export function useNeeds(): Need[] {
   const cashToday = cashOn(loans, t).cents, closed = !!bank.days[t];
   const flagged = Object.values(bank.days).filter(d => d.date < t && ['short', 'not_banked'].includes(dayState(loans, d, d.date, t))).length;
   const n: Need[] = [];
+  const broke = loans.filter(l => brokenPromises(l, t, 7).length);
+  if (broke.length) n.push({ to: '/payments/list/promises', label: 'Broke A Promise', tone: 'late', gloss: broke.map(l => first(l.buyer.name)).join(', ') });
   if (red + amber) n.push({ to: '/payments/list/watch', label: red ? 'Not Paying On Purpose' : 'Short On Money', tone: red ? 'late' : 'warn', gloss: [red && `${red} on purpose`, amber && `${amber} short on money`].filter(Boolean).join(' · ') });
   if (box.length) n.push({ to: '/payments/match', label: 'To Match', tone: 'warn', gloss: `${box.length} from Zelle, Cash App and the bank` });
   if (flagged) n.push({ to: '/payments/close', label: 'Cash To Look At', tone: 'late', gloss: `${plural(flagged, 'day')} short or not banked` });
@@ -59,7 +62,9 @@ export function Payments() {
   const [all, setAll] = useState(false);
   const { t } = useMoney();
   const needs = useNeeds();
-  const exp = expected(loans, t), shown = all ? exp : exp.slice(0, SHOW);
+  // promised for a later day: not expected today. Promised today: first.
+  const exp = expected(loans, t).map(e => ({ ...e, p: openPromise(e.loan, t) })).filter(e => !e.p || e.p.on === t)
+    .sort((a, b) => Number(!!b.p) - Number(!!a.p)), shown = all ? exp : exp.slice(0, SHOW);
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/" label="Sales" /></div>
@@ -67,13 +72,13 @@ export function Payments() {
         <h1 className="q">{exp.length ? 'Expected Today.' : 'All Current.'}</h1>
         {exp.length > 0 && <div className="choices">
           {shown.map(e => <Go key={e.loan.id} to={`/payments/cash/${e.loan.id}`} tone={e.late ? 'late' : 'warn'} label={e.loan.buyer.name}
-            gloss={`${money(e.cents)} · ${e.late ? `${plural(e.daysLate, 'day')} late` : 'due today'}`} />)}
+            gloss={e.p ? `Promised ${money(e.p.cents)} today` : `${money(e.cents)} · ${e.late ? `${plural(e.daysLate, 'day')} late` : 'due today'}`} />)}
           {!all && exp.length > SHOW && <button className="textlink" onClick={() => { feel.tap(); setAll(true); }}>Show All {exp.length}</button>}
         </div>}
         {needs.length > 0 && <div className="choices">
           <Go to="/payments/needs" tone={needs.some(x => x.tone === 'late') ? 'late' : 'warn'} label={`${needs.length} ${needs.length === 1 ? 'Thing Needs' : 'Things Need'} You`} gloss={needs.map(x => x.label).join(' · ')} />
         </div>}
-        <p className="links"><a href="#/payments/list/all" onClick={feel.tap}>Every Account</a><a href="#/payments/close" onClick={feel.tap}>Close The Day</a>{can(me(), 'settings') && <a href="#/payments/evening" onClick={feel.tap}>Tonight’s Text</a>}<a href="#/people" onClick={feel.tap}>People</a></p>
+        <p className="links"><a href="#/payments/list/all" onClick={feel.tap}>Every Account</a><a href="#/payments/close" onClick={feel.tap}>Close The Day</a>{can(me(), 'settings') && <a href="#/payments/evening" onClick={feel.tap}>Tonight’s Text</a>}<a href="#/people" onClick={feel.tap}>People</a>{!loans.some(l => l.imported) && <a href="#/import" onClick={feel.tap}>Coming From Frazer?</a>}</p>
         {example && <span className="example">Example data</span>}
       </section>
     </main>
@@ -94,12 +99,12 @@ export function Needs() {
 }
 
 /* ---------- 2. The people in one group ---------- */
-const LIST_TITLE = { late: 'Late.', today: 'Due Today.', all: 'Every Account.', watch: 'Watch.' } as const;
+const LIST_TITLE = { late: 'Late.', today: 'Due Today.', all: 'Every Account.', watch: 'Watch.', promises: 'Broke A Promise.' } as const;
 export function PaymentList({ which }: { which: keyof typeof LIST_TITLE }) {
   const { dealer, loans = [] } = useStore();
   const t = today(dealer.timeZone);
   const rows = loans.map(l => ({ l, s: standing(l, t) }))
-    .filter(r => which === 'all' || (which === 'watch' ? ['red', 'amber'].includes(signal(r.l, t).tone) : which === 'late' ? r.s.status === 'late' : r.s.status === 'due_today'))
+    .filter(r => which === 'all' || (which === 'promises' ? brokenPromises(r.l, t, 7).length > 0 : which === 'watch' ? ['red', 'amber'].includes(signal(r.l, t).tone) : which === 'late' ? r.s.status === 'late' : r.s.status === 'due_today'))
     .sort((a, b) => b.s.daysLate - a.s.daysLate || a.l.buyer.name.localeCompare(b.l.buyer.name));
   return (
     <main className="wrap center">
@@ -107,7 +112,9 @@ export function PaymentList({ which }: { which: keyof typeof LIST_TITLE }) {
       <section className="enter" key={which}>
         <h1 className="q">{LIST_TITLE[which]}</h1>
         <div className="choices">
-          {rows.map(({ l, s }) => { const x = line(s), g = signal(l, t); return which === 'watch'
+          {rows.map(({ l, s }) => { const x = line(s), g = signal(l, t), bp = brokenPromises(l, t, 7)[0]; return which === 'promises'
+            ? <Go key={l.id} to={`/payments/${l.id}/promise`} tone="late" label={l.buyer.name} gloss={`Promised ${money(bp.cents)} ${nice(bp.on)}`} />
+            : which === 'watch'
             ? <Go key={l.id} to={`/payments/${l.id}/history`} tone={g.tone === 'red' ? 'late' : 'warn'} label={l.buyer.name} gloss={g.headline} />
             : <Go key={l.id} to={`/payments/${l.id}`} tone={x.tone} label={l.buyer.name} gloss={x.text} />; })}
         </div>
@@ -122,7 +129,7 @@ export function Account({ id }: { id: string }) {
   const { dealer, loans = [] } = useStore();
   const l = loans.find(x => x.id === id);
   if (!l) return <Payments />;
-  const s = standing(l, today(dealer.timeZone)), x = line(s), ask = amountToAsk(s), g = signal(l, today(dealer.timeZone));
+  const s = standing(l, today(dealer.timeZone)), x = line(s), ask = amountToAsk(s), g = signal(l, today(dealer.timeZone)), pr = openPromise(l, today(dealer.timeZone));
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/payments" label="Payments" /></div>
@@ -139,6 +146,7 @@ export function Account({ id }: { id: string }) {
           <Go to={`/payments/${l.id}/autopay`} icon="link" label="Autopay" gloss={l.autopay?.on && l.autopay.method ? `${methodText(l.autopay.method)} · ${l.autopay.payday === undefined ? 'due dates' : WEEKDAY[l.autopay.payday] + 's'}` : 'Off'} />
           <Go to={`/payments/${l.id}/history`} icon="sheet" label="History" gloss={l.payments.length ? `${money(s.paidCents)} paid` : undefined} />
           <Go to={`/payments/${l.id}/more`} icon="doc" label="The Note" gloss="Schedule, reminders, condition" />
+          {(s.status === 'late' || s.status === 'due_today' || pr) && <Go to={`/payments/${l.id}/promise`} icon="pen" label={pr ? `Promised ${money(pr.cents)}` : 'They Promised A Day'} gloss={pr ? (pr.on === today(dealer.timeZone) ? 'Today' : nice(pr.on, { weekday: 'long', month: 'short', day: 'numeric' })) : 'Hold the late texts until then'} />}
         </div>
         {s.status !== 'paid_off' && <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); go(`/payments/${l.id}/pay`); }}>Take A Payment</button></div></div>}
       </section>

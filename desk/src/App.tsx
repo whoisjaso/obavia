@@ -11,6 +11,8 @@ import { ConditionPage } from './Condition';
 import { EveningText, Posted } from './Owner';
 import { Channel, MarketplaceConsent, Reach, ReachGroup } from './Reach';
 import { AddPerson, Lock, People } from './People';
+import { PromiseSetup } from './Promise';
+import { Import } from './Import';
 import type { DocType } from './lib/plan';
 import { useEffect, useState } from 'react';
 import { deskLocked, getSale, touchDesk, useStore } from './store';
@@ -30,6 +32,7 @@ export function App() {
   const [, a, id, b, c, d] = h.split('/');
   if (a === 'new') return <Start />;
   if (a === 'past') return <Past />;
+  if (a === 'import') return <Import />;
   if (a === 'people') return id === 'add' ? <AddPerson /> : <People />;
   if (a === 'reach') return id === 'marketplace' ? <MarketplaceConsent /> : id === 'g' && b ? <ReachGroup key={b} group={b as 'phone'} /> : id ? <Channel id={id} /> : <Reach />;
   if (a === 'payments') {
@@ -39,8 +42,9 @@ export function App() {
     if (id === 'needs') return <Needs />;
     if (id === 'evening') return <EveningText />;
     if (id === 'match') return b ? <MatchOne key={b} id={decodeURIComponent(b)} /> : <MatchList />;
-    if (id === 'list') return <PaymentList key={b} which={(b === 'late' || b === 'today' || b === 'watch' ? b : 'all')} />;
+    if (id === 'list') return <PaymentList key={b} which={(b === 'late' || b === 'today' || b === 'watch' || b === 'promises' ? b : 'all')} />;
     if (id && b === 'autopay') return <AutopaySetup key={id} id={id} />;
+    if (id && b === 'promise') return <PromiseSetup key={id} id={id} />;
     if (id && b === 'condition') return <ConditionPage key={id} id={id} />;
     if (id && b === 'history') return <History key={id} id={id} />;
     if (id && b === 'pay') return <TakePayment key={id} id={id} />;
