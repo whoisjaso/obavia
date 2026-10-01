@@ -7,6 +7,8 @@
    a written receipt for every cash payment (§348.406); a statement of
    payments on request (§348.405). The rate ceiling is the owner's to confirm. */
 
+import type { Attempt, Autopay } from './autopay';
+
 export type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'venmo' | 'paypal' | 'other';
 /** Where a payment stands with the processor. Cash at the counter is cleared at once; a bank (ACH)
@@ -33,6 +35,8 @@ export type Loan = {
   payments: Payment[];
   remindersOn: boolean;
   openedOn: string;
+  autopay?: Autopay;               // card or bank account on file
+  attempts?: Attempt[];            // charges that failed, with the reason code
 };
 
 export const PER_YEAR: Record<Frequency, number> = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 };

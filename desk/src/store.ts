@@ -10,6 +10,7 @@ import { MARKETPLACE_TERMS, termsHash, type Consent } from './lib/consent';
 import { addDays, amountToAsk, openLoan, standing, takePayment, today, type Frequency, type Loan, type Method } from './lib/loans';
 import { fromReceipt, normName, type Money, type Payers } from './lib/match';
 import { cashOn, type CashDay } from './lib/cashday';
+import type { Attempt, OnFile } from './lib/autopay';
 import { PER_YEAR } from './lib/paperwork';
 import { parseMoney } from './lib/money';
 
@@ -28,12 +29,21 @@ export function exampleLoans(tz: string): Loan[] {
     for (const [dayOffset, cents] of paid) l = takePayment(l, { on: addDays(firstDue, dayOffset), cents: cents || l.paymentCents, method: 'cash' }, ++r);
     return l;
   };
-  return [
+  const list = [
     mk('ex-due', 'Jordan Rivera', '(555) 010-2231', '2018 Toyota Corolla LE · Stock 107', 720000, 19.9, 104, 'weekly', addDays(t, -21), [[0, 0], [7, 0], [14, 0]]),
     mk('ex-late', 'Dana Example', '(555) 010-4410', '2016 Chevrolet Silverado 1500 · Stock 111', 1150000, 21, 52, 'biweekly', addDays(t, -37), [[0, 0], [14, 0]]),
     mk('ex-fee', 'Chris Sample', '(555) 010-9032', '2017 Nissan Murano SV · Stock 112', 840000, 18, 36, 'monthly', addDays(t, -79), [[0, 0], [31, 0]]),
     mk('ex-current', 'Alex Placeholder', '(555) 010-1187', '2017 Ford Fusion SE · Stock 115', 560000, 17.5, 78, 'weekly', addDays(t, -12), [[0, 0], [7, 0], [9, 0]]),
   ];
+  // Autopay and failed charges, so every signal shows: on purpose (red), short on money (amber), clean autopay (good).
+  const at = (l: Loan, daysAgo: number, code: string, n: number, via: Attempt['via']): Attempt => ({ on: addDays(t, -daysAgo), cents: l.paymentCents, n, via, result: 'declined', code });
+  const [jordan, dana, chris] = list;
+  jordan.autopay = { on: true, method: { kind: 'card', brand: 'Visa', last4: '5556', funding: 'debit', exp: '12/28' }, payday: 5, signedBy: 'Jordan Rivera', signedOn: addDays(t, -28), history: [{ on: addDays(t, -28), event: 'added' }] };
+  dana.autopay = { on: true, method: { kind: 'card', brand: 'Mastercard', last4: '8210', funding: 'debit', exp: '03/29' }, signedBy: 'Dana Example', signedOn: addDays(t, -44), history: [{ on: addDays(t, -44), event: 'added' }] };
+  dana.attempts = [at(dana, 9, '51', 3, 'card'), at(dana, 6, '51', 3, 'card')];
+  chris.autopay = { on: false, method: { kind: 'bank', bank: 'Chase', last4: '4417', routing: '111000614' }, signedBy: 'Chris Sample', signedOn: addDays(t, -86), history: [{ on: addDays(t, -86), event: 'added' }, { on: addDays(t, -19), event: 'turned_off' }] };
+  chris.attempts = [{ ...at(chris, 18, 'R08', 3, 'bank'), result: 'returned' }];
+  return list;
 }
 /** Example money from outside the processor, the way it would arrive from the bank feed and receipt emails. */
 export function exampleMoney(loans: Loan[], tz: string): Money[] {
@@ -124,6 +134,17 @@ export function matchMoney(m: Money, loanId: string): number {
   const payers = m.from ? { ...state.payers, [normName(m.from)]: loanId } : state.payers;
   set({ ...state, receiptNo: receipt, loans, payers, matched: { ...state.matched, [m.id]: { loanId, receipt } } });
   return receipt;
+}
+/* ---------- autopay ---------- */
+export function setAutopay(loanId: string, method: OnFile, payday: number | undefined, signedBy: string, on: string) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, autopay: { on: true, method, payday, signedBy, signedOn: on,
+    history: [...(l.autopay?.history ?? []), { on, event: l.autopay?.method ? 'replaced' as const : 'added' as const }] } }) });
+}
+export function autopayOff(loanId: string, on: string) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId || !l.autopay ? l : { ...l, autopay: { ...l.autopay, on: false, history: [...l.autopay.history, { on, event: 'turned_off' as const }] } }) });
+}
+export function setPayday(loanId: string, payday: number) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId || !l.autopay ? l : { ...l, autopay: { ...l.autopay, payday } }) });
 }
 /** Close the cash day with what's in the drawer. Counting again replaces the count. */
 export function closeCashDay(date: string, countedCents: number) {

@@ -6,6 +6,7 @@ import { Past, Sales, Start } from './Sales';
 import { Account, AccountPage, PaymentList, Payments, TakePayment } from './Payments';
 import { MatchList, MatchOne } from './Match';
 import { CashTaken, CloseDay } from './Cash';
+import { AutopaySetup, History } from './Autopay';
 import { Channel, MarketplaceConsent, Reach, ReachGroup } from './Reach';
 import type { DocType } from './lib/plan';
 import { getSale, useStore } from './store';
@@ -23,7 +24,9 @@ export function App() {
     if (id === 'cash' && b) return <CashTaken key={b} id={b} />;
     if (id === 'close') return <CloseDay />;
     if (id === 'match') return b ? <MatchOne key={b} id={decodeURIComponent(b)} /> : <MatchList />;
-    if (id === 'list') return <PaymentList key={b} which={(b === 'late' || b === 'today' ? b : 'all')} />;
+    if (id === 'list') return <PaymentList key={b} which={(b === 'late' || b === 'today' || b === 'watch' ? b : 'all')} />;
+    if (id && b === 'autopay') return <AutopaySetup key={id} id={id} />;
+    if (id && b === 'history') return <History key={id} id={id} />;
     if (id && b === 'pay') return <TakePayment key={id} id={id} />;
     if (id && b) return <AccountPage key={`${id}/${b}`} id={id} page={b} />;
     return id ? <Account key={id} id={id} /> : <Payments />;

@@ -298,6 +298,52 @@ Counter cash leaves no digital signal, so it can't be detected. The rule: **auto
 - **Code:** `desk/src/lib/cashday.ts` (4 tests), `desk/src/Cash.tsx`.
 - **Not yet:** one deposit covering several days, and splitting a day across two deposits. The owner resolves those by hand until real Triple J deposits show the pattern.
 
+## 9. Autopay, and can't-pay versus won't-pay
+
+**Autopay on file** (`desk/src/lib/autopay.ts`, 7 tests; `desk/src/Autopay.tsx`). It's set up page by page from the account:
+1. Pay Automatically?
+2. Debit card or bank account.
+3. When do they get paid?
+4. They sign.
+
+- **Debit cards and bank accounts only:**
+  - **Credit cards are refused.** Processors prohibit loan repayment on them.
+  - **Prepaid cards are refused.**
+  - **The dealer can block card issuers by name.** Neobank cards can register as debit rather than prepaid.
+  - The funding type comes from the processor when the card is saved. The preview uses the processors' published test cards.
+- **Card and bank checks:** the card number checksum, the expiry date, and the routing number checksum.
+- **Charge day:** the first payday on or after each due date, so a Friday-paid buyer is charged Friday.
+- **The signed authorization:**
+  - states the amount, the card or account, and when it's charged;
+  - allows up to 2 retries;
+  - says **autopay is optional and was not required for financing** (Regulation E, 12 CFR 1005.10(e));
+  - says how to cancel.
+
+  Counsel reviews the final wording.
+
+**What a failed charge says.** Card decline codes and Nacha return codes map to four readings:
+
+| Reading | Codes | What happens |
+|---|---|---|
+| **Can't pay right now** | 51, 61, 65, R01, R09 | Retried on their payday, at most 2 more times per payment |
+| **Won't pay: on purpose** | R0, R1, R3 (stop or revoke), R02 (account closed), R07, R08, R10, 41, 43, 57, 62, chargeback | No retry; red on the Payments home |
+| **Needs a new card** | 54, 14, R03, R04, R16 | No retry; ask for a new card |
+| **Unclear** | 05 | One retry; amber |
+
+**Signals the owner sees:**
+- **Red:** an on-purpose reading in the last 60 days, or autopay turned off or the card removed without a replacement.
+- **Amber:** can't pay, or a card that needs fixing, in the last 30 days.
+- **Payday hint:** two short-on-money declines each followed by a payment on the same weekday suggest moving autopay to that day, in one tap.
+
+**Screens:**
+- the **Watch** card on the Payments home;
+- a flag on the account;
+- **History**, a timeline of every payment, failed charge and card change.
+
+**Not yet:**
+- the live charging scheduler and retries through the processor;
+- reading decline codes from PayNearMe or REPAY callbacks. The field names are confirmed in the sandbox.
+
 ---
 
 # Reach: every channel, and how each really connects
