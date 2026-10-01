@@ -23,9 +23,11 @@ export type Payment = { id: string; on: string; cents: number; method: Method; r
 };
 /** A payment counts toward the note unless it came back. A clearing payment counts, and is marked. */
 export const counts = (p: Payment) => !p.status || p.status === 'cleared' || p.status === 'clearing';
+export type Lang = 'en' | 'es';
 export type Loan = {
   id: string; saleId?: string;
   buyer: { name: string; phone: string };
+  language?: Lang;                 // what the buyer's texts and papers are in; English when unset
   vehicle: string;                 // "2016 Honda Accord LX · Stock 104"
   principalCents: number;          // amount financed
   apr: number;                     // percent, e.g. 18
@@ -45,6 +47,8 @@ export type Loan = {
 export const PER_YEAR: Record<Frequency, number> = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 };
 export const TEXAS_LATE = { graceDays: 15, pct: 5 } as const;
 export const METHOD_LABEL: Record<Method, string> = { cash: 'Cash', card: 'Card', ach: 'Bank (ACH)', check: 'Check', money_order: 'Money Order', zelle: 'Zelle', cash_app: 'Cash App', venmo: 'Venmo', paypal: 'PayPal', other: 'Other' };
+/** How a payment was made, in the buyer's Spanish texts. */
+const METHOD_ES: Record<Method, string> = { cash: 'efectivo', card: 'tarjeta', ach: 'transferencia bancaria', check: 'cheque', money_order: 'giro postal', zelle: 'Zelle', cash_app: 'Cash App', venmo: 'Venmo', paypal: 'PayPal', other: 'otro medio' };
 
 /* ---------- calendar days ---------- */
 const toUTC = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return Date.UTC(y, m - 1, dd); };
@@ -82,7 +86,7 @@ export function dueDates(firstDue: string, count: number, f: Frequency): string[
   });
 }
 
-export function openLoan(x: { id: string; saleId?: string; buyer: Loan['buyer']; vehicle: string; principalCents: number; apr: number; count: number; frequency: Frequency; firstDue: string; openedOn: string }): Loan {
+export function openLoan(x: { id: string; saleId?: string; buyer: Loan['buyer']; language?: Lang; vehicle: string; principalCents: number; apr: number; count: number; frequency: Frequency; firstDue: string; openedOn: string }): Loan {
   return { ...x, paymentCents: installmentCents(x.principalCents, x.apr, x.count, x.frequency), late: { ...TEXAS_LATE }, payments: [], remindersOn: true };
 }
 
@@ -181,28 +185,35 @@ export function takePayment(loan: Loan, p: Omit<Payment, 'id' | 'receipt'>, rece
 export type Reminder = { on: string; kind: 'before' | 'due' | 'late' | 'late_fee'; n: number; text: string };
 const usd = (c: number) => '$' + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const day = (d: string) => new Date(toUTC(d)).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' });
+/** "viernes, 2 de octubre" */
+const dia = (d: string) => new Date(toUTC(d)).toLocaleDateString('es-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' });
 
-/** The texts a buyer will get for the next unpaid installment: four at most, then once a week while it's still late. */
+/** The texts a buyer will get for the next unpaid installment: four at most, then once a week while it's still late. In the buyer's language. */
 export function reminderPlan(loan: Loan, s: Standing, dealerName: string): Reminder[] {
   if (!loan.remindersOn || !s.next || s.status === 'paid_off') return [];
-  const i = s.installments[s.next.n - 1], first = loan.buyer.name.split(' ')[0];
-  const owed = i.cents - i.paidCents;
+  const i = s.installments[s.next.n - 1], first = loan.buyer.name.split(' ')[0], es = loan.language === 'es', d = es ? dia : day;
+  const owed = i.cents - i.paidCents, fee = usd(Math.round(i.cents * loan.late.pct / 100)), lateDays = loan.late.graceDays - 2, feeDay = d(addDays(i.due, loan.late.graceDays));
   const plan: Reminder[] = [
-    { on: addDays(i.due, -3), kind: 'before', n: i.n, text: `Hi ${first}, a reminder from ${dealerName}: your payment of ${usd(owed)} is due ${day(i.due)}.` },
-    { on: i.due, kind: 'due', n: i.n, text: `Hi ${first}, your ${dealerName} payment of ${usd(owed)} is due today.` },
-    { on: addDays(i.due, 3), kind: 'late', n: i.n, text: `Hi ${first}, we haven’t received your ${usd(owed)} payment due ${day(i.due)}. Reply or call us if you need help.` },
-    { on: addDays(i.due, loan.late.graceDays - 2), kind: 'late_fee', n: i.n, text: `Hi ${first}, your ${usd(owed)} payment is now ${loan.late.graceDays - 2} days late. A late charge of ${usd(Math.round(i.cents * loan.late.pct / 100))} applies if it isn’t paid by ${day(addDays(i.due, loan.late.graceDays))}.` },
+    { on: addDays(i.due, -3), kind: 'before', n: i.n, text: es ? `Hola ${first}, un recordatorio de ${dealerName}: su pago de ${usd(owed)} vence el ${d(i.due)}.` : `Hi ${first}, a reminder from ${dealerName}: your payment of ${usd(owed)} is due ${d(i.due)}.` },
+    { on: i.due, kind: 'due', n: i.n, text: es ? `Hola ${first}, su pago de ${usd(owed)} a ${dealerName} vence hoy.` : `Hi ${first}, your ${dealerName} payment of ${usd(owed)} is due today.` },
+    { on: addDays(i.due, 3), kind: 'late', n: i.n, text: es ? `Hola ${first}, no hemos recibido su pago de ${usd(owed)} que vencía el ${d(i.due)}. Responda o llámenos si necesita ayuda.` : `Hi ${first}, we haven’t received your ${usd(owed)} payment due ${d(i.due)}. Reply or call us if you need help.` },
+    { on: addDays(i.due, lateDays), kind: 'late_fee', n: i.n, text: es ? `Hola ${first}, su pago de ${usd(owed)} tiene ${lateDays} días de atraso. Se cobrará un cargo por atraso de ${fee} si no se paga a más tardar el ${feeDay}.` : `Hi ${first}, your ${usd(owed)} payment is now ${lateDays} days late. A late charge of ${fee} applies if it isn’t paid by ${feeDay}.` },
   ];
   const ahead = plan.filter(r => r.on >= s.asOf);
   if (ahead.length || s.status !== 'late') return ahead;
   // Still late after every step above: one plain text a week, on the same weekday it fell due, until it's caught up.
-  const sinceDue = daysBetween(i.due, s.asOf), on = addDays(s.asOf, (7 - (sinceDue % 7)) % 7);
-  return [{ on, kind: 'late', n: i.n, text: `Hi ${first}, your ${dealerName} account is ${usd(s.pastDueCents + s.feesOwedCents)} past due. Reply or call us and we’ll work it out with you.` }];
+  const sinceDue = daysBetween(i.due, s.asOf), on = addDays(s.asOf, (7 - (sinceDue % 7)) % 7), pastDue = usd(s.pastDueCents + s.feesOwedCents);
+  return [{ on, kind: 'late', n: i.n, text: es ? `Hola ${first}, su cuenta con ${dealerName} tiene ${pastDue} vencido. Responda o llámenos y lo resolvemos juntos.` : `Hi ${first}, your ${dealerName} account is ${pastDue} past due. Reply or call us and we’ll work it out with you.` }];
 }
 
 export function receiptText(loan: Loan, p: Payment, after: Standing, dealerName: string) {
+  const car = loan.vehicle.split(' · ')[0];
+  if (loan.language === 'es') {
+    const next = after.next ? ` Próximo pago de ${usd(after.next.cents)} vence el ${dia(after.next.due)}.` : ' Pagado por completo. Gracias.';
+    return `${dealerName} recibo #${p.receipt}: recibimos ${usd(p.cents)} en ${METHOD_ES[p.method]} el ${dia(p.on)} por el ${car}. Saldo ${usd(after.payoffCents)}.${next}`;
+  }
   const next = after.next ? ` Next payment ${usd(after.next.cents)} due ${day(after.next.due)}.` : ' Paid in full. Thank you.';
-  return `${dealerName} receipt #${p.receipt}: received ${usd(p.cents)} by ${METHOD_LABEL[p.method].toLowerCase()} on ${day(p.on)} for the ${loan.vehicle.split(' · ')[0]}. Balance ${usd(after.payoffCents)}.${next}`;
+  return `${dealerName} receipt #${p.receipt}: received ${usd(p.cents)} by ${METHOD_LABEL[p.method].toLowerCase()} on ${day(p.on)} for the ${car}. Balance ${usd(after.payoffCents)}.${next}`;
 }
 
 export type Digest = { dueToday: { loan: Loan; cents: number }[]; late: { loan: Loan; cents: number; days: number }[]; collectedCents: number; collectedCount: number };
@@ -232,7 +243,7 @@ export function paymentTexts(ev: PaymentEvent, loan: Loan, cents: number, after:
   const car = loan.vehicle.split(' · ')[0], amt = usd(cents);
   const next = after.status === 'paid_off' ? 'Your car is paid off. Thank you.' : after.next ? `Next payment ${usd(after.next.cents)} due ${day(after.next.due)}.` : '';
   const bal = `Balance ${usd(after.payoffCents)}.`;
-  switch (ev) {
+  const t = ((): PaymentTexts => { switch (ev) {
     case 'received': case 'cleared': return {
       buyer: `${dealerName}: we received your ${amt} payment${receipt ? ` (receipt #${receipt})` : ''}. ${bal} ${next}`.trim(),
       dealer: `Payment in: ${amt} from ${loan.buyer.name}, ${car}.${after.status === 'paid_off' ? ' Paid off.' : ` ${bal}`}`,
@@ -251,6 +262,21 @@ export function paymentTexts(ev: PaymentEvent, loan: Loan, cents: number, after:
     };
     case 'charged_back': return { dealer: `Chargeback: ${loan.buyer.name} disputed a ${amt} card payment on the ${car}. Respond in your processor’s portal.` };
     case 'refunded': return { buyer: `${dealerName}: we refunded ${amt} to you. ${bal}`, dealer: `Refunded ${amt} to ${loan.buyer.name}, ${car}.` };
+  } })();
+  // The dealership's side stays in English; the buyer's side is in their language.
+  if (loan.language === 'es' && t.buyer) t.buyer = buyerEs(ev, dealerName, amt, after, receipt);
+  return t;
+}
+function buyerEs(ev: PaymentEvent, dealerName: string, amt: string, after: Standing, receipt?: number) {
+  const next = after.status === 'paid_off' ? 'Su carro está pagado por completo. Gracias.' : after.next ? `Próximo pago de ${usd(after.next.cents)} vence el ${dia(after.next.due)}.` : '';
+  const bal = `Saldo ${usd(after.payoffCents)}.`;
+  switch (ev) {
+    case 'received': case 'cleared': return `${dealerName}: recibimos su pago de ${amt}${receipt ? ` (recibo #${receipt})` : ''}. ${bal} ${next}`.trim();
+    case 'clearing': return `${dealerName}: su pago bancario de ${amt} está en camino y normalmente se acredita en 3 a 4 días hábiles. ${next}`.trim();
+    case 'returned': return `${dealerName}: su banco devolvió su pago de ${amt}. Llámenos o responda para pagar de otra forma.`;
+    case 'declined': return `${dealerName}: su pago de ${amt} no se procesó. Pruebe con otra tarjeta o responda y le ayudamos.`;
+    case 'refunded': return `${dealerName}: le reembolsamos ${amt}. ${bal}`;
+    default: return undefined;
   }
 }
 

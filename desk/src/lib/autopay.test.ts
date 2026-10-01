@@ -25,6 +25,13 @@ describe('saving a card or bank account', () => {
     expect(chargeDay('2026-10-12', 5)).toBe('2026-10-16');
     expect(chargeDay('2026-10-12', 1)).toBe('2026-10-12');
   });
+  it('writes the authorization in Spanish for a Spanish note, still saying autopay is optional', () => {
+    const t = authorization('Triple J Auto', '(713) 555-0100', { ...loan(), language: 'es' }, { kind: 'card', brand: 'Visa', last4: '5556', funding: 'debit', exp: '12/28' }, 5);
+    expect(t).toContain('mi tarjeta de débito Visa que termina en 5556');
+    expect(t).toContain('el primer viernes en o después de cada fecha de vencimiento');
+    expect(t).toContain('es opcional y no fue un requisito para mi financiamiento');
+    expect(authorization('X', 'Y', { ...loan(), language: 'es' }, { kind: 'bank', last4: '4417', routing: '111000614' }, undefined, 'en')).toMatch(/^I authorize X/);
+  });
   it('writes an authorization that says autopay is optional', () => {
     const t = authorization('Triple J Auto', '(713) 555-0100', loan(), { kind: 'card', brand: 'Visa', last4: '5556', funding: 'debit', exp: '12/28' }, 5);
     expect(t).toContain('Visa debit card ending 5556 $126.28 on the first Friday on or after each due date');

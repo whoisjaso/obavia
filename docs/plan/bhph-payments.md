@@ -452,3 +452,28 @@ Counter cash is the one payment with no outside signal, so the Desk needs to kno
 - **Nobody added:** no lock at all. The owner is the only user, as before.
 - **Storage:** the PIN is salted and hashed (SHA-256) on the device; the plain PIN is never stored. It is a screen lock that names the person. The device sign-in to the dealership is still the 30-day session from verification.
 - **Not built yet:** the staff list is kept on the device and is not synced, so each device sets up its own people. Syncing it, and per-person sign-in on the server, comes with multi-device use.
+
+## 14. Spanish for the buyer
+
+Each note now records the buyer's language (`Loan.language`). It comes from the sale ("What Language Is The Sale In?") and can be changed under The Note, then Language. The Desk's own screens stay in English for the staff. What the buyer reads switches:
+
+- **Texts:**
+  - every payment reminder, including the weekly late text;
+  - receipts and payment updates (received, clearing, returned, declined, refunded), with Spanish dates such as "viernes, 9 de octubre".
+  - The dealership's copy of each update stays in English.
+- **Opt-out words:**
+  - PARAR, PARE, ALTO, CANCELAR, BAJA and DETENER stop texts, just as STOP does;
+  - INICIAR or REANUDAR restarts them;
+  - AYUDA gets help.
+  - A keyword sent in Spanish gets its confirmation in Spanish.
+- **Autopay agreement:**
+  - The buyer reads the agreement in their language, and **Read It In English** / **Léalo En Español** switches it on the spot.
+  - The Desk records which language was signed (`autopay.signedIn`).
+  - The Spanish text keeps every term of the English one: autopay is optional and not a condition of financing, at most 2 retries, and how to cancel.
+- **Condition report:** for a sale in Spanish, it prints as "Informe del estado del vehículo" with Spanish labels, signature lines and the as-is sentence. Answers the staff type stay as typed. Spanish signatures are still in ink (unchanged rule).
+
+**Before live use:**
+- A native speaker and counsel review every Spanish line in `loans.ts`, `autopay.ts`, `messaging/core.ts` and the condition report in `Sheet.tsx`.
+- Counsel confirms what Texas requires when a credit sale is negotiated in Spanish.
+- The FTC Used Car Rule already requires the Spanish Buyers Guide when a sale is conducted in Spanish.
+- The marketing opt-out footer and the 10DLC campaign keyword list are still English only; they change when Reach marketing is built.

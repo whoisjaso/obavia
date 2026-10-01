@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OPT_OUT_FOOTER, gate, inMarketingHours, keyword, plainText, segments, toE164 } from './core';
+import { OPT_OUT_FOOTER, gate, inMarketingHours, keyword, keywordLang, plainText, segments, toE164 } from './core';
 
 const CT = 'America/Chicago';
 // 2026-10-03 is a Saturday, 2026-10-04 a Sunday. Times below are UTC; Chicago is UTC-5 in October.
@@ -39,6 +39,12 @@ describe('segments', () => {
 });
 
 describe('keywords', () => {
+  it('reads the Spanish keywords, and only whole-message ones', () => {
+    for (const w of ['PARAR', 'alto', '¡Baja!', 'cancelar']) { expect(keyword(w)).toBe('stop'); expect(keywordLang(w)).toBe('es'); }
+    expect(keyword('iniciar')).toBe('start'); expect(keyword('Ayuda')).toBe('help');
+    expect(keyword('no quiero parar')).toBeNull();
+    expect(keywordLang('STOP')).toBe('en');
+  });
   it('only a message that is the keyword counts', () => {
     expect(keyword('STOP')).toBe('stop');
     expect(keyword(' stop. ')).toBe('stop');

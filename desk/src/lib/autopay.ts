@@ -12,7 +12,7 @@
      installment (Nacha allows two re-presentments of an R01/R09 return), and
      never for codes the card networks say will never be approved. */
 
-import { addDays, daysBetween, type Loan } from './loans';
+import { addDays, daysBetween, type Lang, type Loan } from './loans';
 
 export type Funding = 'debit' | 'credit' | 'prepaid' | 'unknown';
 export type OnFile =
@@ -21,7 +21,7 @@ export type OnFile =
 export type Autopay = {
   on: boolean; method?: OnFile;
   payday?: number;                 // 0 Sunday … 6 Saturday; charge on the first payday on or after each due date; none = the due date
-  signedBy?: string; signedOn?: string;
+  signedBy?: string; signedOn?: string; signedIn?: Lang;   // the language of the words they signed
   history: { on: string; event: 'added' | 'removed' | 'replaced' | 'turned_off' }[];
 };
 export type Attempt = { on: string; cents: number; n: number; via: 'card' | 'bank'; result: 'declined' | 'returned' | 'charged_back'; code: string };
@@ -29,6 +29,7 @@ export type LoanX = Loan;
 
 export const MAX_RETRIES = 2;
 export const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 /* ---------- saving a card or bank account ---------- */
 
@@ -58,11 +59,19 @@ export function chargeDay(due: string, payday?: number) {
   return addDays(due, (payday - dow + 7) % 7);
 }
 
-/** The words the buyer signs. Counsel reviews the final wording. */
-export function authorization(dealer: string, phone: string, loan: Loan, m: OnFile, payday?: number) {
+/** The words the buyer signs, in their language. Counsel and a native speaker review the final wording. */
+export function authorization(dealer: string, phone: string, loan: Loan, m: OnFile, payday?: number, lang: Lang = loan.language ?? 'en') {
+  const amt = `$${(loan.paymentCents / 100).toFixed(2)}`, car = loan.vehicle.split(' · ')[0];
+  if (lang === 'es') {
+    const what = m.kind === 'card' ? `mi tarjeta de débito ${m.brand} que termina en ${m.last4}` : `mi cuenta bancaria que termina en ${m.last4}`;
+    const when = payday === undefined ? 'en cada fecha de vencimiento' : `el primer ${DIA[payday]} en o después de cada fecha de vencimiento`;
+    return `Autorizo a ${dealer} a cobrar ${amt} a ${what} ${when} por mi ${car} hasta que esté pagado. `
+      + `Si un cobro no se procesa, ${dealer} puede intentarlo de nuevo hasta ${MAX_RETRIES} veces más para ese pago. `
+      + `El pago automático es opcional y no fue un requisito para mi financiamiento. Puedo cancelarlo llamando al ${phone} al menos 3 días hábiles antes de un cobro.`;
+  }
   const what = m.kind === 'card' ? `my ${m.brand} debit card ending ${m.last4}` : `my bank account ending ${m.last4}`;
   const when = payday === undefined ? 'on each due date' : `on the first ${WEEKDAY[payday]} on or after each due date`;
-  return `I authorize ${dealer} to charge ${what} $${(loan.paymentCents / 100).toFixed(2)} ${when} for my ${loan.vehicle.split(' · ')[0]} until it is paid off. `
+  return `I authorize ${dealer} to charge ${what} ${amt} ${when} for my ${car} until it is paid off. `
     + `If a charge fails, ${dealer} may try again up to ${MAX_RETRIES} more times for that payment. `
     + `Autopay is optional and was not required for my financing. I can cancel it by calling ${phone} at least 3 business days before a charge.`;
 }

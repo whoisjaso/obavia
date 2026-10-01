@@ -154,3 +154,21 @@ describe('payments through a processor', () => {
     expect(paymentTexts('clearing', l, 12628, s, 'Triple J Auto').buyer).toContain('3 to 4 business days');
   });
 });
+
+describe('a buyer in Spanish', () => {
+  const es = (): Loan => ({ ...base(), language: 'es' });
+  it('gets every reminder in Spanish, with Spanish dates', () => {
+    const plan = reminderPlan(es(), standing(es(), '2026-10-01'), 'Triple J Auto');
+    expect(plan[0].text).toBe('Hola Maria, un recordatorio de Triple J Auto: su pago de $126.28 vence el viernes, 9 de octubre.');
+    expect(plan.map(r => r.text).join(' ')).not.toMatch(/\bHi\b|payment/);
+  });
+  it('gets receipts and payment texts in Spanish, while the dealership’s copy stays English', () => {
+    const l = pay(es(), '2026-10-09', 12628), s = standing(l, '2026-10-09');
+    expect(receiptText(l, l.payments[0], s, 'Triple J Auto')).toMatch(/^Triple J Auto recibo #\d+: recibimos \$126\.28 en efectivo el viernes, 9 de octubre por el 2016 Honda Accord LX\./);
+    const t = paymentTexts('received', l, 12628, s, 'Triple J Auto', 1201);
+    expect(t.buyer).toMatch(/^Triple J Auto: recibimos su pago de \$126\.28 \(recibo #1201\)\. Saldo /);
+    expect(t.dealer).toMatch(/^Payment in: \$126\.28 from Maria Example/);
+    expect(paymentTexts('charged_back', l, 12628, s, 'X').buyer).toBeUndefined();
+  });
+});
+

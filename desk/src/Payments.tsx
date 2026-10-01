@@ -8,7 +8,7 @@ import { useMoney } from './Owner';
 import { cashOn, dayState, expected } from './lib/cashday';
 import { WEEKDAY, signal } from './lib/autopay';
 import { methodText } from './Autopay';
-import { getLoans, me, recordPayment, setReminders, useStore } from './store';
+import { getLoans, me, recordPayment, setLoanLanguage, setReminders, useStore } from './store';
 import { can } from './lib/staff';
 import { Back, Ic, feel, go, transition } from './ui';
 
@@ -162,8 +162,22 @@ export function AccountPage({ id, page }: { id: string; page: string }) {
         <div className="choices">
           <Go to={`/payments/${l.id}/schedule`} icon="sheet" label="Schedule" gloss={`${l.count} × ${money(l.paymentCents)}`} />
           <Go to={`/payments/${l.id}/reminders`} icon="phone" label="Reminders" gloss={l.remindersOn ? 'On' : 'Off'} />
+          <Go to={`/payments/${l.id}/language`} icon="globe" label="Language" gloss={l.language === 'es' ? 'Español · texts and papers' : 'English · texts and papers'} />
           <Go to={`/payments/${l.id}/condition`} icon="doc" label="Condition" gloss={l.condition ? `${l.condition.asIs ? 'As-is' : 'Warranty'} · signed ${nice(l.condition.signedOn)}${l.service?.length ? ` · ${l.service.length} complaint${l.service.length > 1 ? 's' : ''}` : ''}` : 'No report'} />
         </div>
+      </section>
+    </main>
+  );
+
+  if (page === 'language') return (
+    <main className="wrap center"><div className="top"><Back to={`#/payments/${l.id}/more`} label="The Note" /></div>
+      <section className="enter" key="lang">
+        <h1 className="q">{first(l.buyer.name)}’s Language?</h1>
+        <div className="choices">
+          <ChoiceRow on={l.language !== 'es'} label="English" onPick={() => setLoanLanguage(l.id, 'en')} />
+          <ChoiceRow on={l.language === 'es'} label="Español" onPick={() => setLoanLanguage(l.id, 'es')} />
+        </div>
+        {l.remindersOn && reminderPlan(l, s, dealer.dba)[0] && <div className="sms"><small>Their next reminder</small><span className="bubble" lang={l.language === 'es' ? 'es' : 'en'}>{reminderPlan(l, s, dealer.dba)[0].text}</span></div>}
       </section>
     </main>
   );

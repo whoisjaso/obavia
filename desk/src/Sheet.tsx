@@ -19,7 +19,7 @@ export function saleReceipt(s: Sale, dealer: DealerConfig) {
 const join = (...xs: (string | false | undefined | null)[]) => xs.filter(Boolean).join(' · ');
 const cityLine = (d: { city: string; state: string; zip: string }) => [d.city, [d.state, d.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 
-export function Letterhead({ dealer, title, no, date, stock }: { dealer: DealerConfig; title?: string; no?: string; date?: string; stock?: string }) {
+export function Letterhead({ dealer, title, no, date, stock, es }: { dealer: DealerConfig; title?: string; no?: string; date?: string; stock?: string; es?: boolean }) {
   const name = dealer.dba || dealer.legalName;
   return (
     <header className="lh">
@@ -34,8 +34,8 @@ export function Letterhead({ dealer, title, no, date, stock }: { dealer: DealerC
         <b>{title}</b>
         <dl>
           {no && <div><dt>No.</dt><dd>{no}</dd></div>}
-          {date && <div><dt>Date</dt><dd>{date}</dd></div>}
-          {stock && <div><dt>Stock</dt><dd>{stock}</dd></div>}
+          {date && <div><dt>{es ? 'Fecha' : 'Date'}</dt><dd>{date}</dd></div>}
+          {stock && <div><dt>{es ? 'Inventario' : 'Stock'}</dt><dd>{stock}</dd></div>}
           {dealer.licence && <div><dt>GDN</dt><dd>{dealer.licence}</dd></div>}
         </dl>
       </span>}
@@ -64,6 +64,8 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
   const date = businessDate(dealer.timeZone);
   const funding = sale.step.funding;
   const lender = funding?.type === 'lender' ? funding.lenderOther || funding.lenderId : null;
+  // The condition report prints in Spanish for a sale in Spanish; the buyer signs it in ink.
+  const es = doc === 'conditionReport' && sale.language === 'es';
   const lien = funding?.type === 'lender' ? lender : r.balance > 0 || funding?.type === 'inHouse' ? dealer.legalName : null;
 
   const body = (() => {
@@ -157,26 +159,39 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
       case 'conditionReport': {
         const c = sale.step.paperwork?.conditionReport ?? {}, bos = sale.step.paperwork?.billOfSale ?? {};
         const pics = photosOf(c.photos), warranty = bos.asIs === 'warranty';
+        const w = es ? {
+          h: 'Estado del vehículo al venderse', car: 'Vehículo', vin: 'Número de identificación del vehículo (VIN)', odo: 'Odómetro', mi: 'millas', sold: 'Vendido',
+          warranty: 'Con garantía', asIs: 'Como está, sin garantía', guide: 'Guía del Comprador en la ventana', drove: 'El comprador lo manejó de prueba', noLights: 'Sin luces de advertencia',
+          lights: 'Luces de advertencia', none: 'Ninguna', known: 'No funcionaba al venderse', nothing: 'Nada conocido', photos: 'Fotos', taken: (n: number) => `${n} tomadas hoy`, noPhotos: 'Ninguna',
+          key: warranty ? 'Las reparaciones fuera de la garantía escrita son responsabilidad del comprador.' : 'El vehículo se vende como está. Las reparaciones después de hoy son responsabilidad del comprador.',
+          pay: 'Los pagos se deben aunque el vehículo necesite reparaciones.',
+        } : {
+          h: 'Condition at sale', car: 'Vehicle', vin: 'Vehicle identification number', odo: 'Odometer', mi: 'mi', sold: 'Sold',
+          warranty: 'With a warranty', asIs: 'As is, no warranty', guide: 'Buyers Guide on the window', drove: 'Buyer test drove it', noLights: 'No warning lights',
+          lights: 'Warning lights', none: 'None', known: 'Not working at sale', nothing: 'Nothing known', photos: 'Photos', taken: (n: number) => `${n} taken today`, noPhotos: 'None',
+          key: warranty ? 'Repairs outside the written warranty are the buyer’s.' : 'The car is sold as is. Repairs after today are the buyer’s.',
+          pay: 'Payments are due whether or not it needs repairs.',
+        };
         return (<>
           <section className="vehicle">
-            <h4>Condition at sale</h4>
+            <h4>{w.h}</h4>
             <div className="grid">
-              <Cell k="Vehicle" v={car} className="w2" /><Cell k="Vehicle identification number" v={<span className="mono">{v.vin}</span>} className="w4" />
-              <Cell k="Odometer" v={v.mileage != null ? `${v.mileage.toLocaleString()} mi` : ''} className="w2" /><Cell k="Sold" v={warranty ? `With a warranty${bos.warrantyLength ? `: ${bos.warrantyLength}` : ''}` : 'As is, no warranty'} className="w4" />
+              <Cell k={w.car} v={car} className="w2" /><Cell k={w.vin} v={<span className="mono">{v.vin}</span>} className="w4" />
+              <Cell k={w.odo} v={v.mileage != null ? `${v.mileage.toLocaleString()} ${w.mi}` : ''} className="w2" /><Cell k={w.sold} v={warranty ? `${w.warranty}${bos.warrantyLength ? `: ${bos.warrantyLength}` : ''}` : w.asIs} className="w4" />
             </div>
             <div className="odo">
-              <Box on={c.guide === 'yes'}>Buyers Guide on the window</Box>
-              <Box on={c.drove === 'yes'}>Buyer test drove it</Box>
-              <Box on={c.lights === 'none'}>No warning lights</Box>
+              <Box on={c.guide === 'yes'}>{w.guide}</Box>
+              <Box on={c.drove === 'yes'}>{w.drove}</Box>
+              <Box on={c.lights === 'none'}>{w.noLights}</Box>
             </div>
           </section>
           <table className="cond"><tbody>
-            <Row k="Warning lights" v={c.lights === 'yes' ? c.lightsWhich ?? '' : 'None'} />
-            <Row k="Not working at sale" v={c.known === 'yes' ? c.knownWhat ?? '' : 'Nothing known'} />
-            <Row k="Photos" v={pics.length ? `${pics.length} taken today` : 'None'} />
+            <Row k={w.lights} v={c.lights === 'yes' ? c.lightsWhich ?? '' : w.none} />
+            <Row k={w.known} v={c.known === 'yes' ? c.knownWhat ?? '' : w.nothing} />
+            <Row k={w.photos} v={pics.length ? w.taken(pics.length) : w.noPhotos} />
           </tbody></table>
           {pics.length > 0 && <div className="pics">{pics.map((p, i) => <img key={i} src={p} alt={`Photo ${i + 1}`} />)}</div>}
-          <p className="key">{warranty ? 'Repairs outside the written warranty are the buyer’s.' : 'The car is sold as is. Repairs after today are the buyer’s.'} Payments are due whether or not it needs repairs.</p>
+          <p className="key">{w.key} {w.pay}</p>
         </>);
       }
       case 'vehicleResponsibility': return (<>
@@ -203,15 +218,15 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
   const accent = dealer.brand.accent;
   const docNo = `${{ billOfSale: 'BS', salvageBillOfSale: 'SB', conditionReport: 'CR' }[doc as string] ?? 'D'}-${date.slice(6)}${date.slice(0, 2)}${date.slice(3, 5)}-${(sale.vehicle.stock || sale.vehicle.vin.slice(-4)).replace(/\W/g, '')}`;
   return (
-    <article className={'sheet' + (compact ? ' compact' : '')} style={{ ['--doc' as string]: accent }}>
+    <article className={'sheet' + (compact ? ' compact' : '')} style={{ ['--doc' as string]: accent }} lang={es ? 'es' : undefined}>
       <i className="band" />
-      <Letterhead dealer={dealer} title={DOC_TITLE[doc]} no={docNo} date={date} stock={sale.vehicle.stock} />
+      <Letterhead dealer={dealer} title={es ? 'Informe del estado del vehículo' : DOC_TITLE[doc]} no={docNo} date={date} stock={sale.vehicle.stock} es={es} />
       {body}
       {!compact && <footer className="sig">
-        <div><span className="ink">{buyerSig && <img src={buyerSig} alt="Purchaser signature" />}</span><b>Purchaser</b><small>{b.fullName}</small><small className="d">Date {date}</small></div>
-        <div><span className="ink">{dealerSig && dealer.signer.name && <em>{dealer.signer.name}</em>}</span><b>Seller, authorized signature</b><small>{dealer.signer.name ? `${dealer.signer.name}, ${dealer.signer.title}, for ${dealer.legalName}` : `Authorized representative, for ${dealer.legalName}`}</small><small className="d">Date {date}</small></div>
+        <div><span className="ink">{buyerSig && <img src={buyerSig} alt="Purchaser signature" />}</span><b>{es ? 'Comprador' : 'Purchaser'}</b><small>{b.fullName}</small><small className="d">{es ? 'Fecha' : 'Date'} {date}</small></div>
+        <div><span className="ink">{dealerSig && dealer.signer.name && <em>{dealer.signer.name}</em>}</span><b>{es ? 'Vendedor, firma autorizada' : 'Seller, authorized signature'}</b><small>{dealer.signer.name ? `${dealer.signer.name}, ${dealer.signer.title}, ${es ? 'por' : 'for'} ${dealer.legalName}` : es ? `Representante autorizado de ${dealer.legalName}` : `Authorized representative, for ${dealer.legalName}`}</small><small className="d">{es ? 'Fecha' : 'Date'} {date}</small></div>
       </footer>}
-      {!compact && <p className="foot"><span>{join(dealer.legalName, dealer.licence && `GDN ${dealer.licence}`)}</span><span>{docNo} · Page 1 of 1</span></p>}
+      {!compact && <p className="foot"><span>{join(dealer.legalName, dealer.licence && `GDN ${dealer.licence}`)}</span><span>{docNo} · {es ? 'Página 1 de 1' : 'Page 1 of 1'}</span></p>}
     </article>
   );
 }

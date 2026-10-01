@@ -1,7 +1,7 @@
 /* The messaging service: every text goes out through the gate, every
    webhook is verified, every STOP is honoured, and dealer verification at
    onboarding sends the code to the contact on the TxDMV licence record. */
-import { gate, helpReply, keyword, startReply, stopReply, toE164 } from './messaging/core';
+import { gate, helpReply, keyword, keywordLang, startReply, stopReply, toE164 } from './messaging/core';
 import type { MessageKind, MessagingProvider, ProviderEvent } from './messaging/types';
 import type { Store } from './store';
 
@@ -47,7 +47,8 @@ export class Messenger {
     // Keyword replies go straight to the provider: the confirmation of a STOP is the one text allowed after it.
     if (k === 'stop') await this.store.suppress(line.dealerId, from, ev.at, 'keyword');
     if (k === 'start') await this.store.unsuppress(line.dealerId, from);
-    const text = k === 'stop' ? stopReply(line.displayName) : k === 'start' ? startReply(line.displayName) : helpReply(line.displayName, line.helpPhone);
+    const lang = keywordLang(ev.text);
+    const text = k === 'stop' ? stopReply(line.displayName, lang) : k === 'start' ? startReply(line.displayName, lang) : helpReply(line.displayName, line.helpPhone, lang);
     const res = await this.p.send({ dealerId: line.dealerId, from: line.number, to: from, text, kind: 'care' });
     await this.store.logMessage({ dealerId: line.dealerId, direction: 'out', providerId: res.providerId, from: line.number, to: from, kind: 'keyword-reply', text, parts: res.parts, status: res.status, error: res.error, at: this.clock().toISOString() });
   }

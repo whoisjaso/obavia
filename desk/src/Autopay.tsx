@@ -2,7 +2,7 @@
    then they sign. And the account's history, where on-purpose shows red. */
 import { useState } from 'react';
 import { WEEKDAY, abaOk, authorization, checkCard, paydayHint, signal, timeline, type Funding, type OnFile } from './lib/autopay';
-import { money, today } from './lib/loans';
+import { money, today, type Lang } from './lib/loans';
 import { first, nice } from './Payments';
 import { autopayOff, setAutopay, setPayday, useStore } from './store';
 import { Back, Ic, feel, go, transition } from './ui';
@@ -31,6 +31,7 @@ export function AutopaySetup({ id }: { id: string }) {
   const [method, setMethod] = useState<OnFile | null>(null);
   const [payday, setPd] = useState<number | undefined>(l?.autopay?.payday);
   const [name, setName] = useState('');
+  const [lang, setLang] = useState<Lang>(l?.language ?? 'en');
   if (!l) { go('/payments'); return null; }
   const to = (s: Step) => transition(() => { setTrail(x => [...x, step]); setStep(s); scrollTo(0, 0); });
   const back = () => transition(() => { setStep(trail[trail.length - 1] ?? 'how'); setTrail(x => x.slice(0, -1)); }, 'back');
@@ -44,7 +45,7 @@ export function AutopaySetup({ id }: { id: string }) {
     setMethod({ kind: 'card', brand: brandOf(digits), last4: digits.slice(-4), funding, exp }); feel.next(); to('day');
   };
   const saveBank = () => { setMethod({ kind: 'bank', last4: acct.slice(-4), routing }); feel.next(); to('day'); };
-  const sign = () => { feel.done(); setAutopay(l.id, method!, payday, name.trim(), t); setTrail([]); transition(() => setStep('done')); };
+  const sign = () => { feel.done(); setAutopay(l.id, method!, payday, name.trim(), t, lang); setTrail([]); transition(() => setStep('done')); };
 
   return (
     <main className="wrap center">{top}
@@ -91,8 +92,9 @@ export function AutopaySetup({ id }: { id: string }) {
 
       {step === 'sign' && method && <section className="enter" key="sign">
         <h1 className="q">{first(l.buyer.name)} Signs.</h1>
-        <p className="auth">{authorization(dealer.legalName || dealer.dba, dealer.phone || 'the dealership', l, method, payday)}</p>
-        <div className="field"><input className="input" autoComplete="off" placeholder="Their full name" value={name} onChange={e => setName(e.target.value)} aria-label="Signature" /></div>
+        <p className="auth" lang={lang}>{authorization(dealer.legalName || dealer.dba, dealer.phone || (lang === 'es' ? 'el concesionario' : 'the dealership'), l, method, payday, lang)}</p>
+        <button className="textlink" onClick={() => { feel.tap(); setLang(lang === 'es' ? 'en' : 'es'); }}>{lang === 'es' ? 'Read It In English' : 'Léalo En Español'}</button>
+        <div className="field"><input className="input" autoComplete="off" placeholder={lang === 'es' ? 'Su nombre completo' : 'Their full name'} value={name} onChange={e => setName(e.target.value)} aria-label="Signature" /></div>
         <div className="dock"><div className="in"><button className="btn primary block" disabled={name.trim().split(/\s+/).length < 2} onClick={sign}>Turn On Autopay</button></div></div>
       </section>}
 

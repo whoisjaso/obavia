@@ -37,19 +37,32 @@ export const plainText = (s: string) => s.replace(/[‘’]/g, "'").replace(/[�
 const STOP = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'OPTOUT', 'OPT OUT', 'REVOKE'];
 const START = ['START', 'UNSTOP', 'YES', 'SUBSCRIBE'];
 const HELP = ['HELP', 'INFO'];
+/** The same keywords in Spanish, so a buyer who texts in Spanish can always stop. */
+const STOP_ES = ['PARAR', 'PARE', 'ALTO', 'CANCELAR', 'BAJA', 'DETENER'];
+const START_ES = ['INICIAR', 'REANUDAR'];
+const HELP_ES = ['AYUDA'];
+const norm = (text: string) => (text ?? '').trim().toUpperCase().replace(/[.!¡]+/g, '').trim();
 
-/** Carrier keywords. Only a message that IS the keyword counts ("stop" yes, "don't stop" no). */
+/** Carrier keywords, in English or Spanish. Only a message that IS the keyword counts ("stop" yes, "don't stop" no). */
 export function keyword(text: string): 'stop' | 'start' | 'help' | null {
-  const t = (text ?? '').trim().toUpperCase().replace(/[.!]+$/, '');
-  if (STOP.includes(t)) return 'stop';
-  if (START.includes(t)) return 'start';
-  if (HELP.includes(t)) return 'help';
+  const t = norm(text);
+  if (STOP.includes(t) || STOP_ES.includes(t)) return 'stop';
+  if (START.includes(t) || START_ES.includes(t)) return 'start';
+  if (HELP.includes(t) || HELP_ES.includes(t)) return 'help';
   return null;
 }
+/** A keyword sent in Spanish gets its reply in Spanish. */
+export const keywordLang = (text: string): 'en' | 'es' => [...STOP_ES, ...START_ES, ...HELP_ES].includes(norm(text)) ? 'es' : 'en';
 
-export const stopReply = (dealer: string) => `${dealer}: You're unsubscribed and won't get more texts from us. Reply START to resubscribe.`;
-export const helpReply = (dealer: string, phone: string) => `${dealer}: For help call ${phone}. Msg & data rates may apply. Reply STOP to opt out.`;
-export const startReply = (dealer: string) => `${dealer}: You're subscribed again. Reply STOP to opt out.`;
+export const stopReply = (dealer: string, lang: 'en' | 'es' = 'en') => lang === 'es'
+  ? `${dealer}: Ya no recibirá más mensajes de nosotros. Responda INICIAR para volver a recibirlos.`
+  : `${dealer}: You're unsubscribed and won't get more texts from us. Reply START to resubscribe.`;
+export const helpReply = (dealer: string, phone: string, lang: 'en' | 'es' = 'en') => lang === 'es'
+  ? `${dealer}: Para ayuda llame al ${phone}. Pueden aplicar tarifas de mensajes y datos. Responda PARAR para no recibir más mensajes.`
+  : `${dealer}: For help call ${phone}. Msg & data rates may apply. Reply STOP to opt out.`;
+export const startReply = (dealer: string, lang: 'en' | 'es' = 'en') => lang === 'es'
+  ? `${dealer}: Volverá a recibir nuestros mensajes. Responda PARAR para no recibir más mensajes.`
+  : `${dealer}: You're subscribed again. Reply STOP to opt out.`;
 export const OPT_OUT_FOOTER = 'Reply STOP to opt out.';
 
 /* ---------- quiet hours (Texas, Tex. Bus. & Com. Code ch. 301, applied to marketing texts) ---------- */

@@ -7,7 +7,7 @@ import type { DocType } from './lib/plan';
 import type { AgreementState, Buyer, Sale, StepData, Vehicle } from './lib/sale';
 import { EXAMPLE_LOT, exampleSales } from './data';
 import { MARKETPLACE_TERMS, termsHash, type Consent } from './lib/consent';
-import { addDays, amountToAsk, openLoan, standing, takePayment, today, type Frequency, type Loan, type Method } from './lib/loans';
+import { addDays, amountToAsk, openLoan, standing, takePayment, today, type Frequency, type Lang, type Loan, type Method } from './lib/loans';
 import { fromReceipt, normName, type Money, type Payers, type Suggestion } from './lib/match';
 import { cashOn, dayState, withBanking, type CashDay } from './lib/cashday';
 import { live, session, syncDesk } from './lib/api';
@@ -52,6 +52,7 @@ export function exampleLoans(tz: string): Loan[] {
   dana.attempts = [at(dana, 9, '51', 3, 'card'), at(dana, 6, '51', 3, 'card')];
   chris.autopay = { on: false, method: { kind: 'bank', bank: 'Chase', last4: '4417', routing: '111000614' }, signedBy: 'Chris Sample', signedOn: addDays(t, -86), history: [{ on: addDays(t, -86), event: 'added' }, { on: addDays(t, -19), event: 'turned_off' }] };
   chris.attempts = [{ ...at(chris, 18, 'R08', 3, 'bank'), result: 'returned' }];
+  list[3].language = 'es';   // one buyer whose texts are in Spanish
   // The car's condition as signed, and the complaint that came before the stopped payment.
   for (const l of list) l.condition = { signedOn: l.openedOn, miles: 61240, asIs: true, guide: true, drove: true, photos: [] };
   chris.condition = { signedOn: chris.openedOn, miles: 88410, asIs: true, guide: true, drove: true, known: 'Driver window motor slow', photos: [] };
@@ -175,8 +176,8 @@ export function addService(loanId: string, e: ServiceEntry) {
   set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, service: [...(l.service ?? []), e] }) });
 }
 /* ---------- autopay ---------- */
-export function setAutopay(loanId: string, method: OnFile, payday: number | undefined, signedBy: string, on: string) {
-  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, autopay: { on: true, method, payday, signedBy, signedOn: on,
+export function setAutopay(loanId: string, method: OnFile, payday: number | undefined, signedBy: string, on: string, signedIn: Lang = 'en') {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, autopay: { on: true, method, payday, signedBy, signedOn: on, signedIn,
     history: [...(l.autopay?.history ?? []), { on, event: l.autopay?.method ? 'replaced' as const : 'added' as const }] } }) });
 }
 export function autopayOff(loanId: string, on: string) {
@@ -217,6 +218,8 @@ export function setAutoPost(on: boolean) { set({ ...state, autoPost: on }); }
 export function setEvening(e: { on: boolean; hour: number }) { set({ ...state, evening: e }); }
 /** Not a car payment (a refund from a supplier, a personal deposit): set it aside for good. */
 export function dismissMoney(id: string) { set({ ...state, matched: { ...state.matched, [id]: { loanId: null } } }); }
+/** The language the buyer's texts and papers are in. */
+export function setLoanLanguage(loanId: string, language: Lang) { set({ ...state, loans: getLoans().map(l => (l.id === loanId ? { ...l, language } : l)) }); }
 export function setReminders(loanId: string, on: boolean) { set({ ...state, loans: getLoans().map(l => (l.id === loanId ? { ...l, remindersOn: on } : l)) }); }
 /** When an in-house sale completes, its note opens from the financing answers. */
 function loanFromSale(s: Sale, total: number): Loan | null {
@@ -225,7 +228,7 @@ function loanFromSale(s: Sale, total: number): Loan | null {
   const freq = (f.frequency in PER_YEAR ? f.frequency : 'monthly') as Frequency;
   const down = parseMoney(f.down) ?? 0, count = Number(f.count) || 0, apr = Number(f.rate) || 0;
   if (!count || !f.firstDue || total - down <= 0) return null;
-  const opened = openLoan({ id: 'n' + s.id, saleId: s.id, buyer: { name: s.buyer.fullName, phone: s.buyer.phone }, vehicle: `${s.vehicle.year} ${s.vehicle.make} ${s.vehicle.model}${s.vehicle.stock ? ` · Stock ${s.vehicle.stock}` : ''}`,
+  const opened = openLoan({ id: 'n' + s.id, saleId: s.id, language: s.language ?? 'en', buyer: { name: s.buyer.fullName, phone: s.buyer.phone }, vehicle: `${s.vehicle.year} ${s.vehicle.make} ${s.vehicle.model}${s.vehicle.stock ? ` · Stock ${s.vehicle.stock}` : ''}`,
     principalCents: Math.round((total - down) * 100), apr, count, frequency: freq, firstDue: f.firstDue, openedOn: today(state.dealer.timeZone) });
   return { ...opened, condition: conditionFromSale(s, opened.openedOn) };
 }

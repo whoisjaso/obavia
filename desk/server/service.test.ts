@@ -72,6 +72,15 @@ describe('Messenger.webhook', () => {
     await m.webhook(inbound('HELP'), signed);
     expect(p.sent.at(-1)!.text).toContain(LINE.helpPhone);
   });
+  it('a Spanish PARAR stops too, and the confirmation comes back in Spanish', async () => {
+    const { p, s, m } = setup();
+    await m.webhook(inbound('Parar'), signed);
+    expect(await s.isSuppressed(LINE.dealerId, BUYER)).toBe(true);
+    expect(p.sent[0].text).toMatch(/Ya no recibirá/);
+    await m.webhook(inbound('INICIAR'), signed);
+    expect(await s.isSuppressed(LINE.dealerId, BUYER)).toBe(false);
+    expect(p.sent.at(-1)!.text).toMatch(/PARAR/);
+  });
   it('logs a real reply without answering it, and ignores numbers that are not ours', async () => {
     const { p, s, m } = setup();
     await m.webhook(inbound('Is the Tahoe still there?'), signed);
