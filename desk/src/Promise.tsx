@@ -2,7 +2,8 @@
    promise; the buyer gets one reminder that morning, and a broken promise goes
    to the top of the owner's list. */
 import { useState } from 'react';
-import { addDays, amountToAsk, money, standing, today } from './lib/loans';
+import { addDays, money, standing, today } from './lib/loans';
+import { askTotal } from './lib/extras';
 import { openPromise, paidToward, promiseDays } from './lib/promise';
 import { parseMoney } from './lib/money';
 import { first, nice } from './Payments';
@@ -18,7 +19,7 @@ export function PromiseSetup({ id }: { id: string }) {
   const [on, setOn] = useState('');
   const [amt, setAmt] = useState('');
   if (!l) { go('/payments'); return null; }
-  const s = standing(l, t), owe = amountToAsk(s);
+  const s = standing(l, t), owe = askTotal(l, s);
   const to = (x: typeof step) => transition(() => { setStep(x); scrollTo(0, 0); });
   const save = (cents: number) => { feel.done(); addPromise(l.id, { made: t, on, cents }); to('done'); };
   const back = <div className="top">{step === 'much' || step === 'other' ? <button className="back" onClick={() => { feel.tap(); to(step === 'other' ? 'much' : 'when'); }}><Ic n="chev" s={18} w={2.4} />Back</button> : <Back to={`#/payments/${l.id}`} label={first(l.buyer.name)} />}</div>;

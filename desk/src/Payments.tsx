@@ -11,6 +11,7 @@ import { methodText } from './Autopay';
 import { getLoans, me, recordPayment, setLoanLanguage, setReminders, useStore } from './store';
 import { can } from './lib/staff';
 import { brokenPromises, openPromise } from './lib/promise';
+import { askTotal, extrasLine, repairLeft, repairsLeft } from './lib/extras';
 import { Back, Ic, feel, go, transition } from './ui';
 
 export const nice = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...opts });
@@ -129,7 +130,7 @@ export function Account({ id }: { id: string }) {
   const { dealer, loans = [] } = useStore();
   const l = loans.find(x => x.id === id);
   if (!l) return <Payments />;
-  const s = standing(l, today(dealer.timeZone)), x = line(s), ask = amountToAsk(s), g = signal(l, today(dealer.timeZone)), pr = openPromise(l, today(dealer.timeZone));
+  const s = standing(l, today(dealer.timeZone)), x = line(s), ask = askTotal(l, s), extra = extrasLine(l, s), rep = repairsLeft(l), g = signal(l, today(dealer.timeZone)), pr = openPromise(l, today(dealer.timeZone));
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/payments" label="Payments" /></div>
@@ -138,10 +139,10 @@ export function Account({ id }: { id: string }) {
         {g.tone === 'red' || g.tone === 'amber'
           ? <a className={`flag ${g.tone}`} href={`#/payments/${l.id}/history`} onClick={feel.next}>{g.tone === 'red' ? 'On Purpose' : 'Short On Money'}{s.status === 'late' ? ` · ${x.tag}` : ''}</a>
           : <span className={`status ${x.tone === 'late' ? 'bad' : x.tone} center-tag`}>{x.tag}</span>}
-        {s.status === 'paid_off'
-          ? <p className="big-amount good num">Paid In Full</p>
+        {s.status === 'paid_off' && !ask
+          ? <><p className="big-amount good num">Paid In Full</p>{rep > 0 && <p className="note">{money(rep)} left on repairs</p>}</>
           : <><p className={`big-amount num ${x.tone}`}>{money(ask)}</p>
-              {s.status !== 'late' && <p className="note">Due {longDay(s.next!.due)}</p>}</>}
+              {(s.status !== 'late' || extra) && <p className="note">{[s.status !== 'late' && s.next && `Due ${longDay(s.next.due)}`, extra && `Includes ${extra}`].filter(Boolean).join(' · ')}</p>}</>}
         <div className="choices">
           <Go to={`/payments/${l.id}/autopay`} icon="link" label="Autopay" gloss={l.autopay?.on && l.autopay.method ? `${methodText(l.autopay.method)} · ${l.autopay.payday === undefined ? 'due dates' : WEEKDAY[l.autopay.payday] + 's'}` : 'Off'} />
           <Go to={`/payments/${l.id}/history`} icon="sheet" label="History" gloss={l.payments.length ? `${money(s.paidCents)} paid` : undefined} />
@@ -170,6 +171,7 @@ export function AccountPage({ id, page }: { id: string; page: string }) {
         <div className="choices">
           <Go to={`/payments/${l.id}/schedule`} icon="sheet" label="Schedule" gloss={`${l.count} × ${money(l.paymentCents)}`} />
           <Go to={`/payments/${l.id}/reminders`} icon="phone" label="Reminders" gloss={l.remindersOn ? 'On' : 'Off'} />
+          <Go to={`/payments/${l.id}/extras`} icon="plus" label="Repairs And Fees" gloss={l.extras?.length ? l.extras.map(e => e.what).join(', ') : 'None'} />
           <Go to={`/payments/${l.id}/language`} icon="globe" label="Language" gloss={l.language === 'es' ? 'Español · texts and papers' : 'English · texts and papers'} />
           <Go to={`/payments/${l.id}/condition`} icon="doc" label="Condition" gloss={l.condition ? `${l.condition.asIs ? 'As-is' : 'Warranty'} · signed ${nice(l.condition.signedOn)}${l.service?.length ? ` · ${l.service.length} complaint${l.service.length > 1 ? 's' : ''}` : ''}` : 'No report'} />
         </div>
@@ -249,14 +251,17 @@ export function TakePayment({ id }: { id: string }) {
   const t = today(dealer.timeZone);
   const s0 = l ? standing(l, t) : null;
   const [step, setStep] = useState(0);
-  const [amt, setAmt] = useState(s0 ? (amountToAsk(s0) / 100).toFixed(2) : '');
+  const [amt, setAmt] = useState(s0 && l ? (askTotal(l, s0) / 100).toFixed(2) : '');
+  const [toward, setToward] = useState<string | undefined>();
   const [method, setMethod] = useState<Method | null>(null);
   const [receipt, setReceipt] = useState<number | null>(null);
   const [seeTexts, setSeeTexts] = useState(false);
   if (!l || !s0) return <Payments />;
   const to = (n: number, d: 'fwd' | 'back' = 'fwd') => transition(() => { setStep(n); scrollTo(0, 0); }, d);
   const cents = Math.round((parseMoney(amt) ?? 0) * 100);
-  const quick = [{ label: 'What’s Due', c: amountToAsk(s0) }, { label: 'One Payment', c: l.paymentCents }, { label: 'Pay It Off', c: s0.payoffCents }].filter((q, i, a) => q.c > 0 && a.findIndex(z => z.c === q.c) === i);
+  const quick = ([{ label: 'What’s Due', c: askTotal(l, s0) }, { label: 'One Payment', c: l.paymentCents }, { label: 'Pay It Off', c: s0.payoffCents },
+    ...(l.extras ?? []).filter(e => repairLeft(l, e) > 0).map(e => ({ label: `Toward ${e.what}`, c: repairLeft(l, e), to: e.id }))] as { label: string; c: number; to?: string }[]).filter((q, i, a) => q.c > 0 && a.findIndex(z => z.c === q.c && z.to === q.to) === i);
+  const most = s0.payoffCents + repairsLeft(l) + (askTotal(l, s0) - amountToAsk(s0));
   const after = receipt ? standing(getLoans().find(x => x.id === id)!, t) : null;
   const paid = receipt ? getLoans().find(x => x.id === id)!.payments.find(p => p.receipt === receipt)! : null;
 
@@ -268,16 +273,16 @@ export function TakePayment({ id }: { id: string }) {
       </div>
       {step === 0 && <section className="enter" key="amt">
         <h1 className="q">How Much?</h1>
-        <div className="money"><input className="input" inputMode="decimal" autoFocus value={amt} onChange={e => setAmt(e.target.value)} placeholder="0" aria-label="Amount" /></div>
-        <div className="chips">{quick.map(q => <button key={q.label} className={'chip' + (cents === q.c ? ' on' : '')} onClick={() => { feel.tap(); setAmt((q.c / 100).toFixed(2)); }}><b className="num">{money(q.c)}</b><small>{q.label}</small></button>)}</div>
-        <div className="dock"><div className="in"><button className="btn primary block" disabled={!(cents > 0) || cents > s0.payoffCents} onClick={() => { feel.next(); to(1); }}>{cents > s0.payoffCents ? 'More Than The Payoff' : 'Continue'}</button></div></div>
+        <div className="money"><input className="input" inputMode="decimal" autoFocus value={amt} onChange={e => { setAmt(e.target.value); setToward(undefined); }} placeholder="0" aria-label="Amount" /></div>
+        <div className="chips">{quick.map(q => <button key={q.label} className={'chip' + (cents === q.c && toward === q.to ? ' on' : '')} onClick={() => { feel.tap(); setAmt((q.c / 100).toFixed(2)); setToward(q.to); }}><b className="num">{money(q.c)}</b><small>{q.label}</small></button>)}</div>
+        <div className="dock"><div className="in"><button className="btn primary block" disabled={!(cents > 0) || cents > most} onClick={() => { feel.next(); to(1); }}>{cents > most ? 'More Than They Owe' : 'Continue'}</button></div></div>
       </section>}
       {step === 1 && <section className="enter" key="method">
         <h1 className="q">Paid With?</h1>
         <div className="choices grid2">
           {METHODS.map(x => <button key={x.m} className="choice" aria-pressed={method === x.m} onClick={() => { feel.tap(); setMethod(x.m); }}><span className="art"><Ic n={x.icon} s={24} /></span><span className="t"><b>{METHOD_LABEL[x.m]}</b></span>{method === x.m && <span className="tick"><Ic n="check" s={16} w={3} /></span>}</button>)}
         </div>
-        <div className="dock"><div className="in"><button className="btn primary block" disabled={!method} onClick={() => { feel.done(); setReceipt(recordPayment(l.id, cents, method!, t)); to(2); }}>Record {money(cents)}</button></div></div>
+        <div className="dock"><div className="in"><button className="btn primary block" disabled={!method} onClick={() => { feel.done(); setReceipt(recordPayment(l.id, cents, method!, t, toward)); to(2); }}>Record {money(cents)}</button></div></div>
       </section>}
       {step === 2 && after && paid && <section className="enter" key="done">
         <span className="done-mark pop"><Ic n="check" s={38} w={3} /></span>

@@ -10,6 +10,7 @@
 import type { Attempt, Autopay } from './autopay';
 import type { Condition, ServiceEntry } from './condition';
 import { openPromise, promiseReminder, type PayPromise } from './promise';
+import { perPayment, repairsLeft, type Extra } from './extras';
 
 export type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'venmo' | 'paypal' | 'other';
@@ -17,6 +18,7 @@ export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle'
     payment is clearing for up to four business days and can still come back; a card can be charged back. */
 export type PaymentStatus = 'cleared' | 'clearing' | 'returned' | 'refunded' | 'charged_back';
 export type Payment = { id: string; on: string; cents: number; method: Method; receipt: number; note?: string; by?: string;
+  toExtras?: Record<string, number>;   // the part of this payment that went to a repair or a fee, by extra id
   status?: PaymentStatus;                 // missing = cleared (every desk payment before processors existed)
   via?: 'desk' | 'text_link' | 'autopay' | 'portal' | 'retail_cash' | 'matched' | 'imported';   // matched: found in the bank feed or a receipt email, confirmed by the dealer
   processorId?: string;                   // the processor's id for this payment, to match callbacks
@@ -43,6 +45,7 @@ export type Loan = {
   attempts?: Attempt[];            // charges that failed, with the reason code
   condition?: Condition;           // the car's condition as signed at the sale
   service?: ServiceEntry[];        // complaints and repairs since
+  extras?: Extra[];                // repair balances and recurring fees, beside the note
   promises?: PayPromise[];         // "I'll pay Monday": the account works from the promise
   imported?: { from: 'frazer'; on: string; account: string; theirBalanceCents?: number; mode: 'history' | 'balance' };
 };
@@ -110,6 +113,8 @@ export type Standing = {
 };
 
 const sorted = (p: Payment[]) => [...p].sort((a, b) => a.on.localeCompare(b.on) || a.receipt - b.receipt);
+/** The part of a payment that went to the car note (the rest went to repairs or fees). */
+export const noteCents = (p: Payment) => p.cents - Object.values(p.toExtras ?? {}).reduce((t, c) => t + c, 0);
 
 export function standing(loan: Loan, asOf: string): Standing {
   const dates = dueDates(loan.firstDue, loan.count, loan.frequency);
@@ -138,12 +143,13 @@ export function standing(loan: Loan, asOf: string): Standing {
     assessFees(p.on);
     const feesOutstanding = feeDue.reduce((t, f) => t + f.cents, 0) - feesPaid;
     const interest = carry + Math.round(principal * (loan.apr / 100) * Math.max(0, daysBetween(since, p.on)) / 365);
-    let left = p.cents;
+    const cents = noteCents(p);
+    let left = cents;
     const toFees = Math.min(left, feesOutstanding); left -= toFees; feesPaid += toFees;
     const toInterest = Math.min(left, interest); left -= toInterest; interestPaid += toInterest; carry = interest - toInterest;
     const toPrincipal = Math.min(left, principal); left -= toPrincipal; principal -= toPrincipal;
-    since = p.on; paid += p.cents;
-    pool += p.cents - toFees; coverTo(p.on);
+    since = p.on; paid += cents;
+    pool += cents - toFees; coverTo(p.on);
   }
   assessFees(asOf);
   const feesOwed = feeDue.reduce((t, f) => t + f.cents, 0) - feesPaid;
@@ -202,7 +208,7 @@ export function reminderPlan(loan: Loan, s: Standing, dealerName: string): Remin
 function basePlan(loan: Loan, s: Standing, dealerName: string): Reminder[] {
   if (!loan.remindersOn || !s.next || s.status === 'paid_off') return [];
   const i = s.installments[s.next.n - 1], first = loan.buyer.name.split(' ')[0], es = loan.language === 'es', d = es ? dia : day;
-  const owed = i.cents - i.paidCents, fee = usd(Math.round(i.cents * loan.late.pct / 100)), lateDays = loan.late.graceDays - 2, feeDay = d(addDays(i.due, loan.late.graceDays));
+  const owed = i.cents - i.paidCents + perPayment(loan, i.due), fee = usd(Math.round(i.cents * loan.late.pct / 100)), lateDays = loan.late.graceDays - 2, feeDay = d(addDays(i.due, loan.late.graceDays));
   const plan: Reminder[] = [
     { on: addDays(i.due, -3), kind: 'before', n: i.n, text: es ? `Hola ${first}, un recordatorio de ${dealerName}: su pago de ${usd(owed)} vence el ${d(i.due)}.` : `Hi ${first}, a reminder from ${dealerName}: your payment of ${usd(owed)} is due ${d(i.due)}.` },
     { on: i.due, kind: 'due', n: i.n, text: es ? `Hola ${first}, su pago de ${usd(owed)} a ${dealerName} vence hoy.` : `Hi ${first}, your ${dealerName} payment of ${usd(owed)} is due today.` },
@@ -275,6 +281,15 @@ export function paymentTexts(ev: PaymentEvent, loan: Loan, cents: number, after:
   } })();
   // The dealership's side stays in English; the buyer's side is in their language.
   if (loan.language === 'es' && t.buyer) t.buyer = buyerEs(ev, dealerName, amt, after, receipt);
+  // where the money went, when part of it paid a repair or a fee
+  const went = Object.entries(loan.payments.find(p => p.receipt === receipt)?.toExtras ?? {}).map(([id, c]) => ({ c, what: loan.extras?.find(e => e.id === id)?.what ?? 'other charges' }));
+  if (went.length && (ev === 'received' || ev === 'cleared')) {
+    const list = went.map(w => `${usd(w.c)} to ${w.what}`).join(', ');
+    t.dealer = t.dealer.replace(/^Payment in: ([^ ]+) from ([^,]+), /, `Payment in: $1 from $2 (${list}), `);
+    if (t.buyer) t.buyer += loan.language === 'es' ? ` De este pago: ${went.map(w => `${usd(w.c)} para ${w.what}`).join(', ')}.` : ` Of this payment, ${list}.`;
+  }
+  const rep = repairsLeft(loan);
+  if (t.buyer && (ev === 'received' || ev === 'cleared') && (rep > 0 || went.length)) t.buyer += loan.language === 'es' ? ` Saldo de reparaciones ${usd(rep)}.` : ` Repairs balance ${usd(rep)}.`;
   return t;
 }
 function buyerEs(ev: PaymentEvent, dealerName: string, amt: string, after: Standing, receipt?: number) {

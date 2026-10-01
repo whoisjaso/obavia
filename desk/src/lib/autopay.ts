@@ -14,6 +14,7 @@
 
 import { addDays, daysBetween, type Lang, type Loan } from './loans';
 import { brokenPromises } from './promise';
+import { perPayment } from './extras';
 
 export type Funding = 'debit' | 'credit' | 'prepaid' | 'unknown';
 export type OnFile =
@@ -62,7 +63,9 @@ export function chargeDay(due: string, payday?: number) {
 
 /** The words the buyer signs, in their language. Counsel and a native speaker review the final wording. */
 export function authorization(dealer: string, phone: string, loan: Loan, m: OnFile, payday?: number, lang: Lang = loan.language ?? 'en') {
-  const amt = `$${(loan.paymentCents / 100).toFixed(2)}`, car = loan.vehicle.split(' · ')[0];
+  const extra = perPayment(loan, loan.autopay?.signedOn ?? loan.firstDue), d = (c: number) => `$${(c / 100).toFixed(2)}`;
+  const parts = (loan.extras ?? []).filter(e => e.kind === 'fee' ? !e.stop : !!e.perPayment).map(e => `${d(e.kind === 'fee' ? e.cents : e.perPayment!)} ${e.what}`);
+  const amt = extra ? `${d(loan.paymentCents + extra)} (${d(loan.paymentCents)} ${lang === 'es' ? 'del pago del carro y' : 'for the car payment and'} ${parts.join(lang === 'es' ? ' y ' : ' and ')})` : d(loan.paymentCents), car = loan.vehicle.split(' · ')[0];
   if (lang === 'es') {
     const what = m.kind === 'card' ? `mi tarjeta de débito ${m.brand} que termina en ${m.last4}` : `mi cuenta bancaria que termina en ${m.last4}`;
     const when = payday === undefined ? 'en cada fecha de vencimiento' : `el primer ${DIA[payday]} en o después de cada fecha de vencimiento`;

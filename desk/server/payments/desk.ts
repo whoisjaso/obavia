@@ -3,7 +3,8 @@
    Texts go through the Messenger, so STOP, the compliance gate and the log
    all apply. Payment texts are first-party account messages (the dealer
    about its own note), never third-party collection. */
-import { paymentTexts, standing, takePayment, today, updatePayment, type Loan, type Method, type PaymentEvent } from '../../src/lib/loans';
+import { applyPayment } from '../../src/lib/extras';
+import { paymentTexts, standing, today, updatePayment, type Loan, type Method, type PaymentEvent } from '../../src/lib/loans';
 import type { Messenger } from '../service';
 import type { PaymentUpdate } from './paynearme';
 
@@ -31,7 +32,7 @@ export class PaymentDesk {
     if (u.kind === 'payment') {
       if (note.payments.some(p => p.processorId === u.processorId)) return { ok: true };   // a re-sent callback
       receipt = await this.notes.nextReceipt(dealer.dealerId);
-      next = takePayment(note, { on: u.at ? today(dealer.timeZone, new Date(u.at)) : t, cents: u.cents, method: METHOD[u.method ?? 'other'], status: u.status === 'clearing' ? 'clearing' : 'cleared', processorId: u.processorId, via: 'text_link' }, receipt);
+      next = applyPayment(note, { on: u.at ? today(dealer.timeZone, new Date(u.at)) : t, cents: u.cents, method: METHOD[u.method ?? 'other'], status: u.status === 'clearing' ? 'clearing' : 'cleared', processorId: u.processorId, via: 'text_link' }, receipt);
       event = u.status === 'clearing' ? 'clearing' : 'received';
     } else if (u.kind === 'decline') {
       event = 'declined';

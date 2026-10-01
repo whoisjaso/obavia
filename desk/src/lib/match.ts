@@ -17,7 +17,8 @@
    confirmed sender is remembered, so a cousin who pays for the note is
    known next time. */
 
-import { addDays, amountToAsk, daysBetween, standing, type Loan, type Method } from './loans';
+import { addDays, daysBetween, standing, type Loan, type Method } from './loans';
+import { askTotal, perPayment } from './extras';
 
 export type Source = 'bank' | 'email';
 export type Money = {
@@ -126,9 +127,10 @@ export function nameScore(from: string, buyer: string): number {
 export function amountScore(cents: number, loan: Loan, asOf: string): { s: number; why?: string } {
   const st = standing(loan, asOf);
   if (st.status === 'paid_off' || cents > st.payoffCents + 100) return { s: 0 };
-  if (cents === amountToAsk(st)) return { s: 1, why: 'what they owe' };
+  if (cents === askTotal(loan, st)) return { s: 1, why: 'what they owe' };
   if (cents === st.payoffCents) return { s: 0.9, why: 'the payoff' };
-  for (let k = 1; k <= 4; k++) if (cents === k * loan.paymentCents) return { s: 0.9, why: k === 1 ? 'one payment' : `${k} payments` };
+  const each = loan.paymentCents + perPayment(loan, asOf);
+  for (let k = 1; k <= 4; k++) if (cents === k * each || cents === k * loan.paymentCents) return { s: 0.9, why: k === 1 ? 'one payment' : `${k} payments` };
   return { s: 0.3 };
 }
 

@@ -19,6 +19,7 @@ import { PER_YEAR } from './lib/paperwork';
 import { parseMoney } from './lib/money';
 import { idleTooLong, type Staff } from './lib/staff';
 import { promiseState, type PayPromise } from './lib/promise';
+import { applyPayment, paidTo, type Extra } from './lib/extras';
 
 type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[];
   money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay>;
@@ -158,16 +159,16 @@ export function addVehicle(v: Vehicle) { set({ ...state, lot: [v, ...state.lot] 
 /* ---------- in-house notes (buy here pay here) ---------- */
 export const getLoans = () => state.loans ?? [];
 /** Record a payment and hand back its receipt number. */
-export function recordPayment(loanId: string, cents: number, method: Method, on: string): number {
+export function recordPayment(loanId: string, cents: number, method: Method, on: string, toward?: string): number {
   const receipt = (state.receiptNo ?? 1000) + 1;
-  set({ ...state, receiptNo: receipt, loans: getLoans().map(l => (l.id === loanId ? takePayment(l, { on, cents, method, by: state.at }, receipt) : l)) });
+  set({ ...state, receiptNo: receipt, loans: getLoans().map(l => (l.id === loanId ? applyPayment(l, { on, cents, method, by: state.at }, receipt, toward) : l)) });
   return receipt;
 }
 /* ---------- money from outside the processor ---------- */
 /** The dealer confirms whose payment this is: it posts to that note, and the sender is remembered for next time. */
 export function matchMoney(m: Money, loanId: string): number {
   const receipt = (state.receiptNo ?? 1000) + 1;
-  const loans = getLoans().map(l => (l.id === loanId ? takePayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id, by: state.at }, receipt) : l));
+  const loans = getLoans().map(l => (l.id === loanId ? applyPayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id, by: state.at }, receipt) : l));
   const payers = m.from ? { ...state.payers, [normName(m.from)]: loanId } : state.payers;
   set({ ...state, receiptNo: receipt, loans, payers, matched: { ...state.matched, [m.id]: { loanId, receipt } } });
   return receipt;
@@ -199,7 +200,7 @@ export function runAutoPost(candidates: Suggestion[]) {
   const posted: AutoPosted[] = [];
   for (const sg of sure) {
     const m = sg.money, loanId = sg.best!.loanId, receipt = ++receiptNo, name = m.from ? normName(m.from) : undefined;
-    loans = loans.map(l => l.id === loanId ? takePayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id }, receipt) : l);
+    loans = loans.map(l => l.id === loanId ? applyPayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id }, receipt) : l);
     const addedPayer = name && payers[name] !== loanId ? name : undefined;
     if (addedPayer) payers = { ...payers, [addedPayer]: loanId };
     matched = { ...matched, [m.id]: { loanId, receipt } };
@@ -245,6 +246,21 @@ export function addPromise(loanId: string, p: Omit<PayPromise, 'id' | 'by'>) {
 }
 export function removePromise(loanId: string, id: string) {
   set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, promises: (l.promises ?? []).filter(x => x.id !== id) }) });
+}
+/* ---------- repairs and fees ---------- */
+export function addExtra(loanId: string, e: Omit<Extra, 'id'>) {
+  const id = 'x' + Date.now().toString(36);
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, extras: [...(l.extras ?? []), { ...e, id }] }) });
+}
+/** A fee stops from a day on; what was owed before stays owed. */
+export function stopExtra(loanId: string, id: string, on: string) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, extras: (l.extras ?? []).map(e => e.id === id ? { ...e, stop: on } : e) }) });
+}
+/** Only an extra nothing has been paid toward can be removed outright. */
+export function removeExtra(loanId: string, id: string) {
+  const l = getLoans().find(x => x.id === loanId); if (!l || paidTo(l, id) > 0) return false;
+  set({ ...state, loans: getLoans().map(x => x.id !== loanId ? x : { ...x, extras: (x.extras ?? []).filter(e => e.id !== id) }) });
+  return true;
 }
 /* ---------- coming from Frazer ---------- */
 /** Adds the notes and cars that aren't here yet. Returns how many came in. */

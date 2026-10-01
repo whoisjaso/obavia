@@ -5,7 +5,8 @@
    2. the drawer count at close, against one number;
    3. the bank deposit, matched to that day's cash, which marks the day banked.
    A day still not banked after BANK_WITHIN days is flagged. */
-import { addDays, amountToAsk, daysBetween, standing, type Loan, type Payment } from './loans';
+import { addDays, daysBetween, standing, type Loan, type Payment } from './loans';
+import { askTotal } from './extras';
 import type { Money } from './match';
 
 export const BANK_WITHIN = 3;          // days after close before an unbanked day is flagged
@@ -27,7 +28,7 @@ export function expected(loans: Loan[], asOf: string) {
   return loans.map(l => ({ loan: l, s: standing(l, asOf) }))
     .filter(x => x.s.status === 'due_today' || x.s.status === 'late')
     .filter(x => !x.loan.payments.some(p => p.on === asOf))       // already paid today: off the list
-    .map(x => ({ loan: x.loan, cents: amountToAsk(x.s), late: x.s.status === 'late', daysLate: x.s.daysLate }))
+    .map(x => ({ loan: x.loan, cents: askTotal(x.loan, x.s), late: x.s.status === 'late', daysLate: x.s.daysLate }))
     .sort((a, b) => b.daysLate - a.daysLate || a.loan.buyer.name.localeCompare(b.loan.buyer.name));
 }
 

@@ -507,3 +507,35 @@ Frazer's Export Data (Miscellaneous, then 8 Export Data) writes a .csv or tab-se
 - **Inventory:** an inventory file (VIN, year, make, model, price) adds cars to the lot.
 - **Nothing is lost silently:** accounts that can't come over are listed with the reason. An account already in the Desk is never brought in twice. Imported payments keep Frazer's receipt numbers.
 - **Before the first real move:** Frazer's exact header names aren't published. Run the import on one real Triple J export and add any header it asks about to the importer. A balance that is off usually means a fee or adjustment Frazer holds separately; the review lists each one before anything is brought in.
+
+## 17. Repair balances and recurring fees
+
+Money owed beside the car note, under The Note, then **Repairs And Fees** (`desk/src/lib/extras.ts`).
+
+- **A repair:** "Transmission repair, $640". The buyer pays it off one of two ways:
+  - a set amount more with each payment, offered as 4, 8 or 12 payments, or any amount;
+  - on its own, whenever they bring money toward it.
+- **A recurring fee:** "GPS service" or "Insurance coverage", the same amount with every installment from the next one until it's stopped. Only fees the contract allows; counsel confirms which.
+
+How payments work:
+- **Kept apart from the note:** repairs and fees never enter the note's interest or late-charge math.
+- **The order a payment pays in:**
+  1. the car note (what's due, then late charges);
+  2. fees and repair payments due, oldest first;
+  3. anything beyond goes to the note's principal.
+  - Paying the note first means a fee can never make the buyer late on the car.
+- **Paying toward a repair:** at the counter, **Toward Transmission repair** sends a payment straight to that repair.
+- **The record:** each payment records its split (`toExtras`), so History, receipts and the server all agree.
+
+Where the extras appear:
+- the amount asked on the account ("Includes $45.00 GPS service");
+- Expected Today and one-tap cash;
+- To Match scoring, which counts a payment plus fees as "what they owe";
+- reminder amounts;
+- the autopay authorization ("$141.28 ($126.28 for the car payment and $15.00 GPS service)");
+- the payment link, through the PayNearMe webhook's split;
+- buyer receipts, which say where the money went ("Of this payment, $300.00 to tires. Repairs balance $0.00."), in English or Spanish, and the dealer's copy.
+
+Changing extras:
+- **A fee:** stopped from a day on; what was owed before stays owed.
+- **A repair:** can be removed only if nothing has been paid toward it.
