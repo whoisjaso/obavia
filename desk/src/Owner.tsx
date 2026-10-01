@@ -6,7 +6,7 @@ import { evening, hourLabel } from './lib/evening';
 import { METHOD_LABEL, daysBetween, money, today } from './lib/loans';
 import { autoPostable, inbox, read } from './lib/match';
 import { nice } from './Payments';
-import { runAutoPost, setEvening, undoAutoPost, useStore } from './store';
+import { runAutoPost, setAutoPost, setEvening, undoAutoPost, useStore } from './store';
 import { Back, Ic, feel } from './ui';
 
 export const UNDO_DAYS = 2;
@@ -31,7 +31,7 @@ export function useEvening() {
 }
 
 export function Posted() {
-  const { dealer, loans = [], money: all = [], autoPosted = [] } = useStore();
+  const { dealer, loans = [], money: all = [], autoPosted = [], autoPost } = useStore();
   const t = today(dealer.timeZone);
   const rows = [...autoPosted].reverse().map(a => ({ a, l: loans.find(x => x.id === a.loanId), m: (x => x && read(x))(all.find(x => x.id === a.moneyId)) }));
   return (
@@ -48,6 +48,11 @@ export function Posted() {
           </div>)}
         </div>
         {!rows.length && <p className="note">Nothing yet.</p>}
+        <div className="choices">
+          <button className="choice" aria-pressed={!!autoPost} onClick={() => { feel.tap(); setAutoPost(!autoPost); }}>
+            <span className="t"><b>Post Sure Ones For Me</b></span><span className="tick">{autoPost && <Ic n="check" s={15} w={3} />}</span>
+          </button>
+        </div>
       </section>
     </main>
   );

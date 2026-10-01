@@ -7,7 +7,7 @@ import { METHOD_LABEL, money, paymentTexts, standing } from './lib/loans';
 import type { Suggestion } from './lib/match';
 import { useMoney } from './Owner';
 import { Go, nice } from './Payments';
-import { dismissMoney, getLoans, matchMoney, setAutoPost, useStore } from './store';
+import { dismissMoney, getLoans, matchMoney, useStore } from './store';
 import { Back, Ic, feel, go, transition } from './ui';
 
 const first = (n: string) => n.split(' ')[0];
@@ -32,7 +32,7 @@ export function MatchList() {
             label={`${money(s.money.cents)} · ${METHOD_LABEL[s.money.rail ?? 'other']}`} gloss={s.best && s.verdict !== 'unsure' ? `${name(s.best.loanId)}?` : 'Who sent this?'} />)}
         </div>
         {!box.length && <p className="note">All matched.</p>}
-        <AutoToggle />
+        <AutoLink />
       </section>
     </main>
   );
@@ -97,13 +97,7 @@ export function MatchOne({ id }: { id: string }) {
   );
 }
 
-function AutoToggle() {
-  const { autoPost } = useStore();
-  return (
-    <div className="choices">
-      <button className="choice" aria-pressed={!!autoPost} onClick={() => { feel.tap(); setAutoPost(!autoPost); }}>
-        <span className="t"><b>Post Sure Ones For Me</b><small>Undo any for 2 days</small></span><span className="tick">{autoPost && <Ic n="check" s={15} w={3} />}</span>
-      </button>
-    </div>
-  );
+function AutoLink() {
+  const { autoPost, autoPosted = [] } = useStore();
+  return <p className="links"><a href="#/payments/posted" onClick={feel.tap}>{autoPost ? `${autoPosted.length ? `${autoPosted.length} Posted For You` : 'Posting Sure Ones For You'}` : 'Post Sure Ones For Me'}</a></p>;
 }

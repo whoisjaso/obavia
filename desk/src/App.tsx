@@ -3,7 +3,7 @@ import { Desk, GuideRedirect, Step } from './Corridor';
 import { Onboarding } from './Onboarding';
 import { Paper } from './Paper';
 import { Past, Sales, Start } from './Sales';
-import { Account, AccountPage, PaymentList, Payments, TakePayment } from './Payments';
+import { Account, AccountPage, Needs, PaymentList, Payments, TakePayment } from './Payments';
 import { MatchList, MatchOne } from './Match';
 import { CashTaken, CloseDay } from './Cash';
 import { AutopaySetup, History } from './Autopay';
@@ -26,6 +26,7 @@ export function App() {
     if (id === 'cash' && b) return <CashTaken key={b} id={b} />;
     if (id === 'close') return <CloseDay />;
     if (id === 'posted') return <Posted />;
+    if (id === 'needs') return <Needs />;
     if (id === 'evening') return <EveningText />;
     if (id === 'match') return b ? <MatchOne key={b} id={decodeURIComponent(b)} /> : <MatchList />;
     if (id === 'list') return <PaymentList key={b} which={(b === 'late' || b === 'today' || b === 'watch' ? b : 'all')} />;
