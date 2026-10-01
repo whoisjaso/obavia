@@ -24,21 +24,23 @@ export function Packet({ id }: { id: string }) {
   );
 
   return (
-    <main className="wrap">
-      <div className="top"><Back to={`#/sale/${id}`} label="The Sale" /><span className="progress num">{c.signed} Of {c.owed} Signed</span></div>
-      <h1 className="q">The Paperwork.</h1>
-      <div className="group">{owed.map(d => { const a = s.documents[d]; return (
-        <button key={d} className="row" onClick={() => { feel.tap(); a?.state === 'filed' ? setOpen(d) : go(`/sale/${id}/paper/${d}`); }}>
-          <span className="art" style={{ color: 'var(--navy)' }}><Ic n="doc" /></span>
-          <span className="t"><b>{DOC_TITLE[d]}</b></span>
-          <span className={'status ' + (a?.buyerSigned ? 'good' : a?.state === 'filed' ? 'warn' : '')}>{a?.buyerSigned ? 'Signed By The Buyer' : a?.state === 'filed' ? (d === 'powerOfAttorney' ? 'Filed, Sign In Ink' : 'Filed, Not Yet Signed') : 'Not Filed'}</span>
+    <main className="wrap center">
+      <div className="top"><Back to={`#/sale/${id}`} label="The Sale" /></div>
+      <section className="enter" key="packet">
+      <h1 className="q">{c.signed === c.owed && c.owed ? 'All Signed.' : `${c.signed} Of ${c.owed} Signed.`}</h1>
+      <div className="choices">{owed.map(d => { const a = s.documents[d]; return (
+        <button key={d} className="choice" aria-pressed={!!a?.buyerSigned} onClick={() => { feel.tap(); a?.state === 'filed' ? setOpen(d) : go(`/sale/${id}/paper/${d}`); }}>
+          <span className="art"><Ic n="doc" s={24} /></span>
+          <span className="t"><b>{DOC_TITLE[d]}</b><small>{a?.buyerSigned ? 'Signed' : a?.state === 'filed' ? (d === 'powerOfAttorney' ? 'Sign in ink' : 'Not signed yet') : 'Not filed'}</small></span>
+          <span className="tick">{a?.buyerSigned && <Ic n="check" s={15} w={3} />}</span>
         </button>); })}</div>
+      </section>
       {s.status === 'completed' && <p className="empty">Completed {s.completedAt ? new Date(s.completedAt).toLocaleString() : ''}.</p>}
       <div className="dock"><div className="in">
         {signable.length > 0 && allFiled
           ? <button className="btn primary block" onClick={() => { feel.next(); go(`/sign/${id}`); }}><Ic n="pen" s={20} />Sign The Packet</button>
           : s.status !== 'completed' && <button className="btn primary block" disabled={!allFiled} onClick={() => { feel.done(); openNoteForSale(id, saleReceipt(s, dealer).total); completeSale(id); go('/'); }}>Complete Sale</button>}
-        <button className="textlink" onClick={() => print()}>Print Everything</button>
+        <button className="textlink" onClick={() => print()}>Print</button>
       </div></div>
     </main>
   );
@@ -72,8 +74,10 @@ export function Ceremony({ id }: { id: string }) {
   );
 
   if (i >= docs.length) return (
-    <main className="wrap cere"><h1 className="q enter">All Signed.</h1>
-      <div className="group">{docs.map(d => <div key={d} className="row"><span className="t"><b>{DOC_TITLE[d]}</b></span><span className="status good"><Ic n="check" s={13} w={3} /> {times[d] ? new Date(times[d]).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Signed'}</span></div>)}</div>
+    <main className="wrap cere center"><section className="enter" key="done">
+      <span className="done-mark pop"><Ic n="check" s={38} w={3} /></span>
+      <h1 className="q">All Signed.</h1>
+      <p className="note">{docs.length} {docs.length === 1 ? 'document' : 'documents'} · {Object.values(times).length ? new Date(Object.values(times).pop()!).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}</p></section>
       <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.done(); go(`/sale/${id}/packet`); }}>Hand Back To The Desk</button></div></div></main>
   );
 

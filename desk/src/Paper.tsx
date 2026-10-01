@@ -36,7 +36,7 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
 
   return (
     <main className="wrap center">
-      <div className="top"><button className="back" onClick={() => { feel.tap(); backward(); history.back(); }}><Ic n="chev" s={18} w={2.4} />Back</button><span className="progress">{DOC_TITLE[doc]} · {Math.min(idx + 1, total)} Of {total}</span></div>
+      <div className="top"><button className="back" onClick={() => { feel.tap(); backward(); history.back(); }}><Ic n="chev" s={18} w={2.4} />Back</button><span className="progress">{DOC_TITLE[doc]}</span></div>
       <div className="bar"><i style={{ width: `${(Math.min(idx + 1, total) / total) * 100}%` }} /></div>
 
       {cur ? (
@@ -47,7 +47,6 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
             {cur.kind === 'money'
               ? <div className="money"><input className="input" inputMode="decimal" autoFocus value={val} onChange={e => setVal(e.target.value)} placeholder="0" /></div>
               : <label className="field"><input className="input num" autoFocus type={cur.kind === 'date' ? 'date' : 'text'} inputMode={cur.kind === 'number' ? 'decimal' : undefined} value={val} onChange={e => setVal(e.target.value)} placeholder={cur.key === 'emptyWeight' ? 'Pounds' : cur.key === 'capacity' ? 'Tons, or Not Applicable' : cur.key === 'rate' ? 'Percent' : ''} /></label>}
-            {cur.key === 'emptyWeight' && s.vehicle.emptyWeight && <p className="note" style={{ marginTop: 10 }}>From the VIN. Check the door sticker if it looks off.</p>}
             <div className="dock"><div className="in"><button className="btn primary block" disabled={!isAnswered(val)} onClick={() => { feel.next(); save(val); }}>Continue</button></div></div>
           </>}
         </section>
@@ -58,7 +57,7 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
           {wet ? <p className="note" style={{ marginTop: 14 }}>Signed in ink on the state form.</p> : <Pad onChange={setSig} />}
           <div className="dock"><div className="in">
             {!wet && <button className="btn primary block" disabled={!sig} onClick={() => file(true)}><Ic n="pen" s={20} />File Signed</button>}
-            <button className={wet ? 'btn primary block' : 'textlink'} onClick={() => file(false)}>{wet ? 'File For Ink' : 'File Unsigned, Print For Ink'}</button>
+            <button className={wet ? 'btn primary block' : 'textlink'} onClick={() => file(false)}>{wet ? 'File For Ink' : 'Print For Ink Instead'}</button>
           </div></div>
         </section>
       )}

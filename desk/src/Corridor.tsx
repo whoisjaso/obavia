@@ -6,10 +6,10 @@ import { LENDERS } from './data';
 import { DOC_TITLE } from './lib/documents';
 import { usd } from './lib/money';
 import { applyPlanAnswer, PLAN_FREEZERS, type PlanQuestion, type SalePlan } from './lib/plan';
-import { buildGuideSteps, ID_FIELDS, nextOpenStep, signedCount, type IdKey, type Sale } from './lib/sale';
+import { buildGuideSteps, ID_FIELDS, nextOpenStep, type IdKey, type Sale } from './lib/sale';
 import { saleReceipt } from './Sheet';
 import { getSale, mergeStep, setLanguage, setVehicleTitle, useStore } from './store';
-import { Back, CarArt, Chev, Choice, Ic, Receipt, backward, feel, go } from './ui';
+import { Back, Choice, Ic, backward, feel, go } from './ui';
 
 export const stepRoute = (id: string, key: string) =>
   key.startsWith('document:') ? `/sale/${id}/paper/${key.slice(9)}` : key === 'packet' ? `/sale/${id}/packet` : `/sale/${id}/guide/${encodeURIComponent(key)}`;
@@ -49,23 +49,24 @@ export function answerOf(s: Sale, key: string): string {
 /* ---------- /sale/:id : the sale as a state, every row a link back ---------- */
 export function Desk({ id }: { id: string }) {
   useStore();
+  const [all, setAll] = useState(false);
   const s = getSale(id); if (!s) return <main className="wrap"><Back to="#/" /><p className="empty">This sale is not here.</p></main>;
-  const steps = buildGuideSteps(s), done = steps.filter(x => x.done).length, nx = nextOpenStep(s), c = signedCount(s);
-  const groups = ['Buyer', 'Money', 'Plan', 'Documents', 'Title'] as const;
+  const steps = buildGuideSteps(s), done = steps.filter(x => x.done).length, nx = nextOpenStep(s);
   return (
-    <main className="wrap">
-      <div className="top"><Back to="#/" label="Sales" /><span className="progress">{done} Of {steps.length}</span></div>
-      <div className="hero enter">
-        <span className="pic"><CarArt color={s.vehicle.color} body={s.vehicle.bodyStyle} w={110} /></span>
-        <span style={{ flex: 1, minWidth: 0 }}><b>{s.buyer.fullName}</b><small>{s.vehicle.year} {s.vehicle.make} {s.vehicle.model}{c.owed ? ` · ${c.signed} Of ${c.owed} Signed` : ''}</small></span>
-        <span className="ring" style={{ ['--p' as string]: Math.round((done / steps.length) * 100) }}><span className="num">{done}/{steps.length}</span></span>
-      </div>
-      {groups.map(g => { const rows = steps.filter(x => x.group === g); return rows.length ? (
-        <section key={g}><h2 className="h2">{g}</h2><div className="group">{rows.map(x => (
-          <a key={x.key} className="row" href={'#' + stepRoute(id, x.key)} onClick={feel.tap}>
+    <main className="wrap center">
+      <div className="top"><Back to="#/" label="Sales" /></div>
+      <section className="enter" key="sale">
+        <span className="ring big" style={{ ['--p' as string]: Math.round((done / steps.length) * 100) }}><span className="num">{done}/{steps.length}</span></span>
+        <h1 className="q">{s.buyer.fullName}</h1>
+        <p className="note">{s.vehicle.year} {s.vehicle.make} {s.vehicle.model}</p>
+        {nx && <p className="next-up">Next: {nx.question}</p>}
+        {all ? <div className="choices">{steps.map(x => (
+          <a key={x.key} className="choice" href={'#' + stepRoute(id, x.key)} onClick={feel.tap}>
             <span className="t"><b>{x.question}</b>{answerOf(s, x.key) && <small>{answerOf(s, x.key)}</small>}</span>
-            <span className={'status ' + (x.done ? 'good' : x === nx ? 'warn' : '')}>{x.done ? 'Done' : x === nx ? 'Next' : 'Open'}</span><Chev />
-          </a>))}</div></section>) : null; })}
+            <span className="tick">{x.done && <Ic n="check" s={15} w={3} />}</span>
+          </a>))}</div>
+          : <button className="textlink" onClick={() => { feel.tap(); setAll(true); }}>Every Step</button>}
+      </section>
       <div className="dock"><div className="in">
         {nx ? <button className="btn primary block" onClick={() => { feel.next(); go(stepRoute(id, nx.key)); }}>Continue</button>
           : <button className="btn primary block" onClick={() => { feel.next(); go(`/sale/${id}/packet`); }}>Open The Packet</button>}
@@ -92,27 +93,27 @@ export function Step({ id, stepKey }: { id: string; stepKey: string }) {
   const body = (() => {
     if (stepKey.startsWith('plan:') && stepKey !== 'plan:salvage' && frozenBy) return <p className="note">Locked. The {DOC_TITLE[frozenBy]} is filed with this answer.</p>;
     switch (stepKey) {
-      case 'language': return <div className="choices"><Choice label="English" on={s.language === 'en'} onPick={() => { setLanguage(id, 'en'); advance(id); }} /><Choice label="Español" gloss="Spanish" on={s.language === 'es'} onPick={() => { setLanguage(id, 'es'); advance(id); }} /></div>;
+      case 'language': return <div className="choices"><Choice label="English" on={s.language === 'en'} onPick={() => { setLanguage(id, 'en'); advance(id); }} /><Choice label="Español" on={s.language === 'es'} onPick={() => { setLanguage(id, 'es'); advance(id); }} /></div>;
       case 'plan:salvage': return <div className="choices">
-        <Choice label="Rebuild The Title First" gloss="Then it sells as a rebuilt car" on={s.step.salvagePlan?.path === 'rebuild'} onPick={() => { mergeStep(id, 'salvagePlan', { path: 'rebuild' }); advance(id); }} />
+        <Choice label="Rebuild The Title First" on={s.step.salvagePlan?.path === 'rebuild'} onPick={() => { mergeStep(id, 'salvagePlan', { path: 'rebuild' }); advance(id); }} />
         <Choice label="Tow-Away, As-Is" gloss="Salvage title, no plates. Salvage dealing is separately licensed." on={s.step.salvagePlan?.path === 'towAway'} onPick={() => { mergeStep(id, 'salvagePlan', { path: 'towAway' }); advance(id); }} />
-        <Choice label="Not Decided" gloss="Everything is saved. Documents wait." on={s.step.salvagePlan?.path === 'undecided'} onPick={() => { mergeStep(id, 'salvagePlan', { path: 'undecided' }); go(`/sale/${id}`); }} />
+        <Choice label="Not Decided" on={s.step.salvagePlan?.path === 'undecided'} onPick={() => { mergeStep(id, 'salvagePlan', { path: 'undecided' }); go(`/sale/${id}`); }} />
       </div>;
-      case 'buyer': return <><div className="group"><div className="row"><span className="t"><b>{s.buyer.fullName}</b><small>{s.buyer.phone} · {s.buyer.address}, {s.buyer.city}</small></span></div></div>
+      case 'buyer': return <><p className="note">{s.buyer.fullName} · {s.buyer.phone}</p>
         <div className="choices"><Choice label="That’s Them" on onPick={() => advance(id)} /></div></>;
       case 'buyerId': return <BuyerId s={s} />;
       case 'funding': return <div className="choices">
         <Choice icon="cash" label="Cash" on={s.step.funding?.type === 'cash'} onPick={() => { mergeStep(id, 'funding', { type: 'cash' }); advance(id); }} />
-        <Choice icon="house" label="Buy Here Pay Here" gloss="In-House Financing" on={s.step.funding?.type === 'inHouse'} onPick={() => { mergeStep(id, 'funding', { type: 'inHouse' }); advance(id); }} />
+        <Choice icon="house" label="Buy Here Pay Here" on={s.step.funding?.type === 'inHouse'} onPick={() => { mergeStep(id, 'funding', { type: 'inHouse' }); advance(id); }} />
         <Choice icon="bank" label="Bank Financing" on={s.step.funding?.type === 'lender'} onPick={() => { mergeStep(id, 'funding', { type: 'lender' }); advance(id); }} />
       </div>;
       case 'lender': return <Lender s={s} />;
       case 'paid': return <Paid s={s} />;
       case 'price': return <><div className="choices">
-        <Choice label="Yes, Out The Door" gloss="Tax and fees are inside it" on={s.step.money?.priceBasis === 'outTheDoor'} onPick={() => { mergeStep(id, 'money', { ...s.step.money, priceBasis: 'outTheDoor' }); advance(id); }} />
-        <Choice label="No, Plus Tax And Fees" gloss="They go on top" on={s.step.money?.priceBasis === 'vehicleOnly'} onPick={() => { mergeStep(id, 'money', { ...s.step.money, priceBasis: 'vehicleOnly' }); advance(id); }} />
-      </div><Receipt r={r} /></>;
-      case 'plan:registration': return <div className="choices"><Choice label="Us" gloss="We file through webDEALER" on={plan.registrationBy === 'dealer'} onPick={() => planPick('registrationBy', 'dealer')} /><Choice label="The Buyer" on={plan.registrationBy === 'buyer'} onPick={() => planPick('registrationBy', 'buyer')} /></div>;
+        <Choice label="Yes, Out The Door" on={s.step.money?.priceBasis === 'outTheDoor'} onPick={() => { mergeStep(id, 'money', { ...s.step.money, priceBasis: 'outTheDoor' }); advance(id); }} />
+        <Choice label="No, Plus Tax And Fees" on={s.step.money?.priceBasis === 'vehicleOnly'} onPick={() => { mergeStep(id, 'money', { ...s.step.money, priceBasis: 'vehicleOnly' }); advance(id); }} />
+      </div><p className="total-line">Total <b className="num">{usd(r.total)}</b></p></>;
+      case 'plan:registration': return <div className="choices"><Choice label="Us" on={plan.registrationBy === 'dealer'} onPick={() => planPick('registrationBy', 'dealer')} /><Choice label="The Buyer" on={plan.registrationBy === 'buyer'} onPick={() => planPick('registrationBy', 'buyer')} /></div>;
       case 'plate': return <Plate s={s} />;
       case 'plan:title-signer': return <div className="choices"><Choice label="The Buyer, Here Today" on={plan.titleSignedBy === 'buyer'} onPick={() => planPick('titleSignedBy', 'buyer')} /><Choice label="Us, For Them" gloss="Adds a power of attorney" on={plan.titleSignedBy === 'dealer'} onPick={() => planPick('titleSignedBy', 'dealer')} /></div>;
       case 'plan:price-includes': return <div className="choices"><Choice label="Yes" on={plan.priceIncludesRegistration === true} onPick={() => planPick('priceIncludesRegistration', true)} /><Choice label="No" on={plan.priceIncludesRegistration === false} onPick={() => planPick('priceIncludesRegistration', false)} /></div>;
@@ -126,10 +127,9 @@ export function Step({ id, stepKey }: { id: string; stepKey: string }) {
   return (
     <main className="wrap center">
       <div className="top"><button className="back" onClick={() => { feel.tap(); backward(); history.length > 1 ? history.back() : go(`/sale/${id}`); }}><Ic n="chev" s={18} w={2.4} />Back</button>
-        <span className="progress num">Step {idx + 1} Of {steps.length}</span></div>
+        <a className="link" href={`#/sale/${id}`} onClick={feel.tap}>The Sale</a></div>
       <div className="bar"><i style={{ width: `${((idx + 1) / steps.length) * 100}%` }} /></div>
       <section className="enter" key={stepKey}><h1 className="q">{step.question}</h1>{body}</section>
-      <a className="textlink noprint" href={`#/sale/${id}`} style={{ marginTop: 28, textAlign: 'center' }}>The Whole Sale</a>
     </main>
   );
 }
@@ -141,27 +141,31 @@ function BuyerId({ s }: { s: Sale }) {
   const [vals, setVals] = useState<Record<IdKey, string>>(() => Object.fromEntries(ID_FIELDS.map(k => [k, id?.fields[k]?.confirmed ?? id?.fields[k]?.read ?? read[k]])) as Record<IdKey, string>);
   const [ok, setOk] = useState<Record<string, boolean>>(() => Object.fromEntries(ID_FIELDS.map(k => [k, !!id?.fields[k]?.confirmed])));
   const [mail, setMail] = useState<boolean | null>(id?.mailingConfirmed ? true : null);
+  const [stage, setStage] = useState<'fields' | 'plates'>('fields');
   const onFile = (image: boolean) => mergeStep(s.id, 'buyerId', { image, fields: Object.fromEntries(ID_FIELDS.map(k => [k, { read: read[k] }])) });
 
   if (!id) return <div className="choices">
-    <Choice icon="phone" label="Take A Photo With A Phone" gloss="Scan a code, snap the front and back" onPick={() => onFile(true)} />
+    <Choice icon="phone" label="Take A Photo With A Phone" onPick={() => onFile(true)} />
     <Choice icon="upload" label="Upload A Scan" onPick={() => onFile(true)} />
     <Choice icon="type" label="Type It" onPick={() => onFile(false)} />
   </div>;
 
   const all = ID_FIELDS.every(k => ok[k] && vals[k].trim());
+  const save = () => { feel.next(); mergeStep(s.id, 'buyerId', { ...id, fields: Object.fromEntries(ID_FIELDS.map(k => [k, { read: id.fields[k]?.read, confirmed: vals[k].trim() }])), mailingConfirmed: true }); advance(s.id); };
+  if (stage === 'plates') return (<>
+    <h2 className="q2">Where Should The Plates Go?</h2>
+    <div className="choices">
+      <Choice label="The Address On The Card" gloss={vals.address} on={mail === true} onPick={() => { setMail(true); save(); }} />
+      <Choice label="A Different Address" on={mail === false} onPick={() => { setMail(false); go(`/sale/${s.id}`); }} />
+    </div>
+  </>);
   return (<>
     <div className="group">{ID_FIELDS.map(k => (
       <div key={k} className="row">
         <span className="t"><small>{labels[k]}</small><input className="input" style={{ height: 44, marginTop: 6, fontSize: 16 }} value={vals[k]} placeholder={id.image ? 'Not read. Type it.' : 'Type it'} onChange={e => { setVals({ ...vals, [k]: e.target.value }); setOk({ ...ok, [k]: false }); }} /></span>
         <button className="choice" aria-pressed={ok[k]} style={{ width: 'auto', minHeight: 44, padding: '0 14px', boxShadow: 'none', background: 'none' }} aria-label={`Confirm ${labels[k]}`} onClick={() => { feel.tap(); setOk({ ...ok, [k]: !ok[k] }); }}><span className="tick">{ok[k] && <Ic n="check" s={15} w={3} />}</span></button>
       </div>))}</div>
-    <h2 className="h2">Where Should The Plates Go?</h2>
-    <div className="choices" style={{ marginTop: 0 }}>
-      <Choice label="The Address On The Card" gloss={vals.address} on={mail === true} onPick={() => setMail(true)} />
-      <Choice label="A Different Address" gloss="Change it on the buyer, then confirm" on={mail === false} onPick={() => setMail(false)} />
-    </div>
-    <div className="dock"><div className="in"><button className="btn primary block" disabled={!all || mail !== true} onClick={() => { feel.next(); mergeStep(s.id, 'buyerId', { ...id, fields: Object.fromEntries(ID_FIELDS.map(k => [k, { read: id.fields[k]?.read, confirmed: vals[k].trim() }])), mailingConfirmed: true }); advance(s.id); }}>Every Field Matches</button></div></div>
+    <div className="dock"><div className="in"><button className="btn primary block" disabled={!all} onClick={() => { feel.next(); setStage('plates'); scrollTo(0, 0); }}>Every Field Matches</button></div></div>
   </>);
 }
 
@@ -181,12 +185,28 @@ function Paid({ s }: { s: Sale }) {
   const { dealer } = useStore();
   const [amt, setAmt] = useState(s.step.money?.amount ?? String(s.vehicle.price || ''));
   const [part, setPart] = useState(s.step.money?.paidTodayAmount ?? '');
-  const live = { ...s, step: { ...s.step, money: { ...s.step.money, amount: amt, paidTodayAmount: part || null } } };
+  const [stage, setStage] = useState<'amount' | 'today' | 'part'>('amount');
+  const cash = s.step.funding?.type === 'cash';
+  const live = { ...s, step: { ...s.step, money: { ...s.step.money, amount: amt, paidTodayAmount: stage === 'part' ? part || null : null } } };
+  const total = saleReceipt(live, dealer).total;
+  const save = (p: string | null) => { feel.next(); mergeStep(s.id, 'money', { ...s.step.money, amount: amt, paidTodayAmount: p }); advance(s.id); };
+  if (stage === 'today') return (<>
+    <h2 className="q2">All Of It Today?</h2>
+    <p className="total-line">Total <b className="num">{usd(total)}</b></p>
+    <div className="choices">
+      <Choice label="Yes, All Of It" onPick={() => save(null)} />
+      <Choice label="Part Of It" onPick={() => { setStage('part'); scrollTo(0, 0); }} />
+    </div>
+  </>);
+  if (stage === 'part') return (<>
+    <h2 className="q2">How Much Today?</h2>
+    <div className="money"><input className="input" inputMode="decimal" autoFocus value={part} onChange={e => setPart(e.target.value)} placeholder="0" aria-label="Paid today" /></div>
+    <div className="dock"><div className="in"><button className="btn primary block" disabled={!part.replace(/[$,\s]/g, '')} onClick={() => save(part)}>Continue</button></div></div>
+  </>);
   return (<>
     <div className="money"><input className="input" inputMode="decimal" autoFocus value={amt} onChange={e => setAmt(e.target.value)} placeholder="0" aria-label="Amount" /></div>
-    {s.step.funding?.type === 'cash' && <label className="field"><span>Paying part today? (optional)</span><input className="input num" inputMode="decimal" value={part} onChange={e => setPart(e.target.value)} placeholder="The whole amount" /></label>}
-    <Receipt r={saleReceipt(live, dealer)} />
-    <div className="dock"><div className="in"><button className="btn primary block" disabled={!amt.replace(/[$,\s]/g, '')} onClick={() => { feel.next(); mergeStep(s.id, 'money', { ...s.step.money, amount: amt, paidTodayAmount: part || null }); advance(s.id); }}>Continue</button></div></div>
+    <p className="total-line">Total <b className="num">{usd(total)}</b></p>
+    <div className="dock"><div className="in"><button className="btn primary block" disabled={!amt.replace(/[$,\s]/g, '')} onClick={() => { if (cash) { feel.next(); setStage('today'); scrollTo(0, 0); } else save(null); }}>Continue</button></div></div>
   </>);
 }
 
@@ -194,7 +214,7 @@ function Plate({ s }: { s: Sale }) {
   const [p, setP] = useState(s.step.plate ?? '');
   return (<>
     <label className="field"><input className="input num" style={{ height: 76, fontSize: 30, letterSpacing: '.12em', textAlign: 'center' }} value={p} onChange={e => setP(e.target.value.toUpperCase())} placeholder="ABC 1234" /></label>
-    <div className="choices"><Choice label="Not Yet" gloss="It comes after the filing" on={!!s.step.plateAsked && !s.step.plate} onPick={() => { mergeStep(s.id, 'plateAsked', true); advance(s.id); }} /></div>
+    <div className="choices"><Choice label="Not Yet" on={!!s.step.plateAsked && !s.step.plate} onPick={() => { mergeStep(s.id, 'plateAsked', true); advance(s.id); }} /></div>
     <div className="dock"><div className="in"><button className="btn primary block" disabled={!p.trim()} onClick={() => { feel.next(); mergeStep(s.id, 'plate', p.trim()); advance(s.id); }}>Save The Plate</button></div></div>
   </>);
 }
@@ -205,7 +225,6 @@ function WebDealer({ s }: { s: Sale }) {
   const lienholder = s.step.funding?.type === 'lender' ? (s.step.funding.lenderOther || LENDERS.find(l => l.id === s.step.funding?.lenderId)?.name) : r.balance > 0 || s.step.funding?.type === 'inHouse' ? dealer.legalName : 'None';
   const fields: [string, string][] = [['VIN', s.vehicle.vin], ['Year, make, model', `${s.vehicle.year} ${s.vehicle.make} ${s.vehicle.model}`], ['Odometer', String(s.vehicle.mileage ?? '')], ['Buyer', s.buyer.fullName], ['Address', `${s.buyer.address}, ${s.buyer.city}, ${s.buyer.state} ${s.buyer.zip}`], ['County', s.buyer.county], ['ID number', s.buyer.idNumber], ['Sales price', r.salePrice.toFixed(2)], ['Tax', r.tax.toFixed(2)], ['Lienholder', lienholder ?? 'None'], ['Empty weight', s.step.paperwork?.form130U?.emptyWeight ?? '']];
   return (<>
-    <p className="note">Everything webDEALER asks for, ready to copy.</p>
     <div className="group">{fields.map(([k, v]) => (
       <div key={k} className="row"><span className="t"><small>{k}</small><b className="num">{v || 'Missing'}</b></span>
         {v ? <button className="status" onClick={() => { feel.tap(); navigator.clipboard?.writeText(v); }}><Ic n="copy" s={14} /> Copy</button> : <a className="status warn" href={`#/sale/${s.id}`}>Fill It</a>}</div>))}</div>

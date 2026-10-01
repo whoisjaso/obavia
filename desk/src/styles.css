@@ -509,3 +509,15 @@ a.choice{color:inherit}
 .logos .clogo{width:40px;height:40px;border-radius:12px;border:2px solid #fff}
 .logos .clogo img{width:24px;height:24px}
 .logos .clogo+.clogo{margin-left:-14px}
+
+/* ---------- the sale, page by page ---------- */
+.total-line{margin:16px auto 0;font:600 16px/1.3 var(--sans);color:var(--muted);text-align:center}
+.total-line b{margin-left:6px;font:800 20px/1 var(--sans);color:var(--navy)}
+.q2{margin:0 0 4px;font:800 clamp(26px,6vw,34px)/1.1 var(--sans);letter-spacing:-.04em;text-align:center;color:var(--ink)}
+.next-up{margin:18px auto 0;padding:10px 16px;border-radius:999px;background:rgba(255,255,255,.7);box-shadow:0 0 0 1px var(--line);font:650 15px/1.3 var(--sans);color:var(--navy);width:fit-content}
+.ring.big{align-self:center;width:84px;height:84px;margin-bottom:18px;font-size:17px}
+.choice .car-art{background:#fff;overflow:hidden}
+.top .link{font:650 15px/1 var(--sans);color:var(--accent);padding:10px 0}
+/* a follow-up question replaces its step's heading */
+section:has(> .q2) > h1.q{display:none}
+.q2{font:800 clamp(32px,7vw,44px)/1.04 var(--sans);letter-spacing:-.045em;text-wrap:balance}

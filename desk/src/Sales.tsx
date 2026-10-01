@@ -2,41 +2,39 @@ import { useMemo, useState } from 'react';
 import { TX_COUNTY } from './data';
 import { usd } from './lib/money';
 import type { TitleStatus } from './lib/plan';
-import { badge, nextOpenStep, signedCount, type Buyer, type Sale, type Vehicle } from './lib/sale';
+import { signedCount, type Buyer, type Sale, type Vehicle } from './lib/sale';
 import { checkDigitOk, decodeVin, isValidVin } from './lib/vin';
 import { addVehicle, startSale, useStore } from './store';
 import { Back, CarArt, Chev, Choice, Ic, feel, go, transition } from './ui';
 
-const ago = (iso: string) => { const m = Math.round((Date.now() - Date.parse(iso)) / 60e3); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
 
 /* ---------- /  : open sales, one primary action ---------- */
 export function Sales() {
   const { dealer, sales, example } = useStore();
   const open = sales.filter(s => s.status === 'in_progress');
   return (
-    <main className="wrap">
+    <main className="wrap center">
       <div className="top">
-        <span className="who"><span className="lgmini" style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: dealer.brand.accent, color: '#fff', font: '800 12px/1 var(--sans)', overflow: 'hidden' }}>{dealer.brand.logo ? <img src={dealer.brand.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#fff' }} /> : dealer.brand.monogram}</span>{dealer.dba}</span>
-        <span style={{ display: 'flex', gap: 18 }}><a className="link" href="#/payments" onClick={feel.tap}>Payments</a><a className="link" href="#/reach" onClick={feel.tap}>Reach</a><a className="link" href="#/past" onClick={feel.tap}>Past Sales</a></span>
+        <span className="who"><span className="lgmini" style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: dealer.brand.accent, color: '#fff', font: '800 12px/1 var(--sans)', overflow: 'hidden' }}>{dealer.brand.logo ? <img src={dealer.brand.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#fff' }} /> : dealer.brand.monogram}</span></span>
+        <span style={{ display: 'flex', gap: 18 }}><a className="link" href="#/payments" onClick={feel.tap}>Payments</a><a className="link" href="#/reach" onClick={feel.tap}>Reach</a><a className="link" href="#/past" onClick={feel.tap}>Past</a></span>
       </div>
-      <h1 className="h1 enter">Handle A Sale</h1>
-      {example && <span className="example">Example data</span>}
-      <h2 className="h2">Open Sales</h2>
-      <div className="group enter2">
-        {open.length ? open.map(s => <SaleRow key={s.id} s={s} />) : <p className="empty">No open sales. Start one when a buyer is ready.</p>}
-      </div>
-      <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); go('/new'); }}><Ic n="plus" s={20} w={2.4} />Start A Sale</button></div></div>
+      <section className="enter" key="home">
+        <h1 className="q">{open.length ? 'Pick Up A Sale.' : 'Ready When They Are.'}</h1>
+        <div className="choices">{open.map(s => <SaleRow key={s.id} s={s} />)}</div>
+        {example && <span className="example">Example data</span>}
+      </section>
+      <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); go('/new'); }}>Start A Sale</button></div></div>
     </main>
   );
 }
 
 function SaleRow({ s }: { s: Sale }) {
-  const c = signedCount(s), nx = nextOpenStep(s), b = badge(s);
+  const c = signedCount(s);
   return (
-    <a className="row" href={`#/sale/${s.id}`} onClick={feel.tap}>
-      <CarArt color={s.vehicle.color} body={s.vehicle.bodyStyle} w={64} />
-      <span className="t"><b>{s.buyer.fullName}</b><small>{s.vehicle.year} {s.vehicle.make} {s.vehicle.model} · {nx?.question ?? 'Ready To Complete'}</small>{b && <span className="status warn" style={{ marginTop: 6 }}>{b}</span>}</span>
-      <span className="v num">{c.owed ? `${c.signed} Of ${c.owed} Signed` : ago(s.createdAt)}</span><Chev />
+    <a className="choice" href={`#/sale/${s.id}`} onClick={feel.next}>
+      <span className="art car-art"><CarArt color={s.vehicle.color} body={s.vehicle.bodyStyle} w={44} /></span>
+      <span className="t"><b>{s.buyer.fullName}</b><small>{s.vehicle.year} {s.vehicle.make} {s.vehicle.model}{c.owed ? ` · ${c.signed} of ${c.owed} signed` : ''}</small></span>
+      <span className="go"><Ic n="chev" s={18} w={2.4} /></span>
     </a>
   );
 }
@@ -46,9 +44,9 @@ export function Past() {
   const [q, setQ] = useState('');
   const done = sales.filter(s => s.status === 'completed' && `${s.buyer.fullName} ${s.vehicle.make} ${s.vehicle.model} ${s.vehicle.vin}`.toLowerCase().includes(q.toLowerCase()));
   return (
-    <main className="wrap">
-      <div className="top"><Back to="#/" /></div>
-      <h1 className="h1">Past Sales</h1>
+    <main className="wrap center">
+      <div className="top"><Back to="#/" label="Sales" /></div>
+      <h1 className="q">Past Sales.</h1>
       <label className="field"><input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Search buyer, car or VIN" /></label>
       <div className="group">{done.length ? done.map(s => (
         <a key={s.id} className="row" href={`#/sale/${s.id}/packet`}><CarArt color={s.vehicle.color} body={s.vehicle.bodyStyle} w={56} />
@@ -61,12 +59,11 @@ export function Past() {
 
 /* ---------- /new : Start A Sale. Read back before anything is written. ---------- */
 const TITLES: { v: TitleStatus; label: string; gloss?: string }[] = [
-  { v: 'clean', label: 'Clean' }, { v: 'rebuilt_salvage', label: 'Rebuilt Salvage' }, { v: 'salvage_unrebuilt', label: 'Salvage', gloss: 'Not rebuilt' }, { v: 'unknown', label: 'Other' },
+  { v: 'clean', label: 'Clean' }, { v: 'rebuilt_salvage', label: 'Rebuilt Salvage' }, { v: 'salvage_unrebuilt', label: 'Salvage' }, { v: 'unknown', label: 'Other' },
 ];
 
 type Page = 'car' | 'odo' | 'title' | 'lang' | 'name' | 'phone' | 'street' | 'city' | 'zip' | 'county' | 'idType' | 'idNumber' | 'review';
 const ID_TYPES = [['dl', 'Driver Licence'], ['stateId', 'State ID'], ['passport', 'Passport'], ['military', 'Military ID']] as const;
-const LABEL: Record<Page, string> = { car: 'The Car', odo: 'Odometer', title: 'Title', lang: 'Language', name: 'Buyer', phone: 'Buyer', street: 'Buyer', city: 'Buyer', zip: 'Buyer', county: 'Buyer', idType: 'Buyer', idNumber: 'Buyer', review: 'Read Back' };
 
 export function Start() {
   const { lot, sales } = useStore();
@@ -80,6 +77,7 @@ export function Start() {
   const [buyer, setBuyer] = useState<Buyer>({ fullName: '', phone: '', email: '', address: '', city: '', state: 'TX', zip: '', county: '', idType: 'dl', idNumber: '' });
   const [vin, setVin] = useState(''); const [decoding, setDecoding] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [vinOpen, setVinOpen] = useState(false);
   const found = useMemo(() => lot.filter(v => !busy.has(v.id) && `${v.stock} ${v.year} ${v.make} ${v.model} ${v.vin}`.toLowerCase().includes(q.toLowerCase())), [lot, q, sales]);
   const county = TX_COUNTY[buyer.city.trim().toLowerCase()] ?? '';
   const b = { ...buyer, county: buyer.county || county };
@@ -116,7 +114,7 @@ export function Start() {
 
   return (
     <main className="wrap center">
-      <div className="top">{at ? <button className="back" onClick={() => { feel.tap(); setEditing(false); to(pages[at - 1], 'back'); }}><Ic n="chev" s={18} w={2.4} />Back</button> : <Back to="#/" label="Sales" />}<span className="progress">{LABEL[page]}</span></div>
+      <div className="top">{at ? <button className="back" onClick={() => { feel.tap(); setEditing(false); to(pages[at - 1], 'back'); }}><Ic n="chev" s={18} w={2.4} />Back</button> : <Back to="#/" label="Sales" />}</div>
       <div className="bar"><i style={{ width: `${((at + 1) / pages.length) * 100}%` }} /></div>
 
       {page === 'car' && <section className="enter" key="car">
@@ -128,32 +126,32 @@ export function Start() {
             <b>{v.year} {v.make} {v.model}</b><small>Stock {v.stock}</small><span className="price">{v.price ? usd(v.price).replace('.00', '') : 'No price yet'}</span>
           </button>))}
         </div>
-        <h2 className="h2">Not On The Lot?</h2>
-        <label className="field"><input className="input num" value={vin} onChange={e => setVin(e.target.value.toUpperCase())} placeholder="Type the VIN" maxLength={17} /></label>
+        {!vinOpen ? <button className="textlink" style={{ marginTop: 18 }} onClick={() => { feel.tap(); setVinOpen(true); }}>Not On The Lot?</button> : <>
+        <label className="field"><input className="input num" autoFocus value={vin} onChange={e => setVin(e.target.value.toUpperCase())} placeholder="Type the VIN" maxLength={17} /></label>
         {vin.length === 17 && isValidVin(vin) && !checkDigitOk(vin) && <p className="note" style={{ color: 'var(--warn)', font: '600 14px/1.4 var(--sans)', marginTop: 8 }}>The check digit doesn’t match. Double-check the VIN.</p>}
-        <button className="btn quiet block" style={{ marginTop: 12 }} disabled={!isValidVin(vin) || decoding} onClick={decode}>{decoding ? 'Reading The VIN…' : 'Look It Up'}</button>
+        <button className="btn quiet block" style={{ marginTop: 12 }} disabled={!isValidVin(vin) || decoding} onClick={decode}>{decoding ? 'Reading The VIN…' : 'Look It Up'}</button></>}
       </section>}
 
-      {ask('odo', 'What Does The Odometer Say?', <div className="money plain"><input className="input" style={{ paddingLeft: 22 }} inputMode="numeric" autoFocus value={miles} onKeyDown={enter} onChange={e => setMiles(e.target.value.replace(/\D/g, ''))} placeholder="0" /></div>, 'Every document reads this one number.')}
+      {ask('odo', 'What Does The Odometer Say?', <div className="money plain"><input className="input" style={{ paddingLeft: 22 }} inputMode="numeric" autoFocus value={miles} onKeyDown={enter} onChange={e => setMiles(e.target.value.replace(/\D/g, ''))} placeholder="0" /></div>)}
 
       {ask('title', 'What’s The Title?', <div className="choices">{TITLES.map(t => <Choice key={t.v} label={t.label} gloss={t.gloss} on={title === t.v} onPick={() => { setTitle(t.v); next(); }} />)}</div>)}
 
-      {ask('lang', 'What Language Is The Sale In?', <div className="choices"><Choice label="English" on={lang === 'en'} onPick={() => { setLang('en'); next(); }} /><Choice label="Español" gloss="Spanish" on={lang === 'es'} onPick={() => { setLang('es'); next(); }} /></div>)}
+      {ask('lang', 'What Language Is The Sale In?', <div className="choices"><Choice label="English" on={lang === 'en'} onPick={() => { setLang('en'); next(); }} /><Choice label="Español" on={lang === 'es'} onPick={() => { setLang('es'); next(); }} /></div>)}
 
       {ask('name', 'Who Is Buying The Car?', <label className="field"><input className="input big" autoFocus value={buyer.fullName} onKeyDown={enter} onChange={set('fullName')} placeholder="Full name, as on the ID" autoComplete="name" /></label>)}
 
-      {ask('phone', `What’s ${first}’s Number?`, <label className="field"><input className="input big num" autoFocus value={buyer.phone} onKeyDown={enter} onChange={set('phone')} placeholder="Mobile phone" inputMode="tel" autoComplete="tel" /></label>, 'For the signing link and the receipt.')}
+      {ask('phone', `What’s ${first}’s Number?`, <label className="field"><input className="input big num" autoFocus value={buyer.phone} onKeyDown={enter} onChange={set('phone')} placeholder="Mobile phone" inputMode="tel" autoComplete="tel" /></label>)}
 
       {ask('street', `Where Does ${first} Live?`, <label className="field"><input className="input big" autoFocus value={buyer.address} onKeyDown={enter} onChange={set('address')} placeholder="Street address" autoComplete="street-address" /></label>)}
 
       {ask('city', 'Which City?', <div className="pair">
         <label className="field"><input className="input big" autoFocus value={buyer.city} onKeyDown={enter} onChange={set('city')} placeholder="City" autoComplete="address-level2" /></label>
         <label className="field"><input className="input big" value={buyer.state} onKeyDown={enter} onChange={e => setBuyer({ ...buyer, state: e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2) })} placeholder="TX" aria-label="State" /></label>
-      </div>, county ? `${county} County.` : undefined)}
+      </div>)}
 
       {ask('zip', 'And The ZIP?', <label className="field"><input className="input big num" autoFocus value={buyer.zip} onKeyDown={enter} onChange={e => setBuyer({ ...buyer, zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="ZIP" inputMode="numeric" autoComplete="postal-code" /></label>)}
 
-      {ask('county', 'Which County?', <label className="field"><input className="input big" autoFocus value={buyer.county} onKeyDown={enter} onChange={set('county')} placeholder="County" /></label>, 'The title is filed there.')}
+      {ask('county', 'Which County?', <label className="field"><input className="input big" autoFocus value={buyer.county} onKeyDown={enter} onChange={set('county')} placeholder="County" /></label>)}
 
       {ask('idType', 'What ID Did They Show?', <div className="choices">{ID_TYPES.map(([v, l]) => <Choice key={v} label={l} on={buyer.idType === v} onPick={() => { setBuyer({ ...buyer, idType: v }); next(); }} />)}</div>)}
 
@@ -161,7 +159,6 @@ export function Start() {
 
       {page === 'review' && car && <section className="enter" key="review">
         <h1 className="q">Look Right?</h1>
-        <p className="note">Tap anything to fix it.</p>
         <button className="hero" style={{ width: '100%', textAlign: 'left' }} onClick={() => { feel.tap(); setEditing(true); to('odo', 'back'); }}><span className="pic"><CarArt color={car.color} body={car.bodyStyle} w={110} /></span><span><b>{car.year} {car.make} {car.model}</b><small>{Number(miles).toLocaleString()} miles · {TITLES.find(t => t.v === title)?.label} title</small></span></button>
         <div className="group">
           {([['Buyer', b.fullName, 'name'], ['Phone', b.phone, 'phone'], ['Address', `${b.address}, ${b.city}, ${b.state} ${b.zip}`, 'street'], ['County', b.county, county ? 'city' : 'county'], ['ID', `${ID_TYPES.find(t => t[0] === b.idType)![1]} · ${b.idNumber}`, 'idType'], ['Language', lang === 'es' ? 'Español' : 'English', 'lang']] as [string, string, Page][]).map(([k, v, p]) => (
