@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, amountToAsk, digest, dueDates, installmentCents, openLoan, ownerText, receiptText, reminderPlan, standing, takePayment, today, type Loan } from './loans';
+import { addDays, amountToAsk, digest, dueDates, installmentCents, openLoan, ownerText, paymentTexts, receiptText, reminderPlan, standing, takePayment, today, updatePayment, type Loan } from './loans';
 
 const base = () => openLoan({ id: 'L1', buyer: { name: 'Maria Example', phone: '(555) 010-7788' }, vehicle: '2016 Honda Accord LX · Stock 104', principalCents: 600000, apr: 18, count: 52, frequency: 'weekly', firstDue: '2026-10-09', openedOn: '2026-10-02' });
 let r = 0;
@@ -125,5 +125,32 @@ describe('reminders and receipts', () => {
   it('reads today in the dealer’s zone, not UTC', () => {
     expect(today('America/Chicago', new Date('2026-10-02T03:00:00Z'))).toBe('2026-10-01');
     expect(addDays('2026-12-30', 3)).toBe('2027-01-02');
+  });
+});
+
+describe('payments through a processor', () => {
+  const online = (l: Loan, on: string, cents: number, status: 'clearing' | 'cleared', id: string) => takePayment(l, { on, cents, method: 'ach', status, processorId: id, via: 'text_link' }, ++r);
+
+  it('a clearing bank payment counts, and a returned one stops counting', () => {
+    let l = online(base(), '2026-10-09', 12628, 'clearing', 'pnm-1');
+    expect(standing(l, '2026-10-09').installments[0].state).toBe('paid');
+    l = updatePayment(l, 'pnm-1', 'returned', { on: '2026-10-13', code: 'R01', reason: 'Insufficient Funds' });
+    const s = standing(l, '2026-10-13');
+    expect(s.installments[0].state).toBe('late');
+    expect(s.pastDueCents).toBe(12628);
+    expect(l.payments[0].reverse?.code).toBe('R01');
+    expect(updatePayment(l, 'nope', 'cleared')).toEqual(l);
+  });
+
+  it('texts the buyer and the dealership on every change', () => {
+    const l = online(base(), '2026-10-09', 12628, 'cleared', 'pnm-2'), s = standing(l, '2026-10-09');
+    const got = paymentTexts('received', l, 12628, s, 'Triple J Auto', 1201);
+    expect(got.buyer).toMatch(/^Triple J Auto: we received your \$126\.28 payment \(receipt #1201\)\. Balance \$[\d,.]+\. Next payment \$126\.28 due Friday, October 16\.$/);
+    expect(got.dealer).toBe(`Payment in: $126.28 from Maria Example, 2016 Honda Accord LX. Balance ${'$' + (s.payoffCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}.`);
+    const back = paymentTexts('returned', l, 12628, standing(updatePayment(l, 'pnm-2', 'returned'), '2026-10-13'), 'Triple J Auto', undefined, 'Insufficient Funds');
+    expect(back.buyer).toContain('came back from your bank (insufficient funds)');
+    expect(back.dealer).toContain('Payment returned: $126.28 from Maria Example');
+    expect(paymentTexts('charged_back', l, 12628, s, 'X').buyer).toBeUndefined();
+    expect(paymentTexts('clearing', l, 12628, s, 'Triple J Auto').buyer).toContain('3 to 4 business days');
   });
 });

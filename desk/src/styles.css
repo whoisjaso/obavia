@@ -521,3 +521,6 @@ a.choice{color:inherit}
 /* a follow-up question replaces its step's heading */
 section:has(> .q2) > h1.q{display:none}
 .q2{font:800 clamp(32px,7vw,44px)/1.04 var(--sans);letter-spacing:-.045em;text-wrap:balance}
+.sms.two{display:grid;gap:6px}
+.sms.two small{margin:8px 0 0 6px}
+.bubble.you{background:#E3F2EA}

@@ -77,3 +77,23 @@ describe('R2ContactBook', () => {
     expect(reads).toBe(1);
   });
 });
+
+describe('PayNearMe webhook', () => {
+  it('refuses unsigned callbacks and acknowledges signed ones after applying them', async () => {
+    const { a, p } = app();
+    const { MemoryNoteStore, PaymentDesk } = await import('./payments/desk');
+    const { openLoan } = await import('../src/lib/loans');
+    const { SIGNATURE_HEADER } = await import('./payments/paynearme');
+    const notes = new MemoryNoteStore();
+    notes.notes.set('note-1', openLoan({ id: 'note-1', buyer: { name: 'Maria Example', phone: '(832) 410-7788' }, vehicle: '2016 Honda Accord LX', principalCents: 600000, apr: 18, count: 52, frequency: 'weekly', firstDue: '2026-10-09', openedOn: '2026-10-02' }));
+    a.payments = { desk: new PaymentDesk(notes, a.messenger, async () => ({ dealerId: 'P171632', name: 'Triple J Auto', textFrom: '+17135550100', alertTo: ['+17134883602'], timeZone: 'America/Chicago' })), secret: 'cb-secret' };
+    const body = new URLSearchParams({ pnm_order_identifier: '800', site_customer_identifier: 'note-1', payment_amount: '126.28', payment_type: 'debit', status: 'payment' }).toString();
+    expect((await route(post('/webhooks/paynearme', body), a)).status).toBe(403);
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode('cb-secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig = [...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body)))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const r = await route(post('/webhooks/paynearme', body, { [SIGNATURE_HEADER]: sig }), a);
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ payment_confirmation_response: { version: '3.0', confirmation: { pnm_order_identifier: '800' } } });
+    expect(p.sent.map(m => m.to)).toEqual(['+18324107788', '+17134883602']);
+  });
+});

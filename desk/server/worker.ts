@@ -4,12 +4,16 @@
      POST /api/verify/check   {licence, channel, code}  -> {ok, token}  | {ok:false, reason}
      POST /api/messages       Bearer INTERNAL_API_TOKEN, SendRequest -> SendOutcome
      POST /webhooks/telnyx    signed by Telnyx
+     POST /webhooks/paynearme signed by PayNearMe: payments, declines, returns, chargebacks
    Config in server/wrangler.toml; secrets with `wrangler secret put`. */
 import { FakeProvider } from './messaging/fake';
 import { Telnyx } from './messaging/telnyx';
 import type { MessagingProvider } from './messaging/types';
 import { Messenger, ResendEmail, Verifier, type Channel, type Contact, type ContactBook, type EmailSender, type SendRequest } from './service';
 import { D1Store, type D1 } from './store';
+import { PaymentDesk } from './payments/desk';
+import { ack, parseCallback, verifySignature } from './payments/paynearme';
+import { D1NoteStore } from './payments/d1';
 
 type R2Object = { json<T>(): Promise<T> };
 type R2 = { get(key: string): Promise<R2Object | null> };
@@ -20,6 +24,7 @@ export type Env = {
   TELNYX_API_KEY?: string; TELNYX_MESSAGING_PROFILE_ID?: string; TELNYX_VERIFY_PROFILE_ID?: string; TELNYX_PUBLIC_KEY?: string;
   PUBLIC_URL?: string;                      // e.g. https://api.obavia.co, for delivery webhooks
   RESEND_API_KEY?: string; EMAIL_FROM?: string;
+  PAYNEARME_CALLBACK_SECRET?: string;       // turns on /webhooks/paynearme
   SESSION_SECRET: string; INTERNAL_API_TOKEN: string;
   ALLOWED_ORIGIN?: string;                  // comma-separated
 };
@@ -44,7 +49,7 @@ export class R2ContactBook implements ContactBook {
 
 /* ---------- the app, independent of where its parts come from ---------- */
 
-export type App = { messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[] };
+export type App = { messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[]; payments?: { desk: PaymentDesk; secret: string } };
 
 const MAX_BODY = 64 * 1024;
 const LICENCE = /^[A-Z]\d{4,7}$/;
@@ -70,6 +75,14 @@ export async function route(req: Request, app: App): Promise<Response> {
 
   // The webhook must see the exact bytes Telnyx signed, so it is handled before any parsing.
   if (url.pathname === '/webhooks/telnyx') return new Response(null, { status: await app.messenger.webhook(raw, req.headers) });
+  // PayNearMe: verify, apply to the note, text both sides, then acknowledge so it isn't re-sent.
+  if (url.pathname === '/webhooks/paynearme') {
+    if (!app.payments || !(await verifySignature(raw, req.headers, app.payments.secret))) return new Response(null, { status: 403 });
+    const u = parseCallback(raw);
+    if (!u) return json({ ok: false, reason: 'bad_request' }, 400);
+    await app.payments.desk.apply(u);
+    return json(ack(u), 200);
+  }
 
   let body: Record<string, unknown>;
   try { body = JSON.parse(raw); } catch { return json({ ok: false, reason: 'bad_request' }, 400, h); }
@@ -109,8 +122,11 @@ export function build(env: Env): App {
   }
   if (!env.SESSION_SECRET || env.SESSION_SECRET.length < 32) throw new Error('SESSION_SECRET must be at least 32 characters');
   const email = env.RESEND_API_KEY && env.EMAIL_FROM ? new ResendEmail(env.RESEND_API_KEY, env.EMAIL_FROM) : logEmail;
+  const messenger = new Messenger(provider, store);
+  const notes = new D1NoteStore(env.DB);
   return {
-    messenger: new Messenger(provider, store),
+    messenger,
+    payments: env.PAYNEARME_CALLBACK_SECRET ? { desk: new PaymentDesk(notes, messenger, n => notes.dealerFor(n)), secret: env.PAYNEARME_CALLBACK_SECRET } : undefined,
     verifier: new Verifier(provider, store, new R2ContactBook(env.DEALERS), email, env.SESSION_SECRET),
     internalToken: env.INTERNAL_API_TOKEN ?? '',
     allowedOrigins: (env.ALLOWED_ORIGIN ?? '').split(',').map(s => s.trim()).filter(Boolean),

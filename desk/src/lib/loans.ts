@@ -9,7 +9,17 @@
 
 export type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'other';
-export type Payment = { id: string; on: string; cents: number; method: Method; receipt: number; note?: string; by?: string };
+/** Where a payment stands with the processor. Cash at the counter is cleared at once; a bank (ACH)
+    payment is clearing for up to four business days and can still come back; a card can be charged back. */
+export type PaymentStatus = 'cleared' | 'clearing' | 'returned' | 'refunded' | 'charged_back';
+export type Payment = { id: string; on: string; cents: number; method: Method; receipt: number; note?: string; by?: string;
+  status?: PaymentStatus;                 // missing = cleared (every desk payment before processors existed)
+  via?: 'desk' | 'text_link' | 'autopay' | 'portal' | 'retail_cash';
+  processorId?: string;                   // the processor's id for this payment, to match callbacks
+  reverse?: { on: string; code?: string; reason?: string };
+};
+/** A payment counts toward the note unless it came back. A clearing payment counts, and is marked. */
+export const counts = (p: Payment) => !p.status || p.status === 'cleared' || p.status === 'clearing';
 export type Loan = {
   id: string; saleId?: string;
   buyer: { name: string; phone: string };
@@ -89,7 +99,7 @@ const sorted = (p: Payment[]) => [...p].sort((a, b) => a.on.localeCompare(b.on) 
 
 export function standing(loan: Loan, asOf: string): Standing {
   const dates = dueDates(loan.firstDue, loan.count, loan.frequency);
-  const pays = sorted(loan.payments).filter(p => p.on <= asOf);
+  const pays = sorted(loan.payments).filter(p => p.on <= asOf && counts(p));
 
   // 1. Walk the payments by date: interest accrues by the day; each payment pays late charges, then interest, then principal.
   let principal = loan.principalCents, since = loan.openedOn, interestPaid = 0, feesPaid = 0, paid = 0;
@@ -195,7 +205,7 @@ export function digest(loans: Loan[], asOf: string): Digest {
     const s = standing(l, asOf);
     if (s.status === 'late') d.late.push({ loan: l, cents: s.pastDueCents + s.feesOwedCents, days: s.daysLate });
     else if (s.status === 'due_today') d.dueToday.push({ loan: l, cents: s.next!.cents });
-    for (const p of l.payments) if (p.on === asOf) { d.collectedCents += p.cents; d.collectedCount++; }
+    for (const p of l.payments) if (p.on === asOf && counts(p)) { d.collectedCents += p.cents; d.collectedCount++; }
   }
   d.late.sort((a, b) => b.days - a.days);
   return d;
@@ -206,3 +216,38 @@ export function ownerText(d: Digest, dealerName: string) {
   return `${dealerName} today: ${d.dueToday.length} due (${sum(d.dueToday)}), ${d.late.length} late (${sum(d.late)}). Collected so far: ${usd(d.collectedCents)}.`;
 }
 export { usd as money };
+
+/* ---------- payment updates: one text to the buyer, one to the dealership ----------
+   Every change in a payment's status tells both sides, in plain words, at once. */
+export type PaymentEvent = 'received' | 'clearing' | 'cleared' | 'returned' | 'declined' | 'charged_back' | 'refunded';
+export type PaymentTexts = { buyer?: string; dealer: string };
+export function paymentTexts(ev: PaymentEvent, loan: Loan, cents: number, after: Standing, dealerName: string, receipt?: number, reason?: string): PaymentTexts {
+  const car = loan.vehicle.split(' · ')[0], amt = usd(cents);
+  const next = after.status === 'paid_off' ? 'Your car is paid off. Thank you.' : after.next ? `Next payment ${usd(after.next.cents)} due ${day(after.next.due)}.` : '';
+  const bal = `Balance ${usd(after.payoffCents)}.`;
+  switch (ev) {
+    case 'received': case 'cleared': return {
+      buyer: `${dealerName}: we received your ${amt} payment${receipt ? ` (receipt #${receipt})` : ''}. ${bal} ${next}`.trim(),
+      dealer: `Payment in: ${amt} from ${loan.buyer.name}, ${car}.${after.status === 'paid_off' ? ' Paid off.' : ` ${bal}`}`,
+    };
+    case 'clearing': return {
+      buyer: `${dealerName}: your ${amt} bank payment is on its way and usually clears in 3 to 4 business days. ${next}`.trim(),
+      dealer: `Bank payment started: ${amt} from ${loan.buyer.name}, ${car}. Clearing.`,
+    };
+    case 'returned': return {
+      buyer: `${dealerName}: your ${amt} bank payment came back from your bank${reason ? ` (${reason.toLowerCase()})` : ''}. Please call us or reply to pay another way.`,
+      dealer: `Payment returned: ${amt} from ${loan.buyer.name}, ${car}${reason ? `, ${reason}` : ''}. Their account is ${usd(after.pastDueCents + after.feesOwedCents)} past due.`,
+    };
+    case 'declined': return {
+      buyer: `${dealerName}: your ${amt} payment didn’t go through. Please try another card or reply and we’ll help.`,
+      dealer: `Payment declined: ${amt} from ${loan.buyer.name}, ${car}.`,
+    };
+    case 'charged_back': return { dealer: `Chargeback: ${loan.buyer.name} disputed a ${amt} card payment on the ${car}. Respond in your processor’s portal.` };
+    case 'refunded': return { buyer: `${dealerName}: we refunded ${amt} to you. ${bal}`, dealer: `Refunded ${amt} to ${loan.buyer.name}, ${car}.` };
+  }
+}
+
+/** Apply a processor update to the payment it names. Unknown ids change nothing. */
+export function updatePayment(loan: Loan, processorId: string, status: PaymentStatus, reverse?: Payment['reverse']): Loan {
+  return { ...loan, payments: loan.payments.map(p => (p.processorId === processorId ? { ...p, status, ...(reverse ? { reverse } : {}) } : p)) };
+}

@@ -2,7 +2,7 @@
    Home asks "who needs you?", a list shows those people, an account shows one
    number and one action, and everything else is a tap away on its own page. */
 import { useState } from 'react';
-import { METHOD_LABEL, amountToAsk, digest, money, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
+import { METHOD_LABEL, amountToAsk, digest, money, paymentTexts, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
 import { parseMoney } from './lib/money';
 import { getLoans, recordPayment, setReminders, useStore } from './store';
 import { Back, Ic, feel, go, transition } from './ui';
@@ -172,6 +172,7 @@ export function TakePayment({ id }: { id: string }) {
   const [amt, setAmt] = useState(s0 ? (amountToAsk(s0) / 100).toFixed(2) : '');
   const [method, setMethod] = useState<Method | null>(null);
   const [receipt, setReceipt] = useState<number | null>(null);
+  const [seeTexts, setSeeTexts] = useState(false);
   if (!l || !s0) return <Payments />;
   const to = (n: number, d: 'fwd' | 'back' = 'fwd') => transition(() => { setStep(n); scrollTo(0, 0); }, d);
   const cents = Math.round((parseMoney(amt) ?? 0) * 100);
@@ -201,7 +202,9 @@ export function TakePayment({ id }: { id: string }) {
       {step === 2 && after && paid && <section className="enter" key="done">
         <span className="done-mark pop"><Ic n="check" s={38} w={3} /></span>
         <h1 className="q">Recorded.</h1>
-        <p className="note">Receipt #{paid.receipt}</p>
+        <p className="note">Receipt #{paid.receipt} · texted to {first(l.buyer.name)} and you</p>
+        {!seeTexts ? <button className="textlink" onClick={() => { feel.tap(); setSeeTexts(true); }}>See The Texts</button> : (() => { const tx = paymentTexts('received', getLoans().find(x => x.id === id)!, paid.cents, after, dealer.dba, paid.receipt); return (
+          <div className="sms two"><small>{first(l.buyer.name)}</small><span className="bubble">{tx.buyer}</span><small>You</small><span className="bubble you">{tx.dealer}</span></div>); })()}
         <div className="dock"><div className="in">
           <button className="btn primary block" onClick={() => { feel.done(); go(`/payments/${id}`); }}>Done</button>
           <button className="textlink" onClick={() => { feel.tap(); print(); }}>Print The Receipt</button>

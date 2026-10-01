@@ -58,3 +58,15 @@ CREATE TABLE IF NOT EXISTS rate_hit (
   at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS rate_hit_by_key ON rate_hit (key, at);
+
+-- In-house notes (buy here pay here). The body is the Loan from src/lib/loans.ts.
+CREATE TABLE IF NOT EXISTS note (
+  id         TEXT PRIMARY KEY,               -- also PayNearMe's site_customer_identifier
+  dealer_id  TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS note_by_dealer ON note (dealer_id);
+CREATE TABLE IF NOT EXISTS receipt_counter (dealer_id TEXT PRIMARY KEY, last INTEGER NOT NULL);
+-- Who at the dealership is texted when a payment comes in, comma-separated E.164.
+ALTER TABLE dealer_line ADD COLUMN alert_to TEXT;

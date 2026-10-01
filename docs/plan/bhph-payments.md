@@ -64,6 +64,116 @@ Research date: October 1, 2026, from each company's own pages and the Texas stat
 
 ---
 
+# How payments get received, and how everyone knows
+
+Research date: October 1, 2026, read from each company's own pages and developer docs. Lines marked **to confirm** need a call, a sandbox test or counsel before launch.
+
+## 1. Which processor
+
+| Option | What it is | Fit for our notes |
+|---|---|---|
+| **PayNearMe** | Built for buy here pay here and auto lenders. Takes **cash at 7-Eleven and CVS** (by barcode), card, ACH, Cash App, PayPal and Apple Pay. Offers **one-tap pay links by text** (no login), autopay and reminders. | **Best fit.** Its developer docs spell out callbacks for every payment, decline, refund, chargeback and ACH return (details in §2). Cash at retail matters for buyers without bank accounts. |
+| **REPAY** | Auto-finance specialist. Card, debit and ACH, text-to-pay, phone payments (IVR), a pay portal and autopay. Payments "automatically post back to your DMS". Has a partner program for software companies like us. | **Strong second.** We need its API docs through the partner program. |
+| **Carpay** | A customer app for buy here pay here payers. Pay by app, by texting PAY, by phone or on the web. Reminders, autopay, and "real-time" sync with the dealer's system. Says "$0 additional out-of-pocket" for the dealer. | A partner to integrate with when a dealer already uses it, not our main processor. |
+| **FrazerPay / PayMyCar** | Frazer's own processor and pay site. | Only for Frazer dealers. Shows what dealers expect: recurring payments on the due date, automatic posting and emailed receipts. |
+| **Stripe** | General processor. | **Not for notes.** Stripe lists "Loan repayments with credit cards" as **prohibited**, and "Lending services" as **restricted** (approval needed). Fine for Obavia's own subscription billing. |
+| **A white-label processor for software platforms (e.g. Finix)** | Lets Obavia run payments under its own brand and earn on each transaction. | Later, once volume justifies it. **To confirm:** that it underwrites auto lending and debt repayment. |
+
+**Card rules that shape the choice.**
+- Visa and Mastercard have lower-fee **debt repayment programs**, but only for **debit and prepaid cards**, and only for lenders registered under financial-institution category codes (**6012 or 6051**). Fees run about **0.65% + $0.15, capped at $2.00** on exempt Visa debit.
+- A dealer usually processes as a car dealer (category 5521), so whether a buy here pay here dealer qualifies is **to confirm** with the processor.
+- Credit-card loan payments are where processors draw lines: Stripe bans them, while auto specialists take cards.
+
+**Bank (ACH) rules** (Nacha, the network that runs US bank transfers):
+- before the first online debit from a bank account, it must be **validated** (open and able to take debits);
+- recurring debits need a **signed or similarly authenticated authorization**, and the buyer must be sent a copy (Regulation E).
+
+PayNearMe and REPAY handle both.
+
+**Recommendation:** start with **PayNearMe**, with **REPAY** as the alternative. Keep cash at the counter in the Desk as it is today.
+- **No payment processing turns on without the owner's go-ahead.**
+- **Do not charge buyers convenience fees until the OCCC or counsel confirms they're allowed** under Finance Code ch. 348. We didn't find a published OCCC answer.
+
+## 2. How the Desk knows where every payment stands
+
+Every payment has a status. The ledger counts a payment while it is cleared or clearing, and stops counting it if it comes back:
+
+| Status | When | Counts toward the note? |
+|---|---|---|
+| **Cleared** | Cash at the counter; a card or debit payment the processor approved | Yes |
+| **Clearing** | A bank (ACH) payment. Stripe's docs say ACH takes **up to 4 business days** to confirm, and consumers can dispute for **60 days** | Yes, marked as clearing |
+| **Returned** | The bank sent it back (e.g. **R01 Insufficient Funds**) | No. The installment is due or late again |
+| **Charged back** | The cardholder disputed it | No |
+| **Refunded** | The dealer refunded it | No |
+
+**PayNearMe callbacks** (from its developer docs):
+- **Confirmation callback,** sent for each payment or decline. Its fields:
+  - `pnm_order_identifier`: PayNearMe's payment id;
+  - `site_customer_identifier`: **our note id**;
+  - `payment_amount`;
+  - `payment_type`: ach, cash, cash_app, credit, debit or paypal;
+  - `pnm_processing_fee`;
+  - `status`: payment or decline;
+  - `payment_timestamp`.
+- **Reverse callback,** sent for cancellations, refunds, chargebacks and bank returns. Its fields:
+  - `reverse_type`, e.g. "Chargeback" or "Bank Return";
+  - `reverse_code`, e.g. "refunded" or "R01";
+  - `reverse_reason`, e.g. "Insufficient Funds".
+- **Our acknowledgement** must come back **within 10 seconds**. Otherwise PayNearMe resends every minute for 30 minutes, then pauses callbacks until someone resumes them in its portal.
+- **Callbacks are signed with HMAC-SHA256.** Which header carries the signature is **to confirm** in the sandbox. It's a single constant in our code.
+
+## 3. Texting both the buyer and the dealership
+
+| Event | Buyer gets | Dealership gets |
+|---|---|---|
+| Payment received | "Triple J Auto: we received your $126.28 payment (receipt #1001). Balance $5,889.43. Next payment $126.28 due Friday, October 16." | "Payment in: $126.28 from Maria Example, 2016 Honda Accord LX. Balance $5,889.43." |
+| Bank payment started | "…your $126.28 bank payment is on its way and usually clears in 3 to 4 business days…" | "Bank payment started: … Clearing." |
+| Bank payment returned | "…came back from your bank (insufficient funds). Please call us or reply to pay another way." | "Payment returned: … Their account is $X past due." |
+| Card declined | "…didn't go through. Please try another card or reply and we'll help." | "Payment declined: …" |
+| Chargeback | (nothing) | "Chargeback: … Respond in your processor's portal." |
+| Refund | "We refunded $X to you. Balance $Y." | "Refunded $X to …" |
+
+**Is it allowed?**
+- **Carriers prohibit third-party debt collection texts.** Twilio's error 30943 says carriers reject those campaigns.
+- **First-party messages,** where the creditor texts its own customers about their own balances, "may be permissible under a different campaign use case". Our texts are first-party: the dealer about its own note. They go out under the dealer's own texting campaign, registered as **account notifications / customer care**.
+- **Every text goes through the messaging gate.** STOP is honoured, every send is logged, and the compliance gate applies.
+- **Consent to text** the number on the contract is captured at signing.
+- **Dealership alerts** go only to the numbers the owner chooses.
+- **Texas Finance Code ch. 392** (debt collection) bars harassment, so payment texts stay factual and few.
+- **Counsel review** is required for the wording and the consent.
+
+**Licensing:** OCCC says sellers and holders of retail installment contracts need a **Chapter 348 Motor Vehicle Sales Finance licence**. A buy here pay here dealer that carries its own notes needs one.
+
+## 4. What is built (October 1)
+
+- **`src/lib/loans.ts`:**
+  - payment statuses, so returned, refunded and charged-back payments stop counting;
+  - `updatePayment()`;
+  - `paymentTexts()`, which writes the buyer and dealership text for every event.
+- **`server/payments/paynearme.ts`:** reads PayNearMe confirmation and reverse callbacks (JSON or form fields), checks the HMAC signature, and builds the exact acknowledgement.
+- **`server/payments/desk.ts` (`PaymentDesk`):**
+  - applies a payment to the note, and ignores the same payment if it arrives twice;
+  - moves bank payments from clearing to cleared or returned;
+  - texts the buyer and every dealership alert number through the Messenger. A buyer who sent STOP is never texted; the dealership still is.
+- **`POST /webhooks/paynearme`** on the Worker. Notes and receipt numbers are stored in D1 (`server/schema.sql`).
+- **Tests:** 16 for the loan engine, 9 for payments, plus the webhook route.
+- **Desk:** after a payment, "Receipt #1001 · texted to Chris and you", with **See The Texts** showing both messages.
+
+## 5. To turn on
+
+1. Apply with PayNearMe (and ask REPAY for partner API docs).
+2. Confirm in the PayNearMe sandbox:
+   - the signature header;
+   - the callback format;
+   - pay links by text, so we can send our own "Pay Now" link in reminders;
+   - autopay;
+   - the fee model.
+3. Move notes from the browser into D1 (or Supabase).
+4. Deploy the Worker with `PAYNEARME_CALLBACK_SECRET`, and have the owner set the dealership alert numbers.
+5. Get counsel review of the wording and consent, OCCC confirmation on fees, and the dealer's ch. 348 licence.
+
+---
+
 # Reach: every channel, and how each really connects
 
 Facebook ended dealer vehicle listings on Marketplace from Pages and feeds on **January 30, 2023**. Feed-based Marketplace listings stopped in 2021. Marketplace is therefore posted **from the dealer's own phone, signed in as them, after they accept our terms**.
