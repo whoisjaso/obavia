@@ -2,13 +2,13 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Obavia · Join the waitlist</title>
-<meta name="description" content="Join the Obavia waitlist for launch updates. Free to join. No account or payment.">
+<title>Obavia · Get early access</title>
+<meta name="description" content="Get early access to Obavia Desk, the dealership desk for Texas independent dealers. Free to join. No account or payment.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="canonical" href="https://obavia.co/waitlist">
 <meta name="theme-color" content="#F6F9FF">
-<meta property="og:title" content="Join the Obavia waitlist">
+<meta property="og:title" content="Get early access to Obavia Desk">
 <meta property="og:description" content="Know why deals are lost. And fix it by Friday.">
 <meta property="og:image" content="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -91,12 +91,12 @@
 <header class="o-nav" id="oNav">
   <div class="o-wrap">
     <a class="o-brand" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt="" id="oMark"></a>
-    <ul class="o-links"><li><a href="product.html">Product</a></li><li><a href="owners.html">Owners</a></li><li><a href="team.html">Team</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="about.html">About</a></li></ul>
-    <a class="o-join" href="waitlist.html">Join the waitlist</a>
+    <ul class="o-links"><li><a href="index.html#desk">The Desk</a></li><li><a href="index.html#paperwork">Paperwork</a></li><li><a href="index.html#signing">Signing</a></li><li><a href="index.html#next">What’s next</a></li></ul>
+    <a class="o-join" href="waitlist.html">Get early access</a>
     <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
   </div>
 </header>
-<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a class="o-join" href="waitlist.html">Join the waitlist</a></nav>
+<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="index.html">Home</a><a href="index.html#desk">The Desk</a><a href="index.html#paperwork">Paperwork</a><a href="index.html#signing">Signing</a><a href="index.html#next">What’s next</a></nav>
 <script src="shell.js"></script>
 
 
@@ -104,26 +104,26 @@
 <main>
 <section class="wl" id="wl" aria-labelledby="wlTitle">
   <div class="wl-in">
-    <h1 id="wlTitle" tabindex="-1">Join the waitlist. <span>Be first in.</span></h1>
-    <p class="intro">Launch updates, and first call on the founding seats. Obavia isn’t open yet.</p>
+    <h1 id="wlTitle" tabindex="-1">Get early access. <span>Set up first.</span></h1>
+    <p class="intro">Obavia Desk is onboarding Texas independent dealers. Leave your name and we’ll reach out to set you up.</p>
     <div class="wl-card">
       <form id="wlForm" novalidate>
         <label for="wlName">Full name</label>
         <input id="wlName" name="fullName" type="text" autocomplete="name" maxlength="160" placeholder="Your full name" required>
         <label for="wlEmail">Work email</label>
-        <input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@agency.com" required>
+        <input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@yourdealership.com" required>
         <div class="trap" aria-hidden="true"><label for="wlSite">Website</label><input id="wlSite" name="website" tabindex="-1" autocomplete="off"></div>
-        <button type="submit" id="wlBtn">Join the waitlist</button>
+        <button type="submit" id="wlBtn">Get early access</button>
         <p class="status" id="wlStatus" role="status" aria-live="polite"></p>
       </form>
       <div class="done" id="wlDone">
         <i><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></svg></i>
         <b>You’re on the list.</b>
-        <p>We’ll write when the founding seats open.</p>
+        <p>We’ll be in touch to set up your dealership.</p>
       </div>
     </div>
     <p class="note">Free to join. No account or payment.</p>
-    <noscript><p class="note">Turn on JavaScript to join the waitlist.</p></noscript>
+    <noscript><p class="note">Turn on JavaScript to sign up.</p></noscript>
   </div>
 </section>
 </main>
@@ -151,7 +151,7 @@ form.addEventListener('submit', async e => {
   if (!full || [...full].length > 160) { say('Please enter your full name.'); name.focus(); return; }
   if (!email.checkValidity() || !email.value.trim()) { say('Please check your email address.'); email.focus(); return; }
   if (busy || !endpoint) return;
-  busy = true; btn.disabled = true; btn.textContent = 'Joining…'; say('');
+  busy = true; btn.disabled = true; btn.textContent = 'Sending…'; say('');
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 12000); let retry = 0;
   try {
     const r = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'omit', signal: ctl.signal,
@@ -167,7 +167,7 @@ form.addEventListener('submit', async e => {
     else say('We couldn’t save that yet. Please try again.');
   } catch { say('We couldn’t reach the waitlist. Check your connection and try again.'); }
   finally {
-    clearTimeout(to); busy = false; btn.textContent = 'Join the waitlist';
+    clearTimeout(to); busy = false; btn.textContent = 'Get early access';
     if (retry) setTimeout(() => { btn.disabled = false; }, Math.min(retry, 86400) * 1000); else btn.disabled = false;
   }
 });

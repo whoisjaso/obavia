@@ -9,3 +9,15 @@ npx remotion render src/index.ts OwnerAd out/obavia-ad-owner.mp4 --codec h264 --
 ```
 
 Copy the renders into `obavia-co/ads/`. Voice lines live in `public/vo` and are listed in `src/vo.json`.
+
+## Obavia Desk films
+
+`DeskFilm` (16:9) and the section loops (`LoopFind`, `LoopPaper`, `LoopSale`, `LoopSign`) are cut from real Desk screens. Capture them first (they are not committed), then render:
+
+```bash
+node capture-desk.cjs                     # writes public/desk/*.png from the running Desk
+npx remotion render src/index.ts DeskFilm out/obavia-desk.mp4 --codec h264 --crf 21
+npx remotion render src/index.ts LoopFind out/loop-find.mp4 --codec h264 --crf 23 --muted
+```
+
+Copy the renders and posters into `obavia-co/films/`.
