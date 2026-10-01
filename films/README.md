@@ -21,3 +21,19 @@ npx remotion render src/index.ts LoopFind out/loop-find.mp4 --codec h264 --crf 2
 ```
 
 Copy the renders and posters into `obavia-co/films/`.
+
+## The payments film
+
+`DeskStory` (16:9, 57 s) tells how the Desk handles payments. It's cut like an agent launch film:
+- words sharpen in one at a time;
+- the camera pushes into the Desk;
+- each step shimmers while it runs and ticks off when done;
+- cards fly in from depth;
+- big caption beats sit between scenes.
+
+Everything is drawn in Remotion, with no screen captures. All names and figures are example data, and every capability it shows exists in the Desk.
+
+```bash
+npx remotion render src/index.ts DeskStory out/obavia-desk-story.mp4 --codec h264 --crf 19
+```
+
