@@ -369,6 +369,29 @@ That's answered by records made at the sale, not by arguments.
   - **Add A Complaint**: what's wrong, in their words, then miles now.
 - **History:** complaints also appear in the timeline, so a complaint, then autopay turned off, then a stopped payment reads as one story.
 
+## 11. What runs without the owner, and the one text that tells them
+
+**Auto-post sure matches** (`autoPostable` in `desk/src/lib/match.ts`; `runAutoPost` and `undoAutoPost` in `desk/src/store.ts`):
+- **What posts on sight:** only matches that are "sure" and carry a sender's name. Nameless checks and cash deposits are never sure. A match posts the moment it's found, with a receipt and both texts, exactly as if the owner had tapped Yes.
+- **Turning it on:** it's opt-in, under "Post Sure Ones For Me" on To Match. It's on for the example data so the preview shows it.
+- **Undo, for 2 days**, on **Posted For You**:
+  - takes the payment off the note;
+  - puts it back in To Match;
+  - forgets the sender, if this post was what taught it;
+  - marks that payment so it is never auto-posted again.
+- **Safety:** posting is idempotent, so the same money never posts twice however often the check runs. A test covers that.
+
+**Tonight's text** (`desk/src/lib/evening.ts`, 4 tests): one text to the owner each evening, built from the same records the screens show.
+- What came in today: the total, and the count by how it was paid (autopay, text link, matched from the bank, cash at the counter).
+- What needs the owner, at most 3, then "and N more":
+  - a buyer who went red or amber today;
+  - payments left to match;
+  - a cash drawer not closed, or short;
+  - earlier cash days flagged.
+- With nothing to flag, it ends "Nothing needs you."
+- **Settings:** the "Tonight's Text" page shows the exact text, an on/off switch, and a time (6, 7, 8 or 9 PM).
+- **Not yet:** the Worker's scheduled send, which goes through the Messenger to the owner's alert numbers. It needs notes stored server-side.
+
 ---
 
 # Reach: every channel, and how each really connects

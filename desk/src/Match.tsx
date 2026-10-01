@@ -3,11 +3,11 @@
    Each page asks one question, "Whose payment is this?", and the best
    guess is the next tap. */
 import { useState } from 'react';
-import { METHOD_LABEL, money, paymentTexts, standing, today } from './lib/loans';
-import { inbox, type Suggestion } from './lib/match';
-import { withBanking } from './lib/cashday';
+import { METHOD_LABEL, money, paymentTexts, standing } from './lib/loans';
+import type { Suggestion } from './lib/match';
+import { useMoney } from './Owner';
 import { Go, nice } from './Payments';
-import { dismissMoney, getLoans, matchMoney, useStore } from './store';
+import { dismissMoney, getLoans, matchMoney, setAutoPost, useStore } from './store';
 import { Back, Ic, feel, go, transition } from './ui';
 
 const first = (n: string) => n.split(' ')[0];
@@ -15,9 +15,8 @@ const title = (s: string) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase
 const fromLine = (s: Suggestion) => [METHOD_LABEL[s.money.rail ?? 'other'], s.money.from ? title(s.money.from) : s.money.source === 'bank' ? 'No name on it' : '', nice(s.money.on)].filter(Boolean).join(' · ');
 
 function useInbox() {
-  const { dealer, loans = [], money: all = [], matched = {}, payers, cashDays = {} } = useStore();
-  const banked = withBanking(cashDays, all).deposits;      // deposits that banked a cash day aren't payments to match
-  return { t: today(dealer.timeZone), loans, box: inbox(all, loans, today(dealer.timeZone), { ...matched, ...banked }, payers), dealer, matched };
+  const { t, box, st } = useMoney();
+  return { t, loans: st.loans ?? [], box, dealer: st.dealer, matched: st.matched ?? {} };
 }
 
 export function MatchList() {
@@ -33,6 +32,7 @@ export function MatchList() {
             label={`${money(s.money.cents)} · ${METHOD_LABEL[s.money.rail ?? 'other']}`} gloss={s.best && s.verdict !== 'unsure' ? `${name(s.best.loanId)}?` : 'Who sent this?'} />)}
         </div>
         {!box.length && <p className="note">All matched.</p>}
+        <AutoToggle />
       </section>
     </main>
   );
@@ -94,5 +94,16 @@ export function MatchOne({ id }: { id: string }) {
         </>}
       </section>
     </main>
+  );
+}
+
+function AutoToggle() {
+  const { autoPost } = useStore();
+  return (
+    <div className="choices">
+      <button className="choice" aria-pressed={!!autoPost} onClick={() => { feel.tap(); setAutoPost(!autoPost); }}>
+        <span className="t"><b>Post Sure Ones For Me</b><small>Undo any for 2 days</small></span><span className="tick">{autoPost && <Ic n="check" s={15} w={3} />}</span>
+      </button>
+    </div>
   );
 }

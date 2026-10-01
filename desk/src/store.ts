@@ -8,7 +8,7 @@ import type { AgreementState, Buyer, Sale, StepData, Vehicle } from './lib/sale'
 import { EXAMPLE_LOT, exampleSales } from './data';
 import { MARKETPLACE_TERMS, termsHash, type Consent } from './lib/consent';
 import { addDays, amountToAsk, openLoan, standing, takePayment, today, type Frequency, type Loan, type Method } from './lib/loans';
-import { fromReceipt, normName, type Money, type Payers } from './lib/match';
+import { fromReceipt, normName, type Money, type Payers, type Suggestion } from './lib/match';
 import { cashOn, type CashDay } from './lib/cashday';
 import type { Attempt, OnFile } from './lib/autopay';
 import { conditionFromSale, type ServiceEntry } from './lib/condition';
@@ -16,10 +16,13 @@ import { PER_YEAR } from './lib/paperwork';
 import { parseMoney } from './lib/money';
 
 type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[];
-  money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay> };
+  money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay>;
+  autoPost?: boolean; autoPosted?: AutoPosted[]; noAuto?: string[];
+  evening?: { on: boolean; hour: number } };
+export type AutoPosted = { moneyId: string; loanId: string; receipt: number; on: string; addedPayer?: string };
 const KEY = 'obavia.desk.v1';
 
-function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales(), loans: exampleLoans(EXAMPLE_DEALER.timeZone), money: exampleMoney(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), cashDays: exampleCashDays(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), receiptNo: 1000 }; }
+function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales(), loans: exampleLoans(EXAMPLE_DEALER.timeZone), money: exampleMoney(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), cashDays: exampleCashDays(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), receiptNo: 1000, autoPost: true, evening: { on: true, hour: 19 } }; }
 
 /** Example in-house notes, dated from today so every state shows: due today, late, late with a charge, current, paid off. */
 export function exampleLoans(tz: string): Loan[] {
@@ -75,7 +78,7 @@ export function exampleCashDays(loans: Loan[], tz: string): Record<string, CashD
 function load(): State {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); if (!s.cashDays && s.example) s.cashDays = exampleCashDays(s.loans ?? [], s.dealer.timeZone); return s; }
+    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); if (!s.cashDays && s.example) s.cashDays = exampleCashDays(s.loans ?? [], s.dealer.timeZone); if (s.example && s.autoPost === undefined) { s.autoPost = true; s.evening = { on: true, hour: 19 }; } return s; }
   } catch { /* private mode */ }
   return fresh();
 }
@@ -159,6 +162,32 @@ export function setPayday(loanId: string, payday: number) {
 export function closeCashDay(date: string, countedCents: number) {
   set({ ...state, cashDays: { ...state.cashDays, [date]: { date, countedCents, closedAt: new Date().toISOString() } } });
 }
+/** Posts every sure match without asking, and keeps what's needed to undo it. */
+export function runAutoPost(candidates: Suggestion[]) {
+  let { receiptNo = 1000, loans = [], payers = {}, matched = {} } = state;
+  const sure = candidates.filter(sg => !(sg.money.id in matched) && !(state.noAuto ?? []).includes(sg.money.id));   // idempotent: never post the same money twice
+  if (!sure.length) return;
+  const posted: AutoPosted[] = [];
+  for (const sg of sure) {
+    const m = sg.money, loanId = sg.best!.loanId, receipt = ++receiptNo, name = m.from ? normName(m.from) : undefined;
+    loans = loans.map(l => l.id === loanId ? takePayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id }, receipt) : l);
+    const addedPayer = name && payers[name] !== loanId ? name : undefined;
+    if (addedPayer) payers = { ...payers, [addedPayer]: loanId };
+    matched = { ...matched, [m.id]: { loanId, receipt } };
+    posted.push({ moneyId: m.id, loanId, receipt, on: m.on, addedPayer });
+  }
+  set({ ...state, receiptNo, loans, payers, matched, autoPosted: [...(state.autoPosted ?? []), ...posted] });
+}
+/** Undo an automatic post: off the note, back to To Match, never auto-posted again, sender forgotten if this post taught it. */
+export function undoAutoPost(moneyId: string) {
+  const a = state.autoPosted?.find(x => x.moneyId === moneyId); if (!a) return;
+  const { [moneyId]: _, ...matched } = state.matched ?? {};
+  const payers = { ...state.payers }; if (a.addedPayer) delete payers[a.addedPayer];
+  set({ ...state, matched, payers, noAuto: [...(state.noAuto ?? []), moneyId], autoPosted: state.autoPosted!.filter(x => x.moneyId !== moneyId),
+    loans: getLoans().map(l => l.id === a.loanId ? { ...l, payments: l.payments.filter(p => p.receipt !== a.receipt) } : l) });
+}
+export function setAutoPost(on: boolean) { set({ ...state, autoPost: on }); }
+export function setEvening(e: { on: boolean; hour: number }) { set({ ...state, evening: e }); }
 /** Not a car payment (a refund from a supplier, a personal deposit): set it aside for good. */
 export function dismissMoney(id: string) { set({ ...state, matched: { ...state.matched, [id]: { loanId: null } } }); }
 export function setReminders(loanId: string, on: boolean) { set({ ...state, loans: getLoans().map(l => (l.id === loanId ? { ...l, remindersOn: on } : l)) }); }

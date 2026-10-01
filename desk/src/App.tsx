@@ -8,6 +8,7 @@ import { MatchList, MatchOne } from './Match';
 import { CashTaken, CloseDay } from './Cash';
 import { AutopaySetup, History } from './Autopay';
 import { ConditionPage } from './Condition';
+import { EveningText, Posted } from './Owner';
 import { Channel, MarketplaceConsent, Reach, ReachGroup } from './Reach';
 import type { DocType } from './lib/plan';
 import { getSale, useStore } from './store';
@@ -24,6 +25,8 @@ export function App() {
   if (a === 'payments') {
     if (id === 'cash' && b) return <CashTaken key={b} id={b} />;
     if (id === 'close') return <CloseDay />;
+    if (id === 'posted') return <Posted />;
+    if (id === 'evening') return <EveningText />;
     if (id === 'match') return b ? <MatchOne key={b} id={decodeURIComponent(b)} /> : <MatchList />;
     if (id === 'list') return <PaymentList key={b} which={(b === 'late' || b === 'today' || b === 'watch' ? b : 'all')} />;
     if (id && b === 'autopay') return <AutopaySetup key={id} id={id} />;

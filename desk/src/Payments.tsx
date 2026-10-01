@@ -2,10 +2,11 @@
    Home asks "who needs you?", a list shows those people, an account shows one
    number and one action, and everything else is a tap away on its own page. */
 import { useState } from 'react';
-import { METHOD_LABEL, amountToAsk, money, paymentTexts, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
+import { METHOD_LABEL, amountToAsk, daysBetween, money, paymentTexts, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
 import { parseMoney } from './lib/money';
-import { inbox } from './lib/match';
-import { cashOn, dayState, expected, withBanking } from './lib/cashday';
+import { useEvening, useMoney, UNDO_DAYS } from './Owner';
+import { hourLabel } from './lib/evening';
+import { cashOn, dayState, expected } from './lib/cashday';
 import { WEEKDAY, signal } from './lib/autopay';
 import { methodText } from './Autopay';
 import { getLoans, recordPayment, setReminders, useStore } from './store';
@@ -37,11 +38,11 @@ export function Go({ to, label, gloss, icon, tone }: { to: string; label: string
 /* ---------- 1. Who's expected today? One tap for cash at the counter. ---------- */
 const SHOW = 6;
 export function Payments() {
-  const { dealer, loans = [], example, money: incoming = [], matched = {}, payers, cashDays = {} } = useStore();
+  const { loans = [], example, autoPosted = [], evening: eve } = useStore();
   const [all, setAll] = useState(false);
-  const t = today(dealer.timeZone);
-  const bank = withBanking(cashDays, incoming);
-  const toMatch = inbox(incoming, loans, t, { ...matched, ...bank.deposits }, payers);
+  const { t, box: toMatch, bank } = useMoney();
+  const ev = useEvening();
+  const recent = autoPosted.filter(a => daysBetween(a.on, t) <= UNDO_DAYS);
   const exp = expected(loans, t), shown = all ? exp : exp.slice(0, SHOW);
   const cashToday = cashOn(loans, t).cents;
   const flagged = Object.values(bank.days).filter(d => d.date < t && ['short', 'not_banked'].includes(dayState(loans, d, d.date, t))).length;
@@ -61,8 +62,10 @@ export function Payments() {
             return red + amber > 0 && <Go to="/payments/list/watch" tone={red ? 'late' : 'warn'} label="Watch"
               gloss={[red && `${red} on purpose`, amber && `${amber} short on money`].filter(Boolean).join(' · ')} />; })()}
           {toMatch.length > 0 && <Go to="/payments/match" icon="bank" label="To Match" gloss={`${toMatch.length} from Zelle, Cash App and the bank`} />}
+          {recent.length > 0 && <Go to="/payments/posted" icon="check" label="Posted For You" gloss={`${recent.length} matched and posted · undo for ${UNDO_DAYS} days`} />}
           <Go to="/payments/close" icon="cash" label="Close The Day" gloss={closeGloss} tone={flagged ? 'late' : undefined} />
           <Go to="/payments/list/all" icon="sheet" label="Every Account" />
+          <Go to="/payments/evening" icon="phone" label="Tonight’s Text" gloss={eve?.on ? `${hourLabel(eve.hour)} · ${ev.needs.length ? `${ev.needs.length} need${ev.needs.length > 1 ? '' : 's'} you` : 'nothing needs you'}` : 'Off'} />
         </div>
         {example && <span className="example">Example data</span>}
       </section>

@@ -172,3 +172,7 @@ export function inbox(all: Money[], loans: Loan[], asOf: string, done: Record<st
   return kept.filter(m => !(m.id in done)).map(m => suggest(m, loans, asOf, payers))
     .sort((a, b) => rank[a.verdict] - rank[b.verdict] || b.money.on.localeCompare(a.money.on));
 }
+
+/** What may post without the owner: sure, with a sender's name, and not one the owner already undid. */
+export const autoPostable = (box: Suggestion[], skip: string[] = []) =>
+  box.filter(s => s.verdict === 'sure' && !!s.money.from && !!s.best && !skip.includes(s.money.id));

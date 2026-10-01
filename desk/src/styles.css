@@ -557,3 +557,4 @@ section:has(> .q2) > h1.q{display:none}
 .list-plain.stack>div>b{display:block}
 .list-plain.stack>div>span{display:block;margin-top:4px;color:var(--muted);font-size:15px}
 .list-plain.stack>div>small{display:block;margin-top:8px}
+.textlink.undo{display:inline;margin:0;padding:6px 0;font-size:15px}
