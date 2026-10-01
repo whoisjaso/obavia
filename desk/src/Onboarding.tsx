@@ -4,6 +4,8 @@
    verified with a code sent to the contact on its licence record. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EXAMPLE_DEALER, type DealerConfig } from './lib/config';
+import { SAY, checkVerify, live, startVerify, type Profile } from './lib/api';
+import { SHAPES } from './lib/shapes';
 import { STATES, hasList as listFor, loadDealerIndex, maskPhone, searchDealers, type DealerIndex, type DealerRecord } from './lib/dealers';
 import { finishOnboarding } from './store';
 import { Sheet } from './Sheet';
@@ -39,6 +41,10 @@ export function Onboarding() {
   const [typedName, setTypedName] = useState<string | null>(null);
   const [via, setVia] = useState<'sms' | 'email' | 'licence' | null>(null);
   const [code, setCode] = useState('');
+  const [sentTo, setSentTo] = useState('');
+  const [profile, setProfile] = useState<Profile>({});
+  const [say, setSay] = useState('');
+  const [busy, setBusy] = useState(false);
   const [site, setSite] = useState('');
   const [logo, setLogo] = useState<string | null>(null);
   const [accent, setAccent] = useState(COLORS[0]);
@@ -55,11 +61,36 @@ export function Onboarding() {
   const hasList = !!idx;
   const webmail = /@(gmail|yahoo|hotmail|outlook|aol|icloud|live|msn|att|sbcglobal|comcast)\./i;
   const domain = site.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') || (picked?.emailHint && !webmail.test(picked.emailHint) ? picked.emailHint.split('@')[1] : '') || '';
+  // Once a dealer is chosen, every fact comes from their licence record or their verified profile.
+  // A fact we don't have yet is left blank, never filled from the example dealer.
+  const own = !!(picked || typedName);
   const dealer: DealerConfig = {
     ...EXAMPLE_DEALER, legalName: legal || EXAMPLE_DEALER.legalName, dba: name || EXAMPLE_DEALER.dba, state: state ?? 'TX',
-    city: picked?.city ?? EXAMPLE_DEALER.city, county: picked?.county ?? EXAMPLE_DEALER.county, licence: picked?.licence ?? EXAMPLE_DEALER.licence,
-    website: domain || EXAMPLE_DEALER.website, brand: { accent, logo, monogram: monogram(name || 'Example Motors') },
+    street: own ? profile.street || picked?.street || '' : EXAMPLE_DEALER.street,
+    city: own ? profile.city || picked?.city || '' : EXAMPLE_DEALER.city,
+    zip: own ? profile.zip || picked?.zip || '' : EXAMPLE_DEALER.zip,
+    county: own ? picked?.county ?? '' : EXAMPLE_DEALER.county,
+    phone: own ? profile.phone ?? '' : EXAMPLE_DEALER.phone,
+    email: own ? profile.email ?? '' : EXAMPLE_DEALER.email,
+    licence: own ? picked?.licence ?? '' : EXAMPLE_DEALER.licence,
+    website: domain || (own ? '' : EXAMPLE_DEALER.website),
+    signer: own ? { name: '', title: 'Owner' } : EXAMPLE_DEALER.signer, brand: { accent, logo, monogram: monogram(name || 'Example Motors') },
   };
+  /** Send the code to the contact on the licence. Preview mode skips straight to the code. */
+  async function send(ch: 'sms' | 'email', again = false) {
+    setVia(ch); setSay(''); setCode('');
+    if (!live || !picked) { if (!again) go(3); return; }
+    setBusy(true); const r = await startVerify(picked.licence, ch); setBusy(false);
+    if (!r.ok) { setSay(SAY[r.reason] ?? SAY.offline); return; }
+    setSentTo(r.sentTo); if (!again) go(3);
+  }
+  /** Check the six digits; on success the verified profile fills the paperwork. */
+  async function check(v: string) {
+    if (!live || !picked || (via !== 'sms' && via !== 'email')) { setTimeout(() => go(4), 350); return; }
+    const r = await checkVerify(picked.licence, via, v);
+    if (!r.ok) { feel.tap(); setSay(SAY[r.reason] ?? SAY.offline); setCode(''); return; }
+    setProfile(r.profile); go(4);
+  }
   const go = (n: number) => { feel.next(); transition(() => { setI(n); scrollTo(0, 0); }); };
   const TOTAL = 8;
   const states = STATES.filter(([c, n]) => !stateQ || n.toLowerCase().startsWith(stateQ.toLowerCase()) || c.toLowerCase() === stateQ.toLowerCase());
@@ -80,8 +111,17 @@ export function Onboarding() {
         <img className="mark" src="./mark.svg" alt="" />
         <h1 className="q">Where’s Your Dealership?</h1>
         <label className="field"><input className="input" value={stateQ} onChange={e => setStateQ(e.target.value)} placeholder="Search your state" /></label>
-        <div className="states">{states.map(([c, n]) => (
-          <button key={c} className="st" aria-pressed={state === c} onClick={() => { setState(c); setPicked(null); setQ(''); go(1); }}><b>{n}</b><small>{c}</small></button>))}</div>
+        <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}><defs>
+          <linearGradient id="st-ice" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#C9D9FB" /><stop offset=".55" stopColor="#8FA9E2" /><stop offset="1" stopColor="#4E6AA8" /></linearGradient>
+          <linearGradient id="st-deep" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#9FB8F0" /><stop offset="1" stopColor="#2F4A86" /></linearGradient>
+        </defs></svg>
+        <div className="states">{states.map(([c, n], k) => (
+          <button key={c} className={`st${c === 'TX' && !stateQ ? ' lead' : ''}`} style={{ ['--k' as string]: Math.min(k, 24) }} aria-label={n} aria-pressed={state === c} title={n}
+            onClick={() => { setState(c); setPicked(null); setQ(''); go(1); }}>
+            <svg viewBox="-4 -4 108 108" aria-hidden="true"><path className="base" d={SHAPES[c]} /><path className="deep" d={SHAPES[c]} /></svg>
+            <span>{n === 'District Of Columbia' ? 'D.C.' : n}</span>
+          </button>))}</div>
+        {!states.length && <p className="hint">No state by that name.</p>}
       </section>}
 
       {i === 1 && state && <section className="enter" key="s1">
@@ -107,10 +147,10 @@ export function Onboarding() {
           <b>{name}</b>{picked.dba && <small>{picked.name}</small>}
           <dl><div><dt>Licence</dt><dd className="num">{picked.licence}</dd></div><div><dt>City</dt><dd>{picked.city}</dd></div><div><dt>County</dt><dd>{picked.county}</dd></div></dl>
         </div>
-        <p className="hint" style={{ marginTop: 26 }}>We’ll send a code to the contact on your licence.</p>
+        <p className="hint" style={{ marginTop: 26 }}>{say || 'We’ll send a code to the contact on your licence.'}</p>
         <div className="choices" style={{ marginTop: 12 }}>
-          {picked.phoneLast4 && <Choice icon="phone" label={`Text ${maskPhone(picked.phoneLast4)}`} gloss="The phone on your licence" onPick={() => { setVia('sms'); go(3); }} />}
-          {picked.emailHint && <Choice icon="link" label={`Email ${picked.emailHint}`} gloss="The email on your licence" onPick={() => { setVia('email'); go(3); }} />}
+          {picked.phoneLast4 && <Choice icon="phone" label={busy && via === 'sms' ? 'Sending…' : `Text ${maskPhone(picked.phoneLast4)}`} gloss="The phone on your licence" onPick={() => send('sms')} />}
+          {picked.emailHint && <Choice icon="link" label={busy && via === 'email' ? 'Sending…' : `Email ${picked.emailHint}`} gloss="The email on your licence" onPick={() => send('email')} />}
           <Choice icon="upload" label="Show My Dealer Licence Instead" gloss="A photo of the licence and your ID" onPick={() => { setVia('licence'); go(3); }} />
         </div>
       </section>}
@@ -126,14 +166,14 @@ export function Onboarding() {
           </div>
         </> : <>
           <h1 className="q">Enter The Code.</h1>
-          <p className="note">Sent to {via === 'sms' ? maskPhone(picked?.phoneLast4 ?? '') : picked?.emailHint}.</p>
+          <p className="note">{say || <>Sent to {sentTo || (via === 'sms' ? maskPhone(picked?.phoneLast4 ?? '') : picked?.emailHint)}.</>}</p>
           <div className="code" onClick={() => codeRef.current?.focus()}>
             {Array.from({ length: 6 }, (_, k) => <span key={k} className={k === code.length ? 'cur' : ''}>{code[k] ?? ''}</span>)}
             <input ref={codeRef} autoFocus inputMode="numeric" autoComplete="one-time-code" value={code} aria-label="Code"
-              onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 6); setCode(v); if (v.length === 6) setTimeout(() => go(4), 350); }} />
+              onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 6); setCode(v); setSay(''); if (v.length === 6) check(v); }} />
           </div>
-          <span className="example">Preview: any six digits work</span>
-          <button className="textlink" onClick={() => { feel.tap(); setCode(''); }}>Send A New Code</button>
+          {!live && <span className="example">Preview: any six digits work</span>}
+          <button className="textlink" onClick={() => { feel.tap(); setCode(''); if (via === 'sms' || via === 'email') send(via, true); }}>Send A New Code</button>
         </>}
       </section>}
 

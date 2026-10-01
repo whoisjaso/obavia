@@ -2,6 +2,7 @@
    hairline rules, figures in a tabular face, the one sentence that matters in
    red, the same signature grid. Official state forms (130-U, VTR-271) print
    from the official PDF; here they preview as the fields that will be filled. */
+import type React from 'react';
 import { businessDate, type DealerConfig } from './lib/config';
 import { DOC_TITLE } from './lib/documents';
 import { computeMoney, parseMoney, usd } from './lib/money';
@@ -14,15 +15,44 @@ export function saleReceipt(s: Sale, dealer: DealerConfig) {
   return computeMoney({ money: s.step.money, funding: s.step.funding?.type, tradeIn: parseMoney(bos.tradeAllowance) ?? 0, fees: dealer.fees });
 }
 
-export function Letterhead({ dealer, title, no }: { dealer: DealerConfig; title?: string; no?: string }) {
+const join = (...xs: (string | false | undefined | null)[]) => xs.filter(Boolean).join(' · ');
+const cityLine = (d: { city: string; state: string; zip: string }) => [d.city, [d.state, d.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+
+export function Letterhead({ dealer, title, no, date, stock }: { dealer: DealerConfig; title?: string; no?: string; date?: string; stock?: string }) {
+  const name = dealer.dba || dealer.legalName;
   return (
     <header className="lh">
       <span className="logo" style={{ background: dealer.brand.logo ? '#fff' : dealer.brand.accent }}>{dealer.brand.logo ? <img src={dealer.brand.logo} alt="" /> : dealer.brand.monogram}</span>
-      <span className="who"><b>{dealer.dba || dealer.legalName}</b><small>{dealer.street}<br />{dealer.city}, {dealer.state} {dealer.zip}<br />{dealer.phone} · Licence {dealer.licence}</small></span>
-      {title && <span className="doc"><b>{title}</b>{no && <small className="num">{no}</small>}</span>}
+      <span className="who">
+        <b>{name}</b>
+        {dealer.dba && dealer.legalName && dealer.legalName !== dealer.dba && <i>{dealer.legalName}</i>}
+        <small>{join(dealer.street, cityLine(dealer))}</small>
+        <small>{join(dealer.phone, dealer.email, dealer.website)}</small>
+      </span>
+      {title && <span className="doc">
+        <b>{title}</b>
+        <dl>
+          {no && <div><dt>No.</dt><dd>{no}</dd></div>}
+          {date && <div><dt>Date</dt><dd>{date}</dd></div>}
+          {stock && <div><dt>Stock</dt><dd>{stock}</dd></div>}
+          {dealer.licence && <div><dt>GDN</dt><dd>{dealer.licence}</dd></div>}
+        </dl>
+      </span>}
     </header>
   );
 }
+
+/** Cars are stored with a swatch colour; paperwork names it the way a title does. */
+const PAINT: [string, number[]][] = [['Black', [28, 30, 34]], ['White', [238, 240, 244]], ['Silver', [192, 197, 206]], ['Gray', [128, 134, 144]], ['Blue', [52, 78, 140]], ['Red', [168, 58, 58]], ['Green', [52, 110, 70]], ['Beige', [214, 198, 166]], ['Brown', [110, 76, 50]], ['Gold', [196, 160, 80]], ['Orange', [214, 110, 40]], ['Yellow', [230, 200, 60]]];
+export function colourName(c: string) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(c?.trim() ?? '');
+  if (!m) return c;
+  const rgb = [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16));
+  return PAINT.reduce((best, p) => { const d = p[1].reduce((t, v, i) => t + (v - rgb[i]) ** 2, 0); return d < best[1] ? [p[0], d] as [string, number] : best; }, ['', Infinity] as [string, number])[0];
+}
+
+const Cell = ({ k, v, className }: { k: string; v: React.ReactNode; className?: string }) => <div className={className}><small>{k}</small><b>{v || '\u00a0'}</b></div>;
+const Box = ({ on, children }: { on: boolean; children: React.ReactNode }) => <span className={'box' + (on ? ' on' : '')}><i aria-hidden="true">{on ? '✓' : ''}</i>{children}</span>;
 
 const Row = ({ k, v }: { k: string; v: string }) => <tr><td>{k}</td><td>{v}</td></tr>;
 
@@ -34,45 +64,71 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
   const funding = sale.step.funding;
   const lender = funding?.type === 'lender' ? funding.lenderOther || funding.lenderId : null;
   const lien = funding?.type === 'lender' ? lender : r.balance > 0 || funding?.type === 'inHouse' ? dealer.legalName : null;
-  const odo = bos.mileage === 'exceeds' ? 'exceeds mechanical limits' : bos.mileage === 'notActual' ? 'not the actual mileage' : 'the actual mileage';
 
   const body = (() => {
     switch (doc) {
       case 'billOfSale': case 'salvageBillOfSale': return (<>
         <section className="parties">
-          <div><h4>Seller</h4><b>{dealer.legalName}</b><span>{dealer.street}, {dealer.city}, {dealer.state} {dealer.zip}</span><span>Dealer licence {dealer.licence}</span></div>
-          <div><h4>Buyer</h4><b>{b.fullName}</b><span>{b.address}, {b.city}, {b.state} {b.zip}</span><span>{b.phone}</span></div>
+          <div>
+            <h4>Seller</h4>
+            <b>{dealer.legalName}</b>
+            {dealer.street && <span>{dealer.street}</span>}
+            <span>{cityLine(dealer)}</span>
+            {dealer.phone && <span>{dealer.phone}</span>}
+            {dealer.licence && <span>Texas dealer licence (GDN) {dealer.licence}</span>}
+          </div>
+          <div>
+            <h4>Purchaser</h4>
+            <b>{b.fullName}</b>
+            <span>{b.address}</span>
+            <span>{cityLine(b)}</span>
+            {b.phone && <span>{b.phone}</span>}
+            {b.idNumber && <span>{{ dl: 'Driver licence', stateId: 'State ID', passport: 'Passport', military: 'Military ID' }[b.idType]} ending {b.idNumber.slice(-4)}</span>}
+          </div>
         </section>
         <section className="vehicle">
           <h4>Vehicle</h4>
-          <div className="cells">
-            <div className="wide"><small>Year, make, model</small><b>{car}</b></div>
-            <div><small>Body</small><b>{v.bodyStyle}</b></div>
-            <div className="wide"><small>VIN</small><b className="mono">{v.vin}</b></div>
-            <div><small>Odometer</small><b className="num">{v.mileage?.toLocaleString() ?? '—'} mi</b></div>
+          <div className="grid">
+            <Cell k="Year" v={v.year} /><Cell k="Make" v={v.make} /><Cell k="Model" v={v.model} className="w2" /><Cell k="Body" v={v.bodyStyle} /><Cell k="Colour" v={colourName(v.color)} />
+            <Cell k="Vehicle identification number" v={<span className="mono">{v.vin}</span>} className="w4" /><Cell k="Odometer" v={v.mileage != null ? `${v.mileage.toLocaleString()} mi` : ''} className="num" /><Cell k="Stock" v={v.stock} />
           </div>
-          <p className="fine">The seller states the odometer reading is {odo}.{doc === 'salvageBillOfSale' ? ' This vehicle carries a salvage title.' : sale.vehicle.titleStatus === 'rebuilt_salvage' ? ' This vehicle carries a rebuilt salvage title.' : ''}</p>
+          <div className="odo">
+            <span className="lbl">Odometer statement</span>
+            <Box on={!bos.mileage || bos.mileage === 'actual'}>Actual mileage</Box>
+            <Box on={bos.mileage === 'exceeds'}>Exceeds mechanical limits</Box>
+            <Box on={bos.mileage === 'notActual'}>Not the actual mileage</Box>
+          </div>
+          {(doc === 'salvageBillOfSale' || v.titleStatus === 'rebuilt_salvage') && <p className="brand">{doc === 'salvageBillOfSale' ? 'Salvage title. This vehicle may not be driven on public roads.' : 'Rebuilt salvage title. The brand is permanent.'}</p>}
         </section>
-        <section className="money">
-          <h4>Price</h4>
-          <table className="num"><tbody>
-            <Row k="Sale price" v={usd(r.salePrice)} /><Row k={`Sales tax (${(dealer.fees.taxRate * 100).toFixed(2)}%)`} v={usd(r.tax)} /><Row k="Title fee" v={usd(r.title)} />
-            <Row k="Registration fee" v={usd(r.registration)} /><Row k="Documentary fee" v={usd(r.doc)} />
-            {r.tradeIn > 0 && <Row k={`Trade-in${bos.tradeDesc ? `: ${bos.tradeDesc}` : ''}`} v={`−${usd(r.tradeIn)}`} />}
-          </tbody><tfoot>
-            <tr className="total"><td>Total</td><td style={{ color: dealer.brand.accent }}>{usd(r.total)}</td></tr>
-            <Row k={`Paid today · ${funding?.type === 'cash' ? bos.payMethod ?? 'Cash' : 'Financing'}${lender ? `, ${lender}` : ''}`} v={usd(r.paidToday)} />
-            <tr className={r.balance > 0 ? 'owed' : ''}><td>Balance</td><td>{usd(r.balance)}</td></tr>
-          </tfoot></table>
-          {r.balance > 0 && <p className="key">Balance owed by the buyer to the seller under this bill of sale: {usd(r.balance)}, secured by a lien in favor of {dealer.legalName}.</p>}
+        <section className="split">
+          <div className="terms">
+            <h4>Terms</h4>
+            <div className="boxes">
+              <Box on={bos.asIs !== 'warranty'}>Sold as is, no warranty</Box>
+              <Box on={bos.asIs === 'warranty'}>Warranty{bos.asIs === 'warranty' && bos.warrantyLength ? `: ${bos.warrantyLength}` : ''}</Box>
+            </div>
+            <p>As stated on the Buyer’s Guide, which is part of this sale. {funding?.type === 'cash' ? `Paid by ${String(bos.payMethod ?? 'cash').toLowerCase()}.` : lender ? `Financed through ${lender}.` : funding?.type === 'inHouse' ? `Financed by ${dealer.legalName}.` : ''}</p>
+            {r.tradeIn > 0 && <p>Trade-in accepted{bos.tradeDesc ? `: ${bos.tradeDesc}` : ''}.</p>}
+            <p>The seller transfers the vehicle above to the purchaser for the price stated, and the purchaser accepts it.</p>
+          </div>
+          <div className="ledger">
+            <table className="num"><tbody>
+              <Row k="Cash price" v={usd(r.salePrice)} />
+              <Row k="Documentary fee" v={usd(r.doc)} />
+              <Row k={`Sales tax ${(dealer.fees.taxRate * 100).toFixed(2)}%`} v={usd(r.tax)} />
+              <Row k="Title fee" v={usd(r.title)} />
+              <Row k="Registration fee" v={usd(r.registration)} />
+              {r.tradeIn > 0 && <Row k="Trade-in allowance" v={`−${usd(r.tradeIn)}`} />}
+            </tbody><tfoot>
+              <tr className="total"><td>Total</td><td>{usd(r.total)}</td></tr>
+              <Row k="Paid today" v={usd(r.paidToday)} />
+              <tr className={r.balance > 0 ? 'owed' : ''}><td>Balance due</td><td>{usd(r.balance)}</td></tr>
+            </tfoot></table>
+          </div>
         </section>
-        <section className="terms">
-          <h4>Terms</h4>
-          <p>{bos.asIs === 'warranty' ? `Sold with a warranty: ${bos.warrantyLength ?? ''}, as stated on the Buyer’s Guide.` : 'Sold as is, with no warranty, as stated on the Buyer’s Guide, which is part of this sale.'} </p>
-          {/* Texas doc-fee notice (43 TAC §215.155). Wording to be confirmed with counsel before the first live sale. */}
-          <p className="notice">A documentary fee is not an official fee. A documentary fee is not required by law, but may be charged to buyers for handling documents relating to the sale. A documentary fee may not exceed a reasonable amount agreed to by the parties. This notice is required by law.</p>
-          <p>The seller transfers the vehicle above to the buyer for the price stated, and the buyer accepts it.</p>
-        </section>
+        {r.balance > 0 && <p className="key">Balance owed by the purchaser to the seller: {usd(r.balance)}, secured by a lien in favour of {dealer.legalName}.</p>}
+        {/* Texas doc-fee notice (43 TAC §215.155). Wording to be confirmed with counsel before the first live sale. */}
+        <p className="notice">A documentary fee is not an official fee. A documentary fee is not required by law, but may be charged to buyers for handling documents relating to the sale. A documentary fee may not exceed a reasonable amount agreed to by the parties. This notice is required by law.</p>
       </>);
       case 'form130U': return (<>
         <p className="official">Printed on the official TxDMV Form 130-U. These are the fields that will be filled.</p>
@@ -119,15 +175,17 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
   })();
 
   const accent = dealer.brand.accent;
+  const docNo = `${{ billOfSale: 'BS', salvageBillOfSale: 'SB' }[doc as string] ?? 'D'}-${date.slice(6)}${date.slice(0, 2)}${date.slice(3, 5)}-${(sale.vehicle.stock || sale.vehicle.vin.slice(-4)).replace(/\W/g, '')}`;
   return (
     <article className={'sheet' + (compact ? ' compact' : '')} style={{ ['--doc' as string]: accent }}>
       <i className="band" />
-      <Letterhead dealer={dealer} title={DOC_TITLE[doc]} no={`${date}${sale.vehicle.stock ? ` · Stock ${sale.vehicle.stock}` : ''}`} />
+      <Letterhead dealer={dealer} title={DOC_TITLE[doc]} no={docNo} date={date} stock={sale.vehicle.stock} />
       {body}
       {!compact && <footer className="sig">
-        <div><span className="ink">{buyerSig && <img src={buyerSig} alt="Buyer signature" />}</span><b>Buyer</b><small>{b.fullName} · {date}</small></div>
-        <div><span className="ink">{dealerSig && <em>{dealer.signer.name}</em>}</span><b>Seller</b><small>{dealer.signer.name}, {dealer.signer.title} · {date}</small></div>
+        <div><span className="ink">{buyerSig && <img src={buyerSig} alt="Purchaser signature" />}</span><b>Purchaser</b><small>{b.fullName}</small><small className="d">Date {date}</small></div>
+        <div><span className="ink">{dealerSig && dealer.signer.name && <em>{dealer.signer.name}</em>}</span><b>Seller, authorized signature</b><small>{dealer.signer.name ? `${dealer.signer.name}, ${dealer.signer.title}, for ${dealer.legalName}` : `Authorized representative, for ${dealer.legalName}`}</small><small className="d">Date {date}</small></div>
       </footer>}
+      {!compact && <p className="foot"><span>{join(dealer.legalName, dealer.licence && `GDN ${dealer.licence}`)}</span><span>{docNo} · Page 1 of 1</span></p>}
     </article>
   );
 }

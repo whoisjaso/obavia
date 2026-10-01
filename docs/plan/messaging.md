@@ -76,8 +76,8 @@ Cost per deal (estimate): about 4 texts plus 2 emails, **under $0.05**.
 Transactional email (signing links, receipts, the morning report) goes through **Resend**. You already have it connected, and it's what TryGTM uses for its own service email. It sends from the dealer's own domain when their website is on Obavia.
 
 ## Build order
-1. The `messaging` interface and the Telnyx implementation.
-2. Verification codes at onboarding. This unblocks real sign-ups.
+1. **Built (Oct 1).** The `messaging` interface and the Telnyx implementation: `desk/server/messaging/`. Send (SMS and MMS), Ed25519 webhook checks with a 5-minute replay window, Verify, and 10DLC brand, campaign and number calls. A compliance gate runs before every send: STOP blocks everything, marketing needs consent and Texas hours, and the opt-out line is added. STOP, START and HELP are answered by us.
+2. **Built (Oct 1), not deployed.** Verification codes at onboarding: `desk/server/worker.ts` (Cloudflare Worker, D1, R2 contacts). After the code checks, the dealer's own phone, email and street come back from the licence record and fill their paperwork. Deploy steps are in `desk/server/wrangler.toml`. The app uses it when `VITE_API_BASE` is set; without it, it stays in preview. Still to confirm against the Telnyx sandbox: the `phone_number_campaigns` body.
 3. Brand and campaign registration during onboarding, as one page-by-page step: "Let's register your texting". About $35, taking 1 to 5 days for carrier approval. **Tell the dealer the wait up front.**
 4. Signing by text in the Desk.
 5. Reach conversations.

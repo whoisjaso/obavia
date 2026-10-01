@@ -6,7 +6,7 @@
 
 /** One licensed dealer from a state list. Contacts arrive as hints only: the
     full phone and email stay on the server that sends the code. */
-export type DealerRecord = { licence: string; name: string; dba: string; city: string; county: string; zip: string; state: string; franchise: boolean; types: string[]; phoneLast4: string; emailHint: string };
+export type DealerRecord = { licence: string; name: string; dba: string; city: string; county: string; zip: string; state: string; franchise: boolean; types: string[]; phoneLast4: string; emailHint: string; street: string };
 
 export const STATES: [string, string][] = [
   ['TX', 'Texas'], ['AL', 'Alabama'], ['AK', 'Alaska'], ['AZ', 'Arizona'], ['AR', 'Arkansas'], ['CA', 'California'], ['CO', 'Colorado'], ['CT', 'Connecticut'],
@@ -31,11 +31,11 @@ const norm = (s: string) => s.toLowerCase().replace(/['’]/g, '').replace(/[^a-
 
 export function parseIndex(raw: RawIndex): DealerIndex {
   const at = (f: string) => raw.fields.indexOf(f);
-  const [L, N, D, C, K, Z, F, T, P, E] = ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'phoneLast4', 'emailHint'].map(at);
+  const [L, N, D, C, K, Z, F, T, P, E, S] = ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'phoneLast4', 'emailHint', 'street'].map(at);
   const list: DealerRecord[] = raw.rows.map(r => ({
     licence: String(r[L]), name: String(r[N] ?? ''), dba: String(r[D] ?? '').split(',')[0].trim(), city: String(r[C] ?? ''), county: String(r[K] ?? ''),
     zip: String(r[Z] ?? ''), state: raw.state, franchise: r[F] === 1, types: T < 0 ? [] : String(r[T] ?? '').split(' ').filter(Boolean),
-    phoneLast4: P < 0 ? '' : String(r[P] ?? ''), emailHint: E < 0 ? '' : String(r[E] ?? ''),
+    phoneLast4: P < 0 ? '' : String(r[P] ?? ''), emailHint: E < 0 ? '' : String(r[E] ?? ''), street: S < 0 ? '' : String(r[S] ?? ''),
   }));
   // Every DBA on the licence is searchable, not only the first one shown.
   const hay = raw.rows.map(r => norm(`${r[N]} ${r[D]} ${r[L]}`).split(' '));

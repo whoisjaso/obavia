@@ -152,13 +152,13 @@ export function emailHint(e) {
   return `${u[0]}${'•'.repeat(Math.min(6, Math.max(2, u.length - 1)))}@${d}`;
 }
 
-export const INDEX_FIELDS = ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'phoneLast4', 'emailHint'];
+export const INDEX_FIELDS = ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'phoneLast4', 'emailHint', 'street'];
 
 /** The public search index: no full phone numbers or emails. */
 export function buildIndex(dealers, asOf) {
   return {
     v: 1, state: 'TX', source: SOURCE_PAGE, asOf, count: dealers.length, fields: INDEX_FIELDS,
-    rows: dealers.map(d => [d.licence, d.name, d.dba, d.city, d.county, d.zip, d.franchise ? 1 : 0, d.types.join(' '), phoneHint(d.phone), emailHint(d.email)]),
+    rows: dealers.map(d => [d.licence, d.name, d.dba, d.city, d.county, d.zip, d.franchise ? 1 : 0, d.types.join(' '), phoneHint(d.phone), emailHint(d.email), d.street || '']),
   };
 }
 
