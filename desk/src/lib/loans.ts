@@ -11,6 +11,7 @@ import type { Attempt, Autopay } from './autopay';
 import type { Condition, ServiceEntry } from './condition';
 import { openPromise, promiseReminder, type PayPromise } from './promise';
 import { perPayment, repairsLeft, type Extra } from './extras';
+import type { Pause } from './pause';
 
 export type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'venmo' | 'paypal' | 'other';
@@ -46,6 +47,7 @@ export type Loan = {
   condition?: Condition;           // the car's condition as signed at the sale
   service?: ServiceEntry[];        // complaints and repairs since
   extras?: Extra[];                // repair balances and recurring fees, beside the note
+  pauses?: Pause[];                // payments moved to the end of the note
   promises?: PayPromise[];         // "I'll pay Monday": the account works from the promise
   imported?: { from: 'frazer'; on: string; account: string; theirBalanceCents?: number; mode: 'history' | 'balance' };
 };
@@ -112,12 +114,23 @@ export type Standing = {
   status: 'current' | 'due_today' | 'late' | 'paid_off';
 };
 
+/** The due dates after any pauses: each pause lifts the next `count` dates from its start, and the schedule runs that much longer. */
+export function scheduleDates(loan: Loan): string[] {
+  const skip = (loan.pauses ?? []).reduce((t, p) => t + p.count, 0);
+  if (!skip) return dueDates(loan.firstDue, loan.count, loan.frequency);
+  let dates = dueDates(loan.firstDue, loan.count + skip, loan.frequency);
+  for (const p of [...(loan.pauses ?? [])].sort((a, b) => a.made.localeCompare(b.made) || a.from.localeCompare(b.from))) {
+    const lift = new Set(dates.filter(d => d >= p.from).slice(0, p.count));
+    dates = dates.filter(d => !lift.has(d));
+  }
+  return dates.slice(0, loan.count);
+}
 const sorted = (p: Payment[]) => [...p].sort((a, b) => a.on.localeCompare(b.on) || a.receipt - b.receipt);
 /** The part of a payment that went to the car note (the rest went to repairs or fees). */
 export const noteCents = (p: Payment) => p.cents - Object.values(p.toExtras ?? {}).reduce((t, c) => t + c, 0);
 
 export function standing(loan: Loan, asOf: string): Standing {
-  const dates = dueDates(loan.firstDue, loan.count, loan.frequency);
+  const dates = scheduleDates(loan);
   const pays = sorted(loan.payments).filter(p => p.on <= asOf && counts(p));
 
   // 1. Walk the payments by date: interest accrues by the day; each payment pays late charges, then interest, then principal.

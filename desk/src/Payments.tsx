@@ -12,6 +12,7 @@ import { getLoans, me, recordPayment, setLoanLanguage, setReminders, useStore } 
 import { can } from './lib/staff';
 import { brokenPromises, openPromise } from './lib/promise';
 import { askTotal, extrasLine, repairLeft, repairsLeft } from './lib/extras';
+import { activePause } from './lib/pause';
 import { Back, Ic, feel, go, transition } from './ui';
 
 export const nice = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...opts });
@@ -130,13 +131,13 @@ export function Account({ id }: { id: string }) {
   const { dealer, loans = [] } = useStore();
   const l = loans.find(x => x.id === id);
   if (!l) return <Payments />;
-  const s = standing(l, today(dealer.timeZone)), x = line(s), ask = askTotal(l, s), extra = extrasLine(l, s), rep = repairsLeft(l), g = signal(l, today(dealer.timeZone)), pr = openPromise(l, today(dealer.timeZone));
+  const s = standing(l, today(dealer.timeZone)), x = line(s), ask = askTotal(l, s), extra = extrasLine(l, s), rep = repairsLeft(l), g = signal(l, today(dealer.timeZone)), pr = openPromise(l, today(dealer.timeZone)), pz = activePause(l, today(dealer.timeZone));
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/payments" label="Payments" /></div>
       <section className="enter" key="acct">
         <h1 className="q">{l.buyer.name}</h1>
-        {g.tone === 'red' || g.tone === 'amber'
+        {pz ? <a className="flag" href={`#/payments/${l.id}/pause`} onClick={feel.next}>Paused{pz.resume ? ` Until ${nice(pz.resume)}` : ''}</a> : g.tone === 'red' || g.tone === 'amber'
           ? <a className={`flag ${g.tone}`} href={`#/payments/${l.id}/history`} onClick={feel.next}>{g.tone === 'red' ? 'On Purpose' : 'Short On Money'}{s.status === 'late' ? ` · ${x.tag}` : ''}</a>
           : <span className={`status ${x.tone === 'late' ? 'bad' : x.tone} center-tag`}>{x.tag}</span>}
         {s.status === 'paid_off' && !ask
@@ -171,6 +172,7 @@ export function AccountPage({ id, page }: { id: string; page: string }) {
         <div className="choices">
           <Go to={`/payments/${l.id}/schedule`} icon="sheet" label="Schedule" gloss={`${l.count} × ${money(l.paymentCents)}`} />
           <Go to={`/payments/${l.id}/reminders`} icon="phone" label="Reminders" gloss={l.remindersOn ? 'On' : 'Off'} />
+          {can(me(), 'pause') && s.status !== 'paid_off' && <Go to={`/payments/${l.id}/pause`} icon="sheet" label="Pause Payments" gloss={activePause(l, today(dealer.timeZone)) ? 'Paused now' : 'Move payments to the end'} />}
           <Go to={`/payments/${l.id}/extras`} icon="plus" label="Repairs And Fees" gloss={l.extras?.length ? l.extras.map(e => e.what).join(', ') : 'None'} />
           <Go to={`/payments/${l.id}/language`} icon="globe" label="Language" gloss={l.language === 'es' ? 'Español · texts and papers' : 'English · texts and papers'} />
           <Go to={`/payments/${l.id}/condition`} icon="doc" label="Condition" gloss={l.condition ? `${l.condition.asIs ? 'As-is' : 'Warranty'} · signed ${nice(l.condition.signedOn)}${l.service?.length ? ` · ${l.service.length} complaint${l.service.length > 1 ? 's' : ''}` : ''}` : 'No report'} />

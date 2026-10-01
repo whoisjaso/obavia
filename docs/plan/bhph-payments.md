@@ -539,3 +539,18 @@ Where the extras appear:
 Changing extras:
 - **A fee:** stopped from a day on; what was owed before stays owed.
 - **A repair:** can be removed only if nothing has been paid toward it.
+
+## 18. Pausing payments
+
+"He lost his job, give him two weeks": The Note, then **Pause Payments** (owners only).
+1. **Pause starting with:** the late one, or the next one.
+2. **How many:** 1 to 4 payments; each choice shows when payments start again.
+3. **Check:** the new last payment date ("ends Sep 5, 2028 instead of Aug 8, 2028"), and roughly how much more interest that adds by the end, since interest keeps accruing by the day. Also shows any earlier pauses in the last year, and the text the buyer gets in their language. No fee is charged for a pause.
+
+How it works:
+- **The schedule:** the paused payments move to the end of the note. `scheduleDates` lifts them, and the schedule runs that many periods longer. Pausing a late payment makes the buyer current.
+- **During the pause:** nothing falls due, so there are no reminders, no late charges, and no recurring fees, because fees ride installments.
+- **Where it shows:** the account shows **Paused Until …**; Expected Today and Needs You leave the buyer alone.
+- **Undoing it:** **End The Pause** puts the payments back where they were.
+
+**Counsel:** confirm whether a Texas retail installment contract needs the deferment in writing, or signed by the buyer.

@@ -13,6 +13,7 @@ import { Channel, MarketplaceConsent, Reach, ReachGroup } from './Reach';
 import { AddPerson, Lock, People } from './People';
 import { PromiseSetup } from './Promise';
 import { Extras } from './Extras';
+import { PauseSetup } from './Pause';
 import { Import } from './Import';
 import type { DocType } from './lib/plan';
 import { useEffect, useState } from 'react';
@@ -47,6 +48,7 @@ export function App() {
     if (id && b === 'autopay') return <AutopaySetup key={id} id={id} />;
     if (id && b === 'promise') return <PromiseSetup key={id} id={id} />;
     if (id && b === 'extras') return <Extras key={id} id={id} />;
+    if (id && b === 'pause') return <PauseSetup key={id} id={id} />;
     if (id && b === 'condition') return <ConditionPage key={id} id={id} />;
     if (id && b === 'history') return <History key={id} id={id} />;
     if (id && b === 'pay') return <TakePayment key={id} id={id} />;

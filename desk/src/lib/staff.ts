@@ -12,7 +12,7 @@
 
 export type Role = 'owner' | 'desk';
 export type Staff = { id: string; name: string; role: Role; salt: string; pinHash: string; added: string };
-export type Action = 'staff' | 'settings' | 'undo' | 'recount';
+export type Action = 'staff' | 'settings' | 'undo' | 'recount' | 'pause';
 
 export const PIN_LENGTH = 4;
 export const LOCK_AFTER_MIN = 10;
@@ -20,7 +20,7 @@ export const MAX_TRIES = 5;
 export const WAIT_S = 30;
 
 /** What only an owner may do: manage people, change what runs on its own, undo an automatic post, recount a closed drawer. */
-const OWNER_ONLY: Action[] = ['staff', 'settings', 'undo', 'recount'];
+const OWNER_ONLY: Action[] = ['staff', 'settings', 'undo', 'recount', 'pause'];
 export const can = (who: Staff | undefined, a: Action) => !who || who.role === 'owner' || !OWNER_ONLY.includes(a);
 
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');

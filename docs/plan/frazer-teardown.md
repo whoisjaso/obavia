@@ -67,7 +67,7 @@ Each item below is built in the Desk today (see `bhph-payments.md`). None of the
 
 1. **Built (bhph-payments.md §16): a one-afternoon move off Frazer.** Import their customer, note, payment-history and inventory reports, so nothing is "hand punched". Switching cost is Frazer's real moat; if we remove it, the comparison is decided on product.
 2. **Built (§15): promise to pay.** Record "I'll pay Friday". The account then works from the promise, and a broken promise moves to the top of the needs list. Frazer has this, and collectors live in it.
-3. **Built (bhph-payments.md §17), except pausing payments: other balances on the note:** repair balances, recurring fees (insurance coverage the dealer adds, GPS fees), and pause or deferment, all handled by autopay and the payment link. This is exactly where reviewers say Frazer's portal fails.
+3. **Built (bhph-payments.md §17, §18): other balances on the note, and pausing payments:** repair balances, recurring fees (insurance coverage the dealer adds, GPS fees), and pause or deferment, all handled by autopay and the payment link. This is exactly where reviewers say Frazer's portal fails.
 4. **GPS and starter-interrupt partners** (PassTime, GoldStar, SVR): see the device on the account. Any disabling must follow Texas rules and the contract, so this needs counsel.
 5. **Credit bureau reporting** (Metro 2), which many buy here pay here dealers offer as "builds your credit".
 6. **Accounting export:** QuickBooks first. A full general ledger comes later, if ever.

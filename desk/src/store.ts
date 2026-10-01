@@ -262,6 +262,15 @@ export function removeExtra(loanId: string, id: string) {
   set({ ...state, loans: getLoans().map(x => x.id !== loanId ? x : { ...x, extras: (x.extras ?? []).filter(e => e.id !== id) }) });
   return true;
 }
+/* ---------- pausing payments ---------- */
+export function addPause(loanId: string, from: string, count: number, made: string) {
+  const id = 'pz' + Date.now().toString(36);
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, pauses: [...(l.pauses ?? []), { id, made, from, count, by: state.at }] }) });
+}
+/** Ending a pause puts the paused payments back where they were. */
+export function endPause(loanId: string, id: string) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, pauses: (l.pauses ?? []).filter(p => p.id !== id) }) });
+}
 /* ---------- coming from Frazer ---------- */
 /** Adds the notes and cars that aren't here yet. Returns how many came in. */
 export function importNotes(loans: Loan[], cars: Vehicle[]) {
