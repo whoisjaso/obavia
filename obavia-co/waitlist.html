@@ -27,9 +27,7 @@
   .wl input::placeholder{color:#A3ABBB;font-weight:500}
   .wl input:focus{outline:0;background:#fff;box-shadow:inset 0 0 0 2px #7D97C7}
   .wl .trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
-  .wl button{display:flex;align-items:center;justify-content:center;width:100%;height:56px;margin-top:6px;border:0;border-radius:999px;background:#28344F;color:#fff;font:700 17px/1 var(--sans);cursor:pointer;transition:background .3s,transform .3s var(--ease),opacity .3s}
-  .wl button:hover{background:#1E2940}
-  .wl button:active{transform:scale(.98)}
+  .wl button{display:flex;align-items:center;justify-content:center;width:100%;height:56px;margin-top:6px;border:0;border-radius:999px;font:750 17px/1 var(--sans);cursor:pointer}
   .wl button:disabled{opacity:.5;cursor:default;transform:none}
   .wl .status:empty{display:none}
   .wl .status{margin:14px 0 0;font:600 15px/1.45 var(--sans);color:#A8611F;text-align:center}
@@ -44,6 +42,7 @@
   @media (prefers-reduced-motion:reduce){.wl.ok .done{animation:none}}
 </style>
 <link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="cloud.css">
 <script>(function(){var h=document.documentElement;try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
 <body>
 <div class="o-sky" aria-hidden="true">
@@ -92,7 +91,7 @@
   <div class="o-wrap">
     <a class="o-brand" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt="" id="oMark"></a>
     <ul class="o-links"><li><a href="index.html#desk">The Desk</a></li><li><a href="index.html#paperwork">Paperwork</a></li><li><a href="index.html#signing">Signing</a></li><li><a href="index.html#next">What’s next</a></li></ul>
-    <a class="o-join" href="waitlist.html">Get early access</a>
+    <a class="o-join cloud" href="waitlist.html">Get early access</a>
     <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
   </div>
 </header>
@@ -113,7 +112,7 @@
         <label for="wlEmail">Work email</label>
         <input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@yourdealership.com" required>
         <div class="trap" aria-hidden="true"><label for="wlSite">Website</label><input id="wlSite" name="website" tabindex="-1" autocomplete="off"></div>
-        <button type="submit" id="wlBtn">Get early access</button>
+        <button type="submit" id="wlBtn" class="cloud">Get early access</button>
         <p class="status" id="wlStatus" role="status" aria-live="polite"></p>
       </form>
       <div class="done" id="wlDone">

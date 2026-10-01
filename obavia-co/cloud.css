@@ -1,0 +1,50 @@
+/* Clouds: the one button style and the one accent type style across obavia.co.
+   A button is a small cloud: a soft white body with puffs rising off its top
+   edge, a sky-blue underglow, and it lifts and brightens when touched.
+   Accent words are cloud-blue, with light drifting slowly through them. */
+:root{--cl-ink:#28344F;--cl-glow:rgba(78,106,168,.24);--cl-spring:cubic-bezier(.32,.72,0,1);--cl-ease:cubic-bezier(.2,.7,.2,1)}
+
+.cloud{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:999px;cursor:pointer;
+  color:var(--cl-ink);font-weight:750;letter-spacing:-.01em;text-decoration:none;white-space:nowrap;
+  background:linear-gradient(180deg,#FFFFFF 0%,#FBFCFF 46%,#EAF0FE 100%);
+  box-shadow:inset 0 -10px 18px -10px rgba(150,176,232,.55),inset 0 1.5px 0 #fff;
+  filter:drop-shadow(0 12px 16px var(--cl-glow)) drop-shadow(0 2px 3px rgba(78,106,168,.14));
+  text-shadow:0 1px 0 rgba(255,255,255,.95),0 0 14px rgba(255,255,255,.9);
+  transition:transform .55s var(--cl-spring),filter .5s var(--cl-ease)}
+/* the puffs: soft overlapping rounds rising off the top edge, part of the same white body */
+.cloud::before{content:"";position:absolute;z-index:-1;left:6%;right:6%;top:-1.15em;height:3em;pointer-events:none;
+  background:
+    radial-gradient(closest-side,#fff 96%,transparent) 0% 100%/2.3em 2.3em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 17% 40%/2.9em 2.9em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 36% 0%/3.4em 3.4em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 55% 55%/2.7em 2.7em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 72% 20%/3.1em 3.1em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 88% 70%/2.5em 2.5em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 100% 100%/1.9em 1.9em no-repeat;
+  transform-origin:50% 100%;transition:translate .7s var(--cl-spring),scale .7s var(--cl-spring);animation:cl-breathe 7s ease-in-out infinite}
+/* the halo: daylight around the cloud when it's touched */
+.cloud::after{content:"";position:absolute;z-index:-2;inset:-55% -18%;border-radius:999px;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(255,255,255,.55),rgba(255,255,255,.22) 60%,rgba(255,255,255,0));opacity:0;transform:scale(.85);
+  transition:opacity .5s var(--cl-ease),transform .7s var(--cl-spring)}
+.cloud:hover,.cloud:focus-visible{transform:translateY(-3px);filter:drop-shadow(0 18px 22px rgba(78,106,168,.3)) drop-shadow(0 3px 4px rgba(78,106,168,.16))}
+.cloud:hover::before,.cloud:focus-visible::before{translate:0 -2px;scale:1.05 1.12}
+.cloud:hover::after,.cloud:focus-visible::after{opacity:1;transform:scale(1)}
+.cloud:active{transform:translateY(0) scale(.97);transition-duration:.15s}
+.cloud:focus-visible{outline:none;box-shadow:inset 0 -10px 18px -10px rgba(150,176,232,.55),inset 0 1.5px 0 #fff,0 0 0 3px rgba(78,106,168,.45)}
+.cloud[disabled],.cloud[aria-disabled="true"]{opacity:.55;cursor:default;transform:none}
+@keyframes cl-breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1.5px) scale(1.03,1.06)}}
+
+/* accent words: cloud-blue, with light drifting through the letters */
+.cloudtext{padding-bottom:.12em;margin-bottom:-.12em;background:linear-gradient(100deg,#6A86C0 0%,#86A0D8 22%,#A9BDEB 38%,#829CD6 52%,#6F8AC4 70%,#9DB3E6 86%,#6A86C0 100%);background-size:240% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.85)) drop-shadow(0 8px 18px rgba(255,255,255,.75));animation:cl-drift 16s ease-in-out infinite alternate}
+@keyframes cl-drift{from{background-position:0% 50%}to{background-position:100% 50%}}
+
+@media (prefers-reduced-motion:reduce){
+  .cloud,.cloud::before,.cloud::after{transition:none;animation:none}
+  .cloudtext{animation:none}
+}
+@media (forced-colors:active){.cloud{border:2px solid ButtonText}.cloudtext{color:CanvasText;-webkit-text-fill-color:CanvasText;background:none}}
+
+/* the nav's join button is a cloud too (shell.css paints it navy) */
+.o-join.cloud,.o-join.cloud:hover{background:linear-gradient(180deg,#FFFFFF 0%,#FBFCFF 46%,#EAF0FE 100%);color:var(--cl-ink)}

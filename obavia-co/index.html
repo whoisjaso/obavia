@@ -16,6 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="preload" as="image" href="sky/w0.webp">
 <link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="cloud.css">
 <script>(function(){var h=document.documentElement;try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
 <style>
 :root{--ink:#1C2436;--body:#4B5468;--muted:#6B7385;--navy:#28344F;--tint:#4E6AA8;--deep:#7D97C7;--line:rgba(28,36,54,.08);--card:rgba(255,255,255,.82);
@@ -37,10 +38,7 @@ h2 .g{display:block}
 p{margin:0}
 .lead{max-width:640px;margin:26px auto 0;font:500 clamp(17px,1.6vw,20px)/1.55 var(--sans);color:var(--body)}
 .cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 22px;margin-top:34px}
-.btn{display:inline-flex;align-items:center;justify-content:center;height:56px;padding:0 30px;border-radius:999px;background:var(--navy);color:#fff;font:700 17px/1 var(--sans);letter-spacing:-.01em;
-  box-shadow:0 18px 40px -18px rgba(40,52,79,.6);transition:transform .35s var(--spring),box-shadow .35s var(--ease),background .3s}
-.btn:hover{transform:translateY(-2px);background:#1F2A42;box-shadow:0 24px 44px -18px rgba(40,52,79,.7)}
-.btn:active{transform:scale(.97)}
+.btn{height:58px;padding:0 32px;font-size:17px;font-family:var(--sans)}
 .more{display:inline-flex;align-items:center;gap:6px;font:700 16px/1 var(--sans);color:var(--tint);padding:12px 4px}
 .more .ico{width:15px;height:15px;transition:transform .3s var(--spring)}
 .more:hover .ico{transform:translateX(3px)}
@@ -84,6 +82,25 @@ p{margin:0}
 .sheet .clip{height:min(640px,78vh);overflow:hidden;border-radius:10px;box-shadow:0 30px 60px -36px rgba(28,36,54,.45),0 0 0 1px rgba(28,36,54,.06);-webkit-mask-image:linear-gradient(#000 82%,transparent);mask-image:linear-gradient(#000 82%,transparent)}
 .sheet img{width:100%;height:auto;transition:transform 5s cubic-bezier(.45,0,.25,1)}
 .sheet:hover img{transform:translateY(calc(-100% + min(640px,78vh)))}
+
+/* lessons */
+.lessons{padding:clamp(70px,10vw,120px) 0}
+.lessons .copy{max-width:720px;margin-inline:auto}
+.lessons .copy p{margin-top:16px;font:500 18px/1.55 var(--sans);color:var(--body)}
+.reel{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:46px}
+.lesson{margin:0}
+.lesson .vid{position:relative;aspect-ratio:9/16;border-radius:24px;overflow:hidden;background:#EDEBE6;box-shadow:0 40px 80px -48px rgba(28,36,54,.55),0 0 0 1px rgba(28,36,54,.06);transition:transform .55s var(--spring),box-shadow .5s var(--ease)}
+.lesson:hover .vid{transform:translateY(-5px);box-shadow:0 50px 90px -48px rgba(28,36,54,.6),0 0 0 1px rgba(28,36,54,.06)}
+.lesson video{width:100%;height:100%;object-fit:cover}
+.lesson .play{position:absolute;left:50%;top:50%;width:68px;height:68px;margin:-34px 0 0 -34px;padding:0}
+.lesson .play svg{width:26px;height:26px;margin-left:3px}
+.lesson.on .play{opacity:0;pointer-events:none;transform:scale(.8)}
+.lesson figcaption{padding:16px 4px 0}
+.lesson figcaption b{display:block;font:800 18px/1.25 var(--sans);letter-spacing:-.02em}
+.lesson figcaption span{display:block;margin-top:6px;font:500 14.5px/1.5 var(--sans);color:var(--body)}
+.lesson figcaption i{font-style:normal;font-weight:700;color:var(--muted);margin-left:4px}
+@media (max-width:900px){.reel{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.reel{grid-template-columns:1fr 1fr;gap:12px}.lesson .vid{border-radius:18px}.lesson .play{width:56px;height:56px;margin:-28px 0 0 -28px}.lesson figcaption b{font-size:15.5px}.lesson figcaption span{font-size:13px}}
 
 /* next */
 .next{padding:clamp(70px,10vw,120px) 0}
@@ -181,21 +198,21 @@ p{margin:0}
 <header class="o-nav" id="oNav">
   <div class="o-wrap">
     <a class="o-brand" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt="" id="oMark"></a>
-    <ul class="o-links"><li><a href="#desk">The Desk</a></li><li><a href="#paperwork">Paperwork</a></li><li><a href="#signing">Signing</a></li><li><a href="#next">What’s next</a></li></ul>
-    <a class="o-join" href="waitlist.html">Get early access</a>
+    <ul class="o-links"><li><a href="#desk">The Desk</a></li><li><a href="#paperwork">Paperwork</a></li><li><a href="#signing">Signing</a></li><li><a href="#lessons">Free lessons</a></li><li><a href="#next">What’s next</a></li></ul>
+    <a class="o-join cloud" href="waitlist.html">Get early access</a>
     <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
   </div>
 </header>
-<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="#desk">The Desk</a><a href="#paperwork">Paperwork</a><a href="#signing">Signing</a><a href="#next">What’s next</a><a class="o-join" href="waitlist.html">Get early access</a></nav>
+<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="#desk">The Desk</a><a href="#paperwork">Paperwork</a><a href="#signing">Signing</a><a href="#lessons">Free lessons</a><a href="#next">What’s next</a><a class="o-join cloud" href="waitlist.html">Get early access</a></nav>
 <script src="shell.js"></script>
 <main>
 <!-- 1. what it is, and the film -->
 <section class="hero" id="top">
   <div class="wrap copy">
     <span class="kick" data-r>Obavia Desk · for Texas independent dealers</span>
-    <h1 data-r style="--d:.06s">Every sale, <span class="g">start to signed.</span></h1>
+    <h1 data-r style="--d:.06s">Every sale, <span class="g cloudtext">start to signed.</span></h1>
     <p class="lead" data-r style="--d:.14s">Pick the car, take the buyer’s details, work out the money and print the paperwork in your name. Then the buyer signs at the desk. One question per screen, so anyone on your lot can run it.</p>
-    <div class="cta" data-r style="--d:.22s"><a class="btn" href="waitlist.html">Get early access</a><a class="more" href="#film">Watch the film<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l5.5 4.5L5 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+    <div class="cta" data-r style="--d:.22s"><a class="btn cloud" href="waitlist.html">Get early access</a><a class="more" href="#film">Watch the film<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l5.5 4.5L5 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
   </div>
   <figure class="film" id="film" data-r style="--d:.3s">
     <video id="filmV" src="films/obavia-desk.mp4" poster="films/obavia-desk.jpg" muted playsinline loop preload="metadata" aria-label="Obavia Desk film: finding the dealership, the paperwork, a sale and the signing, all real screens from the Desk."></video>
@@ -217,7 +234,7 @@ p{margin:0}
   <div class="wrap two">
     <div class="copy">
       <span class="kick" data-r>Getting started</span>
-      <h2 data-r>Find your dealership. <span class="g">That’s the sign-up.</span></h2>
+      <h2 data-r>Find your dealership. <span class="g cloudtext">That’s the sign-up.</span></h2>
       <p data-r style="--d:.08s">Tap your state, start typing your name, and pick it from the Texas licence list. We send a code to the phone or email on your licence, so nobody can set up your dealership but you.</p>
       <ul class="ticks" data-r style="--d:.14s"><li>Your licence number, city and county come from the state</li><li>Your logo and colour go on every document</li><li>Tell us what you use today, and we’ll plan the switch with you</li></ul>
     </div>
@@ -230,7 +247,7 @@ p{margin:0}
   <div class="wrap two">
     <div class="copy">
       <span class="kick" data-r>Paperwork</span>
-      <h2 data-r>A bill of sale <span class="g">you’d be proud to hand over.</span></h2>
+      <h2 data-r>A bill of sale <span class="g cloudtext">you’d be proud to hand over.</span></h2>
       <p data-r style="--d:.08s">Your name, address and GDN at the top. The vehicle, the odometer statement and the terms in clean ruled boxes. The price to the cent, the Texas doc-fee notice, and signature lines for both of you.</p>
       <ul class="ticks" data-r style="--d:.14s"><li>Bill of sale and Title Application (130-U) fields filled from the deal</li><li>Rebuilt and salvage titles get their own disclosures</li><li>Print it, or sign it on the screen</li></ul>
     </div>
@@ -243,7 +260,7 @@ p{margin:0}
   <div class="wrap two">
     <div class="copy">
       <span class="kick" data-r>Handle a sale</span>
-      <h2 data-r>One question per screen. <span class="g">The answer is the next tap.</span></h2>
+      <h2 data-r>One question per screen. <span class="g cloudtext">The answer is the next tap.</span></h2>
       <p data-r style="--d:.08s">Which car. What the odometer says. Who’s buying, read back so they can check it. How they’re paying. The Desk works out tax, title, registration and your doc fee as you go, and knows which papers this deal needs.</p>
       <ul class="ticks" data-r style="--d:.14s"><li>Cash, buy here pay here or bank financing</li><li>Out-the-door or plus tax and fees</li><li>Nobody has to be shown how to use it</li></ul>
     </div>
@@ -256,7 +273,7 @@ p{margin:0}
   <div class="wrap two">
     <div class="copy">
       <span class="kick" data-r>Signing</span>
-      <h2 data-r>Signed at the desk. <span class="g">Filed in order.</span></h2>
+      <h2 data-r>Signed at the desk. <span class="g cloudtext">Filed in order.</span></h2>
       <p data-r style="--d:.08s">Hand the buyer the screen. They read each page, sign with a finger, and hand it back. You see what’s signed, what’s filed and what still needs ink, in one list.</p>
       <ul class="ticks" data-r style="--d:.14s"><li>Every page shows what it means in one plain sentence</li><li>Forms that need ink are printed for ink, never signed on a screen</li><li>Print the whole packet when you need paper</li></ul>
     </div>
@@ -264,7 +281,28 @@ p{margin:0}
   </div>
 </section>
 
-<!-- 7. what's next, said plainly -->
+<!-- 7. free lessons: films made on the lot -->
+<section class="lessons" id="lessons">
+  <div class="wrap">
+    <div class="copy center">
+      <span class="kick" data-r>Free lessons</span>
+      <h2 data-r>The paperwork <span class="g cloudtext">nobody shows you.</span></h2>
+      <p data-r style="--d:.08s">Short films made at Triple J Auto Investment in Houston, where the Desk is being built. Watch them whether or not you ever use Obavia.</p>
+    </div>
+    <div class="reel">
+      <figure class="lesson" data-r><div class="vid"><video src="films/handle-a-sale.mp4" poster="films/handle-a-sale.jpg" playsinline preload="none"></video><button class="play cloud" type="button" aria-label="Play Handle A Sale, 1 minute 22"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></button></div>
+        <figcaption><b>Handle A Sale</b><span>Every answer changes the paperwork. Here’s a desk that keeps up. <i>1:22</i></span></figcaption></figure>
+      <figure class="lesson" data-r style="--d:.06s"><div class="vid"><video src="films/seller-line.mp4" poster="films/seller-line.jpg" playsinline preload="none"></video><button class="play cloud" type="button" aria-label="Play The 130-U seller line, 43 seconds"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></button></div>
+        <figcaption><b>The 130-U seller line</b><span>Why title packages come back from webDEALER over one line, and what goes on it. <i>0:43</i></span></figcaption></figure>
+      <figure class="lesson" data-r style="--d:.12s"><div class="vid"><video src="films/title-packet.mp4" poster="films/title-packet.jpg" playsinline preload="none"></video><button class="play cloud" type="button" aria-label="Play The title packet, in order, 58 seconds"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></button></div>
+        <figcaption><b>The title packet, in order</b><span>The order the county reads it, from the 130-U to the inspection last. <i>0:58</i></span></figcaption></figure>
+      <figure class="lesson" data-r style="--d:.18s"><div class="vid"><video src="films/webdealer-order.mp4" poster="films/webdealer-order.jpg" playsinline preload="none"></video><button class="play cloud" type="button" aria-label="Play The webDEALER order, 1 minute 1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></button></div>
+        <figcaption><b>The webDEALER order</b><span>ePLATE, then the title application step by step, and the upload order. <i>1:01</i></span></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 8. what's next, said plainly -->
 <section class="next" id="next">
   <div class="wrap">
     <div class="copy center">
@@ -280,12 +318,12 @@ p{margin:0}
   </div>
 </section>
 
-<!-- 8. the ask -->
+<!-- 9. the ask -->
 <section class="final center" id="final">
   <div class="wrap copy">
-    <h2 data-r>Now onboarding <span class="g">Texas dealers.</span></h2>
+    <h2 data-r>Now onboarding <span class="g cloudtext">Texas dealers.</span></h2>
     <p class="p" data-r style="--d:.1s">Built on the floor of a Houston dealership. Early access dealers set up first, and we set it up with you.</p>
-    <div class="cta" data-r style="--d:.2s"><a class="btn" href="waitlist.html">Get early access</a></div>
+    <div class="cta" data-r style="--d:.2s"><a class="btn cloud" href="waitlist.html">Get early access</a></div>
   </div>
 </section>
 </main>
@@ -293,7 +331,7 @@ p{margin:0}
 <footer class="foot">
   <div class="wrap">
     <a class="brand" href="#top" aria-label="Obavia home"><img src="favicon.svg" alt=""></a>
-    <nav aria-label="Footer"><a href="#desk">The Desk</a><a href="#paperwork">Paperwork</a><a href="#signing">Signing</a><a href="#next">What’s next</a><a href="waitlist.html">Early access</a></nav>
+    <nav aria-label="Footer"><a href="#desk">The Desk</a><a href="#paperwork">Paperwork</a><a href="#signing">Signing</a><a href="#lessons">Free lessons</a><a href="#next">What’s next</a><a href="waitlist.html">Early access</a></nav>
     <small>© 2026 Obavia</small>
   </div>
 </footer>
@@ -326,6 +364,17 @@ $$('.loop video').forEach(el => {
   new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { if (!el.src) el.src = el.dataset.src; play(el); } else el.pause();
   }), { rootMargin: '200px 0px', threshold: .2 }).observe(el);
+});
+/* lessons: one plays at a time, with sound; the frame pauses it */
+$$('.lesson').forEach(fig => {
+  const el = fig.querySelector('video'), btn = fig.querySelector('.play');
+  const stop = () => { el.pause(); fig.classList.remove('on'); el.controls = false; };
+  btn.addEventListener('click', () => {
+    $$('.lesson.on').forEach(o => { if (o !== fig) { o.querySelector('video').pause(); o.classList.remove('on'); o.querySelector('video').controls = false; } });
+    if (!v.paused && !v.muted) { v.muted = true; snd.setAttribute('aria-pressed', 'false'); snd.classList.remove('on'); }
+    fig.classList.add('on'); el.controls = true; play(el);
+  });
+  el.addEventListener('ended', stop);
 });
 })();
 </script>

@@ -80,10 +80,48 @@ a{color:inherit;text-decoration:none}
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:58px;padding:0 26px;border-radius:18px;font:750 17px/1 var(--sans);white-space:nowrap;transition:transform .2s var(--ease),opacity .2s,background .2s}
 .btn:active{transform:scale(.98)}
-.btn.primary{background:var(--navy);color:#fff}
+/* primary buttons are clouds (same as obavia.co/cloud.css) */
+:root{--cl-ink:#28344F;--cl-glow:rgba(78,106,168,.24);--cl-spring:cubic-bezier(.32,.72,0,1);--cl-ease:cubic-bezier(.2,.7,.2,1)}
+
+.btn.primary{position:relative;font-weight:750;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:999px;cursor:pointer;
+  color:var(--cl-ink);font-weight:750;letter-spacing:-.01em;text-decoration:none;white-space:nowrap;
+  background:linear-gradient(180deg,#FFFFFF 0%,#FBFCFF 46%,#EAF0FE 100%);
+  box-shadow:inset 0 -10px 18px -10px rgba(150,176,232,.55),inset 0 1.5px 0 #fff;
+  filter:drop-shadow(0 12px 16px var(--cl-glow)) drop-shadow(0 2px 3px rgba(78,106,168,.14));
+  text-shadow:0 1px 0 rgba(255,255,255,.95),0 0 14px rgba(255,255,255,.9);
+  transition:transform .55s var(--cl-spring),filter .5s var(--cl-ease)}
+/* the puffs: soft overlapping rounds rising off the top edge, part of the same white body */
+.btn.primary::before{content:"";position:absolute;z-index:-1;left:6%;right:6%;top:-1.15em;height:3em;pointer-events:none;
+  background:
+    radial-gradient(closest-side,#fff 96%,transparent) 0% 100%/2.3em 2.3em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 17% 40%/2.9em 2.9em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 36% 0%/3.4em 3.4em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 55% 55%/2.7em 2.7em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 72% 20%/3.1em 3.1em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 88% 70%/2.5em 2.5em no-repeat,
+    radial-gradient(closest-side,#fff 96%,transparent) 100% 100%/1.9em 1.9em no-repeat;
+  transform-origin:50% 100%;transition:translate .7s var(--cl-spring),scale .7s var(--cl-spring);animation:cl-breathe 7s ease-in-out infinite}
+/* the halo: daylight around the cloud when it's touched */
+.btn.primary::after{content:"";position:absolute;z-index:-2;inset:-55% -18%;border-radius:999px;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(255,255,255,.55),rgba(255,255,255,.22) 60%,rgba(255,255,255,0));opacity:0;transform:scale(.85);
+  transition:opacity .5s var(--cl-ease),transform .7s var(--cl-spring)}
+.btn.primary:hover,.btn.primary:focus-visible{transform:translateY(-3px);filter:drop-shadow(0 18px 22px rgba(78,106,168,.3)) drop-shadow(0 3px 4px rgba(78,106,168,.16))}
+.btn.primary:hover::before,.btn.primary:focus-visible::before{translate:0 -2px;scale:1.05 1.12}
+.btn.primary:hover::after,.btn.primary:focus-visible::after{opacity:1;transform:scale(1)}
+.btn.primary:active{transform:translateY(0) scale(.97);transition-duration:.15s}
+.btn.primary:focus-visible{outline:none;box-shadow:inset 0 -10px 18px -10px rgba(150,176,232,.55),inset 0 1.5px 0 #fff,0 0 0 3px rgba(78,106,168,.45)}
+.btn.primary[disabled],.btn.primary[aria-disabled="true"]{opacity:.55;cursor:default;transform:none}
+@keyframes cl-breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1.5px) scale(1.03,1.06)}}
+
+
+@media (prefers-reduced-motion:reduce){
+  .btn.primary,.btn.primary::before,.btn.primary::after{transition:none;animation:none}
+}
+@media (forced-colors:active){.btn.primary{border:2px solid ButtonText}}
 .btn.quiet{background:var(--accent-bg);color:var(--accent)}
 .btn.block{display:flex;width:100%}
-.btn:disabled{opacity:.35;cursor:default;transform:none}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn.primary:disabled::before,.btn.primary:disabled::after{animation:none}
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:14px 20px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(242,245,251,0),var(--bg) 32%)}
 .dock{pointer-events:none}
 .dock .in{max-width:640px;margin:0 auto;display:grid;gap:8px}
