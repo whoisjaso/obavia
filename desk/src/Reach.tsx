@@ -8,29 +8,58 @@ import { Back, Ic, feel, go, transition } from './ui';
 
 const when = (iso: string, tz: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
+const GROUP_Q: Record<Channel['group'], string> = { phone: 'From Your Phone', social: 'Social', listings: 'Car Sites', yours: 'Your Website' };
+
+const Logo = ({ c, size = 'sm' }: { c: Channel; size?: 'sm' | 'lg' }) => (
+  <span className={`clogo ${size}${c.wide ? ' wide' : ''}`}>{c.logo ? <img src={c.logo} alt="" /> : <Ic n="globe" s={size === 'lg' ? 40 : 24} w={1.7} />}</span>
+);
+
+/* ---------- 1. Where should your cars go? ---------- */
 export function Reach() {
   const { consents, reachWanted = [] } = useStore();
   const on = consentIsCurrent(consents?.marketplace, MARKETPLACE_TERMS);
+  const picked = (c: Channel) => (c.id === 'marketplace' ? on : reachWanted.includes(c.id));
   const groups = Object.keys(GROUP_TITLE) as Channel['group'][];
-  const state = (c: Channel) => (c.id === 'marketplace' && on ? 'on' : reachWanted.includes(c.id) ? 'wanted' : 'off');
   return (
-    <main className="wrap">
+    <main className="wrap center">
       <div className="top"><Back to="#/" label="Sales" /></div>
-      <h1 className="h1 enter">Reach</h1>
-      <p className="lede enter">Post each car once. Reach puts it everywhere you choose.</p>
-      <p className="soon-note enter2"><Ic n="sparkle" s={16} />Reach is being built. Tap what you want, and it turns on as each one is ready.</p>
-      {groups.map(g => <section key={g}>
-        <h2 className="h2">{GROUP_TITLE[g]}</h2>
-        <div className="channels">
-          {CHANNELS.filter(c => c.group === g).map((c, k) => { const st = state(c); return (
-            <a key={c.id} className={`channel ${st}`} style={{ ['--k' as string]: k }} href={c.id === 'marketplace' ? '#/reach/marketplace' : `#/reach/${c.id}`} onClick={feel.tap}>
-              <span className={'logo' + (c.wide ? ' wide' : '')}>{c.logo ? <img src={c.logo} alt="" /> : <Ic n="globe" s={30} w={1.7} />}</span>
-              <b>{c.name}</b>
-              <small>{HOW_LABEL[c.how]}</small>
-              <span className={'pill ' + st}>{st === 'on' ? 'On' : st === 'wanted' ? 'Wanted' : 'Tap to want'}</span>
+      <section className="enter" key="reach">
+        <h1 className="q">Where Should Your Cars Go?</h1>
+        <div className="choices">
+          {groups.map(g => { const cs = CHANNELS.filter(c => c.group === g), n = cs.filter(picked).length; return (
+            <a key={g} className="choice" href={`#/reach/g/${g}`} onClick={feel.next}>
+              <span className="logos">{(cs.some(c => !c.wide && c.logo) ? cs.filter(c => !c.wide && c.logo) : cs.slice(0, 1)).slice(0, 3).map(c => <Logo key={c.id} c={{ ...c, wide: false, logo: c.wide ? '' : c.logo }} />)}</span>
+              <span className="t"><b>{GROUP_TITLE[g]}</b>{n > 0 && <small>{n} picked</small>}</span>
+              <span className="go"><Ic n="chev" s={18} w={2.4} /></span>
             </a>); })}
         </div>
-      </section>)}
+        <p className="hint">Coming soon. Pick what you want.</p>
+      </section>
+    </main>
+  );
+}
+
+/* ---------- 2. One group: tap to pick ---------- */
+export function ReachGroup({ group }: { group: Channel['group'] }) {
+  const { consents, reachWanted = [] } = useStore();
+  const on = consentIsCurrent(consents?.marketplace, MARKETPLACE_TERMS);
+  const cs = CHANNELS.filter(c => c.group === group);
+  if (!cs.length) return <Reach />;
+  return (
+    <main className="wrap center">
+      <div className="top"><Back to="#/reach" label="Reach" /></div>
+      <section className="enter" key={group}>
+        <h1 className="q">{GROUP_Q[group]}</h1>
+        <div className="choices">
+          {cs.map(c => { const sel = c.id === 'marketplace' ? on : reachWanted.includes(c.id); return (
+            <button key={c.id} className="choice" aria-pressed={sel} onClick={() => { feel.tap(); if (c.id === 'marketplace') go('/reach/marketplace'); else toggleReachWanted(c.id); }}>
+              <Logo c={c} />
+              <span className="t"><b>{c.name}</b><small>{c.price}</small></span>
+              <span className="tick">{sel && <Ic n="check" s={15} w={3} />}</span>
+            </button>); })}
+        </div>
+        <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.done(); go('/reach'); }}>Done</button></div></div>
+      </section>
     </main>
   );
 }
@@ -44,7 +73,7 @@ export function Channel({ id }: { id: string }) {
     <main className="wrap center">
       <div className="top"><Back to="#/reach" label="Reach" /></div>
       <section className="enter" key={c.id}>
-        <span className={'channel-logo' + (c.wide ? ' wide' : '')}>{c.logo ? <img src={c.logo} alt="" /> : <Ic n="globe" s={44} w={1.6} />}</span>
+        <Logo c={c} size="lg" />
         <h1 className="q">{c.name}</h1>
         <p className="note big">{c.what}</p>
         <div className="facts-list">

@@ -1,119 +1,161 @@
-/* Payments: every in-house note, what's due, what's late, and taking a
-   payment at the counter. One question per screen when money changes hands. */
+/* Payments, page by page: one question per screen, the answer is the next tap.
+   Home asks "who needs you?", a list shows those people, an account shows one
+   number and one action, and everything else is a tap away on its own page. */
 import { useState } from 'react';
-import { METHOD_LABEL, amountToAsk, digest, money, ownerText, receiptText, reminderPlan, standing, today, type Loan, type Method, type Standing } from './lib/loans';
+import { METHOD_LABEL, amountToAsk, digest, money, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
 import { parseMoney } from './lib/money';
 import { getLoans, recordPayment, setReminders, useStore } from './store';
-import { Back, Chev, Ic, feel, go, transition } from './ui';
+import { Back, Ic, feel, go, transition } from './ui';
 
 const nice = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...opts });
+const longDay = (d: string) => nice(d, { weekday: 'long', month: 'long', day: 'numeric' });
 const first = (n: string) => n.split(' ')[0];
+const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 
 function line(s: Standing) {
-  if (s.status === 'paid_off') return { tag: 'Paid Off', tone: 'good' as const, text: 'Closed' };
-  if (s.status === 'late') return { tag: `${s.daysLate} ${s.daysLate === 1 ? 'Day' : 'Days'} Late`, tone: 'late' as const, text: `${money(s.pastDueCents + s.feesOwedCents)} past due` };
-  if (s.status === 'due_today') return { tag: 'Due Today', tone: 'warn' as const, text: `${money(s.next!.cents)} today` };
-  return { tag: 'Current', tone: 'good' as const, text: `${money(s.next!.cents)} on ${nice(s.next!.due)}` };
+  if (s.status === 'paid_off') return { tag: 'Paid Off', tone: 'good' as const, text: 'Paid in full' };
+  if (s.status === 'late') return { tag: `${plural(s.daysLate, 'Day')} Late`, tone: 'late' as const, text: `${money(s.pastDueCents + s.feesOwedCents)} · ${plural(s.daysLate, 'day')} late` };
+  if (s.status === 'due_today') return { tag: 'Due Today', tone: 'warn' as const, text: `${money(s.next!.cents)} due today` };
+  return { tag: 'Current', tone: 'good' as const, text: `${money(s.next!.cents)} due ${nice(s.next!.due)}` };
 }
 
-export function Payments() {
-  const { dealer, loans = [], example } = useStore();
-  const t = today(dealer.timeZone);
-  const rows = loans.map(l => ({ l, s: standing(l, t) }));
-  const d = digest(loans, t);
-  const late = rows.filter(r => r.s.status === 'late').sort((a, b) => b.s.daysLate - a.s.daysLate);
-  const dueToday = rows.filter(r => r.s.status === 'due_today');
-  const soon = rows.filter(r => r.s.status === 'current').sort((a, b) => a.s.next!.due.localeCompare(b.s.next!.due));
-  const closed = rows.filter(r => r.s.status === 'paid_off');
-  const sum = (xs: { cents: number }[]) => money(xs.reduce((a, x) => a + x.cents, 0));
+/** A big stacked choice that goes somewhere. */
+function Go({ to, label, gloss, icon, tone }: { to: string; label: string; gloss?: string; icon?: string; tone?: 'late' | 'warn' | 'good' }) {
   return (
-    <main className="wrap">
-      <div className="top"><Back to="#/" label="Sales" /></div>
-      <h1 className="h1 enter">Payments</h1>
-      {example && <span className="example">Example data</span>}
-      <div className="tally enter2">
-        <div className={d.dueToday.length ? 'on' : ''}><small>Due Today</small><b className="num">{sum(d.dueToday)}</b><span>{d.dueToday.length} {d.dueToday.length === 1 ? 'account' : 'accounts'}</span></div>
-        <div className={d.late.length ? 'on late' : ''}><small>Late</small><b className="num">{sum(d.late)}</b><span>{d.late.length} {d.late.length === 1 ? 'account' : 'accounts'}</span></div>
-        <div><small>Collected Today</small><b className="num">{money(d.collectedCents)}</b><span>{d.collectedCount} {d.collectedCount === 1 ? 'payment' : 'payments'}</span></div>
-      </div>
-      <div className="owner-text enter2"><Ic n="phone" s={18} /><span><small>Your morning text</small>{ownerText(d, dealer.dba)}</span></div>
-      {late.length > 0 && <><h2 className="h2">Late</h2><div className="group">{late.map(r => <LoanRow key={r.l.id} {...r} />)}</div></>}
-      {dueToday.length > 0 && <><h2 className="h2">Due Today</h2><div className="group">{dueToday.map(r => <LoanRow key={r.l.id} {...r} />)}</div></>}
-      {soon.length > 0 && <><h2 className="h2">Current</h2><div className="group">{soon.map(r => <LoanRow key={r.l.id} {...r} />)}</div></>}
-      {closed.length > 0 && <><h2 className="h2">Paid Off</h2><div className="group">{closed.map(r => <LoanRow key={r.l.id} {...r} />)}</div></>}
-      {!loans.length && <p className="empty">No in-house notes yet. They open here when a buy here pay here sale is completed.</p>}
-    </main>
-  );
-}
-
-function LoanRow({ l, s }: { l: Loan; s: Standing }) {
-  const x = line(s);
-  return (
-    <a className="row" href={`#/payments/${l.id}`} onClick={feel.tap}>
-      <span className={`dot ${x.tone}`} aria-hidden="true" />
-      <span className="t"><b>{l.buyer.name}</b><small>{l.vehicle.split(' · ')[0]} · {x.text}</small></span>
-      <span className={`status ${x.tone === 'late' ? 'bad' : x.tone}`}>{x.tag}</span><Chev />
+    <a className="choice" href={`#${to}`} onClick={feel.next}>
+      {tone ? <span className={`dot big ${tone}`} aria-hidden="true" /> : icon && <span className="art"><Ic n={icon} s={24} /></span>}
+      <span className="t"><b>{label}</b>{gloss && <small>{gloss}</small>}</span>
+      <span className="go"><Ic n="chev" s={18} w={2.4} /></span>
     </a>
   );
 }
 
+/* ---------- 1. Who needs you today? ---------- */
+export function Payments() {
+  const { dealer, loans = [], example } = useStore();
+  const t = today(dealer.timeZone), d = digest(loans, t);
+  const sum = (xs: { cents: number }[]) => money(xs.reduce((a, x) => a + x.cents, 0));
+  const head = d.late.length ? `${d.late.length} Late.` : d.dueToday.length ? `${d.dueToday.length} Due Today.` : 'All Current.';
+  return (
+    <main className="wrap center">
+      <div className="top"><Back to="#/" label="Sales" /></div>
+      <section className="enter" key="home">
+        <h1 className="q">{head}</h1>
+        <div className="choices">
+          {d.late.length > 0 && <Go to="/payments/list/late" tone="late" label="Late" gloss={sum(d.late)} />}
+          {d.dueToday.length > 0 && <Go to="/payments/list/today" tone="warn" label="Due Today" gloss={sum(d.dueToday)} />}
+          <Go to="/payments/list/all" icon="sheet" label="Every Account" />
+        </div>
+        {example && <span className="example">Example data</span>}
+      </section>
+    </main>
+  );
+}
+
+/* ---------- 2. The people in one group ---------- */
+const LIST_TITLE = { late: 'Late.', today: 'Due Today.', all: 'Every Account.' } as const;
+export function PaymentList({ which }: { which: keyof typeof LIST_TITLE }) {
+  const { dealer, loans = [] } = useStore();
+  const t = today(dealer.timeZone);
+  const rows = loans.map(l => ({ l, s: standing(l, t) }))
+    .filter(r => which === 'all' || (which === 'late' ? r.s.status === 'late' : r.s.status === 'due_today'))
+    .sort((a, b) => b.s.daysLate - a.s.daysLate || a.l.buyer.name.localeCompare(b.l.buyer.name));
+  return (
+    <main className="wrap center">
+      <div className="top"><Back to="#/payments" label="Payments" /></div>
+      <section className="enter" key={which}>
+        <h1 className="q">{LIST_TITLE[which]}</h1>
+        <div className="choices">
+          {rows.map(({ l, s }) => { const x = line(s); return <Go key={l.id} to={`/payments/${l.id}`} tone={x.tone} label={l.buyer.name} gloss={x.text} />; })}
+        </div>
+        {!rows.length && <p className="note">Nobody.</p>}
+      </section>
+    </main>
+  );
+}
+
+/* ---------- 3. One account: one number, one action ---------- */
 export function Account({ id }: { id: string }) {
   const { dealer, loans = [] } = useStore();
   const l = loans.find(x => x.id === id);
-  const [showAll, setShowAll] = useState(false);
   if (!l) return <Payments />;
-  const t = today(dealer.timeZone), s = standing(l, t), x = line(s);
-  const plan = reminderPlan(l, s, dealer.dba);
-  const ask = amountToAsk(s);
-  const inst = showAll ? s.installments : s.installments.filter(i => i.state !== 'upcoming').slice(-4).concat(s.installments.filter(i => i.state === 'upcoming').slice(0, 3));
+  const s = standing(l, today(dealer.timeZone)), x = line(s), ask = amountToAsk(s);
   return (
-    <main className="wrap">
+    <main className="wrap center">
       <div className="top"><Back to="#/payments" label="Payments" /></div>
-      <h1 className="h1 enter">{l.buyer.name}</h1>
-      <p className="sub enter">{l.vehicle} · {l.buyer.phone}</p>
-      <div className={`due-card enter2 ${x.tone}`}>
-        <span className={`status ${x.tone === 'late' ? 'bad' : x.tone}`}>{x.tag}</span>
-        {s.status === 'paid_off' ? <b className="num">Paid In Full</b> : <>
-          <b className="num">{money(ask)}</b>
-          <span>{s.status === 'late' ? `Past due since ${nice(s.installments.find(i => i.paidCents < i.cents)!.due, { month: 'long', day: 'numeric' })}${s.feesOwedCents ? `, with a ${money(s.feesOwedCents)} late charge` : ''}` : `Due ${nice(s.next!.due, { weekday: 'long', month: 'long', day: 'numeric' })}`}</span>
-        </>}
-        <dl>
-          <div><dt>Payment</dt><dd className="num">{money(l.paymentCents)} {({ weekly: 'a week', biweekly: 'every 2 weeks', semimonthly: 'twice a month', monthly: 'a month' } as const)[l.frequency]}</dd></div>
-          <div><dt>Payoff today</dt><dd className="num">{money(s.payoffCents)}</dd></div>
-          <div><dt>Paid so far</dt><dd className="num">{money(s.paidCents)}</dd></div>
-          <div><dt>Rate</dt><dd className="num">{l.apr}% APR</dd></div>
-        </dl>
-      </div>
-
-      <h2 className="h2">Reminders</h2>
-      <div className="group">
-        <button className="row toggle" onClick={() => { feel.tap(); setReminders(l.id, !l.remindersOn); }} aria-pressed={l.remindersOn}>
-          <span className="t"><b>Text {first(l.buyer.name)} Before Each Payment</b><small>Three days before, on the day, and if it runs late. Then once a week while it’s still late.</small></span>
-          <span className="switch" aria-hidden="true"><i /></span>
-        </button>
-        {plan.map((r, k) => <div className="row text-preview" key={k}><span className="when">{nice(r.on)}</span><span className="bubble">{r.text}</span></div>)}
-        {l.remindersOn && !plan.length && s.status !== 'paid_off' && <p className="empty">Nothing scheduled for this payment.</p>}
-      </div>
-      <p className="hint">Texts go from your dealership’s number once texting is approved. STOP always works.</p>
-
-      <h2 className="h2">Schedule</h2>
-      <div className="group sched">
-        {inst.map(i => (
-          <div className={`row ${i.state}`} key={i.n}>
-            <span className="n num">{i.n}</span>
-            <span className="t"><b>{nice(i.due)}</b><small className="num">{money(i.cents)}{i.lateFeeCents ? ` + ${money(i.lateFeeCents)} late charge` : ''}</small></span>
-            <span className={`status ${{ paid: 'good', paid_late: 'warn', partial: 'warn', due: 'warn', late: 'bad', upcoming: '' }[i.state]}`}>{{ paid: 'Paid', paid_late: 'Paid Late', partial: `Part Paid · ${money(i.paidCents)}`, due: 'Due Today', late: 'Late', upcoming: 'Upcoming' }[i.state]}</span>
-          </div>))}
-        {!showAll && <button className="row more" onClick={() => { feel.tap(); setShowAll(true); }}><span className="t"><b>See All {l.count} Payments</b></span><Chev /></button>}
-      </div>
-
-      {l.payments.length > 0 && <><h2 className="h2">Received</h2><div className="group">
-        {[...l.payments].reverse().map(p => <div className="row" key={p.id}><span className="t"><b className="num">{money(p.cents)}</b><small>{METHOD_LABEL[p.method]} · {nice(p.on, { month: 'long', day: 'numeric', year: 'numeric' })}</small></span><span className="v num">#{p.receipt}</span></div>)}
-      </div></>}
-
-      {s.status !== 'paid_off' && <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); go(`/payments/${l.id}/pay`); }}><Ic n="cash" s={20} w={2.2} />Take A Payment</button></div></div>}
+      <section className="enter" key="acct">
+        <h1 className="q">{l.buyer.name}</h1>
+        <span className={`status ${x.tone === 'late' ? 'bad' : x.tone} center-tag`}>{x.tag}</span>
+        {s.status === 'paid_off'
+          ? <p className="big-amount good num">Paid In Full</p>
+          : <><p className={`big-amount num ${x.tone}`}>{money(ask)}</p>
+              {s.status !== 'late' && <p className="note">Due {longDay(s.next!.due)}</p>}</>}
+        <div className="choices">
+          <Go to={`/payments/${l.id}/schedule`} icon="sheet" label="Schedule" />
+          <Go to={`/payments/${l.id}/reminders`} icon="phone" label="Reminders" gloss={l.remindersOn ? 'On' : 'Off'} />
+          {l.payments.length > 0 && <Go to={`/payments/${l.id}/received`} icon="cash" label="Received" gloss={money(s.paidCents)} />}
+        </div>
+        {s.status !== 'paid_off' && <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); go(`/payments/${l.id}/pay`); }}>Take A Payment</button></div></div>}
+      </section>
     </main>
   );
+}
+
+/* ---------- 4. The pages behind an account ---------- */
+export function AccountPage({ id, page }: { id: string; page: string }) {
+  const { dealer, loans = [] } = useStore();
+  const l = loans.find(x => x.id === id);
+  const [all, setAll] = useState(false);
+  if (!l) return <Payments />;
+  const s = standing(l, today(dealer.timeZone));
+  const back = <div className="top"><Back to={`#/payments/${l.id}`} label={first(l.buyer.name)} /></div>;
+
+  if (page === 'reminders') {
+    const plan = reminderPlan(l, s, dealer.dba);
+    return (
+      <main className="wrap center">{back}
+        <section className="enter" key="rem">
+          <h1 className="q">Text Reminders?</h1>
+          <div className="choices">
+            <ChoiceRow on={l.remindersOn} label="Yes" onPick={() => setReminders(l.id, true)} />
+            <ChoiceRow on={!l.remindersOn} label="No" onPick={() => setReminders(l.id, false)} />
+          </div>
+          {l.remindersOn && plan[0] && <div className="sms"><small>{longDay(plan[0].on)}</small><span className="bubble">{plan[0].text}</span></div>}
+        </section>
+      </main>
+    );
+  }
+
+  if (page === 'received') return (
+    <main className="wrap center">{back}
+      <section className="enter" key="rec">
+        <h1 className="q">{money(s.paidCents)}</h1>
+        <div className="list-plain">
+          {[...l.payments].reverse().map(p => <div key={p.id}><b className="num">{money(p.cents)}</b><span>{METHOD_LABEL[p.method]} · {nice(p.on, { month: 'long', day: 'numeric' })}</span><small className="num">#{p.receipt}</small></div>)}
+        </div>
+      </section>
+    </main>
+  );
+
+  // schedule
+  const inst = all ? s.installments : s.installments.filter(i => i.state !== 'upcoming').slice(-3).concat(s.installments.filter(i => i.state === 'upcoming').slice(0, 3));
+  const label = { paid: 'Paid', paid_late: 'Paid late', partial: 'Part paid', due: 'Due today', late: 'Late', upcoming: '' } as const;
+  return (
+    <main className="wrap center">{back}
+      <section className="enter" key="sch">
+        <h1 className="q">{l.count} × {money(l.paymentCents)}</h1>
+        <p className="note">Payoff {money(s.payoffCents)}</p>
+        <div className="list-plain">
+          {inst.map(i => <div key={i.n} className={i.state}><b>{nice(i.due)}</b><span className="num">{money(i.cents)}{i.lateFeeCents ? ` + ${money(i.lateFeeCents)}` : ''}</span><small>{label[i.state]}</small></div>)}
+        </div>
+        {!all && l.count > inst.length && <button className="textlink" onClick={() => { feel.tap(); setAll(true); }}>Show All {l.count}</button>}
+      </section>
+    </main>
+  );
+}
+
+function ChoiceRow({ on, label, onPick }: { on: boolean; label: string; onPick: () => void }) {
+  return <button className="choice" aria-pressed={on} onClick={() => { feel.tap(); onPick(); }}><span className="t"><b>{label}</b></span><span className="tick">{on && <Ic n="check" s={15} w={3} />}</span></button>;
 }
 
 const METHODS: { m: Method; icon: string; gloss?: string }[] = [
@@ -141,28 +183,25 @@ export function TakePayment({ id }: { id: string }) {
     <main className="wrap center">
       <div className="top">
         {step === 1 ? <button className="back" onClick={() => { feel.tap(); to(0, 'back'); }}><Ic n="chev" s={18} w={2.4} />Back</button> : step === 0 ? <Back to={`#/payments/${id}`} label={first(l.buyer.name)} /> : <span />}
-        <span className="progress">{l.buyer.name}</span>
+        
       </div>
       {step === 0 && <section className="enter" key="amt">
-        <h1 className="q">How Much Are They Paying?</h1>
-        <p className="note">{s0.status === 'late' ? `${money(s0.pastDueCents)} is past due${s0.feesOwedCents ? `, plus a ${money(s0.feesOwedCents)} late charge` : ''}.` : `${money(s0.next!.cents)} is due ${nice(s0.next!.due, { weekday: 'long', month: 'long', day: 'numeric' })}.`}</p>
+        <h1 className="q">How Much?</h1>
         <div className="money"><input className="input" inputMode="decimal" autoFocus value={amt} onChange={e => setAmt(e.target.value)} placeholder="0" aria-label="Amount" /></div>
         <div className="chips">{quick.map(q => <button key={q.label} className={'chip' + (cents === q.c ? ' on' : '')} onClick={() => { feel.tap(); setAmt((q.c / 100).toFixed(2)); }}><b className="num">{money(q.c)}</b><small>{q.label}</small></button>)}</div>
         <div className="dock"><div className="in"><button className="btn primary block" disabled={!(cents > 0) || cents > s0.payoffCents} onClick={() => { feel.next(); to(1); }}>{cents > s0.payoffCents ? 'More Than The Payoff' : 'Continue'}</button></div></div>
       </section>}
       {step === 1 && <section className="enter" key="method">
-        <h1 className="q">How Are They Paying?</h1>
-        <p className="note">{money(cents)} from {first(l.buyer.name)}.</p>
+        <h1 className="q">Paid With?</h1>
         <div className="choices grid2">
-          {METHODS.map(x => <button key={x.m} className="choice" aria-pressed={method === x.m} onClick={() => { feel.tap(); setMethod(x.m); }}><span className="art"><Ic n={x.icon} s={24} /></span><span className="t"><b>{METHOD_LABEL[x.m]}</b>{x.gloss && <small>{x.gloss}</small>}</span>{method === x.m && <span className="tick"><Ic n="check" s={16} w={3} /></span>}</button>)}
+          {METHODS.map(x => <button key={x.m} className="choice" aria-pressed={method === x.m} onClick={() => { feel.tap(); setMethod(x.m); }}><span className="art"><Ic n={x.icon} s={24} /></span><span className="t"><b>{METHOD_LABEL[x.m]}</b></span>{method === x.m && <span className="tick"><Ic n="check" s={16} w={3} /></span>}</button>)}
         </div>
         <div className="dock"><div className="in"><button className="btn primary block" disabled={!method} onClick={() => { feel.done(); setReceipt(recordPayment(l.id, cents, method!, t)); to(2); }}>Record {money(cents)}</button></div></div>
       </section>}
       {step === 2 && after && paid && <section className="enter" key="done">
         <span className="done-mark pop"><Ic n="check" s={38} w={3} /></span>
-        <h1 className="q">Payment Recorded.</h1>
-        <p className="note">Receipt #{paid.receipt}. {after.status === 'paid_off' ? 'The note is paid in full.' : `Next: ${money(after.next!.cents)} on ${nice(after.next!.due, { weekday: 'long', month: 'long', day: 'numeric' })}.`}</p>
-        <div className="sms"><small>The receipt text</small><span className="bubble">{receiptText(getLoans().find(x => x.id === id)!, paid, after, dealer.dba)}</span></div>
+        <h1 className="q">Recorded.</h1>
+        <p className="note">Receipt #{paid.receipt}</p>
         <div className="dock"><div className="in">
           <button className="btn primary block" onClick={() => { feel.done(); go(`/payments/${id}`); }}>Done</button>
           <button className="textlink" onClick={() => { feel.tap(); print(); }}>Print The Receipt</button>

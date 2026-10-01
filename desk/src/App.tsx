@@ -3,8 +3,8 @@ import { Desk, GuideRedirect, Step } from './Corridor';
 import { Onboarding } from './Onboarding';
 import { Paper } from './Paper';
 import { Past, Sales, Start } from './Sales';
-import { Account, Payments, TakePayment } from './Payments';
-import { Channel, MarketplaceConsent, Reach } from './Reach';
+import { Account, AccountPage, PaymentList, Payments, TakePayment } from './Payments';
+import { Channel, MarketplaceConsent, Reach, ReachGroup } from './Reach';
 import type { DocType } from './lib/plan';
 import { getSale, useStore } from './store';
 import { useHash } from './ui';
@@ -16,8 +16,13 @@ export function App() {
   const [, a, id, b, c, d] = h.split('/');
   if (a === 'new') return <Start />;
   if (a === 'past') return <Past />;
-  if (a === 'reach') return id === 'marketplace' ? <MarketplaceConsent /> : id ? <Channel id={id} /> : <Reach />;
-  if (a === 'payments') return id && b === 'pay' ? <TakePayment key={id} id={id} /> : id ? <Account key={id} id={id} /> : <Payments />;
+  if (a === 'reach') return id === 'marketplace' ? <MarketplaceConsent /> : id === 'g' && b ? <ReachGroup key={b} group={b as 'phone'} /> : id ? <Channel id={id} /> : <Reach />;
+  if (a === 'payments') {
+    if (id === 'list') return <PaymentList key={b} which={(b === 'late' || b === 'today' ? b : 'all')} />;
+    if (id && b === 'pay') return <TakePayment key={id} id={id} />;
+    if (id && b) return <AccountPage key={`${id}/${b}`} id={id} page={b} />;
+    return id ? <Account key={id} id={id} /> : <Payments />;
+  }
   if ((a === 'sale' || a === 'sign') && id && !getSale(id)) return <Sales />;
   if (a === 'sign') return <Ceremony id={id} />;
   if (a === 'sale') {
