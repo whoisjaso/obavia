@@ -9,6 +9,7 @@ import { computeMoney, parseMoney, usd } from './lib/money';
 import { PER_YEAR, payment } from './lib/paperwork';
 import { poaInstrument, type DocType } from './lib/plan';
 import type { Sale } from './lib/sale';
+import { photosOf } from './lib/condition';
 
 export function saleReceipt(s: Sale, dealer: DealerConfig) {
   const bos = s.step.paperwork?.billOfSale ?? {};
@@ -153,6 +154,31 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
           <p className="key">The rate is held to the Texas Finance Code ceiling the owner confirms before the first sale.</p>
         </>);
       }
+      case 'conditionReport': {
+        const c = sale.step.paperwork?.conditionReport ?? {}, bos = sale.step.paperwork?.billOfSale ?? {};
+        const pics = photosOf(c.photos), warranty = bos.asIs === 'warranty';
+        return (<>
+          <section className="vehicle">
+            <h4>Condition at sale</h4>
+            <div className="grid">
+              <Cell k="Vehicle" v={car} className="w2" /><Cell k="Vehicle identification number" v={<span className="mono">{v.vin}</span>} className="w4" />
+              <Cell k="Odometer" v={v.mileage != null ? `${v.mileage.toLocaleString()} mi` : ''} className="w2" /><Cell k="Sold" v={warranty ? `With a warranty${bos.warrantyLength ? `: ${bos.warrantyLength}` : ''}` : 'As is, no warranty'} className="w4" />
+            </div>
+            <div className="odo">
+              <Box on={c.guide === 'yes'}>Buyers Guide on the window</Box>
+              <Box on={c.drove === 'yes'}>Buyer test drove it</Box>
+              <Box on={c.lights === 'none'}>No warning lights</Box>
+            </div>
+          </section>
+          <table className="cond"><tbody>
+            <Row k="Warning lights" v={c.lights === 'yes' ? c.lightsWhich ?? '' : 'None'} />
+            <Row k="Not working at sale" v={c.known === 'yes' ? c.knownWhat ?? '' : 'Nothing known'} />
+            <Row k="Photos" v={pics.length ? `${pics.length} taken today` : 'None'} />
+          </tbody></table>
+          {pics.length > 0 && <div className="pics">{pics.map((p, i) => <img key={i} src={p} alt={`Photo ${i + 1}`} />)}</div>}
+          <p className="key">{warranty ? 'Repairs outside the written warranty are the buyer’s.' : 'The car is sold as is. Repairs after today are the buyer’s.'} Payments are due whether or not it needs repairs.</p>
+        </>);
+      }
       case 'vehicleResponsibility': return (<>
         <p>The buyer is filing the title and registration for the {car} (VIN {v.vin}) and will do so within 30 days of {date}.</p>
         <p className="key">If the filing comes back to the dealer, the buyer owes {usd(r.registrationCost)} for tax and fees.</p>
@@ -175,7 +201,7 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
   })();
 
   const accent = dealer.brand.accent;
-  const docNo = `${{ billOfSale: 'BS', salvageBillOfSale: 'SB' }[doc as string] ?? 'D'}-${date.slice(6)}${date.slice(0, 2)}${date.slice(3, 5)}-${(sale.vehicle.stock || sale.vehicle.vin.slice(-4)).replace(/\W/g, '')}`;
+  const docNo = `${{ billOfSale: 'BS', salvageBillOfSale: 'SB', conditionReport: 'CR' }[doc as string] ?? 'D'}-${date.slice(6)}${date.slice(0, 2)}${date.slice(3, 5)}-${(sale.vehicle.stock || sale.vehicle.vin.slice(-4)).replace(/\W/g, '')}`;
   return (
     <article className={'sheet' + (compact ? ' compact' : '')} style={{ ['--doc' as string]: accent }}>
       <i className="band" />

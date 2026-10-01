@@ -35,7 +35,7 @@ export function applyPlanAnswer<Q extends PlanQuestion>(plan: SalePlan, q: Q, va
 }
 
 export type DocType =
-  | 'billOfSale' | 'form130U' | 'financing' | 'vehicleResponsibility' | 'insuranceAcknowledgment'
+  | 'billOfSale' | 'conditionReport' | 'form130U' | 'financing' | 'vehicleResponsibility' | 'insuranceAcknowledgment'
   | 'powerOfAttorney' | 'rebuiltDisclosure' | 'salvageBillOfSale' | 'towAwayAcknowledgment' | 'buyerResponsibilityStatement';
 
 export function planDocumentEffect(plan: SalePlan, titleStatus: TitleStatus): { add: DocType[]; remove: DocType[] } {

@@ -4,12 +4,12 @@ import type { FundingType } from './money';
 import { planDocumentEffect, type DocType, type SalePlan, type SalvagePath, type TitleStatus } from './plan';
 
 export const WALK_ORDER: DocType[] = [
-  'rebuiltDisclosure', 'billOfSale', 'form130U', 'vehicleResponsibility', 'insuranceAcknowledgment', 'powerOfAttorney',
+  'rebuiltDisclosure', 'billOfSale', 'conditionReport', 'form130U', 'vehicleResponsibility', 'insuranceAcknowledgment', 'powerOfAttorney',
   'salvageBillOfSale', 'towAwayAcknowledgment', 'buyerResponsibilityStatement', 'financing',
 ];
 
 export const DOC_TITLE: Record<DocType, string> = {
-  billOfSale: 'Bill Of Sale', form130U: 'Title Application (130-U)', financing: 'Financing Contract',
+  billOfSale: 'Bill Of Sale', conditionReport: 'Condition Report', form130U: 'Title Application (130-U)', financing: 'Financing Contract',
   vehicleResponsibility: 'Vehicle Responsibility', insuranceAcknowledgment: 'Insurance Acknowledgment',
   powerOfAttorney: 'Power Of Attorney', rebuiltDisclosure: 'Rebuilt Title Disclosure',
   salvageBillOfSale: 'Salvage Bill Of Sale', towAwayAcknowledgment: 'Tow-Away Acknowledgment',
@@ -19,6 +19,7 @@ export const DOC_TITLE: Record<DocType, string> = {
 /** What each sheet means, in one sentence the buyer can hold. */
 export const DOC_MEANS: Record<DocType, string> = {
   billOfSale: 'It says what you paid and how the car is sold.',
+  conditionReport: 'It records the car’s condition today, in words and photos.',
   form130U: 'It applies for the title and registration in your name.',
   financing: 'It sets out the payments you agreed to.',
   vehicleResponsibility: 'You are filing the title yourself, within 30 days.',
@@ -39,7 +40,7 @@ export function requiredDocumentTypes(funding: FundingType | null | undefined, p
     if (inHouse) docs.push('financing');
     return docs.sort(byWalk);
   }
-  const base: DocType[] = ['billOfSale', 'form130U', ...(inHouse ? ['financing' as const] : [])];
+  const base: DocType[] = ['billOfSale', 'conditionReport', 'form130U', ...(inHouse ? ['financing' as const] : [])];
   const { add, remove } = planDocumentEffect(plan, titleStatus);
   const out = [...new Set([...base.filter(d => !remove.includes(d)), ...add])];
   return out.sort(byWalk);

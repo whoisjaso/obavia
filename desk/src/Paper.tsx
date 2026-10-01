@@ -9,6 +9,7 @@ import { Sheet } from './Sheet';
 import { advance } from './Corridor';
 import { fileDocument, getSale, mergeStep, useStore } from './store';
 import { Choice, Ic, Pad, backward, feel, go } from './ui';
+import { photosOf } from './lib/condition';
 
 export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) {
   const { dealer } = useStore();
@@ -43,7 +44,8 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
         <section className="enter" key={cur.key}>
           <h1 className="q">{cur.question}</h1>
           {cur.kind === 'choice' && <div className="choices">{cur.choices!.map(c => <Choice key={c.v} label={c.label} gloss={c.gloss} on={answers[cur.key] === c.v} onPick={() => save(c.v)} />)}</div>}
-          {cur.kind !== 'choice' && <>
+          {cur.kind === 'photos' && <Photos initial={photosOf(answers[cur.key])} onDone={list => { feel.next(); save(JSON.stringify(list)); }} />}
+          {cur.kind !== 'choice' && cur.kind !== 'photos' && <>
             {cur.kind === 'money'
               ? <div className="money"><input className="input" inputMode="decimal" autoFocus value={val} onChange={e => setVal(e.target.value)} placeholder="0" /></div>
               : <label className="field"><input className="input num" autoFocus type={cur.kind === 'date' ? 'date' : 'text'} inputMode={cur.kind === 'number' ? 'decimal' : undefined} value={val} onChange={e => setVal(e.target.value)} placeholder={cur.key === 'emptyWeight' ? 'Pounds' : cur.key === 'capacity' ? 'Tons, or Not Applicable' : cur.key === 'rate' ? 'Percent' : ''} /></label>}
@@ -63,4 +65,40 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
       )}
     </main>
   );
+}
+
+/** Shrinks a photo to a small JPEG so a sale's record stays light. */
+function shrink(f: File, max = 640): Promise<string> {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(f);
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.72));
+    };
+    img.onerror = rej; img.src = url;
+  });
+}
+
+const MAX_PHOTOS = 6;
+function Photos({ initial, onDone }: { initial: string[]; onDone: (list: string[]) => void }) {
+  const [list, setList] = useState(initial);
+  const add = async (files: FileList | null) => {
+    if (!files) return;
+    const out: string[] = [];
+    for (const f of [...files].slice(0, MAX_PHOTOS - list.length)) { try { out.push(await shrink(f)); } catch { /* not an image */ } }
+    feel.tap(); setList(x => [...x, ...out].slice(0, MAX_PHOTOS));
+  };
+  return (<>
+    <p className="note">Front, back, both sides, the dash and anything worn.</p>
+    <div className="shots">
+      {list.map((src, i) => <button key={i} className="shot" aria-label="Remove photo" onClick={() => { feel.tap(); setList(x => x.filter((_, j) => j !== i)); }}><img src={src} alt="" /><i>×</i></button>)}
+      {list.length < MAX_PHOTOS && <label className="shot add"><input type="file" accept="image/*" capture="environment" multiple onChange={e => { add(e.target.files); e.target.value = ''; }} /><Ic n="plus" s={26} /><span>Add</span></label>}
+    </div>
+    <div className="dock"><div className="in">
+      <button className="btn primary block" disabled={!list.length} onClick={() => onDone(list)}>Continue</button>
+      {!list.length && <button className="textlink" onClick={() => onDone(list)}>Skip For Now</button>}
+    </div></div>
+  </>);
 }

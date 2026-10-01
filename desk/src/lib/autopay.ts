@@ -141,6 +141,7 @@ export function timeline(l: LoanX): Moment[] {
     ...(l.attempts ?? []).map(a => { const r = read(a); return { on: a.on, tone: r.reading === 'wont' ? 'red' as const : 'amber' as const, text: r.label, cents: a.cents }; }),
     ...(l.autopay?.history ?? []).map(h => ({ on: h.on, tone: h.event === 'added' ? 'none' as const : 'red' as const,
       text: { added: 'Autopay turned on', removed: 'Card taken off autopay', replaced: 'Changed the card', turned_off: 'Autopay turned off' }[h.event] })),
+    ...(l.service ?? []).map(e => ({ on: e.on, tone: 'amber' as const, text: `${e.kind === 'complaint' ? 'Complaint' : 'Repair'}: ${e.what}` })),
   ];
   return m.sort((a, b) => b.on.localeCompare(a.on));
 }

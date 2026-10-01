@@ -73,13 +73,13 @@ describe('sale plan', () => {
 
 describe('documents', () => {
   const full: SalePlan = { registrationBy: 'dealer', titleSignedBy: 'buyer', inspectionBy: 'done', insuranceShown: true };
-  it('cash, dealer files', () => expect(requiredDocumentTypes('cash', full, 'clean')).toEqual(['billOfSale', 'form130U']));
-  it('buy here pay here adds financing, last', () => expect(requiredDocumentTypes('inHouse', full, 'clean')).toEqual(['billOfSale', 'form130U', 'financing']));
+  it('cash, dealer files', () => expect(requiredDocumentTypes('cash', full, 'clean')).toEqual(['billOfSale', 'conditionReport', 'form130U']));
+  it('buy here pay here adds financing, last', () => expect(requiredDocumentTypes('inHouse', full, 'clean')).toEqual(['billOfSale', 'conditionReport', 'form130U', 'financing']));
   it('a lender deal never owes the dealer financing contract', () => {
     for (const plan of [full, { ...full, registrationBy: 'buyer' as const }]) expect(requiredDocumentTypes('lender', plan, 'clean')).not.toContain('financing');
   });
   it('buyer files: no 130-U, vehicle responsibility instead', () => {
-    expect(requiredDocumentTypes('cash', { ...full, registrationBy: 'buyer', titleSignedBy: null, priceIncludesRegistration: false }, 'clean')).toEqual(['billOfSale', 'vehicleResponsibility']);
+    expect(requiredDocumentTypes('cash', { ...full, registrationBy: 'buyer', titleSignedBy: null, priceIncludesRegistration: false }, 'clean')).toEqual(['billOfSale', 'conditionReport', 'vehicleResponsibility']);
   });
   it('we sign for them: power of attorney', () => expect(requiredDocumentTypes('cash', { ...full, titleSignedBy: 'dealer' }, 'clean')).toContain('powerOfAttorney'));
   it('no insurance shown: acknowledgment', () => expect(requiredDocumentTypes('cash', { ...full, insuranceShown: false }, 'clean')).toContain('insuranceAcknowledgment'));
@@ -105,7 +105,7 @@ describe('guide', () => {
   it('cash, dealer files: plate, title signer, then documents', () => {
     const s = sale({ step: { funding: { type: 'cash' }, money: { amount: '8000', priceBasis: 'outTheDoor' }, salePlan: { registrationBy: 'dealer', titleSignedBy: 'buyer', inspectionBy: 'done', insuranceShown: true } } });
     const keys = buildGuideSteps(s).map(x => x.key);
-    expect(keys).toEqual(['buyer', 'buyerId', 'funding', 'paid', 'price', 'plan:registration', 'plate', 'plan:title-signer', 'plan:inspection', 'plan:insurance', 'document:billOfSale', 'document:form130U', 'title', 'packet']);
+    expect(keys).toEqual(['buyer', 'buyerId', 'funding', 'paid', 'price', 'plan:registration', 'plate', 'plan:title-signer', 'plan:inspection', 'plan:insurance', 'document:billOfSale', 'document:conditionReport', 'document:form130U', 'title', 'packet']);
     expect(nextOpenStep(s)?.key).toBe('buyerId');
   });
   it('bank sale asks the lender', () => {

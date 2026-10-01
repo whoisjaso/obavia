@@ -344,6 +344,31 @@ Counter cash leaves no digital signal, so it can't be detected. The rule: **auto
 - the live charging scheduler and retries through the processor;
 - reading decline codes from PayNearMe or REPAY callbacks. The field names are confirmed in the sandbox.
 
+## 10. The condition record: "the car broke, so I'm not paying"
+
+That's answered by records made at the sale, not by arguments.
+
+- **At the sale:** a signed **Condition Report** is part of every sale except a tow-away. It sits right after the bill of sale. Each question is its own page:
+  - Is the Buyers Guide on the window? (FTC Used Car Rule)
+  - Did they drive it first?
+  - Any warning lights? Which?
+  - Anything not working? What?
+  - Photos of the car: up to 6, each shrunk to a small JPEG.
+- **The printed sheet** shows:
+  - the vehicle, VIN and odometer;
+  - as-is or warranty, taken from the bill of sale;
+  - the checkboxes, the warning lights and the known issues;
+  - the photos;
+  - one line in red: "Repairs after today are the buyer's. Payments are due whether or not it needs repairs." Counsel reviews this wording.
+- **Into the note:** when an in-house sale opens its note, the condition is copied onto the loan (`desk/src/lib/condition.ts`, 6 tests).
+- **After the sale, on the account under Condition** (`desk/src/Condition.tsx`):
+  - the heading reads "Sold As-Is." with the signing date and miles at sale;
+  - the payment line;
+  - what wasn't working at sale, and the photos;
+  - every complaint since, as "27 days and 2,140 miles after the sale". A complaint already written down at sale is marked **Known at sale**;
+  - **Add A Complaint**: what's wrong, in their words, then miles now.
+- **History:** complaints also appear in the timeline, so a complaint, then autopay turned off, then a stopped payment reads as one story.
+
 ---
 
 # Reach: every channel, and how each really connects

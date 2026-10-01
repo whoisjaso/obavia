@@ -4,7 +4,7 @@ import type { DocType } from './plan';
 import type { Sale } from './sale';
 import { asksCarryingCapacity } from './vin';
 
-export type PQ = { key: string; question: string; kind: 'choice' | 'money' | 'number' | 'text' | 'date'; choices?: { v: string; label: string; gloss?: string }[]; prefill?: (s: Sale) => string };
+export type PQ = { key: string; question: string; kind: 'choice' | 'money' | 'number' | 'text' | 'date' | 'photos'; choices?: { v: string; label: string; gloss?: string }[]; prefill?: (s: Sale) => string };
 
 const PAY = ['Cash', 'Zelle', 'Cash App', 'Venmo', 'Card', 'Check'].map(v => ({ v, label: v }));
 
@@ -21,6 +21,15 @@ export function paperworkQuestions(doc: DocType, s: Sale): PQ[] {
     ] : []),
     { key: 'asIs', question: 'Sold As-Is Or With A Warranty?', kind: 'choice', choices: [{ v: 'asIs', label: 'As-Is', gloss: 'No warranty' }, { v: 'warranty', label: 'With A Warranty' }] },
     ...(a.asIs === 'warranty' ? [{ key: 'warrantyLength', question: 'How Long Is The Warranty?', kind: 'text' as const }] : []),
+  ];
+  if (doc === 'conditionReport') return [
+    { key: 'guide', question: 'Is The Buyers Guide On The Window?', kind: 'choice', choices: [{ v: 'yes', label: 'Yes', gloss: 'The federal window sticker' }, { v: 'no', label: 'Not Yet', gloss: 'Put it up before they sign' }] },
+    { key: 'drove', question: 'Did They Drive It First?', kind: 'choice', choices: [{ v: 'yes', label: 'Yes' }, { v: 'declined', label: 'No, They Passed' }] },
+    { key: 'lights', question: 'Any Warning Lights On?', kind: 'choice', choices: [{ v: 'none', label: 'None' }, { v: 'yes', label: 'Yes' }] },
+    ...(a.lights === 'yes' ? [{ key: 'lightsWhich', question: 'Which Lights?', kind: 'text' as const }] : []),
+    { key: 'known', question: 'Anything Not Working?', kind: 'choice', choices: [{ v: 'none', label: 'Nothing Known' }, { v: 'yes', label: 'Yes' }] },
+    ...(a.known === 'yes' ? [{ key: 'knownWhat', question: 'What’s Not Working?', kind: 'text' as const }] : []),
+    { key: 'photos', question: 'Photos Of The Car.', kind: 'photos' },
   ];
   if (doc === 'form130U') return [
     ...(!s.buyer.county ? [{ key: 'county', question: 'Which County Do They Live In?', kind: 'text' as const }] : []),

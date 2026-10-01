@@ -11,6 +11,7 @@ import { addDays, amountToAsk, openLoan, standing, takePayment, today, type Freq
 import { fromReceipt, normName, type Money, type Payers } from './lib/match';
 import { cashOn, type CashDay } from './lib/cashday';
 import type { Attempt, OnFile } from './lib/autopay';
+import { conditionFromSale, type ServiceEntry } from './lib/condition';
 import { PER_YEAR } from './lib/paperwork';
 import { parseMoney } from './lib/money';
 
@@ -43,6 +44,10 @@ export function exampleLoans(tz: string): Loan[] {
   dana.attempts = [at(dana, 9, '51', 3, 'card'), at(dana, 6, '51', 3, 'card')];
   chris.autopay = { on: false, method: { kind: 'bank', bank: 'Chase', last4: '4417', routing: '111000614' }, signedBy: 'Chris Sample', signedOn: addDays(t, -86), history: [{ on: addDays(t, -86), event: 'added' }, { on: addDays(t, -19), event: 'turned_off' }] };
   chris.attempts = [{ ...at(chris, 18, 'R08', 3, 'bank'), result: 'returned' }];
+  // The car's condition as signed, and the complaint that came before the stopped payment.
+  for (const l of list) l.condition = { signedOn: l.openedOn, miles: 61240, asIs: true, guide: true, drove: true, photos: [] };
+  chris.condition = { signedOn: chris.openedOn, miles: 88410, asIs: true, guide: true, drove: true, known: 'Driver window motor slow', photos: [] };
+  chris.service = [{ on: addDays(t, -24), miles: 93180, what: 'Says the transmission is slipping', kind: 'complaint' }];
   return list;
 }
 /** Example money from outside the processor, the way it would arrive from the bank feed and receipt emails. */
@@ -135,6 +140,10 @@ export function matchMoney(m: Money, loanId: string): number {
   set({ ...state, receiptNo: receipt, loans, payers, matched: { ...state.matched, [m.id]: { loanId, receipt } } });
   return receipt;
 }
+/* ---------- condition and service ---------- */
+export function addService(loanId: string, e: ServiceEntry) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, service: [...(l.service ?? []), e] }) });
+}
 /* ---------- autopay ---------- */
 export function setAutopay(loanId: string, method: OnFile, payday: number | undefined, signedBy: string, on: string) {
   set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, autopay: { on: true, method, payday, signedBy, signedOn: on,
@@ -160,8 +169,9 @@ function loanFromSale(s: Sale, total: number): Loan | null {
   const freq = (f.frequency in PER_YEAR ? f.frequency : 'monthly') as Frequency;
   const down = parseMoney(f.down) ?? 0, count = Number(f.count) || 0, apr = Number(f.rate) || 0;
   if (!count || !f.firstDue || total - down <= 0) return null;
-  return openLoan({ id: 'n' + s.id, saleId: s.id, buyer: { name: s.buyer.fullName, phone: s.buyer.phone }, vehicle: `${s.vehicle.year} ${s.vehicle.make} ${s.vehicle.model}${s.vehicle.stock ? ` · Stock ${s.vehicle.stock}` : ''}`,
+  const opened = openLoan({ id: 'n' + s.id, saleId: s.id, buyer: { name: s.buyer.fullName, phone: s.buyer.phone }, vehicle: `${s.vehicle.year} ${s.vehicle.make} ${s.vehicle.model}${s.vehicle.stock ? ` · Stock ${s.vehicle.stock}` : ''}`,
     principalCents: Math.round((total - down) * 100), apr, count, frequency: freq, firstDue: f.firstDue, openedOn: today(state.dealer.timeZone) });
+  return { ...opened, condition: conditionFromSale(s, opened.openedOn) };
 }
 export function openNoteForSale(id: string, total: number) {
   const s = getSale(id); if (!s || getLoans().some(l => l.saleId === id)) return;

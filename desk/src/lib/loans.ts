@@ -8,6 +8,7 @@
    payments on request (§348.405). The rate ceiling is the owner's to confirm. */
 
 import type { Attempt, Autopay } from './autopay';
+import type { Condition, ServiceEntry } from './condition';
 
 export type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'venmo' | 'paypal' | 'other';
@@ -37,6 +38,8 @@ export type Loan = {
   openedOn: string;
   autopay?: Autopay;               // card or bank account on file
   attempts?: Attempt[];            // charges that failed, with the reason code
+  condition?: Condition;           // the car's condition as signed at the sale
+  service?: ServiceEntry[];        // complaints and repairs since
 };
 
 export const PER_YEAR: Record<Frequency, number> = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 };
