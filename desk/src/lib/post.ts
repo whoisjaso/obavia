@@ -19,6 +19,7 @@ import type { DealerConfig } from './config';
 import type { Vehicle } from './sale';
 import { colourName } from './colour';
 import { usd } from './money';
+import { fieldCase } from './documents/presentation-case';
 
 export type Route = 'api' | 'handoff';
 export type PostSpec = {
@@ -73,10 +74,10 @@ export function titleFor(v: Pick<Vehicle, 'year' | 'make' | 'model' | 'price'>):
 export function draftCaption(v: Vehicle, d: Pick<DealerConfig, 'dba' | 'legalName' | 'phone' | 'city'>): string {
   const lines = [
     titleFor(v),
-    [v.mileage != null ? `${commas(v.mileage)} miles` : '', colourName(v.color), v.bodyStyle].filter(Boolean).join(' · '),
+    [v.mileage != null ? `${commas(v.mileage)} miles` : '', fieldCase(colourName(v.color)), fieldCase(v.bodyStyle)].filter(Boolean).join(' · '),
     v.titleStatus === 'clean' ? 'Clean title.' : v.titleStatus === 'rebuilt_salvage' ? 'Rebuilt salvage title, disclosed in writing at sale.' : '',
     `VIN ${v.vin}`,
-    [d.dba || d.legalName, d.city].filter(Boolean).join(', ') + (d.phone ? `. Call or text ${d.phone}.` : '.'),
+    [[d.dba || d.legalName, d.city].filter(Boolean).join(', '), d.phone ? `Call or text ${d.phone}.` : ''].filter(Boolean).join('. ').replace(/([^.])$/, '$1.').replace(/^\.$/, ''),
   ];
   return lines.filter(Boolean).join('\n');
 }

@@ -84,3 +84,21 @@ describe('sealed account tokens', () => {
     await expect(unseal('y'.repeat(32), s)).rejects.toBeTruthy();
   });
 });
+
+describe('photos hosted on the Facebook Page (the pilot)', () => {
+  it('uploads the file unpublished, then returns the largest address Facebook serves', async () => {
+    const { FacebookPhotoHost } = await import('./fbhost');
+    const seen: { url: string; method?: string; body?: unknown }[] = [];
+    const f = (async (url: string, init?: RequestInit) => {
+      seen.push({ url, method: init?.method, body: init?.body });
+      return url.includes('/photos') ? new Response(JSON.stringify({ id: '555' })) : new Response(JSON.stringify({ images: [{ source: 'https://scontent.example/s.jpg', width: 320 }, { source: 'https://scontent.example/l.jpg', width: 2048 }] }));
+    }) as unknown as typeof fetch;
+    const url = await new FacebookPhotoHost('111', 'tok', f).put('P1', 'p1', 0, 'data:image/jpeg;base64,/9j/AA==');
+    expect(url).toBe('https://scontent.example/l.jpg');
+    expect(seen[0].url).toBe('https://graph.facebook.com/v26.0/111/photos');
+    const form = seen[0].body as FormData;
+    expect(form.get('published')).toBe('false');
+    expect(form.get('source')).toBeInstanceOf(Blob);
+    expect(seen[1].url).toContain('/555?fields=images');
+  });
+});

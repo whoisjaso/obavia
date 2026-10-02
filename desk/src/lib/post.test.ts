@@ -54,3 +54,11 @@ describe('posting a car', () => {
     expect(renditions({ photos, caption: 'x', channels: ['instagram', 'nope'] }, car)).toHaveLength(1);
   });
 });
+
+describe('caption edges', () => {
+  it('cases the colour and leaves no stray line when the dealer has no name yet', () => {
+    const c = draftCaption({ ...car, color: 'gray' }, { dba: '', legalName: '', phone: '', city: '' });
+    expect(c).toContain('Gray');
+    expect(c.split('\n').every(l => l.trim().length > 1)).toBe(true);
+  });
+});
