@@ -6,6 +6,8 @@ import {
   BUYERS_GUIDE_PREFILL_PAGE_INDEXES,
   buildBuyersGuideFilename,
   buyersGuideAsIsMarkLines,
+  BUYERS_GUIDE_BOX_OUTLINE,
+  BUYERS_GUIDE_AS_IS_MARK_THICKNESS,
   generateBuyersGuidePdf,
 } from "@/lib/documents/buyersGuide";
 
@@ -60,19 +62,27 @@ describe("buyers guide PDF", () => {
       const [down, up] = buyersGuideAsIsMarkLines(language);
       const points = [down.start, down.end, up.start, up.end];
 
-      // Every endpoint stays inside the printed box outline.
+      // The owner's rule: the X is drawn wholly inside the box, never out to
+      // or over its outline. With butt ends, a stroke reaches half its width
+      // past the line; it must still clear the outline's inside edge.
+      const inner = { left: box.x + BUYERS_GUIDE_BOX_OUTLINE, right: box.x + box.width - BUYERS_GUIDE_BOX_OUTLINE,
+        bottom: box.y + BUYERS_GUIDE_BOX_OUTLINE, top: box.y + box.height - BUYERS_GUIDE_BOX_OUTLINE };
+      const reach = BUYERS_GUIDE_AS_IS_MARK_THICKNESS / 2;
       for (const p of points) {
-        expect(p.x).toBeGreaterThanOrEqual(box.x);
-        expect(p.x).toBeLessThanOrEqual(box.x + box.width);
-        expect(p.y).toBeGreaterThanOrEqual(box.y);
-        expect(p.y).toBeLessThanOrEqual(box.y + box.height);
+        expect(p.x - reach).toBeGreaterThan(inner.left);
+        expect(p.x + reach).toBeLessThan(inner.right);
+        expect(p.y - reach).toBeGreaterThan(inner.bottom);
+        expect(p.y + reach).toBeLessThan(inner.top);
       }
 
-      // And the strokes actually span the box (corner-to-corner, not a small mark).
+      // Centred: the same margin on all four sides.
+      const xs = points.map(p => p.x), ys = points.map(p => p.y);
+      expect(Math.min(...xs) - box.x).toBeCloseTo(box.x + box.width - Math.max(...xs), 6);
+      expect(Math.min(...ys) - box.y).toBeCloseTo(box.y + box.height - Math.max(...ys), 6);
+
+      // And it is an X a reader sees at a glance, not a speck.
       const spanX = Math.abs(down.end.x - down.start.x);
-      const spanY = Math.abs(down.end.y - down.start.y);
-      expect(spanX).toBeGreaterThan(box.width * 0.8);
-      expect(spanY).toBeGreaterThan(box.height * 0.8);
+      expect(spanX).toBeGreaterThan(box.width * 0.5);
       expect(up.start.y).toBeGreaterThan(up.end.y);
     }
   });

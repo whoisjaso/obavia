@@ -51,5 +51,9 @@ export async function officialPdf(doc: DocType, live: Sale, liveDealer: DealerCo
 export async function buyersGuidePdf(sale: Sale, dealer: DealerConfig, language: 'en' | 'es') {
   useDealership(dealer);
   const v = sale.vehicle;
-  return generateBuyersGuidePdf({ language, vehicle: { year: v.year, make: fieldCase(v.make), model: fieldCase(v.model), vin: vinCase(v.vin), stockNumber: v.stock } });
+  // The complaints contact is a person at the dealership, by name, with the number to reach them.
+  const who = dealer.signer?.name ? [dealer.signer.name, dealer.signer.title].filter(Boolean).join(', ') : '';
+  const contact = [who, dealer.phone].filter(Boolean).join(' · ') || undefined;
+  return generateBuyersGuidePdf({ language, vehicle: { year: v.year, make: fieldCase(v.make), model: fieldCase(v.model), vin: vinCase(v.vin), stockNumber: v.stock },
+    dealer: { name: dealer.legalName || undefined, email: dealer.email || undefined, contact } });
 }

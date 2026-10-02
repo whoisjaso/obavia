@@ -599,3 +599,9 @@ section:has(> .q2) > h1.q{display:none}
 .official-form{display:flex;flex-direction:column;gap:12px;align-items:center;background:#fff;padding:10px}
 .official-form img{width:100%;height:auto;display:block;border:1px solid #E4E9F2}
 .official-form.loading,.official-form.refused{min-height:220px;justify-content:center;text-align:center;color:var(--muted);font:500 15px/1.5 var(--sans);padding:24px}
+
+/* The production paper, scaled to the column (Sheet → PaperFrame) */
+.dealer-paper{display:flex;flex-direction:column;align-items:center;gap:12px;background:#fff}
+.paper-frame{width:100%;overflow:hidden;position:relative}
+.paper-page{background:#fff;transform-origin:0 0;box-sizing:border-box}
+.dealer-paper .textlink{margin:4px 0 14px}

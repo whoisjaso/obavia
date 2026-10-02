@@ -64,6 +64,9 @@ The form engine is ported from the production desk unchanged, apart from where t
   - a shape warning that never blocks;
   - phone formatted and complete at 10 digits;
   - VIN 17, plate 8, state 2.
+- **Dealer-authored paper is production's own templates.** The bill of sale, contract, vehicle responsibility, insurance acknowledgment and salvage sheets are drawn by the production document components and stylesheet, in an isolated frame, under production's print rules (letter, 0.6in margins). "Open The PDF" prints the same page. The condition report uses the same system. (`Sheet.tsx`, `paper/*`, `lib/paper.ts`)
+- **Per-dealer facts.** Venue clauses and the POA county read the dealer's county. The late-handling fee is the dealer's own (`fees.lateHandling`, $0 until set).
+- **The Buyer's Guide fill uses the FTC PDF's measured lines.** Values are set in regular Helvetica in black, resting on their rules. The X sits inside the AS IS box with an even margin.
 - Tests: the production suites (`lib/forms/__tests__`) and `lib/official.test.ts`.
 
 ## Deliberate differences from the SOP

@@ -15,31 +15,37 @@ export const BUYERS_GUIDE_TEMPLATE_PATH_ES = "buyers-guide-ftc-spanish-2016.pdf"
 export const BUYERS_GUIDE_PREFILL_PAGE_INDEXES = [0, 2] as const;
 export const BUYERS_GUIDE_AS_IS_PAGE_INDEX = 0;
 
-// The AS IS checkbox on page 1, measured against a 10pt coordinate grid
-// rendered over each official FTC form (PDF points, origin bottom-left).
-export const BUYERS_GUIDE_AS_IS_BOX = {
-  x: 80.3,
-  y: 573.6,
-  width: 22.4,
-  height: 22.7,
-} as const;
+// Every position below is read off the official FTC PDFs themselves (their
+// vector rules, box paths and label text, PDF points, origin bottom-left),
+// not estimated from a grid. The checkbox is the box path; each value sits on
+// the rule it belongs to, at the x where that rule's printed label starts.
 
-export const BUYERS_GUIDE_AS_IS_BOX_ES = {
-  x: 79.5,
-  y: 574.6,
-  width: 23.1,
-  height: 22.3,
-} as const;
+// The AS IS checkbox on page 1: a 22pt square drawn with a 1pt outline.
+export const BUYERS_GUIDE_AS_IS_BOX = { x: 81, y: 574, width: 22, height: 22 } as const;
+export const BUYERS_GUIDE_AS_IS_BOX_ES = { x: 81, y: 575, width: 22, height: 22 } as const;
+/** Half the box's own outline: the inside edge of the printed square. */
+export const BUYERS_GUIDE_BOX_OUTLINE = 0.5;
 
-// Inset keeps the 2pt stroke fully inside the printed box outline.
-export const BUYERS_GUIDE_AS_IS_MARK_INSET = 1.8;
+// The X sits wholly inside the square with an even margin on all four sides:
+// straight (butt) ends, so nothing reaches past the points below, and a
+// stroke the weight of the form's own heavy rules.
+export const BUYERS_GUIDE_AS_IS_MARK_INSET = 5;
+export const BUYERS_GUIDE_AS_IS_MARK_THICKNESS = 1.75;
 
+/** A typed value: the rule it sits on, where it starts, and the room it has. */
 interface FieldSpot {
+  /** The rule's y. The baseline sits a fixed gap above it. */
+  rule: number;
   x: number;
-  y: number;
   maxWidth: number;
   size?: number;
 }
+
+// One type system, as on the 130-U: regular Helvetica, pure black, one size
+// per row, set down on the line with the same clearance everywhere so the
+// descenders (g, j, y, the comma) never touch the rule.
+const VALUE_SIZE = 11;
+const BASELINE_ABOVE_RULE = 3.5;
 
 interface BuyersGuideLayout {
   templatePath: string;
@@ -54,52 +60,61 @@ interface BuyersGuideLayout {
   };
 }
 
+// Page 1: the vehicle rule is at y 641.6 with its four labels under it.
+// Page 3: one writing rule per row (dealer name, address, telephone and
+// email, then the complaints line), each label printed just under its rule.
+// The complaints contact is written on the rule below its label, the same in
+// both languages.
 const LAYOUTS: Record<BuyersGuideLanguage, BuyersGuideLayout> = {
   en: {
     templatePath: BUYERS_GUIDE_TEMPLATE_PATH,
     asIsBox: BUYERS_GUIDE_AS_IS_BOX,
     vehicle: {
-      make: { x: 82, y: 650, maxWidth: 108, size: 11 },
-      model: { x: 205, y: 650, maxWidth: 78, size: 11 },
-      year: { x: 296, y: 650, maxWidth: 58, size: 11 },
-      vin: { x: 414, y: 650, maxWidth: 116, size: 10 },
+      make: { rule: 641.6, x: 80.5, maxWidth: 115 },
+      model: { rule: 641.6, x: 203.5, maxWidth: 83 },
+      year: { rule: 641.6, x: 294.5, maxWidth: 110 },
+      vin: { rule: 641.6, x: 412.5, maxWidth: 127.5 },
     },
     dealer: {
-      name: { x: 82, y: 225, maxWidth: 430 },
-      address: { x: 82, y: 199, maxWidth: 430 },
-      phone: { x: 82, y: 174, maxWidth: 190 },
-      email: { x: 306, y: 174, maxWidth: 204 },
-      // Same line as the "FOR COMPLAINTS AFTER SALE, CONTACT:" label.
-      contact: { x: 252, y: 136, maxWidth: 258 },
+      name: { rule: 219, x: 81, maxWidth: 450 },
+      address: { rule: 194, x: 81, maxWidth: 450 },
+      phone: { rule: 169, x: 81, maxWidth: 215 },
+      email: { rule: 169, x: 306, maxWidth: 225 },
+      contact: { rule: 119, x: 81, maxWidth: 450 },
     },
   },
   es: {
     templatePath: BUYERS_GUIDE_TEMPLATE_PATH_ES,
     asIsBox: BUYERS_GUIDE_AS_IS_BOX_ES,
     vehicle: {
-      make: { x: 80, y: 650, maxWidth: 115, size: 11 },
-      model: { x: 205, y: 650, maxWidth: 80, size: 11 },
-      year: { x: 296, y: 650, maxWidth: 58, size: 11 },
-      vin: { x: 385, y: 650, maxWidth: 148, size: 10 },
+      // The Spanish IMPORTANT note runs to a second line just above this row,
+      // so the row is set half a point smaller to keep clear air under it.
+      make: { rule: 641.6, x: 80.5, maxWidth: 115, size: 10.5 },
+      model: { rule: 641.6, x: 203.5, maxWidth: 83, size: 10.5 },
+      year: { rule: 641.6, x: 294.5, maxWidth: 80, size: 10.5 },
+      vin: { rule: 641.6, x: 382.5, maxWidth: 157.5, size: 10.5 },
     },
     dealer: {
-      name: { x: 78, y: 219, maxWidth: 450 },
-      address: { x: 78, y: 194, maxWidth: 450 },
-      phone: { x: 78, y: 169, maxWidth: 200 },
-      email: { x: 302, y: 169, maxWidth: 225 },
-      // Spanish form puts the complaints contact on its own line BELOW the
-      // "PARA QUEJAS DESPUÉS DE LA VENTA COMUNÍQUESE CON:" label.
-      contact: { x: 78, y: 121, maxWidth: 450 },
+      name: { rule: 217, x: 81, maxWidth: 450 },
+      address: { rule: 192, x: 81, maxWidth: 450 },
+      phone: { rule: 167, x: 81, maxWidth: 215 },
+      email: { rule: 167, x: 306, maxWidth: 225 },
+      contact: { rule: 117, x: 81, maxWidth: 450 },
     },
   },
 };
+
+/** Where a value's baseline goes: on its rule, clear of it. */
+export function buyersGuideBaseline(rule: number): number {
+  return rule + BASELINE_ABOVE_RULE;
+}
 
 export interface MarkLine {
   start: { x: number; y: number };
   end: { x: number; y: number };
 }
 
-// A single clean X spanning the checkbox corner-to-corner.
+// The X, inside the box with an even margin on every side.
 export function buyersGuideAsIsMarkLines(
   language: BuyersGuideLanguage = "en",
 ): [MarkLine, MarkLine] {
@@ -159,14 +174,14 @@ function drawFitText({
   const safe = clean(text);
   if (!safe) return;
 
-  let fontSize = spot.size ?? 10;
+  let fontSize = spot.size ?? VALUE_SIZE;
   while (fontSize > 6 && font.widthOfTextAtSize(safe, fontSize) > spot.maxWidth) {
-    fontSize -= 0.5;
+    fontSize -= 0.25;
   }
 
   page.drawText(safe, {
     x: spot.x,
-    y: spot.y,
+    y: buyersGuideBaseline(spot.rule),
     size: fontSize,
     font,
     color: BLACK,
@@ -177,9 +192,9 @@ function drawAsIsSelection(page: PDFPage, language: BuyersGuideLanguage) {
   for (const line of buyersGuideAsIsMarkLines(language)) {
     page.drawLine({
       ...line,
-      thickness: 2,
+      thickness: BUYERS_GUIDE_AS_IS_MARK_THICKNESS,
       color: BLACK,
-      lineCap: LineCapStyle.Round,
+      lineCap: LineCapStyle.Butt,
     });
   }
 }
@@ -216,7 +231,7 @@ export async function generateBuyersGuidePdf(input: BuyersGuideInput): Promise<U
   const templateBytes = await formTemplate(layout.templatePath);
   const pdf = await PDFDocument.load(templateBytes);
   const pages = pdf.getPages();
-  const font = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
 
   if (pages.length !== 3) {
     throw new Error(

@@ -26,7 +26,8 @@ export function missingFacts(d: DealerConfig): string[] {
 }
 export const notSet = (label: string) => `[Not set: ${label}]`;
 
-export type Fees = { taxRate: number; title: number; registration: number; doc: number };
+export type Fees = { taxRate: number; title: number; registration: number; doc: number;
+  lateHandling?: number };   // charged if a buyer-filed title comes back to the dealer (Vehicle Responsibility); the dealer's own figure
 
 /** Texas statutory lines. The doc fee is the dealer's, asked at onboarding. */
 export const TEXAS = { taxRate: 0.0625, title: 33, registration: 75 } as const;

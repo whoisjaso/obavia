@@ -106,10 +106,9 @@ function granteeBlock() {
     // Name)"; the remaining name boxes are for a person and stay empty.
     name: { first: dealership.name } satisfies NameParts,
     street: address.street,
-    // Harris County is where the lot sits; the config carries locality and
-    // region, and the county is fixed for this address.
+    // The county the lot sits in, from the dealer's config.
     city: address.locality,
-    county: "Harris",
+    county: dealership.county,
     state: address.region,
     zip: address.postalCode,
   };
