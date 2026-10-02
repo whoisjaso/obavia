@@ -90,3 +90,5 @@ CREATE TABLE IF NOT EXISTS post_account (
   page_id TEXT, ig_user_id TEXT, handle TEXT, at TEXT NOT NULL,
   PRIMARY KEY (dealer_id, channel)
 );
+-- Connect Facebook: the dealer's Pages waiting on "Which Page?" (sealed, short-lived).
+CREATE TABLE IF NOT EXISTS post_account_pending (dealer_id TEXT PRIMARY KEY, body TEXT NOT NULL, at TEXT NOT NULL);

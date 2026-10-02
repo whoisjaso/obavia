@@ -625,3 +625,4 @@ section:has(> .q2) > h1.q{display:none}
 .agent-log .dot{flex:none;width:10px;height:10px;margin:0 9px;border-radius:50%;background:var(--accent)}
 .agent-log .clogo{flex:none}
 @media (prefers-reduced-motion:reduce){.agent-log li{opacity:1}}
+.connect-logos{display:flex;justify-content:center;gap:14px;margin:0 auto 22px}

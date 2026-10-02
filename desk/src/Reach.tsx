@@ -83,7 +83,9 @@ export function Channel({ id }: { id: string }) {
           <div><small>You need</small><b>{c.need}</b></div>
         </div>
         <div className="dock"><div className="in">
-          <button className="btn primary block" onClick={() => { feel.done(); toggleReachWanted(c.id); }}>{wanted ? 'Wanted. We’ll Tell You When It’s Ready' : 'I Want This'}</button>
+          {c.id === 'facebook-page' || c.id === 'instagram'
+            ? <button className="btn primary block" onClick={() => { feel.next(); if (!wanted) toggleReachWanted(c.id); go('/reach/connect'); }}>Connect Facebook And Instagram</button>
+            : <button className="btn primary block" onClick={() => { feel.done(); toggleReachWanted(c.id); }}>{wanted ? 'Wanted. We’ll Tell You When It’s Ready' : 'I Want This'}</button>}
           {wanted && <button className="textlink" onClick={() => { feel.tap(); toggleReachWanted(c.id); }}>Not Now</button>}
         </div></div>
       </section>

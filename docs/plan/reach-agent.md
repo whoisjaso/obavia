@@ -63,6 +63,40 @@ The dealer edits it before anything goes out. A limit we haven't confirmed cuts 
 
 After that comes the agent's work, line by line. Each hand-off has its own page: Copy The Text, Save The Photos, Open the app, then I Posted It.
 
+## Connecting a dealer's accounts: one tap
+
+A dealer never handles a token. In Reach they tap **Connect Facebook And Instagram**. Facebook's own login opens (Facebook Login for Business, with Obavia's configuration), they tap Continue, and they choose their Page.
+
+The Worker (`server/posting/connect.ts`, `GET /oauth/meta`) then does the rest:
+1. It turns Facebook's one-time code into a long-lived login, using the app secret, which never leaves the Worker.
+2. It reads the Pages the dealer manages, each with a Page token that doesn't expire, and the Instagram business account linked to each.
+3. **One Page:** connected on the spot. **Several:** the Desk asks "Which Page?"
+
+Tokens are sealed before they are stored. The Desk only ever sees Page names.
+
+A login started by one dealer can't connect another:
+- the state is signed and expires in 15 minutes;
+- a cancelled, stale or forged login connects nothing and says why in plain words.
+
+Until the photo bucket exists, photos are hosted on the dealer's own Page. So a connected dealer can post with nothing else set up.
+
+## One-time setup (Obavia, never the dealer)
+
+1. **Meta app.** One Business-type app, "Obavia".
+   - Add Facebook Login for Business and create a configuration with the permissions in `META_SCOPES`: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `business_management`, `instagram_basic`, `instagram_content_publish`.
+   - Redirect URI: `https://api.obavia.co/oauth/meta`.
+2. **Pilot right away.** In Development mode, anyone with a role on the app can connect. Triple J's owner, as app admin, taps Connect and posts with no review.
+3. **Every dealer after that** needs two things from Meta:
+   - Business Verification for Obavia;
+   - App Review for those permissions, which needs a screencast of the Connect flow and a post.
+
+   Once approved, any dealer connects in one tap.
+4. **Worker config.**
+   - Vars: `META_APP_ID`, `META_CONFIG_ID`, `DESK_URL`.
+   - Secret: `META_APP_SECRET`.
+   - Apply the new tables in `server/schema.sql`.
+   - Deploy with the owner's go-ahead.
+
 ## To turn on (owner and engineering)
 
 - **Meta:**

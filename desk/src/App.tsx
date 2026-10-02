@@ -1,3 +1,4 @@
+import { ConnectMeta, Connected, PickPage } from './Connect';
 import { PostCar, PostHandoff, PostStatus } from './PostCar';
 import { Ceremony, Packet } from './Packet';
 import { Desk, GuideRedirect, Step } from './Corridor';
@@ -42,6 +43,8 @@ export function App() {
   if (a === 'facts') return <Facts />;
   if (a === 'import') return <Import />;
   if (a === 'people') return id === 'add' ? <AddPerson /> : <People />;
+  if (a === 'reach' && id === 'connected') return <Connected />;
+  if (a === 'reach' && id === 'connect') return b === 'pick' && c ? <PickPage key={c} list={c} /> : <ConnectMeta key={b ?? ''} reason={b} />;
   if (a === 'reach' && id === 'post') return b && c ? <PostHandoff key={b + c} id={b} channel={c} /> : b ? <PostStatus key={b} id={b} /> : <PostCar />;
   if (a === 'reach') return id === 'marketplace' ? <MarketplaceConsent /> : id === 'g' && b ? <ReachGroup key={b} group={b as 'phone'} /> : id ? <Channel id={id} /> : <Reach />;
   if (a === 'payments') {

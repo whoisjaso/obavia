@@ -26,6 +26,26 @@ export async function unseal(secret: string, sealed: string) {
 }
 
 export class D1PostStore implements PostStore {
+  /** Pages waiting on "Which Page?", sealed, kept 30 minutes. */
+  async stashPages(d: string, pages: unknown[]) {
+    await this.db.prepare('INSERT INTO post_account_pending (dealer_id, body, at) VALUES (?,?,?) ON CONFLICT(dealer_id) DO UPDATE SET body=excluded.body, at=excluded.at')
+      .bind(d, await seal(this.secret, JSON.stringify(pages)), new Date().toISOString()).run();
+  }
+  async takePages<T = never>(d: string): Promise<T[]> {
+    const r = await this.db.prepare('SELECT body, at FROM post_account_pending WHERE dealer_id=?').bind(d).first<{ body: string; at: string }>();
+    if (!r || Date.now() - Date.parse(r.at) > 30 * 60_000) return [];
+    await this.db.prepare('DELETE FROM post_account_pending WHERE dealer_id=?').bind(d).run();
+    return JSON.parse(await unseal(this.secret, r.body)) as T[];
+  }
+  /** What is connected, by name, for the Desk (no tokens). */
+  async connected(d: string): Promise<{ channel: string; handle: string | null }[]> {
+    const out: { channel: string; handle: string | null }[] = [];
+    for (const channel of ['facebook-page', 'instagram']) {
+      const r = await this.db.prepare('SELECT handle FROM post_account WHERE dealer_id=? AND channel=?').bind(d, channel).first<{ handle: string | null }>();
+      if (r) out.push({ channel, handle: r.handle });
+    }
+    return out;
+  }
   constructor(private db: D1, private secret: string, private proofs?: R2Put, private proofBase?: string) {}
   async save(d: string, p: Post) {
     await this.db.prepare('INSERT INTO post (dealer_id, id, body, at) VALUES (?,?,?,?) ON CONFLICT(dealer_id, id) DO UPDATE SET body=excluded.body, at=excluded.at')

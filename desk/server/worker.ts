@@ -10,6 +10,8 @@
    Hourly (cron): reminders due today and tonight's text, per dealer time zone (server/jobs.ts).
    Config in server/wrangler.toml; secrets with `wrangler secret put`. */
 import { PostingAgent } from './posting/service';
+import { MetaConnect } from './posting/connect';
+import { FacebookPhotoHost } from './posting/fbhost';
 import { D1PostStore, R2PhotoStore, CloudflareBrowser } from './posting/cloudflare';
 import { FacebookPagePublisher, InstagramPublisher } from './posting/meta';
 import type { Post } from '../src/lib/post';
@@ -34,7 +36,10 @@ type R2 = { get(key: string): Promise<R2Object | null> };
 export type Env = {
   DB: D1; DEALERS: R2;
   PHOTOS?: R2Put; PHOTOS_URL?: string;       // Reach posting: the photo bucket and its public address; posting is off until both are set
-  BROWSER?: unknown;                         // Cloudflare Browser Rendering binding: the posting agent's cloud browser
+  BROWSER?: unknown;
+  META_APP_ID?: string; META_APP_SECRET?: string;  // Obavia's one Meta app (the secret is a Worker secret)
+  META_CONFIG_ID?: string;                    // its Facebook Login for Business configuration
+  DESK_URL?: string;                          // where dealers land after connecting, e.g. https://desk.obavia.co/                         // Cloudflare Browser Rendering binding: the posting agent's cloud browser
   MESSAGING_PROVIDER?: string;              // 'telnyx' (default) or 'fake' for local runs only
   TELNYX_API_KEY?: string; TELNYX_MESSAGING_PROFILE_ID?: string; TELNYX_VERIFY_PROFILE_ID?: string; TELNYX_PUBLIC_KEY?: string;
   PUBLIC_URL?: string;                      // e.g. https://api.obavia.co, for delivery webhooks
@@ -65,7 +70,7 @@ export class R2ContactBook implements ContactBook {
 /* ---------- the app, independent of where its parts come from ---------- */
 
 export type DeskSync = { upsert(dealerId: string, notes: Loan[], facts?: SyncBody['facts'], evening?: SyncBody['evening']): Promise<{ notes: Loan[]; refused: string[] }> };
-export type App = { posting?: { agent: PostingAgent; secret: string }; messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[]; payments?: { desk: PaymentDesk; secret: string }; desk?: { sync: DeskSync; secret: string; pageBase?: string }; buyer?: BuyerPages };
+export type App = { meta?: { connect: MetaConnect; store: D1PostStore; deskUrl: string; secret: string }; posting?: { agentFor(licence: string): Promise<PostingAgent | null>; secret: string }; messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[]; payments?: { desk: PaymentDesk; secret: string }; desk?: { sync: DeskSync; secret: string; pageBase?: string }; buyer?: BuyerPages };
 const MAX_SYNC = 900 * 1024;
 
 const MAX_BODY = 64 * 1024;
@@ -91,6 +96,15 @@ export async function route(req: Request, app: App): Promise<Response> {
     if (Number(req.headers.get('content-length') ?? 0) > MAX_PAGE_POST) return new Response('Too large', { status: 413 });
     const r = await buyerRoute(req, url.pathname, app.buyer);
     if (r) return r;
+  }
+  // Connect Facebook: Facebook's login comes back here with a one-time code; the dealer lands back in the Desk.
+  if (req.method === 'GET' && url.pathname === '/oauth/meta' && app.meta) {
+    const r = await app.meta.connect.finish(url.searchParams);
+    const back = (hash: string) => new Response(null, { status: 302, headers: { Location: `${app.meta!.deskUrl}#${hash}` } });
+    if (r.ok && r.connected) return back('/reach/connected');
+    if (r.ok && r.choose) return back(`/reach/connect/pick/${btoa(encodeURIComponent(JSON.stringify(r.choose)))}`);
+    if (!r.ok && r.reason === 'meta_error') console.error('[meta-connect]', r.detail);
+    return back(`/reach/connect/${r.ok ? 'meta_error' : r.reason}`);
   }
   if (req.method !== 'POST') return json({ ok: false, reason: 'not_found' }, 404, h);
   const limit = url.pathname === '/api/posts' ? MAX_POST : url.pathname === '/api/desk/sync' ? MAX_SYNC : MAX_BODY;
@@ -137,8 +151,21 @@ export async function route(req: Request, app: App): Promise<Response> {
     if (!app.posting || !claims) return json({ ok: false, reason: 'unauthorised' }, 401, h);
     const p = body.post as Post | undefined, v = body.vehicle as Vehicle | undefined;
     if (!p || typeof p.id !== 'string' || !Array.isArray(p.photos) || !Array.isArray(p.channels) || !v || typeof v.vin !== 'string') return json({ ok: false, reason: 'bad_request' }, 400, h);
-    const r = await app.posting.agent.run(claims.licence, { ...p, deliveries: Array.isArray(p.deliveries) ? p.deliveries : [] }, v);
+    const agent = await app.posting.agentFor(claims.licence);
+    if (!agent) return json({ ok: false, reason: 'not_connected' }, 409, h);
+    const r = await agent.run(claims.licence, { ...p, deliveries: Array.isArray(p.deliveries) ? p.deliveries : [] }, v);
     return json({ ok: true, ...r }, 200, h);
+  }
+
+  if (url.pathname.startsWith('/api/meta/')) {
+    const claims = app.meta ? await readToken(app.meta.secret, (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')) : null;
+    if (!app.meta || !claims) return json({ ok: false, reason: app.meta ? 'unauthorised' : 'not_set_up' }, app.meta ? 401 : 503, h);
+    if (url.pathname === '/api/meta/connect') return json({ ok: true, url: await app.meta.connect.startUrl(claims.licence) }, 200, h);
+    if (url.pathname === '/api/meta/choose') {
+      const p = await app.meta.connect.choose(claims.licence, String(body.pageId ?? ''));
+      return p ? json({ ok: true, page: p }, 200, h) : json({ ok: false, reason: 'expired' }, 410, h);
+    }
+    if (url.pathname === '/api/meta/status') return json({ ok: true, connected: await app.meta.store.connected(claims.licence) }, 200, h);
   }
 
   if (url.pathname === '/api/messages') {
@@ -171,12 +198,26 @@ export function build(env: Env): App {
   const email = env.RESEND_API_KEY && env.EMAIL_FROM ? new ResendEmail(env.RESEND_API_KEY, env.EMAIL_FROM) : logEmail;
   const messenger = new Messenger(provider, store);
   const notes = new D1NoteStore(env.DB);
-  const posting = env.PHOTOS && env.PHOTOS_URL ? {
-    agent: new PostingAgent(new D1PostStore(env.DB, env.SESSION_SECRET, env.PHOTOS, env.PHOTOS_URL), new R2PhotoStore(env.PHOTOS, env.PHOTOS_URL),
-      [new FacebookPagePublisher(), new InstagramPublisher()], env.BROWSER ? new CloudflareBrowser(env.BROWSER) : undefined),
+  // Reach posting. Photos go to the photo bucket when one is set up; until then (the pilot) they are hosted on the
+  // dealer's own Facebook Page, so a dealer who has tapped Connect Facebook can post with nothing else configured.
+  const postStore = new D1PostStore(env.DB, env.SESSION_SECRET, env.PHOTOS, env.PHOTOS_URL);
+  const browser = env.BROWSER ? new CloudflareBrowser(env.BROWSER) : undefined;
+  const publishers = [new FacebookPagePublisher(), new InstagramPublisher()];
+  const posting = {
     secret: env.SESSION_SECRET,
+    async agentFor(licence: string) {
+      if (env.PHOTOS && env.PHOTOS_URL) return new PostingAgent(postStore, new R2PhotoStore(env.PHOTOS, env.PHOTOS_URL), publishers, browser);
+      const fb = await postStore.account(licence, 'facebook-page');
+      return fb?.pageId ? new PostingAgent(postStore, new FacebookPhotoHost(fb.pageId, fb.token), publishers, browser) : null;
+    },
+  };
+  const meta = env.META_APP_ID && env.META_APP_SECRET && env.PUBLIC_URL ? {
+    store: postStore, secret: env.SESSION_SECRET,
+    deskUrl: (env.DESK_URL ?? (env.ALLOWED_ORIGIN ?? '').split(',')[0]).replace(/#.*$/, ''),
+    connect: new MetaConnect({ appId: env.META_APP_ID, appSecret: env.META_APP_SECRET, configId: env.META_CONFIG_ID, redirectUri: `${env.PUBLIC_URL.replace(/\/$/, '')}/oauth/meta` }, env.SESSION_SECRET, postStore),
   } : undefined;
   return {
+    meta,
     posting,
     messenger,
     desk: { sync: notes, secret: env.SESSION_SECRET, pageBase: env.PUBLIC_URL?.replace(/\/$/, '') },

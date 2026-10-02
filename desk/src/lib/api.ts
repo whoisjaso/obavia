@@ -55,3 +55,16 @@ export async function postCar(post: import('./post').Post, vehicle: import('./sa
     return (await r.json()) as PostRun;
   } catch { return { ok: false, reason: 'offline' }; }
 }
+
+/** Connect Facebook and Instagram: the address of Facebook's own login for this dealer. */
+async function authed<T>(path: string, body: unknown = {}): Promise<T | { ok: false; reason: string }> {
+  const token = session.get(); if (!live || !token) return { ok: false, reason: 'offline' };
+  try {
+    const r = await fetch(`${BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    return (await r.json()) as T;
+  } catch { return { ok: false, reason: 'offline' }; }
+}
+export type MetaPage = { pageId: string; name: string; igUserId?: string; igUsername?: string };
+export const metaConnectUrl = () => authed<{ ok: true; url: string }>('/api/meta/connect');
+export const metaChoose = (pageId: string) => authed<{ ok: true; page: MetaPage }>('/api/meta/choose', { pageId });
+export const metaStatus = () => authed<{ ok: true; connected: { channel: string; handle: string | null }[] }>('/api/meta/status');

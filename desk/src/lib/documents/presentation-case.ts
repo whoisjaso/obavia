@@ -14,7 +14,7 @@
  * is a value nobody cased on purpose, is recased.
  */
 
-import { toTitleCaseDisplay } from "@/lib/display/title-case";
+import { toTitleCaseDisplay } from "../display/title-case";
 
 /** Every letter the same case: nobody chose it, so the paper chooses. */
 function isOneCase(value: string): boolean {
