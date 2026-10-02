@@ -9,7 +9,7 @@ import { applyPlanAnswer, PLAN_FREEZERS, type PlanQuestion, type SalePlan } from
 import { buildGuideSteps, ID_FIELDS, nextOpenStep, type IdKey, type Sale } from './lib/sale';
 import { saleReceipt } from './Sheet';
 import { getSale, mergeStep, setLanguage, setVehicleTitle, useStore } from './store';
-import { Back, Choice, Ic, backward, feel, go } from './ui';
+import { Back, Choice, Ic, backward, feel, go, transition } from './ui';
 
 export const stepRoute = (id: string, key: string) =>
   key.startsWith('document:') ? `/sale/${id}/paper/${key.slice(9)}` : key === 'packet' ? `/sale/${id}/packet` : `/sale/${id}/guide/${encodeURIComponent(key)}`;
@@ -165,7 +165,7 @@ function BuyerId({ s }: { s: Sale }) {
         <span className="t"><small>{labels[k]}</small><input className="input" style={{ height: 44, marginTop: 6, fontSize: 16 }} value={vals[k]} placeholder={id.image ? 'Not read. Type it.' : 'Type it'} onChange={e => { setVals({ ...vals, [k]: e.target.value }); setOk({ ...ok, [k]: false }); }} /></span>
         <button className="choice" aria-pressed={ok[k]} style={{ width: 'auto', minHeight: 44, padding: '0 14px', boxShadow: 'none', background: 'none' }} aria-label={`Confirm ${labels[k]}`} onClick={() => { feel.tap(); setOk({ ...ok, [k]: !ok[k] }); }}><span className="tick">{ok[k] && <Ic n="check" s={15} w={3} />}</span></button>
       </div>))}</div>
-    <div className="dock"><div className="in"><button className="btn primary block" disabled={!all} onClick={() => { feel.next(); setStage('plates'); scrollTo(0, 0); }}>Every Field Matches</button></div></div>
+    <div className="dock"><div className="in"><button className="btn primary block" disabled={!all} onClick={() => { feel.next(); transition(() => { setStage('plates'); scrollTo(0, 0); }); }}>Every Field Matches</button></div></div>
   </>);
 }
 
@@ -195,7 +195,7 @@ function Paid({ s }: { s: Sale }) {
     <p className="total-line">Total <b className="num">{usd(total)}</b></p>
     <div className="choices">
       <Choice label="Yes, All Of It" onPick={() => save(null)} />
-      <Choice label="Part Of It" onPick={() => { setStage('part'); scrollTo(0, 0); }} />
+      <Choice label="Part Of It" onPick={() => transition(() => { setStage('part'); scrollTo(0, 0); })} />
     </div>
   </>);
   if (stage === 'part') return (<>
@@ -206,7 +206,7 @@ function Paid({ s }: { s: Sale }) {
   return (<>
     <div className="money"><input className="input" inputMode="decimal" autoFocus value={amt} onChange={e => setAmt(e.target.value)} placeholder="0" aria-label="Amount" /></div>
     <p className="total-line">Total <b className="num">{usd(total)}</b></p>
-    <div className="dock"><div className="in"><button className="btn primary block" disabled={!amt.replace(/[$,\s]/g, '')} onClick={() => { if (cash) { feel.next(); setStage('today'); scrollTo(0, 0); } else save(null); }}>Continue</button></div></div>
+    <div className="dock"><div className="in"><button className="btn primary block" disabled={!amt.replace(/[$,\s]/g, '')} onClick={() => { if (cash) { feel.next(); transition(() => { setStage('today'); scrollTo(0, 0); }); } else save(null); }}>Continue</button></div></div>
   </>);
 }
 

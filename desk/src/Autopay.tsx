@@ -78,7 +78,7 @@ export function AutopaySetup({ id }: { id: string }) {
         <h1 className="q">{NO[why]?.[0]}</h1>
         <p className="note">{NO[why]?.[1]}</p>
         <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.tap(); setNum(''); setExp(''); back(); }}>Try Another Card</button>
-          <button className="textlink" onClick={() => { feel.tap(); setTrail([]); setStep('bank'); }}>Use A Bank Account</button></div></div>
+          <button className="textlink" onClick={() => { feel.tap(); transition(() => { setTrail([]); setStep('bank'); scrollTo(0, 0); }); }}>Use A Bank Account</button></div></div>
       </section>}
 
       {step === 'day' && <section className="enter" key="day">
@@ -105,7 +105,7 @@ export function AutopaySetup({ id }: { id: string }) {
         {l.autopay.signedOn === t && <p className="note">Signed copy texted to {first(l.buyer.name)}</p>}
         <div className="dock"><div className="in">
           <button className="btn primary block" onClick={() => { feel.done(); go(`/payments/${l.id}`); }}>Done</button>
-          <button className="textlink" onClick={() => { feel.tap(); setTrail([]); setNum(''); setExp(''); setName(''); setStep('how'); }}>Change The Card</button>
+          <button className="textlink" onClick={() => { feel.tap(); transition(() => { setTrail([]); setNum(''); setExp(''); setName(''); setStep('how'); scrollTo(0, 0); }, 'back'); }}>Change The Card</button>
           {l.autopay.on && <button className="textlink" onClick={() => { feel.tap(); autopayOff(l.id, t); }}>Turn Off</button>}
         </div></div>
       </section>}

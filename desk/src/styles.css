@@ -317,11 +317,11 @@ a{color:inherit;text-decoration:none}
 .consent input{width:22px;height:22px;flex:none;margin-top:1px;accent-color:var(--accent)}
 
 /* motion: screens dissolve up into the sky and the next one settles in, slowly */
-.enter>:not(.dock){animation:rise .7s var(--spring) both}
-.enter>:nth-child(2):not(.dock){animation-delay:.05s}.enter>:nth-child(3):not(.dock){animation-delay:.1s}.enter>:nth-child(4):not(.dock){animation-delay:.15s}.enter>:nth-child(n+5):not(.dock){animation-delay:.2s}
-.enter2{animation:rise .7s var(--spring) .08s both}
-.enter3{animation:rise .7s var(--spring) .16s both}
-@keyframes rise{from{opacity:0;transform:translateY(12px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+.enter>:not(.dock){animation:rise .52s cubic-bezier(.2,.7,.2,1) both}
+.enter>:nth-child(2):not(.dock){animation-delay:.04s}.enter>:nth-child(3):not(.dock){animation-delay:.08s}.enter>:nth-child(4):not(.dock){animation-delay:.12s}.enter>:nth-child(n+5):not(.dock){animation-delay:.16s}
+.enter2{animation:rise .52s cubic-bezier(.2,.7,.2,1) .08s both}
+.enter3{animation:rise .52s cubic-bezier(.2,.7,.2,1) .14s both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .pop{animation:pop .5s var(--spring) both}
 @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 .sky{view-transition-name:sky}
@@ -329,15 +329,16 @@ a{color:inherit;text-decoration:none}
 ::view-transition-group(sky){animation:none}
 ::view-transition-old(sky){display:none}
 ::view-transition-new(sky){animation:none}
-::view-transition-old(root){animation:vt-out .32s cubic-bezier(.4,0,1,1) both}
-::view-transition-new(root){animation:vt-in .62s var(--spring) both}
+/* Page to page, as on obavia.co: a quick clean fade out, a soft fade in with a slight rise. The sky never moves. */
+::view-transition-old(root){animation:vt-out .16s ease-out both}
+::view-transition-new(root){animation:vt-in .4s cubic-bezier(.2,.7,.2,1) .04s both}
 ::view-transition-group(dock){animation-duration:.5s;animation-timing-function:var(--spring)}
 :root[data-dir="back"]::view-transition-old(root){animation-name:vt-out-back}
 :root[data-dir="back"]::view-transition-new(root){animation-name:vt-in-back}
-@keyframes vt-out{to{opacity:0;transform:translateY(-10px) scale(.985);filter:blur(8px)}}
-@keyframes vt-in{from{opacity:0;transform:translateY(18px) scale(1.01);filter:blur(10px)}}
-@keyframes vt-out-back{to{opacity:0;transform:translateY(12px) scale(.985);filter:blur(8px)}}
-@keyframes vt-in-back{from{opacity:0;transform:translateY(-14px) scale(1.01);filter:blur(10px)}}
+@keyframes vt-out{to{opacity:0;transform:translateY(-4px)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(8px)}}
+@keyframes vt-out-back{to{opacity:0;transform:translateY(4px)}}
+@keyframes vt-in-back{from{opacity:0;transform:translateY(-8px)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.sky .cloud{transform:translateX(calc(var(--x,30) * 1vw))}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 @media (max-width:520px){.choices.grid2{grid-template-columns:1fr}.systems{grid-template-columns:1fr 1fr}.states{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.st{border-radius:16px;padding:10px 6px 8px}.st span{font-size:10.5px}.code{gap:7px}.code span{height:62px;font-size:28px}}
 @media print{.sky,.top,.dock,.bar,.progress,.noprint{display:none!important}.wrap{padding:0;max-width:none}.paper{box-shadow:none}.paper .scroll{max-height:none;overflow:visible;padding:0}}

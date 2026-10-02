@@ -6,7 +6,7 @@ import type { DocType } from './lib/plan';
 import { owedDocuments, signedCount } from './lib/sale';
 import { Sheet, saleReceipt } from './Sheet';
 import { completeSale, fileDocument, getSale, openNoteForSale, useStore } from './store';
-import { Back, Ic, Pad, feel, go } from './ui';
+import { Back, Ic, Pad, feel, go, transition } from './ui';
 import { buyersGuidePdf } from './lib/official';
 
 export function Packet({ id }: { id: string }) {
@@ -19,7 +19,7 @@ export function Packet({ id }: { id: string }) {
 
   if (open) return (
     <main className="wrap">
-      <div className="top noprint"><button className="back" onClick={() => setOpen(null)}><Ic n="chev" s={18} w={2.4} />Packet</button><button className="link" onClick={() => print()}><Ic n="print" s={18} /> Print</button></div>
+      <div className="top noprint"><button className="back" onClick={() => transition(() => { setOpen(null); scrollTo(0, 0); }, 'back')}><Ic n="chev" s={18} w={2.4} />Packet</button><button className="link" onClick={() => print()}><Ic n="print" s={18} /> Print</button></div>
       <div className="paper"><div className="scroll"><Sheet doc={open} sale={s} dealer={dealer} buyerSig={s.documents[open]?.signature} dealerSig /></div></div>
     </main>
   );
@@ -30,7 +30,7 @@ export function Packet({ id }: { id: string }) {
       <section className="enter" key="packet">
       <h1 className="q">{c.signed === c.owed && c.owed ? 'All Signed.' : `${c.signed} Of ${c.owed} Signed.`}</h1>
       <div className="choices">{owed.map(d => { const a = s.documents[d]; return (
-        <button key={d} className="choice" aria-pressed={!!a?.buyerSigned} onClick={() => { feel.tap(); a?.state === 'filed' ? setOpen(d) : go(`/sale/${id}/paper/${d}`); }}>
+        <button key={d} className="choice" aria-pressed={!!a?.buyerSigned} onClick={() => { feel.tap(); a?.state === 'filed' ? transition(() => { setOpen(d); scrollTo(0, 0); }) : go(`/sale/${id}/paper/${d}`); }}>
           <span className="art"><Ic n="doc" s={24} /></span>
           <span className="t"><b>{DOC_TITLE[d]}</b><small>{a?.buyerSigned ? 'Signed' : a?.state === 'filed' ? (d === 'powerOfAttorney' ? 'Sign in ink' : 'Not signed yet') : 'Not filed'}</small></span>
           <span className="tick">{a?.buyerSigned && <Ic n="check" s={15} w={3} />}</span>
@@ -81,7 +81,7 @@ export function Ceremony({ id }: { id: string }) {
         {spanish && <p className="note">Las firmas en español se hacen en papel por ahora.</p>}
       </div>
     </div>
-    <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); setI(spanish ? docs.length : 0); }}>{spanish ? 'Print For Ink' : 'Begin'}</button></div></div></main>
+    <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); transition(() => { setI(spanish ? docs.length : 0); scrollTo(0, 0); }); }}>{spanish ? 'Print For Ink' : 'Begin'}</button></div></div></main>
   );
 
   if (i >= docs.length) return (
@@ -99,7 +99,7 @@ export function Ceremony({ id }: { id: string }) {
     fileDocument(id, d, { buyerSigned: true, signature: stroke!, signedVia: 'ceremony', signedAt: at, state: 'filed', signedUserAgent: navigator.userAgent.slice(0, 240),
       readToEndAt: readAt ?? at, signatureReused: !!(reuse && first), ...(reuse && first && consentAt ? { reuseConsentAt: consentAt } : {}) });
     if (!first) setFirst(stroke);
-    setTimes({ ...times, [d]: at }); setSig(null); setRead(false); setReadAt(null); feel.next(); setI(i + 1); scrollTo(0, 0);
+    feel.next(); transition(() => { setTimes({ ...times, [d]: at }); setSig(null); setRead(false); setReadAt(null); setI(i + 1); scrollTo(0, 0); });
   };
   return (
     <main className="wrap cere">
