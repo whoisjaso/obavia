@@ -20,7 +20,7 @@ export function Sales() {
         <span style={{ display: 'flex', gap: 18 }}><a className="link" href="#/payments" onClick={feel.tap}>Payments</a><a className="link" href="#/reach" onClick={feel.tap}>Reach</a><a className="link" href="#/past" onClick={feel.tap}>Past</a></span>
       </div>
       <section className="enter" key="home">
-        <h1 className="q">{open.length ? 'Pick Up A Sale.' : 'Ready When They Are.'}</h1>
+        <h1 className="q">{open.length ? <>Pick up <em>a sale.</em></> : <>Ready when <em>they are.</em></>}</h1>
         <div className="choices">{open.map(s => <SaleRow key={s.id} s={s} />)}</div>
         {example && <span className="example">Example data</span>}
       </section>

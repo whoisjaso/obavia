@@ -123,7 +123,7 @@ export function History({ id }: { id: string }) {
     <main className="wrap center">
       <div className="top"><Back to={`#/payments/${l.id}`} label={first(l.buyer.name)} /></div>
       <section className="enter" key="hist">
-        <h1 className="q">{sig.tone === 'red' ? 'On Purpose.' : sig.tone === 'amber' ? 'Short On Money.' : 'History.'}</h1>
+        <h1 className="q">{sig.tone === 'red' ? <>Stopped <em>on purpose.</em></> : sig.tone === 'amber' ? <>Running <em>short.</em></> : <>The <em>history.</em></>}</h1>
         {sig.tone !== 'none' && <p className="note">{sig.headline}</p>}
         {hint !== undefined && <div className="choices"><button className="choice" onClick={() => { feel.done(); setPayday(l.id, hint); }}><span className="art"><Ic n="sparkle" s={22} /></span><span className="t"><b>Charge On {WEEKDAY[hint]}s</b><small>They always pay on {WEEKDAY[hint]}</small></span></button></div>}
         <div className="list-plain timeline">

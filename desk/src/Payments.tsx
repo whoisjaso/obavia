@@ -40,7 +40,6 @@ export function Go({ to, label, gloss, icon, tone }: { to: string; label: string
 
 /* ---------- 1. Who's expected today? One tap for cash at the counter. ----------
    One list and one row. Everything that needs the owner folds into "Needs You". */
-const SHOW = 4;
 export type Need = { to: string; label: string; gloss: string; tone: 'late' | 'warn' };
 /** Everything that needs the owner today, worst first. Shared by the home row and its page. */
 export function useNeeds(): Need[] {
@@ -51,37 +50,79 @@ export function useNeeds(): Need[] {
   const flagged = Object.values(bank.days).filter(d => d.date < t && ['short', 'not_banked'].includes(dayState(loans, d, d.date, t))).length;
   const n: Need[] = [];
   const broke = loans.filter(l => brokenPromises(l, t, 7).length);
-  if (broke.length) n.push({ to: '/payments/list/promises', label: 'Broke A Promise', tone: 'late', gloss: broke.map(l => first(l.buyer.name)).join(', ') });
-  if (red + amber) n.push({ to: '/payments/list/watch', label: red ? 'Not Paying On Purpose' : 'Short On Money', tone: red ? 'late' : 'warn', gloss: [red && `${red} on purpose`, amber && `${amber} short on money`].filter(Boolean).join(' · ') });
-  if (box.length) n.push({ to: '/payments/match', label: 'To Match', tone: 'warn', gloss: `${box.length} from Zelle, Cash App and the bank` });
+  if (broke.length) n.push({ to: '/payments/list/promises', label: 'Missed A Promise', tone: 'late', gloss: broke.map(l => first(l.buyer.name)).join(', ') });
+  if (red + amber) n.push({ to: '/payments/list/watch', label: red ? 'Stopped Paying' : 'Running Short', tone: red ? 'late' : 'warn', gloss: [red && `${red} stopped on purpose`, amber && `${amber} running short`].filter(Boolean).join(' · ') });
+  if (box.length) n.push({ to: '/payments/match', label: 'Payments To Match', tone: 'warn', gloss: `${box.length} from Zelle, Cash App and the bank` });
   if (flagged) n.push({ to: '/payments/close', label: 'Cash To Look At', tone: 'late', gloss: `${plural(flagged, 'day')} short or not banked` });
   else if (cashToday && !closed) n.push({ to: '/payments/close', label: 'Close The Day', tone: 'warn', gloss: `${money(cashToday)} cash to count` });
   return n;
 }
 
-export function Payments() {
-  const { loans = [], example } = useStore();
-  const [all, setAll] = useState(false);
+/** Who's expected today, most behind first; promised-later buyers wait, promised-today come first. */
+function useToday() {
+  const { loans = [] } = useStore();
   const { t } = useMoney();
+  return expected(loans, t).map(e => ({ ...e, p: openPromise(e.loan, t) })).filter(e => !e.p || e.p.on === t)
+    .sort((a, b) => Number(!!b.p) - Number(!!a.p));
+}
+
+export function Payments() {
+  const { example } = useStore();
   const needs = useNeeds();
-  // promised for a later day: not expected today. Promised today: first.
-  const exp = expected(loans, t).map(e => ({ ...e, p: openPromise(e.loan, t) })).filter(e => !e.p || e.p.on === t)
-    .sort((a, b) => Number(!!b.p) - Number(!!a.p)), shown = all ? exp : exp.slice(0, SHOW);
+  const exp = useToday(), total = exp.reduce((t, e) => t + (e.p ? e.p.cents : e.cents), 0);
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/" label="Sales" /></div>
       <section className="enter" key="home">
-        <h1 className="q">{exp.length ? 'Expected Today.' : 'All Current.'}</h1>
-        {exp.length > 0 && <div className="choices">
-          {shown.map(e => <Go key={e.loan.id} to={`/payments/cash/${e.loan.id}`} tone={e.late ? 'late' : 'warn'} label={e.loan.buyer.name}
-            gloss={e.p ? `Promised ${money(e.p.cents)} today` : `${money(e.cents)} · ${e.late ? `${plural(e.daysLate, 'day')} late` : 'due today'}`} />)}
-          {!all && exp.length > SHOW && <button className="textlink" onClick={() => { feel.tap(); setAll(true); }}>Show All {exp.length}</button>}
-        </div>}
-        {needs.length > 0 && <div className="choices">
-          <Go to="/payments/needs" tone={needs.some(x => x.tone === 'late') ? 'late' : 'warn'} label={`${needs.length} ${needs.length === 1 ? 'Thing Needs' : 'Things Need'} You`} gloss={needs.map(x => x.label).join(' · ')} />
-        </div>}
-        <p className="links"><a href="#/payments/list/all" onClick={feel.tap}>Every Account</a><a href="#/payments/close" onClick={feel.tap}>Close The Day</a>{can(me(), 'settings') && <a href="#/payments/evening" onClick={feel.tap}>Tonight’s Text</a>}<a href="#/people" onClick={feel.tap}>People</a>{!loans.some(l => l.imported) && <a href="#/import" onClick={feel.tap}>Coming From Frazer?</a>}</p>
+        {exp.length ? <>
+          <p className="cap">Coming in <em>today</em></p>
+          <p className="big-num">{money(total)}</p>
+          <p className="soft">from {plural(exp.length, 'person', 'people')}</p>
+        </> : <>
+          <p className="cap">Nobody’s due today</p>
+          <h1 className="q">All <em>caught up.</em></h1>
+        </>}
+        {needs.length > 0 && <a className="for-you" href="#/payments/needs" onClick={feel.next}><span className={`dot ${needs.some(x => x.tone === 'late') ? 'late' : 'warn'}`} />{needs.length === 1 ? '1 thing for you' : `${needs.length} things for you`}</a>}
+        <p className="links"><a href="#/payments/list/all" onClick={feel.tap}>Every Account</a><a href="#/payments/close" onClick={feel.tap}>Close The Day</a><a href="#/payments/more" onClick={feel.tap}>More</a></p>
         {example && <span className="example">Example data</span>}
+      </section>
+      {exp.length > 0 && <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); go('/payments/today'); }}>See Who</button></div></div>}
+    </main>
+  );
+}
+
+/** The people expected today, one tap each for cash at the counter. */
+export function Today() {
+  const exp = useToday();
+  return (
+    <main className="wrap center">
+      <div className="top"><Back to="#/payments" label="Payments" /></div>
+      <section className="enter" key="today">
+        <h1 className="q">Expected <em>today.</em></h1>
+        <div className="choices">
+          {exp.map(e => <Go key={e.loan.id} to={`/payments/cash/${e.loan.id}`} tone={e.late ? 'late' : 'warn'} label={e.loan.buyer.name}
+            gloss={e.p ? `Promised ${money(e.p.cents)} today` : `${money(e.cents)} · ${e.late ? `${plural(e.daysLate, 'day')} behind` : 'due today'}`} />)}
+        </div>
+        {!exp.length && <p className="note">Nobody today.</p>}
+      </section>
+    </main>
+  );
+}
+
+/** Everything else, one tap away so the home stays quiet. */
+export function PaymentsMore() {
+  const { loans = [] } = useStore();
+  return (
+    <main className="wrap center">
+      <div className="top"><Back to="#/payments" label="Payments" /></div>
+      <section className="enter" key="more">
+        <h1 className="q">More.</h1>
+        <div className="choices">
+          {can(me(), 'settings') && <Go to="/payments/evening" icon="phone" label="Tonight’s Text" gloss="One text each evening" />}
+          <Go to="/payments/posted" icon="check" label="Posted For You" gloss="Matched payments, undo for two days" />
+          <Go to="/people" icon="pen" label="People" gloss="Who works the desk" />
+          {!loans.some(l => l.imported) && <Go to="/import" icon="upload" label="Coming From Frazer?" gloss="Bring your notes over" />}
+        </div>
       </section>
     </main>
   );
@@ -93,7 +134,7 @@ export function Needs() {
     <main className="wrap center">
       <div className="top"><Back to="#/payments" label="Payments" /></div>
       <section className="enter" key="needs">
-        <h1 className="q">{needs.length ? 'Needs You.' : 'All Clear.'}</h1>
+        <h1 className="q">{needs.length ? <>For <em>you.</em></> : <>All <em>clear.</em></>}</h1>
         <div className="choices">{needs.map(x => <Go key={x.to + x.label} to={x.to} tone={x.tone} label={x.label} gloss={x.gloss} />)}</div>
       </section>
     </main>
@@ -101,7 +142,7 @@ export function Needs() {
 }
 
 /* ---------- 2. The people in one group ---------- */
-const LIST_TITLE = { late: 'Late.', today: 'Due Today.', all: 'Every Account.', watch: 'Watch.', promises: 'Broke A Promise.' } as const;
+const LIST_TITLE = { late: ['A little', 'behind.'], today: ['Due', 'today.'], all: ['Every', 'account.'], watch: ['Worth', 'a call.'], promises: ['Missed', 'a promise.'] } as const;
 export function PaymentList({ which }: { which: keyof typeof LIST_TITLE }) {
   const { dealer, loans = [] } = useStore();
   const t = today(dealer.timeZone);
@@ -112,7 +153,7 @@ export function PaymentList({ which }: { which: keyof typeof LIST_TITLE }) {
     <main className="wrap center">
       <div className="top"><Back to="#/payments" label="Payments" /></div>
       <section className="enter" key={which}>
-        <h1 className="q">{LIST_TITLE[which]}</h1>
+        <h1 className="q">{LIST_TITLE[which][0]} <em>{LIST_TITLE[which][1]}</em></h1>
         <div className="choices">
           {rows.map(({ l, s }) => { const x = line(s), g = signal(l, t), bp = brokenPromises(l, t, 7)[0]; return which === 'promises'
             ? <Go key={l.id} to={`/payments/${l.id}/promise`} tone="late" label={l.buyer.name} gloss={`Promised ${money(bp.cents)} ${nice(bp.on)}`} />
@@ -131,19 +172,21 @@ export function Account({ id }: { id: string }) {
   const { dealer, loans = [] } = useStore();
   const l = loans.find(x => x.id === id);
   if (!l) return <Payments />;
-  const s = standing(l, today(dealer.timeZone)), x = line(s), ask = askTotal(l, s), extra = extrasLine(l, s), rep = repairsLeft(l), g = signal(l, today(dealer.timeZone)), pr = openPromise(l, today(dealer.timeZone)), pz = activePause(l, today(dealer.timeZone));
+  const s = standing(l, today(dealer.timeZone)), ask = askTotal(l, s), extra = extrasLine(l, s), rep = repairsLeft(l), g = signal(l, today(dealer.timeZone)), pr = openPromise(l, today(dealer.timeZone)), pz = activePause(l, today(dealer.timeZone));
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/payments" label="Payments" /></div>
       <section className="enter" key="acct">
-        <h1 className="q">{l.buyer.name}</h1>
-        {pz ? <a className="flag" href={`#/payments/${l.id}/pause`} onClick={feel.next}>Paused{pz.resume ? ` Until ${nice(pz.resume)}` : ''}</a> : g.tone === 'red' || g.tone === 'amber'
-          ? <a className={`flag ${g.tone}`} href={`#/payments/${l.id}/history`} onClick={feel.next}>{g.tone === 'red' ? 'On Purpose' : 'Short On Money'}{s.status === 'late' ? ` · ${x.tag}` : ''}</a>
-          : <span className={`status ${x.tone === 'late' ? 'bad' : x.tone} center-tag`}>{x.tag}</span>}
         {s.status === 'paid_off' && !ask
-          ? <><p className="big-amount good num">Paid In Full</p>{rep > 0 && <p className="note">{money(rep)} left on repairs</p>}</>
-          : <><p className={`big-amount num ${x.tone}`}>{money(ask)}</p>
-              {(s.status !== 'late' || extra) && <p className="note">{[s.status !== 'late' && s.next && `Due ${longDay(s.next.due)}`, extra && `Includes ${extra}`].filter(Boolean).join(' · ')}</p>}</>}
+          ? <><p className="cap">{l.buyer.name}</p><h1 className="q">Paid <em>in full.</em></h1>{rep > 0 && <p className="soft">{money(rep)} left on repairs</p>}</>
+          : <><p className="cap">{first(l.buyer.name)} owes</p>
+              <p className="big-num">{money(ask)}</p>
+              <a className="soft" href={pz ? `#/payments/${l.id}/pause` : g.tone === 'red' || g.tone === 'amber' ? `#/payments/${l.id}/history` : `#/payments/${l.id}/schedule`} onClick={feel.next}>
+                <span className={`dot ${pz ? 'warn' : g.tone === 'red' ? 'late' : g.tone === 'amber' || s.status === 'late' ? 'warn' : ''}`} />
+                {[pz ? `Paused until ${nice(pz.resume ?? '')}` : g.tone === 'red' ? 'Stopped paying on purpose' : g.tone === 'amber' ? 'Running short' : null,
+                  !pz && s.status === 'late' ? `${plural(s.daysLate, 'day')} behind` : !pz && s.next ? `due ${longDay(s.next.due)}` : null,
+                  extra && `includes ${extra}`].filter(Boolean).join(' · ')}
+              </a></>}
         <div className="choices">
           <Go to={`/payments/${l.id}/autopay`} icon="link" label="Autopay" gloss={l.autopay?.on && l.autopay.method ? `${methodText(l.autopay.method)} · ${l.autopay.payday === undefined ? 'due dates' : WEEKDAY[l.autopay.payday] + 's'}` : 'Off'} />
           <Go to={`/payments/${l.id}/history`} icon="sheet" label="History" gloss={l.payments.length ? `${money(s.paidCents)} paid` : undefined} />
@@ -287,9 +330,9 @@ export function TakePayment({ id }: { id: string }) {
         <div className="dock"><div className="in"><button className="btn primary block" disabled={!method} onClick={() => { feel.done(); setReceipt(recordPayment(l.id, cents, method!, t, toward)); to(2); }}>Record {money(cents)}</button></div></div>
       </section>}
       {step === 2 && after && paid && <section className="enter" key="done">
-        <span className="done-mark pop"><Ic n="check" s={38} w={3} /></span>
-        <h1 className="q">Recorded.</h1>
-        <p className="note">Receipt #{paid.receipt} · texted to {first(l.buyer.name)} and you</p>
+        <p className="cap">{first(l.buyer.name)} <em>paid</em></p>
+        <p className="big-num pop">{money(paid.cents)}</p>
+        <p className="soft"><i className="dot good" aria-hidden="true" />Receipt #{paid.receipt} · texted to {first(l.buyer.name)} and you</p>
         {!seeTexts ? <button className="textlink" onClick={() => { feel.tap(); setSeeTexts(true); }}>See The Texts</button> : (() => { const tx = paymentTexts('received', getLoans().find(x => x.id === id)!, paid.cents, after, dealer.dba, paid.receipt); return (
           <div className="sms two"><small>{first(l.buyer.name)}</small><span className="bubble">{tx.buyer}</span><small>You</small><span className="bubble you">{tx.dealer}</span></div>); })()}
         <div className="dock"><div className="in">
