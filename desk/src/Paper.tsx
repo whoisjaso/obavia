@@ -7,7 +7,7 @@ import { isAnswered, nextPaperworkQuestion, paperworkQuestions } from './lib/pap
 import type { DocType } from './lib/plan';
 import { Sheet } from './Sheet';
 import { advance } from './Corridor';
-import { fileDocument, getSale, mergeStep, useStore } from './store';
+import { fileDocument, getSale, me, mergeStep, useStore } from './store';
 import { Choice, Ic, Pad, backward, feel, go } from './ui';
 import { photosOf } from './lib/condition';
 import { financingTerms, freeze } from './lib/filed';
@@ -33,7 +33,7 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
   const file = (signed: boolean) => {
     feel.done();
     fileDocument(id, doc, { state: 'filed', buyerSigned: signed, dealerSigned: true, signature: signed ? sig ?? undefined : undefined, signedVia: signed ? 'desk' : undefined, signedAt: signed ? new Date().toISOString() : undefined,
-      signedUserAgent: signed ? navigator.userAgent.slice(0, 240) : undefined, frozen: freeze(getSale(id)!, dealer) });
+      signedUserAgent: signed ? navigator.userAgent.slice(0, 240) : undefined, frozen: freeze(getSale(id)!, dealer, new Date(), me()?.name) });
     advance(id);
   };
   const wet = doc === 'powerOfAttorney';

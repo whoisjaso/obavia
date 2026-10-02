@@ -228,7 +228,7 @@ function WebDealer({ s }: { s: Sale }) {
     <div className="group">{fields.map(([k, v]) => (
       <div key={k} className="row"><span className="t"><small>{k}</small><b className="num">{v || 'Missing'}</b></span>
         {v ? <button className="status" onClick={() => { feel.tap(); navigator.clipboard?.writeText(v); }}><Ic n="copy" s={14} /> Copy</button> : <a className="status warn" href={`#/sale/${s.id}`}>Fill It</a>}</div>))}</div>
-    <label className="field"><span>The plate they issued</span><input className="input num" style={{ letterSpacing: '.1em' }} value={plate} onChange={e => setPlate(e.target.value.toUpperCase())} placeholder="ABC 1234" /></label>
+    <label className="field"><span>The plate they issued</span><input className="input num" style={{ letterSpacing: '.1em' }} value={plate} onChange={e => setPlate(e.target.value.toUpperCase())} placeholder="ABC 1234" maxLength={8} autoComplete="off" autoCorrect="off" autoCapitalize="characters" spellCheck={false} /></label>
     <div className="dock"><div className="in"><button className="btn primary block" disabled={!plate.trim()} onClick={() => { feel.done(); mergeStep(s.id, 'plate', plate.trim()); advance(s.id); }}>Plates Are On</button></div></div>
   </>);
 }

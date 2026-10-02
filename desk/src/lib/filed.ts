@@ -11,17 +11,18 @@ import { computeMoney, parseMoney } from './money';
 import type { DocType } from './plan';
 import type { AgreementState, Sale } from './sale';
 
-export type Frozen = { date: string; dealer: DealerConfig; sale: Pick<Sale, 'vehicle' | 'buyer' | 'step' | 'language'> };
+export type Frozen = { date: string; dealer: DealerConfig; sale: Pick<Sale, 'vehicle' | 'buyer' | 'step' | 'language'>;
+  agent?: string };   // the staff member who handled the sale: printed beside the dealership on the 130-U's seller line
 
-export function freeze(sale: Sale, dealer: DealerConfig, at = new Date()): Frozen {
-  return JSON.parse(JSON.stringify({ date: businessDate(dealer.timeZone, at), dealer, sale: { vehicle: sale.vehicle, buyer: sale.buyer, step: sale.step, language: sale.language } }));
+export function freeze(sale: Sale, dealer: DealerConfig, at = new Date(), agent?: string): Frozen {
+  return JSON.parse(JSON.stringify({ date: businessDate(dealer.timeZone, at), dealer, sale: { vehicle: sale.vehicle, buyer: sale.buyer, step: sale.step, language: sale.language }, agent }));
 }
 
 /** The sale and dealer a document renders from: the frozen copy once filed, live while it's a draft. */
 export function asFiled(doc: DocType, sale: Sale, dealer: DealerConfig, now = new Date()) {
   const a: AgreementState | undefined = sale.documents[doc], f = a?.state === 'filed' ? a.frozen : undefined;
   const s: Sale = f ? { ...sale, ...f.sale } : sale, d = f?.dealer ?? dealer;
-  return { sale: s, dealer: d, date: f?.date ?? businessDate(dealer.timeZone, now), signedOn: a?.signedAt ? businessDate(d.timeZone, new Date(a.signedAt)) : undefined, filed: !!f };
+  return { sale: s, dealer: d, agent: f?.agent, date: f?.date ?? businessDate(dealer.timeZone, now), signedOn: a?.signedAt ? businessDate(d.timeZone, new Date(a.signedAt)) : undefined, filed: !!f };
 }
 
 /** The lender's real name for the lien and the bill of sale, never its directory id. */

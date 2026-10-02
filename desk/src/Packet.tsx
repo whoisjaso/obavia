@@ -1,12 +1,13 @@
 /* The packet (everything filed) and the buyer's signing ceremony: one sheet
    per screen, the pad unlocks only once the sheet is read to its end. */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DOC_MEANS, DOC_TITLE } from './lib/documents';
 import type { DocType } from './lib/plan';
 import { owedDocuments, signedCount } from './lib/sale';
 import { Sheet, saleReceipt } from './Sheet';
 import { completeSale, fileDocument, getSale, openNoteForSale, useStore } from './store';
 import { Back, Ic, Pad, feel, go } from './ui';
+import { buyersGuidePdf } from './lib/official';
 
 export function Packet({ id }: { id: string }) {
   const { dealer } = useStore();
@@ -41,10 +42,14 @@ export function Packet({ id }: { id: string }) {
           ? <button className="btn primary block" onClick={() => { feel.next(); go(`/sign/${id}`); }}><Ic n="pen" s={20} />Sign The Packet</button>
           : s.status !== 'completed' && <button className="btn primary block" disabled={!allFiled} onClick={() => { feel.done(); openNoteForSale(id, saleReceipt(s, dealer).total, saleReceipt(s, dealer).tax); completeSale(id); go('/'); }}>Complete Sale</button>}
         <button className="textlink" onClick={() => print()}>Print</button>
+        <span className="links">{(['en', 'es'] as const).map(l => <button key={l} className="textlink" onClick={async () => { feel.tap(); const pdf = await buyersGuidePdf(s, dealer, l); open1(pdf); }}>{l === 'en' ? 'Buyer’s Guide' : 'Guía Del Comprador'}</button>)}</span>
       </div></div>
     </main>
   );
 }
+
+/** Opens a filled official PDF in a new tab, for printing as the agency published it. */
+const open1 = (pdf: Uint8Array) => { const url = URL.createObjectURL(new Blob([pdf.slice()], { type: 'application/pdf' })); window.open(url, '_blank'); setTimeout(() => URL.revokeObjectURL(url), 60_000); };
 
 /* ---------- /sign/:id : the buyer's ceremony. No chrome. ---------- */
 export function Ceremony({ id }: { id: string }) {
@@ -61,6 +66,10 @@ export function Ceremony({ id }: { id: string }) {
   const spanish = s.language === 'es' && !dealer.spanishApproved;   // Spanish e-signing waits on counsel's approval
   const [readAt, setReadAt] = useState<string | null>(null);
   const [consentAt, setConsentAt] = useState<string | null>(null);
+  // The pad unlocks only once the real sheet is on screen and has been read to its end (or fits without scrolling).
+  const [ready, setReady] = useState<string | null>(null);
+  const markRead = () => { setRead(true); setReadAt(r => r ?? new Date().toISOString()); };
+  useEffect(() => { const el = sc.current; if (ready && el && el.scrollHeight <= el.clientHeight + 8) markRead(); }, [ready]);
 
   if (i === -1) return (
     <main className="wrap cere"><div className="cover enter">
@@ -97,9 +106,8 @@ export function Ceremony({ id }: { id: string }) {
       <div className="top"><span className="progress num">{i + 1} Of {docs.length}</span><span /></div>
       <div className="bar"><i style={{ width: `${((i + 1) / docs.length) * 100}%` }} /></div>
       <h1 className="q" style={{ fontSize: 30 }}>{DOC_TITLE[d]}</h1>
-      <div className="paper"><div className="scroll" ref={sc} onScroll={e => { const el = e.currentTarget; if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) { setRead(true); setReadAt(r => r ?? new Date().toISOString()); } }}>
-        <Sheet doc={d} sale={s} dealer={dealer} buyerSig={stroke} dealerSig />
-        <div ref={el => { if (el && sc.current && sc.current.scrollHeight <= sc.current.clientHeight + 8 && !read) setTimeout(() => { setRead(true); setReadAt(r => r ?? new Date().toISOString()); }); }} />
+      <div className="paper"><div className="scroll" ref={sc} onScroll={e => { const el = e.currentTarget; if (ready === d && el.scrollTop + el.clientHeight >= el.scrollHeight - 8) markRead(); }}>
+        <Sheet doc={d} sale={s} dealer={dealer} buyerSig={first ? stroke : null} dealerSig onReady={() => setReady(d)} />
       </div></div>
       <p className="means">{DOC_MEANS[d]}</p>
       {first && <label className="consent"><input type="checkbox" checked={reuse} onChange={e => { feel.tap(); setReuse(e.target.checked); setConsentAt(e.target.checked ? new Date().toISOString() : null); }} />Use my signature from the first document on this one.</label>}

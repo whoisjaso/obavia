@@ -10,7 +10,10 @@ export type Vehicle = {
   price: number; mileage: number | null; emptyWeight: number | null; color: string; titleStatus: TitleStatus;
 };
 
-export type Buyer = { fullName: string; phone: string; email?: string; address: string; city: string; state: string; zip: string; county: string; idType: 'dl' | 'stateId' | 'passport' | 'military'; idNumber: string };
+export type Buyer = { fullName: string; phone: string; email?: string; address: string; city: string; state: string; zip: string; county: string; idType: 'dl' | 'stateId' | 'passport' | 'military'; idNumber: string;
+  idIssuer?: string };   // the state that issued a licence or ID card, or the country of a passport
+/** The production ID kinds (lib/forms/id-document.ts) for the desk's four. */
+export const ID_KIND = { dl: 'stateLicence', stateId: 'stateIdCard', passport: 'passport', military: 'militaryId' } as const;
 
 export type IdField = { read?: string; confirmed?: string };
 export const ID_FIELDS = ['name', 'idNumber', 'dob', 'expiry', 'address'] as const;

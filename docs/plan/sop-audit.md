@@ -45,6 +45,27 @@ Audited October 2, 2026 against `premium-dealer-build/references/handle-a-sale-d
 11. **Spanish sheets** show "Translation pending counsel review" until the owner records approval (`dealer.spanishApproved`), and Spanish e-signing stays off until then.
 12. **County table.** It now uses "Missouri City" (the key was "missouri"). Katy, which spans three counties, now asks instead of guessing.
 
+## Built from the production engine (October 2)
+
+The form engine is ported from the production desk unchanged, apart from where the dealer's facts come from (`lib/dealership-config.ts`).
+
+- **Official forms are the official PDFs.** The 130-U, VTR-271, rebuilt disclosure (ENF-MV-RBLT-DSCLMR) and the FTC Buyer's Guide (English and Spanish) are filled with `pdf-lib` from `public/forms/`. Every preview, the review and the signing ceremony included, is that filled PDF rendered with pdf.js. No HTML lookalikes remain. (`lib/official.ts`, `OfficialForm.tsx`)
+- **The 130-U seller line** reads "Legal Name (Agent Full Name)". webDEALER rejected the dealership name alone on September 30, 2026. The agent is the staff member at filing. It is frozen with the document and checked by `isPersonName`, falling back to the dealer's signer. Staff are now added by full legal name.
+- **The 130-U boxes:**
+  - measured columns for names, addresses, previous owner and lienholder;
+  - Box 15 from the ID kind;
+  - a lender's lien leaves the address blank;
+  - 38(d), (e) and (h) are left for the county;
+  - Helvetica, black, fitted sizes.
+- **VTR-271 vs VTR-271-A** by model age. A car under 20 years old is refused with the VTR-271-A message.
+- **Typed fields are limited by what the form needs:**
+  - ID kind first, then the issuer;
+  - ID number capped per state or country (Texas: 8);
+  - a shape warning that never blocks;
+  - phone formatted and complete at 10 digits;
+  - VIN 17, plate 8, state 2.
+- Tests: the production suites (`lib/forms/__tests__`) and `lib/official.test.ts`.
+
 ## Deliberate differences from the SOP
 
 - **The stack.** The SOP's target is Next.js with Supabase under `/admin`. The Desk is a Vite and React app with a Cloudflare Worker. The routes map one to one (`#/sale/:id/guide/:step`, `#/sale/:id/paper/:doc/:q`, `#/sale/:id/packet`, `#/sign/:id`), and the pure logic is the same.
@@ -52,7 +73,6 @@ Audited October 2, 2026 against `premium-dealer-build/references/handle-a-sale-d
 
 ## Still to build (the SOP asks; the Desk doesn't do it yet)
 
-- Filling the official 130-U, VTR-271 and VTR-61 PDFs with `pdf-lib`. The Desk previews the fields that will be filled.
 - Reading the licence barcode (AAMVA PDF417) and the offline front OCR. Today the ID is typed or confirmed by hand.
 - Server-signed capture and ceremony tokens (HMAC, 15 and 20 minutes), and Text It and packet-status polling. Today the ceremony runs on the desk's own device.
 - The webDEALER copy screen field by field, the sale clock board, and a fuller lender directory.

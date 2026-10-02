@@ -596,3 +596,6 @@ section:has(> .q2) > h1.q{display:none}
 .find{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:14px;color:var(--accent);background:rgba(255,255,255,.6);box-shadow:0 2px 10px rgba(22,35,63,.06)}
 .phone-frame{width:min(100%,360px);height:min(66vh,640px);margin:18px auto 0;border-radius:34px;overflow:hidden;background:#fff;box-shadow:0 20px 50px rgba(22,35,63,.14),0 0 0 8px rgba(255,255,255,.7)}
 .phone-frame iframe{width:100%;height:100%;border:0;display:block}
+.official-form{display:flex;flex-direction:column;gap:12px;align-items:center;background:#fff;padding:10px}
+.official-form img{width:100%;height:auto;display:block;border:1px solid #E4E9F2}
+.official-form.loading,.official-form.refused{min-height:220px;justify-content:center;text-align:center;color:var(--muted);font:500 15px/1.5 var(--sans);padding:24px}

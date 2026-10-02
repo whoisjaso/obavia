@@ -32,7 +32,7 @@ export function paperworkQuestions(doc: DocType, s: Sale): PQ[] {
     { key: 'photos', question: 'Photos Of The Car.', kind: 'photos' },
   ];
   if (doc === 'form130U') return [
-    { key: 'idState', question: 'Which State Issued Their Licence?', kind: 'text', prefill: x => x.buyer.state },
+    ...(!s.buyer.idIssuer && s.buyer.idType !== 'military' ? [{ key: 'idState', question: 'Which State Issued Their Licence?', kind: 'text' as const, prefill: (x: Sale) => x.buyer.state }] : []),
     ...(!s.buyer.county ? [{ key: 'county', question: 'Which County Do They Live In?', kind: 'text' as const }] : []),
     { key: 'applyingFor', question: 'What Are We Applying For?', kind: 'choice', choices: [{ v: 'both', label: 'Title And Registration' }, { v: 'title', label: 'Title Only' }, { v: 'registration', label: 'Registration Only' }] },
     { key: 'buyerKind', question: 'Is The Buyer A Person Or A Business?', kind: 'choice', choices: [{ v: 'person', label: 'A Person' }, { v: 'business', label: 'A Business' }] },

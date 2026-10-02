@@ -2,12 +2,15 @@
    hairline rules, figures in a tabular face, the one sentence that matters in
    red, the same signature grid. Official state forms (130-U, VTR-271) print
    from the official PDF; here they preview as the fields that will be filled. */
+import { useEffect } from 'react';
 import type React from 'react';
 import { notSet, type DealerConfig } from './lib/config';
 import { asFiled, financingTerms, lenderName, saleMoney } from './lib/filed';
 import { DOC_TITLE } from './lib/documents';
 import { usd } from './lib/money';
-import { poaInstrument, type DocType } from './lib/plan';
+import { isOfficial } from './lib/official';
+import { OfficialForm } from './OfficialForm';
+import type { DocType } from './lib/plan';
 import type { Sale } from './lib/sale';
 import { photosOf } from './lib/condition';
 
@@ -40,21 +43,22 @@ export function Letterhead({ dealer, title, no, date, stock, es }: { dealer: Dea
   );
 }
 
-/** Cars are stored with a swatch colour; paperwork names it the way a title does. */
-const PAINT: [string, number[]][] = [['Black', [28, 30, 34]], ['White', [238, 240, 244]], ['Silver', [192, 197, 206]], ['Gray', [128, 134, 144]], ['Blue', [52, 78, 140]], ['Red', [168, 58, 58]], ['Green', [52, 110, 70]], ['Beige', [214, 198, 166]], ['Brown', [110, 76, 50]], ['Gold', [196, 160, 80]], ['Orange', [214, 110, 40]], ['Yellow', [230, 200, 60]]];
-export function colourName(c: string) {
-  const m = /^#?([0-9a-f]{6})$/i.exec(c?.trim() ?? '');
-  if (!m) return c;
-  const rgb = [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16));
-  return PAINT.reduce((best, p) => { const d = p[1].reduce((t, v, i) => t + (v - rgb[i]) ** 2, 0); return d < best[1] ? [p[0], d] as [string, number] : best; }, ['', Infinity] as [string, number])[0];
-}
+export { colourName } from './lib/colour';
+import { colourName } from './lib/colour';
 
 const Cell = ({ k, v, className }: { k: string; v: React.ReactNode; className?: string }) => <div className={className}><small>{k}</small><b>{v || '\u00a0'}</b></div>;
 const Box = ({ on, children }: { on: boolean; children: React.ReactNode }) => <span className={'box' + (on ? ' on' : '')}><i aria-hidden="true">{on ? '✓' : ''}</i>{children}</span>;
 
 const Row = ({ k, v }: { k: string; v: string }) => <tr><td>{k}</td><td>{v}</td></tr>;
 
-export function Sheet({ doc, sale: live, dealer: liveDealer, buyerSig, dealerSig, compact }: { doc: DocType; sale: Sale; dealer: DealerConfig; buyerSig?: string | null; dealerSig?: boolean; compact?: boolean }) {
+export function Sheet({ onReady, ...props }: { doc: DocType; sale: Sale; dealer: DealerConfig; buyerSig?: string | null; dealerSig?: boolean; compact?: boolean; onReady?: () => void }) {
+  // Official state forms are the state's PDF, filled; never a look-alike.
+  useEffect(() => { if (!isOfficial(props.doc)) onReady?.(); }, [props.doc]);   // a dealer sheet is ready as soon as it renders
+  if (isOfficial(props.doc)) return <OfficialForm doc={props.doc} sale={props.sale} dealer={props.dealer} buyerSig={props.buyerSig} onReady={onReady} />;
+  return <DealerSheet {...props} />;
+}
+
+function DealerSheet({ doc, sale: live, dealer: liveDealer, buyerSig, dealerSig, compact }: { doc: DocType; sale: Sale; dealer: DealerConfig; buyerSig?: string | null; dealerSig?: boolean; compact?: boolean }) {
   // Once filed, the sheet reads the facts it was filed with, never today's records.
   const f = asFiled(doc, live, liveDealer), sale = f.sale, dealer = f.dealer, date = f.date, signedOn = f.signedOn ?? date;
   const v = sale.vehicle, b = sale.buyer, r = saleReceipt(sale, dealer);
@@ -64,7 +68,6 @@ export function Sheet({ doc, sale: live, dealer: liveDealer, buyerSig, dealerSig
   const lender = lenderName(funding);
   // The condition report prints in Spanish for a sale in Spanish; the buyer signs it in ink.
   const es = doc === 'conditionReport' && sale.language === 'es';
-  const lien = funding?.type === 'lender' ? lender : r.balance > 0 || funding?.type === 'inHouse' ? dealer.legalName : null;
 
   const body = (() => {
     switch (doc) {
@@ -131,17 +134,6 @@ export function Sheet({ doc, sale: live, dealer: liveDealer, buyerSig, dealerSig
         {/* Texas doc-fee notice (43 TAC §215.155). Wording to be confirmed with counsel before the first live sale. */}
         <p className="notice">A documentary fee is not an official fee. A documentary fee is not required by law, but may be charged to buyers for handling documents relating to the sale. A documentary fee may not exceed a reasonable amount agreed to by the parties. This notice is required by law.</p>
       </>);
-      case 'form130U': return (<>
-        <p className="official">Printed on the official TxDMV Form 130-U. These are the fields that will be filled.</p>
-        <table><tbody>
-          <Row k="Applicant" v={`${b.fullName}${p.buyerKind === 'business' ? ' (business)' : ''}`} /><Row k="Address" v={`${b.address}, ${b.city}, ${b.state} ${b.zip}`} />
-          <Row k="County" v={p.county || b.county} /><Row k="ID" v={`${{ dl: 'Driver licence', stateId: 'State ID', passport: 'Passport', military: 'Military ID' }[b.idType]} ${b.idNumber}${p.idState ? `, issued by ${p.idState}` : ''}`} />
-          <Row k="Vehicle" v={`${car} · ${v.bodyStyle}`} /><Row k="VIN" v={v.vin} /><Row k="Odometer" v={`${v.mileage?.toLocaleString() ?? ''}`} />
-          <Row k="Empty weight" v={p.emptyWeight ? `${Number(p.emptyWeight).toLocaleString()} lb` : ''} />{p.capacity && <Row k="Carrying capacity" v={p.capacity} />}
-          <Row k="Applying for" v={{ both: 'Title and registration', title: 'Title only', registration: 'Registration only' }[p.applyingFor as string] ?? ''} />
-          <Row k="Sales price" v={usd(r.salePrice)} /><Row k="First lienholder" v={lien ?? 'None'} />
-        </tbody></table>
-      </>);
       case 'financing': {
         const t = financingTerms(sale, dealer), fq = { weekly: 'weekly', biweekly: 'every two weeks', monthly: 'monthly' }[p.frequency as string] ?? '';
         return (<>
@@ -198,17 +190,6 @@ export function Sheet({ doc, sale: live, dealer: liveDealer, buyerSig, dealerSig
       case 'insuranceAcknowledgment': return (<>
         <p>The buyer did not show proof of insurance today. Texas law requires it before the {car} is driven. The dealer is not the buyer’s insurer.</p>
         <p className="key">The buyer will get insurance before driving, and registration waits on proof.</p>
-      </>);
-      case 'powerOfAttorney': {
-        const inst = poaInstrument(new Date().getFullYear(), v.year);
-        return (<p className="official">{inst === 'VTR-271' ? 'Printed on the official Form VTR-271.' : 'Signed in ink on the county’s secure Form VTR-271-A.'} The buyer appoints {dealer.legalName} to sign the title application for the {car}, VIN {v.vin}. Its odometer disclosure is a wet signature, so it is never signed on a screen.</p>);
-      }
-      case 'rebuiltDisclosure': return (<>
-        <p className="key">This vehicle has a rebuilt salvage title. The brand is permanent and affects its value.</p>
-        <p>The buyer was given the chance to inspect the vehicle before signing anything else.</p>
-        <table><tbody><Row k="Year" v={String(v.year)} /><Row k="Make" v={v.make} /><Row k="VIN" v={v.vin} /></tbody></table>
-        {/* TxDMV Form ENF-MV-RBLT DSCLMR (Rev. 02/17), the purchaser's sentence, word for word. */}
-        <p className="official">“I, {b.fullName}, acknowledge that at the time of purchase, I am aware that this vehicle has been repaired, rebuilt, or reconstructed and was formerly titled as a salvage motor vehicle.”</p>
       </>);
       case 'towAwayAcknowledgment': return <p className="key">The {car} leaves on a tow, on its salvage title, with no plates, and nothing is filed with the state.</p>;
       case 'buyerResponsibilityStatement': return <p>From today, anything the {car} needs is the buyer’s to handle. Salvage dealing is separately licensed (Tex. Occ. Code ch. 2302).</p>;

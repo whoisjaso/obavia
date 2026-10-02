@@ -1,5 +1,6 @@
 /* Who is at the desk: pick your name, type your PIN. The owner adds people,
    and everything each person does carries their name. */
+import { isPersonName } from './lib/fill-130u/seller-name';
 import { useEffect, useState } from 'react';
 import { PIN_LENGTH, can, checkPin, makeStaff, waitLeft, weakPin, type Role, type Staff } from './lib/staff';
 import { today } from './lib/loans';
@@ -121,6 +122,7 @@ export function AddPerson() {
   const [shake, setShake] = useState(0);
   if (!can(me(), 'staff')) { go('/people'); return null; }
   const to = (s: typeof step) => transition(() => { setSay(''); setStep(s); scrollTo(0, 0); });
+  const named = isPersonName(name);   // the 130-U seller line needs a real full name (webDEALER rejects a role or a single name)
   const taken = staff.some(s => s.name.trim().toLowerCase() === name.trim().toLowerCase());
   const backTo = { name: null, role: 'name', pin: firstOne ? 'name' : 'role', again: 'pin', done: null }[step] as typeof step | null;
   const top = <div className="top">{backTo ? <button className="back" onClick={() => { feel.tap(); to(backTo); }}><Ic n="chev" s={18} w={2.4} />Back</button> : step === 'name' ? <Back to="#/people" label="People" /> : <span />}</div>;
@@ -129,9 +131,9 @@ export function AddPerson() {
     <main className="wrap center">{top}
       <section className="enter" key="name">
         <h1 className="q">{firstOne ? 'Your Name?' : 'Their Name?'}</h1>
-        <label className="field"><input className="input" autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="First and last" aria-label="Name" /></label>
-        {taken && <p className="note">Someone already has that name.</p>}
-        <div className="dock"><div className="in"><button className="btn primary block" disabled={name.trim().length < 2 || taken} onClick={() => { feel.next(); to(firstOne ? 'pin' : 'role'); }}>Next</button></div></div>
+        <label className="field"><input className="input" autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="First and last, as on their ID" aria-label="Name" maxLength={60} /></label>
+        {taken ? <p className="note">Someone already has that name.</p> : <p className="note">{named ? 'This prints beside the dealership on the title application.' : 'Their full legal name. It prints beside the dealership on the title application.'}</p>}
+        <div className="dock"><div className="in"><button className="btn primary block" disabled={!named || taken} onClick={() => { feel.next(); to(firstOne ? 'pin' : 'role'); }}>Next</button></div></div>
       </section>
     </main>
   );
