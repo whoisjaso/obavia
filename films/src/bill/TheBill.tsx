@@ -45,7 +45,7 @@ const Invoice: React.FC = () => {
   return (
     <div style={{ position: "absolute", inset: 0, background: "#FBFCFF", fontFamily: theme.font, color: C.ink }}>
       <div style={{ position: "absolute", left: 24, top: 70, right: 24 }}>
-        <div style={{ fontSize: 14, fontWeight: 650, color: C.slate }}>Billing · Invoice #10-2026</div>
+        <div style={{ fontSize: 14, fontWeight: 650, color: C.slate }}>Your Dealer Software · Invoice</div>
         <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", marginTop: 4 }}>October</div>
       </div>
       {ITEMS.map((it, i) => {
@@ -142,8 +142,8 @@ export const TheBill: React.FC = () => {
 
   const lit = act1 ? ease(fr, wake - 6, wake) * (1 - ease(fr, sleep, sleep + 5, theme.ease.in)) : ease(fr, desk, desk + 5);
   const phoneIn = act1 ? 1 - ease(fr, sleep + 4, sleep + 14, theme.ease.in) : ease(fr, desk - 4, desk + 14);
-  const creep = act1 ? ease(fr, F(T.rows[0]), F(T.total) + 20, theme.ease.inOut) : 0;
-  const pullP = ease(fr, pull, pull + 42, theme.ease.inOut);
+  const creep = act1 ? ease(fr, F(T.rows[0]), F(T.total) + 60, theme.ease.inOut) : 0;
+  const pullP = ease(fr, pull, pull + 60, theme.ease.inOut);
   const scale = act1 ? 1 + creep * 0.1 : mix(0.96 + 0.04 * phoneIn, 0.4, pullP);
   const lift = act1 ? creep * 90 : mix((1 - phoneIn) * 60, -360, pullP);
   const skyLight = act3 ? ease(fr, pull + 6, pull + 50, theme.ease.inOut) : 0;
@@ -170,7 +170,7 @@ export const TheBill: React.FC = () => {
     </div>
   );
 
-  const endIn = (i: number) => spring({ frame: fr - pull - 26 - i * 5, fps, config: theme.spring.smooth });
+  const endIn = (i: number) => spring({ frame: fr - pull - 40 - i * 12, fps, config: theme.spring.smooth });
   return (
     <AbsoluteFill style={{ background: "#07090F" }}>
       <Fonts />
@@ -188,7 +188,7 @@ export const TheBill: React.FC = () => {
       <div style={{ position: "absolute", left: 0, right: 0, top: 1180, display: "flex", flexDirection: "column", alignItems: "center", fontFamily: theme.font }}>
         {[
           <Mark key="m" size={112} />,
-          <div key="w" style={{ marginTop: 26, fontSize: 64, fontWeight: 800, letterSpacing: "-0.045em", color: C.ink }}>Obavia Desk</div>,
+          <div key="w" style={{ marginTop: 26, fontSize: 64, fontWeight: 800, letterSpacing: "-0.045em", color: C.ink }}>Obavia</div>,
           <div key="t" style={{ marginTop: 14, fontSize: 40, fontWeight: 600, letterSpacing: "-0.03em", color: C.deep }}>File your own titles. In minutes.</div>,
           <div key="d" style={{ marginTop: 110, width: 860, textAlign: "center", fontSize: 22, lineHeight: 1.35, fontWeight: 600, color: C.slate, opacity: 0.85 }}>Dramatization. Invoice lines: one DMS’s published prices, October 2026.</div>,
         ].map((el, i) => <div key={i} style={{ opacity: endIn(i), transform: `translateY(${(1 - endIn(i)) * 30}px) scale(${0.97 + 0.03 * endIn(i)})` }}>{el}</div>)}

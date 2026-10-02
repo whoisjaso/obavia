@@ -21,7 +21,7 @@ October 2, 2026. Owner direction:
 | --- | --- | --- |
 | One Phone, One Evening (`films/src/evening`) | #5, shown calm | First cut. The owner's verdict: it shows what we do and doesn't press on pain. Kept as a product film. |
 | Day 44 (`films/src/pain`) | #4 | Cut. The owner judged it "not crazy pain" alone; use it as a follow-up in the series. |
-| **The Bill** (`films/src/bill`) | #1 and #2 | **Lead ad.** The invoice climbs line by line to $648.99, the title runner texts that the county kicked two deals back, then the typed lines: "You pay for the software. Then for every add-on. Then per contract. Per credit pull. Then someone to file your titles. What did your last sale really cost you?" The Desk's title step closes it. |
+| **The Bill** (`films/src/bill`) | #1 and #2 | **Lead ad.** About a minute, slow on purpose, with one sound only: the notification. The invoice climbs line by line to $648.99, the title runner texts that the county kicked two deals back, then the typed lines: "You pay for the software. Then for every add-on. Then per contract. Per credit pull. Then someone to file your titles. What did your last sale really cost you?" The Desk's title step closes it. |
 
 ## Rules for every ad in the series
 - **Pain first, at least half the running time,** in the owner's own world: their phone, their texts, their invoice. Few words, typed, never narrated.
@@ -29,7 +29,9 @@ October 2, 2026. Owner direction:
 - **Every number has a source** in the film's timeline file, and the end card says what is dramatized.
 - **No vendor named on screen** unless counsel clears comparative claims. Describe the cost structure, not the company.
 - **No "cheaper" claim and no Desk price** until the owner sets the price. Once it's set, the end line becomes the price against the bill.
-- **Phone sounds only:** notifications, keys, taps, the lock button, the done chime. Silence is the loudest beat.
+- **One sound only: the iPhone-style notification.** No key clicks, taps or chimes; silence carries the rest.
+- **Slow.** Every beat holds long enough to read twice. The owner found the fast cut confusing.
+- **The brand on screen is "Obavia"**, never "Obavia Desk".
 
 ## Next in the series
 1. **"Kicked Back."** One sale's stack of paper, one wrong box, and the county sends it back. The re-signs and the buyer calling, then the Desk's one-question pages filling every form.

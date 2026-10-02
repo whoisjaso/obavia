@@ -4,9 +4,9 @@ import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from "remotion"
 import { theme } from "../theme";
 import { ease } from "../evening/Evening";
 
-export type Line = { t: number; text: string; size: number; note?: string };
+export type Line = { t: number; text: string; size: number; note?: string; cps?: number };
 const CPS = 17;   // thumb-typing pace, a little brisk for film
-export const typedAt = (l: Line, i: number) => l.t + i / CPS;
+export const typedAt = (l: Line, i: number) => l.t + i / (l.cps ?? CPS);
 export const lineEnd = (l: Line) => typedAt(l, l.text.length);
 /** One key sound per typed character, spaces silent. */
 export const keyCues = (lines: Line[]) =>

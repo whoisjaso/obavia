@@ -141,7 +141,7 @@ export const DayFortyFour: React.FC = () => {
       <div style={{ position: "absolute", left: 0, right: 0, top: 1180, display: "flex", flexDirection: "column", alignItems: "center", fontFamily: theme.font }}>
         {[
           <Mark key="m" size={112} />,
-          <div key="w" style={{ marginTop: 26, fontSize: 64, fontWeight: 800, letterSpacing: "-0.045em", color: C.ink }}>Obavia Desk</div>,
+          <div key="w" style={{ marginTop: 26, fontSize: 64, fontWeight: 800, letterSpacing: "-0.045em", color: C.ink }}>Obavia</div>,
           <div key="t" style={{ marginTop: 14, fontSize: 40, fontWeight: 600, letterSpacing: "-0.03em", color: C.deep }}>Every title. Every day, counted.</div>,
           <div key="d" style={{ marginTop: 120, fontSize: 24, fontWeight: 600, color: C.slate, opacity: 0.85 }}>Dramatization. Names are fictional.</div>,
         ].map((el, i) => <div key={i} style={{ opacity: endIn(i), transform: `translateY(${(1 - endIn(i)) * 30}px) scale(${0.97 + 0.03 * endIn(i)})` }}>{el}</div>)}

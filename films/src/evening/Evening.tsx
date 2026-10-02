@@ -77,7 +77,7 @@ const Banner: React.FC<{ at: number; text: string; morph?: number }> = ({ at, te
         <AppIcon size={38} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <b style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em" }}>Obavia Desk</b>
+            <b style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em" }}>Obavia</b>
             <span style={{ fontSize: 13, color: C.slate, fontWeight: 600 }}>now</span>
           </div>
           <div style={{ marginTop: 2, fontSize: 14.5, lineHeight: 1.32, fontWeight: 500, color: C.body, letterSpacing: "-0.005em" }}>{text}</div>
@@ -295,7 +295,7 @@ export const Evening: React.FC = () => {
       <div style={{ position: "absolute", left: 0, right: 0, top: 1180, display: "flex", flexDirection: "column", alignItems: "center", fontFamily: theme.font }}>
         {[
           <Mark key="m" size={112} />,
-          <div key="w" style={{ marginTop: 26, fontSize: 64, fontWeight: 800, letterSpacing: "-0.045em", color: C.ink }}>Obavia Desk</div>,
+          <div key="w" style={{ marginTop: 26, fontSize: 64, fontWeight: 800, letterSpacing: "-0.045em", color: C.ink }}>Obavia</div>,
           <div key="t" style={{ marginTop: 14, fontSize: 40, fontWeight: 600, letterSpacing: "-0.03em", color: C.deep }}>Close the day from your phone.</div>,
           <div key="d" style={{ marginTop: 120, fontSize: 24, fontWeight: 600, color: C.slate, opacity: 0.85 }}>Demonstration. Figures are illustrative.</div>,
         ].map((el, i) => <div key={i} style={{ opacity: endIn(i), transform: `translateY(${(1 - endIn(i)) * 30}px) scale(${0.97 + 0.03 * endIn(i)})` }}>{el}</div>)}
