@@ -10,6 +10,8 @@ import { advance } from './Corridor';
 import { fileDocument, getSale, mergeStep, useStore } from './store';
 import { Choice, Ic, Pad, backward, feel, go } from './ui';
 import { photosOf } from './lib/condition';
+import { financingTerms, freeze } from './lib/filed';
+import { missingFacts } from './lib/config';
 
 export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) {
   const { dealer } = useStore();
@@ -30,10 +32,13 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
   };
   const file = (signed: boolean) => {
     feel.done();
-    fileDocument(id, doc, { state: 'filed', buyerSigned: signed, dealerSigned: true, signature: signed ? sig ?? undefined : undefined, signedVia: signed ? 'desk' : undefined, signedAt: signed ? new Date().toISOString() : undefined });
+    fileDocument(id, doc, { state: 'filed', buyerSigned: signed, dealerSigned: true, signature: signed ? sig ?? undefined : undefined, signedVia: signed ? 'desk' : undefined, signedAt: signed ? new Date().toISOString() : undefined,
+      signedUserAgent: signed ? navigator.userAgent.slice(0, 240) : undefined, frozen: freeze(getSale(id)!, dealer) });
     advance(id);
   };
   const wet = doc === 'powerOfAttorney';
+  // Filing is refused while a legal fact the paper prints is missing, or the agreed payment can't pay the note off.
+  const blocked = [...missingFacts(dealer), ...(doc === 'financing' && !Number.isFinite(financingTerms(s, dealer).count) ? ['A payment that covers the interest'] : [])];
 
   return (
     <main className="wrap center">
@@ -56,10 +61,11 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
         <section className="enter" key="review">
           <h1 className="q">Sign The {DOC_TITLE[doc]}.</h1>
           <div className="paper"><div className="scroll"><Sheet doc={doc} sale={s} dealer={dealer} buyerSig={sig} dealerSig /></div></div>
+          {blocked.length > 0 && <p className="note" style={{ marginTop: 14 }}>Can’t file yet. Missing: {blocked.join(', ')}. {missingFacts(dealer).length > 0 && <a href="#/facts" onClick={feel.tap}>Add Them</a>}</p>}
           {wet ? <p className="note" style={{ marginTop: 14 }}>Signed in ink on the state form.</p> : <Pad onChange={setSig} />}
           <div className="dock"><div className="in">
-            {!wet && <button className="btn primary block" disabled={!sig} onClick={() => file(true)}><Ic n="pen" s={20} />File Signed</button>}
-            <button className={wet ? 'btn primary block' : 'textlink'} onClick={() => file(false)}>{wet ? 'File For Ink' : 'Print For Ink Instead'}</button>
+            {!wet && <button className="btn primary block" disabled={!sig || blocked.length > 0} onClick={() => file(true)}><Ic n="pen" s={20} />File Signed</button>}
+            <button className={wet ? 'btn primary block' : 'textlink'} disabled={blocked.length > 0} onClick={() => file(false)}>{wet ? 'File For Ink' : 'Print For Ink Instead'}</button>
           </div></div>
         </section>
       )}

@@ -23,8 +23,8 @@ export function exampleSales(): Sale[] {
 
 /** City to county, for the dealer's state. County is asked only when this misses. */
 export const TX_COUNTY: Record<string, string> = {
-  houston: 'Harris', pasadena: 'Harris', baytown: 'Harris', katy: 'Harris', humble: 'Harris', spring: 'Harris',
-  'sugar land': 'Fort Bend', richmond: 'Fort Bend', missouri: 'Fort Bend', pearland: 'Brazoria', 'league city': 'Galveston',
+  houston: 'Harris', pasadena: 'Harris', baytown: 'Harris', humble: 'Harris', spring: 'Harris',
+  'sugar land': 'Fort Bend', richmond: 'Fort Bend', 'missouri city': 'Fort Bend', pearland: 'Brazoria', 'league city': 'Galveston',
   conroe: 'Montgomery', 'the woodlands': 'Montgomery', dallas: 'Dallas', austin: 'Travis', 'san antonio': 'Bexar', 'fort worth': 'Tarrant',
 };
 

@@ -20,6 +20,7 @@ import { parseMoney } from './lib/money';
 import { idleTooLong, type Staff } from './lib/staff';
 import { promiseState, type PayPromise } from './lib/promise';
 import { applyPayment, paidTo, type Extra } from './lib/extras';
+import { asFiled, financingTerms } from './lib/filed';
 import { periodOf, taxEvents, taxOn, type Filed, type NoteTax, type TaxFiling } from './lib/tax';
 import type { Insurance } from './lib/insurance';
 
@@ -139,6 +140,8 @@ export async function syncNow() {
 export const useStore = () => useSyncExternalStore(f => { subs.add(f); return () => subs.delete(f); }, () => state);
 export const getSale = (id: string) => state.sales.find(s => s.id === id);
 
+/** The dealer's legal facts, filled in later from the paperwork's Not Set marks. */
+export function setDealerFacts(f: Partial<DealerConfig>) { set({ ...state, dealer: { ...state.dealer, ...f } }); }
 export function finishOnboarding(dealer: DealerConfig, lot?: Vehicle[]) { set({ ...state, dealer, onboarded: true, lot: lot ?? state.lot }); }
 export function resetWorkspace() { set(fresh()); }
 
@@ -247,8 +250,9 @@ function loanFromSale(s: Sale, total: number, taxCents: number): Loan | null {
   if (s.step.funding?.type !== 'inHouse') return null;
   const f = s.step.paperwork?.financing ?? {};
   const freq = (f.frequency in PER_YEAR ? f.frequency : 'monthly') as Frequency;
-  const down = parseMoney(f.down) ?? 0, count = Number(f.count) || 0, apr = Number(f.rate) || 0;
-  if (!count || !f.firstDue || total - down <= 0) return null;
+  // the same solved terms the signed contract printed: agreed figures, held to the rate ceiling
+  const filed = asFiled('financing', s, state.dealer), terms = financingTerms(filed.sale, filed.dealer), down = parseMoney(f.down) ?? 0, count = terms.count, apr = terms.rate;
+  if (!count || !Number.isFinite(count) || !f.firstDue || total - down <= 0) return null;
   const opened = openLoan({ id: 'n' + s.id, saleId: s.id, language: s.language ?? 'en', buyer: { name: s.buyer.fullName, phone: s.buyer.phone }, vehicle: `${s.vehicle.year} ${s.vehicle.make} ${s.vehicle.model}${s.vehicle.stock ? ` · Stock ${s.vehicle.stock}` : ''}`,
     principalCents: Math.round((total - down) * 100), apr, count, frequency: freq, firstDue: f.firstDue, openedOn: today(state.dealer.timeZone) });
   return { ...opened, condition: conditionFromSale(s, opened.openedOn), ...(taxCents > 0 ? { tax: { totalCents: taxCents, deferred: true } } : {}) };

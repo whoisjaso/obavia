@@ -58,7 +58,9 @@ export function Ceremony({ id }: { id: string }) {
   const [reuse, setReuse] = useState(false);
   const [times, setTimes] = useState<Record<string, string>>({});
   const sc = useRef<HTMLDivElement>(null);
-  const spanish = s.language === 'es';
+  const spanish = s.language === 'es' && !dealer.spanishApproved;   // Spanish e-signing waits on counsel's approval
+  const [readAt, setReadAt] = useState<string | null>(null);
+  const [consentAt, setConsentAt] = useState<string | null>(null);
 
   if (i === -1) return (
     <main className="wrap cere"><div className="cover enter">
@@ -85,21 +87,22 @@ export function Ceremony({ id }: { id: string }) {
   const stroke = reuse && first ? first : sig;
   const sign = () => {
     const at = new Date().toISOString();
-    fileDocument(id, d, { buyerSigned: true, signature: stroke!, signedVia: 'ceremony', signedAt: at, state: 'filed' });
+    fileDocument(id, d, { buyerSigned: true, signature: stroke!, signedVia: 'ceremony', signedAt: at, state: 'filed', signedUserAgent: navigator.userAgent.slice(0, 240),
+      readToEndAt: readAt ?? at, signatureReused: !!(reuse && first), ...(reuse && first && consentAt ? { reuseConsentAt: consentAt } : {}) });
     if (!first) setFirst(stroke);
-    setTimes({ ...times, [d]: at }); setSig(null); setRead(false); feel.next(); setI(i + 1); scrollTo(0, 0);
+    setTimes({ ...times, [d]: at }); setSig(null); setRead(false); setReadAt(null); feel.next(); setI(i + 1); scrollTo(0, 0);
   };
   return (
     <main className="wrap cere">
       <div className="top"><span className="progress num">{i + 1} Of {docs.length}</span><span /></div>
       <div className="bar"><i style={{ width: `${((i + 1) / docs.length) * 100}%` }} /></div>
       <h1 className="q" style={{ fontSize: 30 }}>{DOC_TITLE[d]}</h1>
-      <div className="paper"><div className="scroll" ref={sc} onScroll={e => { const el = e.currentTarget; if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) setRead(true); }}>
+      <div className="paper"><div className="scroll" ref={sc} onScroll={e => { const el = e.currentTarget; if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) { setRead(true); setReadAt(r => r ?? new Date().toISOString()); } }}>
         <Sheet doc={d} sale={s} dealer={dealer} buyerSig={stroke} dealerSig />
-        <div ref={el => { if (el && sc.current && sc.current.scrollHeight <= sc.current.clientHeight + 8 && !read) setTimeout(() => setRead(true)); }} />
+        <div ref={el => { if (el && sc.current && sc.current.scrollHeight <= sc.current.clientHeight + 8 && !read) setTimeout(() => { setRead(true); setReadAt(r => r ?? new Date().toISOString()); }); }} />
       </div></div>
       <p className="means">{DOC_MEANS[d]}</p>
-      {first && <label className="consent"><input type="checkbox" checked={reuse} onChange={e => { feel.tap(); setReuse(e.target.checked); }} />Use my signature from the first document on this one.</label>}
+      {first && <label className="consent"><input type="checkbox" checked={reuse} onChange={e => { feel.tap(); setReuse(e.target.checked); setConsentAt(e.target.checked ? new Date().toISOString() : null); }} />Use my signature from the first document on this one.</label>}
       {!(reuse && first) && <Pad key={d} locked={!read} onChange={setSig} />}
       <div className="dock"><div className="in"><button className="btn primary block" disabled={!read || !stroke} onClick={sign}>Sign And Continue</button></div></div>
     </main>

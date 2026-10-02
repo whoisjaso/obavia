@@ -32,6 +32,7 @@ export function paperworkQuestions(doc: DocType, s: Sale): PQ[] {
     { key: 'photos', question: 'Photos Of The Car.', kind: 'photos' },
   ];
   if (doc === 'form130U') return [
+    { key: 'idState', question: 'Which State Issued Their Licence?', kind: 'text', prefill: x => x.buyer.state },
     ...(!s.buyer.county ? [{ key: 'county', question: 'Which County Do They Live In?', kind: 'text' as const }] : []),
     { key: 'applyingFor', question: 'What Are We Applying For?', kind: 'choice', choices: [{ v: 'both', label: 'Title And Registration' }, { v: 'title', label: 'Title Only' }, { v: 'registration', label: 'Registration Only' }] },
     { key: 'buyerKind', question: 'Is The Buyer A Person Or A Business?', kind: 'choice', choices: [{ v: 'person', label: 'A Person' }, { v: 'business', label: 'A Business' }] },
@@ -41,8 +42,10 @@ export function paperworkQuestions(doc: DocType, s: Sale): PQ[] {
   if (doc === 'financing') return [
     { key: 'down', question: 'How Much Are They Putting Down?', kind: 'money', prefill: x => x.step.money?.paidTodayAmount ?? '' },
     { key: 'frequency', question: 'How Often Do They Pay?', kind: 'choice', choices: [{ v: 'weekly', label: 'Weekly' }, { v: 'biweekly', label: 'Every Two Weeks' }, { v: 'monthly', label: 'Monthly' }] },
-    { key: 'count', question: 'How Many Payments?', kind: 'number' },
-    { key: 'rate', question: 'What Is The Rate?', kind: 'number' },
+    { key: 'agreed', question: 'What Did You Agree On?', kind: 'choice', choices: [{ v: 'payment', label: 'The Payment' }, { v: 'count', label: 'The Number Of Payments' }, { v: 'both', label: 'Both' }] },
+    ...(a.agreed === 'payment' || a.agreed === 'both' ? [{ key: 'payment', question: 'What Is The Payment?', kind: 'money' as const }] : []),
+    ...(a.agreed === 'count' || a.agreed === 'both' ? [{ key: 'count', question: 'How Many Payments?', kind: 'number' as const }] : []),
+    ...(a.agreed && a.agreed !== 'both' ? [{ key: 'rate', question: 'What Is The Rate?', kind: 'number' as const }] : []),
     { key: 'firstDue', question: 'When Is The First Payment Due?', kind: 'date' },
   ];
   return []; // review-only documents: everything comes from the sale

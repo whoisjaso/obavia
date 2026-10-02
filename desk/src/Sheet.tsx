@@ -3,18 +3,15 @@
    red, the same signature grid. Official state forms (130-U, VTR-271) print
    from the official PDF; here they preview as the fields that will be filled. */
 import type React from 'react';
-import { businessDate, type DealerConfig } from './lib/config';
+import { notSet, type DealerConfig } from './lib/config';
+import { asFiled, financingTerms, lenderName, saleMoney } from './lib/filed';
 import { DOC_TITLE } from './lib/documents';
-import { computeMoney, parseMoney, usd } from './lib/money';
-import { PER_YEAR, payment } from './lib/paperwork';
+import { usd } from './lib/money';
 import { poaInstrument, type DocType } from './lib/plan';
 import type { Sale } from './lib/sale';
 import { photosOf } from './lib/condition';
 
-export function saleReceipt(s: Sale, dealer: DealerConfig) {
-  const bos = s.step.paperwork?.billOfSale ?? {};
-  return computeMoney({ money: s.step.money, funding: s.step.funding?.type, tradeIn: parseMoney(bos.tradeAllowance) ?? 0, fees: dealer.fees });
-}
+export const saleReceipt = saleMoney;
 
 const join = (...xs: (string | false | undefined | null)[]) => xs.filter(Boolean).join(' · ');
 const cityLine = (d: { city: string; state: string; zip: string }) => [d.city, [d.state, d.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
@@ -27,8 +24,8 @@ export function Letterhead({ dealer, title, no, date, stock, es }: { dealer: Dea
       <span className="who">
         <b>{name}</b>
         {dealer.dba && dealer.legalName && dealer.legalName !== dealer.dba && <i>{dealer.legalName}</i>}
-        <small>{join(dealer.street, cityLine(dealer))}</small>
-        <small>{join(dealer.phone, dealer.email, dealer.website)}</small>
+        <small>{join(dealer.street || notSet('Street'), cityLine(dealer))}</small>
+        <small>{join(dealer.phone || notSet('Phone'), dealer.email, dealer.website)}</small>
       </span>
       {title && <span className="doc">
         <b>{title}</b>
@@ -36,7 +33,7 @@ export function Letterhead({ dealer, title, no, date, stock, es }: { dealer: Dea
           {no && <div><dt>No.</dt><dd>{no}</dd></div>}
           {date && <div><dt>{es ? 'Fecha' : 'Date'}</dt><dd>{date}</dd></div>}
           {stock && <div><dt>{es ? 'Inventario' : 'Stock'}</dt><dd>{stock}</dd></div>}
-          {dealer.licence && <div><dt>GDN</dt><dd>{dealer.licence}</dd></div>}
+          <div><dt>GDN</dt><dd>{dealer.licence || notSet('Licence')}</dd></div>
         </dl>
       </span>}
     </header>
@@ -57,13 +54,14 @@ const Box = ({ on, children }: { on: boolean; children: React.ReactNode }) => <s
 
 const Row = ({ k, v }: { k: string; v: string }) => <tr><td>{k}</td><td>{v}</td></tr>;
 
-export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc: DocType; sale: Sale; dealer: DealerConfig; buyerSig?: string | null; dealerSig?: boolean; compact?: boolean }) {
+export function Sheet({ doc, sale: live, dealer: liveDealer, buyerSig, dealerSig, compact }: { doc: DocType; sale: Sale; dealer: DealerConfig; buyerSig?: string | null; dealerSig?: boolean; compact?: boolean }) {
+  // Once filed, the sheet reads the facts it was filed with, never today's records.
+  const f = asFiled(doc, live, liveDealer), sale = f.sale, dealer = f.dealer, date = f.date, signedOn = f.signedOn ?? date;
   const v = sale.vehicle, b = sale.buyer, r = saleReceipt(sale, dealer);
   const p = sale.step.paperwork?.[doc] ?? {}, bos = sale.step.paperwork?.billOfSale ?? {};
   const car = `${v.year} ${v.make} ${v.model}`;
-  const date = businessDate(dealer.timeZone);
   const funding = sale.step.funding;
-  const lender = funding?.type === 'lender' ? funding.lenderOther || funding.lenderId : null;
+  const lender = lenderName(funding);
   // The condition report prints in Spanish for a sale in Spanish; the buyer signs it in ink.
   const es = doc === 'conditionReport' && sale.language === 'es';
   const lien = funding?.type === 'lender' ? lender : r.balance > 0 || funding?.type === 'inHouse' ? dealer.legalName : null;
@@ -74,11 +72,11 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
         <section className="parties">
           <div>
             <h4>Seller</h4>
-            <b>{dealer.legalName}</b>
-            {dealer.street && <span>{dealer.street}</span>}
+            <b>{dealer.legalName || notSet('Legal name')}</b>
+            <span>{dealer.street || notSet('Street')}</span>
             <span>{cityLine(dealer)}</span>
             {dealer.phone && <span>{dealer.phone}</span>}
-            {dealer.licence && <span>Texas dealer licence (GDN) {dealer.licence}</span>}
+            <span>Texas dealer licence (GDN) {dealer.licence || notSet('Licence')}</span>
           </div>
           <div>
             <h4>Purchaser</h4>
@@ -129,7 +127,7 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
             </tfoot></table>
           </div>
         </section>
-        {r.balance > 0 && <p className="key">Balance owed by the purchaser to the seller: {usd(r.balance)}, secured by a lien in favour of {dealer.legalName}.</p>}
+        {r.balance > 0 && <p className="key">Balance owed by the buyer to the seller under this bill of sale: {usd(r.balance)}, secured by a lien in favour of {dealer.legalName || notSet('Legal name')}.</p>}
         {/* Texas doc-fee notice (43 TAC §215.155). Wording to be confirmed with counsel before the first live sale. */}
         <p className="notice">A documentary fee is not an official fee. A documentary fee is not required by law, but may be charged to buyers for handling documents relating to the sale. A documentary fee may not exceed a reasonable amount agreed to by the parties. This notice is required by law.</p>
       </>);
@@ -137,7 +135,7 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
         <p className="official">Printed on the official TxDMV Form 130-U. These are the fields that will be filled.</p>
         <table><tbody>
           <Row k="Applicant" v={`${b.fullName}${p.buyerKind === 'business' ? ' (business)' : ''}`} /><Row k="Address" v={`${b.address}, ${b.city}, ${b.state} ${b.zip}`} />
-          <Row k="County" v={p.county || b.county} /><Row k="ID" v={`${{ dl: 'Driver licence', stateId: 'State ID', passport: 'Passport', military: 'Military ID' }[b.idType]} ${b.idNumber}`} />
+          <Row k="County" v={p.county || b.county} /><Row k="ID" v={`${{ dl: 'Driver licence', stateId: 'State ID', passport: 'Passport', military: 'Military ID' }[b.idType]} ${b.idNumber}${p.idState ? `, issued by ${p.idState}` : ''}`} />
           <Row k="Vehicle" v={`${car} · ${v.bodyStyle}`} /><Row k="VIN" v={v.vin} /><Row k="Odometer" v={`${v.mileage?.toLocaleString() ?? ''}`} />
           <Row k="Empty weight" v={p.emptyWeight ? `${Number(p.emptyWeight).toLocaleString()} lb` : ''} />{p.capacity && <Row k="Carrying capacity" v={p.capacity} />}
           <Row k="Applying for" v={{ both: 'Title and registration', title: 'Title only', registration: 'Registration only' }[p.applyingFor as string] ?? ''} />
@@ -145,15 +143,14 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
         </tbody></table>
       </>);
       case 'financing': {
-        const down = parseMoney(p.down) ?? 0, principal = Math.max(0, r.total - down), per = PER_YEAR[p.frequency] ?? 12;
-        const pay = payment(principal, Number(p.rate) || 0, Number(p.count) || 0, per);
+        const t = financingTerms(sale, dealer), fq = { weekly: 'weekly', biweekly: 'every two weeks', monthly: 'monthly' }[p.frequency as string] ?? '';
         return (<>
           <table className="num"><tbody>
-            <Row k="Cash price, tax and fees" v={usd(r.total)} /><Row k="Down payment" v={usd(down)} /><Row k="Amount financed" v={usd(principal)} />
-            <Row k="Rate (APR)" v={`${p.rate ?? ''}%`} /><Row k="Payments" v={`${p.count ?? ''} × ${usd(pay)}, ${{ weekly: 'weekly', biweekly: 'every two weeks', monthly: 'monthly' }[p.frequency as string] ?? ''}`} />
+            <Row k="Cash price, tax and fees" v={usd(r.total)} /><Row k="Down payment" v={usd(t.down)} /><Row k="Amount financed" v={usd(t.principal)} />
+            <Row k="Rate (APR)" v={`${t.rate.toFixed(2)}%`} /><Row k="Payments" v={Number.isFinite(t.count) ? `${t.count} × ${usd(t.payment)}, ${fq}` : 'The payment does not cover the interest'} />
             <Row k="First payment due" v={p.firstDue ?? ''} />
           </tbody></table>
-          <p className="key">The rate is held to the Texas Finance Code ceiling the owner confirms before the first sale.</p>
+          <p className="key">{t.held ? `The agreed figures came to more than the ${t.ceiling}% ceiling, so the rate is held at ${t.ceiling}% and the payment recomputed.` : `The rate is within the ${t.ceiling}% ceiling (Texas Finance Code).`}</p>
         </>);
       }
       case 'conditionReport': {
@@ -196,7 +193,7 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
       }
       case 'vehicleResponsibility': return (<>
         <p>The buyer is filing the title and registration for the {car} (VIN {v.vin}) and will do so within 30 days of {date}.</p>
-        <p className="key">If the filing comes back to the dealer, the buyer owes {usd(r.registrationCost)} for tax and fees.</p>
+        <p className="key">If the filing comes back to the dealer, the buyer owes {usd(r.registrationCost)} for tax and fees, plus any late fee the county charges (Tex. Transp. Code §501.146: $10 to a licensed dealer, and $25 more for each 30 days after the 60th day, up to $250).</p>
       </>);
       case 'insuranceAcknowledgment': return (<>
         <p>The buyer did not show proof of insurance today. Texas law requires it before the {car} is driven. The dealer is not the buyer’s insurer.</p>
@@ -208,7 +205,10 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
       }
       case 'rebuiltDisclosure': return (<>
         <p className="key">This vehicle has a rebuilt salvage title. The brand is permanent and affects its value.</p>
-        <p>The buyer was given the chance to inspect the {car}, VIN {v.vin}, before signing anything else. The state’s disclosure sentence prints here word for word from Form ENF-MV-RBLT DSCLMR.</p>
+        <p>The buyer was given the chance to inspect the vehicle before signing anything else.</p>
+        <table><tbody><Row k="Year" v={String(v.year)} /><Row k="Make" v={v.make} /><Row k="VIN" v={v.vin} /></tbody></table>
+        {/* TxDMV Form ENF-MV-RBLT DSCLMR (Rev. 02/17), the purchaser's sentence, word for word. */}
+        <p className="official">“I, {b.fullName}, acknowledge that at the time of purchase, I am aware that this vehicle has been repaired, rebuilt, or reconstructed and was formerly titled as a salvage motor vehicle.”</p>
       </>);
       case 'towAwayAcknowledgment': return <p className="key">The {car} leaves on a tow, on its salvage title, with no plates, and nothing is filed with the state.</p>;
       case 'buyerResponsibilityStatement': return <p>From today, anything the {car} needs is the buyer’s to handle. Salvage dealing is separately licensed (Tex. Occ. Code ch. 2302).</p>;
@@ -222,8 +222,9 @@ export function Sheet({ doc, sale, dealer, buyerSig, dealerSig, compact }: { doc
       <i className="band" />
       <Letterhead dealer={dealer} title={es ? 'Informe del estado del vehículo' : DOC_TITLE[doc]} no={docNo} date={date} stock={sale.vehicle.stock} es={es} />
       {body}
+      {es && !dealer.spanishApproved && <p className="notice">Traducción pendiente de revisión legal · Translation pending counsel review</p>}
       {!compact && <footer className="sig">
-        <div><span className="ink">{buyerSig && <img src={buyerSig} alt="Purchaser signature" />}</span><b>{es ? 'Comprador' : 'Purchaser'}</b><small>{b.fullName}</small><small className="d">{es ? 'Fecha' : 'Date'} {date}</small></div>
+        <div><span className="ink">{buyerSig && <img src={buyerSig} alt="Purchaser signature" />}</span><b>{es ? 'Comprador' : 'Purchaser'}</b><small>{b.fullName}</small><small className="d">{es ? 'Fecha' : 'Date'} {buyerSig ? signedOn : date}</small></div>
         <div><span className="ink">{dealerSig && dealer.signer.name && <em>{dealer.signer.name}</em>}</span><b>{es ? 'Vendedor, firma autorizada' : 'Seller, authorized signature'}</b><small>{dealer.signer.name ? `${dealer.signer.name}, ${dealer.signer.title}, ${es ? 'por' : 'for'} ${dealer.legalName}` : es ? `Representante autorizado de ${dealer.legalName}` : `Authorized representative, for ${dealer.legalName}`}</small><small className="d">{es ? 'Fecha' : 'Date'} {date}</small></div>
       </footer>}
       {!compact && <p className="foot"><span>{join(dealer.legalName, dealer.licence && `GDN ${dealer.licence}`)}</span><span>{docNo} · {es ? 'Página 1 de 1' : 'Page 1 of 1'}</span></p>}

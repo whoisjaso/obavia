@@ -14,7 +14,17 @@ export type DealerConfig = {
   languages: ('en' | 'es')[];
   fees: Fees;
   brand: Brand;
+  rateCeiling?: number | null;     // the Tex. Fin. Code ch. 348 ceiling the owner confirmed for their vehicles; 18% holds until then
+  spanishApproved?: boolean;       // counsel approved the Spanish translations: lifts the pending mark and allows Spanish e-signing
 };
+
+/** The legal facts every document prints. Missing ones print "[Not set: …]" and block filing. */
+export function missingFacts(d: DealerConfig): string[] {
+  const need: [string, unknown][] = [['Legal name', d.legalName], ['Street', d.street], ['City', d.city], ['ZIP', d.zip], ['County', d.county], ['Phone', d.phone],
+    ['Dealer licence (GDN)', d.licence], ['Authorised signer', d.signer?.name], ['Documentary fee', Number.isFinite(d.fees?.doc) ? 'ok' : '']];
+  return need.filter(([, v]) => !String(v ?? '').trim()).map(([k]) => k);
+}
+export const notSet = (label: string) => `[Not set: ${label}]`;
 
 export type Fees = { taxRate: number; title: number; registration: number; doc: number };
 

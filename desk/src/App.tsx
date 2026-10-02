@@ -15,6 +15,7 @@ import { PromiseSetup } from './Promise';
 import { Extras } from './Extras';
 import { PauseSetup } from './Pause';
 import { Import } from './Import';
+import { Facts } from './Facts';
 import { TaxHome, TaxLines, TitlePage, Titles } from './Tax';
 import { BuyerPreview, CreditPage, Find, InsuranceList, InsurancePage, NextCarList, NextCarOne } from './Care';
 import type { DocType } from './lib/plan';
@@ -37,6 +38,7 @@ export function App() {
   if (a === 'new') return <Start />;
   if (a === 'past') return <Past />;
   if (a === 'find') return <Find />;
+  if (a === 'facts') return <Facts />;
   if (a === 'import') return <Import />;
   if (a === 'people') return id === 'add' ? <AddPerson /> : <People />;
   if (a === 'reach') return id === 'marketplace' ? <MarketplaceConsent /> : id === 'g' && b ? <ReachGroup key={b} group={b as 'phone'} /> : id ? <Channel id={id} /> : <Reach />;

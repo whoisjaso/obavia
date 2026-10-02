@@ -29,7 +29,12 @@ export type StepData = {
   saleClock?: { startedAt: string };
 };
 
-export type AgreementState = { state: 'draft' | 'filed'; buyerSigned?: boolean; dealerSigned?: boolean; signature?: string; signedVia?: 'desk' | 'ceremony'; signedAt?: string };
+export type AgreementState = {
+  state: 'draft' | 'filed'; buyerSigned?: boolean; dealerSigned?: boolean; signature?: string; signedVia?: 'desk' | 'ceremony'; signedAt?: string;
+  frozen?: import('./filed').Frozen;     // the facts it was filed with; every print reads these
+  // signature evidence on the document's own row (ESIGN/UETA: intent, attribution, association, retention)
+  signedUserAgent?: string; readToEndAt?: string; signatureReused?: boolean; reuseConsentAt?: string;
+};
 
 export type Sale = {
   id: string; status: 'in_progress' | 'completed' | 'abandoned';
