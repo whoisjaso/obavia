@@ -6,6 +6,7 @@ import { counts, money, type Loan } from './loans';
 import { signal } from './autopay';
 import { promiseState } from './promise';
 import { addDays } from './loans';
+import { titleWatch } from './tax';
 
 export type EveningFacts = {
   dealerName: string; date: string; loans: Loan[];
@@ -39,6 +40,13 @@ export function evening(f: EveningFacts): Evening {
   for (const l of f.loans) if ((l.promises ?? []).some(p => p.on === addDays(f.date, -1) && ['broken', 'partly'].includes(promiseState(l, p, f.date)))) {
     const n = `${first(l.buyer.name)}: broke a promise`;
     if (!needs.some(x => x.startsWith(first(l.buyer.name) + ':'))) needs.unshift(n);
+  }
+  // a title application close to its deadline: day 45 for the title, day 60 for the tax
+  for (const l of f.loans) {
+    const w = titleWatch(l, f.date);
+    if (w?.state === 'accelerated') needs.unshift(`${first(l.buyer.name)}: title past 60 days, the tax is due`);
+    else if (w?.state === 'overdue') needs.unshift(`${first(l.buyer.name)}: title past due, ${plural(w.left, 'day')} to the 60-day line`);
+    else if (w?.state === 'soon' && w.left <= 3) needs.push(`${first(l.buyer.name)}: title due in ${plural(w.left, 'day')}`);
   }
   if (f.toMatch) needs.push(`${plural(f.toMatch, 'payment')} to match`);
   const cashToday = cashOn(f.loans, f.date).cents;

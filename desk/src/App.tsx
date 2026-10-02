@@ -15,6 +15,8 @@ import { PromiseSetup } from './Promise';
 import { Extras } from './Extras';
 import { PauseSetup } from './Pause';
 import { Import } from './Import';
+import { TaxHome, TaxLines, TitlePage, Titles } from './Tax';
+import { BuyerPreview, CreditPage, Find, InsuranceList, InsurancePage, NextCarList, NextCarOne } from './Care';
 import type { DocType } from './lib/plan';
 import { useEffect, useState } from 'react';
 import { deskLocked, getSale, touchDesk, useStore } from './store';
@@ -34,6 +36,7 @@ export function App() {
   const [, a, id, b, c, d] = h.split('/');
   if (a === 'new') return <Start />;
   if (a === 'past') return <Past />;
+  if (a === 'find') return <Find />;
   if (a === 'import') return <Import />;
   if (a === 'people') return id === 'add' ? <AddPerson /> : <People />;
   if (a === 'reach') return id === 'marketplace' ? <MarketplaceConsent /> : id === 'g' && b ? <ReachGroup key={b} group={b as 'phone'} /> : id ? <Channel id={id} /> : <Reach />;
@@ -45,6 +48,10 @@ export function App() {
     if (id === 'today') return <Today />;
     if (id === 'more') return <PaymentsMore />;
     if (id === 'evening') return <EveningText />;
+    if (id === 'next') return <NextCarList />;
+    if (id === 'insurance') return <InsuranceList />;
+    if (id === 'credit') return <CreditPage />;
+    if (id === 'tax') return b === 'titles' ? <Titles /> : b === 'lines' ? <TaxLines /> : <TaxHome />;
     if (id === 'match') return b ? <MatchOne key={b} id={decodeURIComponent(b)} /> : <MatchList />;
     if (id === 'list') return <PaymentList key={b} which={(b === 'late' || b === 'today' || b === 'watch' || b === 'promises' ? b : 'all')} />;
     if (id && b === 'autopay') return <AutopaySetup key={id} id={id} />;
@@ -53,6 +60,10 @@ export function App() {
     if (id && b === 'pause') return <PauseSetup key={id} id={id} />;
     if (id && b === 'condition') return <ConditionPage key={id} id={id} />;
     if (id && b === 'history') return <History key={id} id={id} />;
+    if (id && b === 'title') return <TitlePage key={id} id={id} />;
+    if (id && b === 'next') return <NextCarOne key={id} id={id} />;
+    if (id && b === 'insurance') return <InsurancePage key={id} id={id} />;
+    if (id && b === 'page') return <BuyerPreview key={id} id={id} />;
     if (id && b === 'pay') return <TakePayment key={id} id={id} />;
     if (id && b) return <AccountPage key={`${id}/${b}`} id={id} page={b} />;
     return id ? <Account key={id} id={id} /> : <Payments />;

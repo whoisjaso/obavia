@@ -26,6 +26,9 @@ export function mergeNote(server: Loan | null, desk: Loan): Loan {
     payments: [...pay.values()].sort((a, b) => a.on.localeCompare(b.on) || a.receipt - b.receipt),
     attempts: att.size ? [...att.values()] : desk.attempts,
     service: svc.size ? [...svc.values()] : desk.service,
+    // the buyer may have sent a newer insurance card from their page; the server knows their page's link
+    insurance: (server.insurance?.updated ?? '') > (desk.insurance?.updated ?? '') ? server.insurance : desk.insurance,
+    page: server.page ?? desk.page,
   };
 }
 

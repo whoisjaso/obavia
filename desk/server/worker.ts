@@ -6,6 +6,7 @@
      POST /webhooks/telnyx    signed by Telnyx
      POST /webhooks/paynearme signed by PayNearMe: payments, declines, returns, chargebacks
      POST /api/desk/sync      Bearer session token from verify; {notes, facts, evening} -> {ok, notes, refused}
+     GET|POST /b/<note>.<sig> the buyer's own page (signed link); POST saves a new insurance card
    Hourly (cron): reminders due today and tonight's text, per dealer time zone (server/jobs.ts).
    Config in server/wrangler.toml; secrets with `wrangler secret put`. */
 import { FakeProvider } from './messaging/fake';
@@ -17,6 +18,7 @@ import { PaymentDesk } from './payments/desk';
 import { ack, parseCallback, verifySignature } from './payments/paynearme';
 import { D1NoteStore } from './payments/d1';
 import { runJobs } from './jobs';
+import { MAX_PAGE_POST, buyerRoute, pagePath, type BuyerPages } from './buyer';
 import type { Loan } from '../src/lib/loans';
 import type { SyncBody } from '../src/lib/sync';
 
@@ -55,7 +57,7 @@ export class R2ContactBook implements ContactBook {
 /* ---------- the app, independent of where its parts come from ---------- */
 
 export type DeskSync = { upsert(dealerId: string, notes: Loan[], facts?: SyncBody['facts'], evening?: SyncBody['evening']): Promise<{ notes: Loan[]; refused: string[] }> };
-export type App = { messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[]; payments?: { desk: PaymentDesk; secret: string }; desk?: { sync: DeskSync; secret: string } };
+export type App = { messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[]; payments?: { desk: PaymentDesk; secret: string }; desk?: { sync: DeskSync; secret: string; pageBase?: string }; buyer?: BuyerPages };
 const MAX_SYNC = 900 * 1024;
 
 const MAX_BODY = 64 * 1024;
@@ -75,6 +77,12 @@ export async function route(req: Request, app: App): Promise<Response> {
   const url = new URL(req.url), h = cors(req, app.allowedOrigins);
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
   if (req.method === 'GET' && url.pathname === '/health') return json({ ok: true }, 200, h);
+  // The buyer's own page: a signed link, plain HTML, no session.
+  if (url.pathname.startsWith('/b/') && app.buyer) {
+    if (Number(req.headers.get('content-length') ?? 0) > MAX_PAGE_POST) return new Response('Too large', { status: 413 });
+    const r = await buyerRoute(req, url.pathname, app.buyer);
+    if (r) return r;
+  }
   if (req.method !== 'POST') return json({ ok: false, reason: 'not_found' }, 404, h);
   const limit = url.pathname === '/api/desk/sync' ? MAX_SYNC : MAX_BODY;
   if (Number(req.headers.get('content-length') ?? 0) > limit) return json({ ok: false, reason: 'too_large' }, 413, h);
@@ -108,7 +116,9 @@ export async function route(req: Request, app: App): Promise<Response> {
     const b = body as Partial<SyncBody>;
     if (!Array.isArray(b.notes) || b.notes.some(n => typeof n?.id !== 'string' || !Array.isArray(n.payments))) return json({ ok: false, reason: 'bad_request' }, 400, h);
     const r = await app.desk.sync.upsert(claims.licence, b.notes, b.facts, b.evening);
-    return json({ ok: true, ...r }, 200, h);
+    // each note comes back with the link to the buyer's own page, when the API has a public address
+    const base = app.desk.pageBase, pages = app.buyer && base ? await Promise.all(r.notes.map(async n => ({ ...n, page: base + await pagePath(app.buyer!.secret, n.id) }))) : r.notes;
+    return json({ ok: true, ...r, notes: pages }, 200, h);
   }
 
   if (url.pathname === '/api/messages') {
@@ -143,7 +153,8 @@ export function build(env: Env): App {
   const notes = new D1NoteStore(env.DB);
   return {
     messenger,
-    desk: { sync: notes, secret: env.SESSION_SECRET },
+    desk: { sync: notes, secret: env.SESSION_SECRET, pageBase: env.PUBLIC_URL?.replace(/\/$/, '') },
+    buyer: { notes, messenger, secret: env.SESSION_SECRET },
     payments: env.PAYNEARME_CALLBACK_SECRET ? { desk: new PaymentDesk(notes, messenger, n => notes.dealerFor(n)), secret: env.PAYNEARME_CALLBACK_SECRET } : undefined,
     verifier: new Verifier(provider, store, new R2ContactBook(env.DEALERS), email, env.SESSION_SECRET),
     internalToken: env.INTERNAL_API_TOKEN ?? '',

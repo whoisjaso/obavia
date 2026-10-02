@@ -12,6 +12,8 @@ import type { Condition, ServiceEntry } from './condition';
 import { openPromise, promiseReminder, type PayPromise } from './promise';
 import { perPayment, repairsLeft, type Extra } from './extras';
 import type { Pause } from './pause';
+import type { NoteTax } from './tax';
+import { insuranceTexts, type Insurance } from './insurance';
 
 export type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 export type Method = 'cash' | 'card' | 'ach' | 'check' | 'money_order' | 'zelle' | 'cash_app' | 'venmo' | 'paypal' | 'other';
@@ -49,6 +51,10 @@ export type Loan = {
   extras?: Extra[];                // repair balances and recurring fees, beside the note
   pauses?: Pause[];                // payments moved to the end of the note
   promises?: PayPromise[];         // "I'll pay Monday": the account works from the promise
+  insurance?: Insurance;           // the policy on the car, and when it ends
+  worthCents?: number;             // what the dealer thinks the car is worth today, for equity
+  page?: string;                   // the buyer's own page, a signed link from the server
+  tax?: NoteTax;                   // Texas motor vehicle tax on the sale, and the title application
   imported?: { from: 'frazer'; on: string; account: string; theirBalanceCents?: number; mode: 'history' | 'balance' };
 };
 
@@ -110,6 +116,7 @@ export type Standing = {
   accruedCents: number;            // interest since the last payment
   payoffCents: number;             // to close the note today
   paidCents: number; interestPaidCents: number; feesPaidCents: number;
+  feesByReceipt: Record<number, number>;   // the part of each payment that paid late charges
   next?: { n: number; due: string; cents: number };
   status: 'current' | 'due_today' | 'late' | 'paid_off';
 };
@@ -151,6 +158,7 @@ export function standing(loan: Loan, asOf: string): Standing {
       }
     }
   };
+  const feesBy: Record<number, number> = {};
   let carry = 0;                                                      // interest earned but not yet paid; never compounded
   for (const p of pays) {
     assessFees(p.on);
@@ -158,7 +166,7 @@ export function standing(loan: Loan, asOf: string): Standing {
     const interest = carry + Math.round(principal * (loan.apr / 100) * Math.max(0, daysBetween(since, p.on)) / 365);
     const cents = noteCents(p);
     let left = cents;
-    const toFees = Math.min(left, feesOutstanding); left -= toFees; feesPaid += toFees;
+    const toFees = Math.min(left, feesOutstanding); left -= toFees; feesPaid += toFees; if (toFees) feesBy[p.receipt] = toFees;
     const toInterest = Math.min(left, interest); left -= toInterest; interestPaid += toInterest; carry = interest - toInterest;
     const toPrincipal = Math.min(left, principal); left -= toPrincipal; principal -= toPrincipal;
     since = p.on; paid += cents;
@@ -186,7 +194,7 @@ export function standing(loan: Loan, asOf: string): Standing {
     asOf, installments: inst, pastDueCents: pastDue, daysLate: oldest ? daysBetween(oldest.due, asOf) : 0,
     feesOwedCents: Math.max(0, feesOwed), principalCents: Math.max(0, principal), accruedCents: accrued,
     payoffCents: Math.max(0, principal) + accrued + Math.max(0, feesOwed),
-    paidCents: paid, interestPaidCents: interestPaid, feesPaidCents: feesPaid,
+    paidCents: paid, interestPaidCents: interestPaid, feesPaidCents: feesPaid, feesByReceipt: feesBy,
     next: nextI && !paidOff ? { n: nextI.n, due: nextI.due, cents: nextI.cents - nextI.paidCents } : undefined,
     status,
   };
@@ -204,7 +212,7 @@ export function takePayment(loan: Loan, p: Omit<Payment, 'id' | 'receipt'>, rece
 }
 
 /* ---------- reminders, for the buyer and for the owner ---------- */
-export type Reminder = { on: string; kind: 'before' | 'due' | 'late' | 'late_fee' | 'promise'; n: number; text: string };
+export type Reminder = { on: string; kind: 'before' | 'due' | 'late' | 'late_fee' | 'promise' | 'insurance'; n: number; text: string };
 const usd = (c: number) => '$' + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const day = (d: string) => new Date(toUTC(d)).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' });
 /** "viernes, 2 de octubre" */
@@ -213,10 +221,11 @@ const dia = (d: string) => new Date(toUTC(d)).toLocaleDateString('es-US', { time
 /** The texts a buyer will get for the next unpaid installment: four at most, then once a week while it's still late. In the buyer's language.
     While they've promised a day, the due and late texts wait for it: one reminder that morning instead. */
 export function reminderPlan(loan: Loan, s: Standing, dealerName: string): Reminder[] {
+  const ins: Reminder[] = loan.remindersOn && s.status !== 'paid_off' ? insuranceTexts(loan, dealerName).filter(x => x.on >= s.asOf).map((x, k) => ({ ...x, kind: 'insurance' as const, n: k })) : [];
   const plan = basePlan(loan, s, dealerName), p = loan.remindersOn ? openPromise(loan, s.asOf) : undefined;
-  if (!p) return plan;
-  return [...plan.filter(r => r.kind === 'late_fee' || (r.kind !== 'late' && r.on > p.on)),
-    { on: p.on, kind: 'promise' as const, n: s.next?.n ?? 0, text: promiseReminder(loan, p, dealerName) }].sort((a, b) => a.on.localeCompare(b.on));
+  const all = !p ? plan : [...plan.filter(r => r.kind === 'late_fee' || (r.kind !== 'late' && r.on > p.on)),
+    { on: p.on, kind: 'promise' as const, n: s.next?.n ?? 0, text: promiseReminder(loan, p, dealerName) }];
+  return [...all, ...ins].sort((a, b) => a.on.localeCompare(b.on));
 }
 function basePlan(loan: Loan, s: Standing, dealerName: string): Reminder[] {
   if (!loan.remindersOn || !s.next || s.status === 'paid_off') return [];

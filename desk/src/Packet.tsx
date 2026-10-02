@@ -39,7 +39,7 @@ export function Packet({ id }: { id: string }) {
       <div className="dock"><div className="in">
         {signable.length > 0 && allFiled
           ? <button className="btn primary block" onClick={() => { feel.next(); go(`/sign/${id}`); }}><Ic n="pen" s={20} />Sign The Packet</button>
-          : s.status !== 'completed' && <button className="btn primary block" disabled={!allFiled} onClick={() => { feel.done(); openNoteForSale(id, saleReceipt(s, dealer).total); completeSale(id); go('/'); }}>Complete Sale</button>}
+          : s.status !== 'completed' && <button className="btn primary block" disabled={!allFiled} onClick={() => { feel.done(); openNoteForSale(id, saleReceipt(s, dealer).total, saleReceipt(s, dealer).tax); completeSale(id); go('/'); }}>Complete Sale</button>}
         <button className="textlink" onClick={() => print()}>Print</button>
       </div></div>
     </main>

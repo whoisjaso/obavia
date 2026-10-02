@@ -147,12 +147,12 @@ These are the things neither product does well, and each one is money for Triple
 
 | # | Build | Taken from | Why it wins |
 | --- | --- | --- | --- |
-| 1 | **Deferred sales tax and the 60-day title watch.** Track sales tax per payment, count down to the title transfer, warn at day 45, flag a note sold to a non-related company. | Nobody does it well (TIADA rule) | Prevents a tax bill with penalties. Specific to Texas, and simple to explain. Needs CPA review. |
-| 2 | **Ready For The Next Car.** Buyers 12 or more months in, mostly on time, near payoff or with equity. Use the note's payoff against a value the dealer enters, so it needs no Kelley Blue Book licence at first. | Fullpath Equity | Repeat sales from the dealer's own notes, with no ad spend: Fullpath's best idea, for a lot that doesn't buy ads. |
-| 3 | **Insurance on the account.** Policy and expiry date, a text before it lapses, and a buyer photo upload through the payment link. | DealerCenter "My Account" and its insurance texts; Frazer's collateral protection insurance | An uninsured car under a buy here pay here note is the dealer's own risk. |
-| 4 | **The buyer's own page.** Balance, next due, payoff and history behind the existing payment link, in English or Spanish. | DealerCenter "My Account" | Fewer "what do I owe" calls. We already have the link and the Spanish. |
-| 5 | **Credit reporting (Metro 2)**, with no minimum portfolio size. | DealerCenter (Datalinx), Frazer | "Builds your credit" is a selling point. Still open from frazer-teardown.md #5. |
-| 6 | **Find any deal in one search.** Name, phone, VIN, stock or receipt number. | A DealerCenter complaint | A fix their reviewers keep asking for, which costs us little. |
+| 1 | **Built (bhph-payments.md §19): deferred sales tax and the 60-day title watch.** Track sales tax per payment, count down to the title transfer, warn at day 45, flag a note sold to a non-related company. | Nobody does it well (TIADA rule) | Prevents a tax bill with penalties. Specific to Texas, and simple to explain. Needs CPA review. |
+| 2 | **Built (§20): Ready For The Next Car.** Buyers 12 or more months in, mostly on time, near payoff or with equity. Use the note's payoff against a value the dealer enters, so it needs no Kelley Blue Book licence at first. | Fullpath Equity | Repeat sales from the dealer's own notes, with no ad spend: Fullpath's best idea, for a lot that doesn't buy ads. |
+| 3 | **Built (§21): insurance on the account.** Policy and expiry date, a text before it lapses, and a buyer photo upload through the payment link. | DealerCenter "My Account" and its insurance texts; Frazer's collateral protection insurance | An uninsured car under a buy here pay here note is the dealer's own risk. |
+| 4 | **Built (§22): the buyer's own page.** Balance, next due, payoff and history behind the existing payment link, in English or Spanish. | DealerCenter "My Account" | Fewer "what do I owe" calls. We already have the link and the Spanish. |
+| 5 | **Built (§23): credit reporting (Metro 2)**, with no minimum portfolio size. | DealerCenter (Datalinx), Frazer | "Builds your credit" is a selling point. Still open from frazer-teardown.md #5. |
+| 6 | **Built (§24): find any deal in one search.** Name, phone, VIN, stock or receipt number. | A DealerCenter complaint | A fix their reviewers keep asking for, which costs us little. |
 | 7 | **One price, unlimited users and texts.** The owner decides the price. | Against DealerCenter's add-on pricing | The "nickel and dime" complaint, answered. |
 
 Deliberately not taken:

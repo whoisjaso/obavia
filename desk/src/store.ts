@@ -20,16 +20,20 @@ import { parseMoney } from './lib/money';
 import { idleTooLong, type Staff } from './lib/staff';
 import { promiseState, type PayPromise } from './lib/promise';
 import { applyPayment, paidTo, type Extra } from './lib/extras';
+import { periodOf, taxEvents, taxOn, type Filed, type NoteTax, type TaxFiling } from './lib/tax';
+import type { Insurance } from './lib/insurance';
 
 type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[];
   money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay>;
   autoPost?: boolean; autoPosted?: AutoPosted[]; noAuto?: string[];
   evening?: { on: boolean; hour: number };
-  staff?: Staff[]; at?: string };   // at: who is signed in at the desk
+  staff?: Staff[]; at?: string;
+  taxFiling?: TaxFiling; taxFiled?: Filed;
+  creditReporting?: { on: boolean; since: string } };   // at: who is signed in at the desk
 export type AutoPosted = { moneyId: string; loanId: string; receipt: number; on: string; addedPayer?: string };
 const KEY = 'obavia.desk.v1';
 
-function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales(), loans: exampleLoans(EXAMPLE_DEALER.timeZone), money: exampleMoney(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), cashDays: exampleCashDays(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), receiptNo: 1000, autoPost: true, evening: { on: true, hour: 19 } }; }
+function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales(), loans: exampleLoans(EXAMPLE_DEALER.timeZone), money: exampleMoney(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), cashDays: exampleCashDays(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), taxFiling: 'quarterly', taxFiled: exampleTaxFiled(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), receiptNo: 1000, autoPost: true, evening: { on: true, hour: 19 } }; }
 
 /** Example in-house notes, dated from today so every state shows: due today, late, late with a charge, current, paid off. */
 export function exampleLoans(tz: string): Loan[] {
@@ -45,6 +49,8 @@ export function exampleLoans(tz: string): Loan[] {
     mk('ex-late', 'Dana Example', '(555) 010-4410', '2016 Chevrolet Silverado 1500 · Stock 111', 1150000, 21, 52, 'biweekly', addDays(t, -37), [[0, 0], [14, 0]]),
     mk('ex-fee', 'Chris Sample', '(555) 010-9032', '2017 Nissan Murano SV · Stock 112', 840000, 18, 36, 'monthly', addDays(t, -79), [[0, 0], [31, 0]]),
     mk('ex-current', 'Alex Placeholder', '(555) 010-1187', '2017 Ford Fusion SE · Stock 115', 560000, 17.5, 78, 'weekly', addDays(t, -12), [[0, 0], [7, 0], [9, 0]]),
+    // fourteen months in and never late: ready for the next car
+    mk('ex-next', 'Sam Example', '(555) 010-6630', '2015 Toyota Camry SE · Stock 98', 640000, 18, 78, 'weekly', addDays(t, -7 * 61 - 3), Array.from({ length: 62 }, (_, k) => [7 * k, 0] as [number, number])),
   ];
   // Autopay and failed charges, so every signal shows: on purpose (red), short on money (amber), clean autopay (good).
   const at = (l: Loan, daysAgo: number, code: string, n: number, via: Attempt['via']): Attempt => ({ on: addDays(t, -daysAgo), cents: l.paymentCents, n, via, result: 'declined', code });
@@ -54,12 +60,25 @@ export function exampleLoans(tz: string): Loan[] {
   dana.attempts = [at(dana, 9, '51', 3, 'card'), at(dana, 6, '51', 3, 'card')];
   chris.autopay = { on: false, method: { kind: 'bank', bank: 'Chase', last4: '4417', routing: '111000614' }, signedBy: 'Chris Sample', signedOn: addDays(t, -86), history: [{ on: addDays(t, -86), event: 'added' }, { on: addDays(t, -19), event: 'turned_off' }] };
   chris.attempts = [{ ...at(chris, 18, 'R08', 3, 'bank'), result: 'returned' }];
+  // Texas tax on each sale, sent as payments come in; Dana's title application is still to file.
+  for (const l of list) l.tax = { totalCents: taxOn(l.principalCents), deferred: true, titleFiled: addDays(l.openedOn, 9) };
+  dana.tax = { ...dana.tax!, titleFiled: undefined };
+  // Insurance on file: Jordan's ends soon, Chris's has ended, the rest are fine.
+  const ins = (company: string, days: number): Insurance => ({ company, expires: addDays(t, days), updated: addDays(t, -30), by: 'desk' });
+  [jordan.insurance, dana.insurance, chris.insurance, list[3].insurance, list[4].insurance] = [ins('Progressive', 9), ins('GEICO', 120), ins('State Farm', -4), ins('Allstate', 200), ins('Progressive', 75)];
+  list[4].worthCents = 900000;
   list[3].language = 'es';   // one buyer whose texts are in Spanish
   // The car's condition as signed, and the complaint that came before the stopped payment.
   for (const l of list) l.condition = { signedOn: l.openedOn, miles: 61240, asIs: true, guide: true, drove: true, photos: [] };
   chris.condition = { signedOn: chris.openedOn, miles: 88410, asIs: true, guide: true, drove: true, known: 'Driver window motor slow', photos: [] };
   chris.service = [{ on: addDays(t, -24), miles: 93180, what: 'Says the transmission is slipping', kind: 'complaint' }];
   return list;
+}
+/** Example tax reports: every period whose report was due before today was filed on time. */
+export function exampleTaxFiled(loans: Loan[], tz: string): Filed {
+  const t = today(tz), out: Filed = {};
+  for (const e of loans.flatMap(l => taxEvents(l, t))) { const p = periodOf(e.on, 'quarterly'); if (p.due < t) out[p.key] = { on: addDays(p.due, -5), cents: (out[p.key]?.cents ?? 0) + e.cents }; }
+  return out;
 }
 /** Example money from outside the processor, the way it would arrive from the bank feed and receipt emails. */
 export function exampleMoney(loans: Loan[], tz: string): Money[] {
@@ -86,7 +105,7 @@ export function exampleCashDays(loans: Loan[], tz: string): Record<string, CashD
 function load(): State {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); if (!s.cashDays && s.example) s.cashDays = exampleCashDays(s.loans ?? [], s.dealer.timeZone); if (s.example && s.autoPost === undefined) { s.autoPost = true; s.evening = { on: true, hour: 19 }; } return s; }
+    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); if (!s.cashDays && s.example) s.cashDays = exampleCashDays(s.loans ?? [], s.dealer.timeZone); if (s.example && !s.taxFiled) { s.taxFiling = 'quarterly'; s.taxFiled = exampleTaxFiled(s.loans ?? [], s.dealer.timeZone); } if (s.example && s.autoPost === undefined) { s.autoPost = true; s.evening = { on: true, hour: 19 }; } return s; }
   } catch { /* private mode */ }
   return fresh();
 }
@@ -224,7 +243,7 @@ export function dismissMoney(id: string) { set({ ...state, matched: { ...state.m
 export function setLoanLanguage(loanId: string, language: Lang) { set({ ...state, loans: getLoans().map(l => (l.id === loanId ? { ...l, language } : l)) }); }
 export function setReminders(loanId: string, on: boolean) { set({ ...state, loans: getLoans().map(l => (l.id === loanId ? { ...l, remindersOn: on } : l)) }); }
 /** When an in-house sale completes, its note opens from the financing answers. */
-function loanFromSale(s: Sale, total: number): Loan | null {
+function loanFromSale(s: Sale, total: number, taxCents: number): Loan | null {
   if (s.step.funding?.type !== 'inHouse') return null;
   const f = s.step.paperwork?.financing ?? {};
   const freq = (f.frequency in PER_YEAR ? f.frequency : 'monthly') as Frequency;
@@ -232,11 +251,11 @@ function loanFromSale(s: Sale, total: number): Loan | null {
   if (!count || !f.firstDue || total - down <= 0) return null;
   const opened = openLoan({ id: 'n' + s.id, saleId: s.id, language: s.language ?? 'en', buyer: { name: s.buyer.fullName, phone: s.buyer.phone }, vehicle: `${s.vehicle.year} ${s.vehicle.make} ${s.vehicle.model}${s.vehicle.stock ? ` · Stock ${s.vehicle.stock}` : ''}`,
     principalCents: Math.round((total - down) * 100), apr, count, frequency: freq, firstDue: f.firstDue, openedOn: today(state.dealer.timeZone) });
-  return { ...opened, condition: conditionFromSale(s, opened.openedOn) };
+  return { ...opened, condition: conditionFromSale(s, opened.openedOn), ...(taxCents > 0 ? { tax: { totalCents: taxCents, deferred: true } } : {}) };
 }
-export function openNoteForSale(id: string, total: number) {
+export function openNoteForSale(id: string, total: number, tax = 0) {
   const s = getSale(id); if (!s || getLoans().some(l => l.saleId === id)) return;
-  const l = loanFromSale(s, total); if (l) set({ ...state, loans: [l, ...getLoans()] });
+  const l = loanFromSale(s, total, Math.round(tax * 100)); if (l) set({ ...state, loans: [l, ...getLoans()] });
 }
 /* ---------- promise to pay ---------- */
 /** A new promise replaces any still open: the latest word is the one that counts. Earlier ones stay on record. */
@@ -271,6 +290,24 @@ export function addPause(loanId: string, from: string, count: number, made: stri
 export function endPause(loanId: string, id: string) {
   set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, pauses: (l.pauses ?? []).filter(p => p.id !== id) }) });
 }
+/* ---------- Texas tax and the title application ---------- */
+const patchTax = (loanId: string, f: (t: NoteTax) => NoteTax) => set({ ...state, loans: getLoans().map(l => l.id !== loanId || !l.tax ? l : { ...l, tax: f(l.tax) }) });
+export const setTitleFiled = (loanId: string, on: string | undefined) => patchTax(loanId, t => ({ ...t, titleFiled: on }));
+/** Deferred: sent to the Comptroller as payments come in. Not deferred: paid in full to the county with the title. */
+export const setTaxDeferred = (loanId: string, deferred: boolean) => patchTax(loanId, t => ({ ...t, deferred }));
+export const setTransfer = (loanId: string, transfer: NoteTax['transfer']) => patchTax(loanId, t => ({ ...t, transfer }));
+export function setTaxFiling(f: TaxFiling) { set({ ...state, taxFiling: f }); }
+/** The report for a period went to the Comptroller with this amount. */
+export function fileTaxReport(key: string, cents: number, on: string) { set({ ...state, taxFiled: { ...state.taxFiled, [key]: { on, cents } } }); }
+
+/* ---------- insurance, the car's worth, credit reporting ---------- */
+export function setInsurance(loanId: string, i: Omit<Insurance, 'updated' | 'by'> | undefined) {
+  const on = today(state.dealer.timeZone);
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, insurance: i ? { ...l.insurance, ...i, updated: on, by: 'desk' } : undefined }) });
+}
+export function setWorth(loanId: string, cents: number | undefined) { set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, worthCents: cents }) }); }
+export function setCreditReporting(on: boolean) { set({ ...state, creditReporting: { on, since: state.creditReporting?.since ?? today(state.dealer.timeZone) } }); }
+
 /* ---------- coming from Frazer ---------- */
 /** Adds the notes and cars that aren't here yet. Returns how many came in. */
 export function importNotes(loans: Loan[], cars: Vehicle[]) {

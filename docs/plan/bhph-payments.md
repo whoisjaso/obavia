@@ -554,3 +554,108 @@ How it works:
 - **Undoing it:** **End The Pause** puts the payments back where they were.
 
 **Counsel:** confirm whether a Texas retail installment contract needs the deferment in writing, or signed by the buyer.
+
+## 19. Texas tax and the 60-day title line
+
+From the Cox × Fullpath and DealerCenter teardown (cox-fullpath-dealercenter-teardown.md #1).
+
+Sources: 34 TAC §3.74, Tax Code §152.047, and the Comptroller's Motor Vehicle Tax Manual ch. 7. All the logic is in `lib/tax.ts`.
+
+The rules it follows:
+- **The rate:** 6.25% of the total consideration. Interest, separately stated fees, service contracts and insurance are not taxed.
+- **Paying as payments come in:** a dealer holding a Seller-Financed Sales Tax Permit sends the tax to the Comptroller as payments arrive.
+  - Each payment carries an even share, following the Comptroller's own example: $312.50 over 36 payments is $8.68 a payment.
+  - A part payment carries its part.
+  - The share of a payment that went to a late charge is never taxed.
+- **The title application:** it goes to the county by **day 45**. Not filed by **day 60**, every unsent dollar of the tax is due at once.
+- **When everything comes due at once:**
+  - the note is sold or assigned to anyone but a registered related finance company (a related finance company changes nothing);
+  - the note is paid off early;
+  - the car is traded back in toward another car.
+- **Repossession:** the tax stops, and no bad-debt deduction is taken.
+- **The report:**
+  - It's due by the **20th** after each period: monthly, or quarterly under $1,500 a quarter.
+  - Filing on time keeps 0.5%.
+  - A late report forfeits that, adds 5% (10% after 30 days), and adds $50.
+  - A change to a month already filed (for example, a returned payment) carries into the next report.
+
+What the Desk shows:
+- **More → Sales Tax And Titles:**
+  - the amount for the period, the due date and what filing on time keeps;
+  - **Where It Comes From**, broken down by note;
+  - **Titles To File**;
+  - **Filed It**;
+  - We File Monthly / Quarterly.
+- **On the note, Title And Tax:**
+  - a big countdown to day 45, then to the 60-day line;
+  - **Filed It Today**;
+  - tax sent so far out of the total;
+  - **Something Changed?**: paid at the county, moved to our finance company, or sold to someone else.
+- **For You:** Titles To File (from 10 days before day 45), and Sales Tax Due (from 10 days before the 20th).
+- **The evening text:** a title past day 45 or 60, or due within 3 days.
+- **A new in-house sale** opens its note with the sale's tax, deferred by default.
+
+**CPA review before relying on it:**
+- how the down payment's share is reported (`atSaleCents`; the rule says the down payment is taxable unless itemized);
+- the permit number in Box 38 of Form 130-U;
+- county allocation on Form 14-117.
+
+## 20. Ready for the next car
+
+This is Fullpath's equity idea, built from the dealer's own notes (`lib/nextcar.ts`).
+
+Who shows up:
+- current, with no pause and no stopped-on-purpose signal;
+- no broken promise in 180 days;
+- at least 90% of installments paid on time;
+- a year in, or halfway through the note.
+
+The list is ordered by equity first (when the dealer types roughly what the car is worth), then by how close the buyer is to payoff.
+
+Each buyer's page shows "62 of 78", the payoff and the equity, with one button: **Call**. It's a call list, never a text blast: a marketing text needs the buyer's prior written consent.
+
+## 21. Insurance on the car
+
+`lib/insurance.ts` keeps the company and end date for each policy.
+- **Buyer texts:** one 10 days before the policy ends and one the day after it ends, in the buyer's language. These ride the reminder plan, so STOP, quiet hours and the reminders switch all apply.
+- **For You:** Insurance To Check shows policies ended or ending within 14 days.
+- **On the note:** an Insurance page, with **New Policy**.
+- **From the buyer:** a card sent from the buyer's page arrives with its photo, and the dealership gets a text.
+- **Not done:** force-placed coverage (collateral protection insurance) needs its own disclosures.
+
+## 22. The buyer's own page
+
+`lib/buyerpage.ts` renders one plain HTML page in the buyer's language:
+- what's due and when;
+- the payoff;
+- a **Pay Now** button when there's a payment link;
+- insurance on file, with a form to send a new card (the photo is shrunk on the phone);
+- the last 24 payments, with receipt numbers.
+
+How it's served and shared:
+- **The server** serves it at `GET /b/<note>.<signature>` (`server/buyer.ts`). The signature is an HMAC of the note id, so a link opens exactly one note.
+- **Headers:** noindex, no-store and no-referrer.
+- **The link:** sync returns each note's link once `PUBLIC_URL` is set.
+- **On the Desk:** **Their Page** previews it in a phone frame, with **Text It To Them**, which opens the dealer's own messages app, and **Copy The Link**.
+
+## 23. Credit reporting
+
+`lib/credit.ts` prepares each note's month in Metro 2 terms:
+- the status code (11 current, 71 to 84 by days past due, 13 paid, 96 repossessed);
+- the 24-month payment history profile;
+- the scheduled monthly payment and terms frequency;
+- the amount past due, the date of first delinquency, and the date of last payment.
+
+It is **off by default.** More → Credit Reporting → **Turn It On** gives a file to download each month.
+
+Social Security numbers and dates of birth never enter the Desk; the reporting partner joins them from the credit application.
+
+Before turning it on:
+- sign a furnisher agreement with a bureau or partner;
+- set up a written dispute process (answer within 30 days, FCRA §623 and Regulation V).
+
+The 426-character Metro 2 file itself is written by the partner or added once one is chosen.
+
+## 24. Find anything
+
+`#/find` (Find on Sales, the search button on Payments) takes one box: a name (accents ignored), a phone, a receipt number, a stock number, a VIN or a car. It finds notes, sales and cars on the lot (`lib/find.ts`). This answers the most repeated DealerCenter complaint: "finding old deals is a pain."

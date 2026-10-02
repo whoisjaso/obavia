@@ -2,7 +2,7 @@
    Home asks "who needs you?", a list shows those people, an account shows one
    number and one action, and everything else is a tap away on its own page. */
 import { useState } from 'react';
-import { METHOD_LABEL, amountToAsk, money, paymentTexts, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
+import { METHOD_LABEL, addDays as addDaysLocal, amountToAsk, money, paymentTexts, reminderPlan, standing, today, type Method, type Standing } from './lib/loans';
 import { parseMoney } from './lib/money';
 import { useMoney } from './Owner';
 import { cashOn, dayState, expected } from './lib/cashday';
@@ -13,6 +13,11 @@ import { can } from './lib/staff';
 import { brokenPromises, openPromise } from './lib/promise';
 import { askTotal, extrasLine, repairLeft, repairsLeft } from './lib/extras';
 import { activePause } from './lib/pause';
+import { taxSent, titleWatch } from './lib/tax';
+import { titleLine, useTaxReport, useTitles } from './Tax';
+import { FindButton, insuranceLine, useInsuranceNeeds } from './Care';
+import { readyForNext } from './lib/nextcar';
+import { insuranceState } from './lib/insurance';
 import { Back, Ic, feel, go, transition } from './ui';
 
 export const nice = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', ...opts });
@@ -49,9 +54,14 @@ export function useNeeds(): Need[] {
   const cashToday = cashOn(loans, t).cents, closed = !!bank.days[t];
   const flagged = Object.values(bank.days).filter(d => d.date < t && ['short', 'not_banked'].includes(dayState(loans, d, d.date, t))).length;
   const n: Need[] = [];
+  const titles = useTitles(), { r: tax } = useTaxReport();
+  if (titles.some(x => x.w.state !== 'open')) { const hot = titles.filter(x => x.w.state !== 'open'); n.push({ to: '/payments/tax/titles', label: 'Titles To File', tone: hot.some(x => x.w.state === 'overdue' || x.w.state === 'accelerated') ? 'late' : 'warn', gloss: `${first(hot[0].l.buyer.name)}: ${titleLine(hot[0].w).toLowerCase()}${hot.length > 1 ? ` · and ${hot.length - 1} more` : ''}` }); }
+  if (tax?.ended && tax.cents > 0 && t >= addDaysLocal(tax.due, -10)) n.push({ to: '/payments/tax', label: 'Sales Tax Due', tone: tax.late ? 'late' : 'warn', gloss: `${money(tax.cents)} by ${nice(tax.due, { weekday: 'long', month: 'short', day: 'numeric' })}` });
   const broke = loans.filter(l => brokenPromises(l, t, 7).length);
   if (broke.length) n.push({ to: '/payments/list/promises', label: 'Missed A Promise', tone: 'late', gloss: broke.map(l => first(l.buyer.name)).join(', ') });
   if (red + amber) n.push({ to: '/payments/list/watch', label: red ? 'Stopped Paying' : 'Running Short', tone: red ? 'late' : 'warn', gloss: [red && `${red} stopped on purpose`, amber && `${amber} running short`].filter(Boolean).join(' · ') });
+  const ins = useInsuranceNeeds().filter(x => x.i.state !== 'none');
+  if (ins.length) n.push({ to: '/payments/insurance', label: 'Insurance To Check', tone: ins.some(x => x.i.state === 'lapsed') ? 'late' : 'warn', gloss: `${first(ins[0].l.buyer.name)}: ${insuranceLine(ins[0].i, ins[0].l.insurance?.expires).replace(/^./, c => c.toLowerCase())}${ins.length > 1 ? ` · and ${ins.length - 1} more` : ''}` });
   if (box.length) n.push({ to: '/payments/match', label: 'Payments To Match', tone: 'warn', gloss: `${box.length} from Zelle, Cash App and the bank` });
   if (flagged) n.push({ to: '/payments/close', label: 'Cash To Look At', tone: 'late', gloss: `${plural(flagged, 'day')} short or not banked` });
   else if (cashToday && !closed) n.push({ to: '/payments/close', label: 'Close The Day', tone: 'warn', gloss: `${money(cashToday)} cash to count` });
@@ -72,7 +82,7 @@ export function Payments() {
   const exp = useToday(), total = exp.reduce((t, e) => t + (e.p ? e.p.cents : e.cents), 0);
   return (
     <main className="wrap center">
-      <div className="top"><Back to="#/" label="Sales" /></div>
+      <div className="top"><Back to="#/" label="Sales" /><FindButton /></div>
       <section className="enter" key="home">
         {exp.length ? <>
           <p className="cap">Coming in <em>today</em></p>
@@ -111,7 +121,8 @@ export function Today() {
 
 /** Everything else, one tap away so the home stays quiet. */
 export function PaymentsMore() {
-  const { loans = [] } = useStore();
+  const { dealer, loans = [], creditReporting } = useStore();
+  const ready = readyForNext(loans, today(dealer.timeZone)).length;
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/payments" label="Payments" /></div>
@@ -119,7 +130,10 @@ export function PaymentsMore() {
         <h1 className="q">More.</h1>
         <div className="choices">
           {can(me(), 'settings') && <Go to="/payments/evening" icon="phone" label="Tonight’s Text" gloss="One text each evening" />}
+          <Go to="/payments/next" icon="sparkle" label="Ready For The Next Car" gloss={ready ? `${plural(ready, 'good payer')} worth a call` : 'Good payers show here'} />
+          <Go to="/payments/tax" icon="bank" label="Sales Tax And Titles" gloss="What to send by the 20th, titles to file" />
           <Go to="/payments/posted" icon="check" label="Posted For You" gloss="Matched payments, undo for two days" />
+          <Go to="/payments/credit" icon="sheet" label="Credit Reporting" gloss={creditReporting?.on ? 'On · this month’s file' : 'Off'} />
           <Go to="/people" icon="pen" label="People" gloss="Who works the desk" />
           {!loans.some(l => l.imported) && <Go to="/import" icon="upload" label="Coming From Frazer?" gloss="Bring your notes over" />}
         </div>
@@ -217,6 +231,9 @@ export function AccountPage({ id, page }: { id: string; page: string }) {
           <Go to={`/payments/${l.id}/reminders`} icon="phone" label="Reminders" gloss={l.remindersOn ? 'On' : 'Off'} />
           {can(me(), 'pause') && s.status !== 'paid_off' && <Go to={`/payments/${l.id}/pause`} icon="sheet" label="Pause Payments" gloss={activePause(l, today(dealer.timeZone)) ? 'Paused now' : 'Move payments to the end'} />}
           <Go to={`/payments/${l.id}/extras`} icon="plus" label="Repairs And Fees" gloss={l.extras?.length ? l.extras.map(e => e.what).join(', ') : 'None'} />
+          {l.tax && <Go to={`/payments/${l.id}/title`} icon="bank" label="Title And Tax" gloss={`${titleLine(titleWatch(l, today(dealer.timeZone))!)}${l.tax.deferred ? ` · ${money(taxSent(l, today(dealer.timeZone)))} of ${money(l.tax.totalCents)} tax sent` : ''}`} />}
+          <Go to={`/payments/${l.id}/insurance`} icon="doc" label="Insurance" gloss={insuranceLine(insuranceState(l, today(dealer.timeZone)), l.insurance?.expires) + (l.insurance ? ` · ${l.insurance.company}` : '')} />
+          <Go to={`/payments/${l.id}/page`} icon="phone" label="Their Page" gloss="Balance, payments and insurance, for them" />
           <Go to={`/payments/${l.id}/language`} icon="globe" label="Language" gloss={l.language === 'es' ? 'Español · texts and papers' : 'English · texts and papers'} />
           <Go to={`/payments/${l.id}/condition`} icon="doc" label="Condition" gloss={l.condition ? `${l.condition.asIs ? 'As-is' : 'Warranty'} · signed ${nice(l.condition.signedOn)}${l.service?.length ? ` · ${l.service.length} complaint${l.service.length > 1 ? 's' : ''}` : ''}` : 'No report'} />
         </div>
