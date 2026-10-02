@@ -1,11 +1,12 @@
-"""Score for One Phone, One Evening: six phone sounds in one small room.
+"""Scores for the phone films: the phone's own sounds in one small room.
 
-Reads the cues from src/evening/timeline.ts (via scripts/evening-cues.ts) so
-the sound sits on the picture's own beats. Every sound is synthesised here:
-no recordings, no Apple audio. Writes public/sfx/evening/mix.wav at -16 LUFS,
-true peak -3.5 dBTP.
+Reads a film's cues from its timeline (via scripts/cues.ts) so the sound sits
+on the picture's own beats. Every sound is synthesised here: no recordings,
+no Apple audio. Writes public/sfx/<film>/mix.wav at -16 LUFS, true peak
+-3.5 dBTP.
 
-    python3 scripts/evening-score.py
+    python3 scripts/score.py evening
+    python3 scripts/score.py pain
 """
 import json, os, subprocess, sys
 import numpy as np
@@ -15,7 +16,8 @@ import soundfile as sf
 SR = 48000
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-OUT = os.path.join(ROOT, "public", "sfx", "evening")
+FILM = sys.argv[1] if len(sys.argv) > 1 else "evening"
+OUT = os.path.join(ROOT, "public", "sfx", FILM)
 rng = np.random.default_rng(7)
 
 def t(sec): return np.arange(int(sec * SR)) / SR
@@ -70,8 +72,8 @@ def tone(hz, dur, decay, partials=((1, 1.0), (2.0, 0.28), (3.01, 0.12), (4.2, 0.
     return y * np.minimum(1, x / 0.002)
 
 def note(v=0):
-    """The notification: two soft glass notes, a fifth apart. Morning goes up a step."""
-    a, b = (1318.5, 1975.5) if v == 0 else (1480.0, 2217.5)
+    """The notification: two soft glass notes, a fifth apart; v 1 up a step; v 2 (mail) falls a fourth."""
+    a, b = [(1318.5, 1975.5), (1480.0, 2217.5), (1568.0, 1174.7)][v % 3]
     out = np.zeros(int(0.9 * SR))
     for at, hz, g in [(0.0, a, 0.8), (0.085, b, 1.0)]:
         y = tone(hz, 0.9 - at, 0.22) * g
@@ -91,8 +93,20 @@ def done(v=0):
         i = int(at * SR); out[i:i + m] += 0.55 * buzz
     return norm(out)
 
-MAKE = {"key": key, "del": delete, "tap": tap, "lock": lock, "note": note, "done": done}
-GAIN = {"key": 0.5, "del": 0.5, "tap": 0.32, "lock": 0.7, "note": 0.55, "done": 0.62}
+def buzz(v=0):
+    """The phone vibrating on a desk: pulses of motor hum with a wooden rattle."""
+    pulses = 2 if v == 0 else 3
+    out = np.zeros(int((0.42 * pulses) * SR))
+    for k in range(pulses):
+        m = int(0.3 * SR); x = np.arange(m) / SR
+        shape = np.minimum(1, x / 0.02) * np.minimum(1, (0.3 - x) / 0.04)
+        motor = np.sin(2 * np.pi * 172 * x + 0.6 * np.sin(2 * np.pi * 11 * x))
+        rattle = bp(np.random.default_rng(200 + k).standard_normal(m), 600, 2400) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 172 * x)))
+        i = int(k * 0.42 * SR); out[i:i + m] += shape * (motor + 0.35 * norm(rattle))
+    return norm(out)
+
+MAKE = {"key": key, "del": delete, "tap": tap, "lock": lock, "note": note, "done": done, "buzz": buzz}
+GAIN = {"key": 0.5, "del": 0.5, "tap": 0.32, "lock": 0.7, "note": 0.55, "done": 0.62, "buzz": 0.42}
 
 def room(x):
     """One small room for everything: a short, dark, diffuse tail."""
@@ -107,7 +121,7 @@ def last_json(text):
     i = text.rindex("{"); return json.loads(text[i:text.index("}", i) + 1])
 
 def main():
-    cues = json.loads(subprocess.check_output(["npx", "tsx", os.path.join(HERE, "evening-cues.ts")], cwd=ROOT))
+    cues = json.loads(subprocess.check_output(["npx", "tsx", os.path.join(HERE, "cues.ts"), FILM], cwd=ROOT))
     total = int(cues["seconds"] * SR)
     dry = np.zeros(total)
     os.makedirs(OUT, exist_ok=True)

@@ -17,22 +17,22 @@ import { Finish, Fonts, Mark, Sky, clampOpts } from "../kit";
 import { T, f as F } from "./timeline";
 
 const C = theme.colors;
-const K = 2;                                  // px per iPhone point
-const SW = 390, SH = 844;                     // screen, in points
-const BEZEL = 9;
+export const K = 2;                                  // px per iPhone point
+export const SW = 390, SH = 844;                     // screen, in points
+export const BEZEL = 9;
 const DEALER = "Example Motors";
 const TEXT_1 = `${DEALER} today: $1,180.00 in from 6 payments (3 autopay, 2 by text link, 1 cash at the counter). 1 thing needs you: close the drawer ($240.00 cash).`;
 const TEXT_2 = `${DEALER} today: $860.00 in from 4 payments (3 autopay, 1 by text link). Nothing needs you.`;
 const BANNER = { x: 10, y: 470, w: 370, h: 124 };
 
-const ease = (fr: number, a: number, b: number, e = theme.ease.out) => interpolate(fr, [a, b], [0, 1], { ...clampOpts, easing: e });
-const mix = (a: number, b: number, p: number) => a + (b - a) * p;
+export const ease = (fr: number, a: number, b: number, e = theme.ease.out) => interpolate(fr, [a, b], [0, 1], { ...clampOpts, easing: e });
+export const mix = (a: number, b: number, p: number) => a + (b - a) * p;
 
 /* ---------- the pieces inside the screen (all in points) ---------- */
 
-const Island: React.FC = () => <div style={{ position: "absolute", left: (SW - 124) / 2, top: 11, width: 124, height: 36, borderRadius: 20, background: "#000", zIndex: 50 }} />;
+export const Island: React.FC = () => <div style={{ position: "absolute", left: (SW - 124) / 2, top: 11, width: 124, height: 36, borderRadius: 20, background: "#000", zIndex: 50 }} />;
 
-const StatusBar: React.FC<{ time: string; dark?: boolean }> = ({ time, dark }) => {
+export const StatusBar: React.FC<{ time: string; dark?: boolean }> = ({ time, dark }) => {
   const ink = dark ? "#fff" : C.ink;
   return (
     <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 54, zIndex: 40, fontFamily: theme.font, color: ink }}>
@@ -48,7 +48,7 @@ const StatusBar: React.FC<{ time: string; dark?: boolean }> = ({ time, dark }) =
 };
 
 /* the wallpaper is the site's own sky, cropped to the screen */
-const Wallpaper: React.FC<{ light: number }> = ({ light }) => {
+export const Wallpaper: React.FC<{ light: number }> = ({ light }) => {
   const s = SH / 1920;
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
@@ -59,7 +59,7 @@ const Wallpaper: React.FC<{ light: number }> = ({ light }) => {
   );
 };
 
-const AppIcon: React.FC<{ size: number }> = ({ size }) => (
+export const AppIcon: React.FC<{ size: number }> = ({ size }) => (
   <div style={{ width: size, height: size, borderRadius: size * 0.23, background: "linear-gradient(180deg,#FFFFFF,#E9EFFD)", display: "grid", placeItems: "center", boxShadow: "inset 0 0 0 .5px rgba(28,36,54,.12)" }}>
     <Mark size={size * 0.7} />
   </div>
@@ -87,7 +87,7 @@ const Banner: React.FC<{ at: number; text: string; morph?: number }> = ({ at, te
   );
 };
 
-const LockScreen: React.FC<{ light: number; time: string; date: string; children?: React.ReactNode }> = ({ light, time, date, children }) => {
+export const LockScreen: React.FC<{ light: number; time: string; date: string; children?: React.ReactNode }> = ({ light, time, date, children }) => {
   const ink = light > 0.5 ? C.navy : "#fff";
   return (
     <div style={{ position: "absolute", inset: 0 }}>
@@ -103,14 +103,14 @@ const LockScreen: React.FC<{ light: number; time: string; date: string; children
 };
 
 /* the Desk's own look: light sky, Manrope, the white cloud button */
-const Desk: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+export const Desk: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#E3EBFD 0%,#F2F6FF 36%,#F6F9FF 100%)", fontFamily: theme.font, color: C.ink }}>
     <StatusBar time="7:01" />
     {children}
   </div>
 );
 
-const CloudButton: React.FC<{ label: string; y: number; dim?: boolean; pressed?: number }> = ({ label, y, dim, pressed = 0 }) => (
+export const CloudButton: React.FC<{ label: string; y: number; dim?: boolean; pressed?: number }> = ({ label, y, dim, pressed = 0 }) => (
   <div style={{ position: "absolute", left: 20, right: 20, top: y, height: 58, borderRadius: 999, display: "grid", placeItems: "center",
     background: "linear-gradient(180deg,#FFFFFF 0%,#FBFCFF 46%,#EAF0FE 100%)", boxShadow: "inset 0 -10px 18px -10px rgba(150,176,232,.55), inset 0 1.5px 0 #fff, 0 12px 22px -10px rgba(78,106,168,.35)",
     fontSize: 17, fontWeight: 750, letterSpacing: "-0.01em", color: C.ink, opacity: dim ? 0.55 : 1, transform: `scale(${1 - pressed * 0.03})` }}>{label}</div>
@@ -200,7 +200,7 @@ const Closed: React.FC<{ at: number }> = ({ at }) => {
 };
 
 /* a finger: a soft ring that blooms and lets go */
-const Touch: React.FC<{ at: number; x: number; y: number }> = ({ at, x, y }) => {
+export const Touch: React.FC<{ at: number; x: number; y: number }> = ({ at, x, y }) => {
   const fr = useCurrentFrame();
   const p = ease(fr, at - 2, at + 9);
   if (fr < at - 2 || p >= 1) return null;
@@ -209,7 +209,7 @@ const Touch: React.FC<{ at: number; x: number; y: number }> = ({ at, x, y }) => 
 };
 
 /* the Desk's page change: out .16s with a 4pt lift, in .4s rising 8pt */
-const Page: React.FC<{ from: number; to?: number; children: React.ReactNode }> = ({ from, to, children }) => {
+export const Page: React.FC<{ from: number; to?: number; children: React.ReactNode }> = ({ from, to, children }) => {
   const fr = useCurrentFrame();
   if (fr < from || (to !== undefined && fr >= to + 5)) return null;
   const inP = ease(fr, from, from + 12, theme.ease.out);

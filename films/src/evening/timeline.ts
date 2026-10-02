@@ -25,7 +25,7 @@ export const T = {
   end: SECONDS,
 } as const;
 
-export type SoundKind = "lock" | "note" | "key" | "del" | "tap" | "done";
+export type SoundKind = "lock" | "note" | "key" | "del" | "tap" | "done" | "buzz";
 export type Cue = { t: number; kind: SoundKind; v?: number };
 
 /** Every sound, in order. Fewer sounds than beats: rests are part of the score. */
