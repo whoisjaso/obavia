@@ -9,6 +9,12 @@
      GET|POST /b/<note>.<sig> the buyer's own page (signed link); POST saves a new insurance card
    Hourly (cron): reminders due today and tonight's text, per dealer time zone (server/jobs.ts).
    Config in server/wrangler.toml; secrets with `wrangler secret put`. */
+import { PostingAgent } from './posting/service';
+import { D1PostStore, R2PhotoStore, CloudflareBrowser } from './posting/cloudflare';
+import { FacebookPagePublisher, InstagramPublisher } from './posting/meta';
+import type { Post } from '../src/lib/post';
+import type { Vehicle } from '../src/lib/sale';
+type R2Put = { put(key: string, value: ArrayBuffer | Uint8Array, opts?: { httpMetadata?: { contentType?: string } }): Promise<unknown> };
 import { FakeProvider } from './messaging/fake';
 import { Telnyx } from './messaging/telnyx';
 import type { MessagingProvider } from './messaging/types';
@@ -27,6 +33,8 @@ type R2 = { get(key: string): Promise<R2Object | null> };
 
 export type Env = {
   DB: D1; DEALERS: R2;
+  PHOTOS?: R2Put; PHOTOS_URL?: string;       // Reach posting: the photo bucket and its public address; posting is off until both are set
+  BROWSER?: unknown;                         // Cloudflare Browser Rendering binding: the posting agent's cloud browser
   MESSAGING_PROVIDER?: string;              // 'telnyx' (default) or 'fake' for local runs only
   TELNYX_API_KEY?: string; TELNYX_MESSAGING_PROFILE_ID?: string; TELNYX_VERIFY_PROFILE_ID?: string; TELNYX_PUBLIC_KEY?: string;
   PUBLIC_URL?: string;                      // e.g. https://api.obavia.co, for delivery webhooks
@@ -57,10 +65,11 @@ export class R2ContactBook implements ContactBook {
 /* ---------- the app, independent of where its parts come from ---------- */
 
 export type DeskSync = { upsert(dealerId: string, notes: Loan[], facts?: SyncBody['facts'], evening?: SyncBody['evening']): Promise<{ notes: Loan[]; refused: string[] }> };
-export type App = { messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[]; payments?: { desk: PaymentDesk; secret: string }; desk?: { sync: DeskSync; secret: string; pageBase?: string }; buyer?: BuyerPages };
+export type App = { posting?: { agent: PostingAgent; secret: string }; messenger: Messenger; verifier: Verifier; internalToken: string; allowedOrigins: string[]; payments?: { desk: PaymentDesk; secret: string }; desk?: { sync: DeskSync; secret: string; pageBase?: string }; buyer?: BuyerPages };
 const MAX_SYNC = 900 * 1024;
 
 const MAX_BODY = 64 * 1024;
+const MAX_POST = 12 * 1024 * 1024;   // a post carries its photos (the Desk sends each one at 1600px JPEG)
 const LICENCE = /^[A-Z]\d{4,7}$/;
 
 function cors(req: Request, allowed: string[]): Record<string, string> {
@@ -84,7 +93,7 @@ export async function route(req: Request, app: App): Promise<Response> {
     if (r) return r;
   }
   if (req.method !== 'POST') return json({ ok: false, reason: 'not_found' }, 404, h);
-  const limit = url.pathname === '/api/desk/sync' ? MAX_SYNC : MAX_BODY;
+  const limit = url.pathname === '/api/posts' ? MAX_POST : url.pathname === '/api/desk/sync' ? MAX_SYNC : MAX_BODY;
   if (Number(req.headers.get('content-length') ?? 0) > limit) return json({ ok: false, reason: 'too_large' }, 413, h);
   const raw = await req.text();
   if (raw.length > limit) return json({ ok: false, reason: 'too_large' }, 413, h);
@@ -121,6 +130,17 @@ export async function route(req: Request, app: App): Promise<Response> {
     return json({ ok: true, ...r, notes: pages }, 200, h);
   }
 
+  // Reach: post one car to every channel turned on. The posting agent publishes
+  // through official APIs and prepares the hand-off channels; see posting/service.ts.
+  if (url.pathname === '/api/posts') {
+    const claims = app.posting ? await readToken(app.posting.secret, (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')) : null;
+    if (!app.posting || !claims) return json({ ok: false, reason: 'unauthorised' }, 401, h);
+    const p = body.post as Post | undefined, v = body.vehicle as Vehicle | undefined;
+    if (!p || typeof p.id !== 'string' || !Array.isArray(p.photos) || !Array.isArray(p.channels) || !v || typeof v.vin !== 'string') return json({ ok: false, reason: 'bad_request' }, 400, h);
+    const r = await app.posting.agent.run(claims.licence, { ...p, deliveries: Array.isArray(p.deliveries) ? p.deliveries : [] }, v);
+    return json({ ok: true, ...r }, 200, h);
+  }
+
   if (url.pathname === '/api/messages') {
     const auth = req.headers.get('authorization') ?? '';
     if (!app.internalToken || !sameToken(auth, `Bearer ${app.internalToken}`)) return json({ ok: false, reason: 'unauthorised' }, 401);
@@ -151,7 +171,13 @@ export function build(env: Env): App {
   const email = env.RESEND_API_KEY && env.EMAIL_FROM ? new ResendEmail(env.RESEND_API_KEY, env.EMAIL_FROM) : logEmail;
   const messenger = new Messenger(provider, store);
   const notes = new D1NoteStore(env.DB);
+  const posting = env.PHOTOS && env.PHOTOS_URL ? {
+    agent: new PostingAgent(new D1PostStore(env.DB, env.SESSION_SECRET, env.PHOTOS, env.PHOTOS_URL), new R2PhotoStore(env.PHOTOS, env.PHOTOS_URL),
+      [new FacebookPagePublisher(), new InstagramPublisher()], env.BROWSER ? new CloudflareBrowser(env.BROWSER) : undefined),
+    secret: env.SESSION_SECRET,
+  } : undefined;
   return {
+    posting,
     messenger,
     desk: { sync: notes, secret: env.SESSION_SECRET, pageBase: env.PUBLIC_URL?.replace(/\/$/, '') },
     buyer: { notes, messenger, secret: env.SESSION_SECRET },

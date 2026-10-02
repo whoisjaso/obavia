@@ -1,6 +1,7 @@
 /* The workspace: the dealer, the lot and the sales, kept in this browser for
    the preview. The backend (Supabase, per the SOP) replaces this module; the
    screens only call these functions. Writers merge ONE key of step_data. */
+import type { Post } from './lib/post';
 import { useSyncExternalStore } from 'react';
 import { EXAMPLE_DEALER, type DealerConfig } from './lib/config';
 import type { DocType } from './lib/plan';
@@ -24,7 +25,7 @@ import { asFiled, financingTerms } from './lib/filed';
 import { periodOf, taxEvents, taxOn, type Filed, type NoteTax, type TaxFiling } from './lib/tax';
 import type { Insurance } from './lib/insurance';
 
-type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[];
+type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[]; posts?: Post[];
   money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay>;
   autoPost?: boolean; autoPosted?: AutoPosted[]; noAuto?: string[];
   evening?: { on: boolean; hour: number };
@@ -362,3 +363,6 @@ export function acceptMarketplace(name: string) {
 }
 /** Withdrawing consent switches the feature off. */
 export function withdrawMarketplace() { const { marketplace: _, ...rest } = state.consents ?? {}; set({ ...state, consents: rest }); }
+
+/** Reach posts, newest first. */
+export function savePost(p: Post) { set({ ...state, posts: [p, ...(state.posts ?? []).filter(x => x.id !== p.id)] }); }

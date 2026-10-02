@@ -74,7 +74,7 @@ export function Paper({ id, doc, q }: { id: string; doc: DocType; q?: string }) 
 }
 
 /** Shrinks a photo to a small JPEG so a sale's record stays light. */
-function shrink(f: File, max = 640): Promise<string> {
+export function shrink(f: File, max = 640): Promise<string> {
   return new Promise((res, rej) => {
     const img = new Image(), url = URL.createObjectURL(f);
     img.onload = () => {

@@ -31,3 +31,13 @@ bucket_name = "obavia-dealers"
 # Hourly: buyer reminders at 10 AM and the owner's evening text, each in the dealer's time zone.
 [triggers]
 crons = ["0 * * * *"]
+
+# Reach posting (off until both are set; not yet deployed):
+#   an R2 bucket with a public custom domain for post photos, set PHOTOS_URL to that domain,
+#   and Cloudflare Browser Rendering as the posting agent's cloud browser.
+# [[r2_buckets]]
+# binding = "PHOTOS"
+# bucket_name = "obavia-post-photos"
+# [vars] PHOTOS_URL = "https://photos.obavia.co"
+# [browser]
+# binding = "BROWSER"

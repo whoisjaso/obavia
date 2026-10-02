@@ -79,3 +79,14 @@ CREATE TABLE IF NOT EXISTS dealer_setting (
   evening_hour INTEGER NOT NULL DEFAULT 19,
   facts        TEXT                          -- JSON DeskFacts
 );
+-- Reach posting: each post (photos live in R2), and each dealer's connected
+-- publishing account per channel (an OAuth token sealed with AES-GCM; never a password).
+CREATE TABLE IF NOT EXISTS post (
+  dealer_id TEXT NOT NULL, id TEXT NOT NULL, body TEXT NOT NULL, at TEXT NOT NULL,
+  PRIMARY KEY (dealer_id, id)
+);
+CREATE TABLE IF NOT EXISTS post_account (
+  dealer_id TEXT NOT NULL, channel TEXT NOT NULL, token TEXT NOT NULL,
+  page_id TEXT, ig_user_id TEXT, handle TEXT, at TEXT NOT NULL,
+  PRIMARY KEY (dealer_id, channel)
+);

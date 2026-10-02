@@ -45,3 +45,13 @@ export const SAY: Record<string, string> = {
   unknown_licence: 'We couldn’t find that licence. Show your licence instead.',
   offline: 'We couldn’t reach Obavia. Check your connection and try again.',
 };
+
+/** Reach: hand one post to the posting agent. Offline (no API), nothing is posted. */
+export type PostRun = { ok: true; post: import('./post').Post; steps: { at: string; channel?: string; text: string }[] } | { ok: false; reason: string };
+export async function postCar(post: import('./post').Post, vehicle: import('./sale').Vehicle): Promise<PostRun> {
+  const token = session.get(); if (!live || !token) return { ok: false, reason: 'offline' };
+  try {
+    const r = await fetch(`${BASE}/api/posts`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ post, vehicle }) });
+    return (await r.json()) as PostRun;
+  } catch { return { ok: false, reason: 'offline' }; }
+}

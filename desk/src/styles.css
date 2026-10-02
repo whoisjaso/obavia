@@ -606,3 +606,22 @@ section:has(> .q2) > h1.q{display:none}
 .paper-frame{width:100%;overflow:hidden;position:relative}
 .paper-page{background:#fff;transform-origin:0 0;box-sizing:border-box}
 .dealer-paper .textlink{margin:4px 0 14px}
+
+/* Reach: Post A Car */
+.post-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:24px;width:100%;align-self:stretch;contain:inline-size;align-items:start}
+.post-photos .ph{min-width:0;width:100%;position:relative;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(28,36,54,.06),0 8px 24px rgba(28,36,54,.06);animation:rise .52s cubic-bezier(.2,.7,.2,1) both}
+.post-photos .ph.lead{grid-column:span 3;aspect-ratio:16/9}
+.post-photos .pick{position:absolute;inset:0;display:block;width:100%;height:100%;padding:0;border:0;background:none;cursor:pointer}
+.post-photos img{width:100%;height:100%;object-fit:cover;display:block}
+.post-photos .tag{position:absolute;left:10px;top:10px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.92);font:650 12px/1 var(--sans);color:var(--ink)}
+.post-photos .x{position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:50%;border:0;display:grid;place-items:center;background:rgba(255,255,255,.92);color:var(--ink);cursor:pointer}
+.post-caption{min-height:200px;resize:vertical;font:500 16px/1.5 var(--sans);text-align:left;white-space:pre-wrap}
+.post-review{contain:inline-size;width:100%;align-self:stretch;display:block;text-align:center;margin-top:22px}
+.post-review .lead{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:20px;margin-bottom:12px;box-shadow:0 8px 24px rgba(28,36,54,.08)}
+.post-review b{display:block;font:750 18px/1.25 var(--sans)}.post-review small{color:var(--muted);font:500 14px/1.4 var(--sans)}
+.choice.static{cursor:default}
+.agent-log{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:10px;text-align:left}
+.agent-log li{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.78);font:500 15px/1.4 var(--sans);color:var(--ink);opacity:0;animation:rise .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--n) * 260ms + 150ms)}
+.agent-log .dot{flex:none;width:10px;height:10px;margin:0 9px;border-radius:50%;background:var(--accent)}
+.agent-log .clogo{flex:none}
+@media (prefers-reduced-motion:reduce){.agent-log li{opacity:1}}
