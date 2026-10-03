@@ -1,0 +1,368 @@
+/* The workspace: the dealer, the lot and the sales, kept in this browser for
+   the preview. The backend (Supabase, per the SOP) replaces this module; the
+   screens only call these functions. Writers merge ONE key of step_data. */
+import type { Post } from './lib/post';
+import { useSyncExternalStore } from 'react';
+import { EXAMPLE_DEALER, type DealerConfig } from './lib/config';
+import type { DocType } from './lib/plan';
+import type { AgreementState, Buyer, Sale, StepData, Vehicle } from './lib/sale';
+import { EXAMPLE_LOT, exampleSales } from './data';
+import { MARKETPLACE_TERMS, termsHash, type Consent } from './lib/consent';
+import { addDays, amountToAsk, openLoan, standing, takePayment, today, type Frequency, type Lang, type Loan, type Method } from './lib/loans';
+import { fromReceipt, normName, type Money, type Payers, type Suggestion } from './lib/match';
+import { cashOn, dayState, withBanking, type CashDay } from './lib/cashday';
+import { live, session, syncDesk } from './lib/api';
+import { inbox } from './lib/match';
+import { maxReceipt, mergeNote } from './lib/sync';
+import type { Attempt, OnFile } from './lib/autopay';
+import { conditionFromSale, type ServiceEntry } from './lib/condition';
+import { PER_YEAR } from './lib/paperwork';
+import { parseMoney } from './lib/money';
+import { idleTooLong, type Staff } from './lib/staff';
+import { promiseState, type PayPromise } from './lib/promise';
+import { applyPayment, paidTo, type Extra } from './lib/extras';
+import { asFiled, financingTerms } from './lib/filed';
+import { periodOf, taxEvents, taxOn, type Filed, type NoteTax, type TaxFiling } from './lib/tax';
+import type { Insurance } from './lib/insurance';
+
+type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[]; posts?: Post[];
+  money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay>;
+  autoPost?: boolean; autoPosted?: AutoPosted[]; noAuto?: string[];
+  evening?: { on: boolean; hour: number };
+  staff?: Staff[]; at?: string;
+  taxFiling?: TaxFiling; taxFiled?: Filed;
+  creditReporting?: { on: boolean; since: string } };   // at: who is signed in at the desk
+export type AutoPosted = { moneyId: string; loanId: string; receipt: number; on: string; addedPayer?: string };
+const KEY = 'obavia.desk.v1';
+
+function fresh(): State { return { dealer: EXAMPLE_DEALER, onboarded: false, example: true, lot: EXAMPLE_LOT, sales: exampleSales(), loans: exampleLoans(EXAMPLE_DEALER.timeZone), money: exampleMoney(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), cashDays: exampleCashDays(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), taxFiling: 'quarterly', taxFiled: exampleTaxFiled(exampleLoans(EXAMPLE_DEALER.timeZone), EXAMPLE_DEALER.timeZone), receiptNo: 1000, autoPost: true, evening: { on: true, hour: 19 } }; }
+
+/** Example in-house notes, dated from today so every state shows: due today, late, late with a charge, current, paid off. */
+export function exampleLoans(tz: string): Loan[] {
+  const t = today(tz);
+  let r = 900;
+  const mk = (id: string, name: string, phone: string, vehicle: string, principal: number, apr: number, count: number, f: Frequency, firstDue: string, paid: [number, number][]) => {
+    let l = openLoan({ id, buyer: { name, phone }, vehicle, principalCents: principal, apr, count, frequency: f, firstDue, openedOn: addDays(firstDue, -7) });
+    for (const [dayOffset, cents] of paid) l = takePayment(l, { on: addDays(firstDue, dayOffset), cents: cents || l.paymentCents, method: 'cash' }, ++r);
+    return l;
+  };
+  const list = [
+    mk('ex-due', 'Jordan Rivera', '(555) 010-2231', '2018 Toyota Corolla LE · Stock 107', 720000, 19.9, 104, 'weekly', addDays(t, -21), [[0, 0], [7, 0], [14, 0]]),
+    mk('ex-late', 'Dana Example', '(555) 010-4410', '2016 Chevrolet Silverado 1500 · Stock 111', 1150000, 21, 52, 'biweekly', addDays(t, -37), [[0, 0], [14, 0]]),
+    mk('ex-fee', 'Chris Sample', '(555) 010-9032', '2017 Nissan Murano SV · Stock 112', 840000, 18, 36, 'monthly', addDays(t, -79), [[0, 0], [31, 0]]),
+    mk('ex-current', 'Alex Placeholder', '(555) 010-1187', '2017 Ford Fusion SE · Stock 115', 560000, 17.5, 78, 'weekly', addDays(t, -12), [[0, 0], [7, 0], [9, 0]]),
+    // fourteen months in and never late: ready for the next car
+    mk('ex-next', 'Sam Example', '(555) 010-6630', '2015 Toyota Camry SE · Stock 98', 640000, 18, 78, 'weekly', addDays(t, -7 * 61 - 3), Array.from({ length: 62 }, (_, k) => [7 * k, 0] as [number, number])),
+  ];
+  // Autopay and failed charges, so every signal shows: on purpose (red), short on money (amber), clean autopay (good).
+  const at = (l: Loan, daysAgo: number, code: string, n: number, via: Attempt['via']): Attempt => ({ on: addDays(t, -daysAgo), cents: l.paymentCents, n, via, result: 'declined', code });
+  const [jordan, dana, chris] = list;
+  jordan.autopay = { on: true, method: { kind: 'card', brand: 'Visa', last4: '5556', funding: 'debit', exp: '12/28' }, payday: 5, signedBy: 'Jordan Rivera', signedOn: addDays(t, -28), history: [{ on: addDays(t, -28), event: 'added' }] };
+  dana.autopay = { on: true, method: { kind: 'card', brand: 'Mastercard', last4: '8210', funding: 'debit', exp: '03/29' }, signedBy: 'Dana Example', signedOn: addDays(t, -44), history: [{ on: addDays(t, -44), event: 'added' }] };
+  dana.attempts = [at(dana, 9, '51', 3, 'card'), at(dana, 6, '51', 3, 'card')];
+  chris.autopay = { on: false, method: { kind: 'bank', bank: 'Chase', last4: '4417', routing: '111000614' }, signedBy: 'Chris Sample', signedOn: addDays(t, -86), history: [{ on: addDays(t, -86), event: 'added' }, { on: addDays(t, -19), event: 'turned_off' }] };
+  chris.attempts = [{ ...at(chris, 18, 'R08', 3, 'bank'), result: 'returned' }];
+  // Texas tax on each sale, sent as payments come in; Dana's title application is still to file.
+  for (const l of list) l.tax = { totalCents: taxOn(l.principalCents), deferred: true, titleFiled: addDays(l.openedOn, 9) };
+  dana.tax = { ...dana.tax!, titleFiled: undefined };
+  // Insurance on file: Jordan's ends soon, Chris's has ended, the rest are fine.
+  const ins = (company: string, days: number): Insurance => ({ company, expires: addDays(t, days), updated: addDays(t, -30), by: 'desk' });
+  [jordan.insurance, dana.insurance, chris.insurance, list[3].insurance, list[4].insurance] = [ins('Progressive', 9), ins('GEICO', 120), ins('State Farm', -4), ins('Allstate', 200), ins('Progressive', 75)];
+  list[4].worthCents = 900000;
+  list[3].language = 'es';   // one buyer whose texts are in Spanish
+  // The car's condition as signed, and the complaint that came before the stopped payment.
+  for (const l of list) l.condition = { signedOn: l.openedOn, miles: 61240, asIs: true, guide: true, drove: true, photos: [] };
+  chris.condition = { signedOn: chris.openedOn, miles: 88410, asIs: true, guide: true, drove: true, known: 'Driver window motor slow', photos: [] };
+  chris.service = [{ on: addDays(t, -24), miles: 93180, what: 'Says the transmission is slipping', kind: 'complaint' }];
+  return list;
+}
+/** Example tax reports: every period whose report was due before today was filed on time. */
+export function exampleTaxFiled(loans: Loan[], tz: string): Filed {
+  const t = today(tz), out: Filed = {};
+  for (const e of loans.flatMap(l => taxEvents(l, t))) { const p = periodOf(e.on, 'quarterly'); if (p.due < t) out[p.key] = { on: addDays(p.due, -5), cents: (out[p.key]?.cents ?? 0) + e.cents }; }
+  return out;
+}
+/** Example money from outside the processor, the way it would arrive from the bank feed and receipt emails. */
+export function exampleMoney(loans: Loan[], tz: string): Money[] {
+  const t = today(tz), by = (id: string) => loans.find(l => l.id === id);
+  const owe = (id: string) => { const l = by(id); return l ? amountToAsk(standing(l, t)) : 0; };
+  const usd = (c: number) => (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const bank = (id: string, text: string, cents: number, on = t): Money => ({ id, source: 'bank', on, cents, text });
+  return [
+    bank('ex-b1', 'ZELLE FROM JORDAN RIVERA ON ' + t.slice(5).replace('-', '/') + ' REF # 8812', owe('ex-due')),
+    fromReceipt('ex-e1', t, `D Example sent you $${usd(owe('ex-late'))}`, 'cash@square.com')!,
+    bank('ex-b2', 'CASH APP*CASH OUT', owe('ex-late')),
+    bank('ex-b3', 'ZELLE FROM TIA SAMPLE', by('ex-fee')?.paymentCents ?? 0, addDays(t, -1)),
+    bank('ex-b4', 'PAYNEARME SETTLEMENT', 25256, addDays(t, -1)),
+    bank('ex-b5', 'MOBILE DEPOSIT REF 0019', 50000, addDays(t, -2)),
+    bank('ex-b6', 'BRANCH DEPOSIT', cashOn(loans, addDays(t, -7)).cents, addDays(t, -6)),   // banks the cash day a week ago
+  ].filter(m => m.cents > 0);
+}
+/** Example closed cash days: one banked, one counted and waiting, one not banked in time. */
+export function exampleCashDays(loans: Loan[], tz: string): Record<string, CashDay> {
+  const t = today(tz), out: Record<string, CashDay> = {};
+  for (const n of [7, 5, 3]) { const d = addDays(t, -n), c = cashOn(loans, d).cents; if (c) out[d] = { date: d, countedCents: c, closedAt: d }; }
+  return out;
+}
+function load(): State {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); if (!s.cashDays && s.example) s.cashDays = exampleCashDays(s.loans ?? [], s.dealer.timeZone); if (s.example && !s.taxFiled) { s.taxFiling = 'quarterly'; s.taxFiled = exampleTaxFiled(s.loans ?? [], s.dealer.timeZone); } if (s.example && s.autoPost === undefined) { s.autoPost = true; s.evening = { on: true, hour: 19 }; } return s; }
+  } catch { /* private mode */ }
+  return fresh();
+}
+
+let state = load();
+const subs = new Set<() => void>();
+function set(next: State, fromServer = false) { state = next; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* ignore */ } subs.forEach(f => f()); if (!fromServer) scheduleSync(); }
+
+/* ---------- keeping the server's copy in step ----------
+   With a live API and a signed-in device, every change is sent a moment
+   later, and whatever the server added (processor payments, returns) comes
+   back merged in. Example notes (ex-…) never leave the browser. */
+let syncTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleSync() {
+  if (!live || !session.get()) return;
+  clearTimeout(syncTimer); syncTimer = setTimeout(() => { void syncNow(); }, 1500);
+}
+export async function syncNow() {
+  const mine = getLoans().filter(l => !l.id.startsWith('ex-'));
+  if (!mine.length && !state.evening) return;
+  const t = today(state.dealer.timeZone), bank = withBanking(state.cashDays ?? {}, state.money ?? []);
+  const toMatch = inbox(state.money ?? [], getLoans(), t, { ...state.matched, ...bank.deposits }, state.payers).length;
+  const flaggedDays = Object.values(bank.days).filter(d => d.date < t && ['short', 'not_banked'].includes(dayState(getLoans(), d, d.date, t))).length;
+  const r = await syncDesk({ notes: mine, evening: state.evening, facts: { on: t, toMatch, cashState: dayState(getLoans(), bank.days[t], t, t), flaggedDays } });
+  if (!r.ok) return;
+  const back = new Map(r.notes.map(n => [n.id, n]));
+  const loans = getLoans().map(l => back.has(l.id) ? mergeNote(back.get(l.id)!, l) : l);
+  set({ ...state, loans, receiptNo: Math.max(state.receiptNo ?? 1000, maxReceipt(loans)) }, true);
+}
+
+export const useStore = () => useSyncExternalStore(f => { subs.add(f); return () => subs.delete(f); }, () => state);
+export const getSale = (id: string) => state.sales.find(s => s.id === id);
+
+/** The dealer's legal facts, filled in later from the paperwork's Not Set marks. */
+export function setDealerFacts(f: Partial<DealerConfig>) { set({ ...state, dealer: { ...state.dealer, ...f } }); }
+export function finishOnboarding(dealer: DealerConfig, lot?: Vehicle[]) { set({ ...state, dealer, onboarded: true, lot: lot ?? state.lot }); }
+export function resetWorkspace() { set(fresh()); }
+
+const patchSale = (id: string, f: (s: Sale) => Sale) => set({ ...state, sales: state.sales.map(s => (s.id === id ? f(s) : s)) });
+
+/** Merge ONE key of step_data; never send the whole blob back. */
+export function mergeStep<K extends keyof StepData>(id: string, key: K, value: StepData[K]) {
+  patchSale(id, s => ({ ...s, step: { ...s.step, [key]: value } }));
+}
+export function setLanguage(id: string, language: 'en' | 'es') {
+  patchSale(id, s => ({ ...s, language, step: { ...s.step, languageConfirmed: { by: 'desk', at: new Date().toISOString() } } }));
+}
+export function setBuyer(id: string, buyer: Buyer) { patchSale(id, s => ({ ...s, buyer })); }
+export function setVehicleTitle(vehicleId: string, titleStatus: Vehicle['titleStatus']) {
+  set({ ...state, lot: state.lot.map(v => (v.id === vehicleId ? { ...v, titleStatus } : v)), sales: state.sales.map(s => (s.vehicle.id === vehicleId ? { ...s, vehicle: { ...s.vehicle, titleStatus } } : s)) });
+}
+export function fileDocument(id: string, doc: DocType, agreement: AgreementState) {
+  patchSale(id, s => ({ ...s, documents: { ...s.documents, [doc]: { ...s.documents[doc], ...agreement } } }));
+}
+
+export function startSale(v: Vehicle, buyer: Buyer, language: 'en' | 'es', mileage: number, titleStatus: Vehicle['titleStatus']): string {
+  const id = 's' + Date.now().toString(36);
+  const vehicle = { ...v, mileage, titleStatus };
+  const sale: Sale = {
+    id, status: 'in_progress', language, vehicle, buyer, documents: {}, createdAt: new Date().toISOString(),
+    step: { languageConfirmed: { by: 'desk', at: new Date().toISOString() }, saleClock: { startedAt: new Date().toISOString() } },
+  };
+  set({ ...state, lot: state.lot.map(x => (x.id === v.id ? vehicle : x)), sales: [sale, ...state.sales] });
+  return id;
+}
+export function completeSale(id: string) {
+  const s = getSale(id); if (!s) return;
+  set({ ...state, lot: state.lot.filter(v => v.id !== s.vehicle.id), sales: state.sales.map(x => (x.id === id ? { ...x, status: 'completed', completedAt: new Date().toISOString() } : x)) });
+}
+export function addVehicle(v: Vehicle) { set({ ...state, lot: [v, ...state.lot] }); }
+
+/* ---------- in-house notes (buy here pay here) ---------- */
+export const getLoans = () => state.loans ?? [];
+/** Record a payment and hand back its receipt number. */
+export function recordPayment(loanId: string, cents: number, method: Method, on: string, toward?: string): number {
+  const receipt = (state.receiptNo ?? 1000) + 1;
+  set({ ...state, receiptNo: receipt, loans: getLoans().map(l => (l.id === loanId ? applyPayment(l, { on, cents, method, by: state.at }, receipt, toward) : l)) });
+  return receipt;
+}
+/* ---------- money from outside the processor ---------- */
+/** The dealer confirms whose payment this is: it posts to that note, and the sender is remembered for next time. */
+export function matchMoney(m: Money, loanId: string): number {
+  const receipt = (state.receiptNo ?? 1000) + 1;
+  const loans = getLoans().map(l => (l.id === loanId ? applyPayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id, by: state.at }, receipt) : l));
+  const payers = m.from ? { ...state.payers, [normName(m.from)]: loanId } : state.payers;
+  set({ ...state, receiptNo: receipt, loans, payers, matched: { ...state.matched, [m.id]: { loanId, receipt } } });
+  return receipt;
+}
+/* ---------- condition and service ---------- */
+export function addService(loanId: string, e: ServiceEntry) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, service: [...(l.service ?? []), e] }) });
+}
+/* ---------- autopay ---------- */
+export function setAutopay(loanId: string, method: OnFile, payday: number | undefined, signedBy: string, on: string, signedIn: Lang = 'en') {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, autopay: { on: true, method, payday, signedBy, signedOn: on, signedIn,
+    history: [...(l.autopay?.history ?? []), { on, event: l.autopay?.method ? 'replaced' as const : 'added' as const }] } }) });
+}
+export function autopayOff(loanId: string, on: string) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId || !l.autopay ? l : { ...l, autopay: { ...l.autopay, on: false, history: [...l.autopay.history, { on, event: 'turned_off' as const }] } }) });
+}
+export function setPayday(loanId: string, payday: number) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId || !l.autopay ? l : { ...l, autopay: { ...l.autopay, payday } }) });
+}
+/** Close the cash day with what's in the drawer. Counting again replaces the count. */
+export function closeCashDay(date: string, countedCents: number) {
+  set({ ...state, cashDays: { ...state.cashDays, [date]: { date, countedCents, closedAt: new Date().toISOString(), countedBy: state.at } } });
+}
+/** Posts every sure match without asking, and keeps what's needed to undo it. */
+export function runAutoPost(candidates: Suggestion[]) {
+  let { receiptNo = 1000, loans = [], payers = {}, matched = {} } = state;
+  const sure = candidates.filter(sg => !(sg.money.id in matched) && !(state.noAuto ?? []).includes(sg.money.id));   // idempotent: never post the same money twice
+  if (!sure.length) return;
+  const posted: AutoPosted[] = [];
+  for (const sg of sure) {
+    const m = sg.money, loanId = sg.best!.loanId, receipt = ++receiptNo, name = m.from ? normName(m.from) : undefined;
+    loans = loans.map(l => l.id === loanId ? applyPayment(l, { on: m.on, cents: m.cents, method: m.rail ?? 'other', via: 'matched', processorId: m.id }, receipt) : l);
+    const addedPayer = name && payers[name] !== loanId ? name : undefined;
+    if (addedPayer) payers = { ...payers, [addedPayer]: loanId };
+    matched = { ...matched, [m.id]: { loanId, receipt } };
+    posted.push({ moneyId: m.id, loanId, receipt, on: m.on, addedPayer });
+  }
+  set({ ...state, receiptNo, loans, payers, matched, autoPosted: [...(state.autoPosted ?? []), ...posted] });
+}
+/** Undo an automatic post: off the note, back to To Match, never auto-posted again, sender forgotten if this post taught it. */
+export function undoAutoPost(moneyId: string) {
+  const a = state.autoPosted?.find(x => x.moneyId === moneyId); if (!a) return;
+  const { [moneyId]: _, ...matched } = state.matched ?? {};
+  const payers = { ...state.payers }; if (a.addedPayer) delete payers[a.addedPayer];
+  set({ ...state, matched, payers, noAuto: [...(state.noAuto ?? []), moneyId], autoPosted: state.autoPosted!.filter(x => x.moneyId !== moneyId),
+    loans: getLoans().map(l => l.id === a.loanId ? { ...l, payments: l.payments.filter(p => p.receipt !== a.receipt) } : l) });
+}
+export function setAutoPost(on: boolean) { set({ ...state, autoPost: on }); }
+export function setEvening(e: { on: boolean; hour: number }) { set({ ...state, evening: e }); }
+/** Not a car payment (a refund from a supplier, a personal deposit): set it aside for good. */
+export function dismissMoney(id: string) { set({ ...state, matched: { ...state.matched, [id]: { loanId: null } } }); }
+/** The language the buyer's texts and papers are in. */
+export function setLoanLanguage(loanId: string, language: Lang) { set({ ...state, loans: getLoans().map(l => (l.id === loanId ? { ...l, language } : l)) }); }
+export function setReminders(loanId: string, on: boolean) { set({ ...state, loans: getLoans().map(l => (l.id === loanId ? { ...l, remindersOn: on } : l)) }); }
+/** When an in-house sale completes, its note opens from the financing answers. */
+function loanFromSale(s: Sale, total: number, taxCents: number): Loan | null {
+  if (s.step.funding?.type !== 'inHouse') return null;
+  const f = s.step.paperwork?.financing ?? {};
+  const freq = (f.frequency in PER_YEAR ? f.frequency : 'monthly') as Frequency;
+  // the same solved terms the signed contract printed: agreed figures, held to the rate ceiling
+  const filed = asFiled('financing', s, state.dealer), terms = financingTerms(filed.sale, filed.dealer), down = parseMoney(f.down) ?? 0, count = terms.count, apr = terms.rate;
+  if (!count || !Number.isFinite(count) || !f.firstDue || total - down <= 0) return null;
+  const opened = openLoan({ id: 'n' + s.id, saleId: s.id, language: s.language ?? 'en', buyer: { name: s.buyer.fullName, phone: s.buyer.phone }, vehicle: `${s.vehicle.year} ${s.vehicle.make} ${s.vehicle.model}${s.vehicle.stock ? ` · Stock ${s.vehicle.stock}` : ''}`,
+    principalCents: Math.round((total - down) * 100), apr, count, frequency: freq, firstDue: f.firstDue, openedOn: today(state.dealer.timeZone) });
+  return { ...opened, condition: conditionFromSale(s, opened.openedOn), ...(taxCents > 0 ? { tax: { totalCents: taxCents, deferred: true } } : {}) };
+}
+export function openNoteForSale(id: string, total: number, tax = 0) {
+  const s = getSale(id); if (!s || getLoans().some(l => l.saleId === id)) return;
+  const l = loanFromSale(s, total, Math.round(tax * 100)); if (l) set({ ...state, loans: [l, ...getLoans()] });
+}
+/* ---------- promise to pay ---------- */
+/** A new promise replaces any still open: the latest word is the one that counts. Earlier ones stay on record. */
+export function addPromise(loanId: string, p: Omit<PayPromise, 'id' | 'by'>) {
+  const id = 'pp' + Date.now().toString(36);
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, promises: [...(l.promises ?? []).filter(x => !['waiting', 'today'].includes(promiseState(l, x, p.made))), { ...p, id, by: state.at }] }) });
+}
+export function removePromise(loanId: string, id: string) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, promises: (l.promises ?? []).filter(x => x.id !== id) }) });
+}
+/* ---------- repairs and fees ---------- */
+export function addExtra(loanId: string, e: Omit<Extra, 'id'>) {
+  const id = 'x' + Date.now().toString(36);
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, extras: [...(l.extras ?? []), { ...e, id }] }) });
+}
+/** A fee stops from a day on; what was owed before stays owed. */
+export function stopExtra(loanId: string, id: string, on: string) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, extras: (l.extras ?? []).map(e => e.id === id ? { ...e, stop: on } : e) }) });
+}
+/** Only an extra nothing has been paid toward can be removed outright. */
+export function removeExtra(loanId: string, id: string) {
+  const l = getLoans().find(x => x.id === loanId); if (!l || paidTo(l, id) > 0) return false;
+  set({ ...state, loans: getLoans().map(x => x.id !== loanId ? x : { ...x, extras: (x.extras ?? []).filter(e => e.id !== id) }) });
+  return true;
+}
+/* ---------- pausing payments ---------- */
+export function addPause(loanId: string, from: string, count: number, made: string) {
+  const id = 'pz' + Date.now().toString(36);
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, pauses: [...(l.pauses ?? []), { id, made, from, count, by: state.at }] }) });
+}
+/** Ending a pause puts the paused payments back where they were. */
+export function endPause(loanId: string, id: string) {
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, pauses: (l.pauses ?? []).filter(p => p.id !== id) }) });
+}
+/* ---------- Texas tax and the title application ---------- */
+const patchTax = (loanId: string, f: (t: NoteTax) => NoteTax) => set({ ...state, loans: getLoans().map(l => l.id !== loanId || !l.tax ? l : { ...l, tax: f(l.tax) }) });
+export const setTitleFiled = (loanId: string, on: string | undefined) => patchTax(loanId, t => ({ ...t, titleFiled: on }));
+/** Deferred: sent to the Comptroller as payments come in. Not deferred: paid in full to the county with the title. */
+export const setTaxDeferred = (loanId: string, deferred: boolean) => patchTax(loanId, t => ({ ...t, deferred }));
+export const setTransfer = (loanId: string, transfer: NoteTax['transfer']) => patchTax(loanId, t => ({ ...t, transfer }));
+export function setTaxFiling(f: TaxFiling) { set({ ...state, taxFiling: f }); }
+/** The report for a period went to the Comptroller with this amount. */
+export function fileTaxReport(key: string, cents: number, on: string) { set({ ...state, taxFiled: { ...state.taxFiled, [key]: { on, cents } } }); }
+
+/* ---------- insurance, the car's worth, credit reporting ---------- */
+export function setInsurance(loanId: string, i: Omit<Insurance, 'updated' | 'by'> | undefined) {
+  const on = today(state.dealer.timeZone);
+  set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, insurance: i ? { ...l.insurance, ...i, updated: on, by: 'desk' } : undefined }) });
+}
+export function setWorth(loanId: string, cents: number | undefined) { set({ ...state, loans: getLoans().map(l => l.id !== loanId ? l : { ...l, worthCents: cents }) }); }
+export function setCreditReporting(on: boolean) { set({ ...state, creditReporting: { on, since: state.creditReporting?.since ?? today(state.dealer.timeZone) } }); }
+
+/* ---------- coming from Frazer ---------- */
+/** Adds the notes and cars that aren't here yet. Returns how many came in. */
+export function importNotes(loans: Loan[], cars: Vehicle[]) {
+  const haveL = new Set(getLoans().map(l => l.id)), haveC = new Set(state.lot.map(v => v.id));
+  const nl = loans.filter(l => !haveL.has(l.id)), nc = cars.filter(c => !haveC.has(c.id));
+  const top = Math.max(state.receiptNo ?? 1000, ...nl.flatMap(l => l.payments.map(p => p.receipt < 900000 ? p.receipt : 0)));
+  set({ ...state, loans: [...nl, ...getLoans()], lot: [...nc, ...state.lot], receiptNo: top });
+  return { notes: nl.length, cars: nc.length };
+}
+
+/* ---------- who is at the desk ---------- */
+const ACTIVE = 'obavia.desk.active';
+let lastActive = (() => { try { return Number(localStorage.getItem(ACTIVE)) || 0; } catch { return 0; } })();
+/** Called on every tap; written down at most every 15 seconds. */
+export function touchDesk(now = Date.now()) {
+  if (now - lastActive < 15_000) return;
+  lastActive = now; try { localStorage.setItem(ACTIVE, String(now)); } catch { /* ignore */ }
+}
+export const me = () => state.staff?.find(s => s.id === state.at);
+/** Locked: people have been added, and nobody is signed in or the screen sat idle too long. */
+export const deskLocked = (now = Date.now()) => !!state.staff?.length && (!me() || idleTooLong(lastActive, now));
+export function signIn(id: string) { lastActive = 0; touchDesk(); set({ ...state, at: id }); }
+export function lockDesk() { set({ ...state, at: undefined }); }
+/** The first person added is signed in, so the owner isn't locked out of what they just set up. */
+export function addStaff(s: Staff) {
+  const first = !state.staff?.length;
+  set({ ...state, staff: [...(state.staff ?? []), s], at: first ? s.id : state.at });
+  if (first) { lastActive = 0; touchDesk(); }
+}
+/** Never removes the last owner. Their name stays on what they did. */
+export function removeStaff(id: string) {
+  const rest = (state.staff ?? []).filter(s => s.id !== id);
+  if (state.staff?.some(s => s.role === 'owner') && !rest.some(s => s.role === 'owner')) return false;
+  set({ ...state, staff: rest, at: state.at === id ? undefined : state.at });
+  return true;
+}
+
+/** Reach: channels the dealer wants switched on when they're ready. */
+export function toggleReachWanted(id: string) {
+  const w = new Set(state.reachWanted ?? []); w.has(id) ? w.delete(id) : w.add(id);
+  set({ ...state, reachWanted: [...w] });
+}
+
+/** Record that the dealer accepted the Marketplace terms on screen now. */
+export function acceptMarketplace(name: string) {
+  const c: Consent = { id: 'marketplace', version: MARKETPLACE_TERMS.version, hash: termsHash(MARKETPLACE_TERMS), name: name.trim(), licence: state.dealer.licence, at: new Date().toISOString(), timeZone: state.dealer.timeZone };
+  set({ ...state, consents: { ...state.consents, marketplace: c } });
+}
+/** Withdrawing consent switches the feature off. */
+export function withdrawMarketplace() { const { marketplace: _, ...rest } = state.consents ?? {}; set({ ...state, consents: rest }); }
+
+/** Reach posts, newest first. */
+export function savePost(p: Post) { set({ ...state, posts: [p, ...(state.posts ?? []).filter(x => x.id !== p.id)] }); }

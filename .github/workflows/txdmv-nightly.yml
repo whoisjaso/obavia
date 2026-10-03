@@ -1,0 +1,101 @@
+# Every night: pull the TxDMV Independent (GDN) dealer list so a dealer
+# licensed yesterday can find themselves at onboarding today.
+#
+# Public output (search index, no full phone numbers or emails) goes to the
+# `data-txdmv` branch as a single commit and is served by jsDelivr:
+#   https://cdn.jsdelivr.net/gh/whoisjaso/obavia@data-txdmv/tx.index.json
+# Private output (phone and email per licence, used only to send a
+# verification code) goes to Cloudflare R2 when the secrets below are set.
+# It is never committed and never uploaded as an artifact: this repo is public.
+#
+# Secrets (optional until the verification service is live):
+#   CLOUDFLARE_API_TOKEN   R2 write access
+#   CLOUDFLARE_ACCOUNT_ID
+# Variable (optional): DEALERS_R2_BUCKET, default "obavia-dealers".
+name: TxDMV dealer list (nightly)
+
+on:
+  schedule:
+    - cron: '17 11 * * *'   # 6:17 am Central, after TxDMV's overnight refresh
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: txdmv-nightly
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: desk
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desk/package-lock.json
+
+      - run: npm ci
+
+      - name: Last published index (for the diff and the shrink guard)
+        run: |
+          if git fetch --depth=1 origin data-txdmv 2>/dev/null; then
+            git show FETCH_HEAD:tx.index.json > /tmp/prev.json || true
+          fi
+          [ -s /tmp/prev.json ] || cp public/dealers/tx.index.json /tmp/prev.json
+
+      - name: Download and parse
+        id: ingest
+        run: |
+          set +e
+          node ingest/txdmv.mjs --out /tmp/txdmv --prev /tmp/prev.json
+          code=$?
+          if [ $code -eq 2 ]; then echo "::error::Shrink guard stopped the publish"; exit 2; fi
+          if [ $code -ne 0 ]; then
+            echo "::warning::Plain download failed; retrying through a browser"
+            npm i --no-save playwright@1 >/dev/null && npx playwright install --with-deps chromium >/dev/null
+            node ingest/txdmv.mjs --out /tmp/txdmv --prev /tmp/prev.json --browser || exit $?
+          fi
+
+      - name: Publish the public index to data-txdmv
+        run: |
+          cd /tmp
+          rm -rf pub && mkdir pub && cd pub
+          git init -q -b data-txdmv
+          cp /tmp/txdmv/tx.index.json /tmp/txdmv/tx.diff.json /tmp/txdmv/meta.json .
+          printf '# TxDMV dealer index\n\nRebuilt nightly by `.github/workflows/txdmv-nightly.yml` from the TxDMV Independent (GDN) Motor Vehicle Dealers List. Public fields only.\n' > README.md
+          git add -A
+          git -c user.name="obavia-bot" -c user.email="obavia-bot@users.noreply.github.com" commit -qm "TxDMV index $(jq -r .asOf meta.json): $(jq -r .dealers meta.json) dealers, +$(jq -r .added meta.json) / -$(jq -r .removed meta.json)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data-txdmv
+          for f in tx.index.json tx.diff.json meta.json; do curl -fsS "https://purge.jsdelivr.net/gh/${{ github.repository }}@data-txdmv/$f" >/dev/null || true; done
+
+      - name: Store contacts privately (R2)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BUCKET: ${{ vars.DEALERS_R2_BUCKET || 'obavia-dealers' }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Cloudflare secrets not set; contacts not stored. Verification codes stay in preview mode."
+            exit 0
+          fi
+          npx --yes wrangler@3 r2 object put "$BUCKET/tx/contacts.json" --file /tmp/txdmv/tx.contacts.json --content-type application/json --remote
+          npx --yes wrangler@3 r2 object put "$BUCKET/tx/index.json" --file /tmp/txdmv/tx.index.json --content-type application/json --remote
+
+      - name: Summary
+        if: always()
+        run: |
+          [ -f /tmp/txdmv/meta.json ] || exit 0
+          {
+            echo "### TxDMV dealer list"
+            echo '```json'; cat /tmp/txdmv/meta.json; echo '```'
+            echo "**New licences:** $(jq -r '.added[:25] | join(", ")' /tmp/txdmv/tx.diff.json)"
+            echo "**Dropped:** $(jq -r '.removed[:25] | join(", ")' /tmp/txdmv/tx.diff.json)"
+          } >> "$GITHUB_STEP_SUMMARY"

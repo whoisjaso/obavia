@@ -111,7 +111,7 @@ BMAD cycle for every story:
 | Sprint | Dates | Epic | Done means |
 |---|---|---|---|
 | 1 | Nov 30 to Dec 11 | **E1 Foundation** | Accounts, agencies and roles, auth, app.obavia.co deployed, CI, error tracking |
-| 2 | Dec 14 to Dec 25 | **E1** + **E2 Onboarding** starts | Stripe billing with monthly terms and the refundable start; onboarding shell, step by step |
+| 2 | Dec 14 to Dec 25 | **E1** + **E2 Onboarding** starts | Whop billing with monthly terms and the refundable start; onboarding shell, step by step |
 | 3 | Dec 28 to Jan 8 | **E2 Connect tools** | Calendar and CRM connected with backfill; leads, bookings and deals flow in |
 | 4 | Jan 11 to Jan 22 | **E3 Call capture** | Phone and meeting recordings flow in, transcribed with speakers, consent handled |
 | 5 | Jan 25 to Feb 5 | **E4 Why from calls** | Reason tags with the exact words, measured on the evaluation set. **Design partners connect.** |

@@ -10,3 +10,5 @@ Know why deals are lost. And fix it by Friday.
 | `docs/` | Spec, sales doctrine, positioning, market language |
 
 Start with `docs/obavia-spec.md`.
+
+- `desk/`: Obavia Desk, the dealership sale desk (Handle A Sale). See `desk/README.md`.

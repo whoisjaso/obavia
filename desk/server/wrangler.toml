@@ -1,0 +1,43 @@
+# The Desk API (Cloudflare Worker). Deploy from desk/:
+#   npx wrangler d1 create obavia-desk          # once; paste the id below
+#   npx wrangler d1 execute obavia-desk --remote --file server/schema.sql
+#   npx wrangler secret put <NAME> -c server/wrangler.toml   # for each secret below
+#   npx wrangler deploy -c server/wrangler.toml
+#
+# Secrets (never in this file, the repository is public):
+#   TELNYX_API_KEY, TELNYX_MESSAGING_PROFILE_ID, TELNYX_VERIFY_PROFILE_ID,
+#   TELNYX_PUBLIC_KEY (Mission Control > Keys & Credentials > Public Key),
+#   RESEND_API_KEY, SESSION_SECRET (32+ random characters), INTERNAL_API_TOKEN
+name = "obavia-desk-api"
+main = "worker.ts"
+compatibility_date = "2026-09-01"
+
+[vars]
+MESSAGING_PROVIDER = "telnyx"
+PUBLIC_URL = "https://api.obavia.co"
+EMAIL_FROM = "Obavia <codes@obavia.co>"
+ALLOWED_ORIGIN = "https://app.obavia.co,http://localhost:5173"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "obavia-desk"
+database_id = "REPLACE_WITH_D1_ID"
+
+# Written nightly by .github/workflows/txdmv-nightly.yml
+[[r2_buckets]]
+binding = "DEALERS"
+bucket_name = "obavia-dealers"
+
+# Hourly: buyer reminders at 10 AM and the owner's evening text, each in the dealer's time zone.
+[triggers]
+crons = ["0 * * * *"]
+
+# Reach posting (off until both are set; not yet deployed):
+#   an R2 bucket with a public custom domain for post photos, set PHOTOS_URL to that domain,
+#   and Cloudflare Browser Rendering as the posting agent's cloud browser.
+# [[r2_buckets]]
+# binding = "PHOTOS"
+# bucket_name = "obavia-post-photos"
+# [vars] PHOTOS_URL = "https://photos.obavia.co"
+# [browser]
+# binding = "BROWSER"

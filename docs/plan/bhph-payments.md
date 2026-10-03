@@ -1,0 +1,661 @@
+# Buy here pay here: tracking every payment
+
+Research date: October 1, 2026, from each company's own pages and the Texas statutes. Anything marked **to confirm** must be checked before a customer relies on it. Legal points need attorney review before launch.
+
+## What the incumbents do
+
+| System | How payments work |
+|---|---|
+| **Frazer** | **FrazerPay**, its own processor, takes card, debit and ACH inside Frazer. It supports recurring payments that run the whole portfolio on each due date. Accounts update automatically and receipts go to the customer by email. **PayMyCar** is a dealer-branded pay site that imports payments into Frazer. Texting runs through Solutions by Text and Textmaxx Pro. |
+| **FEX DMS (Finance Express)** | Its "Electronic Payment System" takes online ACH and card payments, and it reports to Equifax and TransUnion. |
+| **DealerCenter** | A BHPH module with integrated accounting, QuickBooks sync and a customer "My Account" portal. |
+| **Carpay** | A separate app that plugs into "every major BHPH DMS". Customers pay by app, by texting PAY, by phone (IVR) or on the web. It sends reminders by text, email and push, offers autopay, and syncs payments both ways in real time. |
+| **PayNearMe** | Lets customers pay in cash at retail stores (7-Eleven and similar). It integrates with Auto Master Systems and Emotive. This matters for unbanked buyers. |
+
+**The pattern:** the DMS owns the ledger, and a processor (its own or a partner) moves the money. Reminders and receipts come out of the ledger. We follow the same shape.
+
+## Texas rules the ledger enforces (Finance Code ch. 348)
+
+- **§348.107, late charge.** Only after the installment is unpaid past the 15th day. The cap is **5% of the installment, or interest at the contract rate**, and only one charge per installment. The Desk assesses 5% on the 16th day, once.
+- **§348.406.** A **written receipt for every cash payment.** The Desk numbers every payment and writes the receipt text.
+- **§348.405.** On written request, a **statement of payment dates and amounts and the unpaid total.** The account screen is that statement.
+- **§348.114.** Deferment charges, used when a payment is pushed back. **Not built yet.**
+- **Rate ceilings (§348.104).** The owner confirms the ceiling. The Desk never encodes one.
+- **Licensing, to confirm:** a dealer who holds its own retail installment contracts needs a Motor Vehicle Sales Finance licence from the OCCC.
+
+## Reminders, and the rules around them
+
+- Reminders are transactional texts about the buyer's own account. They go through the same messaging gate as everything else, so STOP blocks every later text and the gate logs every send.
+- **The schedule:**
+  - three days before the due date;
+  - on the due date;
+  - three days late;
+  - just before the late charge would apply;
+  - then **once a week** while the account stays late.
+- Texas Finance Code ch. 392 (debt collection) applies to creditors collecting their own debts and bars harassment, so reminders stay few, polite and inside daytime hours. Consent to text the number on the contract is recorded at signing. Both points need attorney review.
+- The owner gets one **morning text**: what's due today, what's late, and what's been collected so far.
+
+## What is built (in `desk/`)
+
+- **`src/lib/loans.ts`, with 15 tests:**
+  - level installments, and due dates for weekly, every-two-weeks, twice-monthly and monthly plans;
+  - simple interest counted by the day (actual/365). Each payment pays late charges, then interest, then principal. Interest is never charged on interest;
+  - account standing: current, due today, late (with days late), paid off; past-due amount, late charges owed, payoff today, and each installment marked paid, paid late, part paid, due, late or upcoming;
+  - the reminder plan, receipt text, owner digest and owner morning text.
+- **Payments screens:**
+  - **list:** due today, late and collected today; the owner's morning text; and the accounts grouped late, due today, current and paid off;
+  - **account:** what to ask for, payoff, the reminder switch and the texts that will go out, the schedule, and the payments received;
+  - **Take A Payment:** the amount, with one-tap "what's due", "one payment" and "pay it off"; then the method (cash, card, ACH, Zelle, Cash App, check, money order); then a numbered receipt.
+- **A note opens automatically** when an in-house sale is completed, from the financing answers already asked at the desk.
+
+## What comes next
+
+1. **Send the reminders and receipts** through the Telnyx layer once it's deployed and the dealer's texting campaign is approved.
+2. **A pay link by text.** The buyer pays by card or ACH from the text, and the payment posts to the ledger. Processor options:
+   - Stripe: card plus ACH, with ACH requiring a signed mandate;
+   - Repay: auto-finance specialist;
+   - PayNearMe: cash at retail;
+   - Carpay: app plus autopay, if dealers already use it. We would integrate rather than compete.
+
+   **No payment processing turns on without the owner's go-ahead.**
+3. **Autopay** on the due date, with the buyer's authorization recorded.
+4. **Promise to pay,** **deferments** (§348.114) and a **collections notes** log.
+5. **Credit reporting** (Metro 2) and GPS/starter-interrupt integrations, as Frazer and FEX offer. Both need attorney review.
+
+---
+
+# How payments get received, and how everyone knows
+
+Research date: October 1, 2026, read from each company's own pages and developer docs. Lines marked **to confirm** need a call, a sandbox test or counsel before launch.
+
+## 1. Which processor
+
+| Option | What it is | Fit for our notes |
+|---|---|---|
+| **PayNearMe** | Built for buy here pay here and auto lenders. Takes **cash at 7-Eleven and CVS** (by barcode), card, ACH, Cash App, PayPal and Apple Pay. Offers **one-tap pay links by text** (no login), autopay and reminders. | **Best fit.** Its developer docs spell out callbacks for every payment, decline, refund, chargeback and ACH return (details in §2). Cash at retail matters for buyers without bank accounts. |
+| **REPAY** | Auto-finance specialist. Card, debit and ACH, text-to-pay, phone payments (IVR), a pay portal and autopay. Payments "automatically post back to your DMS". Has a partner program for software companies like us. | **Strong second.** We need its API docs through the partner program. |
+| **Carpay** | A customer app for buy here pay here payers. Pay by app, by texting PAY, by phone or on the web. Reminders, autopay, and "real-time" sync with the dealer's system. Says "$0 additional out-of-pocket" for the dealer. | A partner to integrate with when a dealer already uses it, not our main processor. |
+| **FrazerPay / PayMyCar** | Frazer's own processor and pay site. | Only for Frazer dealers. Shows what dealers expect: recurring payments on the due date, automatic posting and emailed receipts. |
+| **Stripe** | General processor. | **Not for notes.** Stripe lists "Loan repayments with credit cards" as **prohibited**, and "Lending services" as **restricted** (approval needed). Obavia's own subscription bills through **Whop** (owner's decision, October 1). |
+| **A white-label processor for software platforms (e.g. Finix)** | Lets Obavia run payments under its own brand and earn on each transaction. | **Ruled out for notes.** Finix's own list marks "non-bank lenders: … any consumer financing services" and "loan repayments on a credit card" as **prohibited** for platform sub-merchants. See §6. |
+
+**Card rules that shape the choice.**
+- Visa and Mastercard have lower-fee **debt repayment programs**, but only for **debit and prepaid cards**, and only for lenders registered under financial-institution category codes (**6012 or 6051**). Fees run about **0.65% + $0.15, capped at $2.00** on exempt Visa debit.
+- A dealer usually processes as a car dealer (category 5521), so whether a buy here pay here dealer qualifies is **to confirm** with the processor.
+- Credit-card loan payments are where processors draw lines: Stripe bans them, while auto specialists take cards.
+
+**Bank (ACH) rules** (Nacha, the network that runs US bank transfers):
+- before the first online debit from a bank account, it must be **validated** (open and able to take debits);
+- recurring debits need a **signed or similarly authenticated authorization**, and the buyer must be sent a copy (Regulation E).
+
+PayNearMe and REPAY handle both.
+
+**Recommendation:** start with **PayNearMe**, with **REPAY** as the alternative. Keep cash at the counter in the Desk as it is today.
+- **No payment processing turns on without the owner's go-ahead.**
+- **Do not charge buyers convenience fees until counsel confirms the setup.** The Texas independent dealers' association (TIADA) reads Finance Code §348.108 as **not authorizing** dealer convenience fees. See §6.
+
+## 2. How the Desk knows where every payment stands
+
+Every payment has a status. The ledger counts a payment while it is cleared or clearing, and stops counting it if it comes back:
+
+| Status | When | Counts toward the note? |
+|---|---|---|
+| **Cleared** | Cash at the counter; a card or debit payment the processor approved | Yes |
+| **Clearing** | A bank (ACH) payment. Stripe's docs say ACH takes **up to 4 business days** to confirm, and consumers can dispute for **60 days** | Yes, marked as clearing |
+| **Returned** | The bank sent it back (e.g. **R01 Insufficient Funds**) | No. The installment is due or late again |
+| **Charged back** | The cardholder disputed it | No |
+| **Refunded** | The dealer refunded it | No |
+
+**PayNearMe callbacks** (from its developer docs):
+- **Confirmation callback,** sent for each payment or decline. Its fields:
+  - `pnm_order_identifier`: PayNearMe's payment id;
+  - `site_customer_identifier`: **our note id**;
+  - `payment_amount`;
+  - `payment_type`: ach, cash, cash_app, credit, debit or paypal;
+  - `pnm_processing_fee`;
+  - `status`: payment or decline;
+  - `payment_timestamp`.
+- **Reverse callback,** sent for cancellations, refunds, chargebacks and bank returns. Its fields:
+  - `reverse_type`, e.g. "Chargeback" or "Bank Return";
+  - `reverse_code`, e.g. "refunded" or "R01";
+  - `reverse_reason`, e.g. "Insufficient Funds".
+- **Our acknowledgement** must come back **within 10 seconds**. Otherwise PayNearMe resends every minute for 30 minutes, then pauses callbacks until someone resumes them in its portal.
+- **Callbacks are signed with HMAC-SHA256.** Which header carries the signature is **to confirm** in the sandbox. It's a single constant in our code.
+
+## 3. Texting both the buyer and the dealership
+
+| Event | Buyer gets | Dealership gets |
+|---|---|---|
+| Payment received | "Triple J Auto: we received your $126.28 payment (receipt #1001). Balance $5,894.43. Next payment $126.28 due Friday, October 16." | "Payment in: $126.28 from Maria Example, 2016 Honda Accord LX. Balance $5,894.43." |
+| Bank payment started | "…your $126.28 bank payment is on its way and usually clears in 3 to 4 business days…" | "Bank payment started: … Clearing." |
+| Bank payment returned | "…came back from your bank (insufficient funds). Please call us or reply to pay another way." | "Payment returned: … Their account is $X past due." |
+| Card declined | "…didn't go through. Please try another card or reply and we'll help." | "Payment declined: …" |
+| Chargeback | (nothing) | "Chargeback: … Respond in your processor's portal." |
+| Refund | "We refunded $X to you. Balance $Y." | "Refunded $X to …" |
+
+**Is it allowed?**
+- **Carriers prohibit third-party debt collection texts.** Twilio's error 30943 says carriers reject those campaigns.
+- **First-party messages,** where the creditor texts its own customers about their own balances, "may be permissible under a different campaign use case". Our texts are first-party: the dealer about its own note. They go out under the dealer's own texting campaign, registered as **account notifications / customer care**.
+- **Every text goes through the messaging gate.** STOP is honoured, every send is logged, and the compliance gate applies.
+- **Consent to text** the number on the contract is captured at signing.
+- **Dealership alerts** go only to the numbers the owner chooses.
+- **Texas Finance Code ch. 392** (debt collection) bars harassment, so payment texts stay factual and few.
+- **Counsel review** is required for the wording and the consent.
+
+**Licensing:** OCCC says sellers and holders of retail installment contracts need a **Chapter 348 Motor Vehicle Sales Finance licence**. A buy here pay here dealer that carries its own notes needs one.
+
+## 4. What is built (October 1)
+
+- **`src/lib/loans.ts`:**
+  - payment statuses, so returned, refunded and charged-back payments stop counting;
+  - `updatePayment()`;
+  - `paymentTexts()`, which writes the buyer and dealership text for every event.
+- **`server/payments/paynearme.ts`:** reads PayNearMe confirmation and reverse callbacks (JSON or form fields), checks the HMAC signature, and builds the exact acknowledgement.
+- **`server/payments/desk.ts` (`PaymentDesk`):**
+  - applies a payment to the note, and ignores the same payment if it arrives twice;
+  - moves bank payments from clearing to cleared or returned;
+  - texts the buyer and every dealership alert number through the Messenger. A buyer who sent STOP is never texted; the dealership still is.
+- **`POST /webhooks/paynearme`** on the Worker. Notes and receipt numbers are stored in D1 (`server/schema.sql`).
+- **Tests:** 16 for the loan engine, 9 for payments, plus the webhook route.
+- **Desk:** after a payment, "Receipt #1001 · texted to Chris and you", with **See The Texts** showing both messages.
+
+## 5. To turn on
+
+1. Apply with PayNearMe (and ask REPAY for partner API docs).
+2. Confirm in the PayNearMe sandbox:
+   - the signature header;
+   - the callback format;
+   - pay links by text, so we can send our own "Pay Now" link in reminders;
+   - autopay;
+   - the fee model.
+3. Move notes from the browser into D1 (or Supabase).
+4. Deploy the Worker with `PAYNEARME_CALLBACK_SECRET`, and have the owner set the dealership alert numbers.
+5. Get counsel review of the wording and consent, OCCC confirmation on fees, and the dealer's ch. 348 licence.
+
+## 6. Deep dive: which option is best (October 1)
+
+Sources: each company's own site and docs, Finix's and Stripe's published business lists, the PayNearMe partner list, and TIADA's Texas guidance. Read through Firecrawl.
+
+### The verdict
+
+**PayNearMe first. REPAY as the backup. Nothing else is a real option for the notes.**
+
+| Rank | Option | Why |
+|---|---|---|
+| 1 | **PayNearMe** | **It is the only one whose callback API is public**, so the webhook, ledger and two-sided texts are already built against it. It takes **cash at 7-Eleven and CVS**, which matters most for buyers without bank accounts. It has one-tap text pay links, autopay and every major method. Its partner list shows it already plugs into dealer and loan software: abcoa Deal Pack, AFS Vanguard, Allied Business Systems, AutoMatrix, Credex Systems, DealerSocket IDMS, Emotive and GOLDPoint. Industry maps name it as the subprime and buy here pay here default for cash and text pay. |
+| 2 | **REPAY** | **It runs a formal partner program** for software companies ("integrations up and running in as few as 90 days"). It covers card, debit, ACH, IVR, text pay and portals, owns Payix and integrated with Emotive in 2025. **Its API is behind the partner agreement**, so we can't build against it until we sign. |
+| — | **Carpay, BlytzPay** | **These are buyer-facing pay apps that sit on top of a dealer's system**, not processors we would build on. Carpay's own comparison page calls the DMS "the system of record" and itself "servicing and payments". To them, the Desk is that system. **Treat them as integrations or competitors, not rails.** |
+| — | **Finix and other white-label payments for software platforms** | **Ruled out.** Finix lists consumer financing and credit-card loan repayment as **prohibited** for platform sub-merchants. This is the model that would have let Obavia earn on each payment. |
+| — | **Stripe, Square, Helcim and other general processors** | **Ruled out for notes.** Stripe prohibits credit-card loan repayments and restricts lending. General processors either refuse or require special approval for consumer lending. Moov, for example, supports debit-only debt repayment. Obavia's own subscription bills through Whop. |
+| — | **Whop** | **Ruled out for notes.** Whop's own rules prohibit "debt and lending services … consumer lending that require state or federal licensing", and a buy here pay here note needs an OCCC ch. 348 licence. It is built for digital products: no cash at retail, cards at 2.7% + $0.30, ACH 1.5% (max $5). **Obavia's own subscription bills through Whop** (owner's decision, October 1). On a $3,000 month, ACH costs $5 against $81.30 by card, so invoices should default to ACH. |
+| — | **Building our own** | **Not now.** It would mean money transmission questions, Nacha origination, card-network registration and fraud losses. The specialists already carry all of that. |
+
+### The Texas fee rule that shapes the business model
+
+TIADA (Texas Independent Automobile Dealers Association) reads Finance Code **§348.108**, which lists every charge allowed on a retail installment contract, as follows.
+- **Dealers may not charge or keep convenience fees.** This covers "expedited payment" and "processing" fees too. **A dealer may not receive "any incentive from a third party for utilizing a payment processing service."**
+- **A processor's fee is allowed only if all of these hold:**
+  - the **entire fee goes to the processor**;
+  - the dealer gets **no direct or indirect benefit** from it;
+  - the fee is **optional**, so another method is free (cash at the counter);
+  - the dealer **keeps documentation** of all four.
+
+What that means for us:
+- **Obavia must never pass a payment rebate or revenue share to the dealer.** That would be an "incentive".
+- **Whether Obavia itself may take a share of a buyer-paid fee is unresolved.** Until counsel clears it, **Obavia earns from the subscription, not from payments.**
+- **Default: the dealer absorbs processing.** A buyer fee is possible only as the processor's own optional fee, with cash at the counter always free. The Desk already records cash payments, so the free method exists.
+
+
+### How access to PayNearMe works (request, not self-serve)
+
+There is **no self-serve sign-up**, so we have to request it. From PayNearMe's developer docs:
+- **Sales and an NDA come first.** "Once you've signed your NDA, your Sales representative will invite you to your site's portal". API keys and the full developer docs are in that portal. The sandbox is `api.paynearme-sandbox.com`.
+- **Two roles, and Obavia needs both.**
+  1. **Triple J as a client.** It signs as a merchant and gets its own "site". Its account rep invites it to the portal.
+  2. **Obavia as a Third-Party Proxy Partner (3PPP).** This is a software company that processes payments **on behalf of** PayNearMe clients through the **Proxy Site API**. That API covers `create_payment_method`, `make_payment`, `cancel_payment`, `schedule_auto_pay`, `find_orders`, and `get_smart_token` for text pay links.
+- **3PPP steps:**
+  1. Request access through Merchant Services or Account Management.
+  2. **PayNearMe's Compliance team needs the client's written authorization** for the partner.
+  3. Obavia receives API keys.
+  4. PayNearMe enables proxy access on the client's site.
+  5. Joint testing.
+  6. The client schedules go-live.
+- **This fits the model for every future dealer.** Each one signs with PayNearMe as a client and authorizes Obavia. Obavia never holds the money, which keeps us clear of money transmission.
+
+### What to get on the calls
+
+**PayNearMe** (Schedule a demo; "Partner with us"):
+1. ISV/partner terms: can Obavia hold one platform account and onboard each dealer under it, or must each dealer contract directly?
+2. Pricing: fee per method (card, debit, ACH, cash at retail), who pays, any monthly minimums. Can the fee be dealer-paid only?
+3. Smart Links API: can we create a pay link for an amount and our note id, and send it in our own text?
+4. Autopay: are the mandate and the Nacha authorization handled on their page?
+5. Sandbox: the signature header name and an example signed callback.
+6. Does a buy here pay here dealer qualify as category 5521, or under the lender debt-repayment rates?
+
+**REPAY** (partner program): API docs, a sandbox, the same fee and onboarding questions, and the integration timeline.
+
+### Order of work
+
+1. **Today:** nothing is processing. Cash and counter payments in the Desk are live in preview.
+2. **This week:** request a PayNearMe demo and a REPAY partner call. Send the questions above.
+3. **Sandbox:** confirm the header and format, and run our webhook tests against real signed callbacks.
+4. **Pilot:** Triple J's own notes, dealer-paid fees, with counsel sign-off on wording, consent and fees. Turn it on only with the owner's go-ahead.
+
+
+## 7. Money from outside the processor: Zelle, Cash App, Venmo, checks
+
+Buyers will keep paying however they like. **Every payment ends up in one ledger** through four routes:
+
+| Route | What arrives | How the Desk knows whose it is |
+|---|---|---|
+| Processor (PayNearMe) | Card, debit, ACH, Cash App Pay, PayPal, cash at retail | The callback carries our note id. Exact |
+| Bank feed (Plaid, read-only) | Zelle, ACH, checks, cash deposits | Zelle and ACH carry the sender's name; checks and cash don't |
+| Receipt emails | Personal Cash App and Venmo | The receipt names the payer. In the bank these arrive only as one lump "cash out", with no names |
+| The counter | Cash, money orders | Recorded in the Desk |
+
+**The matching engine** (`desk/src/lib/match.ts`, 9 tests, plus 2 for the Plaid reader):
+- **Set aside:** money going out, pending items, processor settlements (already counted from callbacks) and Cash App or Venmo cash-outs (already counted from their receipts). Nothing is counted twice.
+- **Same payment seen twice:** a Zelle in both the bank feed and the email is kept once.
+- **Score against every open note**, 0 to 1:
+  - name: full 1, first initial and last name 0.85, last name only 0.55;
+  - amount: exactly what's owed 1, whole installments or the payoff 0.9, anything up to the payoff 0.3;
+  - date: near a due date.
+- **Verdicts:**
+  - **Sure:** 0.85 or higher, well clear of the next note.
+  - **Likely:** 0.5 or higher.
+  - **Unsure:** below 0.5. A nameless check or cash deposit is never "sure".
+- **The dealer confirms with one tap.** It posts to the note, and the buyer and dealer texts go out exactly as for a processor payment.
+- **The confirmed sender is remembered**, so next time a cousin's Zelle is sure.
+
+**Desk:** Payments, then To Match. Each page shows one amount and asks one question ("Jordan Rivera?"), with Yes, Someone Else or Not A Car Payment.
+
+**Server:** `server/bank/plaid.ts` pages Plaid `/transactions/sync` and keeps only posted money coming in (Plaid shows inflows as negative amounts).
+
+**To turn on:**
+1. A Plaid account; the dealer links the bank read-only.
+2. Receipt forwarding: the dealer forwards Cash App and Venmo receipts to a Desk address, or connects the inbox.
+3. Confirm the description and subject formats against Triple J's real bank lines and receipts.
+
+**Cost:** Plaid bills Obavia per linked bank account. That's software cost, covered by the subscription. The dealer pays nothing extra for Zelle or Cash App.
+
+## 8. Cash at the counter: one tap, then checked automatically
+
+Counter cash leaves no digital signal, so it can't be detected. The rule: **automate whatever leaves a signal; cut what doesn't to one tap with the answer filled in; then check that tap automatically.**
+
+- **Expected Today** (the Payments home) lists everyone due today or behind, most behind first, with the amount owed.
+  - Tap a name, then "Yes, $126.28 Cash". The payment posts, a receipt number is issued, and the buyer and the owner are texted.
+  - "Different Amount Or Way" opens the full payment flow.
+  - Anyone who already paid today drops off the list.
+- **Check 1, the buyer:** every cash payment texts a receipt. Cash taken but not recorded means no receipt, and the buyer calls.
+- **Check 2, the drawer:** **Close The Day** shows the day's counter cash (7-Eleven cash and Zelle excluded).
+  - If the drawer matches, one tap: "Counted, It's $X".
+  - Otherwise "It's Different", then enter the count. The day shows **Short** or **Over** by the exact amount.
+- **Check 3, the bank:**
+  - A branch, teller or ATM cash deposit in the bank feed that equals a closed day's count marks that day **Banked**. Mobile check deposits don't count.
+  - Each deposit banks one day, the oldest that fits, within 10 days.
+  - Those deposits never appear in To Match.
+  - A closed day not banked within 3 days is flagged, and the Payments home shows "N days to look at".
+- **Code:** `desk/src/lib/cashday.ts` (4 tests), `desk/src/Cash.tsx`.
+- **Not yet:** one deposit covering several days, and splitting a day across two deposits. The owner resolves those by hand until real Triple J deposits show the pattern.
+
+## 9. Autopay, and can't-pay versus won't-pay
+
+**Autopay on file** (`desk/src/lib/autopay.ts`, 7 tests; `desk/src/Autopay.tsx`). It's set up page by page from the account:
+1. Pay Automatically?
+2. Debit card or bank account.
+3. When do they get paid?
+4. They sign.
+
+- **Debit cards and bank accounts only:**
+  - **Credit cards are refused.** Processors prohibit loan repayment on them.
+  - **Prepaid cards are refused.**
+  - **The dealer can block card issuers by name.** Neobank cards can register as debit rather than prepaid.
+  - The funding type comes from the processor when the card is saved. The preview uses the processors' published test cards.
+- **Card and bank checks:** the card number checksum, the expiry date, and the routing number checksum.
+- **Charge day:** the first payday on or after each due date, so a Friday-paid buyer is charged Friday.
+- **The signed authorization:**
+  - states the amount, the card or account, and when it's charged;
+  - allows up to 2 retries;
+  - says **autopay is optional and was not required for financing** (Regulation E, 12 CFR 1005.10(e));
+  - says how to cancel.
+
+  Counsel reviews the final wording.
+
+**What a failed charge says.** Card decline codes and Nacha return codes map to four readings:
+
+| Reading | Codes | What happens |
+|---|---|---|
+| **Can't pay right now** | 51, 61, 65, R01, R09 | Retried on their payday, at most 2 more times per payment |
+| **Won't pay: on purpose** | R0, R1, R3 (stop or revoke), R02 (account closed), R07, R08, R10, 41, 43, 57, 62, chargeback | No retry; red on the Payments home |
+| **Needs a new card** | 54, 14, R03, R04, R16 | No retry; ask for a new card |
+| **Unclear** | 05 | One retry; amber |
+
+**Signals the owner sees:**
+- **Red:** an on-purpose reading in the last 60 days, or autopay turned off or the card removed without a replacement.
+- **Amber:** can't pay, or a card that needs fixing, in the last 30 days.
+- **Payday hint:** two short-on-money declines each followed by a payment on the same weekday suggest moving autopay to that day, in one tap.
+
+**Screens:**
+- the **Watch** card on the Payments home;
+- a flag on the account;
+- **History**, a timeline of every payment, failed charge and card change.
+
+**Not yet:**
+- the live charging scheduler and retries through the processor;
+- reading decline codes from PayNearMe or REPAY callbacks. The field names are confirmed in the sandbox.
+
+## 10. The condition record: "the car broke, so I'm not paying"
+
+That's answered by records made at the sale, not by arguments.
+
+- **At the sale:** a signed **Condition Report** is part of every sale except a tow-away. It sits right after the bill of sale. Each question is its own page:
+  - Is the Buyers Guide on the window? (FTC Used Car Rule)
+  - Did they drive it first?
+  - Any warning lights? Which?
+  - Anything not working? What?
+  - Photos of the car: up to 6, each shrunk to a small JPEG.
+- **The printed sheet** shows:
+  - the vehicle, VIN and odometer;
+  - as-is or warranty, taken from the bill of sale;
+  - the checkboxes, the warning lights and the known issues;
+  - the photos;
+  - one line in red: "Repairs after today are the buyer's. Payments are due whether or not it needs repairs." Counsel reviews this wording.
+- **Into the note:** when an in-house sale opens its note, the condition is copied onto the loan (`desk/src/lib/condition.ts`, 6 tests).
+- **After the sale, on the account under Condition** (`desk/src/Condition.tsx`):
+  - the heading reads "Sold As-Is." with the signing date and miles at sale;
+  - the payment line;
+  - what wasn't working at sale, and the photos;
+  - every complaint since, as "27 days and 2,140 miles after the sale". A complaint already written down at sale is marked **Known at sale**;
+  - **Add A Complaint**: what's wrong, in their words, then miles now.
+- **History:** complaints also appear in the timeline, so a complaint, then autopay turned off, then a stopped payment reads as one story.
+
+## 11. What runs without the owner, and the one text that tells them
+
+**Auto-post sure matches** (`autoPostable` in `desk/src/lib/match.ts`; `runAutoPost` and `undoAutoPost` in `desk/src/store.ts`):
+- **What posts on sight:** only matches that are "sure" and carry a sender's name. Nameless checks and cash deposits are never sure. A match posts the moment it's found, with a receipt and both texts, exactly as if the owner had tapped Yes.
+- **Turning it on:** it's opt-in, under "Post Sure Ones For Me" on To Match. It's on for the example data so the preview shows it.
+- **Undo, for 2 days**, on **Posted For You**:
+  - takes the payment off the note;
+  - puts it back in To Match;
+  - forgets the sender, if this post was what taught it;
+  - marks that payment so it is never auto-posted again.
+- **Safety:** posting is idempotent, so the same money never posts twice however often the check runs. A test covers that.
+
+**Tonight's text** (`desk/src/lib/evening.ts`, 4 tests): one text to the owner each evening, built from the same records the screens show.
+- What came in today: the total, and the count by how it was paid (autopay, text link, matched from the bank, cash at the counter).
+- What needs the owner, at most 3, then "and N more":
+  - a buyer who went red or amber today;
+  - payments left to match;
+  - a cash drawer not closed, or short;
+  - earlier cash days flagged.
+- With nothing to flag, it ends "Nothing needs you."
+- **Settings:** the "Tonight's Text" page shows the exact text, an on/off switch, and a time (6, 7, 8 or 9 PM).
+- **Not yet:** the Worker's scheduled send, which goes through the Messenger to the owner's alert numbers. It needs notes stored server-side.
+
+## 12. Live: the server keeps the notes, and the hourly job sends
+
+- **Signing in:** a verified dealer's device keeps its token for 30 days (`SESSION_TTL_S`). It's the same token the verification code returns, stored on the device.
+- **Sync** (`POST /api/desk/sync`, with that token):
+  - **What the Desk sends:** its notes, tonight's text setting, and the few facts only it knows today: payments to match, today's cash state, and flagged cash days.
+  - **How notes merge** (`src/lib/sync.ts`, 2 tests): the server merges each note, keeping every payment once. On the same payment, the server's status wins, because it heard from the processor.
+  - **Ownership:** a note id that belongs to another dealer is refused.
+  - **Receipts:** the server's receipt counter moves past the highest receipt seen, so the Desk and the server never issue the same number.
+  - **When it runs:** the Desk syncs 1.5 seconds after any change, and takes back what the server added. Example notes (`ex-…`) never leave the browser.
+- **The hourly job** (`server/jobs.ts`, 3 tests; Cloudflare cron `0 * * * *`). For each dealership, in its own time zone:
+  - **At 10 AM:** each buyer's reminder due today, if reminders are on for that note.
+  - **At the owner's chosen hour:** tonight's text to the alert numbers. It uses today's Desk facts if the Desk reported today; otherwise payments only.
+  - **Never twice:** every send is claimed first in `sent_job`, so a re-run never repeats a text. Texts go through the Messenger, so STOP, the gate and the log apply.
+- **Schema:** `sent_job` and `dealer_setting`. Re-apply `server/schema.sql`.
+- **To turn on:**
+  1. Deploy the Worker. The cron trigger is in `wrangler.toml`.
+  2. Set `VITE_API_BASE` on the Desk.
+  3. Add Triple J's `dealer_line` row, with its Telnyx number and alert numbers.
+
+---
+
+# Reach: every channel, and how each really connects
+
+Facebook ended dealer vehicle listings on Marketplace from Pages and feeds on **January 30, 2023**. Feed-based Marketplace listings stopped in 2021. Marketplace is therefore posted **from the dealer's own phone, signed in as them, after they accept our terms**.
+
+| Channel | How | Cost to the dealer |
+|---|---|---|
+| Facebook Marketplace | From the dealer's phone; terms signed | Free |
+| OfferUp | From the dealer's phone; terms like Marketplace's | Free; optional promotion |
+| Craigslist | From the dealer's phone ("cars & trucks by dealer") | About $5 a car |
+| Facebook Page | Meta official API | Free |
+| Instagram | Meta official API (business account) | Free |
+| TikTok | TikTok Content Posting API | Free |
+| YouTube | YouTube Data API (Shorts) | Free |
+| Google | Vehicle listings feed (Merchant Center) | Free listings; ads are paid by click |
+| CarGurus, Cars.com, Autotrader, Carsforsale.com | Nightly inventory feed | The site's own packages |
+| Your website | Built by Obavia from the Desk | Part of Reach |
+
+The Desk's Reach screen lists all of these with each company's own logo. A dealer taps "I Want This" for the channels they want; that choice is recorded, and nothing is posted yet. Logo sources: our existing set; Simple Icons (CC0) for Instagram, TikTok, Google and YouTube; offerup.com's own SVG; and the public-domain Craigslist wordmark from Wikimedia Commons.
+
+## 13. Who is at the desk
+
+Counter cash is the one payment with no outside signal, so the Desk needs to know who took it. Each person at the desk now signs in with their own PIN on the shared device.
+
+- **Setup:** the owner opens People (the logo on the Sales screen, or the People link on Payments) and starts with themselves, then adds each person: their name, what they can do, then a four-digit PIN typed twice. Easy PINs (`1111`, `1234`) are refused.
+- **Signing in:** "Who's At The Desk?" shows a big name for each person, then a round keypad. With one person, the keypad shows straight away.
+- **Lock:** the screen locks after 10 idle minutes, or from Lock The Desk or Switch Person. After 5 wrong tries, the next try waits 30 seconds.
+- **What carries a name:**
+  - every cash payment and every confirmed match;
+  - the drawer count.
+  - On a short day, Close The Day shows how much each person took and who counted.
+- **Desk role:** sales and payments only. These stay with owners:
+  - adding or removing people;
+  - Tonight's Text;
+  - the auto-post switch;
+  - undoing an automatic post;
+  - recounting a closed drawer.
+- **Nobody added:** no lock at all. The owner is the only user, as before.
+- **Storage:** the PIN is salted and hashed (SHA-256) on the device; the plain PIN is never stored. It is a screen lock that names the person. The device sign-in to the dealership is still the 30-day session from verification.
+- **Not built yet:** the staff list is kept on the device and is not synced, so each device sets up its own people. Syncing it, and per-person sign-in on the server, comes with multi-device use.
+
+## 14. Spanish for the buyer
+
+Each note now records the buyer's language (`Loan.language`). It comes from the sale ("What Language Is The Sale In?") and can be changed under The Note, then Language. The Desk's own screens stay in English for the staff. What the buyer reads switches:
+
+- **Texts:**
+  - every payment reminder, including the weekly late text;
+  - receipts and payment updates (received, clearing, returned, declined, refunded), with Spanish dates such as "viernes, 9 de octubre".
+  - The dealership's copy of each update stays in English.
+- **Opt-out words:**
+  - PARAR, PARE, ALTO, CANCELAR, BAJA and DETENER stop texts, just as STOP does;
+  - INICIAR or REANUDAR restarts them;
+  - AYUDA gets help.
+  - A keyword sent in Spanish gets its confirmation in Spanish.
+- **Autopay agreement:**
+  - The buyer reads the agreement in their language, and **Read It In English** / **Léalo En Español** switches it on the spot.
+  - The Desk records which language was signed (`autopay.signedIn`).
+  - The Spanish text keeps every term of the English one: autopay is optional and not a condition of financing, at most 2 retries, and how to cancel.
+- **Condition report:** for a sale in Spanish, it prints as "Informe del estado del vehículo" with Spanish labels, signature lines and the as-is sentence. Answers the staff type stay as typed. Spanish signatures are still in ink (unchanged rule).
+
+**Before live use:**
+- A native speaker and counsel review every Spanish line in `loans.ts`, `autopay.ts`, `messaging/core.ts` and the condition report in `Sheet.tsx`.
+- Counsel confirms what Texas requires when a credit sale is negotiated in Spanish.
+- The FTC Used Car Rule already requires the Spanish Buyers Guide when a sale is conducted in Spanish.
+- The marketing opt-out footer and the 10DLC campaign keyword list are still English only; they change when Reach marketing is built.
+
+## 15. Promise to pay
+
+"I can't make Friday, I'll be in Monday with $250": two taps on the account, under **They Promised A Day**.
+1. **When:** today, tomorrow, the next Friday or Monday, their payday if autopay knows it, or any date.
+2. **How much:** everything they're behind, one payment, or another amount.
+
+While the promise stands:
+- the due and late texts wait, and the buyer gets one reminder the morning it's due, in their language;
+- the late-charge notice still goes out;
+- someone promised for a later day leaves Expected Today, and someone promised today comes first, marked "Promised $X today".
+
+A promise is kept by money paid between the day it was made and the day promised. If it passes unpaid, or only partly paid:
+- it goes to the top of **Needs You** as **Broke A Promise**, and into that night's evening text;
+- one broken promise in 60 days shows amber;
+- two show red, read like won't-pay.
+
+A new promise replaces the one still open; earlier ones stay in History. This mirrors Frazer's promise date, which collectors use instead of the due date.
+
+## 16. Coming from Frazer
+
+Frazer's Export Data (Miscellaneous, then 8 Export Data) writes a .csv or tab-separated .txt from 250+ fields, with column headers if the dealer ticks **Include Column Headers**. The Desk's import (**Coming From Frazer?** on Payments, or `#/import`) reads it.
+
+- **Reading:** every column is read by meaning (`desk/src/lib/importer.ts` lists the names each field may carry). A field we can't place is asked once, as "Which column is the interest rate?", with the file's own sample values beside each column.
+- **Two ways in:**
+  - **From the sale:** an accounts file with amount financed, rate, term, schedule and first due date, plus a payments file. The note is rebuilt payment by payment. If the export carries Frazer's current balance, every note is checked against it: "matches Frazer to the penny" or "$14.50 apart, look at it".
+  - **From today's balance:** only balance, rate, payment, schedule and next due. The note is carried over from today and marked that way.
+- **Inventory:** an inventory file (VIN, year, make, model, price) adds cars to the lot.
+- **Nothing is lost silently:** accounts that can't come over are listed with the reason. An account already in the Desk is never brought in twice. Imported payments keep Frazer's receipt numbers.
+- **Before the first real move:** Frazer's exact header names aren't published. Run the import on one real Triple J export and add any header it asks about to the importer. A balance that is off usually means a fee or adjustment Frazer holds separately; the review lists each one before anything is brought in.
+
+## 17. Repair balances and recurring fees
+
+Money owed beside the car note, under The Note, then **Repairs And Fees** (`desk/src/lib/extras.ts`).
+
+- **A repair:** "Transmission repair, $640". The buyer pays it off one of two ways:
+  - a set amount more with each payment, offered as 4, 8 or 12 payments, or any amount;
+  - on its own, whenever they bring money toward it.
+- **A recurring fee:** "GPS service" or "Insurance coverage", the same amount with every installment from the next one until it's stopped. Only fees the contract allows; counsel confirms which.
+
+How payments work:
+- **Kept apart from the note:** repairs and fees never enter the note's interest or late-charge math.
+- **The order a payment pays in:**
+  1. the car note (what's due, then late charges);
+  2. fees and repair payments due, oldest first;
+  3. anything beyond goes to the note's principal.
+  - Paying the note first means a fee can never make the buyer late on the car.
+- **Paying toward a repair:** at the counter, **Toward Transmission repair** sends a payment straight to that repair.
+- **The record:** each payment records its split (`toExtras`), so History, receipts and the server all agree.
+
+Where the extras appear:
+- the amount asked on the account ("Includes $45.00 GPS service");
+- Expected Today and one-tap cash;
+- To Match scoring, which counts a payment plus fees as "what they owe";
+- reminder amounts;
+- the autopay authorization ("$141.28 ($126.28 for the car payment and $15.00 GPS service)");
+- the payment link, through the PayNearMe webhook's split;
+- buyer receipts, which say where the money went ("Of this payment, $300.00 to tires. Repairs balance $0.00."), in English or Spanish, and the dealer's copy.
+
+Changing extras:
+- **A fee:** stopped from a day on; what was owed before stays owed.
+- **A repair:** can be removed only if nothing has been paid toward it.
+
+## 18. Pausing payments
+
+"He lost his job, give him two weeks": The Note, then **Pause Payments** (owners only).
+1. **Pause starting with:** the late one, or the next one.
+2. **How many:** 1 to 4 payments; each choice shows when payments start again.
+3. **Check:** the new last payment date ("ends Sep 5, 2028 instead of Aug 8, 2028"), and roughly how much more interest that adds by the end, since interest keeps accruing by the day. Also shows any earlier pauses in the last year, and the text the buyer gets in their language. No fee is charged for a pause.
+
+How it works:
+- **The schedule:** the paused payments move to the end of the note. `scheduleDates` lifts them, and the schedule runs that many periods longer. Pausing a late payment makes the buyer current.
+- **During the pause:** nothing falls due, so there are no reminders, no late charges, and no recurring fees, because fees ride installments.
+- **Where it shows:** the account shows **Paused Until …**; Expected Today and Needs You leave the buyer alone.
+- **Undoing it:** **End The Pause** puts the payments back where they were.
+
+**Counsel:** confirm whether a Texas retail installment contract needs the deferment in writing, or signed by the buyer.
+
+## 19. Texas tax and the 60-day title line
+
+From the Cox × Fullpath and DealerCenter teardown (cox-fullpath-dealercenter-teardown.md #1).
+
+Sources: 34 TAC §3.74, Tax Code §152.047, and the Comptroller's Motor Vehicle Tax Manual ch. 7. All the logic is in `lib/tax.ts`.
+
+The rules it follows:
+- **The rate:** 6.25% of the total consideration. Interest, separately stated fees, service contracts and insurance are not taxed.
+- **Paying as payments come in:** a dealer holding a Seller-Financed Sales Tax Permit sends the tax to the Comptroller as payments arrive.
+  - Each payment carries an even share, following the Comptroller's own example: $312.50 over 36 payments is $8.68 a payment.
+  - A part payment carries its part.
+  - The share of a payment that went to a late charge is never taxed.
+- **The title application:** it goes to the county by **day 45**. Not filed by **day 60**, every unsent dollar of the tax is due at once.
+- **When everything comes due at once:**
+  - the note is sold or assigned to anyone but a registered related finance company (a related finance company changes nothing);
+  - the note is paid off early;
+  - the car is traded back in toward another car.
+- **Repossession:** the tax stops, and no bad-debt deduction is taken.
+- **The report:**
+  - It's due by the **20th** after each period: monthly, or quarterly under $1,500 a quarter.
+  - Filing on time keeps 0.5%.
+  - A late report forfeits that, adds 5% (10% after 30 days), and adds $50.
+  - A change to a month already filed (for example, a returned payment) carries into the next report.
+
+What the Desk shows:
+- **More → Sales Tax And Titles:**
+  - the amount for the period, the due date and what filing on time keeps;
+  - **Where It Comes From**, broken down by note;
+  - **Titles To File**;
+  - **Filed It**;
+  - We File Monthly / Quarterly.
+- **On the note, Title And Tax:**
+  - a big countdown to day 45, then to the 60-day line;
+  - **Filed It Today**;
+  - tax sent so far out of the total;
+  - **Something Changed?**: paid at the county, moved to our finance company, or sold to someone else.
+- **For You:** Titles To File (from 10 days before day 45), and Sales Tax Due (from 10 days before the 20th).
+- **The evening text:** a title past day 45 or 60, or due within 3 days.
+- **A new in-house sale** opens its note with the sale's tax, deferred by default.
+
+**CPA review before relying on it:**
+- how the down payment's share is reported (`atSaleCents`; the rule says the down payment is taxable unless itemized);
+- the permit number in Box 38 of Form 130-U;
+- county allocation on Form 14-117.
+
+## 20. Ready for the next car
+
+This is Fullpath's equity idea, built from the dealer's own notes (`lib/nextcar.ts`).
+
+Who shows up:
+- current, with no pause and no stopped-on-purpose signal;
+- no broken promise in 180 days;
+- at least 90% of installments paid on time;
+- a year in, or halfway through the note.
+
+The list is ordered by equity first (when the dealer types roughly what the car is worth), then by how close the buyer is to payoff.
+
+Each buyer's page shows "62 of 78", the payoff and the equity, with one button: **Call**. It's a call list, never a text blast: a marketing text needs the buyer's prior written consent.
+
+## 21. Insurance on the car
+
+`lib/insurance.ts` keeps the company and end date for each policy.
+- **Buyer texts:** one 10 days before the policy ends and one the day after it ends, in the buyer's language. These ride the reminder plan, so STOP, quiet hours and the reminders switch all apply.
+- **For You:** Insurance To Check shows policies ended or ending within 14 days.
+- **On the note:** an Insurance page, with **New Policy**.
+- **From the buyer:** a card sent from the buyer's page arrives with its photo, and the dealership gets a text.
+- **Not done:** force-placed coverage (collateral protection insurance) needs its own disclosures.
+
+## 22. The buyer's own page
+
+`lib/buyerpage.ts` renders one plain HTML page in the buyer's language:
+- what's due and when;
+- the payoff;
+- a **Pay Now** button when there's a payment link;
+- insurance on file, with a form to send a new card (the photo is shrunk on the phone);
+- the last 24 payments, with receipt numbers.
+
+How it's served and shared:
+- **The server** serves it at `GET /b/<note>.<signature>` (`server/buyer.ts`). The signature is an HMAC of the note id, so a link opens exactly one note.
+- **Headers:** noindex, no-store and no-referrer.
+- **The link:** sync returns each note's link once `PUBLIC_URL` is set.
+- **On the Desk:** **Their Page** previews it in a phone frame, with **Text It To Them**, which opens the dealer's own messages app, and **Copy The Link**.
+
+## 23. Credit reporting
+
+`lib/credit.ts` prepares each note's month in Metro 2 terms:
+- the status code (11 current, 71 to 84 by days past due, 13 paid, 96 repossessed);
+- the 24-month payment history profile;
+- the scheduled monthly payment and terms frequency;
+- the amount past due, the date of first delinquency, and the date of last payment.
+
+It is **off by default.** More → Credit Reporting → **Turn It On** gives a file to download each month.
+
+Social Security numbers and dates of birth never enter the Desk; the reporting partner joins them from the credit application.
+
+Before turning it on:
+- sign a furnisher agreement with a bureau or partner;
+- set up a written dispute process (answer within 30 days, FCRA §623 and Regulation V).
+
+The 426-character Metro 2 file itself is written by the partner or added once one is chosen.
+
+## 24. Find anything
+
+`#/find` (Find on Sales, the search button on Payments) takes one box: a name (accents ignored), a phone, a receipt number, a stock number, a VIN or a car. It finds notes, sales and cars on the lot (`lib/find.ts`). This answers the most repeated DealerCenter complaint: "finding old deals is a pain."

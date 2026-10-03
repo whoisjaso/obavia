@@ -1,0 +1,94 @@
+-- Obavia messaging, Cloudflare D1 (SQLite). Apply with:
+--   npx wrangler d1 execute obavia-desk --remote --file server/schema.sql
+-- suppression, suppression_log and consent are the compliance record. Never delete from them in cleanup.
+
+CREATE TABLE IF NOT EXISTS dealer_line (
+  number       TEXT PRIMARY KEY,          -- E.164, registered to the dealer's 10DLC campaign
+  dealer_id    TEXT NOT NULL,             -- TxDMV licence, e.g. P171632
+  display_name TEXT NOT NULL,             -- what texts are signed with
+  help_phone   TEXT NOT NULL,             -- the number HELP replies give
+  time_zone    TEXT NOT NULL DEFAULT 'America/Chicago',
+  brand_id     TEXT,
+  campaign_id  TEXT
+);
+
+CREATE TABLE IF NOT EXISTS suppression (
+  dealer_id TEXT NOT NULL,
+  phone     TEXT NOT NULL,
+  at        TEXT NOT NULL,
+  source    TEXT NOT NULL,                -- 'keyword' (they texted STOP), 'dealer', 'carrier'
+  PRIMARY KEY (dealer_id, phone)
+);
+
+CREATE TABLE IF NOT EXISTS suppression_log (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  dealer_id TEXT NOT NULL, phone TEXT NOT NULL,
+  action    TEXT NOT NULL,                -- 'stop' | 'start'
+  at        TEXT NOT NULL, source TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS consent (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  dealer_id TEXT NOT NULL, phone TEXT NOT NULL,
+  kind      TEXT NOT NULL,                -- 'marketing'
+  wording   TEXT NOT NULL,                -- the exact words the buyer agreed to
+  method    TEXT NOT NULL,                -- 'desk-signature', 'web-form', 'keyword'
+  at        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS consent_by_phone ON consent (dealer_id, phone, kind);
+
+CREATE TABLE IF NOT EXISTS message (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  dealer_id   TEXT NOT NULL,
+  direction   TEXT NOT NULL,              -- 'out' | 'in'
+  provider_id TEXT,
+  from_number TEXT NOT NULL, to_number TEXT NOT NULL,
+  kind        TEXT NOT NULL,              -- 'otp' | 'care' | 'marketing' | 'inbound' | 'keyword-reply'
+  body        TEXT NOT NULL,
+  parts       INTEGER NOT NULL DEFAULT 0,
+  status      TEXT NOT NULL,
+  error       TEXT,
+  at          TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS message_by_provider ON message (provider_id);
+CREATE INDEX IF NOT EXISTS message_by_dealer ON message (dealer_id, at);
+
+CREATE TABLE IF NOT EXISTS rate_hit (
+  key TEXT NOT NULL,
+  at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS rate_hit_by_key ON rate_hit (key, at);
+
+-- In-house notes (buy here pay here). The body is the Loan from src/lib/loans.ts.
+CREATE TABLE IF NOT EXISTS note (
+  id         TEXT PRIMARY KEY,               -- also PayNearMe's site_customer_identifier
+  dealer_id  TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS note_by_dealer ON note (dealer_id);
+CREATE TABLE IF NOT EXISTS receipt_counter (dealer_id TEXT PRIMARY KEY, last INTEGER NOT NULL);
+-- Who at the dealership is texted when a payment comes in, comma-separated E.164.
+ALTER TABLE dealer_line ADD COLUMN alert_to TEXT;
+-- The hourly job: each reminder and evening text is claimed once, by key.
+CREATE TABLE IF NOT EXISTS sent_job (key TEXT PRIMARY KEY, at TEXT NOT NULL);
+-- The owner's evening text, and the few facts only the Desk knows (to match, cash), as of a date.
+CREATE TABLE IF NOT EXISTS dealer_setting (
+  dealer_id    TEXT PRIMARY KEY,
+  evening_on   INTEGER NOT NULL DEFAULT 0,
+  evening_hour INTEGER NOT NULL DEFAULT 19,
+  facts        TEXT                          -- JSON DeskFacts
+);
+-- Reach posting: each post (photos live in R2), and each dealer's connected
+-- publishing account per channel (an OAuth token sealed with AES-GCM; never a password).
+CREATE TABLE IF NOT EXISTS post (
+  dealer_id TEXT NOT NULL, id TEXT NOT NULL, body TEXT NOT NULL, at TEXT NOT NULL,
+  PRIMARY KEY (dealer_id, id)
+);
+CREATE TABLE IF NOT EXISTS post_account (
+  dealer_id TEXT NOT NULL, channel TEXT NOT NULL, token TEXT NOT NULL,
+  page_id TEXT, ig_user_id TEXT, handle TEXT, at TEXT NOT NULL,
+  PRIMARY KEY (dealer_id, channel)
+);
+-- Connect Facebook: the dealer's Pages waiting on "Which Page?" (sealed, short-lived).
+CREATE TABLE IF NOT EXISTS post_account_pending (dealer_id TEXT PRIMARY KEY, body TEXT NOT NULL, at TEXT NOT NULL);
