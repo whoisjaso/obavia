@@ -100,8 +100,8 @@ export const DayFortyFour: React.FC = () => {
   // act one: the screen lit, the camera creeping closer as the stack grows; act three: the phone returns
   const lit = act1 ? ease(fr, wake - 6, wake) * (1 - ease(fr, sleep, sleep + 5, theme.ease.in)) : ease(fr, desk, desk + 5);
   const phoneIn = act1 ? 1 - ease(fr, sleep + 4, sleep + 14, theme.ease.in) : ease(fr, desk - 4, desk + 14);
-  const creep = act1 ? ease(fr, F(0.6), F(8.6), theme.ease.inOut) : 0;
-  const pullP = ease(fr, pull, pull + 42, theme.ease.inOut);
+  const creep = act1 ? ease(fr, F(1.2), F(NOTES[NOTES.length - 1].t) + 60, theme.ease.inOut) : 0;
+  const pullP = ease(fr, pull, pull + 60, theme.ease.inOut);
   const scale = act1 ? 1 + creep * 0.13 : mix(0.96 + 0.04 * phoneIn, 0.4, pullP);
   const lift = act1 ? creep * 120 : mix((1 - phoneIn) * 60, -360, pullP);
   const jitter = act1 ? Math.sin(fr * 1.7) * creep * 1.6 : 0;
@@ -123,7 +123,7 @@ export const DayFortyFour: React.FC = () => {
     </div>
   );
 
-  const endIn = (i: number) => spring({ frame: fr - pull - 26 - i * 5, fps, config: theme.spring.smooth });
+  const endIn = (i: number) => spring({ frame: fr - pull - 40 - i * 12, fps, config: theme.spring.smooth });
   return (
     <AbsoluteFill style={{ background: "#07090F" }}>
       <Fonts />

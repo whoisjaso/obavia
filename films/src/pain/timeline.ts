@@ -14,53 +14,47 @@
    - A buyer who goes to the tax office about a missing transfer gets the
      dealer a complaint: TxDMV Motor Vehicle Dealer Manual, chapter 6.
    Names are fictional. */
-import type { Cue, SoundKind } from "../evening/timeline";
-import { keyCues, type Line } from "./typed";
+import type { Cue } from "../evening/timeline";
+import type { Line } from "./typed";
 
 export const FPS = 30;
-export const SECONDS = 26;
+export const SECONDS = 59;
 export const FRAMES = FPS * SECONDS;
 
 export type Note = { t: number; app: "Messages" | "Reminders" | "Phone" | "Mail"; from: string; text: string };
 export const NOTES: Note[] = [
-  { t: 0.9, app: "Messages", from: "Marcus", text: "hey its been 6 weeks. still no title in my name" },
-  { t: 2.3, app: "Messages", from: "Dee · Office", text: "county kicked the 130-U back. wrong box again" },
-  { t: 3.4, app: "Reminders", from: "Reminders", text: "Marcus title · day 44" },
-  { t: 4.3, app: "Messages", from: "Marcus", text: "insurance says they cant renew without it" },
-  { t: 5.0, app: "Phone", from: "Missed Call", text: "Marcus" },
-  { t: 5.55, app: "Messages", from: "Dee · Office", text: "need you to re-sign the POA tonight" },
-  { t: 6.0, app: "Messages", from: "Marcus", text: "should i just go to the tax office myself?" },
-  { t: 6.35, app: "Phone", from: "Missed Call", text: "Marcus (2)" },
-  { t: 6.65, app: "Messages", from: "Marcus", text: "???" },
-  { t: 7.7, app: "Mail", from: "Notice of Complaint", text: "Title not transferred within the required time. A response is required." },
+  { t: 1.5, app: "Messages", from: "Marcus", text: "hey its been 6 weeks. still no title in my name" },
+  { t: 4.0, app: "Messages", from: "Dee · Office", text: "county kicked the 130-U back. wrong box again" },
+  { t: 6.3, app: "Reminders", from: "Reminders", text: "Marcus title · day 44" },
+  { t: 8.4, app: "Messages", from: "Marcus", text: "insurance says they cant renew without it" },
+  { t: 10.3, app: "Phone", from: "Missed Call", text: "Marcus" },
+  { t: 12.0, app: "Messages", from: "Dee · Office", text: "need you to re-sign the POA tonight" },
+  { t: 13.6, app: "Messages", from: "Marcus", text: "should i just go to the tax office myself?" },
+  { t: 15.1, app: "Phone", from: "Missed Call", text: "Marcus (2)" },
+  { t: 16.5, app: "Messages", from: "Marcus", text: "???" },
+  { t: 19.0, app: "Mail", from: "Notice of Complaint", text: "Title not transferred within the required time. A response is required." },
 ];
 
+const SLOW = 11;   // characters a second: slow enough to read as it types
 export const LINES: Line[] = [
-  { t: 10.0, text: "One sale.", size: 112 },
-  { t: 11.5, text: "45 days to file the title.", size: 88, note: "Seller-financed sale, Texas" },
-  { t: 13.9, text: "Miss it: up to $10,000. Per car.", size: 88, note: "TxDMV dealer disciplinary matrix" },
-  { t: 16.6, text: "How many are on your lot right now?", size: 88 },
+  { t: 24.0, text: "One sale.", size: 112, cps: SLOW },
+  { t: 27.4, text: "45 days to file the title.", size: 88, note: "Seller-financed sale, Texas", cps: SLOW },
+  { t: 33.2, text: "Miss it: up to $10,000. Per car.", size: 88, note: "TxDMV dealer disciplinary matrix", cps: SLOW },
+  { t: 39.6, text: "How many are on your lot right now?", size: 88, cps: SLOW },
 ];
 
+/* Slow on purpose: every text holds long enough to read. */
 export const T = {
-  wake: 0.35,       // the screen is already lit by the first text
-  sleep: 9.3,       // lock click: the owner puts it face down
-  linesOut: [11.25, 13.65, 16.35, 19.6],
-  desk: 19.9,       // the Desk's title screen
-  tap: 21.5,        // Filed It Today
-  pull: 22.9,
+  wake: 0.8,        // the screen is already lit by the first text
+  sleep: 23.0,      // the owner puts it face down (silent)
+  linesOut: [26.8, 32.6, 39.0, 46.5],
+  desk: 47.0,       // the Desk's title screen
+  tap: 50.5,        // Filed It Today (silent)
+  pull: 53.0,
   end: SECONDS,
 } as const;
 
-/** Every sound: the notifications, the keys under the typed lines, one lock, one tap, one done. */
-export const CUES: Cue[] = [
-  ...NOTES.map((n, i) => ({ t: n.t, kind: (n.app === "Phone" ? "buzz" : "note") as SoundKind, v: n.app === "Mail" ? 2 : i % 3 === 2 ? 1 : 0 })),
-  { t: NOTES[NOTES.length - 1].t, kind: "buzz" as SoundKind, v: 1 },
-  { t: T.sleep, kind: "lock" as SoundKind, v: 1 },
-  ...keyCues(LINES),
-  { t: T.desk, kind: "lock" as SoundKind },
-  { t: T.tap, kind: "tap" as SoundKind },
-  { t: T.tap + 0.12, kind: "done" as SoundKind },
-];
+/** The only sound: the notification, once per notification. The complaint's falls. */
+export const CUES: Cue[] = NOTES.map((n, i) => ({ t: n.t, kind: "note" as const, v: n.app === "Mail" ? 2 : i % 3 === 2 ? 1 : 0 }));
 
 export const f = (s: number) => Math.round(s * FPS);
