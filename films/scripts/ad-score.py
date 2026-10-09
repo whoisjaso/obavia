@@ -1,4 +1,4 @@
-"""Score for the 15-second Obavia ad: a light 120 bpm kit, swishes on the
+"""Score for the 15-second Obavia ad: the voice-over (Kokoro, public/vo/ad) over a light 120 bpm kit, swishes on the
 text morphs, a riser into the mark, one impact, an airy pad. Everything is
 synthesised here, cued from src/ad/timeline.ts. Writes public/sfx/ad/mix.wav
 at -14 LUFS, true peak -1.5 dBTP (a short social ad sits louder than a film).
@@ -109,7 +109,16 @@ def main():
         elif h["kind"] == "riser": i = int(h["f"] / d["fps"] * SR)
         else: i = int(h["f"] / d["fps"] * SR)
         i = max(0, i); j = min(total, i + len(y)); mix[i:j] += y[: j - i]
-    mix = room(mix)
+    # the voice sits on top; the music ducks under every line
+    vo = np.zeros(total); duck = np.ones(total)
+    for v in json.load(open(os.path.join(ROOT, "public", "vo", "ad", "vo.json"))):
+        y, sr = sf.read(os.path.join(ROOT, "public", "vo", "ad", f"{v['id']}.wav"), dtype="float32")
+        if sr != SR: y = signal.resample_poly(y, SR, sr)
+        i = int(v["at"] / d["fps"] * SR); j = min(total, i + len(y)); vo[i:j] += y[: j - i]
+        a0, a1 = max(0, i - int(0.06 * SR)), min(total, j + int(0.12 * SR)); duck[a0:a1] = 0.42
+    duck = signal.sosfiltfilt(signal.butter(1, 12, "low", fs=SR, output="sos"), duck)
+    vo = hp(vo, 90); vo = vo / (np.max(np.abs(vo)) + 1e-9) * 0.95
+    mix = room(mix) * duck + vo * 1.6
     fade = np.ones(total); fade[-int(0.5 * SR):] = np.linspace(1, 0, int(0.5 * SR)) ** 2; mix *= fade
     os.makedirs(OUT, exist_ok=True)
     tmp = os.path.join(OUT, "_raw.wav"); sf.write(tmp, np.stack([mix, mix], 1).astype(np.float32), SR, subtype="FLOAT")

@@ -6,23 +6,22 @@ import React from "react";
 import { AbsoluteFill, Audio, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig, continueRender, delayRender } from "remotion";
 import { Band, C, Check, Corners, Sparkle, Stroke, inQ, io, loopPath, outQ, prog } from "./paint";
 import { Morph } from "./morph";
-import { DESK_SCREENS, RING_WORDS, S, WORK, b } from "./timeline";
+import { RING_WORDS, S, WORK, b } from "./timeline";
 
 const W = 1080, H = 1920;
 const img = (n: string) => staticFile(`ad/img/${n}.jpg`);
 const mix = (a: number, z: number, p: number) => a + (z - a) * p;
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
-/* fonts, from the project */
+/* type: Geist for the lines, Instrument Serif italic for the accents */
 const FACES = [
-  ...[400, 600, 700, 800].map(w => `@font-face{font-family:Manrope;font-weight:${w};src:url(${staticFile(`fonts/manrope-latin-${w}-normal.woff2`)}) format('woff2');}`),
-  `@font-face{font-family:'Bodoni Moda';font-style:italic;font-weight:500;src:url(${staticFile("fonts/bodoni-moda-500.woff2")}) format('woff2');}`,
-  `@font-face{font-family:'Bodoni Moda';font-style:normal;font-weight:500;src:url(${staticFile("fonts/bodoni-moda-500.woff2")}) format('woff2');}`,
+  ...[600, 700, 800].map(w => `@font-face{font-family:Geist;font-weight:${w};src:url(${staticFile(`fonts/ad/geist-sans-latin-${w}-normal.woff2`)}) format('woff2');}`),
+  `@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;src:url(${staticFile("fonts/ad/instrument-serif-latin-400-italic.woff2")}) format('woff2');}`,
 ].join("");
 const Fonts: React.FC = () => {
   const [h] = React.useState(() => delayRender("fonts"));
   React.useEffect(() => {
-    Promise.all([...[400, 600, 700, 800].map(w => document.fonts.load(`${w} 80px Manrope`)), document.fonts.load("italic 500 80px 'Bodoni Moda'")]).then(() => continueRender(h));
+    Promise.all([...[600, 700, 800].map(w => document.fonts.load(`${w} 80px Geist`)), document.fonts.load("italic 400 80px 'Instrument Serif'")]).then(() => continueRender(h));
   }, [h]);
   return <style>{FACES}</style>;
 };
@@ -40,7 +39,7 @@ const Svg: React.FC<{ children: React.ReactNode; z?: number }> = ({ children, z 
   <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: "absolute", inset: 0, zIndex: z, overflow: "visible" }}>{children}</svg>
 );
 
-/* words that rise in one by one; `em` words set in Bodoni italic, blue */
+/* words that rise in one by one; `em` words set in Instrument Serif italic, blue */
 const Line: React.FC<{ words: { t: string; at: number; em?: boolean }[]; y: number; size: number; out?: number; color?: string }> = ({ words, y, size, out, color = C.ink }) => {
   const f = useCurrentFrame();
   const o = out === undefined ? 1 : 1 - prog(f, out, 8, inQ);
@@ -49,8 +48,8 @@ const Line: React.FC<{ words: { t: string; at: number; em?: boolean }[]; y: numb
     <div style={{ position: "absolute", left: 0, right: 0, top: y - size * 0.82, display: "flex", justifyContent: "center", alignItems: "baseline", gap: size * 0.24, zIndex: 30, opacity: o }}>
       {words.map((w, i) => {
         const p = prog(f, w.at, 14);
-        return <span key={i} style={{ fontFamily: w.em ? "'Bodoni Moda'" : "Manrope", fontStyle: w.em ? "italic" : "normal", fontWeight: w.em ? 500 : 800, fontSize: w.em ? size * 1.08 : size,
-          letterSpacing: w.em ? "-0.02em" : "-0.05em", color: w.em ? C.blue : color, lineHeight: 1, display: "inline-block",
+        return <span key={i} style={{ fontFamily: w.em ? "'Instrument Serif'" : "Geist", fontStyle: w.em ? "italic" : "normal", fontWeight: w.em ? 400 : 800, fontSize: w.em ? size * 1.22 : size,
+          letterSpacing: w.em ? "-0.01em" : "-0.055em", color: w.em ? C.blue : color, lineHeight: 1, display: "inline-block",
           opacity: p, transform: `translateY(${(1 - p) * size * 0.45}px)`, filter: p < 0.98 ? `blur(${(1 - p) * 10}px)` : undefined }}>{w.t}</span>;
       })}
     </div>
@@ -145,6 +144,7 @@ const Work: React.FC = () => {
 
 /* ---------- 3. One car, every channel: a ring in 3D ---------- */
 const LOGOS = ["facebook", "instagram", "tiktok", "youtube", "google", "craigslist", "offerup"];
+const WIDE = new Set(["craigslist", "offerup"]);
 const Ring: React.FC = () => {
   const f = useCurrentFrame();
   const [a, z] = S.ring;
@@ -168,7 +168,7 @@ const Ring: React.FC = () => {
       {tiles.map(t => (
         <div key={t.l} style={{ position: "absolute", left: t.x - 80 * t.k, top: t.y - 80 * t.k, width: 160 * t.k, height: 160 * t.k, borderRadius: 42 * t.k, background: "#fff", opacity: t.o,
           zIndex: t.z3 > 0 ? 9 : 2, display: "grid", placeItems: "center", boxShadow: "0 24px 50px -24px rgba(23,26,32,.35), 0 0 0 1px rgba(23,26,32,.05)" }}>
-          <Img src={staticFile(`ad/logos/${t.l}.svg`)} style={{ width: 82 * t.k, height: 82 * t.k }} />
+          <Img src={staticFile(`ad/brand/${t.l}.svg`)} style={{ width: (WIDE.has(t.l) ? 124 : 80) * t.k, height: 80 * t.k, objectFit: "contain" }} />
         </div>
       ))}
       <div style={{ position: "absolute", inset: 0, perspective: 1600, zIndex: 6 }}>
@@ -179,32 +179,44 @@ const Ring: React.FC = () => {
   );
 };
 
-/* ---------- 4. The Desk's own paper ---------- */
-const Desk: React.FC = () => {
-  const f = useCurrentFrame();
+/* ---------- 4. The paperwork, drawn: sheets fan out, fill, get signed, get ticked ---------- */
+const SHEETS = [{ dx: -300, rot: -10, z: 1 }, { dx: 300, rot: 10, z: 1 }, { dx: 0, rot: -1.5, z: 3 }];
+const Paper: React.FC = () => {
+  const f = useCurrentFrame(); const { fps } = useVideoConfig();
   const [a, z] = S.desk;
-  if (f < a - 2 || f > z + 16) return null;
-  const settle = prog(f, a, 40, io);
-  const enter = prog(f, a - 2, 10);
+  if (f < a - 4 || f > z + 16) return null;
   const away = prog(f, z - 8, 18, inQ);
-  const k = DESK_SCREENS.reduce((n, s, i) => (f >= s.at ? i : n), 0);
-  // flip: out over the 5 frames before a switch, in over the 8 after
-  const next = DESK_SCREENS[k + 1];
-  const flipOut = next ? prog(f, next.at - 5, 5, inQ) : 0;
-  const flipIn = k > 0 ? 1 - prog(f, DESK_SCREENS[k].at, 8) : 1 - enter;
-  const ang = flipOut > 0 ? flipOut * 90 : -flipIn * 90;
-  const w = 560, h = 1212, cx = 540, cy = 800;
+  const sw = 540, sh = 720, cy = 820;
   return (
     <AbsoluteFill style={{ zIndex: 16 }}>
-      <div style={{ position: "absolute", inset: 0, perspective: 1800 }}>
-        <div style={{ position: "absolute", left: cx - w / 2, top: cy - h / 2, width: w, height: h, borderRadius: 60, overflow: "hidden", background: "#fff",
-          boxShadow: "0 60px 120px -50px rgba(23,26,32,.45), 0 0 0 1px rgba(23,26,32,.06)", opacity: 1 - prog(f, z + 2, 10),
-          transform: `rotateY(${mix(-14, 0, settle) + ang}deg) rotateX(${mix(7, 0, settle)}deg) scale(${1 + away * 1.6})` }}>
-          <Img src={staticFile(`ad/ui/${DESK_SCREENS[k].ui}.png`)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 0%" }} />
-        </div>
+      <div style={{ position: "absolute", inset: 0, perspective: 1700 }}>
+        {SHEETS.map((p, i) => {
+          const s = spring({ frame: f - a + 2 - i * 3, fps, config: { damping: 15, stiffness: 150, mass: 0.7 } });
+          const x = 540 + p.dx * s, y = cy + (1 - s) * 260;
+          return (
+            <div key={i} style={{ position: "absolute", left: x - sw / 2, top: y - sh / 2, width: sw, height: sh, zIndex: p.z, borderRadius: 26, background: "#fff",
+              boxShadow: "0 50px 90px -40px rgba(40,52,79,.45), 0 0 0 1px rgba(40,52,79,.06)", opacity: clamp01(s * 2) * (1 - prog(f, z + 2, 10)),
+              transform: `rotateY(${(1 - s) * -40 + p.dx * -0.02}deg) rotateZ(${p.rot * s}deg) scale(${(i === 2 ? 1 : 0.86) * (1 + away * 1.4)})` }}>
+              <svg width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`}>
+                {/* the form fills itself in, line by line */}
+                {[0, 1, 2, 3, 4, 5, 6].map(r => {
+                  const q = prog(f, a + 8 + i * 2 + r * 3, 10);
+                  const w = [300, 360, 250, 340, 220, 320, 280][r];
+                  return <g key={r}>
+                    <rect x={44} y={70 + r * 58} width={110} height={10} rx={5} fill={C.tint} />
+                    <rect x={44} y={88 + r * 58} width={w * q} height={14} rx={7} fill={r === 0 ? C.navy : "#C5CCDA"} />
+                  </g>;
+                })}
+                <line x1={44} y1={sh - 120} x2={sw - 44} y2={sh - 92} stroke="#D9DEE8" strokeWidth={3} />
+                {i === 2 && <path d="M80,590 C105,530 130,650 160,578 S210,542 224,590 S272,560 300,576 C330,590 380,556 450,566" fill="none" stroke={C.ink} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round"
+                  pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - prog(f, b(12.6), 22, io)} />}
+              </svg>
+            </div>
+          );
+        })}
       </div>
-      <Svg z={18}>{DESK_SCREENS.map((s, i) => <Check key={i} x={940} y={340 + i * 150} s={86} at={s.at + 8} out={z - 6} />)}</Svg>
-      <Morph words={DESK_SCREENS.map(s => ({ at: s.at, text: s.word }))} y={1580} size={150} out={z - 4} />
+      <Svg z={18}>{[[400, 1300], [540, 1300], [680, 1300]].map(([x, y], i) => <Check key={i} x={x} y={y} s={80} at={b(13.2) + i * 4} out={z - 6} />)}</Svg>
+      <Morph words={[{ at: a + 2, text: "Every form." }, { at: b(12), text: "Filled." }, { at: b(13), text: "Signed." }]} y={1580} size={150} out={z - 4} />
     </AbsoluteFill>
   );
 };
@@ -251,7 +263,7 @@ const Grid: React.FC = () => {
         return <Photo key={t} src={img(t)} x={mix(x, cx, fall)} y={mix(y, cy, fall)} w={300} h={400} rot={mix((col - 1) * 2 * (1 - s), (col - 1) * 40, fall)} scale={(0.4 + 0.6 * s) * (1 - fall * 0.94)} opacity={1 - prog(f, z - 6, 8)} fx={t === "auction" ? 50 : 55} fy={t === "auction" ? 66 : 50} zoom={t === "deal" ? 1.6 : 1} />;
       })}
       <Svg z={30}><Stroke d={loopPath(cx, cy, 200, 200, 0, 1.08, 3)} at={z - 18} dur={20} color={C.blue} width={18} rough={3} out={z + 8} /></Svg>
-      <Line y={1600} size={100} out={z - 22} words={[{ t: "Everything", at: a + 10 }, { t: "between.", at: a + 18, em: true }]} />
+      <Line y={1600} size={100} out={z - 22} words={[{ t: "Everything", at: a + 10 }, { t: "else?", at: a + 18, em: true }]} />
     </AbsoluteFill>
   );
 };
@@ -294,21 +306,44 @@ const End: React.FC = () => {
       <Morph words={[{ at: a + 50, text: "Obavia" }]} y={1100} size={180} tracking={-0.05} dur={20} />
       <Line y={1250} size={54} words={[{ t: "The", at: S.end[0] + 6, em: true }, { t: "work", at: S.end[0] + 10, em: true }, { t: "in", at: S.end[0] + 14, em: true }, { t: "between,", at: S.end[0] + 18, em: true }, { t: "handled.", at: S.end[0] + 26, em: true }]} />
       <Svg z={25}><Stroke d="M752,1284 C805,1296 890,1290 956,1276" at={S.end[0] + 40} dur={14} color={C.ice} width={12} rough={2} /><Sparkle x={972} y={1196} r={22} at={S.end[0] + 50} /></Svg>
-      <div style={{ position: "absolute", left: 0, right: 0, top: 1720, textAlign: "center", fontFamily: "Manrope", fontWeight: 700, fontSize: 34, letterSpacing: "-0.01em", color: C.slate, opacity: prog(f, S.end[0] + 40, 20) }}>obavia.co</div>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 1720, textAlign: "center", fontFamily: "Geist", fontWeight: 600, fontSize: 34, letterSpacing: "-0.01em", color: C.slate, opacity: prog(f, S.end[0] + 40, 20) }}>obavia.co</div>
     </AbsoluteFill>
   );
 };
 
-/* ---------- the room: white, a breath of ice, a whisper of grain ---------- */
+/* ---------- the room: the Obavia sky, light, with clouds at three depths ---------- */
+const CLOUDS = [
+  { i: 2, x: -160, y: 120, w: 760, sp: 0.5, o: 0.95 }, { i: 4, x: 560, y: 40, w: 640, sp: -0.35, o: 0.8 },
+  { i: 0, x: 680, y: 1500, w: 820, sp: -0.45, o: 0.9 }, { i: 3, x: -240, y: 1660, w: 900, sp: 0.55, o: 0.95 },
+  { i: 5, x: 380, y: 720, w: 520, sp: 0.25, o: 0.35 }, { i: 1, x: -120, y: 960, w: 480, sp: -0.2, o: 0.3 },
+];
 const Room: React.FC = () => {
   const f = useCurrentFrame();
   return (
-    <AbsoluteFill style={{ background: "#FFFFFF" }}>
-      <div style={{ position: "absolute", left: -300 + Math.sin(f / 90) * 60, top: -260, width: 1100, height: 1100, borderRadius: "50%", background: "radial-gradient(closest-side, rgba(200,214,252,.42), rgba(200,214,252,0))" }} />
-      <div style={{ position: "absolute", right: -360, bottom: -300 + Math.cos(f / 110) * 50, width: 1200, height: 1200, borderRadius: "50%", background: "radial-gradient(closest-side, rgba(231,238,254,.8), rgba(231,238,254,0))" }} />
+    <AbsoluteFill style={{ background: "linear-gradient(180deg, #D6E2FC 0%, #EAF0FE 38%, #F8FAFF 70%, #FFFFFF 100%)" }}>
+      {CLOUDS.map((c, k) => (
+        <Img key={k} src={staticFile(`clouds/c${c.i}.png`)} style={{ position: "absolute", left: c.x + f * c.sp, top: c.y + Math.sin(f / 70 + k) * 6, width: c.w, opacity: c.o }} />
+      ))}
     </AbsoluteFill>
   );
 };
+
+/* a bank of cloud sweeps across the lens and carries one scene into the next */
+const CloudWipe: React.FC<{ at: number; dir?: 1 | -1 }> = ({ at, dir = 1 }) => {
+  const f = useCurrentFrame();
+  const t = (f - at) / 22;
+  if (t < 0 || t > 1) return null;
+  const e = io(t);
+  return (
+    <AbsoluteFill style={{ zIndex: 60, pointerEvents: "none" }}>
+      {[{ i: 2, y: -200, w: 2600, d: 0 }, { i: 4, y: 500, w: 3000, d: 0.08 }, { i: 3, y: 1150, w: 2800, d: 0.04 }].map((c, k) => {
+        const x = dir * mix(-c.w - 200, W + 200, clamp01((e - c.d) / (1 - c.d)));
+        return <Img key={k} src={staticFile(`clouds/c${c.i}.png`)} style={{ position: "absolute", left: dir > 0 ? x : W - x - c.w, top: c.y, width: c.w, opacity: 1, filter: "blur(2px)" }} />;
+      })}
+    </AbsoluteFill>
+  );
+};
+
 const Grain: React.FC = () => {
   const f = useCurrentFrame();
   const noise = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")`;
@@ -322,10 +357,12 @@ export const ObaviaAd: React.FC = () => (
     <Hook />
     <Work />
     <Ring />
-    <Desk />
+    <Paper />
     <Deal />
     <Grid />
     <End />
+    <CloudWipe at={S.ring[1] - 12} />
+    <CloudWipe at={S.desk[1] - 12} dir={-1} />
     <Grain />
     <Audio src={staticFile("sfx/ad/mix.wav")} />
   </AbsoluteFill>

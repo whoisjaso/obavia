@@ -5,7 +5,7 @@ import React from "react";
 import { useCurrentFrame } from "remotion";
 import { C, outQ, prog } from "./paint";
 
-const FONT = "Manrope";
+const FONT = "Geist";
 let ctx: CanvasRenderingContext2D | null = null;
 const cache = new Map<string, number[]>();
 

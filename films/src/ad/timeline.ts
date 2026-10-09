@@ -34,20 +34,13 @@ export const WORK = [
 ] as const;
 
 export const RING_WORDS = [{ at: b(8), text: "One car." }, { at: b(9), text: "Every channel." }];
-export const DESK_SCREENS = [
-  { at: b(11), ui: "23-130u", word: "Filled." },
-  { at: b(11.75), ui: "22b-signed", word: "Signed." },
-  { at: b(12.5), ui: "29-packet-signed", word: "Packed." },
-  { at: b(13.25), ui: "28-done", word: "Ready." },
-] as const;
 
 export type Hit = { f: number; kind: "kick" | "snare" | "hat" | "swish" | "whoosh" | "tick" | "impact" | "riser" | "sub" | "pad" | "pop" };
 
 /** The score: drums on the grid where the film runs, out where it breathes. */
 export function hits(): Hit[] {
   const h: Hit[] = [];
-  // the hook: a tick on each word, then the whoosh into the zoom
-  [14, 20, 26, 32].forEach(f => h.push({ f, kind: "tick" }));
+  // the hook: the voice carries it; a whoosh into the zoom
   h.push({ f: b(2) - 16, kind: "whoosh" });
   // the run: four on the floor from the drop to the half-time beat
   for (let n = 2; n < 14; n++) {
@@ -55,11 +48,10 @@ export function hits(): Hit[] {
     if (n % 2 === 1) h.push({ f: b(n), kind: "snare" });
     h.push({ f: b(n + 0.5), kind: "hat" });
   }
-  [...WORK.slice(1), ...RING_WORDS.slice(1), ...DESK_SCREENS.slice(1)].forEach(w => h.push({ f: w.at, kind: "swish" }));
-  h.push({ f: b(8) - 10, kind: "whoosh" }, { f: b(11) - 8, kind: "whoosh" });
+  [...WORK.slice(1), ...RING_WORDS.slice(1), { at: b(12) }, { at: b(13) }].forEach(w => h.push({ f: w.at, kind: "swish" }));
+  h.push({ f: b(8) - 10, kind: "whoosh" }, { f: b(11) - 2, kind: "whoosh" }, { f: b(14) - 2, kind: "whoosh" });   // the cloud wipes
   // half time: the drums fall away; a sub and a pad under "You close the deal."
   h.push({ f: b(14), kind: "sub" }, { f: b(14), kind: "pad" });
-  [b(14) + 24, b(14) + 32, b(14) + 40, b(14) + 48, b(14) + 56].forEach(f => h.push({ f, kind: "tick" }));
   // the grid: tiles pop, sixteenths build, then everything falls into the circle
   for (let i = 0; i < 9; i++) h.push({ f: b(18) + 4 + i * 3, kind: "pop" });
   for (let n = 18; n < 21; n += 0.25) h.push({ f: b(n), kind: "hat" });
