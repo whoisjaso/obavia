@@ -6,6 +6,8 @@ import { OwnerAd } from "./OwnerAd";
 import { Evening } from "./evening/Evening";
 import { DayFortyFour } from "./pain/DayFortyFour";
 import { TheBill } from "./bill/TheBill";
+import { ObaviaAd } from "./ad/Ad";
+import { FRAMES as AD_FRAMES, FPS as AD_FPS } from "./ad/timeline";
 import { FRAMES as BILL_FRAMES } from "./bill/timeline";
 import { FRAMES as PAIN_FRAMES } from "./pain/timeline";
 import { FRAMES as EVENING_FRAMES, FPS as EVENING_FPS } from "./evening/timeline";
@@ -24,5 +26,6 @@ export const Root: React.FC = () => (
     <Composition id="Evening" component={Evening} durationInFrames={EVENING_FRAMES} fps={EVENING_FPS} width={1080} height={1920} />
     <Composition id="DayFortyFour" component={DayFortyFour} durationInFrames={PAIN_FRAMES} fps={30} width={1080} height={1920} />
     <Composition id="TheBill" component={TheBill} durationInFrames={BILL_FRAMES} fps={30} width={1080} height={1920} />
+    <Composition id="ObaviaAd" component={ObaviaAd} durationInFrames={AD_FRAMES} fps={AD_FPS} width={1080} height={1920} />
   </>
 );
