@@ -208,4 +208,15 @@ describe('collateral', () => {
     expect(x.deposits.reserveRatio).toBe(1); expect(x.obaviaFeesOwed).toBe(0);
     expect((await SELF.fetch(`${base}/admin/exposure`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(403);
   });
+  it('the floor only lowers, only before a bid, and moves the opening price with it', async () => {
+    await open('c3', 5_000);
+    const up = await SELF.fetch(`${base}/lots/c3/car`, { method: 'POST', headers: DEALER, body: JSON.stringify({ collateral: { title: { status: 'hand' }, floor: 5200, insured: true } }) });
+    expect(up.status).toBe(409);
+    const down = await SELF.fetch(`${base}/lots/c3/car`, { method: 'POST', headers: DEALER, body: JSON.stringify({ collateral: { title: { status: 'hand' }, floor: 4500, insured: true } }) });
+    expect(down.status).toBe(200);
+    const lot = await down.json<any>(); expect(lot.start).toBe(4500); expect(lot.high).toBe(4500); expect(lot.car.collateral.floor).toBe(4500);
+    await bid('c3', token, 4500);
+    const after = await SELF.fetch(`${base}/lots/c3/car`, { method: 'POST', headers: DEALER, body: JSON.stringify({ collateral: { title: { status: 'hand' }, floor: 4000, insured: true } }) });
+    expect(after.status).toBe(409);
+  });
 });

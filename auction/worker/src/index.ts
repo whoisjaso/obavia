@@ -16,8 +16,18 @@ const json = (x: unknown, status = 200) => new Response(JSON.stringify(x), { sta
 const text = (t: string, status: number) => new Response(t, { status, headers: CORS });
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
+/** Every response leaves with the CORS headers, the Durable Object's included (a WebSocket upgrade is passed through untouched). */
+function withCors(r: Response): Response {
+  if (r.status === 101 || r.webSocket) return r;
+  const h = new Headers(r.headers); for (const [k, v] of Object.entries(CORS)) h.set(k, v);
+  return new Response(r.body, { status: r.status, statusText: r.statusText, headers: h });
+}
+
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env): Promise<Response> { return withCors(await handle(req, env)); },
+} satisfies ExportedHandler<Env>;
+
+async function handle(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const whop = new Whop(env);
@@ -191,5 +201,4 @@ export default {
     }
 
     return text('not found', 404);
-  },
-} satisfies ExportedHandler<Env>;
+}

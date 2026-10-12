@@ -9,6 +9,10 @@ Read docs/obavia-spec.md, docs/sales-doctrine.md, docs/obavia-positioning.md and
 - films/: source for product films.
 - auction/: Expo buyer app for the phone-first public auction (Lane, Bid sheet; local stand-in server). Read docs/plan/obavia-auction-decisions.md and docs/plan/obavia-auction-phases.md first. Payments run on Whop.
 - deploy/site/: public-site deployment preserving the existing waitlist API, email sender, cron and search content.
+- .claude/agents/: the company's agents, one per workstream (orchestrator, dissect, mirror, researcher-architect, onboarding, marketing, payments, admin, customers, dealers, individuals, paperwork, logistics, frontend, creative-edge, systems). Any task touching more than one area goes through the orchestrator.
+- docs/plan/growth/: the growth plan the owner is held to (obavia-growth-plan.md, model.md, scorecard.md) and the dissections of the transcripts in docs/plan/transcripts/. A new transcript is dissected first (dissect agent), then mirrored (mirror agent) into the plan; it never goes straight into code.
+
+Accountability: the growth plan is rigid. A request that deviates from it is named as a deviation in the first line of the reply, with the plan line it conflicts with, and is not built until the plan's changelog carries a dated amendment. Missed gates are reported bluntly with the number and the days late.
 
 Use one clear next action, deliberate details, the original Obavia mark, icy blues and cloud atmosphere. Respect reduced motion. Claims must match verified capability; inferred meanings remain hypotheses anchored to observable words. Show data provenance clearly.
 

@@ -4,6 +4,7 @@ import { checkIdNumber, idDocumentType, idMaxLength, normalizeIdNumber, PASSPORT
 import { formatPhone, isCompletePhone } from './lib/forms/phone';
 import { ID_KIND } from './lib/sale';
 import { usd } from './lib/money';
+import { auctionLive } from './lib/auction';
 import type { TitleStatus } from './lib/plan';
 import { signedCount, type Buyer, type Sale, type Vehicle } from './lib/sale';
 import { checkDigitOk, decodeVin, isValidVin } from './lib/vin';
@@ -20,7 +21,7 @@ export function Sales() {
     <main className="wrap center">
       <div className="top">
         <a className="who" href="#/people" onClick={feel.tap} aria-label="People at the desk"><span className="lgmini" style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: dealer.brand.accent, color: '#fff', font: '800 12px/1 var(--sans)', overflow: 'hidden' }}>{dealer.brand.logo ? <img src={dealer.brand.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#fff' }} /> : dealer.brand.monogram}</span>{who && <span className="whoname">{who.name.split(' ')[0]}</span>}</a>
-        <span style={{ display: 'flex', gap: 18 }}><a className="link" href="#/payments" onClick={feel.tap}>Payments</a><a className="link" href="#/reach" onClick={feel.tap}>Reach</a><a className="link" href="#/past" onClick={feel.tap}>Past</a><a className="link" href="#/find" onClick={feel.tap}>Find</a></span>
+        <span style={{ display: 'flex', gap: 18 }}><a className="link" href="#/payments" onClick={feel.tap}>Payments</a><a className="link" href="#/reach" onClick={feel.tap}>Reach</a>{auctionLive && <a className="link" href="#/auction" onClick={feel.tap}>Lane</a>}<a className="link" href="#/past" onClick={feel.tap}>Past</a><a className="link" href="#/find" onClick={feel.tap}>Find</a></span>
       </div>
       <section className="enter" key="home">
         <h1 className="q">{open.length ? <>Pick up <em>a sale.</em></> : <>Ready when <em>they are.</em></>}</h1>

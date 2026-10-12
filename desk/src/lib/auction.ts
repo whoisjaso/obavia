@@ -29,13 +29,31 @@ export type CarMeta = {
   dealer: { name: string; city: string; street: string; gdn: string; phone: string; afterHours: string; fees: { taxRate: number; title: number; registration: number; doc: number } };
   documents?: { guide?: string; bill?: string; title?: string };
   hours?: string[];
+  collateral: Collateral;
 };
+/** What the dealer puts behind the lot. The lane refuses without it. docs/plan/collateral.md. */
+export type Collateral = {
+  title: { status: 'hand' | 'lender' | 'repo' | 'unknown'; lienholder?: string; payoff?: number; releaseDays?: number };
+  floor: number;
+  payoffAcknowledged?: boolean;
+  insured: boolean;
+};
+/** The same refusals the Worker gives at /open, so the Desk never sends a lot the lane will bounce. */
+export function collateralRefusal(c: Collateral | undefined): string | null {
+  if (!c) return 'collateral missing';
+  if (c.title.status === 'repo') return 'title in repossession';
+  if (c.title.status === 'unknown') return 'title location unknown';
+  if (c.title.status === 'lender' && !((c.title.releaseDays ?? 0) > 0)) return 'lender release time missing';
+  if ((c.title.payoff ?? 0) > c.floor && !c.payoffAcknowledged) return 'floor below payoff without acknowledgement';
+  if (!c.insured) return 'not insured';
+  return null;
+}
 export type Lot = {
   id: string; start: number; retail: number; opensAt: number; closesAt: number;
   high: number; leader?: string; bids: number; watching: number;
   closed?: { at: number; sold: boolean };
   car?: CarMeta;
-  sale?: { buyer: string; hammer: number; wonAt: number; deadlineAt: number; paidAt?: number; startedAt?: number; forfeitedAt?: number };
+  sale?: { buyer: string; hammer: number; wonAt: number; deadlineAt: number; paidAt?: number; startedAt?: number; forfeitedAt?: number; voidedAt?: number; deposit?: 'held' | 'to_dealer' | 'released' };
 };
 
 type Result<T> = { ok: true; value: T } | { ok: false; reason: string };
@@ -61,6 +79,7 @@ export const updateCar = (lot: string, patch: Partial<CarMeta>) => call<Lot>('PO
 export const closeLot = (lot: string) => call<Lot>('POST', `/lots/${lot}/close`, {});
 export const markPaid = (lot: string) => call<Lot>('POST', `/lots/${lot}/paid`, {});
 export const pickup = (lot: string, vin: string) => call<Lot>('POST', `/lots/${lot}/pickup`, { vin });
+export const voidSale = (lot: string, reason: string) => call<Lot>('POST', `/lots/${lot}/void`, { reason });
 export async function getLot(lot: string): Promise<Result<Lot>> {
   if (!auctionLive) return { ok: false, reason: 'offline' };
   try { const r = await fetch(`${AUCTION_API}/lots/${lot}`); return r.ok ? { ok: true, value: await r.json() as Lot } : { ok: false, reason: `http ${r.status}` }; } catch { return { ok: false, reason: 'offline' }; }
@@ -96,10 +115,26 @@ export function youGetYouBring(floor: number, payoff: number) {
 }
 
 /** The car as the lane needs it, from the Desk's vehicle and dealer. */
-export function carMeta(v: Vehicle, dealer: DealerConfig, photos: RemotePhoto[], grade: CarMeta['grade'], title: CarMeta['title'], afterHours: string, hours: string[]): CarMeta {
+export function carMeta(v: Vehicle, dealer: DealerConfig, photos: RemotePhoto[], grade: CarMeta['grade'], collateral: Collateral, afterHours: string, hours: string[]): CarMeta {
   return {
-    year: v.year, make: v.make, model: v.model, miles: v.mileage ?? 0, vin: v.vin, photos, grade, title,
+    year: v.year, make: v.make, model: v.model, miles: v.mileage ?? 0, vin: v.vin, photos, grade,
+    title: collateral.title.status === 'hand' ? 'in hand' : 'at lender',
     dealer: { name: dealer.dba || dealer.legalName, city: dealer.city, street: `${dealer.street}, ${dealer.city}, ${dealer.state} ${dealer.zip}`, gdn: dealer.licence, phone: dealer.phone, afterHours: afterHours || dealer.phone, fees: dealer.fees },
-    hours,
+    hours, collateral,
   };
+}
+
+/** A data URL (from shrink) as the JPEG bytes the Worker takes, with its size. */
+export async function photoBlob(dataUrl: string): Promise<{ blob: Blob; w: number; h: number }> {
+  const blob = await (await fetch(dataUrl)).blob();
+  const { w, h } = await new Promise<{ w: number; h: number }>((res, rej) => { const i = new Image(); i.onload = () => res({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = rej; i.src = dataUrl; });
+  return { blob, w, h };
+}
+
+/** m:ss, or the days and hours when the close is far. */
+export function timeLeft(closesAt: number, now = Date.now()) {
+  const s = Math.max(0, Math.round((closesAt - now) / 1000));
+  if (s >= 86_400) return `${Math.floor(s / 86_400)}d ${Math.floor((s % 86_400) / 3600)}h`;
+  if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }

@@ -32,7 +32,14 @@ export class Auction extends DurableObject<Env> {
       case 'POST /open': return this.open(await req.json<OpenRequest>(), dealer);
       case 'POST /car': {   // the Desk updates photos, documents, hours after Go
         if (!lot) return text('no lot', 404);
-        lot.car = { ...(lot.car as CarMeta), ...(await req.json<Partial<CarMeta>>()) } as CarMeta;
+        const patch = await req.json<Partial<CarMeta>>();
+        if (patch.collateral) {   // the floor can move only while nobody has bid, only down, and only on collateral the lane still accepts
+          const why = collateralRefusal(patch.collateral); if (why) return text(why, 422);
+          if (lot.bids > 0 && patch.collateral.floor !== lot.car?.collateral.floor) return text('bids placed', 409);
+          if (patch.collateral.floor > (lot.car?.collateral.floor ?? lot.start)) return text('floor only lowers', 409);
+          lot.start = patch.collateral.floor; lot.high = patch.collateral.floor;
+        }
+        lot.car = { ...(lot.car as CarMeta), ...patch } as CarMeta;
         await this.save(lot); this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'bid' }); return json(this.publicLot(lot));
       }
       case 'POST /bids': return this.bid(await req.json<BidRequest>(), Date.now());

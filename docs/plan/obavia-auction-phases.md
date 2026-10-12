@@ -27,6 +27,9 @@ What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, W
 
 ## Phase 1 · Pilot wiring (weeks 1–3)
 
+> Collateral gate (added 2026-10-12): the Worker refuses `/open` on collateral it cannot see; the Desk refuses earlier. The rules and the loss table are in `docs/plan/collateral.md`. Phase 1b (the Desk's Let It Go, Live, Sold, pickup) is built; 1c (the phone over the Worker) is next.
+
+
 **Goal:** Triple J lists ten real cars; ten real neighbours bid with real deposits in Whop sandbox, then live.
 
 | Workstream | Scope | Exit |
