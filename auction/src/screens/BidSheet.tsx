@@ -6,7 +6,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { Easing, cancelAnimation, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Price } from '../components/Price';
@@ -20,6 +21,7 @@ import { feel } from '../feel';
 import { takeDeposit } from '../deposit';
 import { registerPush } from '../push';
 import { AUCTION_URL, DEPOSIT, ME, getServer, once } from '../store';
+import { EASE_OUT, EASE_SHEET, ms, spring } from '../motion';
 import { theme } from '../theme';
 
 const STEP_PT = 28;
@@ -38,6 +40,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   const [landKey, setLand] = useState<number | undefined>(once.deposit ? 0 : undefined);   // the deposit line appears once it exists
   const [stamp, setStamp] = useState<string | null>(null);
   const [teach, setTeach] = useState(false);
+  const [lead, setLead] = useState(false);          // the leading mark, on the frame the lead chime plays
   const opened = lot.bids > 0;
   const closed = !!lot.closed || lot.closesAt <= now;
   const amount = phase === 'rejected' || phase === 'landed' ? lot.high : roll(lot.high, opened, stepsNow);
@@ -45,22 +48,40 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   const total = outTheDoor(amount, car.dealer.fees).total;
   const hold = needsHold(amount, lot.high);
 
-  useEffect(() => { y.value = withSpring(0, theme.spring.sheet); }, []);
-  const close = () => { y.value = withTiming(open, { duration: 200, easing: Easing.in(Easing.quad) }, f => { if (f) runOnJS(onClose)(); }); };
+  // the rise continues the drag that armed it: the sheet spring, clamped at its edge
+  useEffect(() => { y.value = withSpring(0, spring.sheet); }, []);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const later = (f: () => void, t: number) => { timers.current.push(setTimeout(f, t)); };
+  const done = () => onClose();
+  // no finger: the iOS sheet curve, 200 ms (never ease-in: it delays the moment the eye is on)
+  const close = () => { y.value = withTiming(open, { duration: ms.exit, easing: EASE_SHEET }, f => { if (f) scheduleOnRN(done); }); };
 
-  // swipe down = cancel; nothing fires (silence is the neutral channel)
-  const dismiss = Gesture.Pan().activeOffsetY(12).onUpdate(e => { y.value = Math.max(0, e.translationY); })
-    .onEnd(e => { if (e.translationY > 90 || e.velocityY > 800) runOnJS(close)(); else y.value = withSpring(0, theme.spring.sheet); });
+  // swipe down = cancel; nothing fires (silence is the neutral channel). Grabbed mid-rise, it takes over
+  // from where it is; up is rubber-banded; a flick or 90 pt closes, carrying the flick's speed.
+  const from = useSharedValue(0);
+  const dismiss = Gesture.Pan().activeOffsetY(12)
+    .onBegin(() => { from.value = y.value; })
+    .onUpdate(e => { const n = from.value + e.translationY; y.value = n < 0 ? n * 0.2 : n; })
+    .onEnd(e => {
+      if (y.value > 90 || e.velocityY > 800) y.value = withSpring(open, { ...spring.sheet, velocity: e.velocityY }, f => { if (f) scheduleOnRN(done); });
+      else y.value = withSpring(0, { ...spring.sheet, velocity: e.velocityY });   // clamped: never lifts off the bottom edge
+    });
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
 
   // the wheel: drag the price to roll by increments; a tick per step
-  const dragSteps = useSharedValue(stepsNow);
+  // The base is read once at touch-down into a shared value: React re-renders on every step and hands the
+  // gesture a new closure, which must not move the base mid-drag (it compounded, two steps per step).
+  const dragSteps = useSharedValue(stepsNow), base = useSharedValue(stepsNow);
+  const lift = useSharedValue(0);
   const wheel = Gesture.Pan().activeOffsetY([-6, 6]).enabled(phase === 'arming' && !closed)
-    .onBegin(() => { dragSteps.value = stepsNow; runOnJS(feel.touch)(); })
+    .onBegin(() => { base.value = dragSteps.value; lift.value = withSpring(-2, spring.settle); scheduleOnRN(feel.touch); })
     .onUpdate(e => {
-      const n = Math.max(0, stepsNow + Math.round(-e.translationY / STEP_PT));
-      if (n !== dragSteps.value) { dragSteps.value = n; runOnJS(setSteps)(n); runOnJS(feel.tick)(); }
-    });
+      const n = Math.max(0, base.value + Math.round(-e.translationY / STEP_PT));
+      if (n !== dragSteps.value) { dragSteps.value = n; scheduleOnRN(setSteps, n); scheduleOnRN(feel.tick); }   // per step, not per frame
+    })
+    .onFinalize(() => { lift.value = withSpring(0, spring.settle); });
+  useEffect(() => { dragSteps.value = stepsNow; if (phase === 'arming') setStamp(null); }, [stepsNow]);   // a reset moves the base too; a new number clears an old line
 
   const place = async () => {
     if (!once.deposit) { setPhase('deposit'); return; }
@@ -68,28 +89,31 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     const key = `${ME}-${car.id}-${Date.now()}`;
     let ack: Ack;
     try { ack = await getServer().bid({ lotId: car.id, bidder: ME, amount, max: ceiling, key }); }
-    catch { setPhase('arming'); feel.rejected(); return; }
+    catch { setPhase('arming'); setStamp('Not sent'); return; }   // negative path: silent; the line says what happened
     if (ack.ok) {
-      setPhase('landed'); setPunch(Date.now()); feel.landed();
+      // the high-bidder moment, all inside 100 ms: the thud, the heavy impact and the punch on the ack;
+      // 90 ms later the lead chime, the success haptic and the leading mark on one frame
+      feel.landed(); setPhase('landed'); setPunch(Date.now());
+      later(() => { feel.lead(); setLead(true); }, ms.lead);
       if (AUCTION_URL) void registerPush();   // the first accepted bid asks for push; once registered this is a no-op
-      setTimeout(feel.lead, 150);   // you are the high bidder
       const blue = inLastTwoMinutes(ack.lot.closesAt, Date.now());
-      if (blue && !once.sawRefill) { once.sawRefill = true; setTeach(true); setTimeout(() => setTeach(false), theme.ms.overlay); }
-      setTimeout(close, blue ? theme.ms.overlay + 300 : 900);
+      if (blue && !once.sawRefill) { once.sawRefill = true; setTeach(true); later(() => setTeach(false), theme.ms.overlay); }
+      later(close, blue ? theme.ms.overlay + 300 : 900);
     } else if (ack.reason === 'closed') {
+      // the one rejection the doctrine keeps (decisions, Bid sheet row): price back, warning haptic, one stamp
       setPhase('rejected'); feel.rejected();
       setStamp(`Closed ${(ack.lateByMs / 1000).toFixed(1)} s before your bid`);
     } else {
-      // outbid during flight, or under the ask: the price rolls to the new number, warning haptic, no sentence
-      setPhase('arming'); setSteps(0); setCeil(0); feel.rejected();
+      // outbid during flight, or under the ask: the price rolls to the new number. Silence is the punishment.
+      setPhase('arming'); setSteps(0); setCeil(0);
     }
   };
 
   const confirmDeposit = async () => {
     const r = await takeDeposit();
     if (r === 'cancelled') { setPhase('arming'); return; }              // silence is the punishment
-    if (r === 'failed') { feel.rejected(); setPhase('arming'); return; }
-    setLand(Date.now()); feel.touch(); setPhase('arming'); setTimeout(place, 200);
+    if (r === 'failed') { setPhase('arming'); return; }                   // silent too: the button is still there
+    setLand(Date.now()); feel.touch(); setPhase('arming'); later(place, ms.land);   // the line lands, then the bid goes
   };
 
   return (
@@ -107,10 +131,10 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
               </View>
               <GestureDetector gesture={wheel}>
                 <Animated.View style={s.wheel}>
-                  <Price hammer={amount} total={total} ink={theme.color.ink} size={60} punchKey={punch} centered />
+                  <Price hammer={amount} total={total} ink={theme.color.ink} size={60} punchKey={punch} lift={lift} leading={lead} centered />
                 </Animated.View>
               </GestureDetector>
-              <Label style={{ marginTop: 6 }}>{stamp ?? `+ $${dollars(increment(amount))}`}</Label>
+              {stamp ? <Stamp key={stamp} text={stamp} /> : <Label style={{ marginTop: 6 }}>{`+ $${dollars(increment(amount))}`}</Label>}
 
               {/* the second wheel: an advanced option, one faint word until it is wanted */}
               {!ceilOpen ? (
@@ -134,7 +158,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
 
               <View style={s.foot}>
                 <BidButton phase={phase} hold={hold} disabled={closed || phase === 'rejected'} onBid={place} />
-                {landKey !== undefined && <Label style={{ marginTop: theme.space.s, alignSelf: 'center' }}>${DEPOSIT} held · back if you lose</Label>}
+                {landKey !== undefined && <Landing animate={landKey > 0}><Label style={{ marginTop: theme.space.s, alignSelf: 'center' }}>${DEPOSIT} held · back if you lose</Label></Landing>}
               </View>
             </>
           )}
@@ -148,15 +172,18 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
 /** One button. Tap bids; over 2× it needs a 600 ms hold that fills it; in flight it is a ring. */
 function BidButton({ phase, hold, disabled, onBid }: { phase: Phase; hold: boolean; disabled: boolean; onBid: () => void }) {
   const fill = useSharedValue(0), sink = useSharedValue(0);
-  const start = () => { fill.value = withTiming(1, { duration: theme.ms.hold, easing: Easing.linear }, f => { if (f) { runOnJS(feel.holdDone)(); runOnJS(onBid)(); } }); };
-  const stop = () => { cancelAnimation(fill); fill.value = withTiming(0, { duration: 120 }); };
+  const fire = () => { feel.holdDone(); onBid(); };
   const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
   const sinkStyle = useAnimatedStyle(() => ({ transform: [{ translateY: sink.value }] }));
   const busy = phase === 'inflight';
   const landed = phase === 'landed';
   const g = hold
-    ? Gesture.LongPress().minDuration(theme.ms.hold + 50).onBegin(() => { runOnJS(start)(); }).onFinalize(() => { runOnJS(stop)(); })
-    : Gesture.Tap().onBegin(() => { sink.value = withSpring(2, theme.spring.lift); }).onFinalize(() => { sink.value = withSpring(0, theme.spring.lift); }).onEnd(() => { runOnJS(onBid)(); });
+    // the hold fills on the UI thread from touch-down (linear: it is a progress); letting go drains it fast
+    ? Gesture.LongPress().minDuration(theme.ms.hold + 50)
+      .onBegin(() => { sink.value = withTiming(2, { duration: ms.press, easing: EASE_OUT }); fill.value = withTiming(1, { duration: theme.ms.hold, easing: Easing.linear }, f => { if (f) scheduleOnRN(fire); }); })
+      .onFinalize(() => { sink.value = withSpring(0, spring.settle); cancelAnimation(fill); fill.value = withTiming(0, { duration: ms.press, easing: EASE_OUT }); })
+    // feedback on press-in, commit on release: the button sinks 2 pt in 120 ms and springs back
+    : Gesture.Tap().onBegin(() => { sink.value = withTiming(2, { duration: ms.press, easing: EASE_OUT }); }).onFinalize(() => { sink.value = withSpring(0, spring.settle); }).onEnd(() => { scheduleOnRN(onBid); });
   return (
     <GestureDetector gesture={g.enabled(!disabled && !busy && !landed)}>
       <Animated.View style={[s.btn, (disabled || landed) && s.btnOff, sinkStyle]} accessibilityRole="button" accessibilityLabel={hold ? 'Bid, double tap and hold' : 'Bid'} accessibilityState={{ disabled: disabled || busy }}>
@@ -196,12 +223,31 @@ function Deposit({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () 
   );
 }
 
+/** The server's sentence lands like a stamp: pressed down from 1.08× in 160 ms. Silent; the warning
+    haptic is the caller's, and only for a bid after close. Reduced motion: it fades in, no scale. */
+function Stamp({ text }: { text: string }) {
+  const reduce = useReducedMotion();
+  const k = useSharedValue(0);
+  useEffect(() => { k.value = withTiming(1, { duration: ms.stamp, easing: EASE_OUT }); }, []);
+  const st = useAnimatedStyle(() => ({ opacity: k.value, transform: [{ scale: reduce ? 1 : 1.08 - 0.08 * k.value }] }));
+  return <Animated.View style={[{ marginTop: 6 }, st]} accessibilityLiveRegion="polite"><Label ink={theme.color.warn}>{text}</Label></Animated.View>;
+}
+
+/** A line that arrives because something just happened (the deposit, held): up 6 pt and in, 200 ms. */
+function Landing({ animate, children }: { animate: boolean; children: React.ReactNode }) {
+  const reduce = useReducedMotion();
+  const k = useSharedValue(animate ? 0 : 1);
+  useEffect(() => { if (animate) k.value = withTiming(1, { duration: ms.land, easing: EASE_OUT }); }, []);
+  const st = useAnimatedStyle(() => ({ opacity: k.value, transform: [{ translateY: reduce ? 0 : 6 * (1 - k.value) }] }));
+  return <Animated.View style={st}>{children}</Animated.View>;
+}
+
 /** The soft-close teach: a bid lands, the ring refills. 1.2 s, animated, once, ever. */
 function Teach() {
   const [k, setK] = useState(0);
   useEffect(() => { const t = setTimeout(() => setK(1), 450); return () => clearTimeout(t); }, []);
   const o = useSharedValue(0);
-  useEffect(() => { o.value = withTiming(1, { duration: 150 }); }, []);
+  useEffect(() => { o.value = withTiming(1, { duration: 150, easing: EASE_OUT }); }, []);
   const st = useAnimatedStyle(() => ({ opacity: o.value }));
   return (
     <Animated.View pointerEvents="none" style={[s.teach, st]}>

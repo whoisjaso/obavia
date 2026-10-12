@@ -4,10 +4,12 @@
    Returning after a day, the first ring spins in with the heartbeat before
    anything else loads. The neutral screen: nothing fires here but that. */
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeInDown, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { LinearTransition, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import { EASE_OUT, spring } from '../motion';
 import { Ring } from '../components/Ring';
 import { Sheet } from '../components/Sheet';
 import { Body, Button, Caps, Hairline, Label, Page, Pager, Serif } from '../components/Type';
@@ -29,21 +31,32 @@ function remaining(lot: Lot, now: number) {
 
 /** One watched car: a ring, the price, the name; swipe left to let it go. */
 function Watch({ car, id, lot, now, first, onOpen }: { car: Car; id: string; lot: Lot; now: number; first: boolean; onOpen: () => void }) {
-  const x = useSharedValue(0);
-  const spin = useSharedValue(first ? 0.2 : 1);
-  useEffect(() => { if (first) { spin.value = withSpring(1, { damping: 14, stiffness: 120 }); feel.heartbeat(); } }, []);
+  const { width } = useWindowDimensions();
+  const reduce = useReducedMotion();
+  const x = useSharedValue(0), from = useSharedValue(0);
+  // the welcome back: the first ring turns in a quarter and settles on the first thump of the heartbeat.
+  // Rare (once after a day away), so it may spin; it starts at 0.85, never from nothing.
+  const spin = useSharedValue(first ? 0 : 1);
+  useEffect(() => { if (first) { spin.value = reduce ? withTiming(1, { duration: 200, easing: EASE_OUT }) : withSpring(1, spring.snap); feel.heartbeat(); } }, []);
+  const unwatch = () => toggleWatch(id);
+  // swipe left to let it go: grabbed mid-return it takes over from where it is; right is rubber-banded;
+  // a flick or a third of the width commits, and the row leaves at the finger's speed. Silent: neutral.
   const pan = Gesture.Pan().activeOffsetX([-12, 12]).failOffsetY([-10, 10])
-    .onUpdate(e => { x.value = Math.min(0, e.translationX); })
+    .onBegin(() => { from.value = x.value; })
+    .onUpdate(e => { const n = from.value + e.translationX; x.value = n > 0 ? n * 0.15 : n; })
     .onEnd(e => {
-      if (e.translationX < -110) { x.value = withTiming(-400, { duration: 180 }, f => { if (f) runOnJS(toggleWatch)(id); }); }
-      else x.value = withSpring(0, theme.spring.lift);
+      if (x.value < -width / 3 || e.velocityX < -600) x.value = withSpring(-width, { ...spring.sheet, velocity: e.velocityX }, f => { if (f) scheduleOnRN(unwatch); });
+      else x.value = withSpring(0, { ...spring.snap, velocity: e.velocityX });
     });
-  const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
-  const ringStyle = useAnimatedStyle(() => ({ transform: [{ scale: spin.value }, { rotate: `${(1 - spin.value) * 180}deg` }], opacity: spin.value }));
+  const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }], opacity: interpolate(x.value, [-width, -width / 3, 0], [0, 0.6, 1], 'clamp') }));
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: spin.value,
+    transform: reduce ? [] : [{ scale: 0.85 + 0.15 * spin.value }, { rotate: `${(1 - spin.value) * -90}deg` }],
+  }));
   const mine = lot.leader === ME && !lot.closed;
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View style={[s.watch, style]}>
+      <Animated.View style={[s.watch, style]} layout={LinearTransition.duration(200).easing(EASE_OUT)}>
         <Pressable onPress={() => { feel.select(); onOpen(); }} style={s.watchHit} accessibilityRole="button" accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${dollars(lot.high)} dollars${mine ? ', you lead' : ''}`} accessibilityHint="Swipe left to stop watching">
           <Animated.View style={ringStyle}>
             <Ring size={64} stroke={4} progress={remaining(lot, now)} blue={inLastTwoMinutes(lot.closesAt, now)} grey={!!lot.closed || lot.closesAt <= now} />
@@ -53,7 +66,7 @@ function Watch({ car, id, lot, now, first, onOpen }: { car: Car; id: string; lot
               <Serif size={28}>${dollars(lot.high)}</Serif>
               {mine && <View style={s.lead} />}
             </View>
-            <Label>{car.year} {car.make} {car.model}</Label>
+            <Label style={{ paddingHorizontal: theme.space.m }}>{car.year} {car.make} {car.model}</Label>
           </View>
         </Pressable>
       </Animated.View>
@@ -87,7 +100,7 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
   const mePage = (
     <Page foot={<Button label="Sign out" onPress={() => { feel.silence(); onClose(); }} ghost />}>
       <Label>Me</Label>
-      <Serif size={36}>{me.name}</Serif>
+      <Serif size={36} style={{ paddingHorizontal: theme.space.s }}>{me.name}</Serif>
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Deposit</Label>
       <Serif size={34}>${DEPOSIT}</Serif>
@@ -108,8 +121,8 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
         if (!car) return null;
         return (
           <View key={w.lotId} style={s.pass} accessible accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${dollars(w.hammer)} dollars`}>
-            <View style={s.passThumb}><Image source={car.photos[0].src} style={StyleSheet.absoluteFill} contentFit="cover" /></View>
-            <View>
+            <View style={s.passThumb}>{car.photos[0] && <Image source={car.photos[0].src} style={StyleSheet.absoluteFill} contentFit="cover" />}</View>
+            <View style={{ flexShrink: 1 }}>
               <Serif size={24}>${dollars(w.hammer)}</Serif>
               <Label style={{ textAlign: 'left' }}>{car.year} {car.make} {car.model}</Label>
             </View>

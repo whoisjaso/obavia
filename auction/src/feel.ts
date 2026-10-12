@@ -44,6 +44,8 @@ const impact = (s: Haptics.ImpactFeedbackStyle) => { if (native) Haptics.impactA
 const notify = (t: Haptics.NotificationFeedbackType) => { if (native) Haptics.notificationAsync(t).catch(() => {}); };
 const selection = () => { if (native) Haptics.selectionAsync().catch(() => {}); };
 
+let lastLead = 0;
+
 /** The vocabulary. Each is one unified event: sound and touch in the same call. */
 export const feel = {
   /** One increment on the wheel: 392 Hz, 6 ms, light impact. */
@@ -56,8 +58,13 @@ export const feel = {
   touch() { impact(Haptics.ImpactFeedbackStyle.Light); },
   /** The server acked the bid: deep thud, one heavy impact. Fires on the ack, never before. */
   landed() { play('thud'); impact(Haptics.ImpactFeedbackStyle.Heavy); },
-  /** You are the high bidder: two rising notes and the success haptic, 150 ms after the thud. */
-  lead() { play('lead'); notify(Haptics.NotificationFeedbackType.Success); },
+  /** You are the high bidder: two rising notes and the success haptic, 90 ms after the thud (inside the
+      100 ms window), on the same frame the leading mark appears. Once per moment: the Bid sheet and the
+      Lane both see the lead change, and the second caller inside 1.5 s is swallowed. */
+  lead() {
+    const t = Date.now(); if (t - lastLead < 1500) return; lastLead = t;
+    play('lead'); notify(Haptics.NotificationFeedbackType.Success);
+  },
   /** The ring refilled in the last two minutes: medium impact, the same every time. */
   refill() { play('refill'); impact(Haptics.ImpactFeedbackStyle.Medium); },
   /** The one rejection the doctrine keeps. */

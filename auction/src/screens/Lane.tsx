@@ -5,7 +5,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import { spring } from '../motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bars } from '../components/Bars';
 import { LanePhoto } from '../components/LanePhoto';
@@ -49,7 +51,6 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, onMe, re
   const watching = watched.includes(car.id);
   const insets = useSafeAreaInsets();
   const [angle, setAngle] = useState(0);
-  const [lifted, setLifted] = useState(false);
   const [armed, setArmed] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const blue = inLastTwoMinutes(lot.closesAt, now);
@@ -58,51 +59,55 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, onMe, re
   const preview = armed > 0 ? roll(lot.high, opened, armed - 1) : lot.high;
   const total = outTheDoor(preview, car.dealer.fees).total;
   const photoScale = useSharedValue(1);
+  const reduce = useReducedMotion();
+  const photos = car.photos.length;
+  const photo = photos ? car.photos[angle % photos] : undefined;
 
   // Tap: next angle. Stories' tap-to-advance. Double-tap: watch, Instagram's heart without the heart.
-  const tap = Gesture.Tap().maxDuration(220).onEnd(() => {
-    runOnJS(setAngle)((angle + 1) % car.photos.length);
-    runOnJS(feel.select)();
-  });
-  const watch = () => { const on = toggleWatch(car.id); if (on) feel.done(); };
-  const doubleTap = Gesture.Tap().numberOfTaps(2).maxDuration(260).onEnd(() => { runOnJS(watch)(); });
-  // Hold: the engine (no recording seeded yet: the photo settles in, a soft pulse).
+  const nextAngle = () => { if (photos > 1) { setAngle(a => (a + 1) % photos); feel.select(); } };
+  const tap = Gesture.Tap().maxDuration(220).onEnd(() => { scheduleOnRN(nextAngle); });
+  // a watch is a selection, not a win: the chime is kept for the high-bidder moment and the hammer
+  const watch = () => { const on = toggleWatch(car.id); if (on) feel.select(); };
+  const doubleTap = Gesture.Tap().numberOfTaps(2).maxDuration(260).onEnd(() => { scheduleOnRN(watch); });
+  // Hold: the engine (no recording seeded yet: the photo settles in, a soft pulse). Reduced motion: the pulse only.
   const hold = Gesture.LongPress().minDuration(350).onStart(() => {
-    photoScale.value = withSpring(1.03, theme.spring.lift);
-    runOnJS(feel.touch)();
-  }).onEnd(() => { photoScale.value = withSpring(1, theme.spring.lift); });
+    if (!reduce) photoScale.value = withSpring(1.03, spring.settle);
+    scheduleOnRN(feel.touch);
+  }).onFinalize(() => { photoScale.value = withSpring(1, spring.settle); });
   const photoStyle = useAnimatedStyle(() => ({ transform: [{ scale: photoScale.value }] }));
-  // Swipe left: the Car. Instagram's edge.
-  const open = Gesture.Pan().activeOffsetX(-14).failOffsetY([-10, 10]).onEnd(e => { if (e.translationX < -40) runOnJS(onOpen)(); });
+  // Swipe left: the Car. Instagram's edge. A flick counts as much as a distance.
+  const open = Gesture.Pan().activeOffsetX(-14).failOffsetY([-10, 10]).onEnd(e => { if (e.translationX < -40 || e.velocityX < -500) scheduleOnRN(onOpen); });
 
-  // Drag the price up: arms a bid, one increment per 28 pt, a tick per step.
+  // Drag the price up: arms a bid, one increment per 28 pt, a tick per step. The price lifts 2 pt on
+  // touch-down and follows the thumb up to 12 pt more (rubber-banded), all on the UI thread; React
+  // only hears about whole steps, never frames.
   const steps = useSharedValue(0);
+  const lift = useSharedValue(0);
   const drag = Gesture.Pan().activeOffsetY([-6, 6]).failOffsetX([-12, 12]).enabled(!closed)
-    .onBegin(() => { runOnJS(setLifted)(true); runOnJS(feel.touch)(); })
+    .onBegin(() => { lift.value = withSpring(-2, spring.settle); scheduleOnRN(feel.touch); })
     .onUpdate(e => {
+      lift.value = -2 - (reduce ? 0 : 12 * (1 - Math.exp(Math.min(0, e.translationY) / 120)));
       const n = Math.max(0, Math.floor(-e.translationY / STEP_PT) + (e.translationY < -4 ? 1 : 0));
-      if (n !== steps.value) { steps.value = n; runOnJS(setArmed)(n); if (n > 0) runOnJS(feel.tick)(); }
+      if (n !== steps.value) { steps.value = n; scheduleOnRN(setArmed, n); if (n > 0) scheduleOnRN(feel.tick); }
     })
-    .onFinalize(() => {
+    .onFinalize(e => {
       const n = steps.value; steps.value = 0;
-      runOnJS(setLifted)(false);
-      runOnJS(setArmed)(0);
-      if (n > 0) runOnJS(onArm)(n - 1);
+      lift.value = withSpring(0, { ...spring.snap, velocity: e.velocityY });
+      scheduleOnRN(setArmed, 0);
+      if (n > 0) scheduleOnRN(onArm, n - 1);
     });
 
   // Long-press the ring: the time, spoken.
-  const ringPress = Gesture.LongPress().minDuration(300).onStart(() => {
-    const t = spoken(lot.closesAt - now);
-    runOnJS(setToast)(t);
-    runOnJS(AccessibilityInfo.announceForAccessibility)(`${t} left`);
-  }).onEnd(() => { runOnJS(setToast)(null); });
+  const say = () => { const t = spoken(lot.closesAt - now); setToast(t); AccessibilityInfo.announceForAccessibility(`${t} left`); };
+  const hush = () => setToast(null);
+  const ringPress = Gesture.LongPress().minDuration(300).onStart(() => { scheduleOnRN(say); }).onFinalize(() => { scheduleOnRN(hush); });
 
   return (
     <View style={{ height, width: '100%', backgroundColor: theme.color.ink, overflow: 'hidden' }}
       accessible accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${preview.toLocaleString()} dollars, ${spoken(lot.closesAt - now)} left, retail ${lot.retail.toLocaleString()}`}>
       <GestureDetector gesture={Gesture.Race(open, Gesture.Exclusive(hold, doubleTap, tap))}>
         <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
-          <LanePhoto photo={car.photos[angle]} width={width} height={height} transition={active ? 180 : 0} />
+          {photo ? <LanePhoto photo={photo} width={width} height={height} transition={active ? 180 : 0} /> : <View style={s.nophoto} />}
         </Animated.View>
       </GestureDetector>
       <LinearGradient pointerEvents="none" colors={['rgba(8,14,30,0)', 'rgba(8,14,30,0.15)', theme.color.scrim]} locations={[0.3, 0.55, 0.82]} style={StyleSheet.absoluteFill} />
@@ -129,18 +134,31 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, onMe, re
       <View style={[s.bottom, { paddingBottom: insets.bottom + 22 }]} pointerEvents="box-none">
         <GestureDetector gesture={drag}>
           <Animated.View style={s.priceHit}>
-            <Price hammer={preview} total={total} lifted={lifted} struck={closed} leading={lot.leader === ME && armed === 0} />
+            <Price hammer={preview} total={total} lift={lift} struck={closed} leading={lot.leader === ME && armed === 0} />
           </Animated.View>
         </GestureDetector>
         <Bars bid={lot.high} retail={lot.retail} />
         <View style={s.foot}>
-          <Text style={s.dealer}>{car.dealer.name} · {car.dealer.city}</Text>
-          <Pressable onPress={onOpen} style={s.pill} hitSlop={10} accessibilityRole="button" accessibilityLabel={`${car.photos.length} photos, open the car`}>
+          <Text style={s.dealer} numberOfLines={1}>{car.dealer.name} · {car.dealer.city}</Text>
+          <Pressable onPress={onOpen} style={s.pill} hitSlop={10} accessibilityRole="button" accessibilityLabel={`${photos} photos, open the car`}>
             <View style={s.pillGrid}>{[0, 1, 2, 3].map(i => <View key={i} style={s.pillCell} />)}</View>
-            <Text style={s.pillText}>{car.photos.length}</Text>
+            <Text style={s.pillText}>{photos}</Text>
           </Pressable>
         </View>
       </View>
+    </View>
+  );
+}
+
+/** Zero lots: the line, and the mark so Me (deposit, watching, sign out) is still one tap away. */
+function Empty({ height, onMe }: { height: number; onMe: () => void }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[s.empty, { height }]}>
+      <View style={[s.top, { paddingTop: insets.top + 10, justifyContent: 'flex-end' }]} pointerEvents="box-none">
+        <Pressable onPress={() => { feel.select(); onMe(); }} hitSlop={12} accessibilityRole="button" accessibilityLabel="Me"><Mark size={30} /></Pressable>
+      </View>
+      <Label ink={theme.color.cloud}>Nothing on the lane yet</Label>
     </View>
   );
 }
@@ -177,6 +195,7 @@ export function Lane() {
   const [wonAt, setWonInitial] = useState<'pickup' | undefined>(undefined);
   const [meOpen, setMe] = useState(false);
   const listRef = useRef<FlatList<Car>>(null);
+  const settled = useRef(0);   // the page the lane last came to rest on: a snap back to it is silent
   // the hammer: a lot closes with me leading
   const closedSeen = useRef<Record<string, boolean>>({});
   for (const l of Object.values(lots)) {
@@ -197,7 +216,7 @@ export function Lane() {
     const seen = bidsSeen.current[l.id];
     if (seen !== undefined && l.bids > seen && inLastTwoMinutes(l.closesAt, now)) {
       refills.current[l.id] = (refills.current[l.id] ?? 0) + 1;
-      if (cars[index]?.id === l.id) feel.refill();
+      if (cars[index]?.id === l.id && sheet?.car.id !== l.id) feel.refill();   // the open Bid sheet owns this lot's feel: no third impact on my own ack
     }
     bidsSeen.current[l.id] = l.bids;
     // the lead changed hands: mine now (a rival's ceiling fell) gets the chime; lost gets nothing here, the push carries it
@@ -263,12 +282,12 @@ export function Lane() {
             onMe={() => setMe(true)}
             onArm={steps => setSheet({ car: item, steps, key: Date.now() })} />
         ) : null}
-        ListEmptyComponent={<View style={[s.empty, { height }]}><Label ink={theme.color.cloud}>Nothing on the lane yet</Label></View>}
+        ListEmptyComponent={<Empty height={height} onMe={() => setMe(true)} />}
         pagingEnabled
         snapToInterval={height}
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
-        onMomentumScrollEnd={() => feel.snap()}
+        onMomentumScrollEnd={e => { const i = Math.round(e.nativeEvent.contentOffset.y / height); if (i !== settled.current) { settled.current = i; feel.snap(); } }}
         onViewableItemsChanged={onViewable}
         viewabilityConfig={cfg}
         getItemLayout={(_, i) => ({ length: height, offset: height * i, index: i })}
@@ -285,7 +304,7 @@ export function Lane() {
 const s = StyleSheet.create({
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   ringWrap: { padding: 6, marginLeft: -6 },
-  toast: { position: 'absolute', left: 60, top: 14, backgroundColor: 'rgba(8,14,30,0.7)', paddingHorizontal: 10, height: 28, borderRadius: 14, justifyContent: 'center' },
+  toast: { position: 'absolute', left: 60, top: 14, backgroundColor: 'rgba(8,14,30,0.7)', paddingHorizontal: 10, height: 28, borderRadius: 4, justifyContent: 'center' },   // squared: no pills
   toastText: { color: theme.color.cloud, ...theme.type.sansBold, fontSize: 13, fontVariant: ['tabular-nums'] },
   eye: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   eyeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.cloud, opacity: 0.8 },
@@ -294,7 +313,8 @@ const s = StyleSheet.create({
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 22 },
   priceHit: { alignSelf: 'flex-start', paddingVertical: 8, paddingRight: 40 },
   foot: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  dealer: { color: theme.color.cloud, opacity: 0.8, ...theme.type.sans, fontSize: 12, textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
+  nophoto: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: theme.color.inkSoft },
+  dealer: { flexShrink: 1, marginRight: 12, color: theme.color.cloud, opacity: 0.8, ...theme.type.sans, fontSize: 12, textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 28 },
   pillGrid: { width: 12, height: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
   pillCell: { width: 5, height: 5, borderRadius: 1, backgroundColor: theme.color.cloud, opacity: 0.85 },

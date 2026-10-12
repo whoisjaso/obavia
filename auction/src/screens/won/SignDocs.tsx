@@ -9,7 +9,7 @@ import { theme } from '../../theme';
 import { Paper } from '../Paper';
 
 const DOCS: { key: Doc; title: string; subtitle?: string }[] = [
-  { key: 'guide', title: 'Buyers Guide', subtitle: 'AS IS – NO DEALER WARRANTY' },
+  { key: 'guide', title: 'Buyers Guide', subtitle: 'AS IS - NO DEALER WARRANTY' },
   { key: 'bill', title: 'Bill of Sale' },
   { key: 'title', title: 'Title Assignment' },
 ];

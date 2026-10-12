@@ -46,9 +46,15 @@ export function Choice({ label, detail, selected, dim, onPress, size = 22, acces
 
 /** The one verb on a page. */
 export function Button({ label, onPress, disabled, ghost }: { label: string; onPress: () => void; disabled?: boolean; ghost?: boolean }) {
+  // feedback on press-in, commit on release: the same 2 pt sink as Bid, a CSS transition (a two-state value,
+  // no worklet needed), 120 ms strong ease-out
+  const [down, setDown] = useState(false);
   return (
-    <Pressable onPress={onPress} disabled={disabled} style={[s.btn, ghost && s.btnGhost, disabled && s.btnOff]} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }}>
-      <Text style={[s.btnText, ghost && { color: theme.color.accent }]}>{label}</Text>
+    <Pressable onPress={onPress} onPressIn={() => setDown(true)} onPressOut={() => setDown(false)} disabled={disabled} pressRetentionOffset={16}
+      style={{ alignSelf: 'stretch' }} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }}>
+      <Animated.View style={[s.btn, ghost && s.btnGhost, disabled && s.btnOff, { transform: [{ translateY: down ? 2 : 0 }], transitionProperty: 'transform', transitionDuration: 120, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)' }]}>
+        <Text style={[s.btnText, ghost && { color: theme.color.accent }]}>{label}</Text>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -72,11 +78,16 @@ export function Pager({ pages, initial = 0, onIndex }: { pages: React.ReactNode[
   const { width } = useWindowDimensions();
   const [i, setI] = useState(initial);
   const ref = useRef<ScrollView>(null);
+  const rest = useRef(initial);
   return (
     <View style={{ flex: 1 }}>
       <ScrollView ref={ref} horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: initial * width, y: 0 }} scrollEventThrottle={32}
         onLayout={() => { if (initial > 0) ref.current?.scrollTo({ x: initial * width, animated: false }); }}
-        onScroll={e => { const n = Math.round(e.nativeEvent.contentOffset.x / width); if (n !== i) { setI(n); onIndex?.(n); feel.snap(); } }}>
+        onScroll={e => { const n = Math.round(e.nativeEvent.contentOffset.x / width); if (n !== i) setI(n); }}
+        onMomentumScrollEnd={e => {   // the air and the tick at rest, as the lane does, not at the halfway mark
+          const n = Math.round(e.nativeEvent.contentOffset.x / width);
+          if (n !== rest.current) { rest.current = n; setI(n); onIndex?.(n); feel.snap(); }
+        }}>
         {pages.map((p, k) => <View key={k} style={{ width, flex: 1 }}>{p}</View>)}
       </ScrollView>
       <View style={s.dots} pointerEvents="none">

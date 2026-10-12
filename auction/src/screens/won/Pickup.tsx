@@ -4,7 +4,8 @@
    scan sets the lot's sale.startedAt and the pass turns green from that. */
 import React, { useEffect } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { BREATH, EASE_OUT, ms } from '../../motion';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { QR } from '../../components/QR';
 import { Body, Button, Caps, Choice, Label, Page, Pager, Serif } from '../../components/Type';
@@ -13,18 +14,24 @@ import { arriveAtLot, setSale, useSale } from '../../sale';
 import { AUCTION_URL } from '../../store';
 import { theme } from '../../theme';
 
-const SLOTS = ['Today 4–6', 'Tomorrow 10–12', 'Tomorrow 2–4', 'Sat 10–2', 'Mon 9–11'];
+const SLOTS = ['Today 4-6', 'Tomorrow 10-12', 'Tomorrow 2-4', 'Sat 10-2', 'Mon 9-11'];   // hyphens: no en dash on the glass
 
 export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   const sale = useSale();
-  const pulse = useSharedValue(1);
+  const reduce = useReducedMotion();
+  const pulse = useSharedValue(1), green = useSharedValue(sale?.pickedUp ? 1 : 0);
+  // waiting for the dealer's scan: the pass breathes (sine, both legs, 1 s a breath). Decoration, so
+  // reduced motion keeps it still. The scan: the breath stops where it is and settles, and the green pass
+  // crossfades over the ink one in 240 ms, on the same frame as the chime (sale.ts fires feel.done).
   useEffect(() => {
-    if (sale?.arrived && !sale.pickedUp) pulse.value = withRepeat(withSequence(withTiming(1.03, { duration: 500, easing: Easing.inOut(Easing.quad) }), withTiming(1, { duration: 500 })), -1);
-    else pulse.value = withTiming(1, { duration: 200 });
+    if (sale?.arrived && !sale.pickedUp && !reduce) pulse.value = withRepeat(withSequence(withTiming(1.03, { duration: 500, easing: BREATH }), withTiming(1, { duration: 500, easing: BREATH })), -1);
+    else pulse.value = withTiming(1, { duration: ms.green, easing: EASE_OUT });
+    if (sale?.pickedUp) green.value = withTiming(1, { duration: ms.green, easing: EASE_OUT });
   }, [sale?.arrived, sale?.pickedUp]);
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  const greenStyle = useAnimatedStyle(() => ({ opacity: green.value }));
   if (!sale) return null;
-  const green = !!sale.pickedUp;
+  const started = !!sale.pickedUp;
   const slots = car.hours?.length ? car.hours : SLOTS;
 
   const where = (
@@ -53,16 +60,23 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   );
 
   const pass = (
-    <Page foot={green ? <Button label="Continue" onPress={onDone} /> : undefined}>
-      <Label>{green ? 'Started' : sale.slot ?? 'Pick a time'}</Label>
+    <Page foot={started ? <Button label="Continue" onPress={onDone} /> : undefined}>
+      <Label>{started ? 'Started' : sale.slot ?? 'Pick a time'}</Label>
       {sale.slot && (
         <Animated.View style={[{ marginTop: theme.space.m, alignItems: 'center' }, pulseStyle]}>
-          <Pressable onLongPress={AUCTION_URL ? undefined : () => { if (!sale.arrived) arriveAtLot(); }} delayLongPress={600} accessibilityRole="button" accessibilityLabel={green ? 'Car started, sale complete' : 'Pass. At the lot, the dealer scans this.'}>
-            <QR value={`obavia:${sale.lotId}:${car.vin}:${sale.wonAt}`} green={green} size={200} />
+          <Pressable onLongPress={AUCTION_URL ? undefined : () => { if (!sale.arrived) arriveAtLot(); }} delayLongPress={600} accessibilityRole="button" accessibilityLabel={started ? 'Car started, sale complete' : 'Pass. At the lot, the dealer scans this.'}>
+            <View>
+              <QR value={`obavia:${sale.lotId}:${car.vin}:${sale.wonAt}`} size={200} />
+              {started && (
+                <Animated.View style={[StyleSheet.absoluteFill, greenStyle]} pointerEvents="none">
+                  <QR value={`obavia:${sale.lotId}:${car.vin}:${sale.wonAt}`} green size={200} />
+                </Animated.View>
+              )}
+            </View>
           </Pressable>
         </Animated.View>
       )}
-      <Caps size={14} ink={green ? theme.color.good : theme.color.muted} style={{ marginTop: theme.space.m }}>{car.year} {car.make} {car.model}</Caps>
+      <Caps size={14} ink={started ? theme.color.good : theme.color.muted} style={{ marginTop: theme.space.m }}>{car.year} {car.make} {car.model}</Caps>
     </Page>
   );
 

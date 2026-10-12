@@ -43,12 +43,8 @@ export const theme = {
     label: 11,       // small, spaced, uppercase, faint
   },
   space: { xs: 8, s: 16, m: 24, l: 40, xl: 64 },   // room is the luxury
-  spring: {
-    sheet: { damping: 18, stiffness: 220, mass: 0.9 },   // Bid sheet rise ≈ 320 ms
-    punch: { damping: 12, stiffness: 420 },               // price punch, settles ≈ 180 ms
-    lift: { damping: 20, stiffness: 300 },
-  },
+  // springs and curves live in ../motion (animate-expo's tables)
   ms: {
-    punch: 90, settle: 180, overlay: 1200, hold: 600, ringTeach: 1200,
+    overlay: 1200, hold: 600, ringTeach: 1200,
   },
 } as const;

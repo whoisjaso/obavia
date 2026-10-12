@@ -92,7 +92,7 @@ export function CarSheet({ car, onClose }: { car: Car; onClose: () => void }) {
           </Pressable>
         </Animated.View>
       )}
-      {guide && <Paper title="Buyers Guide" subtitle="AS IS – NO DEALER WARRANTY" onClose={() => setGuide(false)} />}
+      {guide && <Paper title="Buyers Guide" subtitle="AS IS - NO DEALER WARRANTY" onClose={() => setGuide(false)} />}
     </>
   );
 }

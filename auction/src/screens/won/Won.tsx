@@ -1,18 +1,20 @@
 /* Won. The ring closes to a point; nothing for 200 ms; then the flash, the
-   chime, the success haptic, confetti in ice and blue. Then one page at a
+   chime, the success haptic, confetti in ice and blue, in one tick (the
+   100 ms rule). No thud here: the thud belongs to the bid's ack. Then one page at a
    time, each centered: who it is for; the four steps with the next one lit;
    each step on its own page. */
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
-import { Confetti } from '../../components/Confetti';
+import { Confetti, burst } from '../../components/Confetti';
 import { Button, Caps, Choice, Label, Page, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
 import { dollars } from '../../engine/money';
 import { feel } from '../../feel';
 import { nextTile, outOfState, setSale, useSale, type Tile } from '../../sale';
+import { EASE_OUT, ms } from '../../motion';
 import { theme } from '../../theme';
 import { IdScan, InsureScan } from './Scan';
 import { SignDocs } from './SignDocs';
@@ -26,17 +28,21 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
   const sale = useSale();
   const [screen, setScreen] = useState<Screen>(initial ?? 'who');
   const [lit, setLit] = useState(false);
-  const flash = useSharedValue(0);
+  const flash = useSharedValue(0), confetti = useSharedValue(0);
+  const reduce = useReducedMotion();
   useEffect(() => {
     if (initial === 'pickup') {   // straight to the pass: no celebration, the buyer has been here before
       if (sale && !sale.forWhom) setSale({ forWhom: 'me' });
       return;
     }
+    // the ring has closed to a point; nothing for 200 ms; then all four in one tick: the chime and the
+    // success haptic, the flash, the confetti (already mounted, released by its clock), and the page
     const t = setTimeout(() => {
-      flash.value = withSequence(withTiming(1, { duration: 60 }), withTiming(0, { duration: 300 }));
-      feel.done(); setLit(true);
-      setTimeout(feel.landed, 150);
-    }, 200);
+      feel.done();
+      if (!reduce) flash.value = withSequence(withTiming(1, { duration: 60, easing: EASE_OUT }), withTiming(0, { duration: 300, easing: EASE_OUT }));
+      burst(confetti);
+      setLit(true);
+    }, ms.pause);
     return () => clearTimeout(t);
   }, []);
   const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
@@ -56,7 +62,7 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
 
   const head = (
     <View style={s.head}>
-      <View style={s.thumb}><Image source={car.photos[0].src} style={StyleSheet.absoluteFill} contentFit="cover" /></View>
+      <View style={s.thumb}>{car.photos[0] && <Image source={car.photos[0].src} style={StyleSheet.absoluteFill} contentFit="cover" />}</View>
       <Serif size={40}>${dollars(sale.hammer)}</Serif>
       <Serif size={20} ink={theme.color.muted}>${dollars(sale.total)}</Serif>
     </View>
@@ -102,7 +108,7 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
       {screen === 'pickup' && <Pickup car={car} onDone={() => setScreen(outOfState(sale) ? 'steps' : 'plates')} />}
       {screen === 'plates' && <Plates onBack={back} />}
 
-      {lit && <Confetti />}
+      {initial !== 'pickup' && <Confetti t={confetti} />}
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.cloud }, flashStyle]} />
     </View>
   );
