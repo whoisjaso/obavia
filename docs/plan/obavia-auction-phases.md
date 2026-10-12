@@ -18,7 +18,7 @@ What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, W
 | Server | Worker + Durable Object per lot; idempotent bids; alarm close; WebSockets; D1 copy; buyer tokens; dealer secret | ✔ |
 | Payments (Whop) | `src/whop.ts`: deposit checkout configuration, payment verification, Standard-Webhooks signature, refund, transfer, connected account; `/me/deposit/checkout`, `/me/deposit`, `/webhooks/whop`; `money_events` ledger | ✔ code; sandbox keys to set |
 | Paperwork | Desk: 130-U, VTR-271, Buyers Guide, bill of sale, title assignment, all dealer documents render like production | ✔ (Desk) |
-| Dealers | The Desk exists; Let It Go, Floor, Show It, How Long, Live, Sold screens | not started |
+| Dealers | The Desk exists; Let It Go, Floor, Show It, How Long, Live, Sold screens | built (commit 96cf22c), walked end to end against a local Worker; checked on Mon Oct 19 per the growth plan |
 | Legal | §215.85 reading; counsel list in decisions §5 | written, not sent |
 
 **Exit test:** `npm test` green in both packages; the web walkthrough (`?win=1`) runs Lane → Won → Plates without a page that needs reading beyond the four kept reads.
