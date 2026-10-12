@@ -16,10 +16,18 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);-webkit-font-
 body{background:#F2F6FF}
 .sky{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse 85% 85% at 50% 45%,rgba(168,188,236,0) 35%,rgba(168,188,236,.16) 100%),linear-gradient(180deg,#DCE6FD 0%,#F2F6FF 45%,#F7F9FF 80%,#E6EDFD 100%)}
 .sky .glow{position:absolute;left:50%;top:42%;width:max(100vw,840px);aspect-ratio:1;translate:-50% -50%;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.85),rgba(255,255,255,.35) 55%,rgba(255,255,255,0))}
-.sky .paper{position:absolute;inset:0;background-repeat:repeat;mix-blend-mode:multiply;opacity:.45}
-.sky .cloud{position:absolute;left:0;margin-top:calc(max(100vw,720px) * -.08);animation:drift linear infinite;will-change:transform}
-.sky .cloud img{display:block;width:100%}
-@keyframes drift{from{transform:translateX(-100%)}to{transform:translateX(100vw)}}
+/* Three cloud banks, far to near (the shared set in assets/cloud-layers/light, as WebP). Each layer
+   reaches below the fold by exactly the most its parallax can lift it (0.18 of a screen times its
+   depth: 0.2, 0.5, 1.0), so scrolling never shows its edge. skyDrift (src/motion.ts) moves them. */
+.sky .layer{position:absolute;left:0;right:0;top:0;bottom:calc(var(--lift) * -1)}
+.sky .drift{position:absolute;top:0;bottom:0;left:-24px;right:-24px;background-repeat:repeat-x;background-position:50% 100%;background-size:max(calc(100vw + 48px),calc(var(--bank) * 1.7143)) auto}
+.sky .far{--bank:58vh;--lift:3.6vh;opacity:.5}
+.sky .mid{--bank:54vh;--lift:9vh;opacity:.55}
+.sky .near{--bank:56vh;--lift:18vh;opacity:.68}
+.sky .far .drift{background-image:url(./sky/far@2x.webp);background-image:image-set(url(./sky/far@1x.webp) 1x,url(./sky/far@2x.webp) 2x)}
+.sky .mid .drift{background-image:url(./sky/mid@2x.webp);background-image:image-set(url(./sky/mid@1x.webp) 1x,url(./sky/mid@2x.webp) 2x)}
+.sky .near .drift{background-image:url(./sky/near@2x.webp);background-image:image-set(url(./sky/near@1x.webp) 1x,url(./sky/near@2x.webp) 2x)}
+.sky .grain{position:absolute;inset:0;background:url(./sky/grain.png) 0 0/256px 256px;mix-blend-mode:soft-light;opacity:.35}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;padding:0}
 a{color:inherit;text-decoration:none}
@@ -47,7 +55,6 @@ a{color:inherit;text-decoration:none}
 /* choices: large, stacked; the answer is the submit */
 .choices{display:grid;gap:12px;margin-top:28px}
 .choice{display:flex;align-items:center;gap:16px;width:100%;min-height:72px;padding:16px 20px;border-radius:20px;background:var(--panel);text-align:left;box-shadow:0 1px 2px rgba(28,36,54,.05),0 0 0 1px var(--line);transition:transform .25s var(--spring),box-shadow .25s}
-.choice:active{transform:scale(.985)}
 .choice .t{flex:1;min-width:0}
 .choice b{display:block;font:700 18px/1.25 var(--sans);overflow-wrap:anywhere}
 .choice small{display:block;margin-top:3px;font:500 14.5px/1.35 var(--sans);color:var(--muted)}
@@ -79,18 +86,15 @@ a{color:inherit;text-decoration:none}
 .receipt .owed b{color:var(--warn)}
 
 /* buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:58px;padding:0 26px;border-radius:18px;font:750 17px/1 var(--sans);white-space:nowrap;transition:transform .2s var(--ease),opacity .2s,background .2s}
-.btn:active{transform:scale(.98)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:58px;padding:0 26px;border-radius:18px;font:750 17px/1 var(--sans);white-space:nowrap;transition:opacity .2s,background .2s}
 /* primary buttons are clouds (same as obavia.co/cloud.css) */
 :root{--cl-ink:#28344F;--cl-glow:rgba(78,106,168,.24);--cl-spring:cubic-bezier(.32,.72,0,1);--cl-ease:cubic-bezier(.2,.7,.2,1)}
 
 .btn.primary{position:relative;font-weight:750;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:999px;cursor:pointer;
   color:var(--cl-ink);font-weight:750;letter-spacing:-.01em;text-decoration:none;white-space:nowrap;
-  background:linear-gradient(180deg,#FFFFFF 0%,#FBFCFF 46%,#EAF0FE 100%);
-  box-shadow:inset 0 -10px 18px -10px rgba(150,176,232,.55),inset 0 1.5px 0 #fff;
-  filter:drop-shadow(0 12px 16px var(--cl-glow)) drop-shadow(0 2px 3px rgba(78,106,168,.14));
-  text-shadow:0 1px 0 rgba(255,255,255,.95),0 0 14px rgba(255,255,255,.9);
-  transition:transform .55s var(--cl-spring),filter .5s var(--cl-ease)}
+  background:var(--grain) 0 0/256px 256px,linear-gradient(180deg,#FFFFFF 0%,#FBFCFF 46%,#EAF0FE 100%);background-blend-mode:soft-light,normal;
+  box-shadow:inset 0 -10px 18px -10px rgba(150,176,232,.55),inset 0 1.5px 0 #fff,var(--cloud-ao);
+  text-shadow:0 1px 0 rgba(255,255,255,.95),0 0 14px rgba(255,255,255,.9)}
 /* the puffs: soft overlapping rounds rising off the top edge, part of the same white body */
 .btn.primary::before{content:"";position:absolute;z-index:-1;left:6%;right:6%;top:-1.15em;height:3em;pointer-events:none;
   background:
@@ -102,21 +106,18 @@ a{color:inherit;text-decoration:none}
     radial-gradient(closest-side,#fff 96%,transparent) 88% 70%/2.5em 2.5em no-repeat,
     radial-gradient(closest-side,#fff 96%,transparent) 100% 100%/1.9em 1.9em no-repeat;
   transform-origin:50% 100%;transition:translate .7s var(--cl-spring),scale .7s var(--cl-spring);animation:cl-breathe 7s ease-in-out infinite}
-/* the halo: daylight around the cloud when it's touched */
-.btn.primary::after{content:"";position:absolute;z-index:-2;inset:-55% -18%;border-radius:999px;pointer-events:none;
-  background:radial-gradient(closest-side,rgba(255,255,255,.55),rgba(255,255,255,.22) 60%,rgba(255,255,255,0));opacity:0;transform:scale(.85);
-  transition:opacity .5s var(--cl-ease),transform .7s var(--cl-spring)}
-.btn.primary:focus-visible{transform:translateY(-3px);filter:drop-shadow(0 18px 22px rgba(78,106,168,.3)) drop-shadow(0 3px 4px rgba(78,106,168,.16))}
+/* the soft underside: the shade lives on a pseudo-element so a press fades it (opacity only, spec §2) */
+.btn.primary::after{content:"";position:absolute;z-index:-2;inset:0;border-radius:inherit;pointer-events:none;
+  box-shadow:0 7px 16px rgba(28,36,54,.1),0 14px 26px -12px rgba(78,106,168,.3);opacity:.9;transition:opacity .3s var(--cl-ease)}
+.btn.primary.is-pressed::after{opacity:.5;transition-duration:.1s}
 .btn.primary:focus-visible::before{translate:0 -2px;scale:1.05 1.12}
-.btn.primary:focus-visible::after{opacity:1;transform:scale(1)}
+.btn.primary:focus-visible::after{opacity:1}
 @media (hover:hover) and (pointer:fine){
-  .btn.primary:hover{transform:translateY(-3px);filter:drop-shadow(0 18px 22px rgba(78,106,168,.3)) drop-shadow(0 3px 4px rgba(78,106,168,.16))}
   .btn.primary:hover::before{translate:0 -2px;scale:1.05 1.12}
-  .btn.primary:hover::after{opacity:1;transform:scale(1)}
+  .btn.primary:hover:not(.is-pressed)::after{opacity:1}
 }
-.btn.primary:active{transform:translateY(0) scale(.97);transition-duration:.15s}
 .btn.primary:focus-visible{outline:none;box-shadow:inset 0 -10px 18px -10px rgba(150,176,232,.55),inset 0 1.5px 0 #fff,0 0 0 3px rgba(78,106,168,.45)}
-.btn.primary[disabled],.btn.primary[aria-disabled="true"]{opacity:.55;cursor:default;transform:none}
+.btn.primary[disabled],.btn.primary[aria-disabled="true"]{opacity:.55;cursor:default}
 @keyframes cl-breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1.5px) scale(1.03,1.06)}}
 
 
@@ -126,7 +127,7 @@ a{color:inherit;text-decoration:none}
 @media (forced-colors:active){.btn.primary{border:2px solid ButtonText}}
 .btn.quiet{background:var(--accent-bg);color:var(--accent)}
 .btn.block{display:flex;width:100%}
-.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn:disabled{opacity:.45;cursor:default}
 .btn.primary:disabled::before,.btn.primary:disabled::after{animation:none}
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:14px max(20px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));background:linear-gradient(180deg,rgba(242,245,251,0),var(--bg) 32%)}
 .dock{pointer-events:none}
@@ -151,7 +152,6 @@ a{color:inherit;text-decoration:none}
 /* cars */
 .lot{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:22px}
 .car{display:flex;flex-direction:column;gap:6px;padding:14px 14px 16px;border-radius:20px;background:var(--panel);text-align:left;box-shadow:0 0 0 1px var(--line);transition:transform .25s var(--spring),box-shadow .25s}
-.car:active{transform:scale(.98)}
 .car[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
 .car .pic{display:grid;place-items:center;height:92px;border-radius:14px;background:linear-gradient(180deg,#F4F7FE,#E6EDFC)}
 .car b{font:750 16px/1.2 var(--sans);letter-spacing:-.01em}
@@ -261,7 +261,6 @@ a{color:inherit;text-decoration:none}
 .st path{fill:url(#st-ice);stroke:rgba(255,255,255,.9);stroke-width:1.2;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .st path.deep{fill:url(#st-deep);opacity:0;transition:opacity .35s var(--ease)}
 .st span{flex:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 11.5px/1.15 var(--sans);color:var(--faint);text-align:center;transition:color .3s,transform .4s var(--spring)}
-.st:active{transform:scale(.95)}
 .st[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
 .st[aria-pressed="true"] path.deep{opacity:1}
 .st.lead{grid-column:span 2;grid-row:span 2;background:linear-gradient(150deg,rgba(255,255,255,.96),rgba(229,237,255,.92))}
@@ -269,12 +268,12 @@ a{color:inherit;text-decoration:none}
 @media (hover:hover) and (pointer:fine){
   .st span{opacity:0;transform:translateY(4px)}
   .st.lead span{opacity:1;transform:none}
-  .st:hover,.st:focus-visible{transform:translateY(-5px);background:#fff;box-shadow:0 0 0 1px rgba(78,106,168,.22),0 18px 34px -16px rgba(47,74,134,.45)}
+  .st:hover,.st:focus-visible{background:#F8FAFF}
   .st:hover svg,.st:focus-visible svg{transform:scale(1.09) rotate(-2deg);filter:drop-shadow(0 6px 8px rgba(47,74,134,.28))}
   .st:hover path.deep,.st:focus-visible path.deep{opacity:1}
   .st:hover span,.st:focus-visible span{opacity:1;transform:none;color:var(--navy)}
   .states:has(.st:hover) .st:not(:hover){opacity:.62}
-  .st{transition:transform .45s var(--spring),box-shadow .35s var(--ease),background .35s,opacity .35s}
+  .st{transition:box-shadow .35s var(--ease),background .35s,opacity .35s}
 }
 @keyframes st-in{from{opacity:0;transform:translateY(10px) scale(.94)}}
 .choice.dealer{min-height:84px}
@@ -304,7 +303,6 @@ a{color:inherit;text-decoration:none}
 .swatch.custom input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
 .systems{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:18px}
 .sys{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:138px;padding:18px 12px;border-radius:22px;background:var(--panel);box-shadow:0 1px 2px rgba(28,36,54,.05),0 0 0 1px var(--line);transition:transform .35s var(--spring),box-shadow .3s}
-.sys:active{transform:scale(.97)}
 .sys .ico{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:#fff;color:var(--navy);box-shadow:0 0 0 1px var(--line),0 8px 20px -14px rgba(28,36,54,.5);overflow:hidden}
 .sys .ico img{width:44px;height:44px;object-fit:contain}
 .sys .wm{width:100%;height:100%;display:grid;place-items:center;color:#fff;font:800 22px/1 var(--sans);letter-spacing:-.03em}
@@ -312,7 +310,6 @@ a{color:inherit;text-decoration:none}
 .sys[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--accent)}
 .sys .tickmark{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;animation:pop .45s var(--spring) both}
 .example{display:inline-block;margin-top:10px;padding:6px 11px;border-radius:9px;background:var(--warn-bg);font:700 12.5px/1 var(--sans);color:var(--warn)}
-.group,.receipt,.hero,.idcard,.logo-found{-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2)}
 
 /* ceremony */
 .cere{min-height:100vh;min-height:100dvh;background:var(--bg)}
@@ -341,7 +338,7 @@ a{color:inherit;text-decoration:none}
 @keyframes vt-out{to{opacity:0;transform:translateY(-4px)}}
 @keyframes vt-in{from{opacity:0}}
 @keyframes vt-out-back{to{opacity:0;transform:translateY(4px)}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.sky .cloud{transform:translateX(calc(var(--x,30) * 1vw))}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 @media (max-width:520px){.choices.grid2{grid-template-columns:1fr}.systems{grid-template-columns:1fr 1fr}.states{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.st{border-radius:16px;padding:10px 6px 8px}.st span{font-size:10.5px}.code{gap:7px}.code span{height:62px;font-size:28px}}
 @media print{.sky,.top,.dock,.bar,.progress,.noprint{display:none!important}.wrap{padding:0;max-width:none}.paper{box-shadow:none}.paper .scroll{max-height:none;overflow:visible;padding:0}}
 
@@ -395,14 +392,11 @@ a{color:inherit;text-decoration:none}
 .choice,.sys,.row-card,.channel,.tally>div,.due-card,.chip{background:var(--cloud);box-shadow:var(--cloud-glow),inset 0 1px 0 #fff,inset 0 -8px 16px -12px rgba(150,176,232,.5)}
 .choice,.sys,.channel,.chip{transition:transform .5s var(--spring),box-shadow .45s var(--ease),background .3s}
 @media (hover:hover) and (pointer:fine){
-  .choice:hover,.sys:hover,.channel:hover,.chip:hover{transform:translateY(-3px);box-shadow:var(--cloud-glow-up),inset 0 1px 0 #fff,inset 0 -8px 16px -12px rgba(150,176,232,.5)}
   .row:hover{background:rgba(255,255,255,.6)}
 }
-.choice:active,.sys:active,.channel:active,.chip:active{transform:translateY(0) scale(.97);transition-duration:.15s}
 .choice[aria-pressed="true"],.chip.on{box-shadow:0 0 0 2px var(--accent),0 0 0 7px rgba(78,106,168,.1),var(--cloud-glow)}
 .choice .art{background:linear-gradient(180deg,#F4F7FF,#E6EDFD);box-shadow:inset 0 1px 0 #fff,0 4px 10px -6px rgba(78,106,168,.35)}
 .btn.quiet{border-radius:999px;background:var(--cloud);color:var(--navy);box-shadow:var(--cloud-glow),inset 0 1px 0 #fff;transition:transform .5s var(--spring),box-shadow .45s var(--ease)}
-@media (hover:hover) and (pointer:fine){.btn.quiet:hover{transform:translateY(-2px);box-shadow:var(--cloud-glow-up),inset 0 1px 0 #fff}}
 .textlink{border-radius:999px;transition:background .3s,color .3s}
 @media (hover:hover) and (pointer:fine){.textlink:hover{background:rgba(255,255,255,.6)}}
 .status.bad{background:#FCEFEA;color:#B4583F}
@@ -576,7 +570,7 @@ section:has(> .q2) > h1.q{display:none}
 @keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
 .keypad{display:grid;grid-template-columns:repeat(3,76px);gap:16px 26px;justify-content:center;margin:0 auto}
 .keypad button{width:76px;height:76px;border-radius:50%;background:var(--panel);box-shadow:0 0 0 1px var(--line),0 10px 24px -18px rgba(28,36,54,.4);font:600 30px/1 var(--sans);color:var(--ink);font-variant-numeric:tabular-nums;transition:transform .2s var(--spring),background .2s var(--ease)}
-.keypad button:active{transform:scale(.92);background:var(--accent-bg)}
+.keypad button.is-pressed{background:var(--accent-bg)}
 .keypad button.del{background:none;box-shadow:none;font-size:24px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.pin.shake,.face.big{animation:none}}
 /* coming from Frazer */
@@ -641,3 +635,75 @@ button.row{transition:background .1s cubic-bezier(.23,1,.32,1)}
 button.row:active{background:rgba(255,255,255,.7)}
 .wrap{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
 .wrap:has(.dock .textlink){padding-bottom:calc(180px + env(safe-area-inset-bottom,0px))}
+
+/* ---------- the cloud material (docs/design/cloud-system.md §1, §2, §5) ----------
+   Every surface is a mass lit from above: a 1 px top light, a body falling from #F4F7FE to #E9EFFE, a
+   soft blue-grey underside, a hair of contact shade where it meets the page, and a fine grain blended
+   soft-light so it is not vector-flat. No 1 px grey outline: an edge is where the density falls away.
+   A surface you press keeps its underside on a ::before so the press can fade it (opacity only);
+   the grain is an ::after under the content. src/motion.ts (cloudPress) owns every control's
+   transform, so nothing here transitions transform on a control. */
+:root{
+  --cloud-top:rgba(255,255,255,.85);
+  --cloud-body:linear-gradient(180deg,#F4F7FE,#E9EFFE);
+  --cloud-shade:0 6px 14px rgba(28,36,54,.1);
+  --cloud-ao:0 1px 2px rgba(28,36,54,.06);
+  --cloud-in:inset 0 1px 0 var(--cloud-top),inset 0 -10px 18px -14px rgba(150,176,232,.42);
+  --grain:url(./sky/grain.png);
+  --sky-far:#DCE6FA;--sky-near:#F2F6FF;
+  --cloud:var(--cloud-body);--cloud-glow:var(--cloud-shade);
+}
+/* surfaces that hold: lists, receipts, the desk card, the onboarding cards, figures, the pad, inputs */
+.group,.receipt,.hero,.idcard,.logo-found,.tally>div,.due-card,.list-plain>div,.auth,.standing,.facts-list>div,.pad,.code span,
+/* surfaces you press */
+.choice,.btn.quiet,.sys,.st,.chip,.channel,.car,.keypad button:not(.del){
+  position:relative;isolation:isolate;background:var(--cloud-body);box-shadow:var(--cloud-in),var(--cloud-ao),var(--cloud-shade)}
+.choice,.btn.quiet,.sys,.st,.chip,.channel,.car,.keypad button:not(.del){box-shadow:var(--cloud-in),var(--cloud-ao)}
+.group::after,.receipt::after,.hero::after,.idcard::after,.logo-found::after,.tally>div::after,.due-card::after,.list-plain>div::after,.auth::after,.standing::after,.facts-list>div::after,.pad::after,.code span::after,
+.choice::after,.btn.quiet::after,.sys::after,.st::after,.chip::after,.channel::after,.car::after,.keypad button:not(.del)::after{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:var(--grain) 0 0/256px 256px;mix-blend-mode:soft-light;opacity:.9}
+/* the underside of a pressable cloud: it shortens under the thumb (100 ms) and comes back with the rise (300 ms) */
+.choice::before,.btn.quiet::before,.sys::before,.st::before,.chip::before,.channel::before,.car::before,.keypad button:not(.del)::before{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;box-shadow:var(--cloud-shade),0 12px 24px -14px rgba(78,106,168,.28);transition:opacity .3s var(--ease)}
+:is(.choice,.btn.quiet,.sys,.st,.chip,.channel,.car,.keypad button).is-pressed::before{opacity:.55;transition-duration:.1s}
+@media (hover:hover) and (pointer:fine){
+  .choice:hover:not(.is-pressed)::before,.btn.quiet:hover:not(.is-pressed)::before,.sys:hover:not(.is-pressed)::before,.chip:hover:not(.is-pressed)::before,.channel:hover:not(.is-pressed)::before,.car:hover:not(.is-pressed)::before{box-shadow:0 9px 20px rgba(28,36,54,.12),0 16px 30px -14px rgba(78,106,168,.34)}
+}
+/* no control transitions its transform: the thumb's spring is GSAP's */
+.choice,.sys,.channel,.chip,.car,.st,.btn.quiet{transition:box-shadow .35s var(--ease),background .3s}
+.keypad button{transition:background .2s var(--ease)}
+.swatch{transition:box-shadow .3s}
+/* chosen: the ring sits on the cloud, it does not replace its light */
+.choice[aria-pressed="true"],.chip.on{box-shadow:0 0 0 2px var(--accent),0 0 0 7px rgba(78,106,168,.1),var(--cloud-in),var(--cloud-ao)}
+.car[aria-pressed="true"],.st[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent),var(--cloud-in),var(--cloud-ao)}
+.sys[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--accent),var(--cloud-in),var(--cloud-ao)}
+.channel.wanted{box-shadow:0 0 0 2px rgba(78,106,168,.45),var(--cloud-in),var(--cloud-ao)}
+.st.lead{background:linear-gradient(150deg,#F8FAFF,#E4ECFD)}
+.choice .art{background:linear-gradient(180deg,#FBFCFF,#E9EFFE);box-shadow:inset 0 1px 0 var(--cloud-top),0 3px 8px -5px rgba(28,36,54,.18)}
+.code span.cur{box-shadow:0 0 0 2px var(--accent),var(--cloud-in),var(--cloud-ao),var(--cloud-shade)}
+/* creases, not lines: inside a cloud a division is a faint shade with light under it */
+.row + .row{border-top:0;box-shadow:inset 0 1px 0 rgba(28,36,54,.055),inset 0 2px 0 rgba(255,255,255,.7)}
+.receipt .total{border-top:0;box-shadow:inset 0 1px 0 rgba(28,36,54,.07),inset 0 2px 0 rgba(255,255,255,.75)}
+.idcard dl,.due-card dl{border-top:0;box-shadow:inset 0 1px 0 rgba(28,36,54,.06),inset 0 2px 0 rgba(255,255,255,.7)}
+.idcard dl div+div{border-left:0;box-shadow:inset 1px 0 0 rgba(28,36,54,.06),inset 2px 0 0 rgba(255,255,255,.7)}
+@media (hover:hover) and (pointer:fine){.row:hover{background:rgba(255,255,255,.45)}}
+button.row:active,button.row.is-pressed{background:rgba(255,255,255,.55)}
+/* inputs: a cloud you write on; grain in the background itself (an input has no pseudo-elements) */
+.input{background:var(--grain) 0 0/256px 256px,linear-gradient(180deg,#F7F9FF,#EDF2FE);background-blend-mode:soft-light,normal;
+  box-shadow:var(--cloud-in),var(--cloud-ao),0 5px 12px rgba(28,36,54,.08);transition:box-shadow .2s}
+.input:focus{box-shadow:0 0 0 2px var(--accent),var(--cloud-in),var(--cloud-ao),0 5px 12px rgba(28,36,54,.08)}
+/* the paper and the pad are sheets: they rise like a cloud forming (motion.ts, riseSheet); the paper's face
+   stays paper-white because it is the dealer's printed document, its edge takes the cloud's light and shade */
+.paper{box-shadow:inset 0 1px 0 var(--cloud-top),var(--cloud-ao),0 8px 18px rgba(28,36,54,.1),0 24px 60px -34px rgba(28,36,54,.32)}
+.pad.locked{opacity:.5}
+/* the dock: a feathered cloud bank the actions rest on, not a bar; the sky's near bank shows through it */
+.dock{background:linear-gradient(180deg,rgba(242,246,255,0),rgba(242,246,255,.8) 36%,rgba(238,243,254,.92))}
+.dock .in{position:relative}
+.dock .in::before{content:"";position:absolute;z-index:-1;inset:-26px -34px calc(-14px - env(safe-area-inset-bottom,0px));pointer-events:none;
+  background:radial-gradient(closest-side,rgba(255,255,255,.72),rgba(255,255,255,.34) 55%,rgba(255,255,255,0))}
+/* everyday glass becomes cloud too */
+.owner-text,.soon-note,.next-up,.for-you,.shot{box-shadow:var(--cloud-in),var(--cloud-ao),0 4px 10px rgba(28,36,54,.07)}
+.keypad button.del::before,.keypad button.del::after{display:none}
+@media print{.paper{box-shadow:none}.group::after,.receipt::after,.hero::after,.pad::after{display:none}}
+@media (forced-colors:active){.choice,.sys,.st,.chip,.channel,.car,.group,.receipt,.hero,.input{border:1px solid CanvasText}}
+@media (prefers-reduced-transparency:reduce){.dock{background:#EEF3FE}}

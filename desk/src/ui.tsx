@@ -2,14 +2,16 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import type { Receipt as R } from './lib/money';
 import { usd } from './lib/money';
+import { landed, pressedNow, skyDrift } from './motion';
 
 /* ---------- feel: soft tones after a tap, a haptic tick, never on scroll ---------- */
 let ac: AudioContext | null = null;
+const quiet = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const audio = () => { try { ac ??= new AudioContext(); if (ac.state === 'suspended') void ac.resume(); return ac; } catch { return null; } };
 /** A soft, rounded tone: slow attack, low pass, short tail. Never loud. */
 function chime(freqs: number[], gain = 0.012, gap = 0.1, tail = 0.7) {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  try { ac ??= new AudioContext(); if (ac.state === 'suspended') ac.resume(); } catch { return; }
-  const a = ac!;
+  if (quiet()) return;
+  const a = audio(); if (!a) return;
   freqs.forEach((f, i) => {
     const t0 = a.currentTime + 0.01 + i * gap, o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter();
     o.type = 'sine'; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = 1800;
@@ -17,31 +19,60 @@ function chime(freqs: number[], gain = 0.012, gap = 0.1, tail = 0.7) {
     o.connect(lp).connect(g).connect(a.destination); o.start(t0); o.stop(t0 + tail + 0.05);
   });
 }
+/* The cloud kit (docs/design/cloud-system.md §3, public/sfx/cloud/): filtered air, every file peaking at
+   -18 dBFS with the one room baked in. Decoded once, after the first gesture (no sound before a
+   gesture is allowed anyway). Gains only ever lower a file: the house tones stay the moment's voice,
+   the clouds are the texture under them. Never on scroll; negative paths are silent. */
+type Cloud = 'touch' | 'rise' | 'settle' | 'landed';
+const KIT: Record<Cloud, number> = { touch: 0.8, rise: 0.7, settle: 0.6, landed: 1 };
+const kit: Partial<Record<Cloud, AudioBuffer>> = {};
+let primed = false, lastGesture = -1e9;
+/** Fetch and decode the kit once, on the first pointer or key; every gesture after keeps the context awake. */
+export function primeClouds() {
+  lastGesture = performance.now();
+  const a = audio(); if (!a || primed) return;
+  primed = true;
+  (Object.keys(KIT) as Cloud[]).forEach(n => {
+    fetch(`./sfx/cloud/cloud-${n}.wav`).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+      .then(b => a.decodeAudioData(b)).then(d => { kit[n] = d; }).catch(() => { /* the kit is texture; the tones still play */ });
+  });
+}
+function puff(n: Cloud, delay = 0) {
+  const b = kit[n]; if (!b || !ac || quiet()) return;
+  try {
+    const s = ac.createBufferSource(), g = ac.createGain();
+    s.buffer = b; g.gain.value = KIT[n]; s.connect(g).connect(ac.destination); s.start(ac.currentTime + delay);
+  } catch { /* a closed context: silence */ }
+}
 export const haptic = () => { try { navigator.vibrate?.(6); } catch { /* no haptics */ } };
 let lastKey = 0;
 export const feel = {
   tap: () => { haptic(); chime([659.25], 0.009, 0, 0.45); },
   next: () => { haptic(); chime([523.25, 783.99], 0.011, 0.08, 0.6); },
-  done: () => { haptic(); chime([523.25, 659.25, 783.99, 1046.5], 0.012, 0.11, 0.9); },
+  /** An action completed: the house chime, the cloud-landed swell of air, and the pressed control breathes once. */
+  done: () => { haptic(); chime([523.25, 659.25, 783.99, 1046.5], 0.012, 0.11, 0.9); puff('landed'); landed(pressedNow()); },
   /** A barely-there tick on each keystroke. */
   key: () => { const t = performance.now(); if (t - lastKey < 40) return; lastKey = t; chime([392 + Math.random() * 40], 0.006, 0, 0.12); },
+  /** A thumb lands on a cloud (cloudPress, after its scroll guard). */
+  touch: () => puff('touch'),
+  /** The thumb lifts on it and it re-inflates. */
+  rise: () => puff('rise'),
+  /** A page settles into place: only when a gesture caused it (a poll that re-renders stays silent). */
+  settle: () => { if (performance.now() - lastGesture < 1500) puff('settle', 0.06); },
 };
 
-/* ---------- the sky: watercolor clouds drifting behind every screen ---------- */
-const CLOUDS: [number, number, number, number, number][] = [
-  // image, width (vw fraction), top %, opacity, seconds to cross
-  [0, 0.40, 8, 0.6, 260], [1, 0.30, 30, 0.65, 300], [2, 0.36, 18, 0.55, 280], [3, 0.34, 46, 0.7, 330],
-  [4, 0.29, 62, 0.55, 360], [5, 0.37, 78, 0.68, 310], [6, 0.35, 90, 0.62, 240], [7, 0.44, 55, 0.72, 380],
-];
+/* ---------- the sky: three cloud banks, far to near, over a fine grain ----------
+   The layers are the shared volumetric set (assets/cloud-layers/light, as WebP in src/sky; drawn by
+   styles.css); src/motion.ts (skyDrift) drifts each on its own slow timeline and parts them by depth
+   on scroll. The sky never takes a tap and never moves on a page change. */
 export function Sky() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => skyDrift(ref.current!), []);
   return (
-    <div className="sky" aria-hidden="true">
+    <div className="sky" aria-hidden="true" ref={ref}>
       <i className="glow" />
-      {CLOUDS.map(([n, w, top, op, t], i) => (
-        <span key={i} className="cloud" style={{ top: `${top}%`, width: `calc(max(100vw, 720px) * ${w})`, opacity: op, animationDuration: `${t}s`, animationDelay: `-${(i * 0.137 % 1) * t}s` }}>
-          <img src={`./sky/w${n}.webp`} alt="" />
-        </span>))}
-      <i className="paper" style={{ backgroundImage: "url(./sky/paper.png)" }} />
+      {['far', 'mid', 'near'].map(d => <div key={d} className={`layer ${d}`}><i className="drift" /></div>)}
+      <i className="grain" />
     </div>
   );
 }
