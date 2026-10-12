@@ -76,7 +76,8 @@ S.note = (i,g=.035) => S.chime(NOTES[((i%NOTES.length)+NOTES.length)%NOTES.lengt
 let lastAir = 0;
 S.air = () => { const n=performance.now(); if(n-lastAir<1400) return; lastAir=n; S.whoosh(1.3,.028,420,1150); };
 
-if(!HOST){
+const KIT_ONLY = root.dataset.sound === 'kit';        // the page plays the cloud kit alone (waitlist)
+if(!HOST && !KIT_ONLY){
   const wake = () => {
     removeEventListener('pointerdown',wake,true); removeEventListener('keydown',wake,true);
     try{ if(!S.ac) init(); S.on=true; S.ac.resume(); S.master.gain.setTargetAtTime(.75,S.ac.currentTime,.8); }catch(e){}
@@ -84,8 +85,82 @@ if(!HOST){
   addEventListener('pointerdown',wake,true); addEventListener('keydown',wake,true);
   document.addEventListener('visibilitychange',()=>{ if(!S.ac) return; document.hidden?S.ac.suspend():S.on&&S.ac.resume(); });
   addEventListener('pageshow',()=>{ if(S.ac&&S.on) S.ac.resume(); });
-  document.addEventListener('pointerdown',e=>{ if(e.target.closest('a,button,summary')) S.tick(1900,.012); },{passive:true});
+  document.addEventListener('pointerdown',e=>{ if(e.target.closest('a,button,summary') && !e.target.closest(CLOUD_SURFACE)) S.tick(1900,.012); },{passive:true});
 }
+
+/* ============================================================
+   CLOUDS: press physics and the cloud kit.
+   docs/design/cloud-system.md sections 2 and 3. A button or a card
+   is a cloud you push your thumb into: it sinks on pointer-down
+   (before any logic), stays while held, rises on release with a
+   soft spring (damping 0.65, response 0.3 s, overshoot under 3%),
+   rises flat on cancel, and breathes once when an action lands.
+   Transform plus --cl-press (the shade pseudo's opacity) only.
+   Sound: the five-file kit in audio/cloud, through the shell's
+   AudioContext, so it wakes on the first gesture like every other
+   sound here, stays quiet under reduced motion like OSHELL.tone,
+   and stays quiet while a film plays with its sound on. Never on
+   scroll.
+   ============================================================ */
+const CLOUD_SURFACE = '.cloud,.btn,.o-join,.cards article,.facts .row>div';
+const CL = OBV.cloud = {};
+const KIT = {}, KIT_FILES = ['touch','rise','settle','landed'];
+const spring = (z,resp,T) => { const w=2*Math.PI/resp, s=Math.sqrt(Math.max(1e-6,1-z*z)), wd=w*s;
+  return p => p>=1 ? 1 : z<1 ? 1-Math.exp(-z*w*p*T)*(Math.cos(wd*p*T)+z/s*Math.sin(wd*p*T)) : 1-Math.exp(-w*p*T)*(1+w*p*T); };
+const RISE = spring(.65,.3,.6), RISE_FLAT = spring(1,.3,.6);
+function loadKit(){
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext; if(!OAC || !window.fetch) return;
+  let dec; try{ dec = new OAC(1,1,44100); }catch(e){ return; }
+  KIT_FILES.forEach(n => fetch(`audio/cloud/cloud-${n}.wav`).then(r=>r.ok?r.arrayBuffer():Promise.reject())
+    .then(b=>new Promise((ok,no)=>{ const p=dec.decodeAudioData(b,ok,no); if(p&&p.catch) p.catch(no); })).then(buf=>{ KIT[n]=buf; }).catch(()=>{}));
+}
+// fetched after the page has loaded, when the browser is idle; decoded once, played on the shell's context
+addEventListener('load',()=>{ (window.requestIdleCallback||setTimeout)(loadKit,{timeout:2500}); },{once:true});
+const loud = () => [...document.querySelectorAll('video')].some(v=>!v.paused && !v.muted);
+CL.play = (name,gain=1) => {
+  const sh = window.OSHELL && OSHELL.snd, buf = KIT[name];
+  if(!sh || !sh.on || !sh.ac || !buf || matchMedia('(prefers-reduced-motion: reduce)').matches || loud()) return;
+  try{ const ac=sh.ac, src=ac.createBufferSource(), g=ac.createGain(); src.buffer=buf; g.gain.value=gain;
+    src.connect(g); g.connect(ac.destination); src.start(); }catch(e){}
+};
+const GS = window.gsap;
+if(GS){
+  root.classList.add('cl-physics');
+  let still = REDUCED;
+  GS.matchMedia().add('(prefers-reduced-motion: reduce)', () => { still = true; return () => { still = false; }; });
+  const off = el => el.disabled || el.getAttribute('aria-disabled') === 'true';
+  CL.press = el => { if(off(el)) return;
+    GS.to(el, still ? {opacity:.82, duration:.1, overwrite:'auto'}
+                    : {y:2.5, scale:.985, '--cl-press':1, duration:.11, ease:'power2.out', overwrite:'auto'}); };
+  CL.rise = (el,cancel) => GS.to(el, still ? {opacity:1, duration:.2, overwrite:'auto', clearProps:'opacity'}
+    : {y:0, scale:1, '--cl-press':0, duration:.6, ease:cancel?RISE_FLAT:RISE, overwrite:'auto', clearProps:'transform,--cl-press'});
+  CL.landed = el => { CL.play('landed'); if(!el || still) return;
+    GS.timeline({overwrite:'auto'}).to(el,{scale:1.03, duration:.21, ease:'sine.inOut'}).to(el,{scale:1, duration:.21, ease:'sine.inOut', clearProps:'transform'}); };
+  let held = null, x0 = 0, y0 = 0;
+  const release = cancel => { const el = held; if(!el) return; held = null;
+    el.removeEventListener('pointerleave', onLeave); CL.rise(el, cancel); if(!cancel) CL.play('rise', .9); };
+  const onLeave = () => release(true);
+  document.addEventListener('pointerdown', e => {
+    if(e.button) return;
+    const el = e.target.closest(CLOUD_SURFACE); if(!el || off(el)) return;
+    // a card only sinks when the press is on the card itself, not on a control inside it
+    const ctl = e.target.closest('a,button,input,select,textarea,video,label');
+    if(ctl && ctl !== el && el.contains(ctl)) return;
+    if(held) release(true);
+    held = el; x0 = e.clientX; y0 = e.clientY;
+    CL.press(el); CL.play('touch', .9);
+    el.addEventListener('pointerleave', onLeave);
+  }, {passive:true});
+  document.addEventListener('pointerup', () => release(false), {passive:true});
+  document.addEventListener('pointercancel', () => release(true), {passive:true});     // the browser took the touch for scrolling
+  document.addEventListener('pointermove', e => { if(held && Math.hypot(e.clientX-x0, e.clientY-y0) > 12) release(true); }, {passive:true});
+  addEventListener('blur', () => release(true));
+} else { CL.press = CL.rise = () => {}; CL.landed = () => CL.play('landed'); }
+// settle: the hero has landed after the mark's entrance, or the menu sheet has come to rest
+addEventListener('o:land', () => setTimeout(() => CL.play('settle', .8), 120), {once:true});
+const oSheet = document.getElementById('oSheet');
+if(oSheet) new MutationObserver(() => { if(oSheet.classList.contains('open')) setTimeout(() => CL.play('settle', .8), 420); })
+  .observe(oSheet, {attributes:true, attributeFilter:['class']});
 
 /* ============================================================
    ICONS: drawn from the mark itself. The mark's orb and its

@@ -1,16 +1,52 @@
-/* Clouds: the one button style and the one accent type style across obavia.co.
-   A button is a small cloud: a soft white body with puffs rising off its top
-   edge, a sky-blue underglow, and it lifts and brightens when touched.
-   Accent words are cloud-blue, with light drifting slowly through them. */
-:root{--cl-ink:#28344F;--cl-glow:rgba(78,106,168,.24);--cl-spring:cubic-bezier(.32,.72,0,1);--cl-ease:cubic-bezier(.2,.7,.2,1)}
+/* Clouds on obavia.co: the sky's three layers, the cloud material every
+   primary surface wears, the one button style and the accent type style.
+   Spec: docs/design/cloud-system.md. */
+/* Tokens: docs/design/cloud-system.md section 5. */
+:root{--cl-ink:#28344F;--cl-spring:cubic-bezier(.32,.72,0,1);--cl-ease:cubic-bezier(.2,.7,.2,1);
+  --cl-top:rgba(255,255,255,.85);--cl-body:linear-gradient(180deg,#FFFFFF 0%,#F4F7FE 42%,#E9EFFE 100%);
+  --cl-shade:0 6px 16px rgba(28,36,54,.10),0 22px 48px -30px rgba(28,36,54,.16);--cl-ao:0 1px 2px rgba(28,36,54,.06);
+  --cl-under:inset 0 -14px 22px -16px rgba(28,36,54,.10);--cl-grain:url(sky/clouds/grain-surface.webp)}
 
-.cloud{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:999px;cursor:pointer;
+/* ---------- the sky: three volumetric layers plus grain ----------
+   Layers are rendered once by tools/cloud-layers (assets/cloud-layers) and
+   anchored larger than the viewport; every edge feathers to zero, so no
+   bound ever shows. cloud-atmosphere.js drifts the .cl-cloud (GSAP,
+   sine.inOut, wall clock) and moves each .cl-layer by depth on scroll. */
+.cl-layer{position:absolute;left:-14%;right:-14%;pointer-events:none;will-change:transform;transition:opacity 1.8s var(--cl-ease),translate 2.4s cubic-bezier(.16,1,.3,1)}
+.cl-layer.far{top:2%;height:64%;opacity:.5}
+.cl-layer.mid{top:26%;height:72%;opacity:.6}
+.cl-layer.near{bottom:-20%;height:72%;opacity:.82}
+.cl-cloud{position:absolute;inset:0;display:block;background-repeat:no-repeat;background-size:cover;background-position:center;will-change:transform}
+.far .cl-cloud{background-image:url(sky/clouds/far@1x.webp);background-image:-webkit-image-set(url(sky/clouds/far@1x.webp) 1x,url(sky/clouds/far@2x.webp) 2x);background-image:image-set(url(sky/clouds/far@1x.webp) 1x,url(sky/clouds/far@2x.webp) 2x)}
+.mid .cl-cloud{background-image:url(sky/clouds/mid@1x.webp);background-image:-webkit-image-set(url(sky/clouds/mid@1x.webp) 1x,url(sky/clouds/mid@2x.webp) 2x);background-image:image-set(url(sky/clouds/mid@1x.webp) 1x,url(sky/clouds/mid@2x.webp) 2x)}
+.near .cl-cloud{background-position:center bottom;background-image:url(sky/clouds/near@1x.webp);background-image:-webkit-image-set(url(sky/clouds/near@1x.webp) 1x,url(sky/clouds/near@2x.webp) 2x);background-image:image-set(url(sky/clouds/near@1x.webp) 1x,url(sky/clouds/near@2x.webp) 2x)}
+.cl-grain{position:absolute;inset:0;display:block;background:url(sky/clouds/grain.webp) 0 0/256px 256px repeat;mix-blend-mode:soft-light;opacity:.03;pointer-events:none}
+html.o-veil .o-sky .cl-layer{opacity:0;translate:none}
+@media (max-width:719px){.cl-layer.far{top:4%;height:46%;opacity:.45}.cl-layer.mid{top:30%;height:52%;opacity:.5}.cl-layer.near{height:56%;bottom:-16%}}
+
+/* ---------- the cloud material: top light, body, underside, contact, grain ----------
+   No 1px border on a primary. The soft underside lives on ::after so a press
+   changes its opacity (--cl-press, set by the helper in site.js), never its blur. */
+.cloud,html .o-nav .o-join,html .o-sheet .o-join,html .cards article,html .facts .row>div,html .wl-card{
+  position:relative;isolation:isolate;background-color:#F4F7FE;background-image:var(--cl-grain),var(--cl-body);background-size:256px 256px,100% 100%;
+  box-shadow:inset 0 1px 0 var(--cl-top),var(--cl-under),var(--cl-ao)}
+.cloud::after,html .o-nav .o-join::after,html .o-sheet .o-join::after,html .cards article::after,html .facts .row>div::after,html .wl-card::after{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;box-shadow:var(--cl-shade);opacity:calc(1 - .45 * var(--cl-press,0))}
+html .wl-card{backdrop-filter:none;-webkit-backdrop-filter:none}
+html .o-nav .o-join,html .o-sheet .o-join{color:var(--cl-ink)}
+html .o-nav .o-join:active,html .o-sheet .o-join:active{transform:none}
+html .o-nav.solid{box-shadow:inset 0 -1px 0 rgba(255,255,255,.7),0 10px 26px -18px rgba(28,36,54,.22)}
+html .cards article,html .cards article:hover{transform:none;transition:translate .45s var(--cl-spring)}
+html .cards article:hover{translate:none;box-shadow:inset 0 1px 0 var(--cl-top),var(--cl-under),var(--cl-ao)}
+@media (hover:hover) and (pointer:fine){html .cards article:hover{translate:0 -3px}}
+
+/* ---------- the cloud button ----------
+   A small cloud: the material above, with puffs rising off its top edge.
+   Press and release run on GSAP (site.js); this file only holds the rest state. */
+.cloud{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:999px;cursor:pointer;
   color:var(--cl-ink);font-weight:750;letter-spacing:-.01em;text-decoration:none;white-space:nowrap;
-  background:linear-gradient(180deg,#FFFFFF 0%,#FBFCFF 46%,#EAF0FE 100%);
-  box-shadow:inset 0 -10px 18px -10px rgba(150,176,232,.55),inset 0 1.5px 0 #fff;
-  filter:drop-shadow(0 12px 16px var(--cl-glow)) drop-shadow(0 2px 3px rgba(78,106,168,.14));
-  text-shadow:0 1px 0 rgba(255,255,255,.95),0 0 14px rgba(255,255,255,.9);
-  transition:transform .55s var(--cl-spring),filter .5s var(--cl-ease)}
+  text-shadow:0 1px 0 rgba(255,255,255,.9);-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-user-select:none;user-select:none;
+  transition:translate .5s var(--cl-spring)}
 /* the puffs: soft overlapping rounds rising off the top edge, part of the same white body */
 .cloud::before{content:"";position:absolute;z-index:-1;left:6%;right:6%;top:-1.15em;height:3em;pointer-events:none;
   background:
@@ -22,15 +58,14 @@
     radial-gradient(closest-side,#fff 96%,transparent) 88% 70%/2.5em 2.5em no-repeat,
     radial-gradient(closest-side,#fff 96%,transparent) 100% 100%/1.9em 1.9em no-repeat;
   transform-origin:50% 100%;transition:translate .7s var(--cl-spring),scale .7s var(--cl-spring);animation:cl-breathe 7s ease-in-out infinite}
-/* the halo: daylight around the cloud when it's touched */
-.cloud::after{content:"";position:absolute;z-index:-2;inset:-55% -18%;border-radius:999px;pointer-events:none;
-  background:radial-gradient(closest-side,rgba(255,255,255,.55),rgba(255,255,255,.22) 60%,rgba(255,255,255,0));opacity:0;transform:scale(.85);
-  transition:opacity .5s var(--cl-ease),transform .7s var(--cl-spring)}
-.cloud:hover,.cloud:focus-visible{transform:translateY(-3px);filter:drop-shadow(0 18px 22px rgba(78,106,168,.3)) drop-shadow(0 3px 4px rgba(78,106,168,.16))}
-.cloud:hover::before,.cloud:focus-visible::before{translate:0 -2px;scale:1.05 1.12}
-.cloud:hover::after,.cloud:focus-visible::after{opacity:1;transform:scale(1)}
-.cloud:active{transform:translateY(0) scale(.97);transition-duration:.15s}
-.cloud:focus-visible{outline:none;box-shadow:inset 0 -10px 18px -10px rgba(150,176,232,.55),inset 0 1.5px 0 #fff,0 0 0 3px rgba(78,106,168,.45)}
+.o-join.cloud::before{display:none}
+@media (hover:hover) and (pointer:fine){
+  .cloud:hover{translate:0 -2px}
+  .cloud:hover::before{translate:0 -2px;scale:1.05 1.12}
+}
+.cloud:focus-visible{outline:none;box-shadow:inset 0 1px 0 var(--cl-top),var(--cl-under),var(--cl-ao),0 0 0 3px rgba(78,106,168,.45)}
+/* without the GSAP helper (scripts off), a plain CSS press */
+html:not(.cl-physics) .cloud:active{transform:translateY(2px) scale(.985);transition:transform .1s ease-out}
 .cloud[disabled],.cloud[aria-disabled="true"]{opacity:.55;cursor:default;transform:none}
 @keyframes cl-breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1.5px) scale(1.03,1.06)}}
 
@@ -41,10 +76,9 @@
 @keyframes cl-drift{from{background-position:0% 50%}to{background-position:100% 50%}}
 
 @media (prefers-reduced-motion:reduce){
-  .cloud,.cloud::before,.cloud::after{transition:none;animation:none}
+  .cloud,.cloud::before,.cloud::after,.cl-layer,html .cards article{transition:none;animation:none}
   .cloudtext{animation:none}
 }
 @media (forced-colors:active){.cloud{border:2px solid ButtonText}.cloudtext{color:CanvasText;-webkit-text-fill-color:CanvasText;background:none}}
 
-/* the nav's join button is a cloud too (shell.css paints it navy) */
-.o-join.cloud,.o-join.cloud:hover{background:linear-gradient(180deg,#FFFFFF 0%,#FBFCFF 46%,#EAF0FE 100%);color:var(--cl-ink)}
+
