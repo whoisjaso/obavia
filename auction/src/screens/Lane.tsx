@@ -90,7 +90,7 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, refillKe
   }).onEnd(() => { runOnJS(setToast)(null); });
 
   return (
-    <View style={{ height, width: '100%', backgroundColor: theme.color.ink }}
+    <View style={{ height, width: '100%', backgroundColor: theme.color.ink, overflow: 'hidden' }}
       accessible accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${preview.toLocaleString()} dollars, ${spoken(lot.closesAt - now)} left, retail ${lot.retail.toLocaleString()}`}>
       <GestureDetector gesture={Gesture.Race(open, Gesture.Exclusive(hold, tap))}>
         <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
@@ -116,7 +116,7 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, refillKe
       <View style={[s.bottom, { paddingBottom: insets.bottom + 22 }]} pointerEvents="box-none">
         <GestureDetector gesture={drag}>
           <Animated.View style={s.priceHit}>
-            <Price hammer={preview} total={total} lifted={lifted} struck={closed} />
+            <Price hammer={preview} total={total} lifted={lifted} struck={closed} leading={lot.leader === ME && armed === 0} />
           </Animated.View>
         </GestureDetector>
         <Bars bid={lot.high} retail={lot.retail} />
@@ -154,6 +154,7 @@ export function Lane() {
   }
   const refills = useRef<Record<string, number>>({});
   const bidsSeen = useRef<Record<string, number>>({});
+  const leadSeen = useRef<Record<string, string | undefined>>({});
   // every bid in the last two minutes is a refill: medium impact, the same every time
   for (const l of Object.values(lots)) {
     const seen = bidsSeen.current[l.id];
@@ -162,6 +163,10 @@ export function Lane() {
       if (cars[index]?.id === l.id) feel.refill();
     }
     bidsSeen.current[l.id] = l.bids;
+    // the lead changed hands: mine now (a rival's ceiling fell) gets the chime; lost gets nothing here, the push carries it
+    const prev = leadSeen.current[l.id];
+    if (prev !== undefined && prev !== l.leader && l.leader === ME && cars[index]?.id === l.id && !l.closed) feel.lead();
+    leadSeen.current[l.id] = l.leader;
   }
 
   const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -199,18 +204,18 @@ export function Lane() {
 
 const s = StyleSheet.create({
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  ringWrap: { padding: 6, marginLeft: -6, borderRadius: 28, backgroundColor: 'rgba(8,14,30,0.28)' },
+  ringWrap: { padding: 6, marginLeft: -6 },
   toast: { position: 'absolute', left: 60, top: 14, backgroundColor: 'rgba(8,14,30,0.7)', paddingHorizontal: 10, height: 28, borderRadius: 14, justifyContent: 'center' },
   toastText: { color: theme.color.cloud, fontFamily: theme.font.sansBold, fontSize: 13, fontVariant: ['tabular-nums'] },
-  eye: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, height: 28, marginTop: 14, borderRadius: 14, backgroundColor: 'rgba(8,14,30,0.28)' },
+  eye: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
   eyeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.cloud, opacity: 0.8 },
-  eyeText: { color: theme.color.cloud, opacity: 0.8, fontFamily: theme.font.sans, fontSize: 12, fontVariant: ['tabular-nums'] },
+  eyeText: { color: theme.color.cloud, opacity: 0.9, fontFamily: theme.font.sans, fontSize: 12, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 22 },
   priceHit: { alignSelf: 'flex-start', paddingVertical: 8, paddingRight: 40 },
   foot: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  dealer: { color: theme.color.cloud, opacity: 0.7, fontFamily: theme.font.sans, fontSize: 12 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(8,14,30,0.28)' },
+  dealer: { color: theme.color.cloud, opacity: 0.8, fontFamily: theme.font.sans, fontSize: 12, textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 28 },
   pillGrid: { width: 12, height: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
   pillCell: { width: 5, height: 5, borderRadius: 1, backgroundColor: theme.color.cloud, opacity: 0.85 },
-  pillText: { color: theme.color.cloud, opacity: 0.85, fontFamily: theme.font.sans, fontSize: 12, fontVariant: ['tabular-nums'] },
+  pillText: { color: theme.color.cloud, opacity: 0.9, fontFamily: theme.font.sans, fontSize: 12, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
 });

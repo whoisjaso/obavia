@@ -9,6 +9,7 @@ import Svg, { Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { Sheet } from '../components/Sheet';
+import { Button, Label } from '../components/Type';
 import { feel } from '../feel';
 import { theme } from '../theme';
 
@@ -50,9 +51,9 @@ export function Paper({ title, subtitle, onClose, sign, reuse }: {
         {sign && (
           <View style={[s.padWrap, !atEnd && { opacity: 0.35 }]} pointerEvents={atEnd ? 'auto' : 'none'}>
             {reuse && !path ? (
-              <Pressable onPress={() => file(reuse)} style={s.reuse} accessibilityRole="button">
-                <Svg width={120} height={44} viewBox="0 0 300 110"><Path d={reuse} stroke={theme.color.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                <Text style={s.reuseText}>Use the same signature</Text>
+              <Pressable onPress={() => file(reuse)} style={s.reuse} accessibilityRole="button" accessibilityLabel="Use the same signature">
+                <Svg width={160} height={58} viewBox="0 0 300 110"><Path d={reuse} stroke={theme.color.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                <Label>Use the same signature</Label>
               </Pressable>
             ) : (
               <>
@@ -62,7 +63,7 @@ export function Paper({ title, subtitle, onClose, sign, reuse }: {
                     <View style={s.baseline} />
                   </View>
                 </GestureDetector>
-                <Pressable disabled={!path} onPress={() => file(path)} style={[s.btn, !path && s.btnOff]} accessibilityRole="button"><Text style={s.btnText}>Sign</Text></Pressable>
+                <Button label="Sign" onPress={() => file(path)} disabled={!path} />
               </>
             )}
           </View>
@@ -73,20 +74,20 @@ export function Paper({ title, subtitle, onClose, sign, reuse }: {
 }
 
 const s = StyleSheet.create({
-  head: { paddingHorizontal: 18, paddingBottom: 10 },
-  title: { fontFamily: theme.font.sansBold, fontSize: 18, color: theme.color.ink },
-  sub: { fontFamily: theme.font.sansBold, fontSize: 12, color: theme.color.warn, marginTop: 2, letterSpacing: 0.4 },
+  head: { paddingHorizontal: 18, paddingBottom: theme.space.s, alignItems: 'center' },
+  title: { fontFamily: theme.font.price, fontSize: 30, color: theme.color.ink, textAlign: 'center' },
+  sub: { fontFamily: theme.font.sans, fontSize: 11, color: theme.color.warn, marginTop: 4, letterSpacing: 1.6, textAlign: 'center' },
   page: { paddingHorizontal: 18, paddingBottom: 40 },
-  paper: { backgroundColor: theme.color.cloud, borderRadius: 6, padding: 22, borderWidth: 1, borderColor: theme.color.line },
+  paper: { backgroundColor: theme.color.cloud, borderRadius: 6, padding: 22 },
   line: { height: 7, borderRadius: 3, backgroundColor: theme.color.well },
   field: { marginTop: 26, borderBottomWidth: 1, borderColor: theme.color.ink, paddingBottom: 4 },
   fieldLabel: { fontFamily: theme.font.sans, fontSize: 11, color: theme.color.muted },
   padWrap: { marginTop: 16, gap: 10 },
-  pad: { height: 140, backgroundColor: theme.color.cloud, borderRadius: 12, borderWidth: 1.5, borderColor: theme.color.line, overflow: 'hidden' },
+  pad: { height: 150, backgroundColor: theme.color.cloud, borderRadius: 12, overflow: 'hidden' },
   baseline: { position: 'absolute', left: 20, right: 20, bottom: 30, height: 1, backgroundColor: theme.color.line },
   btn: { height: 52, borderRadius: 26, backgroundColor: theme.color.accent, alignItems: 'center', justifyContent: 'center' },
   btnOff: { opacity: 0.4 },
   btnText: { fontFamily: theme.font.sansBold, fontSize: 17, color: theme.color.cloud },
-  reuse: { height: 64, borderRadius: 16, backgroundColor: theme.color.cloud, borderWidth: 1.5, borderColor: theme.color.accent, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
+  reuse: { alignItems: 'center', gap: 6, paddingVertical: theme.space.s },
   reuseText: { fontFamily: theme.font.sansBold, fontSize: 15, color: theme.color.accent },
 });

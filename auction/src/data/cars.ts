@@ -19,11 +19,11 @@ export type Car = {
   photos: Photo[];               // the first is the lane photo
   engine?: number;               // the recorded idle, for hold-to-hear (none seeded yet)
   dealer: { name: string; city: string; street: string; gdn: string; phone: string; afterHours: string; fees: Fees };
-  grade: [number, number, number, number, number, number]; // paint, glass, tyres, lights, A/C, drives: 0..1
+  grade: [number, number, number, number, number, number]; // paint, glass, tires, lights, A/C, drives: 0..1
   title: 'in hand' | 'at lender';
 };
 
-export const GRADE_WORDS = ['paint', 'glass', 'tyres', 'lights', 'A/C', 'drives'] as const;
+export const GRADE_WORDS = ['paint', 'glass', 'tires', 'lights', 'A/C', 'drives'] as const;
 
 const TRIPLE_J = {
   name: 'Triple J Auto', city: 'Houston', street: '100 Example St, Houston, TX 77002', gdn: 'P000000',

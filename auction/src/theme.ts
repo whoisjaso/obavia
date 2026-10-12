@@ -27,7 +27,12 @@ export const theme = {
     price: 64,       // the hammer; the total is half (2:1)
     priceMax: 72,    // large-text clamp
     ringStroke: 4,
+    display: 44,     // a word or a number that owns a page
+    title: 28,
+    body: 16,
+    label: 11,       // small, spaced, uppercase, faint
   },
+  space: { xs: 8, s: 16, m: 24, l: 40, xl: 64 },   // room is the luxury
   spring: {
     sheet: { damping: 18, stiffness: 220, mass: 0.9 },   // Bid sheet rise ≈ 320 ms
     punch: { damping: 12, stiffness: 420 },               // price punch, settles ≈ 180 ms

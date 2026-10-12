@@ -6,12 +6,14 @@ import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, w
 import { dollars } from '../engine/money';
 import { theme } from '../theme';
 
-export function Price({ hammer, total, size = theme.size.price, punchKey, ink = theme.color.cloud, lifted, struck }: {
+export function Price({ hammer, total, size = theme.size.price, punchKey, ink = theme.color.cloud, lifted, struck, centered, leading }: {
   hammer: number; total?: number; size?: number;
   punchKey?: number;          // changes on every server ack
   ink?: string;
   lifted?: boolean;           // thumb on the price: lifts 2 pt
   struck?: boolean;           // offline: the price is not live
+  centered?: boolean;
+  leading?: boolean;          // you are the high bidder: a small mark beside the hammer
 }) {
   const roll = useSharedValue(0), scale = useSharedValue(1), lift = useSharedValue(0);
   const reduce = useReducedMotion();
@@ -29,15 +31,16 @@ export function Price({ hammer, total, size = theme.size.price, punchKey, ink = 
   useEffect(() => { lift.value = withSpring(lifted ? -2 : 0, theme.spring.lift); }, [lifted]);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: roll.value + lift.value }, { scale: scale.value }] }));
   return (
-    <View>
-      <Animated.View style={style}>
-        <Text style={[s.hammer, { fontSize: size, color: ink, textDecorationLine: struck ? 'line-through' : 'none' }]}
+    <View style={centered ? { alignItems: 'center' } : undefined}>
+      <Animated.View style={[style, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+        <Text style={[s.hammer, { fontSize: size, color: ink, textDecorationLine: struck ? 'line-through' : 'none', textAlign: centered ? 'center' : 'left' }]}
           accessibilityRole="adjustable" accessibilityLabel={`${dollars(hammer)} dollars`} maxFontSizeMultiplier={theme.size.priceMax / theme.size.price}>
           ${dollars(hammer)}
         </Text>
+        {leading && <View style={[s.lead, { backgroundColor: ink }]} accessibilityLabel="You are the high bidder" />}
       </Animated.View>
       {total !== undefined && (
-        <Text style={[s.total, { fontSize: size / 2, color: ink }]} accessibilityLabel={`${dollars(total)} dollars total`}>
+        <Text style={[s.total, { fontSize: size / 2, color: ink, textAlign: centered ? 'center' : 'left' }]} accessibilityLabel={`${dollars(total)} dollars total`}>
           ${dollars(total)}
         </Text>
       )}
@@ -48,4 +51,5 @@ export function Price({ hammer, total, size = theme.size.price, punchKey, ink = 
 const s = StyleSheet.create({
   hammer: { fontFamily: theme.font.price, letterSpacing: -1, lineHeight: undefined },
   total: { fontFamily: theme.font.price, opacity: 0.78, marginTop: -4 },
+  lead: { width: 8, height: 8, borderRadius: 4, opacity: 0.9 },
 });

@@ -11,6 +11,12 @@ Expo (React Native) app for the phone-first public auction. Spec: `docs/plan/oba
 - `src/sale.ts` + `src/screens/won/` the sale after the hammer: Won (flash, chime, confetti, "Who is it for?", four tiles with the next one lifted), ID and insurance scans (frames and chips; the camera and the read are the next wiring), Sign (three documents as `Paper`, scroll-to-end unlocks the pad, one signature reused with a tap), Pay (ACH with its clearing day, Wire, Cash at the lot, the 48 h deadline), Pickup (the pin, the window wheel, the after-hours line, a QR pass that turns green when the car starts), Plates (one ring, three ticks, amber on a county kickback). An out-of-state licence relabels the last tile to Title.
 - `src/screens/BidSheet.tsx` the bottom 40%: the wheel, the total, the increment, the ceiling chips ("up to $X"), one Bid button (hold 600 ms over 2×), the $250 deposit step once ever, the hollow deposit chip, the ack punch, the one-time soft-close teach, and the only sentence: "Closed 0.4 s before your bid".
 
+## The look
+Space is the luxury. Nothing boxed: no chips, no pills, no bordered cards. A small spaced label, a serif word or number that owns the page, a choice that is only its words with a short rule under the chosen one, one dark button for the one verb. Pages are centered and come one at a time (`components/Type.tsx`: Label, Serif, Body, Choice, Button, Page, Pager). American spelling on the glass (tires).
+
+## The high-bidder moment (from the Copart decode, `docs/plan/copart-decoded.md` §2)
+On the server's ack the price punches with the thud and a heavy impact, then 150 ms later two rising notes with the success haptic: you are the high bidder. A small mark sits beside the price on the Lane while you lead. When a rival's ceiling falls and the lead returns to you, the same two notes. Losing the lead is silent in the app; the push carries the words and the time left.
+
 ## Run
 ```
 npm install

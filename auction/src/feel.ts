@@ -14,6 +14,7 @@ const sources = {
   warn: require('../assets/sfx/warn.wav'),
   chime: require('../assets/sfx/chime.wav'),
   refill: require('../assets/sfx/refill.wav'),
+  lead: require('../assets/sfx/lead.wav'),
 } as const;
 type Sound = keyof typeof sources;
 
@@ -55,6 +56,8 @@ export const feel = {
   touch() { impact(Haptics.ImpactFeedbackStyle.Light); },
   /** The server acked the bid: deep thud, one heavy impact. Fires on the ack, never before. */
   landed() { play('thud'); impact(Haptics.ImpactFeedbackStyle.Heavy); },
+  /** You are the high bidder: two rising notes and the success haptic, 150 ms after the thud. */
+  lead() { play('lead'); notify(Haptics.NotificationFeedbackType.Success); },
   /** The ring refilled in the last two minutes: medium impact, the same every time. */
   refill() { play('refill'); impact(Haptics.ImpactFeedbackStyle.Medium); },
   /** The one rejection the doctrine keeps. */

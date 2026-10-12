@@ -9,9 +9,9 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, cancelAnimation, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Chip } from '../components/Chip';
 import { Price } from '../components/Price';
 import { Ring } from '../components/Ring';
+import { Label } from '../components/Type';
 import type { Car } from '../data/cars';
 import { inLastTwoMinutes, increment, needsHold, nextBid, roll } from '../engine/auction';
 import { dollars, outTheDoor } from '../engine/money';
@@ -26,13 +26,13 @@ type Phase = 'arming' | 'deposit' | 'inflight' | 'landed' | 'rejected';
 export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot; now: number; steps: number; onClose: () => void }) {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const open = height * 0.4 + insets.bottom;
+  const open = height * 0.46 + insets.bottom;
   const y = useSharedValue(open);
   const [phase, setPhase] = useState<Phase>(once.deposit ? 'arming' : 'arming');
   const [stepsNow, setSteps] = useState(steps);
   const [ceilSteps, setCeil] = useState(0);        // 0 = no ceiling (bid is the ceiling)
   const [punch, setPunch] = useState<number>();
-  const [landKey, setLand] = useState<number | undefined>(once.deposit ? 0 : undefined);
+  const [landKey, setLand] = useState<number | undefined>(once.deposit ? 0 : undefined);   // the deposit line appears once it exists
   const [stamp, setStamp] = useState<string | null>(null);
   const [teach, setTeach] = useState(false);
   const opened = lot.bids > 0;
@@ -66,6 +66,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     const ack: Ack = await getServer().bid({ lotId: car.id, bidder: ME, amount, max: ceiling, key });
     if (ack.ok) {
       setPhase('landed'); setPunch(Date.now()); feel.landed();
+      setTimeout(feel.lead, 150);   // you are the high bidder
       const blue = inLastTwoMinutes(ack.lot.closesAt, Date.now());
       if (blue && !once.sawRefill) { once.sawRefill = true; setTeach(true); setTimeout(() => setTeach(false), theme.ms.overlay); }
       setTimeout(close, blue ? theme.ms.overlay + 300 : 900);
@@ -90,36 +91,33 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
             <Deposit onConfirm={confirmDeposit} onCancel={() => setPhase('arming')} />
           ) : (
             <>
-              <View style={s.row}>
-                <GestureDetector gesture={wheel}>
-                  <Animated.View style={s.wheel}>
-                    <Price hammer={amount} total={total} ink={theme.color.ink} size={56} punchKey={punch} />
-                  </Animated.View>
-                </GestureDetector>
-                <View style={s.side}>
-                  <Text style={s.inc}>+${dollars(increment(amount))}</Text>
-                  <Ring size={36} stroke={3} progress={Math.max(0, Math.min(1, (lot.closesAt - now) / (inLastTwoMinutes(lot.closesAt, now) ? 120_000 : lot.closesAt - lot.opensAt)))} blue={inLastTwoMinutes(lot.closesAt, now)} grey={closed} />
-                </View>
+              <View style={s.ringRow}>
+                <Ring size={30} stroke={2.5} progress={Math.max(0, Math.min(1, (lot.closesAt - now) / (inLastTwoMinutes(lot.closesAt, now) ? 120_000 : lot.closesAt - lot.opensAt)))} blue={inLastTwoMinutes(lot.closesAt, now)} grey={closed} />
               </View>
+              <GestureDetector gesture={wheel}>
+                <Animated.View style={s.wheel}>
+                  <Price hammer={amount} total={total} ink={theme.color.ink} size={60} punchKey={punch} centered />
+                </Animated.View>
+              </GestureDetector>
+              <Label style={{ marginTop: 6 }}>{stamp ?? `+ $${dollars(increment(amount))}`}</Label>
 
-              {/* the second wheel: its value is its label */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.ceil} snapToAlignment="start" decelerationRate="fast">
+              {/* the second wheel: its value is its label, nothing boxed */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.ceil} decelerationRate="fast" style={{ flexGrow: 0, alignSelf: 'stretch' }}>
                 {Array.from({ length: 7 }, (_, i) => i).map(i => {
                   const v = i === 0 ? amount : roll(amount, true, i - 1);
                   const on = i === ceilSteps;
                   return (
-                    <Pressable key={i} onPress={() => { setCeil(i); feel.select(); }} style={[s.ceilChip, on && s.ceilOn]} accessibilityRole="button" accessibilityState={{ selected: on }}>
-                      <Text style={[s.ceilText, on && s.ceilTextOn]}>{i === 0 ? `$${dollars(v)}` : `up to $${dollars(v)}`}</Text>
+                    <Pressable key={i} onPress={() => { setCeil(i); feel.select(); }} style={s.ceilItem} hitSlop={8} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={i === 0 ? 'No ceiling' : `up to ${dollars(v)} dollars`}>
+                      <Text style={[s.ceilText, on && s.ceilTextOn]}>{i === 0 ? 'no ceiling' : `up to $${dollars(v)}`}</Text>
+                      {on && <View style={s.ceilMark} />}
                     </Pressable>
                   );
                 })}
               </ScrollView>
 
-              {stamp && <Text style={s.stamp}>{stamp}</Text>}
-
               <View style={s.foot}>
                 <BidButton phase={phase} hold={hold} disabled={closed || phase === 'rejected'} onBid={place} />
-                {landKey !== undefined && <Chip label={`$${DEPOSIT}`} landKey={landKey} />}
+                {landKey !== undefined && <Label style={{ marginTop: theme.space.s, alignSelf: 'center' }}>${DEPOSIT} held · back if you lose</Label>}
               </View>
             </>
           )}
@@ -170,6 +168,7 @@ function Tick() {
 function Deposit({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
   return (
     <View style={s.deposit}>
+      <Label>Deposit</Label>
       <Text style={s.depositAmt}>${DEPOSIT}</Text>
       <Text style={s.depositLine}>refunded if you lose</Text>
       <Pressable onPress={onConfirm} style={s.pay} accessibilityRole="button" accessibilityLabel="Pay 250 dollars with Apple Pay">
@@ -195,27 +194,24 @@ function Teach() {
 }
 
 const s = StyleSheet.create({
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.color.sky, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 22, paddingTop: 10 },
-  grab: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: theme.color.line, marginBottom: 10 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  wheel: { paddingVertical: 4, paddingRight: 24, flex: 1 },
-  side: { alignItems: 'flex-end', gap: 10, paddingTop: 8 },
-  inc: { fontFamily: theme.font.sansBold, fontSize: 14, color: theme.color.muted, fontVariant: ['tabular-nums'] },
-  ceil: { gap: 8, paddingVertical: 10 },
-  ceilChip: { paddingHorizontal: 14, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: theme.color.line, justifyContent: 'center', backgroundColor: theme.color.cloud },
-  ceilOn: { borderColor: theme.color.accent, backgroundColor: 'rgba(78,106,168,0.10)' },
-  ceilText: { fontFamily: theme.font.sans, fontSize: 14, color: theme.color.inkSoft, fontVariant: ['tabular-nums'] },
-  ceilTextOn: { color: theme.color.accent, fontFamily: theme.font.sansBold },
-  stamp: { fontFamily: theme.font.sans, fontSize: 13, color: theme.color.warn, marginTop: 2 },
-  foot: { marginTop: 'auto', flexDirection: 'row', alignItems: 'center', gap: 12 },
-  btn: { flex: 1, height: 56, borderRadius: 28, backgroundColor: theme.color.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.color.sky, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: theme.space.m, paddingTop: 10, alignItems: 'center' },
+  grab: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: theme.color.line, marginBottom: theme.space.s },
+  ringRow: { alignItems: 'center', marginBottom: 4 },
+  wheel: { paddingVertical: 4, alignSelf: 'stretch', alignItems: 'center' },
+  ceil: { gap: theme.space.m, paddingVertical: theme.space.s, paddingHorizontal: theme.space.s },
+  ceilItem: { alignItems: 'center', justifyContent: 'center' },
+  ceilText: { fontFamily: theme.font.sans, fontSize: 15, color: theme.color.faint, fontVariant: ['tabular-nums'] },
+  ceilTextOn: { color: theme.color.ink, fontFamily: theme.font.sansBold },
+  ceilMark: { width: 16, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 5 },
+  foot: { marginTop: 'auto', alignSelf: 'stretch', alignItems: 'stretch' },
+  btn: { alignSelf: 'stretch', height: 56, borderRadius: 28, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   btnOff: { opacity: 0.4 },
-  btnFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: theme.color.ink, opacity: 0.35 },
+  btnFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: theme.color.cloud, opacity: 0.18 },
   btnText: { fontFamily: theme.font.sansBold, fontSize: 18, color: theme.color.cloud },
-  deposit: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  depositAmt: { fontFamily: theme.font.price, fontSize: 56, color: theme.color.ink },
+  deposit: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  depositAmt: { fontFamily: theme.font.price, fontSize: 64, color: theme.color.ink, marginTop: 4 },
   depositLine: { fontFamily: theme.font.sans, fontSize: 15, color: theme.color.muted, marginBottom: 14 },
-  pay: { alignSelf: 'stretch', height: 52, borderRadius: 12, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center' },
+  pay: { alignSelf: 'stretch', height: 54, borderRadius: 27, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', marginTop: theme.space.s },
   payText: { fontFamily: theme.font.sansBold, fontSize: 18, color: theme.color.cloud },
   cancel: { fontFamily: theme.font.sans, fontSize: 14, color: theme.color.faint, marginTop: 8 },
   teach: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(8,14,30,0.35)' },

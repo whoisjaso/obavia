@@ -15,7 +15,7 @@ export function LanePhoto({ photo, width, height, transition = 180 }: { photo: P
   const h = Math.round(width * photo.h / photo.w);
   const top = Math.round(height * 0.42 - h / 2);
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.ink }]}>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.ink, overflow: 'hidden' }]}>
       <Image source={photo.src} style={[StyleSheet.absoluteFill, { transform: [{ scale: 1.25 }] }]} contentFit="cover" blurRadius={28} transition={transition} />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(8,14,30,0.28)' }]} />
       <Image source={photo.src} style={{ position: 'absolute', left: 0, top, width, height: h }} contentFit="cover" transition={transition} />
