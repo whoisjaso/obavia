@@ -49,7 +49,7 @@ export function Price({ hammer, total, size = theme.size.price, punchKey, ink = 
 }
 
 const s = StyleSheet.create({
-  hammer: { fontFamily: theme.font.price, letterSpacing: -1, lineHeight: undefined },
-  total: { fontFamily: theme.font.price, opacity: 0.78, marginTop: -4 },
+  hammer: { fontFamily: theme.font.price, letterSpacing: 0, lineHeight: undefined, textShadowColor: 'rgba(8,14,30,0.35)', textShadowRadius: 10 },
+  total: { fontFamily: theme.font.price, opacity: 0.78, marginTop: -4, textShadowColor: 'rgba(8,14,30,0.35)', textShadowRadius: 10 },
   lead: { width: 8, height: 8, borderRadius: 4, opacity: 0.9 },
 });

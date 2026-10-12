@@ -1,6 +1,6 @@
 /* The app's one connection to the auction. Today a local stand-in for the
    Durable Object; the hook's shape is the Worker's shape. */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { seedLots } from './data/cars';
 import { LocalAuctionServer, type Lot } from './engine/server';
 
@@ -42,3 +42,20 @@ export function useLots(): { lots: Record<string, Lot>; now: number } {
 
 /** Things the buyer has done once, ever. In memory for now; Keychain later. */
 export const once = { deposit: false, sawRefill: false };
+
+/** Cars the buyer is watching. Double-tap the photo. A column of rings on the Me page. */
+let watched: string[] = [];
+const watchSubs = new Set<() => void>();
+export function useWatched() {
+  return useSyncExternalStore(f => { watchSubs.add(f); return () => { watchSubs.delete(f); }; }, () => watched, () => watched);
+}
+export function toggleWatch(id: string): boolean {
+  const on = !watched.includes(id);
+  watched = on ? [...watched, id] : watched.filter(w => w !== id);
+  for (const f of watchSubs) f();
+  return on;
+}
+export const isWatched = (id: string) => watched.includes(id);
+
+/** The buyer, until sign-in exists: the name the licence read, or nothing. */
+export const me = { name: 'Marisol Treviño', lastOpened: Date.now() - 26 * 3_600_000 };   // demo: away more than a day, so the first ring gets the heartbeat

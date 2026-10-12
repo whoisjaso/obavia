@@ -31,8 +31,8 @@ export function Bars({ bid, retail }: { bid: number; retail: number }) {
 const s = StyleSheet.create({
   wrap: { gap: 6, marginTop: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  label: { width: 48, fontFamily: theme.font.sans, fontSize: 12, color: theme.color.cloud, opacity: 0.85, letterSpacing: 0.2 },
+  label: { width: 48, ...theme.type.sans, fontSize: 12, color: theme.color.cloud, opacity: 0.85, letterSpacing: 0.2 },
   track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.14)', overflow: 'hidden' },
   fill: { height: 6, borderRadius: 3 },
-  value: { width: 64, textAlign: 'right', fontFamily: theme.font.sans, fontSize: 12, color: theme.color.cloud, opacity: 0.85, fontVariant: ['tabular-nums'] },
+  value: { width: 64, textAlign: 'right', ...theme.type.sans, fontSize: 12, color: theme.color.cloud, opacity: 0.85, fontVariant: ['tabular-nums'] },
 });

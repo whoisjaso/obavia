@@ -87,8 +87,8 @@ const s = StyleSheet.create({
   sheet: { backgroundColor: theme.color.sky, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: theme.space.m, paddingTop: theme.space.l, gap: theme.space.l },
   facts: { alignItems: 'center', gap: theme.space.s },
   fact: { alignItems: 'center', gap: 3 },
-  value: { fontFamily: theme.font.sans, fontSize: 18, color: theme.color.muted, textAlign: 'center' },
+  value: { ...theme.type.sans, fontSize: 18, color: theme.color.muted, textAlign: 'center' },
   mark: { width: 18, height: 2, borderRadius: 1, backgroundColor: 'transparent', marginTop: 3 },
   markOn: { backgroundColor: theme.color.good },
-  vin: { fontFamily: theme.font.sansBold, fontSize: 16, color: theme.color.cloud, letterSpacing: 1.5, textAlign: 'center', marginTop: 4 },
+  vin: { ...theme.type.sansBold, fontSize: 16, color: theme.color.cloud, letterSpacing: 1.5, textAlign: 'center', marginTop: 4 },
 });

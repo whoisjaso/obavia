@@ -47,7 +47,7 @@ export function CarSheet({ car, onClose }: { car: Car; onClose: () => void }) {
       {car.grade.map((g, i) => (
         <View key={i} style={s.row} accessible accessibilityLabel={`${GRADE_WORDS[i]} ${WORD(g)}`}>
           <Text style={s.rowKey}>{GRADE_WORDS[i]}</Text>
-          <Serif size={30} ink={g > 0 ? theme.color.ink : theme.color.warn}>{WORD(g)}</Serif>
+          <Serif size={30} italic ink={g > 0 ? theme.color.ink : theme.color.warn}>{WORD(g)}</Serif>
         </View>
       ))}
     </View>
@@ -56,11 +56,11 @@ export function CarSheet({ car, onClose }: { car: Car; onClose: () => void }) {
   const papers = (
     <View style={[s.page, { flex: 1, justifyContent: 'center' }]}>
       <Label>Title</Label>
-      <Serif size={34} ink={car.title === 'in hand' ? theme.color.ink : theme.color.warn}>{car.title}</Serif>
+      <Serif size={34} italic ink={car.title === 'in hand' ? theme.color.ink : theme.color.warn}>{car.title}</Serif>
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Pressable onPress={() => { setGuide(true); feel.select(); }} accessibilityRole="button" style={{ alignItems: 'center' }}>
         <Label>Buyers Guide</Label>
-        <Serif size={34}>as is</Serif>
+        <Serif size={34} italic>as is</Serif>
         <Body ink={theme.color.faint} style={{ marginTop: 4 }}>read it</Body>
       </Pressable>
       <Hairline style={{ marginVertical: theme.space.l }} />
@@ -92,6 +92,6 @@ const s = StyleSheet.create({
   page: { paddingHorizontal: theme.space.m, paddingTop: theme.space.s, paddingBottom: theme.space.xl, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
   row: { alignItems: 'center', paddingVertical: 10 },
-  rowKey: { fontFamily: theme.font.sans, fontSize: theme.size.label, letterSpacing: 1.8, textTransform: 'uppercase', color: theme.color.faint, marginBottom: 2 },
+  rowKey: { ...theme.type.sans, fontSize: theme.size.label, letterSpacing: 1.8, textTransform: 'uppercase', color: theme.color.faint, marginBottom: 2 },
   light: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: theme.color.ink },
 });

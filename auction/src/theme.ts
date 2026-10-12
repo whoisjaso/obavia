@@ -18,10 +18,20 @@ export const theme = {
     warn: '#A8611F',
     scrim: 'rgba(8,14,30,0.60)',
   },
+  /* Bodoni Moda, cut at optical size 72, for every number and word that owns a
+     page: the Didone of the fashion houses. The platform's own face (SF on
+     iPhone, Roboto on Android) for everything small: labels, choices, the one
+     verb, like Wallet and Apple Pay. Nothing trendy. */
   font: {
-    price: 'InstrumentSerif-Italic',
-    sans: 'Manrope-600',
-    sansBold: 'Manrope-700',
+    price: 'Bodoni-Display',          // upright numbers
+    priceItalic: 'Bodoni-DisplayItalic',   // a word that owns a page
+    text: 'Bodoni-Text',              // Bodoni at reading size, rarely
+    sans: 'System',
+    sansBold: 'System',
+  },
+  type: {
+    sans: { fontFamily: 'System', fontWeight: '500' as const },
+    sansBold: { fontFamily: 'System', fontWeight: '600' as const },
   },
   size: {
     price: 64,       // the hammer; the total is half (2:1)

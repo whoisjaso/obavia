@@ -10,9 +10,9 @@ import { theme } from './src/theme';
 
 export default function App() {
   const [loaded] = useFonts({
-    [theme.font.price]: require('./assets/fonts/InstrumentSerif-Italic.ttf'),
-    [theme.font.sans]: require('./assets/fonts/Manrope-600.ttf'),
-    [theme.font.sansBold]: require('./assets/fonts/Manrope-700.ttf'),
+    [theme.font.price]: require('./assets/fonts/Bodoni-Display.ttf'),
+    [theme.font.priceItalic]: require('./assets/fonts/Bodoni-DisplayItalic.ttf'),
+    [theme.font.text]: require('./assets/fonts/Bodoni-Text.ttf'),
   });
   useEffect(() => { warm(); }, []);
   if (!loaded) return <View style={{ flex: 1, backgroundColor: theme.color.ink }} />;

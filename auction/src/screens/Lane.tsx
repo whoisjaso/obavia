@@ -20,7 +20,9 @@ import { theme } from '../theme';
 import { BidSheet } from './BidSheet';
 import { CarSheet } from './CarSheet';
 import { Won } from './won/Won';
-import { ME, useLots } from '../store';
+import { ME, isWatched, toggleWatch, useLots, useWatched } from '../store';
+import { Me } from './Me';
+import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { openSale, useSale } from '../sale';
 
 const STEP_PT = 28;   // one increment per 28 pt of drag
@@ -37,10 +39,12 @@ function spoken(ms: number) {
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function CarPage({ car, lot, now, width, height, active, onArm, onOpen, refillKey }: {
+function CarPage({ car, lot, now, width, height, active, onArm, onOpen, onMe, refillKey }: {
   car: Car; lot: Lot; now: number; width: number; height: number; active: boolean;
-  onArm: (steps: number) => void; onOpen: () => void; refillKey: number;
+  onArm: (steps: number) => void; onOpen: () => void; onMe: () => void; refillKey: number;
 }) {
+  const watched = useWatched();
+  const watching = watched.includes(car.id);
   const insets = useSafeAreaInsets();
   const [angle, setAngle] = useState(0);
   const [lifted, setLifted] = useState(false);
@@ -53,11 +57,13 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, refillKe
   const total = outTheDoor(preview, car.dealer.fees).total;
   const photoScale = useSharedValue(1);
 
-  // Tap: next angle. Stories' tap-to-advance.
+  // Tap: next angle. Stories' tap-to-advance. Double-tap: watch, Instagram's heart without the heart.
   const tap = Gesture.Tap().maxDuration(220).onEnd(() => {
     runOnJS(setAngle)((angle + 1) % car.photos.length);
     runOnJS(feel.select)();
   });
+  const watch = () => { const on = toggleWatch(car.id); if (on) feel.done(); };
+  const doubleTap = Gesture.Tap().numberOfTaps(2).maxDuration(260).onEnd(() => { runOnJS(watch)(); });
   // Hold: the engine (no recording seeded yet: the photo settles in, a soft pulse).
   const hold = Gesture.LongPress().minDuration(350).onStart(() => {
     photoScale.value = withSpring(1.03, theme.spring.lift);
@@ -92,7 +98,7 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, refillKe
   return (
     <View style={{ height, width: '100%', backgroundColor: theme.color.ink, overflow: 'hidden' }}
       accessible accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${preview.toLocaleString()} dollars, ${spoken(lot.closesAt - now)} left, retail ${lot.retail.toLocaleString()}`}>
-      <GestureDetector gesture={Gesture.Race(open, Gesture.Exclusive(hold, tap))}>
+      <GestureDetector gesture={Gesture.Race(open, Gesture.Exclusive(hold, doubleTap, tap))}>
         <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
           <LanePhoto photo={car.photos[angle]} width={width} height={height} transition={active ? 180 : 0} />
         </Animated.View>
@@ -107,8 +113,13 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, refillKe
             {toast && <View style={s.toast}><Text style={s.toastText}>{toast}</Text></View>}
           </View>
         </GestureDetector>
-        <View style={s.eye} accessibilityLabel={`${lot.watching} watching`}>
-          <View style={s.eyeDot} /><Text style={s.eyeText}>{lot.watching}</Text>
+        <View style={{ alignItems: 'flex-end', gap: 10 }}>
+          <Pressable onPress={() => { feel.select(); onMe(); }} hitSlop={12} accessibilityRole="button" accessibilityLabel="Me">
+            <Mark size={30} />
+          </Pressable>
+          <View style={s.eye} accessibilityLabel={`${lot.watching + (watching ? 1 : 0)} watching${watching ? ', you too' : ''}`}>
+            <View style={[s.eyeDot, watching && { backgroundColor: theme.color.blue, opacity: 1 }]} /><Text style={s.eyeText}>{lot.watching + (watching ? 1 : 0)}</Text>
+          </View>
         </View>
       </View>
 
@@ -132,6 +143,16 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, refillKe
   );
 }
 
+/** The Obavia mark: its own gradient, drawn small. */
+function Mark({ size }: { size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      <Defs><SvgGradient id="m" x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor="#E9EFFE" /><Stop offset="0.55" stopColor="#B8C8F1" /><Stop offset="1" stopColor="#869FD6" /></SvgGradient></Defs>
+      <Circle cx={32} cy={32} r={30} fill="url(#m)" />
+    </Svg>
+  );
+}
+
 export function Lane() {
   const { width, height } = useWindowDimensions();
   const { lots, now } = useLots();
@@ -140,6 +161,8 @@ export function Lane() {
   const [sheet, setSheet] = useState<{ car: Car; steps: number; key: number } | null>(null);
   const [open, setOpen] = useState<Car | null>(null);
   const [won, setWon] = useState<Car | null>(null);
+  const [meOpen, setMe] = useState(false);
+  const listRef = useRef<FlatList<Car>>(null);
   // the hammer: a lot closes with me leading
   const closedSeen = useRef<Record<string, boolean>>({});
   for (const l of Object.values(lots)) {
@@ -177,12 +200,14 @@ export function Lane() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.ink }}>
       <FlatList
+        ref={listRef}
         data={cars}
         keyExtractor={c => c.id}
         renderItem={({ item, index: i }) => (
           <CarPage car={item} lot={lots[item.id]} now={now} width={width} height={height} active={i === index}
             refillKey={refills.current[item.id] ?? 0}
             onOpen={() => { feel.select(); setOpen(item); }}
+            onMe={() => setMe(true)}
             onArm={steps => setSheet({ car: item, steps, key: Date.now() })} />
         )}
         pagingEnabled
@@ -193,8 +218,9 @@ export function Lane() {
         onViewableItemsChanged={onViewable}
         viewabilityConfig={cfg}
         getItemLayout={(_, i) => ({ length: height, offset: height * i, index: i })}
-        scrollEnabled={!sheet && !open}
+        scrollEnabled={!sheet && !open && !meOpen}
       />
+      {meOpen && <Me lots={lots} now={now} onClose={() => setMe(false)} onOpenCar={id => { setMe(false); const i = cars.findIndex(c => c.id === id); if (i >= 0) listRef.current?.scrollToIndex({ index: i, animated: true }); }} />}
       {sheet && <BidSheet key={sheet.key} car={sheet.car} lot={lots[sheet.car.id]} now={now} steps={sheet.steps} onClose={() => setSheet(null)} />}
       {open && <CarSheet car={open} onClose={() => setOpen(null)} />}
       {won && sale && <Won car={won} onDone={() => setWon(null)} />}
@@ -206,16 +232,16 @@ const s = StyleSheet.create({
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   ringWrap: { padding: 6, marginLeft: -6 },
   toast: { position: 'absolute', left: 60, top: 14, backgroundColor: 'rgba(8,14,30,0.7)', paddingHorizontal: 10, height: 28, borderRadius: 14, justifyContent: 'center' },
-  toastText: { color: theme.color.cloud, fontFamily: theme.font.sansBold, fontSize: 13, fontVariant: ['tabular-nums'] },
-  eye: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
+  toastText: { color: theme.color.cloud, ...theme.type.sansBold, fontSize: 13, fontVariant: ['tabular-nums'] },
+  eye: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   eyeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.cloud, opacity: 0.8 },
-  eyeText: { color: theme.color.cloud, opacity: 0.9, fontFamily: theme.font.sans, fontSize: 12, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
+  eyeText: { color: theme.color.cloud, opacity: 0.9, ...theme.type.sans, fontSize: 12, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 22 },
   priceHit: { alignSelf: 'flex-start', paddingVertical: 8, paddingRight: 40 },
   foot: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  dealer: { color: theme.color.cloud, opacity: 0.8, fontFamily: theme.font.sans, fontSize: 12, textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
+  dealer: { color: theme.color.cloud, opacity: 0.8, ...theme.type.sans, fontSize: 12, textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 28 },
   pillGrid: { width: 12, height: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
   pillCell: { width: 5, height: 5, borderRadius: 1, backgroundColor: theme.color.cloud, opacity: 0.85 },
-  pillText: { color: theme.color.cloud, opacity: 0.9, fontFamily: theme.font.sans, fontSize: 12, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
+  pillText: { color: theme.color.cloud, opacity: 0.9, ...theme.type.sans, fontSize: 12, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
 });

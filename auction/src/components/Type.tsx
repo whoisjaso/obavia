@@ -12,8 +12,8 @@ export function Label({ children, style, ink }: { children: React.ReactNode; sty
   return <Text style={[s.label, ink ? { color: ink } : null, style]}>{children}</Text>;
 }
 
-export function Serif({ children, size = theme.size.display, ink = theme.color.ink, style }: { children: React.ReactNode; size?: number; ink?: string; style?: TextStyle }) {
-  return <Text style={[s.serif, { fontSize: size, color: ink }, style]}>{children}</Text>;
+export function Serif({ children, size = theme.size.display, ink = theme.color.ink, style, italic }: { children: React.ReactNode; size?: number; ink?: string; style?: TextStyle; italic?: boolean }) {
+  return <Text style={[s.serif, { fontSize: size, color: ink, fontFamily: italic ? theme.font.priceItalic : theme.font.price }, style]}>{children}</Text>;
 }
 
 export function Body({ children, ink = theme.color.inkSoft, style }: { children: React.ReactNode; ink?: string; style?: TextStyle }) {
@@ -32,7 +32,7 @@ export function Choice({ label, detail, selected, dim, onPress, size = 22, acces
   return (
     <Pressable onPress={onPress ? () => { feel.select(); onPress(); } : undefined} disabled={!onPress} hitSlop={8}
       style={s.choice} accessibilityRole="button" accessibilityState={{ selected: !!selected, disabled: !onPress }} accessibilityLabel={accessibilityLabel ?? (detail ? `${label}, ${detail}` : label)}>
-      <Text style={[s.choiceLabel, { fontSize: size, color: ink, fontFamily: selected ? theme.font.sansBold : theme.font.sans }]}>{label}</Text>
+      <Text style={[s.choiceLabel, { fontSize: size, color: ink, fontWeight: selected ? '600' : '500', fontFamily: 'System' }]}>{label}</Text>
       {detail ? <Text style={[s.choiceDetail, { color: selected ? theme.color.inkSoft : theme.color.faint }]}>{detail}</Text> : null}
       {selected && <View style={s.choiceMark} />}
     </Pressable>
@@ -70,6 +70,7 @@ export function Pager({ pages, initial = 0, onIndex }: { pages: React.ReactNode[
   return (
     <View style={{ flex: 1 }}>
       <ScrollView ref={ref} horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: initial * width, y: 0 }} scrollEventThrottle={32}
+        onLayout={() => { if (initial > 0) ref.current?.scrollTo({ x: initial * width, animated: false }); }}
         onScroll={e => { const n = Math.round(e.nativeEvent.contentOffset.x / width); if (n !== i) { setI(n); onIndex?.(n); feel.snap(); } }}>
         {pages.map((p, k) => <View key={k} style={{ width, flex: 1 }}>{p}</View>)}
       </ScrollView>
@@ -81,18 +82,18 @@ export function Pager({ pages, initial = 0, onIndex }: { pages: React.ReactNode[
 }
 
 const s = StyleSheet.create({
-  label: { fontFamily: theme.font.sans, fontSize: theme.size.label, letterSpacing: 1.8, textTransform: 'uppercase', color: theme.color.faint, textAlign: 'center' },
-  serif: { fontFamily: theme.font.price, textAlign: 'center', letterSpacing: -0.5 },
-  body: { fontFamily: theme.font.sans, fontSize: theme.size.body, textAlign: 'center', lineHeight: 24 },
+  label: { ...theme.type.sans, fontSize: theme.size.label, letterSpacing: 2.2, textTransform: 'uppercase', color: theme.color.faint, textAlign: 'center' },
+  serif: { fontFamily: theme.font.price, textAlign: 'center', letterSpacing: 0 },
+  body: { ...theme.type.sans, fontSize: theme.size.body, textAlign: 'center', lineHeight: 24 },
   hair: { height: StyleSheet.hairlineWidth, backgroundColor: theme.color.line, alignSelf: 'center', width: 48 },
   choice: { alignItems: 'center', paddingVertical: theme.space.s, alignSelf: 'stretch' },
   choiceLabel: { textAlign: 'center' },
-  choiceDetail: { fontFamily: theme.font.sans, fontSize: 13, marginTop: 4, textAlign: 'center' },
+  choiceDetail: { ...theme.type.sans, fontSize: 13, marginTop: 4, textAlign: 'center' },
   choiceMark: { width: 18, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 8 },
   btn: { height: 54, borderRadius: 27, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch' },
   btnGhost: { backgroundColor: 'transparent' },
   btnOff: { opacity: 0.3 },
-  btnText: { fontFamily: theme.font.sansBold, fontSize: 16, color: theme.color.cloud, letterSpacing: 0.2 },
+  btnText: { ...theme.type.sansBold, fontSize: 16, color: theme.color.cloud, letterSpacing: 0.2 },
   dots: { position: 'absolute', bottom: 14, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.color.ink, opacity: 0.18 },
   dotOn: { opacity: 0.7 },
