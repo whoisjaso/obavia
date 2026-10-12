@@ -15,6 +15,9 @@ Expo (React Native) app for the phone-first public auction. Spec: `docs/plan/oba
 ## Type
 Bodoni Moda, cut from the variable font at optical size 72 (`assets/fonts/Bodoni-*.ttf`), for every number and every word that owns a page: the Didone of the fashion houses, upright for money, italic for a word. Everything small (labels, choices, the one verb) is set in the platform's own face: SF on iPhone, Roboto on Android, as Wallet and Apple Pay do. No webfont for the small type, nothing trendy. The web preview shows the platform fallback (Helvetica/Arial), not SF.
 
+## One action
+Hick's Law is the house rule (`docs/plan/one-action.md`): one obvious primary action per screen, the main button outranks everything, advanced options hidden until wanted, never two equal buttons, nothing irrelevant yet. Every new screen gets a row in that audit before it ships.
+
 ## The look
 Rolex, Ritz-Carlton, Porsche: restraint, precision, air. Words that own a page are set in upright spaced capitals (`Caps`), never italic; Bodoni upright is for money and names only; the one button is a squared ink bar with a spaced capital verb. Space is the luxury. Nothing boxed: no chips, no pills, no bordered cards. A small spaced label, a serif word or number that owns the page, a choice that is only its words with a short rule under the chosen one, one dark button for the one verb. Pages are centered and come one at a time (`components/Type.tsx`: Label, Serif, Body, Choice, Button, Page, Pager). American spelling on the glass (tires).
 

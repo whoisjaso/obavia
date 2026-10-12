@@ -92,10 +92,12 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
           </View>
         );
       })}
-      <Pressable onPress={() => feel.select()} style={{ marginTop: theme.space.l, alignItems: 'center' }} accessibilityRole="button">
-        <Label>When it is time</Label>
-        <Caps size={15}>Sell it back here</Caps>
-      </Pressable>
+      {won.length > 0 && (   // not relevant until there is a car to sell back
+        <Pressable onPress={() => feel.select()} style={{ marginTop: theme.space.l, alignItems: 'center' }} accessibilityRole="button">
+          <Label>When it is time</Label>
+          <Caps size={15}>Sell it back here</Caps>
+        </Pressable>
+      )}
     </Page>
   );
 

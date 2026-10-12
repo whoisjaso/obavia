@@ -31,6 +31,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   const [phase, setPhase] = useState<Phase>(once.deposit ? 'arming' : 'arming');
   const [stepsNow, setSteps] = useState(steps);
   const [ceilSteps, setCeil] = useState(0);        // 0 = no ceiling (bid is the ceiling)
+  const [ceilOpen, setCeilOpen] = useState(false); // Hick: the wheel is hidden until the buyer asks for it
   const [punch, setPunch] = useState<number>();
   const [landKey, setLand] = useState<number | undefined>(once.deposit ? 0 : undefined);   // the deposit line appears once it exists
   const [stamp, setStamp] = useState<string | null>(null);
@@ -103,19 +104,25 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
               </GestureDetector>
               <Label style={{ marginTop: 6 }}>{stamp ?? `+ $${dollars(increment(amount))}`}</Label>
 
-              {/* the second wheel: its value is its label, nothing boxed */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.ceil} decelerationRate="fast" style={{ flexGrow: 0, alignSelf: 'stretch' }}>
-                {Array.from({ length: 7 }, (_, i) => i).map(i => {
-                  const v = i === 0 ? amount : roll(amount, true, i - 1);
-                  const on = i === ceilSteps;
-                  return (
-                    <Pressable key={i} onPress={() => { setCeil(i); feel.select(); }} style={s.ceilItem} hitSlop={8} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={i === 0 ? 'No ceiling' : `up to ${dollars(v)} dollars`}>
-                      <Text style={[s.ceilText, on && s.ceilTextOn]}>{i === 0 ? 'no ceiling' : `up to $${dollars(v)}`}</Text>
-                      {on && <View style={s.ceilMark} />}
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
+              {/* the second wheel: an advanced option, one faint word until it is wanted */}
+              {!ceilOpen ? (
+                <Pressable onPress={() => { setCeilOpen(true); feel.select(); }} hitSlop={10} style={{ paddingVertical: theme.space.s }} accessibilityRole="button" accessibilityLabel={ceilSteps ? `Ceiling up to ${dollars(ceiling)} dollars` : 'Set a ceiling'}>
+                  <Label ink={ceilSteps ? theme.color.ink : theme.color.faint}>{ceilSteps ? `up to $${dollars(ceiling)}` : 'ceiling'}</Label>
+                </Pressable>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.ceil} decelerationRate="fast" style={{ flexGrow: 0, alignSelf: 'stretch' }}>
+                  {Array.from({ length: 7 }, (_, i) => i).map(i => {
+                    const v = i === 0 ? amount : roll(amount, true, i - 1);
+                    const on = i === ceilSteps;
+                    return (
+                      <Pressable key={i} onPress={() => { setCeil(i); feel.select(); setCeilOpen(false); }} style={s.ceilItem} hitSlop={8} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={i === 0 ? 'No ceiling' : `up to ${dollars(v)} dollars`}>
+                        <Text style={[s.ceilText, on && s.ceilTextOn]}>{i === 0 ? 'no ceiling' : `up to $${dollars(v)}`}</Text>
+                        {on && <View style={s.ceilMark} />}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              )}
 
               <View style={s.foot}>
                 <BidButton phase={phase} hold={hold} disabled={closed || phase === 'rejected'} onBid={place} />
