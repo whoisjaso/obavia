@@ -78,3 +78,11 @@ Dark lane (the phone's Lane, ink `#1C2436`): the same material in negative; clou
 ## 7. What it is not
 
 Not glassmorphism, not neon glow, not a bounce, not a parallax that fights scroll, not sound on every scroll frame, not a blur that drops frames on a mid-range Android. If a cloud effect costs a dropped frame on the Lane, the cloud loses.
+
+## 8. The cloud button (amended October 12, 2026, owner's review)
+
+The owner's review of the first pass: "the cloud button looks ass; it should feel real." The scalloped vector silhouette (bumps along the top, a flat fill, an outline) is **banned on every surface**. It is clip-art, not a cloud.
+
+The primary button on every surface is a **rendered volumetric cloud**: `assets/cloud-button/` holds deterministic sprites (rest and pressed, three widths, a hero size, a dark-lane variant) rendered from a displaced pill density field with lit volume, a blue-grey underside, wispy translucent edges and 2 to 3 percent grain, plus a separate soft contact shadow. The label sits in the sprite's safe zone in upright spaced capitals, ink on the light cloud, ice on the dark one. Press: crossfade rest → pressed over 100 ms with the §2 sink; rise on the §2 spring; the §2 landed swell on completion. Secondary surfaces (choices, rows, cards) keep the §5 material without the sprite; they are flatter clouds, not outlines.
+
+The first screen of every surface (the site's first viewport, the Desk's Sales home and Lane, the phone's Lane and every sheet) opens inside the layered volumetric sky of §1 and §4: three drifting layers, grain, parallax by depth. No surface opens on a flat fill.
