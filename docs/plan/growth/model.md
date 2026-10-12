@@ -278,3 +278,7 @@ CF §2.12, mirrored and capped by G:
 ## 8. What the owner is told when the model and the scorecard disagree
 
 The scorecard wins. The assumption is struck through here with the week number beside the real number. If the real number is worse than the worst defensible, this file's floor moves down to it, the plan's floors are re-derived from §2.2 and §3.4, and the plan's changelog gets a dated line. If the real number is better, nothing in this file changes until it has held for two Mondays. Hope is not a data point.
+
+## 9. Deposit top-up (added 2026-10-12)
+
+Whop keeps its fee on a refund (`docs/plan/research/whop.md`): a $250 deposit lands as $242.95 and a full refund costs Obavia $7.05. Every released deposit is therefore an Obavia cost of $7.05 (ASSUMPTION until the sandbox refund test on Fri Oct 30). At the plan's floors that is $7.05 × released deposits per week; the reserve ratio is still computed on the gross $250 and must stay 1.00, which means the Whop balance plus Obavia's top-up account covers every deposit held.

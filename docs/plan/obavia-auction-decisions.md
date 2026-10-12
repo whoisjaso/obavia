@@ -141,3 +141,18 @@ Stripe's authorisation lifetime and extended-auth eligibility (decides hold vs c
 
 ## 7. What the owner still decides
 Nothing in the four questions. Two things remain his: the ten Triple J cars and their floors for the pilot, and the new repository name.
+
+---
+
+## 8. Decisions forced by sourced facts (researcher-architect, 2026-10-12)
+
+Each line below names the fact, its source and the research file that holds the quote. None of them changes the four answers in §1. They change how those answers are carried out.
+
+1. **Other dealers cannot simply "join under" Obavia's GDN on a public lane.** 43 TAC §215.144(i)(3), effective 7/1/2025: "A GDN holder may not sell another GDN holder's vehicle at a public motor vehicle auction." (https://www.law.cornell.edu/regulations/texas/43-Tex-Admin-Code-SS-215.144, checked 2026-10-12; `research/texas-rules.md`.) §0 step 2 ("Open to other dealers only when it is granted") is held until counsel answers a new question 11: is the lane a "public motor vehicle auction", and does a title-assigned consignment under §215.144(h) or a Wholesale Motor Vehicle Auction GDN change the answer? The pilot (Triple J's own cars) is unaffected.
+2. **The deposit reserve is topped up, not assumed.** Whop charges 2.7% + $0.30 on capture and keeps it on refund ("you pay back the full amount they originally paid, even though fees reduced the amount you received", https://docs.whop.com/manage-your-business/manage-payments/issuing-refunds, checked 2026-10-12; `research/whop.md`). A $250 deposit lands as $242.95. Obavia adds $7.05 from its own funds at capture so the reserve ratio is 1.00. `GET /admin/exposure` reports the balance net of any Whop reserve hold (https://docs.whop.com/trust-and-safety/account-health/reserves).
+3. **No refund promise past seven days until it is proven.** Whop publishes no age limit for `POST /payments/{id}/refund`. The automatic release after seven days with no live bid (§1) stays the default. No copy promises a refund at a later age until a sandbox refund of a payment older than 30 days succeeds (`research/whop.md`).
+4. **The Floor screen shows no wholesale band until the lane has ten started cars.** No public wholesale-to-retail spread source exists, and §215.85(b)(5) treats a suggested price as broker conduct (`research/wholesale-band.md`). After ten cars, the band is the lane's own observed range, with the count and the dates. This amends §2 row 3 and §3.2 Floor.
+5. **The holding line uses the car's value, not $35.** The defensible marginal cost is floorplan cost plus value loss, about 0.1% of the car's value per day (AFC all-in floorplan yield 18.1% in 2025, OPENLANE 10-K; Manheim non-adjusted −1.3% Aug→Sep 2026, Cox Automotive; `research/holding-cost.md`). On the §3.4 Lupe car that is about $3 a day, not $35. The dealer's own figure still replaces it. This amends §2 row 3 and §3.4.
+6. **Fees in the out-the-door total follow the buyer's county.** Title is $33 in nonattainment or affected counties and $28 elsewhere (Transp. Code §501.138). Registration is $64.00–$98.25 by county (TxDMV), not $75. Until per-county values exist, the total uses $98.25 for registration and labels it "estimate" (`research/texas-rules.md`).
+7. **The title deadline is cited to the rule.** The 30 days (45 days dealer-financed) comes from 43 TAC §215.144(f)(3) under Transp. Code §501.0234(f). The statute itself states no day count (`research/texas-rules.md`).
+8. **Form 8300 counts cashier's checks.** In a car sale, cashier's checks and money orders of $10,000 or less count as cash (IRS Form 8300 reference guide). The Desk's trigger in §2 row 6 includes them (`research/texas-rules.md`).
