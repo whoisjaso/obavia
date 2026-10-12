@@ -4,11 +4,12 @@
    time, each centered: who it is for; the four steps with the next one lit;
    each step on its own page. */
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { Confetti, burst } from '../../components/Confetti';
+import { PressCloud, Sky } from '../../components/Cloud';
 import { Button, Caps, Choice, Label, Page, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
 import { dollars } from '../../engine/money';
@@ -70,6 +71,7 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
 
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.sky }]}>
+      <Sky />
       {screen === 'who' && lit && (
         <Page>
           {head}
@@ -88,12 +90,12 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
             {steps.map(t => {
               const live = t.key === next, locked = !t.done && !live;
               return (
-                <Pressable key={t.key} disabled={locked} onPress={() => { feel.select(); open(t.key); }} style={s.step}
-                  accessibilityRole="button" accessibilityState={{ disabled: locked, selected: live }} accessibilityLabel={`${t.label}${t.done ? ', done' : live ? ', next' : ''}`}>
+                <PressCloud key={t.key} disabled={locked} onPress={() => { feel.select(); open(t.key); }} bodyStyle={s.step}
+                  accessibilityState={{ selected: live }} accessibilityLabel={`${t.label}${t.done ? ', done' : live ? ', next' : ''}`}>
                   <Caps size={live ? 22 : 16} ink={locked ? theme.color.faint : theme.color.ink}>{t.label}</Caps>
                   {t.done && <Tick />}
                   {live && <View style={s.underline} />}
-                </Pressable>
+                </PressCloud>
               );
             })}
           </View>

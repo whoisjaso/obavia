@@ -10,6 +10,8 @@ import Animated, { Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, 
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather, InkBody, PressCloud, Sky, Underside } from '../components/Cloud';
+import { driftLevel, useDriftSound } from '../components/Sheet';
 import { Price } from '../components/Price';
 import { Ring } from '../components/Ring';
 import { Label } from '../components/Type';
@@ -21,7 +23,7 @@ import { feel } from '../feel';
 import { takeDeposit } from '../deposit';
 import { registerPush } from '../push';
 import { AUCTION_URL, DEPOSIT, ME, getServer, once } from '../store';
-import { EASE_OUT, EASE_SHEET, ms, spring } from '../motion';
+import { EASE_OUT, EASE_SHEET, cloud, ms, spring } from '../motion';
 import { theme } from '../theme';
 
 const STEP_PT = 28;
@@ -31,7 +33,10 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const open = height * 0.46 + insets.bottom;
-  const y = useSharedValue(open);
+  const reduce = useReducedMotion();
+  const y = useSharedValue(reduce ? 0 : open);
+  const fade = useSharedValue(reduce ? 0 : 1);   // reduced motion: the sheet fades where it rests
+  const air = useDriftSound();
   const [phase, setPhase] = useState<Phase>(once.deposit ? 'arming' : 'arming');
   const [stepsNow, setSteps] = useState(steps);
   const [ceilSteps, setCeil] = useState(0);        // 0 = no ceiling (bid is the ceiling)
@@ -48,26 +53,35 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   const total = outTheDoor(amount, car.dealer.fees).total;
   const hold = needsHold(amount, lot.high);
 
-  // the rise continues the drag that armed it: the sheet spring, clamped at its edge
-  useEffect(() => { y.value = withSpring(0, spring.sheet); }, []);
+  // the rise continues the drag that armed it: a cloud forming (0.75), its little over-rise kept inside the
+  // 40 pt the sheet holds below the glass; the air leaves as it lands
+  useEffect(() => {
+    feel.settle();
+    if (reduce) fade.value = withTiming(1, { duration: ms.sheetFade, easing: EASE_OUT });
+    else y.value = withSpring(0, spring.form);
+  }, []);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const later = (f: () => void, t: number) => { timers.current.push(setTimeout(f, t)); };
   const done = () => onClose();
   // no finger: the iOS sheet curve, 200 ms (never ease-in: it delays the moment the eye is on)
-  const close = () => { y.value = withTiming(open, { duration: ms.exit, easing: EASE_SHEET }, f => { if (f) scheduleOnRN(done); }); };
+  const close = () => {
+    if (reduce) { fade.value = withTiming(0, { duration: ms.exit, easing: EASE_OUT }, f => { if (f) scheduleOnRN(done); }); return; }
+    y.value = withTiming(open, { duration: ms.exit, easing: EASE_SHEET }, f => { if (f) scheduleOnRN(done); });
+  };
 
   // swipe down = cancel; nothing fires (silence is the neutral channel). Grabbed mid-rise, it takes over
   // from where it is; up is rubber-banded; a flick or 90 pt closes, carrying the flick's speed.
   const from = useSharedValue(0);
   const dismiss = Gesture.Pan().activeOffsetY(12)
     .onBegin(() => { from.value = y.value; })
-    .onUpdate(e => { const n = from.value + e.translationY; y.value = n < 0 ? n * 0.2 : n; })
+    .onUpdate(e => { const n = from.value + e.translationY; y.value = n < 0 ? n * 0.2 : n; air.value = driftLevel(e.velocityY); })
+    .onFinalize(() => { air.value = -1; })
     .onEnd(e => {
       if (y.value > 90 || e.velocityY > 800) y.value = withSpring(open, { ...spring.sheet, velocity: e.velocityY }, f => { if (f) scheduleOnRN(done); });
       else y.value = withSpring(0, { ...spring.sheet, velocity: e.velocityY });   // clamped: never lifts off the bottom edge
     });
-  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+  const sheetStyle = useAnimatedStyle(() => ({ opacity: fade.value, transform: [{ translateY: y.value }] }));
 
   // the wheel: drag the price to roll by increments; a tick per step
   // The base is read once at touch-down into a shared value: React re-renders on every step and hands the
@@ -120,7 +134,9 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Pressable style={StyleSheet.absoluteFill} onPress={phase === 'inflight' ? undefined : close} accessibilityLabel="Close" />
       <GestureDetector gesture={dismiss}>
-        <Animated.View style={[s.sheet, { height: open, paddingBottom: insets.bottom + 12 }, sheetStyle]}>
+        <Animated.View style={[s.sheet, { height: open + 40, bottom: -40, paddingBottom: insets.bottom + 12 + 40 }, sheetStyle]}>
+          <Feather />
+          <Sky radius={28} low />
           <View style={s.grab} />
           {phase === 'deposit' ? (
             <Deposit onConfirm={confirmDeposit} onCancel={() => setPhase('arming')} />
@@ -172,28 +188,42 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   );
 }
 
-/** One button. Tap bids; over 2× it needs a 600 ms hold that fills it; in flight it is a ring. */
+/** One button. Tap bids; over 2× it needs a 600 ms hold that fills it; in flight it is a ring. An ink cloud:
+    it sinks 2.5 pt into the sheet on touch-down (UI thread), its shade shortening, and rises on the 0.65
+    spring when the press completes, without overshoot when the thumb slides off. The puff on touch-down,
+    the breath on release; the thud, the lead and the mark stay the ack's, untouched. Disabled: no sink. */
 function BidButton({ phase, hold, disabled, onBid }: { phase: Phase; hold: boolean; disabled: boolean; onBid: () => void }) {
-  const fill = useSharedValue(0), sink = useSharedValue(0);
+  const reduce = useReducedMotion();
+  const fill = useSharedValue(0), k = useSharedValue(0);
   const fire = () => { feel.holdDone(); onBid(); };
   const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
-  const sinkStyle = useAnimatedStyle(() => ({ transform: [{ translateY: sink.value }] }));
+  const sinkStyle = useAnimatedStyle(() => reduce
+    ? { opacity: 1 - 0.18 * Math.max(0, k.value) }
+    : { transform: [{ translateY: cloud.sinkY * k.value }, { scale: 1 - (1 - cloud.sinkScale) * k.value }] });
   const busy = phase === 'inflight';
   const landed = phase === 'landed';
+  const live = !disabled && !busy && !landed;
+  const sink = () => { 'worklet'; k.value = withTiming(1, { duration: ms.sink, easing: EASE_OUT }); scheduleOnRN(feel.puff); };
+  const rise = (ok: boolean) => { 'worklet'; k.value = withSpring(0, ok ? spring.rise : spring.cancel); if (ok) scheduleOnRN(feel.rise); };
   const g = hold
     // the hold fills on the UI thread from touch-down (linear: it is a progress); letting go drains it fast
     ? Gesture.LongPress().minDuration(theme.ms.hold + 50)
-      .onBegin(() => { sink.value = withTiming(2, { duration: ms.press, easing: EASE_OUT }); fill.value = withTiming(1, { duration: theme.ms.hold, easing: Easing.linear }, f => { if (f) scheduleOnRN(fire); }); })
-      .onFinalize(() => { sink.value = withSpring(0, spring.settle); cancelAnimation(fill); fill.value = withTiming(0, { duration: ms.press, easing: EASE_OUT }); })
-    // feedback on press-in, commit on release: the button sinks 2 pt in 120 ms and springs back
-    : Gesture.Tap().onBegin(() => { sink.value = withTiming(2, { duration: ms.press, easing: EASE_OUT }); }).onFinalize(() => { sink.value = withSpring(0, spring.settle); }).onEnd(() => { scheduleOnRN(onBid); });
+      .onBegin(() => { sink(); fill.value = withTiming(1, { duration: theme.ms.hold, easing: Easing.linear }, f => { if (f) scheduleOnRN(fire); }); })
+      .onFinalize((_e, ok) => { rise(ok); cancelAnimation(fill); fill.value = withTiming(0, { duration: ms.press, easing: EASE_OUT }); })
+    // feedback on press-in, commit on release
+    : Gesture.Tap().maxDuration(60_000).maxDistance(24).onBegin(() => { sink(); }).onFinalize((_e, ok) => { rise(ok); }).onEnd(() => { scheduleOnRN(onBid); });
   return (
-    <GestureDetector gesture={g.enabled(!disabled && !busy && !landed)}>
-      <Animated.View style={[s.btn, (disabled || landed) && s.btnOff, sinkStyle]} accessibilityRole="button" accessibilityLabel={hold ? 'Bid, double tap and hold' : 'Bid'} accessibilityState={{ disabled: disabled || busy }}>
-        {hold && <Animated.View style={[s.btnFill, fillStyle]} />}
-        {busy ? <Spinner /> : landed ? <Tick /> : <Text style={s.btnText}>Bid</Text>}
-      </Animated.View>
-    </GestureDetector>
+    <View>
+      {live && <Underside k={k} reduce={reduce} />}
+      <GestureDetector gesture={g.enabled(live)}>
+        <Animated.View style={[s.btn, (disabled || landed) && s.btnOff, sinkStyle]} accessible accessibilityRole="button" accessibilityLabel={hold ? 'Bid, double tap and hold' : 'Bid'} accessibilityState={{ disabled: disabled || busy }}
+          accessibilityActions={live ? [{ name: 'activate' }] : undefined} onAccessibilityAction={e => { if (e.nativeEvent.actionName === 'activate') onBid(); }}>
+          <InkBody />
+          {hold && <Animated.View style={[s.btnFill, fillStyle]} />}
+          {busy ? <Spinner /> : landed ? <Tick /> : <Text style={s.btnText}>Bid</Text>}
+        </Animated.View>
+      </GestureDetector>
+    </View>
   );
 }
 
@@ -218,9 +248,10 @@ function Deposit({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () 
       <Label>Deposit</Label>
       <Text style={s.depositAmt}>${DEPOSIT}</Text>
       <Text style={s.depositLine}>refunded if you lose</Text>
-      <Pressable onPress={onConfirm} style={s.pay} accessibilityRole="button" accessibilityLabel="Pay 250 dollars with Apple Pay">
+      <PressCloud onPress={onConfirm} shade style={{ alignSelf: 'stretch', marginTop: theme.space.s }} bodyStyle={s.pay} accessibilityLabel={`Pay ${DEPOSIT} dollars with Apple Pay`}>
+        <InkBody />
         <Text style={s.payText}>Pay</Text>
-      </Pressable>
+      </PressCloud>
       <Pressable onPress={onCancel} hitSlop={12}><Text style={s.cancel}>Not now</Text></Pressable>
     </View>
   );
@@ -260,7 +291,7 @@ function Teach() {
 }
 
 const s = StyleSheet.create({
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.color.sky, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: theme.space.m, paddingTop: 10, alignItems: 'center' },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: theme.space.m, paddingTop: 10, alignItems: 'center' },
   grab: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: theme.color.line, marginBottom: theme.space.s },
   ringRow: { alignItems: 'center', marginBottom: 4 },
   wheel: { paddingVertical: 4, alignSelf: 'stretch', alignItems: 'center' },
@@ -278,7 +309,7 @@ const s = StyleSheet.create({
   deposit: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 6 },
   depositAmt: { fontFamily: theme.font.price, fontSize: 64, color: theme.color.ink, marginTop: 4 },
   depositLine: { ...theme.type.sans, fontSize: 15, color: theme.color.muted, marginBottom: 14 },
-  pay: { alignSelf: 'stretch', height: 54, borderRadius: 4, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', marginTop: theme.space.s },
+  pay: { alignSelf: 'stretch', height: 54, borderRadius: 4, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   payText: { ...theme.type.sansBold, fontSize: 13, color: theme.color.cloud, letterSpacing: 2.4, textTransform: 'uppercase' },
   cancel: { ...theme.type.sans, fontSize: 14, color: theme.color.faint, marginTop: 8 },
   teach: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(8,14,30,0.35)' },

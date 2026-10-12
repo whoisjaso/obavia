@@ -22,7 +22,7 @@ export function Plates({ onBack }: { onBack: () => void }) {
   const progress = stage === 'kickback' ? 0.34 : (i + 1) / 3;
   const refresh = () => { setBusy(true); feel.touch(); setTimeout(() => setBusy(false), 700); };
   return (
-    <ScrollView style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.sky }]} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + theme.space.m, paddingBottom: insets.bottom + theme.space.m, paddingHorizontal: theme.space.m, alignItems: 'center', justifyContent: 'center' }}
+    <ScrollView style={StyleSheet.absoluteFill} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + theme.space.m, paddingBottom: insets.bottom + theme.space.m, paddingHorizontal: theme.space.m, alignItems: 'center', justifyContent: 'center' }}
       refreshControl={<RefreshControl refreshing={busy} onRefresh={refresh} tintColor={theme.color.accent} />}>
       <Label>Plates</Label>
       <View style={s.ringWrap}>

@@ -8,6 +8,7 @@ import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withRepea
 import { BREATH, EASE_OUT, ms } from '../../motion';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { QR } from '../../components/QR';
+import { PressCloud } from '../../components/Cloud';
 import { Body, Button, Caps, Choice, Label, Page, Pager, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
 import { arriveAtLot, setSale, useSale } from '../../sale';
@@ -64,7 +65,9 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
       <Label>{started ? 'Started' : sale.slot ?? 'Pick a time'}</Label>
       {sale.slot && (
         <Animated.View style={[{ marginTop: theme.space.m, alignItems: 'center' }, pulseStyle]}>
-          <Pressable onLongPress={AUCTION_URL ? undefined : () => { if (!sale.arrived) arriveAtLot(); }} delayLongPress={600} accessibilityRole="button" accessibilityLabel={started ? 'Car started, sale complete' : 'Pass. At the lot, the dealer scans this.'}>
+          {/* the pass is a cloud: it sinks under the thumb, and breathes once when the dealer's scan
+              completes the sale (feel.done, from sale.ts or the server), whoever pressed */}
+          <PressCloud holdMs={600} swell="any" sound={!started} onPress={AUCTION_URL || started ? undefined : () => { if (!sale.arrived) arriveAtLot(); }} accessibilityLabel={started ? 'Car started, sale complete' : 'Pass. At the lot, the dealer scans this.'}>
             <View>
               <QR value={`obavia:${sale.lotId}:${car.vin}:${sale.wonAt}`} size={200} />
               {started && (
@@ -73,7 +76,7 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
                 </Animated.View>
               )}
             </View>
-          </Pressable>
+          </PressCloud>
         </Animated.View>
       )}
       <Caps size={14} ink={started ? theme.color.good : theme.color.muted} style={{ marginTop: theme.space.m }}>{car.year} {car.make} {car.model}</Caps>

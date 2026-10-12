@@ -15,7 +15,14 @@ const sources = {
   chime: require('../assets/sfx/chime.wav'),
   refill: require('../assets/sfx/refill.wav'),
   lead: require('../assets/sfx/lead.wav'),
+  // the cloud kit (docs/design/cloud-system.md §3): filtered noise, one room, every file peaks at -18 dBFS,
+  // so the players stay at volume 1 and the kit never rises above that; it is texture under ordinary touches
+  puff: require('../assets/sfx/cloud/cloud-touch.wav'),
+  rise: require('../assets/sfx/cloud/cloud-rise.wav'),
+  settle: require('../assets/sfx/cloud/cloud-settle.wav'),
+  swell: require('../assets/sfx/cloud/cloud-landed.wav'),
 } as const;
+const CLOUD_GAIN = 1;   // the WAVs are mastered to -18 dBFS peak; gain 1 keeps that peak
 type Sound = keyof typeof sources;
 
 const pools: Partial<Record<Sound, AudioPlayer[]>> = {};
@@ -26,10 +33,34 @@ export async function warm() {
   if (ready) return; ready = true;
   try { await setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }); } catch {}
   for (const k of Object.keys(sources) as Sound[]) {
-    const n = k === 'tick' ? 4 : 2;   // ticks overlap at drag speed
-    try { pools[k] = Array.from({ length: n }, () => createAudioPlayer(sources[k])); } catch { pools[k] = []; }
+    const n = k === 'tick' || k === 'puff' || k === 'rise' ? 4 : 2;   // ticks and quick taps overlap
+    try {
+      pools[k] = Array.from({ length: n }, () => createAudioPlayer(sources[k]));
+      if (k === 'puff' || k === 'rise' || k === 'settle' || k === 'swell') pools[k]!.forEach(p => { p.volume = CLOUD_GAIN; });
+    } catch { pools[k] = []; }
   }
+  try { driftPlayer = createAudioPlayer(require('../assets/sfx/cloud/cloud-drift.wav')); driftPlayer.loop = true; driftPlayer.volume = 0; } catch { driftPlayer = null; }
 }
+
+/* cloud-drift: one looped player, its gain following the sheet's speed under the finger (in steps, never
+   per frame), paused the moment the finger lets go. */
+let driftPlayer: AudioPlayer | null = null;
+let airOn = false;
+function drift(gain: number) {
+  if (!driftPlayer) return; const air = driftPlayer;
+  try {
+    if (gain <= 0) { if (airOn) { air.volume = 0; air.pause(); airOn = false; } return; }
+    air.volume = Math.min(1, gain) * CLOUD_GAIN;
+    if (!airOn) { air.seekTo(0); air.play(); airOn = true; }
+  } catch {}
+}
+
+/* Completion listeners: a surface that was just pressed breathes once (the landed swell) on the same
+   call that plays the chime and the success haptic. Called synchronously inside feel.done. */
+const doneListeners = new Set<() => void>();
+let lastMoment = 0;   // the last chime, thud or lead: a settle inside its shadow is swallowed
+let lastSettle = 0;
+let lastRise = 0;     // a page that arrives from a tap already has its air: the rise
 
 const cursor: Partial<Record<Sound, number>> = {};
 function play(k: Sound) {
@@ -57,20 +88,39 @@ export const feel = {
   /** The thumb touched the price: it lifts; a light impact, no sound. */
   touch() { impact(Haptics.ImpactFeedbackStyle.Light); },
   /** The server acked the bid: deep thud, one heavy impact. Fires on the ack, never before. */
-  landed() { play('thud'); impact(Haptics.ImpactFeedbackStyle.Heavy); },
+  landed() { lastMoment = Date.now(); play('thud'); impact(Haptics.ImpactFeedbackStyle.Heavy); },
   /** You are the high bidder: two rising notes and the success haptic, 90 ms after the thud (inside the
       100 ms window), on the same frame the leading mark appears. Once per moment: the Bid sheet and the
       Lane both see the lead change, and the second caller inside 1.5 s is swallowed. */
   lead() {
     const t = Date.now(); if (t - lastLead < 1500) return; lastLead = t;
-    play('lead'); notify(Haptics.NotificationFeedbackType.Success);
+    lastMoment = t; play('lead'); notify(Haptics.NotificationFeedbackType.Success);
   },
   /** The ring refilled in the last two minutes: medium impact, the same every time. */
   refill() { play('refill'); impact(Haptics.ImpactFeedbackStyle.Medium); },
   /** The one rejection the doctrine keeps. */
   rejected() { play('warn'); notify(Haptics.NotificationFeedbackType.Warning); },
-  /** Won, or a hold completed. */
-  done() { play('chime'); notify(Haptics.NotificationFeedbackType.Success); },
+  /** Won, or a hold completed: the chime, the air swell under it (cloud-landed), the success haptic, and
+      the landed swell on whatever surface was just pressed, all in this one call. */
+  done() {
+    lastMoment = Date.now();
+    play('chime'); play('swell'); notify(Haptics.NotificationFeedbackType.Success);
+    doneListeners.forEach(f => { try { f(); } catch {} });
+  },
+  /** Subscribe to completion: returns the unsubscribe. */
+  onDone(f: () => void) { doneListeners.add(f); return () => { doneListeners.delete(f); }; },
+  /** A cloud surface touched down: the puff. Sound only; a press is not worth a haptic. */
+  puff() { play('puff'); },
+  /** The surface rose back after a completed press: the breath in. A cancelled press rises silently. */
+  rise() { lastRise = Date.now(); play('rise'); },
+  /** A sheet or a page settled into place: the air leaving. Once per 300 ms, and never inside the
+      600 ms that belong to a chime, a thud or the lead, nor on top of the rise of the tap that caused it. */
+  settle() {
+    const t = Date.now(); if (t - lastSettle < 300 || t - lastMoment < 600 || t - lastRise < 250) return;
+    lastSettle = t; play('settle');
+  },
+  /** A sheet moving under the finger: the drift loop at this gain (0 to 1); 0 stops it. */
+  drift,
   /** The 600 ms hold filling: a medium impact at the end only. */
   holdDone() { impact(Haptics.ImpactFeedbackStyle.Medium); },
   /** Welcome back, arrival, mailed: thump-thump, 200 ms apart. Touch only. */

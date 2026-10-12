@@ -11,6 +11,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Label } from '../../components/Type';
+import { Feather, Sky } from '../../components/Cloud';
 import { feel } from '../../feel';
 import { setSale, useSale } from '../../sale';
 import { theme } from '../../theme';
@@ -77,6 +78,8 @@ export function IdScan({ onDone }: { onDone: () => void }) {
       <Frame kind="licence" read={read} onShutter={shutter} />
       {read && (
         <Animated.View entering={FadeIn.duration(200)} style={[s.sheet, { paddingBottom: insets.bottom + theme.space.m }]}>
+          <Feather />
+          <Sky radius={28} low />
           <View style={s.facts}>
             {fields.map(([k, v], i) => (
               <Animated.View key={k} entering={FadeInDown.delay(i * 60).duration(180)}>

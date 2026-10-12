@@ -1,12 +1,14 @@
 /* The quiet vocabulary. Centered, spaced, no boxes: a small spaced label, a
    serif word or number that owns the page, a choice that is only its words,
    a hairline, a page that centers its content, a pager with dots. */
-import React, { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type TextStyle, type ViewStyle } from 'react-native';
-import Animated, { FadeIn, cubicBezier } from 'react-native-reanimated';
+import React, { useEffect, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions, type TextStyle, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feel } from '../feel';
+import { CLOUD_OUT, cloud, ms } from '../motion';
 import { theme } from '../theme';
+import { InkBody, PressCloud } from './Cloud';
 
 export function Label({ children, style, ink }: { children: React.ReactNode; style?: TextStyle; ink?: string }) {
   return <Text style={[s.label, ink ? { color: ink } : null, style]}>{children}</Text>;
@@ -39,46 +41,59 @@ export function Hairline({ style }: { style?: ViewStyle }) {
   return <View style={[s.hair, style]} />;
 }
 
-/** A choice is its words. Selected: ink. Others: faint. A tap is a selection tick. */
+/** A choice is its words. Selected: ink. Others: faint. A tap is a selection tick. The words are a cloud:
+    they sink under the thumb and rise back; no surface, so no shade. */
 export function Choice({ label, detail, selected, dim, onPress, size = 22, accessibilityLabel }: {
   label: string; detail?: string; selected?: boolean; dim?: boolean; onPress?: () => void; size?: number; accessibilityLabel?: string;
 }) {
   const ink = selected ? theme.color.ink : dim ? theme.color.faint : theme.color.inkSoft;
   return (
-    <Pressable onPress={onPress ? () => { feel.select(); onPress(); } : undefined} disabled={!onPress} hitSlop={8}
-      style={s.choice} accessibilityRole="button" accessibilityState={{ selected: !!selected, disabled: !onPress }} accessibilityLabel={accessibilityLabel ?? (detail ? `${label}, ${detail}` : label)}>
+    <PressCloud onPress={onPress ? () => { feel.select(); onPress(); } : undefined} style={{ alignSelf: 'stretch' }} bodyStyle={s.choice}
+      accessibilityState={{ selected: !!selected }} accessibilityLabel={accessibilityLabel ?? (detail ? `${label}, ${detail}` : label)}>
       <Text style={[s.choiceLabel, { fontSize: Math.round(size * 0.68), letterSpacing: size * 0.12, color: ink, fontWeight: selected ? '600' : '500', fontFamily: 'System', textTransform: 'uppercase' }]}>{label}</Text>
       {detail ? <Text style={[s.choiceDetail, { color: selected ? theme.color.inkSoft : theme.color.faint }]}>{detail}</Text> : null}
       {selected && <View style={s.choiceMark} />}
-    </Pressable>
+    </PressCloud>
   );
 }
 
-/** The one verb on a page. */
+/** The one verb on a page: an ink cloud. It sinks 2.5 pt into the page on touch-down (on the UI thread,
+    before any logic), its shade shortening; it rises on the 0.65 spring when the press completes; and if
+    the press completes something (feel.done), it breathes once on that same call. */
 export function Button({ label, onPress, disabled, ghost }: { label: string; onPress: () => void; disabled?: boolean; ghost?: boolean }) {
-  // feedback on press-in, commit on release: the same 2 pt sink as Bid, a CSS transition (a two-state value,
-  // no worklet needed), 120 ms strong ease-out
-  const [down, setDown] = useState(false);
   return (
-    <Pressable onPress={onPress} onPressIn={() => setDown(true)} onPressOut={() => setDown(false)} disabled={disabled} pressRetentionOffset={16}
-      style={{ alignSelf: 'stretch' }} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }}>
-      <Animated.View style={[s.btn, ghost && s.btnGhost, disabled && s.btnOff, { transform: [{ translateY: down ? 2 : 0 }], transitionProperty: 'transform', transitionDuration: 120, transitionTimingFunction: cubicBezier(0.23, 1, 0.32, 1) }]}>
-        <Text style={[s.btnText, ghost && { color: theme.color.accent }]}>{label}</Text>
-      </Animated.View>
-    </Pressable>
+    <PressCloud onPress={onPress} disabled={disabled} shade={!ghost} style={{ alignSelf: 'stretch' }}
+      bodyStyle={[s.btn, ghost && s.btnGhost, disabled && s.btnOff]} accessibilityLabel={label}>
+      {!ghost && <InkBody />}
+      <Text style={[s.btnText, ghost && { color: theme.color.accent }]}>{label}</Text>
+    </PressCloud>
   );
 }
 
-/** A page: its content centered, with room above and below, one action at the foot. */
-export function Page({ children, foot, top, bg = theme.color.sky, align = 'center' }: { children: React.ReactNode; foot?: React.ReactNode; top?: React.ReactNode; bg?: string; align?: 'center' | 'flex-start' }) {
+/** A page's child settling into place: down from 8 pt above and in, 420 ms on the house out-curve, after
+    its turn in the stagger. Reduced motion: the fade only. */
+function Settle({ i, children }: { i: number; children: React.ReactNode }) {
+  const reduce = useReducedMotion();
+  const k = useSharedValue(0);
+  useEffect(() => { k.value = withDelay(i * cloud.stagger, withTiming(1, { duration: ms.page, easing: CLOUD_OUT })); }, []);
+  const st = useAnimatedStyle(() => ({ opacity: k.value, transform: [{ translateY: reduce ? 0 : cloud.settleY * (1 - k.value) }] }));
+  return <Animated.View style={[s.settle, st]}>{children}</Animated.View>;
+}
+
+/** A page: its content centered, with room above and below, one action at the foot. Transparent: the
+    sky behind it (the sheet's or Won's) is the cloud. It arrives by settling, child by child, 40 ms
+    apart, the foot last, with the air leaving (cloud-settle) as it lands. */
+export function Page({ children, foot, top, bg = 'transparent', align = 'center' }: { children: React.ReactNode; foot?: React.ReactNode; top?: React.ReactNode; bg?: string; align?: 'center' | 'flex-start' }) {
   const insets = useSafeAreaInsets();
+  useEffect(() => { feel.settle(); }, []);
+  const kids = React.Children.toArray(children);
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: bg, paddingTop: insets.top + theme.space.m, paddingBottom: insets.bottom + theme.space.m, paddingHorizontal: theme.space.m }]}>
       {top}
-      <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1, justifyContent: align === 'center' ? 'center' : 'flex-start', alignItems: 'center', gap: theme.space.s }}>
-        {children}
-      </Animated.View>
-      {foot && <View style={{ gap: theme.space.s }}>{foot}</View>}
+      <View style={{ flex: 1, justifyContent: align === 'center' ? 'center' : 'flex-start', alignItems: 'center', gap: theme.space.s }}>
+        {kids.map((c, i) => <Settle key={(c as { key?: React.Key }).key ?? i} i={i}>{c}</Settle>)}
+      </View>
+      {foot && <Settle i={kids.length}><View style={{ gap: theme.space.s, alignSelf: 'stretch' }}>{foot}</View></Settle>}
     </View>
   );
 }
@@ -115,10 +130,11 @@ const s = StyleSheet.create({
   body: { ...theme.type.sans, fontSize: theme.size.body, textAlign: 'center', lineHeight: 24 },
   hair: { height: StyleSheet.hairlineWidth, backgroundColor: theme.color.line, alignSelf: 'center', width: 48 },
   choice: { alignItems: 'center', paddingVertical: theme.space.s, alignSelf: 'stretch' },
+  settle: { alignSelf: 'stretch', alignItems: 'center' },
   choiceLabel: { textAlign: 'center' },
   choiceDetail: { ...theme.type.sans, fontSize: 13, marginTop: 4, textAlign: 'center' },
   choiceMark: { width: 18, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 8 },
-  btn: { height: 54, borderRadius: 4, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch' },
+  btn: { height: 54, borderRadius: 4, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch', overflow: 'hidden' },
   btnGhost: { backgroundColor: 'transparent' },
   btnOff: { opacity: 0.3 },
   btnText: { ...theme.type.sansBold, fontSize: 13, color: theme.color.cloud, letterSpacing: 2.4, textTransform: 'uppercase' },

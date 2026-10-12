@@ -5,9 +5,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { spring } from '../motion';
+import { drift, spring } from '../motion';
+import { LaneClouds, useDrift } from '../components/Cloud';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bars } from '../components/Bars';
 import { LanePhoto } from '../components/LanePhoto';
@@ -43,8 +44,9 @@ function spoken(ms: number) {
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function CarPage({ car, lot, now, width, height, active, onArm, onOpen, onMe, refillKey }: {
-  car: Car; lot: Lot; now: number; width: number; height: number; active: boolean;
+function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, onOpen, onMe, refillKey }: {
+  car: Car; lot: Lot; now: number; width: number; height: number; active: boolean; near: boolean;
+  clouds: { far: SharedValue<number>; mid: SharedValue<number> };
   onArm: (steps: number) => void; onOpen: () => void; onMe: () => void; refillKey: number;
 }) {
   const watched = useWatched();
@@ -111,6 +113,9 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, onMe, re
         </Animated.View>
       </GestureDetector>
       <LinearGradient pointerEvents="none" colors={['rgba(8,14,30,0)', 'rgba(8,14,30,0.15)', theme.color.scrim]} locations={[0.3, 0.55, 0.82]} style={StyleSheet.absoluteFill} />
+      {/* the cloud scrim: ice behind the ring and behind the price, never across the car (only on this page
+          and its neighbours: the pages further down the list draw nothing) */}
+      {near && <LaneClouds width={width} height={height} far={clouds.far} mid={clouds.mid} />}
 
       {/* top: the ring and the watchers */}
       <View style={[s.top, { paddingTop: insets.top + 10 }]} pointerEvents="box-none">
@@ -195,6 +200,8 @@ export function Lane() {
   const [wonAt, setWonInitial] = useState<'pickup' | undefined>(undefined);
   const [meOpen, setMe] = useState(false);
   const listRef = useRef<FlatList<Car>>(null);
+  const cloudFar = useDrift(drift.far.period), cloudMid = useDrift(drift.mid.period);   // one clock per lane: a swipe never restarts the drift
+  const clouds = useMemo(() => ({ far: cloudFar, mid: cloudMid }), []);
   const settled = useRef(0);   // the page the lane last came to rest on: a snap back to it is silent
   // the hammer: a lot closes with me leading
   const closedSeen = useRef<Record<string, boolean>>({});
@@ -276,7 +283,7 @@ export function Lane() {
         data={cars}
         keyExtractor={c => c.id}
         renderItem={({ item, index: i }) => lots[item.id] ? (
-          <CarPage car={item} lot={lots[item.id]} now={now} width={width} height={height} active={i === index}
+          <CarPage car={item} lot={lots[item.id]} now={now} width={width} height={height} active={i === index} near={Math.abs(i - index) <= 1} clouds={clouds}
             refillKey={refills.current[item.id] ?? 0}
             onOpen={() => { feel.select(); setOpen(item); }}
             onMe={() => setMe(true)}
