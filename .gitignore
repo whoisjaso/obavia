@@ -6,3 +6,4 @@ dist/
 *.log
 *.tmp
 .claude/settings.local.json
+shots-review/
