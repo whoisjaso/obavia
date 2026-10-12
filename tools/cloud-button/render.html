@@ -1,0 +1,180 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Cloud button renderer</title>
+<style>html,body{margin:0;background:transparent}</style></head>
+<body>
+<script>
+// Volumetric cloud button sprites, computed per pixel on a canvas. Deterministic: same seed, same bytes.
+// Design space: a sprite is H = 96 design units tall; noise is sampled in design units so @1x and @2x are
+// the same cloud. Pipeline: rounded-rectangle SDF -> low-frequency fractal displacement (billowed top,
+// flat base, uneven ends) -> edge turbulence -> two anisotropic blurred copies at decreasing opacity (wisps)
+// -> height field -> diffuse light from above-left (the feDiffuseLighting model: N.L on a bump map) with a
+// low Blinn specular -> painted body gradient (white top to blue-grey underside) -> brighter core -> grain.
+
+// ---- tunables (iterated by eye; see assets/cloud-button/README.md) ----
+const P = {
+  coreInsetX: 22, coreTop: 21, coreBottom: 80, radius: 30,   // the rounded rectangle, design units
+  billowTop: 14, billowSide: 10, billowBase: 1.6,                // outward displacement amplitude
+  billowScale: 78,                                            // displacement wavelength
+  lobeScale: 170, lobeAmp: 6,                                 // very low frequency: one end taller
+  turbAmp: 3.2, turbScale: 17,                                // edge turbulence that tears the rim into wisps
+  edgeIn: 13, edgeOut: 3,                                     // core density falloff across the SDF
+  wisp1: { rx: 7, ry: 5, a: 0.6 }, wisp2: { rx: 15, ry: 9, a: 0.34 }, wisp3: { rx: 26, ry: 12, a: 0.12 },
+  bumpScale: 34, bumpAmp: 0.16, domeDepth: 28, relief: 15,
+  light: [-0.5, -0.72, 0.48],                                 // toward the light: up-left, fairly low so lobes model
+  spec: 0.03, specPow: 24,
+  grain: 0.012,                                               // +-1.2 percent: 2.4 percent peak to peak
+};
+
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function makeNoise(seed){
+  const r=mulberry(seed),perm=new Uint8Array(512),gx=new Float32Array(256),gy=new Float32Array(256);
+  const p=[...Array(256).keys()];for(let i=255;i>0;i--){const j=Math.floor(r()*(i+1));[p[i],p[j]]=[p[j],p[i]]}
+  for(let i=0;i<512;i++)perm[i]=p[i&255];
+  for(let i=0;i<256;i++){const a=r()*Math.PI*2;gx[i]=Math.cos(a);gy[i]=Math.sin(a)}
+  const f=t=>t*t*t*(t*(t*6-15)+10);
+  const n=(x,y)=>{const X=Math.floor(x),Y=Math.floor(y),xf=x-X,yf=y-Y,xi=X&255,yi=Y&255;
+    const g=(i,j,dx,dy)=>{const h=perm[(perm[(xi+i)&255]+yi+j)&511];return gx[h]*dx+gy[h]*dy};
+    const u=f(xf),v=f(yf);
+    const a=g(0,0,xf,yf),b=g(1,0,xf-1,yf),c=g(0,1,xf,yf-1),d=g(1,1,xf-1,yf-1);
+    return (a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v)*1.4};
+  return (x,y,oct=4,lac=2.03,gain=0.5)=>{let s=0,amp=1,norm=0;for(let o=0;o<oct;o++){s+=amp*n(x+o*17.3,y-o*9.1);norm+=amp;amp*=gain;x*=lac;y*=lac}return s/norm};
+}
+const clamp=(v,a=0,b=1)=>v<a?a:v>b?b:v, sstep=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t)}, mix=(a,b,t)=>a+(b-a)*t;
+function sdRoundBox(x,y,cx,cy,hw,hh,r){const qx=Math.abs(x-cx)-hw+r,qy=Math.abs(y-cy)-hh+r;
+  return Math.hypot(Math.max(qx,0),Math.max(qy,0))+Math.min(Math.max(qx,qy),0)-r}
+
+// separable box blur x3 (close to gaussian), radius in px, on a Float32Array w*h
+function blur(src,w,h,rx,ry){let a=src.slice(),b=new Float32Array(w*h);
+  const pass=(inp,out,r,horiz)=>{r=Math.max(1,Math.round(r));const n=horiz?w:h,m=horiz?h:w,k=1/(2*r+1);
+    for(let j=0;j<m;j++){let s=0;const at=i=>{i=i<0?0:i>=n?n-1:i;return horiz?inp[j*w+i]:inp[i*w+j]};
+      for(let i=-r;i<=r;i++)s+=at(i);
+      for(let i=0;i<n;i++){const idx=horiz?j*w+i:i*w+j;out[idx]=s*k;s+=at(i+r+1)-at(i-r)}}};
+  for(let it=0;it<3;it++){pass(a,b,rx/1.73,true);pass(b,a,ry/1.73,false)}return a}
+
+const hash=(x,y,s)=>{let h=(x*374761393+y*668265263+s*1442695041)|0;h=Math.imul(h^h>>>13,1274126177);return((h^h>>>16)>>>0)/4294967296};
+
+// The cloud's alpha and height fields in device pixels. squash<1 compresses toward the base (pressed).
+function field({Wd,Hd,u,seed,squash=1}){
+  const w=Math.round(Wd*u),h=Math.round(Hd*u),N=makeNoise(seed),N2=makeNoise(seed+101),N3=makeNoise(seed+202);
+  const cx=Wd/2,cy=(P.coreTop+P.coreBottom)/2,hw=Wd/2-P.coreInsetX,hh=(P.coreBottom-P.coreTop)/2,anchor=P.coreBottom+4;
+  const d0=new Float32Array(w*h),hgt=new Float32Array(w*h),dd=new Float32Array(w*h),mid=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const X=(x+.5)/u, Y0=(y+.5)/u, Y=anchor+(Y0-anchor)/squash;
+    let d=sdRoundBox(X,Y,cx,cy,hw,hh,P.radius);
+    const top=sstep(cy+4,P.coreTop-6,Y), base=sstep(cy,P.coreBottom+2,Y), side=1-top-base*0.8;
+    const n=N(X/P.billowScale,Y/P.billowScale,4);
+    const lobe=N2(X/P.lobeScale,3.7,2);
+    const amp=P.billowTop*top+P.billowSide*Math.max(side,0)+P.billowBase*base;
+    d-= (0.35+0.85*n)*amp + lobe*P.lobeAmp*(top+0.4);
+    const near=sstep(-10,8,d);
+    d+= N3(X/P.turbScale,Y/(P.turbScale*0.6),3,2.1,0.5)*P.turbAmp*near;
+    const i=y*w+x; dd[i]=d;
+    d0[i]=1-sstep(-P.edgeIn,P.edgeOut,d);
+    mid[i]=0.55+0.45*N3(X/16+40,Y/7,3);   // fibres for the wisps: horizontal streaks
+  }
+  const W1=blur(d0,w,h,P.wisp1.rx*u,P.wisp1.ry*u),W2=blur(d0,w,h,P.wisp2.rx*u,P.wisp2.ry*u),W3=blur(d0,w,h,P.wisp3.rx*u,P.wisp3.ry*u);
+  const alpha=new Float32Array(w*h);
+  for(let i=0;i<w*h;i++){
+    const a1=W1[i]*P.wisp1.a*mid[i],a2=W2[i]*P.wisp2.a*mid[i],a3=W3[i]*P.wisp3.a;
+    alpha[i]=1-(1-d0[i])*(1-a1)*(1-a2)*(1-a3);
+  }
+  // height: a dome from the inside distance, softened by the same blur so the rim rolls over, plus lobes
+  const dome=new Float32Array(w*h);for(let i=0;i<w*h;i++)dome[i]=Math.sqrt(clamp(-dd[i]/P.domeDepth));
+  const domeS=blur(dome,w,h,4*u,4*u);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x,X=(x+.5)/u,Y=anchor+((y+.5)/u-anchor)/squash;
+    hgt[i]=domeS[i]+P.bumpAmp*N(X/P.bumpScale+11,Y/P.bumpScale-5,2)*domeS[i]}
+  return {w,h,alpha,hgt,anchor};
+}
+
+const hex=s=>[parseInt(s.slice(1,3),16)/255,parseInt(s.slice(3,5),16)/255,parseInt(s.slice(5,7),16)/255];
+const ramp=(stops,t)=>{for(let k=1;k<stops.length;k++)if(t<=stops[k][0]){const [t0,c0]=stops[k-1],[t1,c1]=stops[k],f=sstep(t0,t1,t);return c0.map((v,j)=>mix(v,c1[j],f))}return stops[stops.length-1][1]};
+
+function paint({Wd,Hd,dpr,scale=1,seed,state='rest',theme='light'}){
+  const u=dpr*scale, pressed=state==='pressed';
+  const F=field({Wd,Hd,u,seed,squash:pressed?0.97:1});
+  const {w,h,alpha,hgt,anchor}=F;
+  const L=(()=>{const [a,b,c]=P.light,m=Math.hypot(a,b,c);return[a/m,b/m,c/m]})(), flat=L[2];
+  const Hh=[(L[0]),(L[1]),(L[2]+1)];{const m=Math.hypot(...Hh);Hh[0]/=m;Hh[1]/=m;Hh[2]/=m}
+  const light=theme==='light';
+  const stops=light
+    ?[[0,hex('#FFFFFF')],[0.42,hex('#F7F9FF')],[0.66,hex('#E6EDFC')],[0.86,hex(pressed?'#CCD6EA':'#D5DEEF')],[1,hex(pressed?'#BCC8E0':'#C8D2E7')]]
+    :[[0,hex('#F2F6FF')],[0.5,hex('#E0E8FA')],[0.8,hex('#7E8BA8')],[1,hex('#2A3450')]];
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');
+  const img=ctx.createImageData(w,h),D=img.data;
+  const yTop=P.coreTop-14, yBot=anchor-2, cxp=Wd/2;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const i=y*w+x,a=alpha[i];if(a<0.002){continue}
+    const xl=Math.max(x-1,0),xr=Math.min(x+1,w-1),yu=Math.max(y-1,0),yd=Math.min(y+1,h-1);
+    const dx=(hgt[y*w+xr]-hgt[y*w+xl])/((xr-xl)/u),dy=(hgt[yd*w+x]-hgt[yu*w+x])/((yd-yu)/u);
+    let nx=-dx*P.relief,ny=-dy*P.relief,nz=1;const m=Math.hypot(nx,ny,nz);nx/=m;ny/=m;nz/=m;
+    const diff=Math.max(0,nx*L[0]+ny*L[1]+nz*L[2])/flat;                 // 1 on a flat face
+    const sp=Math.pow(Math.max(0,nx*Hh[0]+ny*Hh[1]+nz*Hh[2]),P.specPow)*P.spec;
+    const X=(x+.5)/u,Y=(y+.5)/u;
+    const vy=clamp((Y-yTop)/(yBot-yTop)+(pressed?0.03:0));
+    let c=ramp(stops,vy);
+    const core=Math.exp(-(((X-cxp)/(Wd*0.30))**2)-(((Y-50)/15)**2))*(pressed?0.018:0.032);
+    const lit=mix(0.93,1.06,clamp(diff,0,1.6)/1.6)+sp;
+    const g=(hash(x,y,seed)-0.5)*2*P.grain;
+    if(light){
+      c=c.map((v,j)=>clamp((v*lit+core)*(1+g)));
+      // thin wisps transmit the sky: lighter and a touch cooler, never grey
+      const t=1-sstep(0.15,0.75,a);c=[mix(c[0],0.93,t*0.5),mix(c[1],0.955,t*0.5),mix(c[2],1,t*0.5)];
+      D[i*4]=c[0]*255;D[i*4+1]=c[1]*255;D[i*4+2]=c[2]*255;D[i*4+3]=a*255;
+    }else{
+      // ice on ink: brightness becomes opacity. Lit top 0.16, underside sinks to deeper ink.
+      const up=1-sstep(0.35,0.95,vy);
+      const rim=sstep(0.25,0.65,a)*(1-sstep(0.65,0.97,a))*sstep(0.6,0.2,vy)*0.05;  // cool rim on the lit edge
+      const ice=Math.pow(a,1.5)*(0.06+0.10*up*clamp(lit,0.8,1.2))+rim+core*1.2*a;
+      const ink=a*0.22*sstep(0.55,1,vy);
+      const A=clamp(ice+ink*(1-ice));
+      const wi=A>0?ice/A:0;
+      c=c.map((v,j)=>clamp(v*(1+g)));
+      const inkc=[20/255,26/255,42/255];
+      D[i*4]=mix(inkc[0],c[0],wi)*255;D[i*4+1]=mix(inkc[1],c[1],wi)*255;D[i*4+2]=mix(inkc[2],c[2],wi)*255;D[i*4+3]=A*255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+  return {cv,F,u};
+}
+
+// Contact shadow: the cloud's own footprint, pressed flat toward the page, blurred and offset. Margin 40 css px per side.
+function shadow({Wd,Hd,dpr,scale=1,seed,state='rest',theme='light'}){
+  const u=dpr*scale,pressed=state==='pressed',M=40;
+  const F=field({Wd,Hd,u,seed,squash:pressed?0.97:1});
+  const w=Math.round((Wd+2*M)*u),h=Math.round((Hd+2*M)*u),m=Math.round(M*u);
+  const mask=new Float32Array(w*h),ao=new Float32Array(w*h);
+  const flatten=0.55, off=(pressed?3.5:6), base=F.anchor;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const Y=(y+.5)/u-M; const src=base+(Y-off-base)/flatten;            // squash the footprint toward the base line
+    const sy=Math.round(src*u),sx=x-m;
+    if(sx>=0&&sx<F.w&&sy>=0&&sy<F.h)mask[y*w+x]=F.alpha[sy*F.w+sx];
+    const sy2=y-m-Math.round(1*u); if(sx>=0&&sx<F.w&&sy2>=0&&sy2<F.h)ao[y*w+x]=F.alpha[sy2*F.w+sx];
+  }
+  const r=(pressed?8.4:14)*u;
+  const S=blur(mask,w,h,r*1.3,r),A=blur(ao,w,h,2*u,2*u);
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');
+  const img=ctx.createImageData(w,h),D=img.data;
+  const col=theme==='light'?[28,36,54]:[6,9,18];
+  const k1=theme==='light'?(pressed?0.13:0.10):0.40,k2=theme==='light'?(pressed?0.08:0.06):0.30;
+  for(let i=0;i<w*h;i++){
+    // only the part below the cloud's base matters; the cloud covers the rest, the AO hugs its underside
+    const y=Math.floor(i/w)/u-M, below=sstep(base-14,base+2,y);
+    const a=clamp(S[i]*k1+A[i]*k2*below);
+    D[i*4]=col[0];D[i*4+1]=col[1];D[i*4+2]=col[2];D[i*4+3]=a*255;
+  }
+  ctx.putImageData(img,0,0);
+  return cv;
+}
+
+window.P=P;
+window.sprite=(o)=>{const {cv}=paint(o);return cv.toDataURL('image/png')};
+window.shadowSprite=(o)=>shadow(o).toDataURL('image/png');
+window.safeZone=(o)=>{const {F}=paint(o);const {w,h,alpha}=F;
+  // the label band: rows that stay >= 0.98 dense across the middle 70 percent, then the widest dense span on those rows
+  const dense=(y,x0,x1)=>{for(let x=x0;x<=x1;x++)if(alpha[y*w+x]<.98)return false;return true};
+  const xa=Math.round(w*.15),xb=Math.round(w*.85);let rows=[];for(let y=0;y<h;y++)if(dense(y,xa,xb))rows.push(y);
+  const y0=rows[0],y1=rows[rows.length-1];let hx=Math.round(w*.35);
+  while(hx<w/2-1){let ok=true;for(let y=y0;y<=y1;y++)if(alpha[y*w+Math.round(w/2-hx-1)]<.98||alpha[y*w+Math.round(w/2+hx+1)]<.98){ok=false;break}if(!ok)break;hx++}
+  return {x0:(0.5-hx/w)*100,x1:(0.5+hx/w)*100,y0:y0/h*100,y1:(y1+1)/h*100}};
+</script>
+</body></html>
