@@ -7,6 +7,7 @@ const DEALER = { authorization: 'Bearer test-dealer-secret', 'content-type': 'ap
 const base = 'https://auction.test';
 
 declare global { namespace Cloudflare { interface Env extends WorkerEnv { TEST_MIGRATIONS: D1Migration[] } } }
+const CAR = { year: 2014, make: 'Nissan', model: 'Altima', miles: 128400, vin: '1N4AL3AP0EC000001', photos: [], grade: [1, 1, 1, 1, 0.5, 1], title: 'in hand', dealer: { name: 'Triple J Auto', city: 'Houston', street: '100 Example St', gdn: 'P000000', phone: '', afterHours: '', fees: { taxRate: 0.0625, title: 33, registration: 75, doc: 150 } } };
 let token = '';
 
 async function signIn(id: string) {
@@ -16,8 +17,8 @@ async function signIn(id: string) {
   expect(d.status).toBe(200);
   return token;
 }
-const open = (id: string, closesIn: number, start = 4900) =>
-  SELF.fetch(`${base}/lots/${id}/open`, { method: 'POST', headers: DEALER, body: JSON.stringify({ id, dealer: 'P000000', start, retail: 7995, closesAt: Date.now() + closesIn }) });
+const open = (id: string, closesIn: number, start = 4900, headers: Record<string, string> = DEALER) =>
+  SELF.fetch(`${base}/lots/${id}/open`, { method: 'POST', headers, body: JSON.stringify({ id, dealer: 'P000000', start, retail: 7995, closesAt: Date.now() + closesIn, car: CAR }) });
 const bid = (id: string, tok: string, amount: number, max = amount, key = crypto.randomUUID()) =>
   SELF.fetch(`${base}/lots/${id}/bids`, { method: 'POST', headers: { authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: JSON.stringify({ amount, max, key }) });
 
@@ -125,5 +126,63 @@ describe('whop', () => {
     // and the same delivery again is a no-op
     const r2 = await SELF.fetch(`${base}/webhooks/whop`, { method: 'POST', headers: { 'webhook-id': id, 'webhook-timestamp': ts, 'webhook-signature': sig, 'content-type': 'application/json' }, body });
     expect(r2.status).toBe(200);
+  });
+});
+
+describe('the pilot', () => {
+  let dealerToken = '';
+  it('an admin mints a dealer token; the dealer opens with it; another dealer cannot touch the lot', async () => {
+    const r = await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn: 'P000000', name: 'Triple J Auto' }) });
+    expect(r.status).toBe(200); dealerToken = (await r.json<{ token: string }>()).token;
+    const h = { authorization: `Bearer ${dealerToken}`, 'content-type': 'application/json' };
+    expect((await open('p1', 10 * 60_000, 4900, h)).status).toBe(200);
+    const other = (await (await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn: 'P111111', name: 'Other' }) })).json<{ token: string }>()).token;
+    const c = await SELF.fetch(`${base}/lots/p1/close`, { method: 'POST', headers: { authorization: `Bearer ${other}`, 'content-type': 'application/json' } });
+    expect(c.status).toBe(403);
+    const forged = await open('p2', 10 * 60_000, 4900, { authorization: 'Bearer d:P000000.nope', 'content-type': 'application/json' });
+    expect(forged.status).toBe(403);
+  });
+  it('photos and documents go to R2 and come back; documents need a token', async () => {
+    const h = { authorization: `Bearer ${dealerToken}` };
+    const p = await SELF.fetch(`${base}/lots/p1/photos/1.jpg`, { method: 'PUT', headers: { ...h, 'content-type': 'image/jpeg' }, body: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]) });
+    expect(p.status).toBe(200); expect((await p.json<{ url: string }>()).url).toBe('/photos/p1/1.jpg');
+    expect((await SELF.fetch(`${base}/photos/p1/1.jpg`)).status).toBe(200);
+    const d = await SELF.fetch(`${base}/lots/p1/documents/guide.pdf`, { method: 'PUT', headers: { ...h, 'content-type': 'application/pdf' }, body: '%PDF-1.4' });
+    expect(d.status).toBe(200);
+    expect((await SELF.fetch(`${base}/documents/p1/guide.pdf`)).status).toBe(401);
+    expect((await SELF.fetch(`${base}/documents/p1/guide.pdf`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
+    const v = await SELF.fetch(`${base}/view?u=/documents/p1/guide.pdf&token=${encodeURIComponent(token)}`);
+    expect(v.status).toBe(200); expect((await v.text())).toContain('pdfjs');
+  });
+  it('the hammer opens a sale with a 48 h deadline; pickup with the wrong VIN is refused; the right one starts the car', async () => {
+    await open('p3', 5_000);
+    await bid('p3', token, 5000);
+    await SELF.fetch(`${base}/lots/p3/close`, { method: 'POST', headers: DEALER });
+    const stub = env.AUCTION.get(env.AUCTION.idFromName('p3'));
+    await runDurableObjectAlarm(stub); await new Promise(r => setTimeout(r, 60));
+    const lot = await (await SELF.fetch(`${base}/lots/p3`)).json<any>();
+    expect(lot.sale?.buyer).toBe('buyer-a'); expect(lot.sale.deadlineAt - lot.sale.wonAt).toBe(48 * 3_600_000);
+    const wrong = await SELF.fetch(`${base}/lots/p3/pickup`, { method: 'POST', headers: DEALER, body: JSON.stringify({ vin: '999999' }) });
+    expect(wrong.status).toBe(409);
+    const right = await SELF.fetch(`${base}/lots/p3/pickup`, { method: 'POST', headers: DEALER, body: JSON.stringify({ vin: '000001' }) });
+    expect(right.status).toBe(200); expect((await right.json<any>()).sale.startedAt).toBeGreaterThan(0);
+  });
+  it('a push token is kept; a bad one is refused', async () => {
+    const bad = await SELF.fetch(`${base}/me/push`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: JSON.stringify({ token: 'nope' }) });
+    expect(bad.status).toBe(400);
+    const ok = await SELF.fetch(`${base}/me/push`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: JSON.stringify({ token: 'ExponentPushToken[abcdefghijklmnop]' }) });
+    expect(ok.status).toBe(200);
+  });
+  it('the deposit comes back only when the buyer leads nothing', async () => {
+    const c = await signIn('buyer-c');
+    await open('p4', 10 * 60_000);
+    await bid('p4', c, 5000);
+    await new Promise(r => setTimeout(r, 60));
+    expect((await SELF.fetch(`${base}/me/deposit/release`, { method: 'POST', headers: { authorization: `Bearer ${c}` } })).status).toBe(409);
+    const d = await signIn('buyer-d');
+    const r = await SELF.fetch(`${base}/me/deposit/release`, { method: 'POST', headers: { authorization: `Bearer ${d}` } });
+    expect(r.status).toBe(200);
+    const row = await env.DB.prepare('SELECT deposit_status FROM buyers WHERE id = ?1').bind('buyer-d').first<{ deposit_status: string }>();
+    expect(row?.deposit_status).toBe('refunded');
   });
 });

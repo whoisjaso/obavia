@@ -10,6 +10,7 @@ export default defineConfig({
         miniflare: {
           bindings: { BUYER_SECRET: 'test-buyer-secret', DEALER_SECRET: 'test-dealer-secret', DEV: '1', WHOP_WEBHOOK_SECRET: 'test-whop-secret', TEST_MIGRATIONS: migrations },
           d1Databases: ['DB'],
+          r2Buckets: ['FILES'],
         },
       };
     }),

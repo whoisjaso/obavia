@@ -3,6 +3,7 @@
    bidders are simulated so the glass behaves like the real thing, including
    the one failure that must never be silent: a bid that lands after close. */
 import { closeAfterBid, nextBid, proxy, type Proxy } from './auction';
+import type { CarMeta, SaleState } from './meta';
 
 export type Lot = {
   id: string;
@@ -12,6 +13,8 @@ export type Lot = {
   high: number; leader?: string; max?: number;
   bids: number; watching: number;
   closed?: { at: number; sold: boolean };
+  car?: CarMeta;                 // from the Desk at Go; absent on the local stand-in's seeded lots
+  sale?: SaleState;              // after the hammer
 };
 
 export type BidRequest = { lotId: string; bidder: string; amount: number; max: number; key: string };
@@ -22,7 +25,7 @@ export type Ack =
   | { ok: false; reason: 'outbid'; lot: Lot; stampedAt: number }     // your ceiling was under the leader's
   | { ok: false; reason: 'low'; lot: Lot; stampedAt: number };       // under the asking price
 
-export type Event = { lotId: string; lot: Lot; kind: 'bid' | 'close' | 'tick' };
+export type Event = { lotId: string; lot: Lot; kind: 'bid' | 'close' | 'tick' | 'sale' };
 
 export class LocalAuctionServer {
   private lots = new Map<string, Lot>();

@@ -27,7 +27,8 @@
     "plugins": [
       "expo-audio",
       "expo-image",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "backgroundColor": "#1C2436"
   }
