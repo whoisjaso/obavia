@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { auctionLive, getExposure, isAdminKey, mintDealer, restoreDealer, suspendDealer, type DealerRow, type Exposure, type SaleState } from './lib/auction';
 import { usd } from './lib/money';
-import { Back, feel, transition } from './ui';
+import { Back, Ic, feel, transition } from './ui';
 
 const DEPOSIT_USD = 250;
 const STATES: { s: SaleState; label: string; gloss: string }[] = [
@@ -62,8 +62,8 @@ function Cockpit() {
         {x && <>
           <p className="note" style={{ marginTop: 28 }}>Deposits</p>
           <div className="group">
-            <div className="row"><span className="t"><b>Deposits held</b><small>Buyers admitted to bid</small></span><span className="v num">{x.deposits.heldCount}</span></div>
-            <div className="row"><span className="t"><b>Dollars held</b><small>{x.deposits.heldCount} × {usd(DEPOSIT_USD)}, in the Whop balance</small></span><span className="v num">{usd(x.deposits.heldUsd)}</span></div>
+            <div className="row"><span className="t"><b>Deposits held</b><small>Buyers admitted to bid</small></span><span className="v num">{x.deposits.heldCount.toLocaleString('en-US')}</span></div>
+            <div className="row"><span className="t"><b>Dollars held</b><small>{x.deposits.heldCount.toLocaleString('en-US')} × {usd(DEPOSIT_USD)}, in the Whop balance</small></span><span className="v num">{usd(x.deposits.heldUsd)}</span></div>
             <div className="row"><span className="t"><b>Reserve ratio</b><small>Held dollars over owed deposits. 1.00 expected.</small></span><span className="v num" style={ratioOk ? undefined : { color: 'var(--red)' }}>{x.deposits.reserveRatio.toFixed(2)}</span></div>
           </div>
           {!ratioOk && <p className="note" style={{ color: 'var(--red)' }}>The reserve is not 1.00. Stop opening lots and reconcile the Whop balance today.</p>}
@@ -125,7 +125,7 @@ function AddDealer({ onDone }: { onDone: () => void }) {
 
   return (
     <main className="wrap center">
-      <div className="top">{page === 'key' ? <span /> : <button className="back" onClick={() => { feel.tap(); page === 'gdn' ? onDone() : to('gdn', 'back'); }}>Back</button>}</div>
+      <div className="top">{page === 'key' ? <span /> : <button className="back" onClick={() => { feel.tap(); page === 'gdn' ? onDone() : to('gdn', 'back'); }}><Ic n="chev" s={18} w={2.4} />Back</button>}</div>
       {page === 'gdn' && <section className="enter" key="gdn">
         <h1 className="q">The dealer’s <em>GDN.</em></h1>
         <p className="note">The Texas dealer licence number, as printed. P followed by digits.</p>
@@ -137,9 +137,9 @@ function AddDealer({ onDone }: { onDone: () => void }) {
         <label className="field"><input className="input" autoFocus value={name} onChange={e => setName(e.target.value.slice(0, 80))} placeholder="Triple J Auto" /></label>
       </section>}
       {page === 'key' && <section className="enter" key="key">
-        <h1 className="q">{name}’s <em>key.</em></h1>
+        <h1 className="q" style={name.length > 28 ? { fontSize: 'clamp(28px,7.4vw,36px)' } : undefined}>{name}’s <em>key.</em></h1>
         <p className="note">Shown once. Paste it into the dealer's Desk under Lane → Key.</p>
-        <label className="field"><input className="input num" readOnly value={key} onFocus={e => e.currentTarget.select()} /></label>
+        <label className="field"><textarea className="input num" readOnly rows={2} value={key} onFocus={e => e.currentTarget.select()} style={{ height: 'auto', padding: '16px 18px', lineHeight: 1.4, resize: 'none', overflowWrap: 'anywhere', textAlign: 'center' }} /></label>
       </section>}
       {err && <p className="note">{err}</p>}
       <div className="dock"><div className="in">

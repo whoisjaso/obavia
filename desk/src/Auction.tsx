@@ -13,6 +13,14 @@ import { startSale, useStore } from './store';
 import { Back, CarArt, Choice, Ic, feel, go, transition } from './ui';
 
 const carName = (v: Vehicle) => `${v.year} ${v.make} ${v.model}`;
+/* break-ui: counts and typed dollars read with separators (1,284 watching; 12,500 in the field). */
+const n = (x: number) => x.toLocaleString('en-US');
+const grouped = (digits: string) => (digits ? Number(digits).toLocaleString('en-US') : '');
+const digits = (s: string) => s.replace(/[^\d]/g, '');
+/* A long make and model (2020 Mercedes-Benz GLE 450 4MATIC Coupe AMG Line…) steps the heading down instead of filling the screen. */
+const longQ = (s: string) => (s.length > 28 ? { fontSize: 'clamp(28px,7.4vw,36px)' } : undefined);
+/* The inner face of the big ring: room for "44h 59m" on one line. */
+const FACE = { width: 68, height: 68, whiteSpace: 'nowrap' } as const;
 const WORDS = ['Paint', 'Glass', 'Tires', 'Lights', 'A/C', 'Drives'] as const;
 const GRADES: { label: string; gloss: string; v: number }[] = [{ label: 'Good', gloss: 'Nothing to say', v: 1 }, { label: 'Fair', gloss: 'Worn, works', v: 0.6 }, { label: 'Poor', gloss: 'Needs work', v: 0.25 }];
 
@@ -51,7 +59,7 @@ function LotRow({ link, lot, v }: { link: LotLink; lot?: Lot; v?: Vehicle }) {
     : s?.startedAt ? 'Picked up' : s?.voidedAt ? 'Voided' : s?.forfeitedAt ? 'Buyer walked · deposit yours'
     : s ? (s.paidAt ? 'Paid · waiting on pickup' : `Sold · ${timeLeft(s.deadlineAt)} for the buyer`)
     : lot.closed ? 'Closed, no bids'
-    : `${usd(lot.high)} · ${lot.bids} ${lot.bids === 1 ? 'bid' : 'bids'} · ${timeLeft(lot.closesAt)}`;
+    : `${usd(lot.high)} · ${n(lot.bids)} ${lot.bids === 1 ? 'bid' : 'bids'} · ${timeLeft(lot.closesAt)}`;
   return (
     <a className="choice" href={`#/auction/${link.lotId}`} onClick={feel.next}>
       <span className="art car-art">{v ? <CarArt color={v.color} body={v.bodyStyle} w={44} /> : <Ic n="plate" s={24} />}</span>
@@ -187,7 +195,7 @@ export function LetItGo() {
       {page === 'payoff' && <section className="enter" key="payoff">
         <h1 className="q">The <em>payoff.</em></h1>
         <p className="note">What {lienholder.trim() || 'the lender'} gets first from the proceeds.</p>
-        <div className="money"><input className="input num" inputMode="numeric" autoFocus value={payoff} onChange={e => setPayoff(e.target.value.replace(/[^\d]/g, ''))} placeholder="0" /></div>
+        <div className="money"><input className="input num" inputMode="numeric" autoFocus value={grouped(payoff)} onChange={e => setPayoff(digits(e.target.value))} placeholder="0" /></div>
       </section>}
 
       {page === 'release' && <section className="enter" key="release">
@@ -199,8 +207,8 @@ export function LetItGo() {
       {page === 'photos' && car && <section className="enter" key="photos">
         <h1 className="q">Show <em>it.</em></h1>
         <p className="note">Front three-quarter, the rear, the driver’s side; then the dash, the seats, and anything worn. Sideways photos are fine.</p>
-        <div className="choices grid2">{photos.map((p, i) => <button key={i} className="choice" style={{ padding: 0, minHeight: 120, overflow: 'hidden' }} onClick={() => { feel.tap(); setPhotos(x => x.filter((_, j) => j !== i)); }} aria-label={`Remove photo ${i + 1}`}><img src={p} alt="" style={{ width: '100%', height: 120, objectFit: 'cover' }} /></button>)}
-          <label className="choice" style={{ minHeight: 120, justifyContent: 'center', cursor: 'pointer' }}><span className="art"><Ic n="upload" s={24} /></span><span className="t"><b>{adding ? 'Adding…' : photos.length ? 'Add more' : 'Take photos'}</b><small>{photos.length} of 12</small></span><input type="file" accept="image/*" capture="environment" multiple hidden onChange={e => add(e.target.files)} /></label>
+        <div className="choices grid2" style={{ gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>{photos.map((p, i) => <button key={i} className="choice" style={{ padding: 0, minHeight: 0, aspectRatio: '1', borderRadius: 18, overflow: 'hidden' }} onClick={() => { feel.tap(); setPhotos(x => x.filter((_, j) => j !== i)); }} aria-label={`Remove photo ${i + 1}`}><img src={p} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></button>)}
+          {photos.length < 12 && <label className="choice" style={{ gridColumn: '1 / -1', flexDirection: 'row', alignItems: 'center', minHeight: 96, cursor: 'pointer' }}><span className="art"><Ic n="upload" s={24} /></span><span className="t"><b>{adding ? 'Adding…' : photos.length ? 'Add more' : 'Take photos'}</b><small>{photos.length} of 12</small></span><input type="file" accept="image/*" capture="environment" multiple hidden onChange={e => add(e.target.files)} /></label>}
         </div>
       </section>}
 
@@ -224,9 +232,9 @@ export function LetItGo() {
       {page === 'floor' && car && band && days && <section className="enter" key="floor">
         <h1 className="q">The <em>floor.</em></h1>
         <p className="note">The least you walk away with. Bidding opens here and only climbs. The buyer pays this plus tax and the state, nothing to Obavia.</p>
-        <div className="money"><input className="input num" inputMode="numeric" autoFocus value={floor} onChange={e => setFloor(e.target.value.replace(/[^\d]/g, ''))} placeholder={String(band.low)} /></div>
+        <div className="money"><input className="input num" inputMode="numeric" autoFocus value={grouped(floor)} onChange={e => setFloor(digits(e.target.value))} placeholder={n(band.low)} /></div>
         <div className="group" style={{ marginTop: 22 }}>
-          <div className="row"><span className="t"><b>The lane usually pays</b><small>For a {carName(car)} in this condition</small></span><span className="v num">{usd(band.low)}–{usd(band.high)}</span></div>
+          <div className="row"><span className="t"><b>The lane usually pays</b><small>For a {carName(car)} in this condition</small></span><span className="v num" style={{ lineHeight: 1.35 }}>{usd(band.low)}<br />to {usd(band.high)}</span></div>
           <div className="row"><span className="t"><b>Holding it {days} more days</b><small>Floorplan, insurance, the space</small></span><span className="v num">{usd(holdingCost(days))}</span></div>
           {payoffN > 0 && <div className="row"><span className="t"><b>{bring.bring > 0 ? 'You bring' : 'You keep'}</b><small>After the {usd(payoffN)} payoff</small></span><span className="v num">{usd(bring.bring > 0 ? bring.bring : bring.get)}</span></div>}
         </div>
@@ -239,10 +247,10 @@ export function LetItGo() {
       </section>}
 
       {page === 'go' && car && collateral && days && <section className="enter" key="go">
-        <h1 className="q">{carName(car)}<em>.</em></h1>
+        <h1 className="q" style={longQ(carName(car))}>{carName(car)}<em>.</em></h1>
         <div className="group">
           <div className="row"><span className="t"><b>Floor</b></span><span className="v num">{usd(floorN)}</span></div>
-          <div className="row"><span className="t"><b>Title</b></span><span className="v">{status === 'hand' ? 'In hand' : `${lienholder.trim() || 'Lender'} · ${release} days`}</span></div>
+          <div className="row"><span className="t"><b>Title</b></span><span className="v" style={{ flex: '0 1 62%', minWidth: 0, lineHeight: 1.35, overflowWrap: 'anywhere' }}>{status === 'hand' ? 'In hand' : `${lienholder.trim() || 'Lender'} · ${release} days`}</span></div>
           <div className="row"><span className="t"><b>Closes</b></span><span className="v">{new Date(Date.now() + days * 86_400_000).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span></div>
           <div className="row"><span className="t"><b>Photos</b></span><span className="v num">{photos.length}</span></div>
         </div>
@@ -296,9 +304,9 @@ function Live({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
     <main className="wrap center">
       <div className="top"><Back to="#/auction" label="Lane" /></div>
       <section className="enter" key="live">
-        <span className="ring big" style={{ ['--p' as string]: closed ? 100 : p }}><span className="num">{closed ? 'Done' : timeLeft(lot.closesAt)}</span></span>
+        <span className="ring big" style={{ ['--p' as string]: closed ? 100 : p }}><span className="num" style={FACE}>{closed ? 'Done' : timeLeft(lot.closesAt)}</span></span>
         <h1 className="q num">{lot.bids ? usd(lot.high) : <>No bids <em>yet.</em></>}</h1>
-        <p className="note">{name}{lot.bids ? ` · ${lot.bids} ${lot.bids === 1 ? 'bid' : 'bids'}` : ''}{lot.watching ? ` · ${lot.watching} watching` : ''}</p>
+        <p className="note">{name}{lot.bids ? ` · ${n(lot.bids)} ${lot.bids === 1 ? 'bid' : 'bids'}` : ''}{lot.watching ? ` · ${n(lot.watching)} watching` : ''}</p>
         <div className="group">
           <div className="row"><span className="t"><b>Floor</b><small>{lot.bids ? (lot.high >= floor ? 'Covered' : 'Not yet reached') : 'Bidding opens here'}</small></span><span className="v num">{usd(floor)}</span></div>
           {lot.car?.collateral?.title.status === 'lender' && <div className="row"><span className="t"><b>Title at {lot.car.collateral.title.lienholder || 'the lender'}</b><small>{lot.car.collateral.title.releaseDays} days to release after payoff</small></span><span className="v num">{usd(lot.car.collateral.title.payoff ?? 0)}</span></div>}
@@ -307,7 +315,7 @@ function Live({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
         {closed && !lot.bids && <p className="note">Nobody bid. The car is still yours; let it go again with a lower floor or more photos.</p>}
         {lowering && <>
           <p className="note" style={{ marginTop: 28 }}>A lower floor opens the bidding lower. It never moves a bid already placed.</p>
-          <div className="money"><input className="input num" inputMode="numeric" autoFocus value={newFloor} onChange={e => setNewFloor(e.target.value.replace(/[^\d]/g, ''))} placeholder={String(floor)} /></div>
+          <div className="money"><input className="input num" inputMode="numeric" autoFocus value={grouped(newFloor)} onChange={e => setNewFloor(digits(e.target.value))} placeholder={n(floor)} /></div>
         </>}
       </section>
       <div className="dock"><div className="in">
@@ -340,7 +348,7 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
     <main className="wrap center">
       <div className="top"><Back to="#/auction" label="Lane" /></div>
       <section className="enter" key={state + mode}>
-        {state === 'owed' && <span className="ring big" style={{ ['--p' as string]: Math.round((1 - Math.max(0, left) / total) * 100) }}><span className="num" style={{ fontSize: 13 }}>{h(left)}</span></span>}
+        {state === 'owed' && <span className="ring big" style={{ ['--p' as string]: Math.round((1 - Math.max(0, left) / total) * 100) }}><span className="num" style={{ ...FACE, fontSize: 15 }}>{h(left)}</span></span>}
         <h1 className="q num">{usd(s.hammer)}</h1>
         <p className="note">{name} · {
           state === 'started' ? `Picked up ${new Date(s.startedAt!).toLocaleString()}` :
