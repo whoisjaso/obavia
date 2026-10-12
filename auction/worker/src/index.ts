@@ -5,7 +5,10 @@
 import { buyerFrom, isDealer, mintBuyerToken } from './auth';
 import type { Env } from './env';
 import type { BidRequest } from '../../src/engine/server';
+import { Whop } from './whop';
 export { Auction } from './auction';
+
+const DEPOSIT_USD = 250;
 
 const json = (x: unknown, status = 200) => new Response(JSON.stringify(x), { status, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' } });
 const text = (t: string, status: number) => new Response(t, { status, headers: { 'access-control-allow-origin': '*' } });
@@ -57,21 +60,46 @@ export default {
         .bind(b.id, b.name ?? null, b.state ?? null, Date.now()).run();
       return json({ token: await mintBuyerToken(env.BUYER_SECRET, b.id) });
     }
+    // the deposit, on Whop: a hosted checkout, then the payment verified (or its webhook)
+    const whop = new Whop(env);
+    if (req.method === 'POST' && url.pathname === '/me/deposit/checkout') {
+      const buyer = await buyerFrom(req, env.BUYER_SECRET);
+      if (!buyer) return text('sign in', 401);
+      if (!whop.ready) return text('payments not configured', 503);
+      const b = await req.json<{ redirectUrl?: string }>();
+      const c = await whop.createDepositCheckout(buyer, DEPOSIT_USD, b.redirectUrl ?? 'obavia://deposit');
+      return json({ checkoutId: c.id });
+    }
     if (req.method === 'POST' && url.pathname === '/me/deposit') {
       const buyer = await buyerFrom(req, env.BUYER_SECRET);
       if (!buyer) return text('sign in', 401);
-      const b = await req.json<{ paymentIntent?: string }>();
-      let captured = false;
-      if (env.STRIPE_SECRET && b.paymentIntent) {
-        const r = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(b.paymentIntent)}`, { headers: { authorization: `Bearer ${env.STRIPE_SECRET}` } });
-        const pi = await r.json<{ status?: string; amount?: number }>();
-        captured = r.ok && pi.status === 'succeeded' && (pi.amount ?? 0) >= 25000;
+      const b = await req.json<{ paymentId?: string }>();
+      let ref: string | null = null;
+      if (whop.ready && b.paymentId) {
+        const p = await whop.verifyDeposit(b.paymentId, buyer, DEPOSIT_USD).catch(() => null);
+        if (p) ref = p.id;
       } else if (env.DEV === '1') {
-        captured = true;   // wrangler dev and tests only
+        ref = 'dev';   // wrangler dev and tests only
       }
-      if (!captured) return text('not captured', 402);
-      await env.DB.prepare('UPDATE buyers SET deposit_status = ?2, deposit_ref = ?3 WHERE id = ?1').bind(buyer, 'captured', b.paymentIntent ?? 'dev').run();
+      if (!ref) return text('not captured', 402);
+      await env.DB.prepare('UPDATE buyers SET deposit_status = ?2, deposit_ref = ?3 WHERE id = ?1').bind(buyer, 'captured', ref).run();
       return json({ deposit: 'captured' });
+    }
+    // Whop tells us when money moved; the signature is the only admission
+    if (req.method === 'POST' && url.pathname === '/webhooks/whop') {
+      const raw = await req.text();
+      if (!(await whop.verifyWebhook(req, raw))) return text('bad signature', 401);
+      const e = JSON.parse(raw) as { type?: string; action?: string; data?: { id?: string; metadata?: Record<string, string>; status?: string; usd_total?: number; total?: number } };
+      const type = e.type ?? e.action ?? '';
+      const d = e.data ?? {};
+      if (type === 'payment.succeeded' && d.metadata?.kind === 'deposit' && d.metadata.buyer && d.id) {
+        await env.DB.prepare('UPDATE buyers SET deposit_status = ?2, deposit_ref = ?3 WHERE id = ?1 AND deposit_status != ?2').bind(d.metadata.buyer, 'captured', d.id).run();
+      }
+      if (type.startsWith('refund.') && d.metadata?.kind === 'deposit' && d.metadata.buyer) {
+        await env.DB.prepare('UPDATE buyers SET deposit_status = ?2 WHERE id = ?1').bind(d.metadata.buyer, 'refunded').run();
+      }
+      await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)').bind(req.headers.get('webhook-id') ?? crypto.randomUUID(), type, raw, Date.now()).run();
+      return json({ ok: true });
     }
 
     return text('not found', 404);

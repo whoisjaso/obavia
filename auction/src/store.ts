@@ -49,11 +49,11 @@ export function getServer(): AuctionServer {
   return server!;
 }
 
-/** The deposit: locally a flag; on the server a captured Stripe PaymentIntent (DEV admits without one). */
-export async function captureDeposit(paymentIntent?: string): Promise<boolean> {
+/** The deposit: locally a flag; on the server a Whop payment verified by id (DEV admits without one). */
+export async function captureDeposit(paymentId?: string): Promise<boolean> {
   if (!AUCTION_URL) { once.deposit = true; return true; }
   if (!token) return false;
-  const ok = await RemoteAuctionServer.deposit(AUCTION_URL, token, paymentIntent);
+  const ok = await RemoteAuctionServer.deposit(AUCTION_URL, token, paymentId);
   if (ok) once.deposit = true;
   return ok;
 }

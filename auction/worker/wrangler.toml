@@ -20,4 +20,5 @@ database_name = "obavia-auction"
 database_id = "replace-with-the-id-wrangler-prints"
 migrations_dir = "migrations"
 
-# Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, STRIPE_SECRET
+# Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, WHOP_API_KEY, WHOP_WEBHOOK_SECRET
+# Vars to set: WHOP_ACCOUNT_ID (biz_…), WHOP_API_BASE (sandbox in staging)

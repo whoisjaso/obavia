@@ -1,5 +1,7 @@
 # Obavia auction Worker
 
+Payments run on Whop (`src/whop.ts`): the deposit is a Whop payment held and refunded on a loss; the balance is a Whop invoice; the dealer is paid by a transfer to a connected account; Whop's signed webhooks are the only way money news enters.
+
 Cloudflare Worker + one Durable Object per lot. The object runs the same rules as the app (`../src/engine/auction.ts`) with the authority: a bid is one transaction that writes the price, the close time and the ack together; the ack is what the phone thumps on. The close is an alarm plus a read-time check. Every connected phone gets the lot on every change over a hibernating WebSocket. D1 holds a copy of every lot and every bid, never read on the bid path.
 
 ## Routes
@@ -13,7 +15,9 @@ Cloudflare Worker + one Durable Object per lot. The object runs the same rules a
 | POST | `/lots/:id/watch?delta=±1` | buyer | watching count |
 | GET | `/lots/:id/live` | buyer | WebSocket: the lot on connect, then every change |
 | POST | `/me` | anyone | `{ id, name?, state? }` → `{ token }` (signed, no session) |
-| POST | `/me/deposit` | buyer | `{ paymentIntent }` → verified against Stripe; `DEV=1` admits without |
+| POST | `/me/deposit/checkout` | buyer | → `{ checkoutId }`: a Whop hosted checkout for the $250, our metadata on it |
+| POST | `/me/deposit` | buyer | `{ paymentId }` → verified with Whop (paid, ours, ≥ $250); `DEV=1` admits without |
+| POST | `/webhooks/whop` | Whop | Standard-Webhooks signature; `payment.succeeded` captures the deposit by metadata, `refund.*` releases it; every event kept in `money_events` |
 
 Buyers bid only with a captured deposit (402 otherwise). Keys are idempotency keys: a retried request returns the same ack. The buyer's ceiling never leaves the object.
 
@@ -26,7 +30,8 @@ npx wrangler d1 create obavia-auction   # once; paste the id into wrangler.toml
 npx wrangler d1 migrations apply obavia-auction
 npx wrangler secret put BUYER_SECRET
 npx wrangler secret put DEALER_SECRET
-npx wrangler secret put STRIPE_SECRET
+npx wrangler secret put WHOP_API_KEY
+npx wrangler secret put WHOP_WEBHOOK_SECRET   # from POST /webhooks { url: .../webhooks/whop, events: [...] }
 npm run deploy
 ```
 Point the app at it with `EXPO_PUBLIC_AUCTION_URL=https://obavia-auction.<account>.workers.dev`. Without the variable the app runs its local stand-in.

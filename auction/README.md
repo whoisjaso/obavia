@@ -22,7 +22,7 @@ Rolex, Ritz-Carlton, Porsche: restraint, precision, air. Words that own a page a
 On the server's ack the price punches with the thud and a heavy impact, then 150 ms later two rising notes with the success haptic: you are the high bidder. A small mark sits beside the price on the Lane while you lead. When a rival's ceiling falls and the lead returns to you, the same two notes. Losing the lead is silent in the app; the push carries the words and the time left.
 
 ## The server (`worker/`)
-A Cloudflare Worker and one Durable Object per lot, running the same engine with the authority: idempotent bids, one write for price, close and ack, an alarm for the hammer, a hibernating WebSocket per phone, D1 as the copy, signed buyer tokens, a deposit gate. Ten tests in the real Workers runtime. Set `EXPO_PUBLIC_AUCTION_URL` and the app uses it; unset, the local stand-in. See `worker/README.md`.
+A Cloudflare Worker and one Durable Object per lot, running the same engine with the authority: idempotent bids, one write for price, close and ack, an alarm for the hammer, a hibernating WebSocket per phone, D1 as the copy, signed buyer tokens, a deposit gate. Payments run on Whop. The phased plan for everything is `docs/plan/obavia-auction-phases.md`. Ten tests in the real Workers runtime. Set `EXPO_PUBLIC_AUCTION_URL` and the app uses it; unset, the local stand-in. See `worker/README.md`.
 
 ## Run
 ```
@@ -34,4 +34,4 @@ npx expo export --platform web --output-dir dist   # the web preview used for sc
 Preview switches on the web build only: `?closeIn=3000&lag=1500` closes the first lot in 3 s with 1.5 s of network latency, to watch a late bid get rejected; `?win=1` drops the hammer 2.5 s after your first bid, to walk Won through Plates. In Pickup, hold the pass to stand in for the dealer's VIN scan.
 
 ## Not yet
-The camera and the licence/insurance read, real Apple Pay (the deposit route verifies a Stripe PaymentIntent; the sheet does not create one yet), the Desk's document renders inside `Paper`, Wallet passes, push notifications, engine audio recordings, the walkaround video, sign-in, the dealer side (lives in the Desk).
+The camera and the licence/insurance read, the deposit checkout in the sheet (the Worker creates a Whop checkout and verifies the payment; the sheet does not open it yet), the Desk's document renders inside `Paper`, Wallet passes, push notifications, engine audio recordings, the walkaround video, sign-in, the dealer side (lives in the Desk).

@@ -60,13 +60,19 @@ export class RemoteAuctionServer {
     await fetch(`${this.base}/lots/${id}/watch?delta=${on ? 1 : -1}`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
   }
 
+  /** The deposit checkout on Whop: the Worker makes it; the app opens it in an in-app browser and returns by deep link. */
+  static async depositCheckout(base: string, token: string, redirectUrl: string): Promise<string | null> {
+    const r = await fetch(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ redirectUrl }) });
+    return r.ok ? (await r.json() as { checkoutId: string }).checkoutId : null;
+  }
+
   /** The buyer: a token after the licence is read; the deposit once captured. */
   static async signIn(base: string, id: string, name?: string, state?: string): Promise<string> {
     const r = await fetch(`${base}/me`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, name, state }) });
     return (await r.json() as { token: string }).token;
   }
-  static async deposit(base: string, token: string, paymentIntent?: string): Promise<boolean> {
-    const r = await fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ paymentIntent }) });
+  static async deposit(base: string, token: string, paymentId?: string): Promise<boolean> {
+    const r = await fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ paymentId }) });
     return r.ok;
   }
 }

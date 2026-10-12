@@ -104,3 +104,26 @@ describe('the object', () => {
     expect(lane.find((l: any) => l.id === 'l7')?.max).toBeUndefined();
   });
 });
+
+describe('whop', () => {
+  it('a webhook without a valid signature is refused', async () => {
+    const r = await SELF.fetch(`${base}/webhooks/whop`, { method: 'POST', headers: { 'webhook-id': 'msg_1', 'webhook-timestamp': String(Math.floor(Date.now() / 1000)), 'webhook-signature': 'v1,bad' }, body: '{}' });
+    expect(r.status).toBe(401);
+  });
+  it('a signed payment.succeeded captures the deposit by metadata', async () => {
+    const r0 = await SELF.fetch(`${base}/me`, { method: 'POST', body: JSON.stringify({ id: 'buyer-whop' }) });
+    expect(r0.status).toBe(200);
+    const body = JSON.stringify({ type: 'payment.succeeded', data: { id: 'pay_1', status: 'paid', usd_total: 250, metadata: { kind: 'deposit', buyer: 'buyer-whop' } } });
+    const id = 'msg_2', ts = String(Math.floor(Date.now() / 1000));
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode('test-whop-secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${id}.${ts}.${body}`)));
+    const sig = 'v1,' + btoa(String.fromCharCode(...mac));
+    const r = await SELF.fetch(`${base}/webhooks/whop`, { method: 'POST', headers: { 'webhook-id': id, 'webhook-timestamp': ts, 'webhook-signature': sig, 'content-type': 'application/json' }, body });
+    expect(r.status).toBe(200);
+    const row = await env.DB.prepare('SELECT deposit_status, deposit_ref FROM buyers WHERE id = ?1').bind('buyer-whop').first<{ deposit_status: string; deposit_ref: string }>();
+    expect(row?.deposit_status).toBe('captured'); expect(row?.deposit_ref).toBe('pay_1');
+    // and the same delivery again is a no-op
+    const r2 = await SELF.fetch(`${base}/webhooks/whop`, { method: 'POST', headers: { 'webhook-id': id, 'webhook-timestamp': ts, 'webhook-signature': sig, 'content-type': 'application/json' }, body });
+    expect(r2.status).toBe(200);
+  });
+});
