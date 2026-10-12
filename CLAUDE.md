@@ -4,8 +4,6 @@ Obavia is the phone-first public auction lane: a Texas dealer lets a car the lot
 
 Legacy, not to be expanded: the agency-owner sales product in app/ (app.obavia.co, "sales software for agency owners") and the agency pages on obavia.co (product, owners, pricing, about, team, ads). They stay in the tree until the owner says delete; no new work lands there. The public site's index.html and waitlist.html are the dealer and buyer pages and are live product.
 
-Obavia is sales software for established agency owners earning $100,000 to $1 million per month who run their own sales team. The product connects sales-stage visibility, evidence from conversations, rep actions and owner review. The current offer candidate is $3,000/month; financial outcomes are not guaranteed.
-
 - obavia-co/: public site for obavia.co; index.html is the dealer page, waitlist.html the sign-up; the rest is legacy.
 - app/: legacy agency-owner frontend; frozen.
 - films/: source for product films.
