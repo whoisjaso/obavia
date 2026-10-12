@@ -1,13 +1,16 @@
 # Obavia project context
 
+Obavia is the phone-first public auction lane: a Texas dealer lets a car the lot is losing money on go to an individual on every phone in the state, with the Desk running the paperwork behind it. The buyer sees a price, a time and a name and does one thing; the dealer sets a floor and the lane finds the price. Payments run on Whop; no fee of any kind before Obavia's own GDN (43 TAC §215.85); financial outcomes are not guaranteed. Read docs/plan/obavia-auction-decisions.md, docs/plan/obavia-auction-phases.md, docs/plan/collateral.md, docs/plan/one-action.md and docs/plan/growth/obavia-growth-plan.md before product work.
+
+Legacy, not to be expanded: the agency-owner sales product in app/ (app.obavia.co, "sales software for agency owners") and the agency pages on obavia.co (product, owners, pricing, about, team, ads). They stay in the tree until the owner says delete; no new work lands there. The public site's index.html and waitlist.html are the dealer and buyer pages and are live product.
+
 Obavia is sales software for established agency owners earning $100,000 to $1 million per month who run their own sales team. The product connects sales-stage visibility, evidence from conversations, rep actions and owner review. The current offer candidate is $3,000/month; financial outcomes are not guaranteed.
 
-Read docs/obavia-spec.md, docs/sales-doctrine.md, docs/obavia-positioning.md and docs/plan/roadmap.md before product work. The spec distinguishes frontend, site demonstrations and planned integrations. Read app/CLAUDE.md for application work.
-
-- obavia-co/: public marketing site for obavia.co.
-- app/: Vite/React application frontend for app.obavia.co. Current figures are seeded; integrations and authentication are not operational.
+- obavia-co/: public site for obavia.co; index.html is the dealer page, waitlist.html the sign-up; the rest is legacy.
+- app/: legacy agency-owner frontend; frozen.
 - films/: source for product films.
-- auction/: Expo buyer app for the phone-first public auction (Lane, Bid sheet; local stand-in server). Read docs/plan/obavia-auction-decisions.md and docs/plan/obavia-auction-phases.md first. Payments run on Whop.
+- auction/: the Expo buyer app (Lane, Bid, Car, Won through Plates, Me) and auction/worker/ (the Worker and Durable Objects, D1, R2, Whop, push). The product.
+- desk/: the dealer's Desk (Let It Go, Live, Sold, pickup, the admin cockpit) and every Texas document. The product's other half.
 - deploy/site/: public-site deployment preserving the existing waitlist API, email sender, cron and search content.
 - .claude/agents/: the company's agents, one per workstream (orchestrator, dissect, mirror, researcher-architect, onboarding, marketing, payments, admin, customers, dealers, individuals, paperwork, logistics, frontend, creative-edge, systems). Any task touching more than one area goes through the orchestrator.
 - .claude/skills/emil/: Emil Kowalski's design-engineering skills (animate-expo, animate, apple-design, emil-design-eng, mobile-native, review-animations, improve-animations, find-animation-opportunities, break-ui, animation-performance), vendored under their licence. Frontend work loads taste-skill, then impeccable, then the Emil skill that fits the surface, before touching a screen; the frontend and creative-edge agents say which.
