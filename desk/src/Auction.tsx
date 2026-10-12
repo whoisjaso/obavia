@@ -294,6 +294,8 @@ function Live({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
   const [busy, setBusy] = useState(false);
   const [lowering, setLowering] = useState(false);
   const [newFloor, setNewFloor] = useState('');
+  /* The new-floor field opens at the foot of the page; bring it clear of the dock so the thumb and the keyboard land on it. */
+  useEffect(() => { if (lowering) requestAnimationFrame(() => scrollTo(0, document.documentElement.scrollHeight)); }, [lowering]);
   const total = Math.max(1, lot.closesAt - (link ? Date.parse(link.openedAt) : lot.opensAt));
   const left = Math.max(0, lot.closesAt - Date.now());
   const p = Math.round((1 - left / total) * 100);
