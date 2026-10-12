@@ -107,6 +107,13 @@ describe('the object', () => {
 });
 
 describe('whop', () => {
+  it('the deposit checkout says so plainly when Whop is not configured', async () => {
+    expect(env.WHOP_API_KEY).toBeUndefined();   // the test env carries no key; the shape { checkoutId, url } is typed in whop.ts
+    expect((await SELF.fetch(`${base}/me/deposit/checkout`, { method: 'POST', body: '{}' })).status).toBe(401);
+    const r = await SELF.fetch(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ redirectUrl: 'obavia://deposit' }) });
+    expect(r.status).toBe(503);
+    expect(await r.text()).toBe('payments not configured');
+  });
   it('a webhook without a valid signature is refused', async () => {
     const r = await SELF.fetch(`${base}/webhooks/whop`, { method: 'POST', headers: { 'webhook-id': 'msg_1', 'webhook-timestamp': String(Math.floor(Date.now() / 1000)), 'webhook-signature': 'v1,bad' }, body: '{}' });
     expect(r.status).toBe(401);
@@ -218,5 +225,72 @@ describe('collateral', () => {
     await bid('c3', token, 4500);
     const after = await SELF.fetch(`${base}/lots/c3/car`, { method: 'POST', headers: DEALER, body: JSON.stringify({ collateral: { title: { status: 'hand' }, floor: 4000, insured: true } }) });
     expect(after.status).toBe(409);
+  });
+});
+
+describe('dealer standing', () => {
+  it('the owner suspends a dealer: open is refused; restored, open works; the exposure lists him', async () => {
+    const t = (await (await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn: 'P222222', name: 'Standing Motors' }) })).json<{ token: string }>()).token;
+    const h = { authorization: `Bearer ${t}`, 'content-type': 'application/json' };
+    expect((await SELF.fetch(`${base}/dealers/P222222/suspend`, { method: 'POST', headers: h })).status).toBe(403);   // a dealer cannot suspend
+    const s = await SELF.fetch(`${base}/dealers/P222222/suspend`, { method: 'POST', headers: DEALER });
+    expect(s.status).toBe(200); expect((await s.json<any>()).suspended).toBe(true);
+    const refused = await open('s1', 10 * 60_000, 4900, h);
+    expect(refused.status).toBe(403); expect(await refused.text()).toBe('dealer suspended');
+    const list = await (await SELF.fetch(`${base}/dealers`, { headers: DEALER })).json<any[]>();
+    expect(list.find(d => d.gdn === 'P222222')).toMatchObject({ name: 'Standing Motors', suspended: true, incidents: 0 });
+    expect((await SELF.fetch(`${base}/dealers/P222222/restore`, { method: 'POST', headers: DEALER })).status).toBe(200);
+    expect((await open('s1', 10 * 60_000, 4900, h)).status).toBe(200);
+    const x = await (await SELF.fetch(`${base}/admin/exposure`, { headers: DEALER })).json<any>();
+    expect(x.dealers.find((d: any) => d.gdn === 'P222222')).toMatchObject({ suspended: false, suspended_at: null });
+    expect((await SELF.fetch(`${base}/dealers/P999999/suspend`, { method: 'POST', headers: DEALER })).status).toBe(404);
+    expect((await SELF.fetch(`${base}/dealers`, { headers: h })).status).toBe(403);
+  });
+});
+
+describe('the viewer', () => {
+  it('serves the document page with the tokened PDF and posts to a parent frame', async () => {
+    const r = await SELF.fetch(`${base}/view?u=${encodeURIComponent('/documents/x/guide.pdf')}&token=${encodeURIComponent(token)}`);
+    expect(r.status).toBe(200);
+    expect(r.headers.get('content-type')).toContain('text/html');
+    const html = await r.text();
+    expect(html).toContain('parent.postMessage');
+    expect(html).toContain(`${base}/documents/x/guide.pdf?token=${encodeURIComponent(token)}`);
+  });
+});
+
+describe('the nightly reconciliation', () => {
+  it('finds a copy that differs from the object, repairs it from the object, and says equal the next night', async () => {
+    await open('r1', 10 * 60_000);
+    await bid('r1', token, 5200, 5800);
+    await new Promise(r => setTimeout(r, 60));
+    const row = await env.DB.prepare('SELECT lot FROM lots WHERE id = ?1').bind('r1').first<{ lot: string }>();
+    const good = JSON.parse(row!.lot);
+    expect(good.high).toBe(5200);
+    await env.DB.prepare('UPDATE lots SET lot = ?2 WHERE id = ?1').bind('r1', JSON.stringify({ ...good, high: 9999 })).run();
+
+    expect((await SELF.fetch(`${base}/admin/reconcile`, { method: 'POST', headers: { authorization: `Bearer ${token}` } })).status).toBe(403);
+    const first = await (await SELF.fetch(`${base}/admin/reconcile`, { method: 'POST', headers: DEALER })).json<any>();
+    expect(first.lots_differing).toBe(1);
+    expect(first.differing).toEqual(['r1']);
+    expect(first.equal).toBe(0);
+    expect(first.whop_balance_cents).toBeNull();          // no Whop key in tests: the balance is not read, and the note says so
+    expect(first.note).toMatch(/Whop not configured/);
+    expect(first.deposits_held).toBeGreaterThanOrEqual(1);
+
+    const fixed = JSON.parse((await env.DB.prepare('SELECT lot FROM lots WHERE id = ?1').bind('r1').first<{ lot: string }>())!.lot);
+    expect(fixed.high).toBe(5200);
+    expect(fixed.max).toBe(5800);                          // the object rewrote its own copy: the ceiling and the dealer stay in D1
+    expect(fixed.dealer).toBe('P000000');
+
+    const second = await (await SELF.fetch(`${base}/admin/reconcile`, { method: 'POST', headers: DEALER })).json<any>();
+    expect(second.lots_differing).toBe(0);
+    expect(second.equal).toBe(1);
+    expect(second.lots_checked).toBe(first.lots_checked);
+
+    const x = await (await SELF.fetch(`${base}/admin/exposure`, { headers: DEALER })).json<any>();
+    expect(x.reconciliations.length).toBeGreaterThanOrEqual(2);
+    expect(x.reconciliations[0].id).toBe(second.id);
+    expect(x.reconciliations[1].differing).toEqual(['r1']);
   });
 });

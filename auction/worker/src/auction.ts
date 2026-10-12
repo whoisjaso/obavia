@@ -42,6 +42,10 @@ export class Auction extends DurableObject<Env> {
         lot.car = { ...(lot.car as CarMeta), ...patch } as CarMeta;
         await this.save(lot); this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'bid' }); return json(this.publicLot(lot));
       }
+      case 'POST /copy': {   // the nightly reconciliation: the object rewrites its own D1 copy (not routed by the Worker)
+        if (!lot) return text('no lot', 404);
+        await this.copy(lot); return json(this.publicLot(lot));
+      }
       case 'POST /bids': return this.bid(await req.json<BidRequest>(), Date.now());
       case 'POST /watch': return this.watch(Number(url.searchParams.get('delta') ?? 1));
       case 'POST /close': {   // the dealer ends it now; never earlier than a live bid's refill

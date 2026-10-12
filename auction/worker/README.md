@@ -17,8 +17,12 @@ Cloudflare Worker + one Durable Object per lot. The object runs the same rules a
 | POST | `/lots/:id/void` | dealer or admin | `{ reason }`: the dealer cannot deliver; deposit released, incident counted |
 | PUT | `/lots/:id/photos/:name` | dealer | JPEG or WebP ≤ 12 MB into R2 |
 | PUT | `/lots/:id/documents/:name` | dealer | PDF into R2 (the Buyers Guide at Go) |
-| GET | `/admin/exposure` | admin | deposits held, reserve ratio, sales by state, incidents by dealer, fees owed (0 until GDN) |
+| GET | `/admin/exposure` | admin | deposits held, reserve ratio, sales by state, incidents by dealer, fees owed (0 until GDN), the last seven reconciliations |
+| POST | `/admin/reconcile` | admin | run the nightly reconciliation now → the row (`lots_differing`, `differing`, `deposits_held`, `whop_balance_cents`, `equal`, `note`) |
 | POST | `/dealers` | admin | `{ gdn, name }` → the dealer's key for the Desk |
+| GET | `/dealers` | admin | every dealer: gdn, name, created_at, suspended_at, incidents |
+| POST | `/dealers/:gdn/suspend` | admin | the dealer opens no new lot (403 `dealer suspended`); open lots keep running |
+| POST | `/dealers/:gdn/restore` | admin | clears the suspension |
 | POST | `/lots/:id/bids` | buyer | `{ amount, max, key }` → the ack (`ok`, `youLead`, or `reason`: `closed` with `lateByMs`, `outbid`, `low`) |
 | POST | `/lots/:id/watch?delta=±1` | buyer | watching count |
 | GET | `/lots/:id/live` | buyer | WebSocket: the lot on connect, then every change |
@@ -47,7 +51,13 @@ Point the app at it with `EXPO_PUBLIC_AUCTION_URL=https://obavia-auction.<accoun
 ## The Desk
 Build the Desk with `VITE_AUCTION_API=https://<worker>` and paste the dealer's key (from `POST /dealers`) once on `#/auction/setup`. Let It Go is one question per page: the car, where the title is (and the lender, payoff and release days), photos, six words, insured, how long, the floor; "You'll bring $X. OK?" when the floor is under the payoff; Go uploads the photos and the Buyers Guide and opens the lot. Live shows the ring and the price; Sold shows the buyer's clock, Paid At The Lot, the VIN at pickup, and the way out (void).
 
+**Admin.** The owner's Desk carries the admin key, `d:*.<sig>` (`node -e "const c=require('crypto');console.log('d:*.'+c.createHmac('sha256',process.env.DEALER_SECRET).update('d:*').digest('base64url'))"`), pasted under Lane → Key; the Lane then shows Admin.
+`#/auction/admin` is the exposure report, one number per row, refreshed every 10 s; each dealer row suspends or restores him, and Add A Dealer mints a dealer's key and shows it once.
+
 Local: `.dev.vars` with `BUYER_SECRET`, `DEALER_SECRET`, `DEV=1` (no Whop key: the deposit is admitted without it); `npx wrangler d1 migrations apply obavia-auction --local`; `npx wrangler dev`.
 
+## The nightly reconciliation
+Cron `0 8 * * *` (03:00 Central in daylight time, 02:00 in standard time) runs `src/reconcile.ts`: every lot's D1 copy against its object on high, bids, closesAt, leader, closed and sale; a differing copy is rewritten by the object itself and its id recorded. Deposits held (`captured`) against the Whop USD ledger balance (`GET /ledger_accounts/{WHOP_ACCOUNT_ID}`, settled balance only; pending and reserve are noted, not counted). `equal` is 1 when no copy differed and the balance is unknown or at least $250 × deposits held. One row per run in `reconciliations`.
+
 ## Not yet
-The nightly D1 vs object comparison, the Whop transfer on forfeiture, the out-of-state packet, the Desk admin page.
+The Whop transfer on forfeiture, the out-of-state packet.

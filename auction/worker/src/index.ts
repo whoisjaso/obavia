@@ -7,6 +7,7 @@ import { buyerFrom, dealerFrom, mintBuyerToken, mintDealerToken } from './auth';
 import type { Env } from './env';
 import type { BidRequest } from '../../src/engine/server';
 import { viewerHtml } from './view';
+import { lastReconciliations, reconcile } from './reconcile';
 import { Whop } from './whop';
 export { Auction } from './auction';
 
@@ -25,6 +26,7 @@ function withCors(r: Response): Response {
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> { return withCors(await handle(req, env)); },
+  async scheduled(_c: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> { ctx.waitUntil(reconcile(env).then(() => {})); },
 } satisfies ExportedHandler<Env>;
 
 async function handle(req: Request, env: Env): Promise<Response> {
@@ -78,6 +80,10 @@ async function handle(req: Request, env: Env): Promise<Response> {
           return json({ url: `/${kind}/${id}/${name}` });
         }
         if (req.method !== 'POST') return text('not found', 404);
+        if (rest === '/open' && dealer !== '*') {   // a suspended dealer opens nothing; the master is never suspended
+          const s = await env.DB.prepare('SELECT suspended_at FROM dealers WHERE gdn = ?1').bind(dealer).first<{ suspended_at: number | null }>();
+          if (s?.suspended_at) return text('dealer suspended', 403);
+        }
         const body = await req.text();
         return toObject({ method: 'POST', body, dealer: dealer === '*' ? (rest === '/open' ? (JSON.parse(body || '{}').dealer ?? '*') : '') : dealer });
       }
@@ -99,6 +105,10 @@ async function handle(req: Request, env: Env): Promise<Response> {
       return text('not found', 404);
     }
 
+    // every dealer with standing: incidents counted, suspended or not (collateral.md §6)
+    const dealerRows = async () => (await env.DB.prepare('SELECT d.gdn, d.name, d.created_at, d.suspended_at, (SELECT COUNT(*) FROM incidents i WHERE i.dealer = d.gdn) AS incidents FROM dealers d ORDER BY d.created_at').all<{ gdn: string; name: string; created_at: number; suspended_at: number | null; incidents: number }>()).results
+      .map(d => ({ ...d, suspended: d.suspended_at != null }));
+
     // the owner's view: every dollar and every risk, now (collateral.md §5)
     if (req.method === 'GET' && url.pathname === '/admin/exposure') {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
@@ -112,8 +122,15 @@ async function handle(req: Request, env: Env): Promise<Response> {
         lots: { open: lots.filter(l => !l.closed).length, atLender: lots.filter(l => !l.closed && l.car?.collateral?.title?.status === 'lender').length, floorBelowPayoff: lots.filter(l => !l.closed && (l.car?.collateral?.title?.payoff ?? 0) > (l.car?.collateral?.floor ?? Infinity)).length },
         sales,
         incidentsByDealer: Object.fromEntries(incidents.results.map(i => [i.dealer, i.n])),
+        dealers: await dealerRows(),
         obaviaFeesOwed: 0,   // none until the GDN issues (43 TAC §215.85)
+        reconciliations: await lastReconciliations(env, 7),   // the nightly D1 vs object and Whop vs deposits report
       });
+    }
+    // run the nightly reconciliation now (admin); the cron runs it at 03:00 Central
+    if (req.method === 'POST' && url.pathname === '/admin/reconcile') {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      return json(await reconcile(env));
     }
 
     // dealers: an admin with the secret mints a Desk's token once
@@ -123,6 +140,19 @@ async function handle(req: Request, env: Env): Promise<Response> {
       if (!/^[A-Z0-9]{5,12}$/.test(b.gdn ?? '') || !b.name) return text('bad dealer', 400);
       await env.DB.prepare('INSERT INTO dealers (gdn, name, created_at) VALUES (?1, ?2, ?3) ON CONFLICT(gdn) DO UPDATE SET name = ?2').bind(b.gdn, b.name, Date.now()).run();
       return json({ token: await mintDealerToken(env.DEALER_SECRET, b.gdn) });
+    }
+    if (req.method === 'GET' && url.pathname === '/dealers') {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      return json(await dealerRows());
+    }
+    // standing: the owner suspends or restores a dealer; a suspended dealer cannot open a lot
+    const standing = url.pathname.match(/^\/dealers\/([A-Z0-9]{5,12})\/(suspend|restore)$/);
+    if (req.method === 'POST' && standing) {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const [, gdn, verb] = standing;
+      const r = await env.DB.prepare('UPDATE dealers SET suspended_at = ?2 WHERE gdn = ?1').bind(gdn, verb === 'suspend' ? Date.now() : null).run();
+      if (!r.meta.changes) return text('no such dealer', 404);
+      return json((await dealerRows()).find(d => d.gdn === gdn));
     }
 
     // the buyer: a token once the licence is read; the deposit; the push token
@@ -153,7 +183,7 @@ async function handle(req: Request, env: Env): Promise<Response> {
       if (!whop.ready) return text('payments not configured', 503);
       const b = await req.json<{ redirectUrl?: string }>();
       const c = await whop.createDepositCheckout(buyer, DEPOSIT_USD, b.redirectUrl ?? 'obavia://deposit');
-      return json({ checkoutId: c.id });
+      return json({ checkoutId: c.id, url: c.purchase_url });
     }
     if (req.method === 'POST' && url.pathname === '/me/deposit') {
       const buyer = await buyerFrom(req, env.BUYER_SECRET);
