@@ -1,7 +1,8 @@
 /* ============================================================
    OBAVIA · shared page engine
    Sound, sky, reveals, counters, the funnel line, scroll scenes,
-   the mobile menu and page transitions. No libraries.
+   the mobile menu and page transitions. Motion runs on GSAP
+   (vendored) when it is present; everything works without it.
    ============================================================ */
 (() => {
 const OBV = window.OBV = window.OBV || {};
@@ -15,7 +16,7 @@ const eo = k => 1-Math.pow(1-k,3);
 const eio = k => k<.5 ? 4*k*k*k : 1-Math.pow(-2*k+2,3)/2;
 const lerp = (a,b,k) => a+(b-a)*k;
 const $ = (s,c=document) => c.querySelector(s), $$ = (s,c=document) => [...c.querySelectorAll(s)];
-Object.assign(OBV, {clamp, ramp, eo, eio, lerp, REDUCED});
+Object.assign(OBV, {clamp, ramp, eo, eio, lerp, REDUCED, HOST});
 
 /* ============================================================
    SOUND: synthesized, no files. Air, glass, breath.
@@ -159,15 +160,79 @@ function split(el){
 }
 $$('[data-split]').forEach(split);
 
+// the state change every reveal carries, with or without motion: .in, the air, 'revealed'
+const shown = el => { if(el.classList.contains('in')) return; el.classList.add('in');
+  if(el.matches('.head,[data-air]')) S.air(); el.dispatchEvent(new Event('revealed')); };
 const io = 'IntersectionObserver' in window ? new IntersectionObserver(es=>{
-  for(const e of es){ if(!e.isIntersecting) continue;
-    const el=e.target; el.classList.add('in'); io.unobserve(el);
-    if(el.matches('.head,[data-air]')) S.air();
-    el.dispatchEvent(new Event('revealed')); }
+  for(const e of es){ if(!e.isIntersecting) continue; io.unobserve(e.target); shown(e.target); }
 },{threshold:.16, rootMargin:'0px 0px -6% 0px'}) : null;
-OBV.reveal = el => io ? io.observe(el) : (el.classList.add('in'), el.dispatchEvent(new Event('revealed')));
-if(!HOST) $$('[data-reveal],[data-split]').forEach(OBV.reveal);
-else $$('[data-split]').forEach(OBV.reveal);
+OBV.reveal = el => io ? io.observe(el) : shown(el);
+const G = window.gsap, ST = window.ScrollTrigger;
+if(G && ST) motion();                                  // GSAP owns entrances (below)
+else if(!HOST) $$('[data-reveal],[data-split]').forEach(OBV.reveal);
+else { $$('[data-split]').forEach(OBV.reveal); root.classList.remove('o-pre'); }
+
+/* ============================================================
+   MOTION (GSAP 3.15, vendored in assets/vendor/gsap)
+   One entrance per page, held until the mark has landed
+   ('o:reveal'). Below it, each block rises once as it arrives.
+   Content stays visible until this runs. Transform and opacity
+   only. Reduced motion keeps every state change (.in,
+   'revealed') and drops the movement.
+   ============================================================ */
+function motion(){
+  G.registerPlugin(ST);
+  ST.config({ignoreMobileResize:true});
+  root.classList.add('gs');
+  const OUT = 'expo.out';                                  // = the house --out, cubic-bezier(.16,1,.3,1)
+  const media = el => el.matches('figure,.film,.lesson,.card,.plan,.thread,article,.need,.rp');
+  const landed = fn => (window.OSHELL && OSHELL.revealed) ? fn() : addEventListener('o:reveal', fn, {once:true});
+  // the hero: index uses [data-r] in .hero; every other page, its first section
+  const hero = HOST ? $('.hero') : $('main > section:first-child');
+  const inHero = el => !!hero && hero.contains(el);
+  const heroWords = hero ? $$('[data-split] .w', hero) : [];
+  const heroSplit = hero ? $$('[data-split]', hero) : [];
+  const heroBlocks = hero ? $$(HOST ? '[data-r]' : '[data-reveal]', hero) : [];
+  // below the hero: index reveals each .copy as one block, not line by line
+  const units = [...new Set($$(HOST ? '[data-r]' : '[data-reveal],[data-split]').filter(el=>!inHero(el)).map(el=>HOST ? (el.closest('.copy') || el) : el))];
+  const rise = el => media(el) ? 32 : 18;
+
+  G.matchMedia().add({go:'(prefers-reduced-motion: no-preference)', still:'(prefers-reduced-motion: reduce)'}, ctx => {
+    const {go} = ctx.conditions;
+    if(!go){                                              // still: everything in place, state changes on arrival
+      landed(()=>[...heroSplit, ...heroBlocks].forEach(shown));
+      if(units.length) ST.batch(units, {start:'top 92%', once:true, onEnter:b=>b.forEach(shown)});
+      root.classList.remove('o-pre');
+      return;
+    }
+    // hero: words rise as one line of type, then the rest follows on the same curve
+    G.set(heroWords, {opacity:0, yPercent:42});
+    G.set(heroBlocks, {opacity:0, y:i=>'+='+rise(heroBlocks[i]), scale:i=>media(heroBlocks[i])?.97:1, transition:'none'});
+    root.classList.remove('o-pre');
+    ctx.add('land', ()=>{                                // recorded in the context, so a preference change reverts it
+      [...heroSplit, ...heroBlocks].forEach(shown);
+      const tl = G.timeline({defaults:{ease:OUT, duration:.9}});
+      if(heroWords.length) tl.to(heroWords, {opacity:1, yPercent:0, duration:.8, stagger:{amount:Math.min(.32, heroWords.length*.04)}, clearProps:'opacity,transform'});
+      if(heroBlocks.length) tl.to(heroBlocks, {opacity:1, y:i=>'-='+rise(heroBlocks[i]), scale:1, stagger:.07, clearProps:'opacity,transform,transition'}, heroWords.length ? .22 : 0);
+    });
+    landed(()=>ctx.land());
+    // the rest: each block rises once, a short stagger when several arrive together
+    if(units.length){
+      G.set(units, {opacity:0, y:i=>'+='+rise(units[i]), scale:i=>media(units[i])?.97:1, transition:'none'});
+      ST.batch(units, {start:'top 90%', once:true, onEnter:batch=>{
+        batch.forEach(shown);
+        G.to(batch, {opacity:1, y:i=>'-='+rise(batch[i]), scale:1, duration:.75, ease:OUT, stagger:.06, overwrite:'auto', clearProps:'opacity,transform,transition'});
+      }});
+    }
+    // index: the bill of sale reads itself top to bottom as its section passes
+    const doc = HOST && $('.sheet .clip img');
+    if(doc){
+      const clip = doc.parentElement;
+      G.to(doc, {y:()=>Math.min(0, clip.clientHeight - doc.offsetHeight), ease:'power1.inOut',
+        scrollTrigger:{trigger:clip, start:'top 70%', end:'bottom 30%', scrub:.6, invalidateOnRefresh:true}});
+    }
+  });
+}
 OBV.onReveal = (el,fn,th=.35) => {
   if(!('IntersectionObserver' in window)) return fn();
   const o = new IntersectionObserver(es=>{ if(es[0].isIntersecting){ o.disconnect(); fn(); } },{threshold:th}); o.observe(el);
@@ -388,5 +453,5 @@ function frame(now){
   for(const F of FUNNELS) F.frame(now);
   for(const f of OBV.frame) f(now);
 }
-requestAnimationFrame(frame);
+if(!HOST) requestAnimationFrame(frame);   // the home page runs no funnels or scenes; no idle loop there
 })();

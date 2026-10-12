@@ -168,10 +168,12 @@ body.leaving main,body.leaving .foot{opacity:0;transform:translateY(-10px);filte
 .fnl.compact .hp span{font-size:9.5px}
 
 /* ---------- motion primitives ---------- */
-.js [data-reveal]{opacity:0;transform:translateY(30px);transition:opacity 1.1s var(--ease) var(--d,0s),transform 1.2s var(--ease) var(--d,0s),filter 1.1s var(--ease) var(--d,0s);filter:blur(6px)}
-.js [data-reveal].in{opacity:1;transform:none;filter:none}
-.js [data-split] .w{display:inline-block;opacity:0;transform:translateY(.42em);filter:blur(8px);transition:opacity .9s var(--ease),transform 1.1s var(--ease),filter .9s var(--ease);transition-delay:calc(var(--d,0s) + var(--i)*.055s)}
-.js [data-split].in .w{opacity:1;transform:none;filter:none}
+/* With GSAP loaded (html.gs) site.js owns these entrances; the CSS below is the fallback. */
+.js [data-split] .w{display:inline-block}
+.js:not(.gs) [data-reveal]{opacity:0;transform:translateY(30px);transition:opacity 1.1s var(--ease) var(--d,0s),transform 1.2s var(--ease) var(--d,0s),filter 1.1s var(--ease) var(--d,0s);filter:blur(6px)}
+.js:not(.gs) [data-reveal].in{opacity:1;transform:none;filter:none}
+.js:not(.gs) [data-split] .w{opacity:0;transform:translateY(.42em);filter:blur(8px);transition:opacity .9s var(--ease),transform 1.1s var(--ease),filter .9s var(--ease);transition-delay:calc(var(--d,0s) + var(--i)*.055s)}
+.js:not(.gs) [data-split].in .w{opacity:1;transform:none;filter:none}
 .scrolly{position:relative}
 .sticky{position:sticky;top:0;height:100vh;height:100svh;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 .sticky>.wrap{width:100%}

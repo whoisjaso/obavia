@@ -61,7 +61,7 @@ const crossDoc = 'onpagereveal' in window;          // the browser cross-fades d
 if (!crossDoc && !REDUCED) html.classList.add('o-fade');
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href]');
-  if (a && (a.closest('.o-nav,.o-sheet') || a.classList.contains('btn') || a.classList.contains('more') || a.classList.contains('pill'))) { OS.haptic(); if (!window.OBV) OS.tone(1900, .012, .09); }
+  if (a && (a.closest('.o-nav,.o-sheet') || a.classList.contains('btn') || a.classList.contains('more') || a.classList.contains('pill'))) { OS.haptic(); if (!window.OBV || OBV.HOST) OS.tone(1900, .012, .09); }
   if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target) return;
   const url = new URL(a.href, location.href);
   if (url.origin !== location.origin) return;

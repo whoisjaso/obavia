@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="o-home">
+<html lang="en" class="o-home" data-host="home">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -17,7 +17,7 @@
 <link rel="preload" as="image" href="sky/w0.webp">
 <link rel="stylesheet" href="shell.css">
 <link rel="stylesheet" href="cloud.css">
-<script>(function(){var h=document.documentElement;try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
+<script>(function(){var h=document.documentElement;h.className+=' o-pre';try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
 <style>
 :root{--ink:#1C2436;--body:#4B5468;--muted:#6B7385;--navy:#28344F;--tint:#4E6AA8;--deep:#7D97C7;--line:rgba(28,36,54,.08);--card:rgba(255,255,255,.82);
   --sans:'Manrope','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.2,.7,.2,1);--out:cubic-bezier(.16,1,.3,1);--spring:cubic-bezier(.32,.72,0,1)}
@@ -44,9 +44,10 @@ p{margin:0}
 .more:hover .ico{transform:translateX(3px)}
 :focus-visible{outline:2.5px solid var(--tint);outline-offset:3px;border-radius:12px}
 
-/* reveal */
-[data-r]{opacity:0;transform:translateY(22px);transition:opacity .9s var(--out),transform 1s var(--out);transition-delay:var(--d,0s)}
-[data-r].in{opacity:1;transform:none}
+/* reveal: GSAP in site.js. Content is visible by default; only the hero waits
+   (html.o-pre, set in the head) for its entrance, with a failsafe if scripts never run. */
+html.o-pre .hero [data-r]{opacity:0;animation:o-pre-safe 0s 6s forwards}
+@keyframes o-pre-safe{to{opacity:1}}
 
 /* hero */
 .hero{padding:clamp(120px,16vh,170px) 0 40px;text-align:center}
@@ -63,9 +64,12 @@ p{margin:0}
 
 /* facts */
 .facts{padding:clamp(56px,8vw,90px) 0 10px}
-.facts .row{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.facts .row{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
 .facts .row>div{padding:26px 26px 24px;border-radius:24px;background:var(--card);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 20px 50px -34px rgba(40,52,79,.4)}
+.facts .row>div:first-child{grid-row:span 2;display:flex;flex-direction:column;justify-content:flex-end;padding:34px 34px 32px}
 .facts b{display:block;font:800 clamp(38px,4vw,50px)/1 var(--sans);letter-spacing:-.04em;color:var(--navy)}
+.facts .row>div:first-child b{font-size:clamp(56px,6.4vw,88px)}
+.facts .row>div:first-child span{max-width:380px;font-size:17px}
 .facts span{display:block;margin-top:10px;font:500 15.5px/1.5 var(--sans);color:var(--body)}
 
 /* features */
@@ -81,7 +85,8 @@ p{margin:0}
 .sheet{margin:0;padding:clamp(18px,2.4vw,28px);border-radius:32px;background:linear-gradient(160deg,rgba(255,255,255,.75),rgba(226,234,253,.75));box-shadow:0 50px 100px -56px rgba(28,36,54,.5),0 0 0 1px rgba(255,255,255,.9) inset}
 .sheet .clip{height:min(640px,78vh);overflow:hidden;border-radius:10px;box-shadow:0 30px 60px -36px rgba(28,36,54,.45),0 0 0 1px rgba(28,36,54,.06);-webkit-mask-image:linear-gradient(#000 82%,transparent);mask-image:linear-gradient(#000 82%,transparent)}
 .sheet img{width:100%;height:auto;transition:transform 5s cubic-bezier(.45,0,.25,1)}
-.sheet:hover img{transform:translateY(calc(-100% + min(640px,78vh)))}
+@media (hover:hover) and (pointer:fine){html:not(.gs) .sheet:hover img{transform:translateY(calc(-100% + min(640px,78vh)))}}
+html.gs .sheet img{transition:none}
 
 /* lessons */
 .lessons{padding:clamp(70px,10vw,120px) 0}
@@ -107,7 +112,11 @@ p{margin:0}
 .next .copy{max-width:720px;margin-inline:auto}
 .next .copy p{margin-top:16px;font:500 18px/1.55 var(--sans);color:var(--body)}
 .next .kick::before{background:#9AA1B0}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:44px}
+.cards article:first-child{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;column-gap:22px;align-items:start}
+.cards article:first-child .ic{grid-row:span 2}
+.cards article:first-child h3{margin-top:4px}
+.cards article:first-child p{max-width:560px}
 .cards article{padding:30px 28px;border-radius:26px;background:var(--card);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 24px 60px -40px rgba(40,52,79,.45);transition:transform .45s var(--spring),box-shadow .4s var(--ease)}
 .cards article:hover{transform:translateY(-4px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 34px 70px -40px rgba(40,52,79,.55)}
 .cards .ic{display:grid;place-items:center;width:52px;height:52px;border-radius:15px;background:#EEF3FF;color:var(--navy)}
@@ -135,6 +144,10 @@ p{margin:0}
   .flip .copy{order:0}
   .feat .copy{max-width:620px}
   .facts .row,.cards{grid-template-columns:1fr}
+  .facts .row>div:first-child{grid-row:auto;padding:26px 26px 24px}
+  .facts .row>div:first-child b{font-size:clamp(38px,4vw,50px)}
+  .facts .row>div:first-child span{font-size:15.5px}
+  .cards article:first-child{display:block}
   .loop{max-width:520px;width:100%;margin-inline:auto}
   .sheet{max-width:560px;width:100%;margin-inline:auto}
 }
@@ -146,7 +159,7 @@ p{margin:0}
   .feat .copy p,.next .copy p{font-size:17px}
 }
 @media (prefers-reduced-motion:reduce){
-  [data-r]{opacity:1;transform:none;transition:none}
+  html.o-pre .hero [data-r]{opacity:1;animation:none}
   .btn,.more .ico,.cards article,.sheet img,.snd{transition:none}
   .sheet:hover img{transform:none}
 }
@@ -336,17 +349,16 @@ p{margin:0}
   </div>
 </footer>
 
+<script src="assets/vendor/gsap/gsap.min.js"></script>
+<script src="assets/vendor/gsap/ScrollTrigger.min.js"></script>
+<script src="site.js"></script>
 <script>
 (() => {
 'use strict';
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* reveal on scroll; the hero waits for the mark's entrance */
-const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -10% 0px' });
-$$('[data-r]').forEach(el => { if (!el.closest('.hero')) io.observe(el); });
-const revealHero = () => $$('.hero [data-r]').forEach(el => el.classList.add('in'));
-window.OSHELL && OSHELL.revealed ? revealHero() : addEventListener('o:reveal', revealHero, { once: true });
+/* entrances and reveals run in site.js (GSAP); the hero waits for the mark's entrance */
 
 /* the film plays silently on its own; sound is one tap. Reduced motion: it waits for a tap. */
 const v = $('#filmV'), snd = $('#snd');
