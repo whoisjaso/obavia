@@ -11,3 +11,6 @@ expo-env.d.ts
 *.mobileprovision
 .DS_Store
 shots/
+worker/node_modules/
+worker/.wrangler/
+worker/.dev.vars

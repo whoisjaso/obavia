@@ -17,7 +17,7 @@ import { inLastTwoMinutes, increment, needsHold, nextBid, roll } from '../engine
 import { dollars, outTheDoor } from '../engine/money';
 import type { Ack, Lot } from '../engine/server';
 import { feel } from '../feel';
-import { DEPOSIT, ME, getServer, once } from '../store';
+import { DEPOSIT, ME, captureDeposit, getServer, once } from '../store';
 import { theme } from '../theme';
 
 const STEP_PT = 28;
@@ -63,7 +63,9 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     if (!once.deposit) { setPhase('deposit'); return; }
     setPhase('inflight'); setStamp(null);
     const key = `${ME}-${car.id}-${Date.now()}`;
-    const ack: Ack = await getServer().bid({ lotId: car.id, bidder: ME, amount, max: ceiling, key });
+    let ack: Ack;
+    try { ack = await getServer().bid({ lotId: car.id, bidder: ME, amount, max: ceiling, key }); }
+    catch { setPhase('arming'); feel.rejected(); return; }
     if (ack.ok) {
       setPhase('landed'); setPunch(Date.now()); feel.landed();
       setTimeout(feel.lead, 150);   // you are the high bidder
@@ -79,7 +81,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     }
   };
 
-  const confirmDeposit = () => { once.deposit = true; setLand(Date.now()); feel.touch(); setPhase('arming'); setTimeout(place, 200); };
+  const confirmDeposit = async () => { const ok = await captureDeposit(); if (!ok) { feel.rejected(); setPhase('arming'); return; } setLand(Date.now()); feel.touch(); setPhase('arming'); setTimeout(place, 200); };
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">

@@ -1,0 +1,23 @@
+name = "obavia-auction"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+DEV = "0"
+
+[[durable_objects.bindings]]
+name = "AUCTION"
+class_name = "Auction"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Auction"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "obavia-auction"
+database_id = "replace-with-the-id-wrangler-prints"
+migrations_dir = "migrations"
+
+# Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, STRIPE_SECRET

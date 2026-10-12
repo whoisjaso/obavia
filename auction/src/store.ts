@@ -1,31 +1,72 @@
-/* The app's one connection to the auction. Today a local stand-in for the
-   Durable Object; the hook's shape is the Worker's shape. */
+/* The app's one connection to the auction. With EXPO_PUBLIC_AUCTION_URL set
+   it is the Worker and its Durable Objects (worker/); without it, a local
+   stand-in with the same surface, so the screens never know which. */
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { seedLots } from './data/cars';
-import { LocalAuctionServer, type Lot } from './engine/server';
+import { RemoteAuctionServer } from './engine/client';
+import { LocalAuctionServer, type Ack, type BidRequest, type Event, type Lot } from './engine/server';
 
-export const ME = 'me';
 export const DEPOSIT = 250;
+export const AUCTION_URL = (process.env.EXPO_PUBLIC_AUCTION_URL ?? '').replace(/\/$/, '');
 
-let server: LocalAuctionServer | undefined;
-export function getServer() {
+/** The buyer's id on the server; locally, just "me". */
+export let ME = 'me';
+let token: string | null = null;
+export const buyerToken = () => token;
+
+export type AuctionServer = {
+  subscribe(fn: (e: Event) => void): () => void;
+  get(id: string): Lot; all(): Lot[];
+  bid(req: BidRequest): Promise<Ack>;
+};
+
+let server: AuctionServer | undefined;
+export function getServer(): AuctionServer {
+  if (!server && AUCTION_URL) {
+    // the real thing: sign in with a device-stable id, then the lane and a socket per lot
+    ME = `b-${deviceId()}`;
+    const remote = new RemoteAuctionServer(AUCTION_URL, buyerToken);
+    server = remote;
+    RemoteAuctionServer.signIn(AUCTION_URL, ME, me.name, 'TX').then(t => { token = t; remote.start(); }).catch(() => { remote.start(); });
+    return server;
+  }
   if (!server) {
     const lots = seedLots(Date.now());
     const closeIn = Number((globalThis as { location?: { search?: string } }).location?.search?.match(/closeIn=(\d+)/)?.[1]);
     const search = (globalThis as { location?: { search?: string } }).location?.search ?? '';
     const lag = Number(search.match(/lag=(\d+)/)?.[1]);
     if (closeIn > 0) lots[0].closesAt = Date.now() + closeIn;   // preview only: watch a close
-    server = new LocalAuctionServer(lots, undefined, lag > 0 ? () => lag : undefined).start();
+    const local = new LocalAuctionServer(lots, undefined, lag > 0 ? () => lag : undefined).start();
     if (/[?&]win=1/.test(search)) {   // preview only: the hammer falls 2.5 s after my first bid
-      const srv = server;
-      const off = srv.subscribe(e => { if (e.kind === 'bid' && e.lot.leader === ME) { srv.closeSoon(e.lotId, 2500); off(); } });
+      const off = local.subscribe(e => { if (e.kind === 'bid' && e.lot.leader === ME) { local.closeSoon(e.lotId, 2500); off(); } });
     }
     // rivals so the demo lane breathes: one refill on the Altima, one on the Fusion
-    server.scheduleRival('altima', 25_000, 5400, 'r3');
-    server.scheduleRival('altima', 55_000, 5700, 'r4');
-    server.scheduleRival('fusion', 40_000, 3500, 'r5');
+    local.scheduleRival('altima', 25_000, 5400, 'r3');
+    local.scheduleRival('altima', 55_000, 5700, 'r4');
+    local.scheduleRival('fusion', 40_000, 3500, 'r5');
+    server = local;
   }
-  return server;
+  return server!;
+}
+
+/** The deposit: locally a flag; on the server a captured Stripe PaymentIntent (DEV admits without one). */
+export async function captureDeposit(paymentIntent?: string): Promise<boolean> {
+  if (!AUCTION_URL) { once.deposit = true; return true; }
+  if (!token) return false;
+  const ok = await RemoteAuctionServer.deposit(AUCTION_URL, token, paymentIntent);
+  if (ok) once.deposit = true;
+  return ok;
+}
+
+/** A stable id for this install until sign-in exists. */
+function deviceId(): string {
+  const g = globalThis as { localStorage?: Storage };
+  try {
+    const k = 'obavia.device';
+    let v = g.localStorage?.getItem(k);
+    if (!v) { v = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10); g.localStorage?.setItem(k, v); }
+    return v;
+  } catch { return Math.random().toString(36).slice(2, 18); }
 }
 
 /** Live lots and a 4 Hz clock, from the server's own events. */
@@ -53,6 +94,7 @@ export function toggleWatch(id: string): boolean {
   const on = !watched.includes(id);
   watched = on ? [...watched, id] : watched.filter(w => w !== id);
   for (const f of watchSubs) f();
+  if (server instanceof RemoteAuctionServer) void server.watch(id, on);
   return on;
 }
 export const isWatched = (id: string) => watched.includes(id);
