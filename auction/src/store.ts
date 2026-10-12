@@ -45,9 +45,11 @@ export function getServer(): AuctionServer {
       const off = local.subscribe(e => { if (e.kind === 'bid' && e.lot.leader === ME) { local.closeSoon(e.lotId, 2500); off(); } });
     }
     // rivals so the demo lane breathes: one refill on the Altima, one on the Fusion
-    local.scheduleRival('altima', 25_000, 5400, 'r3');
-    local.scheduleRival('altima', 55_000, 5700, 'r4');
-    local.scheduleRival('fusion', 40_000, 3500, 'r5');
+    if (lots.length === 3 && lots[0].high < 5400) {   // the seeded lane only, not the break-ui fixtures
+      local.scheduleRival('altima', 25_000, 5400, 'r3');
+      local.scheduleRival('altima', 55_000, 5700, 'r4');
+      local.scheduleRival('fusion', 40_000, 3500, 'r5');
+    }
     server = local;
   }
   return server!;
@@ -118,4 +120,4 @@ export function toggleWatch(id: string): boolean {
 export const isWatched = (id: string) => watched.includes(id);
 
 /** The buyer, until sign-in exists: the name the licence read, or nothing. */
-export const me = { name: 'Marisol Treviño', lastOpened: Date.now() - 26 * 3_600_000 };   // demo: away more than a day, so the first ring gets the heartbeat
+export const me = { name: /[?&]data=worst/.test((globalThis as { location?: { search?: string } }).location?.search ?? '') ? 'Maximiliano Echeverría-Ortiz' : 'Marisol Treviño', lastOpened: Date.now() - 26 * 3_600_000 };   // demo: away more than a day, so the first ring gets the heartbeat

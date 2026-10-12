@@ -10,6 +10,7 @@ import { buildGuideSteps, ID_FIELDS, nextOpenStep, type IdKey, type Sale } from 
 import { saleReceipt } from './Sheet';
 import { getSale, mergeStep, setLanguage, setVehicleTitle, useStore } from './store';
 import { Back, Choice, Ic, backward, feel, go, transition } from './ui';
+import { Ring } from './motion';
 
 export const stepRoute = (id: string, key: string) =>
   key.startsWith('document:') ? `/sale/${id}/paper/${key.slice(9)}` : key === 'packet' ? `/sale/${id}/packet` : `/sale/${id}/guide/${encodeURIComponent(key)}`;
@@ -56,7 +57,7 @@ export function Desk({ id }: { id: string }) {
     <main className="wrap center">
       <div className="top"><Back to="#/" label="Sales" /></div>
       <section className="enter" key="sale">
-        <span className="ring big" style={{ ['--p' as string]: Math.round((done / steps.length) * 100) }}><span className="num">{done}/{steps.length}</span></span>
+        <Ring className="ring big" p={Math.round((done / steps.length) * 100)} remember={`sale:${id}`}><span className="num">{done}/{steps.length}</span></Ring>
         <h1 className="q">{s.buyer.fullName}</h1>
         <p className="note">{s.vehicle.year} {s.vehicle.make} {s.vehicle.model}</p>
         {nx && <p className="next-up">Next: {nx.question}</p>}

@@ -124,8 +124,11 @@ export function wholesaleBand(retail: number, grade: number[]): { low: number; h
   const mid = retail * (0.62 + 0.16 * g);
   return { low: Math.round(mid * 0.94 / 50) * 50, high: Math.round(mid * 1.06 / 50) * 50 };
 }
-/** Every week on the lot costs: floorplan interest, insurance, the space. $35 a day is the industry's round number; the dealer's own figure replaces it. */
-export const holdingCost = (days: number, perDay = 35) => days * perDay;
+/** What one more day on the lot costs on this car: floorplan interest and fees plus the value it loses, about 0.1% of
+    the car's value per day (AFC 10-K 18.1% all-in; Manheim index; docs/plan/research/holding-cost.md). The old flat
+    $35 a day was a dealership's whole overhead spread over every car, not the marginal cost of one. */
+export const HOLDING_RATE_PER_DAY = 0.001;
+export const holdingCost = (days: number, value: number, rate = HOLDING_RATE_PER_DAY) => Math.round(days * value * rate);
 /** The floor is the net the dealer walks away with; the hammer the buyer sees is the floor plus nothing (zero premium). */
 export function youGetYouBring(floor: number, payoff: number) {
   const net = floor - payoff;

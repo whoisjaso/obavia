@@ -39,6 +39,7 @@ function Watch({ car, id, lot, now, first, onOpen }: { car: Car; id: string; lot
   const spin = useSharedValue(first ? 0 : 1);
   useEffect(() => { if (first) { spin.value = reduce ? withTiming(1, { duration: 200, easing: EASE_OUT }) : withSpring(1, spring.snap); feel.heartbeat(); } }, []);
   const unwatch = () => toggleWatch(id);
+  // a swipe that ends on the row is not a tap: a press that arrives while the row is off its rest is ignored
   // swipe left to let it go: grabbed mid-return it takes over from where it is; right is rubber-banded;
   // a flick or a third of the width commits, and the row leaves at the finger's speed. Silent: neutral.
   const pan = Gesture.Pan().activeOffsetX([-12, 12]).failOffsetY([-10, 10])
@@ -57,7 +58,7 @@ function Watch({ car, id, lot, now, first, onOpen }: { car: Car; id: string; lot
   return (
     <GestureDetector gesture={pan}>
       <Animated.View style={[s.watch, style]} layout={LinearTransition.duration(200).easing(EASE_OUT)}>
-        <Pressable onPress={() => { feel.select(); onOpen(); }} style={s.watchHit} accessibilityRole="button" accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${dollars(lot.high)} dollars${mine ? ', you lead' : ''}`} accessibilityHint="Swipe left to stop watching">
+        <Pressable onPress={() => { if (Math.abs(x.value) > 4) return; feel.select(); onOpen(); }} style={s.watchHit} accessibilityRole="button" accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${dollars(lot.high)} dollars${mine ? ', you lead' : ''}`} accessibilityHint="Swipe left to stop watching">
           <Animated.View style={ringStyle}>
             <Ring size={64} stroke={4} progress={remaining(lot, now)} blue={inLastTwoMinutes(lot.closesAt, now)} grey={!!lot.closed || lot.closesAt <= now} />
           </Animated.View>

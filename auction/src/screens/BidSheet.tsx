@@ -158,7 +158,10 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
 
               <View style={s.foot}>
                 <BidButton phase={phase} hold={hold} disabled={closed || phase === 'rejected'} onBid={place} />
-                {landKey !== undefined && <Landing animate={landKey > 0}><Label style={{ marginTop: theme.space.s, alignSelf: 'center' }}>${DEPOSIT} held · back if you lose</Label></Landing>}
+                {/* the line's room is always kept, so the button never moves under the thumb when it lands */}
+                <View style={s.depositRoom}>
+                  {landKey !== undefined && <Landing animate={landKey > 0}><Label style={{ alignSelf: 'center' }}>${DEPOSIT} held · back if you lose</Label></Landing>}
+                </View>
               </View>
             </>
           )}
@@ -266,6 +269,7 @@ const s = StyleSheet.create({
   ceilText: { ...theme.type.sans, fontSize: 15, color: theme.color.faint, fontVariant: ['tabular-nums'] },
   ceilTextOn: { color: theme.color.ink, ...theme.type.sansBold },
   ceilMark: { width: 16, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 5 },
+  depositRoom: { height: 30, justifyContent: 'flex-end' },
   foot: { marginTop: 'auto', alignSelf: 'stretch', alignItems: 'stretch' },
   btn: { alignSelf: 'stretch', height: 56, borderRadius: 4, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   btnOff: { opacity: 0.4 },

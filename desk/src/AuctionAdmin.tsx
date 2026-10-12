@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { auctionLive, getExposure, isAdminKey, mintDealer, restoreDealer, suspendDealer, type DealerRow, type Exposure, type SaleState } from './lib/auction';
 import { usd } from './lib/money';
 import { Back, Ic, feel, transition } from './ui';
+import { Count } from './motion';
 
 const DEPOSIT_USD = 250;
 const STATES: { s: SaleState; label: string; gloss: string }[] = [
@@ -18,6 +19,10 @@ const STATES: { s: SaleState; label: string; gloss: string }[] = [
 ];
 const SAID: Record<string, string> = { offline: 'The lane is out of reach.', 'no key': 'Paste the admin key first.', 'admin only': 'This key is a dealer’s key.', 'bad dealer': 'The GDN is 5 to 12 capital letters or digits, and the name is required.', 'no such dealer': 'That dealer is not on file.' };
 const say = (reason: string) => SAID[reason] ?? `The lane said no: ${reason}.`;
+/* Figures count to a new value on a refresh only when they changed, and lift once so the eye finds them. */
+const whole = (n: number) => Math.round(n).toLocaleString('en-US');
+const ratio = (n: number) => n.toFixed(2);
+const dollars = (n: number) => usd(Math.round(n));
 
 export function AuctionAdmin() {
   if (!auctionLive) return <OneLine line="The lane is not connected." />;
@@ -62,27 +67,27 @@ function Cockpit() {
         {x && <>
           <p className="note" style={{ marginTop: 28 }}>Deposits</p>
           <div className="group">
-            <div className="row"><span className="t"><b>Deposits held</b><small>Buyers admitted to bid</small></span><span className="v num">{x.deposits.heldCount.toLocaleString('en-US')}</span></div>
-            <div className="row"><span className="t"><b>Dollars held</b><small>{x.deposits.heldCount.toLocaleString('en-US')} × {usd(DEPOSIT_USD)}, in the Whop balance</small></span><span className="v num">{usd(x.deposits.heldUsd)}</span></div>
-            <div className="row"><span className="t"><b>Reserve ratio</b><small>Held dollars over owed deposits. 1.00 expected.</small></span><span className="v num" style={ratioOk ? undefined : { color: 'var(--red)' }}>{x.deposits.reserveRatio.toFixed(2)}</span></div>
+            <div className="row"><span className="t"><b>Deposits held</b><small>Buyers admitted to bid</small></span><Count pulse className="v num" value={x.deposits.heldCount} format={whole} /></div>
+            <div className="row"><span className="t"><b>Dollars held</b><small>{x.deposits.heldCount.toLocaleString('en-US')} × {usd(DEPOSIT_USD)}, in the Whop balance</small></span><Count pulse className="v num" value={x.deposits.heldUsd} format={dollars} /></div>
+            <div className="row"><span className="t"><b>Reserve ratio</b><small>Held dollars over owed deposits. 1.00 expected.</small></span><Count pulse className="v num" style={ratioOk ? undefined : { color: 'var(--red)' }} value={x.deposits.reserveRatio} format={ratio} /></div>
           </div>
           {!ratioOk && <p className="note" style={{ color: 'var(--red)' }}>The reserve is not 1.00. Stop opening lots and reconcile the Whop balance today.</p>}
 
           <p className="note" style={{ marginTop: 28 }}>Lots</p>
           <div className="group">
-            <div className="row"><span className="t"><b>Open</b></span><span className="v num">{x.lots.open}</span></div>
-            <div className="row"><span className="t"><b>Title at a lender</b><small>Open lots waiting on a lien release</small></span><span className="v num">{x.lots.atLender}</span></div>
-            <div className="row"><span className="t"><b>Floor below payoff</b><small>The dealer brings the difference at sale</small></span><span className="v num" style={x.lots.floorBelowPayoff ? { color: 'var(--warn)' } : undefined}>{x.lots.floorBelowPayoff}</span></div>
+            <div className="row"><span className="t"><b>Open</b></span><Count pulse className="v num" value={x.lots.open} format={whole} /></div>
+            <div className="row"><span className="t"><b>Title at a lender</b><small>Open lots waiting on a lien release</small></span><Count pulse className="v num" value={x.lots.atLender} format={whole} /></div>
+            <div className="row"><span className="t"><b>Floor below payoff</b><small>The dealer brings the difference at sale</small></span><Count pulse className="v num" style={x.lots.floorBelowPayoff ? { color: 'var(--warn)' } : undefined} value={x.lots.floorBelowPayoff} format={whole} /></div>
           </div>
 
           <p className="note" style={{ marginTop: 28 }}>Sales</p>
           <div className="group">
-            {STATES.map(s => <div className="row" key={s.s}><span className="t"><b>{s.label}</b><small>{s.gloss}</small></span><span className="v num">{count(s.s)}</span></div>)}
+            {STATES.map(s => <div className="row" key={s.s}><span className="t"><b>{s.label}</b><small>{s.gloss}</small></span><Count pulse className="v num" value={count(s.s)} format={whole} /></div>)}
           </div>
 
           <p className="note" style={{ marginTop: 28 }}>Fees</p>
           <div className="group">
-            <div className="row"><span className="t"><b>Fees owed to Obavia</b><small>None until the GDN issues (43 TAC §215.85)</small></span><span className="v num">{usd(x.obaviaFeesOwed)}</span></div>
+            <div className="row"><span className="t"><b>Fees owed to Obavia</b><small>None until the GDN issues (43 TAC §215.85)</small></span><Count pulse className="v num" value={x.obaviaFeesOwed} format={dollars} /></div>
           </div>
 
           <p className="note" style={{ marginTop: 28 }}>Dealers</p>

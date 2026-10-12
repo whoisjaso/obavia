@@ -125,7 +125,7 @@ function CarPage({ car, lot, now, width, height, active, onArm, onOpen, onMe, re
             <Mark size={30} />
           </Pressable>
           <View style={s.eye} accessibilityLabel={`${lot.watching + (watching ? 1 : 0)} watching${watching ? ', you too' : ''}`}>
-            <View style={[s.eyeDot, watching && { backgroundColor: theme.color.blue, opacity: 1 }]} /><Text style={s.eyeText}>{lot.watching + (watching ? 1 : 0)}</Text>
+            <View style={[s.eyeDot, watching && { backgroundColor: theme.color.blue, opacity: 1 }]} /><Text style={s.eyeText}>{(lot.watching + (watching ? 1 : 0)).toLocaleString('en-US')}</Text>
           </View>
         </View>
       </View>

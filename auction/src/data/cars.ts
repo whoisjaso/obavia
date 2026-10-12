@@ -73,7 +73,7 @@ const P = {
   keys: { src: require('../../assets/cars/keys.jpg'), w: 900, h: 1200 },
 };
 
-export const cars: Car[] = [
+const seededCars: Car[] = [
   {
     id: 'altima', year: 2014, make: 'Nissan', model: 'Altima', miles: 128_400, vin: '1N4AL3AP0EC000001',
     photos: [P.auction, P.auctionWide, P.detail, P.wheel, P.keys, P.auction, P.detail, P.wheel, P.auctionWide, P.keys, P.auction, P.wheel],
@@ -91,10 +91,34 @@ export const cars: Car[] = [
   },
 ];
 
+/* break-ui, dev-only: `?data=worst` swaps the seeded fixture at this boundary for the realistic worst
+   case (the longest name a dealer lists, a five-figure hammer, twelve sideways photos, no photos at all);
+   `?data=empty` is zero lots. Never set in a native build: there is no location.search there. */
+export const preview = (((globalThis as { location?: { search?: string } }).location?.search ?? '').match(/[?&]data=(worst|empty)/)?.[1] ?? null) as 'worst' | 'empty' | null;
+
+const worstCars: Car[] = [
+  {
+    id: 'altima', year: 2011, make: 'Mercedes-Benz', model: 'Sprinter 2500 High Roof', miles: 214_700, vin: 'WD3PE8CC5B5000004',
+    photos: Array.from({ length: 12 }, (_, i) => (i % 2 ? P.lotWide : P.auctionWide)),
+    dealer: { ...TRIPLE_J, name: 'Gulf Coast Commercial Vehicles', fees: { ...TEXAS, doc: 511 } },   // 12,500 + tax + fees = 13,900
+    grade: [0.5, 1, 0.5, 1, 0, 1], title: 'in hand',
+  },
+  { ...seededCars[1], photos: [] },
+  seededCars[2],
+];
+
+export const cars: Car[] = preview === 'worst' ? worstCars : preview === 'empty' ? [] : seededCars;
+
 /** The lots as the server sees them, opened against `now`. The first car is
     already in its last two minutes so the blue ring can be seen in the demo. */
 export function seedLots(now: number): Lot[] {
   const day = 86_400_000;
+  if (preview === 'empty') return [];
+  if (preview === 'worst') return [
+    { id: 'altima', start: 9900, retail: 15995, opensAt: now - 6 * day, closesAt: now + 95_000, high: 12_500, leader: 'me', max: 12_500, bids: 14, watching: 1284 },
+    { id: 'sonata', start: 3400, retail: 6495, opensAt: now - 2 * day, closesAt: now + 2 * day + 4 * 3_600_000, high: 3400, bids: 0, watching: 1 },
+    { id: 'fusion', start: 2900, retail: 5495, opensAt: now - 4 * day, closesAt: now + 1 * day + 2 * 3_600_000, high: 3250, leader: 'r2', max: 3400, bids: 3, watching: 0 },
+  ];
   return [
     { id: 'altima', start: 4900, retail: 7995, opensAt: now - 6 * day, closesAt: now + 95_000, high: 5100, leader: 'r1', max: 5100, bids: 7, watching: 23 },
     { id: 'sonata', start: 3400, retail: 6495, opensAt: now - 2 * day, closesAt: now + 2 * day + 4 * 3_600_000, high: 3400, bids: 0, watching: 11 },

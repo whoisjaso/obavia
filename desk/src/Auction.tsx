@@ -3,7 +3,7 @@
    long, the floor; then Go. Live is the ring and the price. Sold is the
    buyer's clock, the money, the VIN at pickup, and the way out (void).
    The lane refuses collateral it cannot see; so does this screen, earlier. */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AUCTION_API, auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
 import { buyersGuidePdf } from './lib/official';
 import { usd } from './lib/money';
@@ -11,12 +11,15 @@ import type { Sale, Vehicle } from './lib/sale';
 import { shrink } from './Paper';
 import { startSale, useStore } from './store';
 import { Back, CarArt, Choice, Ic, feel, go, transition } from './ui';
+import { Count, Ring, land } from './motion';
 
 const carName = (v: Vehicle) => `${v.year} ${v.make} ${v.model}`;
 /* break-ui: counts and typed dollars read with separators (1,284 watching; 12,500 in the field). */
 const n = (x: number) => x.toLocaleString('en-US');
 const grouped = (digits: string) => (digits ? Number(digits).toLocaleString('en-US') : '');
 const digits = (s: string) => s.replace(/[^\d]/g, '');
+/* A counting price shows whole dollars on the way; it lands on the exact figure. */
+const dollars = (x: number) => usd(Math.round(x));
 /* A long make and model (2020 Mercedes-Benz GLE 450 4MATIC Coupe AMG Line…) steps the heading down instead of filling the screen. */
 const longQ = (s: string) => (s.length > 28 ? { fontSize: 'clamp(28px,7.4vw,36px)' } : undefined);
 /* The inner face of the big ring: room for "44h 59m" on one line. */
@@ -117,6 +120,8 @@ export function LetItGo() {
   const [ack, setAck] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  const [landed, setLanded] = useState(false);
+  const goBtn = useRef<HTMLButtonElement>(null);
 
   const found = useMemo(() => lot.filter(v => !busy.has(v.id) && !onLane.has(v.id) && `${v.stock} ${v.year} ${v.make} ${v.model} ${v.vin}`.toLowerCase().includes(q.toLowerCase())), [lot, q, sales]);
   const payoffN = status === 'lender' ? Number(payoff) || 0 : 0, floorN = Number(floor) || 0;
@@ -161,7 +166,9 @@ export function LetItGo() {
     setSending(null);
     if (!r.ok) { setFailed(`The lane refused: ${r.reason}.`); return; }
     rememberLot({ lotId: id, vehicleId: car.id, openedAt: new Date().toISOString(), closesAt, floor: floorN, days });
-    feel.done(); go(`/auction/${id}`);
+    /* The one landed state: the chime, the button settling and its word changing on the same frame; the lot opens as the chime ends. */
+    setLanded(true); feel.done(); land(goBtn.current);
+    setTimeout(() => go(`/auction/${id}`), 420);
   }
 
   const word = page.startsWith('word') ? Number(page.slice(4)) : -1;
@@ -235,7 +242,7 @@ export function LetItGo() {
         <div className="money"><input className="input num" inputMode="numeric" autoFocus value={grouped(floor)} onChange={e => setFloor(digits(e.target.value))} placeholder={n(band.low)} /></div>
         <div className="group" style={{ marginTop: 22 }}>
           <div className="row"><span className="t"><b>The lane usually pays</b><small>For a {carName(car)} in this condition</small></span><span className="v num" style={{ lineHeight: 1.35 }}>{usd(band.low)}<br />to {usd(band.high)}</span></div>
-          <div className="row"><span className="t"><b>Holding it {days} more days</b><small>Floorplan, insurance, the space</small></span><span className="v num">{usd(holdingCost(days))}</span></div>
+          <div className="row"><span className="t"><b>Holding it {days} more days</b><small>Floorplan interest and the value it loses</small></span><span className="v num">{usd(holdingCost(days, floorN || band.low))}</span></div>
           {payoffN > 0 && <div className="row"><span className="t"><b>{bring.bring > 0 ? 'You bring' : 'You keep'}</b><small>After the {usd(payoffN)} payoff</small></span><span className="v num">{usd(bring.bring > 0 ? bring.bring : bring.get)}</span></div>}
         </div>
       </section>}
@@ -263,7 +270,7 @@ export function LetItGo() {
         {page === 'payoff' && <button className="btn primary block" disabled={!payoffN} onClick={next}>Next</button>}
         {page === 'photos' && <button className="btn primary block" disabled={photos.length < 3 || adding} onClick={next}>{photos.length < 3 ? `${3 - photos.length} more to go` : 'Next'}</button>}
         {page === 'floor' && <button className="btn primary block" disabled={floorN < 100} onClick={next}>Next</button>}
-        {page === 'go' && <button className="btn primary block" disabled={!!refusal || !!sending || photos.length < 3} onClick={send}>{sending ? `${sending}…` : 'Go'}</button>}
+        {page === 'go' && <button ref={goBtn} className="btn primary block" disabled={!!refusal || !!sending || photos.length < 3} onClick={landed ? undefined : send}>{landed ? <><Ic n="check" s={18} w={2.6} />On The Lane</> : sending ? `${sending}…` : 'Go'}</button>}
       </div></div>
     </main>
   );
@@ -306,8 +313,8 @@ function Live({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
     <main className="wrap center">
       <div className="top"><Back to="#/auction" label="Lane" /></div>
       <section className="enter" key="live">
-        <span className="ring big" style={{ ['--p' as string]: closed ? 100 : p }}><span className="num" style={FACE}>{closed ? 'Done' : timeLeft(lot.closesAt)}</span></span>
-        <h1 className="q num">{lot.bids ? usd(lot.high) : <>No bids <em>yet.</em></>}</h1>
+        <Ring className="ring big" p={closed ? 100 : p}><span className="num" style={FACE}>{closed ? 'Done' : timeLeft(lot.closesAt)}</span></Ring>
+        <h1 className="q num">{lot.bids ? <Count value={lot.high} format={dollars} /> : <>No bids <em>yet.</em></>}</h1>
         <p className="note">{name}{lot.bids ? ` · ${n(lot.bids)} ${lot.bids === 1 ? 'bid' : 'bids'}` : ''}{lot.watching ? ` · ${n(lot.watching)} watching` : ''}</p>
         <div className="group">
           <div className="row"><span className="t"><b>Floor</b><small>{lot.bids ? (lot.high >= floor ? 'Covered' : 'Not yet reached') : 'Bidding opens here'}</small></span><span className="v num">{usd(floor)}</span></div>
@@ -350,7 +357,7 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
     <main className="wrap center">
       <div className="top"><Back to="#/auction" label="Lane" /></div>
       <section className="enter" key={state + mode}>
-        {state === 'owed' && <span className="ring big" style={{ ['--p' as string]: Math.round((1 - Math.max(0, left) / total) * 100) }}><span className="num" style={{ ...FACE, fontSize: 15 }}>{h(left)}</span></span>}
+        {state === 'owed' && <Ring className="ring big" p={Math.round((1 - Math.max(0, left) / total) * 100)}><span className="num" style={{ ...FACE, fontSize: 15 }}>{h(left)}</span></Ring>}
         <h1 className="q num">{usd(s.hammer)}</h1>
         <p className="note">{name} · {
           state === 'started' ? `Picked up ${new Date(s.startedAt!).toLocaleString()}` :

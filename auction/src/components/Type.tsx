@@ -3,7 +3,7 @@
    a hairline, a page that centers its content, a pager with dots. */
 import React, { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type TextStyle, type ViewStyle } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, cubicBezier } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feel } from '../feel';
 import { theme } from '../theme';
@@ -13,7 +13,17 @@ export function Label({ children, style, ink }: { children: React.ReactNode; sty
 }
 
 export function Serif({ children, size = theme.size.display, ink = theme.color.ink, style, italic }: { children: React.ReactNode; size?: number; ink?: string; style?: TextStyle; italic?: boolean }) {
-  return <Text style={[s.serif, { fontSize: size, color: ink, fontFamily: italic ? theme.font.priceItalic : theme.font.price }, style]}>{children}</Text>;
+  return <Text style={[s.serif, { fontSize: size, color: ink, fontFamily: italic ? theme.font.priceItalic : theme.font.price }, style]}>{hyphens(children)}</Text>;
+}
+
+/* Bodoni Moda's display cut draws its hyphen as a hairline (6 units of 2000 tall): at any size it
+   vanishes, so "Mercedes-Benz" read "Mercedes Benz" and a double-barrelled name lost its join. The
+   hyphen alone is set in the platform face, light, so the name keeps it. */
+function hyphens(children: React.ReactNode): React.ReactNode {
+  return React.Children.map(children, c => {
+    if (typeof c !== 'string' || !c.includes('-')) return c;
+    return c.split('-').flatMap((part, i) => (i === 0 ? [part] : [<Text key={i} style={s.hyphen}>-</Text>, part]));
+  });
 }
 
 /** A word in spaced capitals, upright, the way a crown or a crest sets its name. */
@@ -52,7 +62,7 @@ export function Button({ label, onPress, disabled, ghost }: { label: string; onP
   return (
     <Pressable onPress={onPress} onPressIn={() => setDown(true)} onPressOut={() => setDown(false)} disabled={disabled} pressRetentionOffset={16}
       style={{ alignSelf: 'stretch' }} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }}>
-      <Animated.View style={[s.btn, ghost && s.btnGhost, disabled && s.btnOff, { transform: [{ translateY: down ? 2 : 0 }], transitionProperty: 'transform', transitionDuration: 120, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)' }]}>
+      <Animated.View style={[s.btn, ghost && s.btnGhost, disabled && s.btnOff, { transform: [{ translateY: down ? 2 : 0 }], transitionProperty: 'transform', transitionDuration: 120, transitionTimingFunction: cubicBezier(0.23, 1, 0.32, 1) }]}>
         <Text style={[s.btnText, ghost && { color: theme.color.accent }]}>{label}</Text>
       </Animated.View>
     </Pressable>
@@ -100,6 +110,7 @@ export function Pager({ pages, initial = 0, onIndex }: { pages: React.ReactNode[
 const s = StyleSheet.create({
   label: { ...theme.type.sans, fontSize: theme.size.label, letterSpacing: 2.6, textTransform: 'uppercase', color: theme.color.faint, textAlign: 'center' },
   serif: { fontFamily: theme.font.price, textAlign: 'center', letterSpacing: 0 },
+  hyphen: { fontFamily: 'System', fontWeight: '300' },
   caps: { ...theme.type.sansBold, textTransform: 'uppercase', textAlign: 'center' },
   body: { ...theme.type.sans, fontSize: theme.size.body, textAlign: 'center', lineHeight: 24 },
   hair: { height: StyleSheet.hairlineWidth, backgroundColor: theme.color.line, alignSelf: 'center', width: 48 },

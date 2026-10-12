@@ -25,7 +25,7 @@ export function CarSheet({ car, onClose }: { car: Car; onClose: () => void }) {
   const photos = (
     <ScrollView contentContainerStyle={s.page} showsVerticalScrollIndicator={false}>
       <Label>{car.year}</Label>
-      <Serif size={theme.size.display}>{car.make} {car.model}</Serif>
+      <Serif size={`${car.make} ${car.model}`.length > 22 ? theme.size.title + 6 : theme.size.display}>{car.make} {car.model}</Serif>
       <Body ink={theme.color.muted} style={{ marginTop: 2 }}>{car.miles.toLocaleString('en-US')} miles</Body>
       <View style={[s.grid, { gap, marginTop: theme.space.l }]}>
         {pack(car.photos, cols, isWide).map(({ p, i }) => {
