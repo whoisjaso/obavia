@@ -17,7 +17,9 @@ import { inLastTwoMinutes, increment, needsHold, nextBid, roll } from '../engine
 import { dollars, outTheDoor } from '../engine/money';
 import type { Ack, Lot } from '../engine/server';
 import { feel } from '../feel';
-import { DEPOSIT, ME, captureDeposit, getServer, once } from '../store';
+import { takeDeposit } from '../deposit';
+import { registerPush } from '../push';
+import { AUCTION_URL, DEPOSIT, ME, getServer, once } from '../store';
 import { theme } from '../theme';
 
 const STEP_PT = 28;
@@ -69,6 +71,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     catch { setPhase('arming'); feel.rejected(); return; }
     if (ack.ok) {
       setPhase('landed'); setPunch(Date.now()); feel.landed();
+      if (AUCTION_URL) void registerPush();   // the first accepted bid asks for push; once registered this is a no-op
       setTimeout(feel.lead, 150);   // you are the high bidder
       const blue = inLastTwoMinutes(ack.lot.closesAt, Date.now());
       if (blue && !once.sawRefill) { once.sawRefill = true; setTeach(true); setTimeout(() => setTeach(false), theme.ms.overlay); }
@@ -82,7 +85,12 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     }
   };
 
-  const confirmDeposit = async () => { const ok = await captureDeposit(); if (!ok) { feel.rejected(); setPhase('arming'); return; } setLand(Date.now()); feel.touch(); setPhase('arming'); setTimeout(place, 200); };
+  const confirmDeposit = async () => {
+    const r = await takeDeposit();
+    if (r === 'cancelled') { setPhase('arming'); return; }              // silence is the punishment
+    if (r === 'failed') { feel.rejected(); setPhase('arming'); return; }
+    setLand(Date.now()); feel.touch(); setPhase('arming'); setTimeout(place, 200);
+  };
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">

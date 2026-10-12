@@ -1,6 +1,7 @@
 /* Pickup. Three pages: where; when; the pass. At the lot the dealer scans the
    VIN, the car starts, the pass turns green: that is when the sale completes.
-   Demo: hold the pass to stand in for the dealer's scan. */
+   Locally, hold the pass to stand in for the dealer's scan; on the server the
+   scan sets the lot's sale.startedAt and the pass turns green from that. */
 import React, { useEffect } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
@@ -9,6 +10,7 @@ import { QR } from '../../components/QR';
 import { Body, Button, Caps, Choice, Label, Page, Pager, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
 import { arriveAtLot, setSale, useSale } from '../../sale';
+import { AUCTION_URL } from '../../store';
 import { theme } from '../../theme';
 
 const SLOTS = ['Today 4–6', 'Tomorrow 10–12', 'Tomorrow 2–4', 'Sat 10–2', 'Mon 9–11'];
@@ -23,6 +25,7 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
   if (!sale) return null;
   const green = !!sale.pickedUp;
+  const slots = car.hours?.length ? car.hours : SLOTS;
 
   const where = (
     <Page>
@@ -44,7 +47,7 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
     <Page>
       <Label style={{ marginBottom: theme.space.s }}>When</Label>
       <View>
-        {SLOTS.map(sl => <Choice key={sl} label={sl} selected={sale.slot === sl} onPress={() => setSale({ slot: sl })} />)}
+        {slots.map(sl => <Choice key={sl} label={sl} selected={sale.slot === sl} onPress={() => setSale({ slot: sl })} />)}
       </View>
     </Page>
   );
@@ -54,7 +57,7 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
       <Label>{green ? 'Started' : sale.slot ?? 'Pick a time'}</Label>
       {sale.slot && (
         <Animated.View style={[{ marginTop: theme.space.m, alignItems: 'center' }, pulseStyle]}>
-          <Pressable onLongPress={() => { if (!sale.arrived) arriveAtLot(); }} delayLongPress={600} accessibilityRole="button" accessibilityLabel={green ? 'Car started, sale complete' : 'Pass. At the lot, the dealer scans this.'}>
+          <Pressable onLongPress={AUCTION_URL ? undefined : () => { if (!sale.arrived) arriveAtLot(); }} delayLongPress={600} accessibilityRole="button" accessibilityLabel={green ? 'Car started, sale complete' : 'Pass. At the lot, the dealer scans this.'}>
             <QR value={`obavia:${sale.lotId}:${car.vin}:${sale.wonAt}`} green={green} size={200} />
           </Pressable>
         </Animated.View>

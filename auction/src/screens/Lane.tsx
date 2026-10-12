@@ -1,7 +1,7 @@
 /* The Lane. One car per screen. Swipe up: next car. Tap: next angle. Hold: the
    engine. Drag the price up: arms a bid and hands off to the Bid sheet. Long-
    press the ring: the time, spoken once. No reading: two bars are the copy. */
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -24,7 +24,8 @@ import { AUCTION_URL, ME, isWatched, toggleWatch, useCars, useLots, useWatched }
 import { Me } from './Me';
 import { Label } from '../components/Type';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
-import { openSale, useSale } from '../sale';
+import { clearSale, openSale, peekSale, setSale, useSale } from '../sale';
+import { clearIntent, useIntent } from '../nav';
 
 const STEP_PT = 28;   // one increment per 28 pt of drag
 
@@ -154,6 +155,16 @@ function Mark({ size }: { size: number }) {
   );
 }
 
+/** A sale the server holds for me: open it here if it is not the one already open. */
+function ensureSale(lot: Lot, car: Car) {
+  const sale = lot.sale!;
+  const cur = peekSale();
+  if (!cur || cur.lotId !== lot.id) openSale({ lotId: lot.id, hammer: sale.hammer, total: outTheDoor(sale.hammer, car.dealer.fees).total, wonAt: sale.wonAt });
+  else if (cur.wonAt !== sale.wonAt) setSale({ wonAt: sale.wonAt });   // the server's hammer time, so the pass matches the Desk's
+  if (sale.startedAt && !peekSale()?.pickedUp) setSale({ pickedUp: true });   // the dealer's VIN scan, from the server; plates untouched
+}
+const live = (l: Lot) => l.sale?.buyer === ME && !l.sale.voidedAt && !l.sale.forfeitedAt;
+
 export function Lane() {
   const { width, height } = useWindowDimensions();
   const { lots, now } = useLots();
@@ -163,6 +174,7 @@ export function Lane() {
   const [sheet, setSheet] = useState<{ car: Car; steps: number; key: number } | null>(null);
   const [open, setOpen] = useState<Car | null>(null);
   const [won, setWon] = useState<Car | null>(null);
+  const [wonAt, setWonInitial] = useState<'pickup' | undefined>(undefined);
   const [meOpen, setMe] = useState(false);
   const listRef = useRef<FlatList<Car>>(null);
   // the hammer: a lot closes with me leading
@@ -173,7 +185,7 @@ export function Lane() {
       const car = cars.find(c => c.id === l.id) ?? (AUCTION_URL ? carFromLot(l, AUCTION_URL) ?? undefined : undefined);
       if (car && l.leader === ME && l.closed.sold) {
         openSale({ lotId: l.id, hammer: l.high, total: outTheDoor(l.high, car.dealer.fees).total });
-        setSheet(null); setWon(car);
+        setSheet(null); setWonInitial(undefined); setWon(car);
       }
     }
   }
@@ -193,6 +205,45 @@ export function Lane() {
     if (prev !== undefined && prev !== l.leader && l.leader === ME && cars[index]?.id === l.id && !l.closed) feel.lead();
     leadSeen.current[l.id] = l.leader;
   }
+
+  const carFor = (l: Lot) => cars.find(c => c.id === l.id) ?? (AUCTION_URL ? carFromLot(l, AUCTION_URL) ?? undefined : undefined);
+
+  // the server's sale states: the one sale I hold opens here; void or forfeit clears it. One sale at a time:
+  // the open one while it lives, else the most recent win.
+  useEffect(() => {
+    const cur = peekSale();
+    const all = Object.values(lots);
+    const gone = cur && all.find(l => l.id === cur.lotId && l.sale?.buyer === ME && (l.sale.voidedAt || l.sale.forfeitedAt));
+    if (gone) { clearSale(); setWon(w => (w?.id === gone.id ? null : w)); }
+    const mine = all.filter(live);
+    const target = (cur && !gone && mine.find(l => l.id === cur.lotId)) || mine.sort((a, b) => b.sale!.wonAt - a.sale!.wonAt)[0];
+    if (!target) return;
+    const car = carFor(target);
+    if (car) ensureSale(target, car);
+  }, [lots]);
+
+  // where a push (or anything outside the screens) says to land: act once, then clear
+  const intent = useIntent();
+  useEffect(() => {
+    if (!intent) return;
+    if (intent.screen === 'me') { setOpen(null); setMe(true); clearIntent(); return; }
+    if (intent.screen === 'lane') {
+      if (intent.lotId) {
+        if (cars.length === 0) return;   // the lane has not loaded yet; the intent waits
+        const i = cars.findIndex(c => c.id === intent.lotId);
+        if (i >= 0) { setMe(false); setOpen(null); listRef.current?.scrollToIndex({ index: i, animated: false }); }
+      }
+      clearIntent(); return;
+    }
+    // 'won' | 'pickup'
+    const lot = intent.lotId ? lots[intent.lotId] : undefined;
+    if (intent.lotId && !lot) return;    // the lot has not arrived yet; the intent waits
+    if (lot && live(lot)) {
+      const car = carFor(lot);
+      if (car) { ensureSale(lot, car); setMe(false); setOpen(null); setSheet(null); setWonInitial(intent.screen === 'pickup' ? 'pickup' : undefined); setWon(car); }
+    }
+    clearIntent();
+  }, [intent, lots, cars]);
 
   const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const i = viewableItems[0]?.index; if (typeof i === 'number') setIndex(i);
@@ -226,7 +277,7 @@ export function Lane() {
       {meOpen && <Me lots={lots} now={now} onClose={() => setMe(false)} onOpenCar={id => { setMe(false); const i = cars.findIndex(c => c.id === id); if (i >= 0) listRef.current?.scrollToIndex({ index: i, animated: true }); }} />}
       {sheet && <BidSheet key={sheet.key} car={sheet.car} lot={lots[sheet.car.id]} now={now} steps={sheet.steps} onClose={() => setSheet(null)} />}
       {open && <CarSheet car={open} onClose={() => setOpen(null)} />}
-      {won && sale && <Won car={won} onDone={() => setWon(null)} />}
+      {won && sale && <Won key={`${won.id}-${wonAt ?? 'won'}`} car={won} initial={wonAt} onDone={() => { setWon(null); setWonInitial(undefined); }} />}
     </View>
   );
 }

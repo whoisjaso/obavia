@@ -27,7 +27,11 @@ export function getServer(): AuctionServer {
     ME = `b-${deviceId()}`;
     const remote = new RemoteAuctionServer(AUCTION_URL, buyerToken);
     server = remote;
-    RemoteAuctionServer.signIn(AUCTION_URL, ME, me.name, 'TX').then(t => { token = t; remote.start(); }).catch(() => { remote.start(); });
+    RemoteAuctionServer.signIn(AUCTION_URL, ME, me.name, 'TX').then(t => {
+      token = t; remote.start();
+      // the deposit as the Worker holds it; imported here, not at load, to keep ./deposit's import of this file one-way
+      import('./deposit').then(d => d.refreshDeposit()).catch(() => {});
+    }).catch(() => { remote.start(); });
     return server;
   }
   if (!server) {
@@ -49,13 +53,11 @@ export function getServer(): AuctionServer {
   return server!;
 }
 
-/** The deposit: locally a flag; on the server a Whop payment verified by id (DEV admits without one). */
-export async function captureDeposit(paymentId?: string): Promise<boolean> {
-  if (!AUCTION_URL) { once.deposit = true; return true; }
-  if (!token) return false;
-  const ok = await RemoteAuctionServer.deposit(AUCTION_URL, token, paymentId);
-  if (ok) once.deposit = true;
-  return ok;
+/** The deposit, taken through ./deposit (Whop on the server, a flag locally). True once it is held. */
+export async function captureDeposit(): Promise<boolean> {
+  const { takeDeposit } = await import('./deposit');
+  const r = await takeDeposit();
+  return r === 'captured' || r === 'local';
 }
 
 /** A stable id for this install until sign-in exists. */
@@ -107,7 +109,10 @@ export function toggleWatch(id: string): boolean {
   const on = !watched.includes(id);
   watched = on ? [...watched, id] : watched.filter(w => w !== id);
   for (const f of watchSubs) f();
-  if (server instanceof RemoteAuctionServer) void server.watch(id, on);
+  if (server instanceof RemoteAuctionServer) {
+    void server.watch(id, on);
+    if (on) void import('./push').then(p => p.registerPush()).catch(() => false);   // the first Watch asks for push
+  }
   return on;
 }
 export const isWatched = (id: string) => watched.includes(id);

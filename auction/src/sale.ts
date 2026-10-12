@@ -28,10 +28,12 @@ const emit = () => { for (const f of subs) f(); };
 export function useSale() {
   return useSyncExternalStore(f => { subs.add(f); return () => { subs.delete(f); }; }, () => sale, () => sale);
 }
+/** The sale outside React (the Lane's sync with the server's sale states). */
+export const peekSale = () => sale;
 export const setSale = (patch: Partial<Sale>) => { if (sale) { sale = { ...sale, ...patch }; emit(); } };
 export const clearSale = () => { sale = null; emit(); };
-export function openSale(init: Pick<Sale, 'lotId' | 'hammer' | 'total'>) {
-  sale = { ...init, wonAt: Date.now(), signed: {}, plates: 'none' };
+export function openSale(init: Pick<Sale, 'lotId' | 'hammer' | 'total'> & { wonAt?: number }) {
+  sale = { ...init, wonAt: init.wonAt ?? Date.now(), signed: {}, plates: 'none' };
   emit();
 }
 

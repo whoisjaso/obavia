@@ -16,6 +16,7 @@ import { inLastTwoMinutes } from '../engine/auction';
 import { dollars } from '../engine/money';
 import type { Lot } from '../engine/server';
 import { feel } from '../feel';
+import { releaseDeposit } from '../deposit';
 import { useSale } from '../sale';
 import { DEPOSIT, ME, me, once, toggleWatch, useCars, useWatched } from '../store';
 import { theme } from '../theme';
@@ -67,6 +68,21 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
   const back = useRef(Date.now() - me.lastOpened > 24 * 3_600_000).current;
   useEffect(() => { me.lastOpened = Date.now(); }, []);
   const won = sale ? [sale] : [];
+  // the deposit comes back only when the buyer leads nothing and owes nothing
+  const [released, setReleased] = useState(false);
+  const [refused, setRefused] = useState<string | null>(null);
+  const busy = useRef(false);
+  const all = Object.values(lots);
+  const leads = all.some(l => !l.closed && l.leader === ME);
+  const owes = (!!sale && !sale.pickedUp) || all.some(l => l.sale?.buyer === ME && !l.sale.voidedAt && !l.sale.forfeitedAt && !l.sale.startedAt);
+  const canRelease = once.deposit && !leads && !owes;
+  const release = async () => {
+    if (busy.current) return;
+    busy.current = true; setRefused(null);
+    const r = await releaseDeposit();
+    busy.current = false;
+    if (r.ok) { setReleased(true); feel.done(); } else setRefused(r.reason);
+  };
 
   const mePage = (
     <Page foot={<Button label="Sign out" onPress={() => { feel.silence(); onClose(); }} ghost />}>
@@ -75,7 +91,14 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Deposit</Label>
       <Serif size={34}>${DEPOSIT}</Serif>
-      <Body ink={theme.color.faint} style={{ fontSize: 13, marginTop: 2 }}>{once.deposit ? 'held · back if you lose' : 'held at your first bid'}</Body>
+      <Body ink={theme.color.faint} style={{ fontSize: 13, marginTop: 2 }}>{released && !once.deposit ? 'back to your card' : once.deposit ? 'held · back if you lose' : 'held at your first bid'}</Body>
+      {canRelease && (
+        <Pressable onPress={release} style={{ marginTop: theme.space.m, alignItems: 'center' }} accessibilityRole="button" accessibilityLabel={`Release the ${DEPOSIT} dollar deposit`}>
+          <Label>Deposit</Label>
+          <Caps size={15}>Release it</Caps>
+        </Pressable>
+      )}
+      {refused && <Body ink={theme.color.warn} style={{ fontSize: 13, marginTop: 4 }}>{refused}</Body>}
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Cars</Label>
       {won.length === 0 ? (

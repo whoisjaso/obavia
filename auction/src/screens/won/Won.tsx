@@ -22,12 +22,16 @@ import { Plates } from './Plates';
 
 type Screen = 'who' | 'steps' | Tile | 'pay' | 'pickup';
 
-export function Won({ car, onDone }: { car: Car; onDone: () => void }) {
+export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; initial?: 'pickup' }) {
   const sale = useSale();
-  const [screen, setScreen] = useState<Screen>('who');
+  const [screen, setScreen] = useState<Screen>(initial ?? 'who');
   const [lit, setLit] = useState(false);
   const flash = useSharedValue(0);
   useEffect(() => {
+    if (initial === 'pickup') {   // straight to the pass: no celebration, the buyer has been here before
+      if (sale && !sale.forWhom) setSale({ forWhom: 'me' });
+      return;
+    }
     const t = setTimeout(() => {
       flash.value = withSequence(withTiming(1, { duration: 60 }), withTiming(0, { duration: 300 }));
       feel.done(); setLit(true);
@@ -93,7 +97,7 @@ export function Won({ car, onDone }: { car: Car; onDone: () => void }) {
 
       {screen === 'id' && <IdScan onDone={back} />}
       {screen === 'insure' && <InsureScan vin={car.vin} onDone={back} />}
-      {screen === 'sign' && <SignDocs onDone={back} onClose={back} />}
+      {screen === 'sign' && <SignDocs docs={car.documents} onDone={back} onClose={back} />}
       {screen === 'pay' && <Pay onDone={() => setScreen('pickup')} />}
       {screen === 'pickup' && <Pickup car={car} onDone={() => setScreen(outOfState(sale) ? 'steps' : 'plates')} />}
       {screen === 'plates' && <Plates onBack={back} />}

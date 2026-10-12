@@ -56,15 +56,16 @@ export function CarSheet({ car, onClose }: { car: Car; onClose: () => void }) {
   const papers = (
     <View style={[s.page, { flex: 1, justifyContent: 'center' }]}>
       <Label>Title</Label>
-      <Caps size={18} ink={car.title === 'in hand' ? theme.color.ink : theme.color.warn}>{car.title}</Caps>
-      {car.collateral && (car.collateral.title.status === 'hand' ? (
-        <Caps size={15} style={{ marginTop: theme.space.s }}>in hand</Caps>
-      ) : car.collateral.title.status === 'lender' ? (
+      {car.collateral?.title.status === 'hand' ? (
+        <Caps size={18}>in hand</Caps>
+      ) : car.collateral?.title.status === 'lender' ? (
         <>
-          <Caps size={15} ink={theme.color.warn} style={{ marginTop: theme.space.s }}>at lender</Caps>
-          <Body ink={theme.color.muted} style={{ marginTop: 2 }}>{car.collateral.title.lienholder ?? 'lender'} · released {car.collateral.title.releaseDays} days after payoff</Body>
+          <Caps size={18} ink={theme.color.warn}>at lender</Caps>
+          <Body ink={theme.color.muted} style={{ marginTop: 4 }}>{car.collateral.title.lienholder ?? 'lender'} · released {car.collateral.title.releaseDays} days after payoff</Body>
         </>
-      ) : null)}
+      ) : (
+        <Caps size={18} ink={car.title === 'in hand' ? theme.color.ink : theme.color.warn}>{car.title}</Caps>
+      )}
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Pressable onPress={() => { setGuide(true); feel.select(); }} accessibilityRole="button" style={{ alignItems: 'center' }}>
         <Label>Buyers Guide</Label>
