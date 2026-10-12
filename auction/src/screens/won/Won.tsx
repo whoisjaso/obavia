@@ -8,7 +8,7 @@ import { Image } from 'expo-image';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { Confetti } from '../../components/Confetti';
-import { Button, Choice, Label, Page, Serif } from '../../components/Type';
+import { Button, Caps, Choice, Label, Page, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
 import { dollars } from '../../engine/money';
 import { feel } from '../../feel';
@@ -80,7 +80,7 @@ export function Won({ car, onDone }: { car: Car; onDone: () => void }) {
               return (
                 <Pressable key={t.key} disabled={locked} onPress={() => { feel.select(); open(t.key); }} style={s.step}
                   accessibilityRole="button" accessibilityState={{ disabled: locked, selected: live }} accessibilityLabel={`${t.label}${t.done ? ', done' : live ? ', next' : ''}`}>
-                  <Serif size={live ? 40 : 30} ink={locked ? theme.color.faint : theme.color.ink}>{t.label}</Serif>
+                  <Caps size={live ? 22 : 16} ink={locked ? theme.color.faint : theme.color.ink}>{t.label}</Caps>
                   {t.done && <Tick />}
                   {live && <View style={s.underline} />}
                 </Pressable>
@@ -111,6 +111,6 @@ function Tick() {
 const s = StyleSheet.create({
   head: { alignItems: 'center', gap: 2 },
   thumb: { width: 120, height: 150, borderRadius: 14, overflow: 'hidden', backgroundColor: theme.color.well, marginBottom: theme.space.s },
-  step: { alignItems: 'center', paddingVertical: 8 },
+  step: { alignItems: 'center', paddingVertical: 14 },
   underline: { width: 22, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 6 },
 });

@@ -10,7 +10,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeInDown, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { Ring } from '../components/Ring';
 import { Sheet } from '../components/Sheet';
-import { Body, Button, Hairline, Label, Page, Pager, Serif } from '../components/Type';
+import { Body, Button, Caps, Hairline, Label, Page, Pager, Serif } from '../components/Type';
 import { cars } from '../data/cars';
 import { inLastTwoMinutes } from '../engine/auction';
 import { dollars } from '../engine/money';
@@ -71,7 +71,7 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
   const mePage = (
     <Page foot={<Button label="Sign out" onPress={() => { feel.silence(); onClose(); }} ghost />}>
       <Label>Me</Label>
-      <Serif size={36} italic>{me.name}</Serif>
+      <Serif size={36}>{me.name}</Serif>
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Deposit</Label>
       <Serif size={34}>${DEPOSIT}</Serif>
@@ -94,7 +94,7 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
       })}
       <Pressable onPress={() => feel.select()} style={{ marginTop: theme.space.l, alignItems: 'center' }} accessibilityRole="button">
         <Label>When it is time</Label>
-        <Serif size={26} italic>Sell it back here</Serif>
+        <Caps size={15}>Sell it back here</Caps>
       </Pressable>
     </Page>
   );

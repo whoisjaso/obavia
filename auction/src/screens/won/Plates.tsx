@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ring } from '../../components/Ring';
-import { Button, Label, Serif } from '../../components/Type';
+import { Button, Caps, Label } from '../../components/Type';
 import { feel } from '../../feel';
 import { useSale, type Plates as Stage } from '../../sale';
 import { theme } from '../../theme';
@@ -29,7 +29,7 @@ export function Plates({ onBack }: { onBack: () => void }) {
         <Ring size={220} stroke={6} progress={Math.max(0.02, progress)} blue={false} grey={stage === 'none'} />
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Serif size={34} italic ink={stage === 'kickback' ? theme.color.warn : stage === 'none' ? theme.color.faint : theme.color.ink}>{LABEL[stage]}</Serif>
+            <Caps size={18} ink={stage === 'kickback' ? theme.color.warn : stage === 'none' ? theme.color.faint : theme.color.ink}>{LABEL[stage]}</Caps>
           </View>
         </View>
       </View>

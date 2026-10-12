@@ -6,7 +6,7 @@ import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { QR } from '../../components/QR';
-import { Body, Button, Choice, Label, Page, Pager, Serif } from '../../components/Type';
+import { Body, Button, Caps, Choice, Label, Page, Pager, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
 import { arriveAtLot, setSale, useSale } from '../../sale';
 import { theme } from '../../theme';
@@ -59,7 +59,7 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
           </Pressable>
         </Animated.View>
       )}
-      <Serif size={24} ink={green ? theme.color.good : theme.color.muted} style={{ marginTop: theme.space.m }}>{car.year} {car.make} {car.model}</Serif>
+      <Caps size={14} ink={green ? theme.color.good : theme.color.muted} style={{ marginTop: theme.space.m }}>{car.year} {car.make} {car.model}</Caps>
     </Page>
   );
 
