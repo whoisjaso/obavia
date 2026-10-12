@@ -2,13 +2,13 @@
    engine. Drag the price up: arms a bid and hands off to the Bid sheet. Long-
    press the ring: the time, spoken once. No reading: two bars are the copy. */
 import React, { useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, FlatList, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
-import { Image } from 'expo-image';
+import { AccessibilityInfo, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bars } from '../components/Bars';
+import { LanePhoto } from '../components/LanePhoto';
 import { Price } from '../components/Price';
 import { Ring } from '../components/Ring';
 import { cars, type Car } from '../data/cars';
@@ -18,7 +18,10 @@ import type { Lot } from '../engine/server';
 import { feel } from '../feel';
 import { theme } from '../theme';
 import { BidSheet } from './BidSheet';
-import { useLots } from '../store';
+import { CarSheet } from './CarSheet';
+import { Won } from './won/Won';
+import { ME, useLots } from '../store';
+import { openSale, useSale } from '../sale';
 
 const STEP_PT = 28;   // one increment per 28 pt of drag
 
@@ -34,9 +37,9 @@ function spoken(ms: number) {
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function CarPage({ car, lot, now, height, active, onArm, refillKey }: {
-  car: Car; lot: Lot; now: number; height: number; active: boolean;
-  onArm: (steps: number) => void; refillKey: number;
+function CarPage({ car, lot, now, width, height, active, onArm, onOpen, refillKey }: {
+  car: Car; lot: Lot; now: number; width: number; height: number; active: boolean;
+  onArm: (steps: number) => void; onOpen: () => void; refillKey: number;
 }) {
   const insets = useSafeAreaInsets();
   const [angle, setAngle] = useState(0);
@@ -61,6 +64,8 @@ function CarPage({ car, lot, now, height, active, onArm, refillKey }: {
     runOnJS(feel.touch)();
   }).onEnd(() => { photoScale.value = withSpring(1, theme.spring.lift); });
   const photoStyle = useAnimatedStyle(() => ({ transform: [{ scale: photoScale.value }] }));
+  // Swipe left: the Car. Instagram's edge.
+  const open = Gesture.Pan().activeOffsetX(-14).failOffsetY([-10, 10]).onEnd(e => { if (e.translationX < -40) runOnJS(onOpen)(); });
 
   // Drag the price up: arms a bid, one increment per 28 pt, a tick per step.
   const steps = useSharedValue(0);
@@ -87,9 +92,9 @@ function CarPage({ car, lot, now, height, active, onArm, refillKey }: {
   return (
     <View style={{ height, width: '100%', backgroundColor: theme.color.ink }}
       accessible accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${preview.toLocaleString()} dollars, ${spoken(lot.closesAt - now)} left, retail ${lot.retail.toLocaleString()}`}>
-      <GestureDetector gesture={Gesture.Exclusive(hold, tap)}>
+      <GestureDetector gesture={Gesture.Race(open, Gesture.Exclusive(hold, tap))}>
         <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
-          <Image source={car.photos[angle]} style={StyleSheet.absoluteFill} contentFit="cover" transition={active ? 180 : 0} />
+          <LanePhoto photo={car.photos[angle]} width={width} height={height} transition={active ? 180 : 0} />
         </Animated.View>
       </GestureDetector>
       <LinearGradient pointerEvents="none" colors={['rgba(8,14,30,0)', 'rgba(8,14,30,0.15)', theme.color.scrim]} locations={[0.3, 0.55, 0.82]} style={StyleSheet.absoluteFill} />
@@ -115,17 +120,38 @@ function CarPage({ car, lot, now, height, active, onArm, refillKey }: {
           </Animated.View>
         </GestureDetector>
         <Bars bid={lot.high} retail={lot.retail} />
-        <Text style={s.dealer}>{car.dealer.name} · {car.dealer.city}</Text>
+        <View style={s.foot}>
+          <Text style={s.dealer}>{car.dealer.name} · {car.dealer.city}</Text>
+          <Pressable onPress={onOpen} style={s.pill} hitSlop={10} accessibilityRole="button" accessibilityLabel={`${car.photos.length} photos, open the car`}>
+            <View style={s.pillGrid}>{[0, 1, 2, 3].map(i => <View key={i} style={s.pillCell} />)}</View>
+            <Text style={s.pillText}>{car.photos.length}</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
 }
 
 export function Lane() {
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const { lots, now } = useLots();
+  const sale = useSale();
   const [index, setIndex] = useState(0);
   const [sheet, setSheet] = useState<{ car: Car; steps: number; key: number } | null>(null);
+  const [open, setOpen] = useState<Car | null>(null);
+  const [won, setWon] = useState<Car | null>(null);
+  // the hammer: a lot closes with me leading
+  const closedSeen = useRef<Record<string, boolean>>({});
+  for (const l of Object.values(lots)) {
+    if (l.closed && !closedSeen.current[l.id]) {
+      closedSeen.current[l.id] = true;
+      const car = cars.find(c => c.id === l.id);
+      if (car && l.leader === ME && l.closed.sold) {
+        openSale({ lotId: l.id, hammer: l.high, total: outTheDoor(l.high, car.dealer.fees).total });
+        setSheet(null); setWon(car);
+      }
+    }
+  }
   const refills = useRef<Record<string, number>>({});
   const bidsSeen = useRef<Record<string, number>>({});
   // every bid in the last two minutes is a refill: medium impact, the same every time
@@ -149,8 +175,9 @@ export function Lane() {
         data={cars}
         keyExtractor={c => c.id}
         renderItem={({ item, index: i }) => (
-          <CarPage car={item} lot={lots[item.id]} now={now} height={height} active={i === index}
+          <CarPage car={item} lot={lots[item.id]} now={now} width={width} height={height} active={i === index}
             refillKey={refills.current[item.id] ?? 0}
+            onOpen={() => { feel.select(); setOpen(item); }}
             onArm={steps => setSheet({ car: item, steps, key: Date.now() })} />
         )}
         pagingEnabled
@@ -161,9 +188,11 @@ export function Lane() {
         onViewableItemsChanged={onViewable}
         viewabilityConfig={cfg}
         getItemLayout={(_, i) => ({ length: height, offset: height * i, index: i })}
-        scrollEnabled={!sheet}
+        scrollEnabled={!sheet && !open}
       />
       {sheet && <BidSheet key={sheet.key} car={sheet.car} lot={lots[sheet.car.id]} now={now} steps={sheet.steps} onClose={() => setSheet(null)} />}
+      {open && <CarSheet car={open} onClose={() => setOpen(null)} />}
+      {won && sale && <Won car={won} onDone={() => setWon(null)} />}
     </View>
   );
 }
@@ -178,5 +207,10 @@ const s = StyleSheet.create({
   eyeText: { color: theme.color.cloud, opacity: 0.8, fontFamily: theme.font.sans, fontSize: 12, fontVariant: ['tabular-nums'] },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 22 },
   priceHit: { alignSelf: 'flex-start', paddingVertical: 8, paddingRight: 40 },
-  dealer: { marginTop: 14, color: theme.color.cloud, opacity: 0.7, fontFamily: theme.font.sans, fontSize: 12 },
+  foot: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dealer: { color: theme.color.cloud, opacity: 0.7, fontFamily: theme.font.sans, fontSize: 12 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(8,14,30,0.28)' },
+  pillGrid: { width: 12, height: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
+  pillCell: { width: 5, height: 5, borderRadius: 1, backgroundColor: theme.color.cloud, opacity: 0.85 },
+  pillText: { color: theme.color.cloud, opacity: 0.85, fontFamily: theme.font.sans, fontSize: 12, fontVariant: ['tabular-nums'] },
 });

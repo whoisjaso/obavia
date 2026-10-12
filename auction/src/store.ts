@@ -16,6 +16,10 @@ export function getServer() {
     const lag = Number(search.match(/lag=(\d+)/)?.[1]);
     if (closeIn > 0) lots[0].closesAt = Date.now() + closeIn;   // preview only: watch a close
     server = new LocalAuctionServer(lots, undefined, lag > 0 ? () => lag : undefined).start();
+    if (/[?&]win=1/.test(search)) {   // preview only: the hammer falls 2.5 s after my first bid
+      const srv = server;
+      const off = srv.subscribe(e => { if (e.kind === 'bid' && e.lot.leader === ME) { srv.closeSoon(e.lotId, 2500); off(); } });
+    }
     // rivals so the demo lane breathes: one refill on the Altima, one on the Fusion
     server.scheduleRival('altima', 25_000, 5400, 'r3');
     server.scheduleRival('altima', 55_000, 5700, 'r4');

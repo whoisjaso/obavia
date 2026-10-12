@@ -4,6 +4,7 @@ export const theme = {
   color: {
     sky: '#F2F6FF',          // page
     cloud: '#FFFFFF',
+    well: '#EEF1F8',         // paper body lines, chips at rest
     ice: '#B8C8F1',          // the ring at rest (from the mark)
     iceDeep: '#869FD6',
     ink: '#1C2436',

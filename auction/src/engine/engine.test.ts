@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { closeAfterBid, inLastTwoMinutes, increment, needsHold, nextBid, proxy, roll } from './auction';
 import { outTheDoor, TEXAS } from './money';
 import { LocalAuctionServer, type Lot } from './server';
+import { pack } from './grid';
 
 describe('money', () => {
   it('total is hammer + 6.25% + title + registration + doc, no premium', () => {
@@ -105,5 +106,21 @@ describe('server', () => {
     const b = s.apply({ lotId: 'altima', bidder: 'me', amount: 5000, max: 5200, key: '2' }, 20);
     expect(b.ok).toBe(false); if (!b.ok) expect(b.reason).toBe('outbid');
     expect(b.lot.high).toBe(5450); expect(b.lot.leader).toBe('a');
+  });
+});
+
+describe('grid', () => {
+  const wide = (x: string) => x === 'W';
+  it('a sideways photo that will not fit pulls the next upright one forward', () => {
+    expect(pack(['a', 'b', 'W', 'c', 'd'], 3, wide).map(x => x.p)).toEqual(['a', 'b', 'c', 'W', 'd']);
+  });
+  it('keeps order when everything fits', () => {
+    expect(pack(['W', 'a', 'b', 'c'], 3, wide).map(x => x.p)).toEqual(['W', 'a', 'b', 'c']);
+  });
+  it('twelve photos with three wide never leave a hole in four columns', () => {
+    const ph = ['a', 'W', 'b', 'c', 'd', 'e', 'W', 'f', 'g', 'W', 'h', 'i'];
+    const rows: number[] = []; let used = 0;
+    for (const { p } of pack(ph, 4, wide)) { used += wide(p) ? 2 : 1; if (used === 4) { rows.push(used); used = 0; } }
+    expect(rows.every(r => r === 4)).toBe(true);
   });
 });

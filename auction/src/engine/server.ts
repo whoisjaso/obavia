@@ -63,6 +63,9 @@ export class LocalAuctionServer {
   get(id: string): Lot { const l = this.lots.get(id); if (!l) throw new Error(`no lot ${id}`); return { ...l }; }
   all(): Lot[] { return [...this.lots.values()].map(l => ({ ...l })); }
 
+  /** Preview only: bring a lot's close forward so the hammer can be watched. */
+  closeSoon(lotId: string, inMs: number) { const l = this.lots.get(lotId); if (l && !l.closed) l.closesAt = Math.min(l.closesAt, this.clock() + inMs); }
+
   /** A rival who will bid at a given time; makes the lane feel alive in the demo. */
   scheduleRival(lotId: string, inMs: number, max: number, id = `r${Math.random().toString(36).slice(2, 6)}`) {
     this.rivals.push({ lotId, at: this.clock() + inMs, max, id });

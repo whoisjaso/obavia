@@ -63,6 +63,8 @@ export const feel = {
   done() { play('chime'); notify(Haptics.NotificationFeedbackType.Success); },
   /** The 600 ms hold filling: a medium impact at the end only. */
   holdDone() { impact(Haptics.ImpactFeedbackStyle.Medium); },
+  /** Welcome back, arrival, mailed: thump-thump, 200 ms apart. Touch only. */
+  heartbeat() { impact(Haptics.ImpactFeedbackStyle.Medium); setTimeout(() => impact(Haptics.ImpactFeedbackStyle.Light), 200); },
   /** Nothing. Here so call sites can say so. */
   silence() {},
 };
