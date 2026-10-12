@@ -7,7 +7,7 @@ const DEALER = { authorization: 'Bearer test-dealer-secret', 'content-type': 'ap
 const base = 'https://auction.test';
 
 declare global { namespace Cloudflare { interface Env extends WorkerEnv { TEST_MIGRATIONS: D1Migration[] } } }
-const CAR = { year: 2014, make: 'Nissan', model: 'Altima', miles: 128400, vin: '1N4AL3AP0EC000001', photos: [], grade: [1, 1, 1, 1, 0.5, 1], title: 'in hand', dealer: { name: 'Triple J Auto', city: 'Houston', street: '100 Example St', gdn: 'P000000', phone: '', afterHours: '', fees: { taxRate: 0.0625, title: 33, registration: 75, doc: 150 } } };
+const CAR = { year: 2014, make: 'Nissan', model: 'Altima', miles: 128400, vin: '1N4AL3AP0EC000001', photos: [], grade: [1, 1, 1, 1, 0.5, 1], title: 'in hand', dealer: { name: 'Triple J Auto', city: 'Houston', street: '100 Example St', gdn: 'P000000', phone: '', afterHours: '', fees: { taxRate: 0.0625, title: 33, registration: 75, doc: 150 } }, collateral: { title: { status: 'hand' }, floor: 4900, insured: true } };
 let token = '';
 
 async function signIn(id: string) {
@@ -184,5 +184,28 @@ describe('the pilot', () => {
     expect(r.status).toBe(200);
     const row = await env.DB.prepare('SELECT deposit_status FROM buyers WHERE id = ?1').bind('buyer-d').first<{ deposit_status: string }>();
     expect(row?.deposit_status).toBe('refunded');
+  });
+});
+
+describe('collateral', () => {
+  it('a lot without collateral the lane can see is refused', async () => {
+    const r = await SELF.fetch(`${base}/lots/c1/open`, { method: 'POST', headers: DEALER, body: JSON.stringify({ id: 'c1', dealer: 'P000000', start: 4900, retail: 7995, closesAt: Date.now() + 60_000, car: { ...CAR, collateral: { title: { status: 'repo' }, floor: 4900, insured: true } } }) });
+    expect(r.status).toBe(422); expect(await r.text()).toMatch(/repossession/);
+    const r2 = await SELF.fetch(`${base}/lots/c1/open`, { method: 'POST', headers: DEALER, body: JSON.stringify({ id: 'c1', dealer: 'P000000', start: 4900, retail: 7995, closesAt: Date.now() + 60_000, car: { ...CAR, collateral: { title: { status: 'lender', payoff: 6000, releaseDays: 5 }, floor: 4900, insured: true } } }) });
+    expect(r2.status).toBe(422); expect(await r2.text()).toMatch(/payoff/);
+  });
+  it('a void releases the deposit and counts against the dealer; the owner sees it in the exposure', async () => {
+    await open('c2', 5_000);
+    await bid('c2', token, 5000);
+    await SELF.fetch(`${base}/lots/c2/close`, { method: 'POST', headers: DEALER });
+    await runDurableObjectAlarm(env.AUCTION.get(env.AUCTION.idFromName('c2'))); await new Promise(r => setTimeout(r, 60));
+    const v = await SELF.fetch(`${base}/lots/c2/void`, { method: 'POST', headers: DEALER, body: JSON.stringify({ reason: 'sold on the lot' }) });
+    expect(v.status).toBe(200); expect((await v.json<any>()).sale.deposit).toBe('released');
+    await new Promise(r => setTimeout(r, 60));
+    const x = await (await SELF.fetch(`${base}/admin/exposure`, { headers: DEALER })).json<any>();
+    expect(x.incidentsByDealer['P000000']).toBeGreaterThanOrEqual(1);
+    expect(x.sales.find((s: any) => s.lotId === 'c2')?.state).toBe('voided');
+    expect(x.deposits.reserveRatio).toBe(1); expect(x.obaviaFeesOwed).toBe(0);
+    expect((await SELF.fetch(`${base}/admin/exposure`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(403);
   });
 });

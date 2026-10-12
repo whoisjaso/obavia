@@ -7,7 +7,7 @@
    WebSocket. D1 gets a copy. */
 import { DurableObject } from 'cloudflare:workers';
 import { closeAfterBid, proxy, type Proxy } from '../../src/engine/auction';
-import type { CarMeta } from '../../src/engine/meta';
+import { collateralRefusal, type CarMeta } from '../../src/engine/meta';
 import type { Ack, BidRequest, Event, Lot } from '../../src/engine/server';
 import type { Env } from './env';
 import { push } from './push';
@@ -26,7 +26,7 @@ export class Auction extends DurableObject<Env> {
     if (req.headers.get('upgrade') === 'websocket') return this.openSocket();
     const lot = await this.load();
     const dealer = req.headers.get('x-dealer') ?? '';   // set by the Worker after it checked the dealer's token
-    if (lot && dealer && ['/open', '/close', '/paid', '/pickup', '/car'].includes(path) && lot.dealer !== dealer && !lot.closed) return text('not your lot', 403);
+    if (lot && dealer && ['/open', '/close', '/paid', '/pickup', '/car', '/void'].includes(path) && lot.dealer !== dealer && !lot.closed) return text('not your lot', 403);
     switch (`${req.method} ${path}`) {
       case 'GET /': return lot ? json(this.publicLot(lot)) : text('no lot', 404);
       case 'POST /open': return this.open(await req.json<OpenRequest>(), dealer);
@@ -45,6 +45,15 @@ export class Auction extends DurableObject<Env> {
         if (!lot?.sale || lot.sale.forfeitedAt) return text('no sale', 409);
         lot.sale.paidAt = Date.now(); await this.save(lot);
         this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
+        return json(this.publicLot(lot));
+      }
+      case 'POST /void': {   // the dealer cannot deliver: the sale ends, the buyer's deposit is released, the incident counts against the dealer
+        if (!lot?.sale || lot.sale.startedAt) return text('no sale to void', 409);
+        const b = await req.json<{ reason?: string }>();
+        lot.sale.voidedAt = Date.now(); lot.sale.deposit = 'released'; await this.save(lot);
+        await this.env.DB.prepare('INSERT INTO incidents (id, dealer, lot_id, kind, note, at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(`void:${lot.id}:${Date.now()}`, lot.dealer, lot.id, 'non_delivery', (b.reason ?? '').slice(0, 240), Date.now()).run().catch(() => {});
+        this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
+        this.ctx.waitUntil(push(this.env, lot.sale.buyer, 'The dealer could not deliver', 'Your deposit is yours again.', { lotId: lot.id, screen: 'me' }));
         return json(this.publicLot(lot));
       }
       case 'POST /pickup': {   // the dealer scanned the VIN and the car started: the sale completes
@@ -68,7 +77,7 @@ export class Auction extends DurableObject<Env> {
       if (now < lot.closesAt) { await this.ctx.storage.setAlarm(lot.closesAt); return; }   // a refill moved it
       lot.closed = { at: lot.closesAt, sold: lot.bids > 0 && !!lot.leader };
       if (lot.closed.sold && lot.leader) {
-        lot.sale = { buyer: lot.leader, hammer: lot.high, wonAt: lot.closesAt, deadlineAt: lot.closesAt + PAY_WINDOW_MS };
+        lot.sale = { buyer: lot.leader, hammer: lot.high, wonAt: lot.closesAt, deadlineAt: lot.closesAt + PAY_WINDOW_MS, deposit: 'held' };
         await this.ctx.storage.setAlarm(lot.sale.deadlineAt);
         this.ctx.waitUntil(push(this.env, lot.leader, 'Yours', `$${lot.high.toLocaleString('en-US')} · ${lot.car ? `${lot.car.year} ${lot.car.make} ${lot.car.model}` : lot.id}`, { lotId: lot.id, screen: 'won' }));
       }
@@ -77,9 +86,10 @@ export class Auction extends DurableObject<Env> {
       return;
     }
     if (lot.sale && !lot.sale.paidAt && !lot.sale.forfeitedAt && now >= lot.sale.deadlineAt) {
-      lot.sale.forfeitedAt = now;   // the deposit stays; the dealer relists or offers second chance from the Desk
+      lot.sale.forfeitedAt = now; lot.sale.deposit = 'to_dealer';   // the deposit is the dealer's: holding cost and relist (collateral.md §2)
       await this.save(lot);
       await this.env.DB.prepare('UPDATE buyers SET deposit_status = ?2 WHERE id = ?1 AND deposit_status = ?3').bind(lot.sale.buyer, 'forfeited', 'captured').run().catch(() => {});
+      await this.env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)').bind(`forfeit:${lot.id}`, 'deposit.forfeited', JSON.stringify({ lotId: lot.id, buyer: lot.sale.buyer, dealer: lot.dealer, amount: 250, to: 'dealer' }), now).run().catch(() => {});
       this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
     }
   }
@@ -87,6 +97,7 @@ export class Auction extends DurableObject<Env> {
   private async open(o: OpenRequest, dealer: string): Promise<Response> {
     const existing = await this.load();
     if (existing && !existing.closed) return text('already open', 409);
+    if (o.car) { const why = collateralRefusal(o.car.collateral); if (why) return text(why, 422); }   // docs/plan/collateral.md §5
     const lot: Stored = { id: o.id, dealer: dealer || o.dealer, start: o.start, retail: o.retail, opensAt: o.opensAt ?? Date.now(), closesAt: o.closesAt, high: o.start, bids: 0, watching: 0, car: o.car };
     await this.ctx.storage.deleteAll();
     await this.save(lot);

@@ -12,10 +12,31 @@ export type CarMeta = {
   dealer: { name: string; city: string; street: string; gdn: string; phone: string; afterHours: string; fees: { taxRate: number; title: number; registration: number; doc: number } };
   documents?: { guide?: string; bill?: string; title?: string };   // URLs on the Worker, as the Desk files them
   hours?: string[];                      // pickup windows the dealer offers, e.g. "Sat 10–2"
+  collateral: Collateral;                // who holds what before the first bid; the lane refuses without it
 };
+
+/** The collateral the dealer puts behind the lot. docs/plan/collateral.md. */
+export type Collateral = {
+  title: { status: 'hand' | 'lender' | 'repo' | 'unknown'; lienholder?: string; payoff?: number; releaseDays?: number };
+  floor: number;                         // the dealer's net; the hammer the buyer sees opens here
+  payoffAcknowledged?: boolean;          // the dealer saw "you bring $X" and said OK
+  insured: boolean;                      // the car is on the dealer's lot policy until the engine starts
+};
+
+/** The lane accepts a lot only on collateral it can see. Returns the refusal, or null. */
+export function collateralRefusal(c: Collateral | undefined): string | null {
+  if (!c) return 'collateral missing';
+  if (c.title.status === 'repo') return 'title in repossession';
+  if (c.title.status === 'unknown') return 'title location unknown';
+  if (c.title.status === 'lender' && !((c.title.releaseDays ?? 0) > 0)) return 'lender release time missing';
+  if ((c.title.payoff ?? 0) > c.floor && !c.payoffAcknowledged) return 'floor below payoff without acknowledgement';
+  if (!c.insured) return 'not insured';
+  return null;
+}
 
 /** The sale after the hammer, as the object keeps it. */
 export type SaleState = {
   buyer: string; hammer: number; wonAt: number; deadlineAt: number;
-  paidAt?: number; startedAt?: number; forfeitedAt?: number;
+  paidAt?: number; startedAt?: number; forfeitedAt?: number; voidedAt?: number;
+  deposit?: 'held' | 'to_dealer' | 'released';   // where the buyer's $250 went
 };

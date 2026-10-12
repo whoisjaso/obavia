@@ -3,6 +3,7 @@ import { closeAfterBid, inLastTwoMinutes, increment, needsHold, nextBid, proxy, 
 import { outTheDoor, TEXAS } from './money';
 import { LocalAuctionServer, type Lot } from './server';
 import { pack } from './grid';
+import { collateralRefusal } from './meta';
 
 describe('money', () => {
   it('total is hammer + 6.25% + title + registration + doc, no premium', () => {
@@ -123,4 +124,22 @@ describe('grid', () => {
     for (const { p } of pack(ph, 4, wide)) { used += wide(p) ? 2 : 1; if (used === 4) { rows.push(used); used = 0; } }
     expect(rows.every(r => r === 4)).toBe(true);
   });
+});
+
+describe('collateral', () => {
+  const ok = { title: { status: 'hand' as const }, floor: 3400, insured: true };
+  it('title in hand, insured, floor above payoff: accepted', () => { expect(collateralRefusal(ok)).toBeNull(); });
+  it('repo or unknown title: refused', () => {
+    expect(collateralRefusal({ ...ok, title: { status: 'repo' } })).toMatch(/repossession/);
+    expect(collateralRefusal({ ...ok, title: { status: 'unknown' } })).toMatch(/unknown/);
+  });
+  it('at lender needs a release time', () => {
+    expect(collateralRefusal({ ...ok, title: { status: 'lender', payoff: 2000 } })).toMatch(/release/);
+    expect(collateralRefusal({ ...ok, title: { status: 'lender', payoff: 2000, releaseDays: 5 } })).toBeNull();
+  });
+  it('a floor under the payoff needs the dealer\'s OK', () => {
+    expect(collateralRefusal({ ...ok, title: { status: 'lender', payoff: 4000, releaseDays: 5 } })).toMatch(/payoff/);
+    expect(collateralRefusal({ ...ok, title: { status: 'lender', payoff: 4000, releaseDays: 5 }, payoffAcknowledged: true })).toBeNull();
+  });
+  it('uninsured: refused', () => { expect(collateralRefusal({ ...ok, insured: false })).toMatch(/insured/); });
 });

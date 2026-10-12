@@ -52,7 +52,7 @@ export default {
       const toObject = (init: RequestInit & { dealer?: string }) => stub.fetch(new Request(req.url, { ...init, headers: { 'content-type': 'application/json', ...(init.dealer ? { 'x-dealer': init.dealer } : {}) } }));
 
       // dealer: open, close, paid, pickup, car, photos, documents
-      if (['/open', '/close', '/paid', '/pickup', '/car'].includes(rest) || rest.startsWith('/photos/') || rest.startsWith('/documents/')) {
+      if (['/open', '/close', '/paid', '/pickup', '/car', '/void'].includes(rest) || rest.startsWith('/photos/') || rest.startsWith('/documents/')) {
         const dealer = await dealerFrom(req, env.DEALER_SECRET);
         if (!dealer) return text('dealer only', 403);
         if (req.method === 'PUT' && (rest.startsWith('/photos/') || rest.startsWith('/documents/'))) {
@@ -87,6 +87,23 @@ export default {
       }
       if (rest === '/' && req.method === 'GET') return stub.fetch(req);
       return text('not found', 404);
+    }
+
+    // the owner's view: every dollar and every risk, now (collateral.md §5)
+    if (req.method === 'GET' && url.pathname === '/admin/exposure') {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const dep = await env.DB.prepare('SELECT deposit_status AS s, COUNT(*) AS n FROM buyers GROUP BY deposit_status').all<{ s: string; n: number }>();
+      const lots = (await env.DB.prepare('SELECT lot FROM lots').all<{ lot: string }>()).results.map(r => JSON.parse(r.lot));
+      const incidents = await env.DB.prepare('SELECT dealer, COUNT(*) AS n FROM incidents GROUP BY dealer').all<{ dealer: string; n: number }>();
+      const held = dep.results.find(d => d.s === 'captured')?.n ?? 0;
+      const sales = lots.filter(l => l.sale).map(l => ({ lotId: l.id, dealer: l.dealer, state: l.sale.startedAt ? 'started' : l.sale.voidedAt ? 'voided' : l.sale.forfeitedAt ? 'forfeited' : l.sale.paidAt ? 'paid' : 'owed', deposit: l.sale.deposit, hammer: l.sale.hammer, deadlineAt: l.sale.deadlineAt }));
+      return json({
+        deposits: { heldCount: held, heldUsd: held * DEPOSIT_USD, byStatus: Object.fromEntries(dep.results.map(d => [d.s, d.n])), reserveRatio: 1 },   // every held deposit sits in the Whop balance; nothing is spent
+        lots: { open: lots.filter(l => !l.closed).length, atLender: lots.filter(l => !l.closed && l.car?.collateral?.title?.status === 'lender').length, floorBelowPayoff: lots.filter(l => !l.closed && (l.car?.collateral?.title?.payoff ?? 0) > (l.car?.collateral?.floor ?? Infinity)).length },
+        sales,
+        incidentsByDealer: Object.fromEntries(incidents.results.map(i => [i.dealer, i.n])),
+        obaviaFeesOwed: 0,   // none until the GDN issues (43 TAC §215.85)
+      });
     }
 
     // dealers: an admin with the secret mints a Desk's token once
