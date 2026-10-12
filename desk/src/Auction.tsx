@@ -4,7 +4,7 @@
    buyer's clock, the money, the VIN at pickup, and the way out (void).
    The lane refuses collateral it cannot see; so does this screen, earlier. */
 import { useEffect, useMemo, useState } from 'react';
-import { AUCTION_API, auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, getLot, holdingCost, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
+import { AUCTION_API, auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
 import { buyersGuidePdf } from './lib/official';
 import { usd } from './lib/money';
 import type { Sale, Vehicle } from './lib/sale';
@@ -33,7 +33,7 @@ export function Lane() {
   const open = links.filter(l => !lots[l.lotId]?.closed), done = links.filter(l => lots[l.lotId]?.closed);
   return (
     <main className="wrap center">
-      <div className="top"><Back to="#/" label="Sales" /><a className="link" href="#/auction/setup" onClick={feel.tap}>Key</a></div>
+      <div className="top"><Back to="#/" label="Sales" /><span style={{ display: 'flex', gap: 18 }}>{isAdminKey() && <a className="link" href="#/auction/admin" onClick={feel.tap}>Admin</a>}<a className="link" href="#/auction/setup" onClick={feel.tap}>Key</a></span></div>
       <section className="enter" key="lane">
         <h1 className="q">{open.length ? <>On the <em>lane.</em></> : <>Let a car <em>go.</em></>}</h1>
         {!open.length && <p className="note">A car the lot is losing money on, on every phone in Texas by tonight. You set the floor; the lane finds the price.</p>}

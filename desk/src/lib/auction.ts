@@ -80,6 +80,24 @@ export const closeLot = (lot: string) => call<Lot>('POST', `/lots/${lot}/close`,
 export const markPaid = (lot: string) => call<Lot>('POST', `/lots/${lot}/paid`, {});
 export const pickup = (lot: string, vin: string) => call<Lot>('POST', `/lots/${lot}/pickup`, { vin });
 export const voidSale = (lot: string, reason: string) => call<Lot>('POST', `/lots/${lot}/void`, { reason });
+/* ---------- the owner's routes (admin key only) ---------- */
+/** The master key is minted for GDN "*": `d:*.<sig>`. Every other key is one dealer's. */
+export const isAdminKey = (k: string | null = dealerKey.get()) => !!k && k.trim().startsWith('d:*.');
+export type DealerRow = { gdn: string; name: string; created_at: number; suspended_at: number | null; suspended: boolean; incidents: number };
+export type SaleState = 'owed' | 'paid' | 'started' | 'forfeited' | 'voided';
+export type Exposure = {
+  deposits: { heldCount: number; heldUsd: number; byStatus: Record<string, number>; reserveRatio: number };
+  lots: { open: number; atLender: number; floorBelowPayoff: number };
+  sales: { lotId: string; dealer?: string; state: SaleState; deposit?: string; hammer: number; deadlineAt: number }[];
+  incidentsByDealer: Record<string, number>;
+  dealers: DealerRow[];
+  obaviaFeesOwed: number;
+};
+export const getExposure = () => call<Exposure>('GET', '/admin/exposure');
+export const listDealers = () => call<DealerRow[]>('GET', '/dealers');
+export const suspendDealer = (gdn: string) => call<DealerRow>('POST', `/dealers/${encodeURIComponent(gdn)}/suspend`, {});
+export const restoreDealer = (gdn: string) => call<DealerRow>('POST', `/dealers/${encodeURIComponent(gdn)}/restore`, {});
+export const mintDealer = (gdn: string, name: string) => call<{ token: string }>('POST', '/dealers', { gdn, name });
 export async function getLot(lot: string): Promise<Result<Lot>> {
   if (!auctionLive) return { ok: false, reason: 'offline' };
   try { const r = await fetch(`${AUCTION_API}/lots/${lot}`); return r.ok ? { ok: true, value: await r.json() as Lot } : { ok: false, reason: `http ${r.status}` }; } catch { return { ok: false, reason: 'offline' }; }

@@ -19,6 +19,7 @@ import { PauseSetup } from './Pause';
 import { Import } from './Import';
 import { Facts } from './Facts';
 import { Lane, LetItGo, LotPage, Setup } from './Auction';
+import { AuctionAdmin } from './AuctionAdmin';
 import { TaxHome, TaxLines, TitlePage, Titles } from './Tax';
 import { BuyerPreview, CreditPage, Find, InsuranceList, InsurancePage, NextCarList, NextCarOne } from './Care';
 import type { DocType } from './lib/plan';
@@ -43,7 +44,7 @@ export function App() {
   if (a === 'find') return <Find />;
   if (a === 'facts') return <Facts />;
   if (a === 'import') return <Import />;
-  if (a === 'auction') return id === 'go' ? <LetItGo /> : id === 'setup' ? <Setup /> : id ? <LotPage key={id} id={id} /> : <Lane />;
+  if (a === 'auction') return id === 'go' ? <LetItGo /> : id === 'setup' ? <Setup /> : id === 'admin' ? <AuctionAdmin /> : id ? <LotPage key={id} id={id} /> : <Lane />;
   if (a === 'people') return id === 'add' ? <AddPerson /> : <People />;
   if (a === 'reach' && id === 'connected') return <Connected />;
   if (a === 'reach' && id === 'connect') return b === 'pick' && c ? <PickPage key={c} list={c} /> : <ConnectMeta key={b ?? ''} reason={b} />;
