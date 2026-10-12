@@ -61,9 +61,13 @@ export class RemoteAuctionServer {
   }
 
   /** The deposit checkout on Whop: the Worker makes it; the app opens it in an in-app browser and returns by deep link. */
-  static async depositCheckout(base: string, token: string, redirectUrl: string): Promise<string | null> {
-    const r = await fetch(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ redirectUrl }) });
-    return r.ok ? (await r.json() as { checkoutId: string }).checkoutId : null;
+  static async depositCheckout(base: string, token: string, redirectUrl: string): Promise<{ checkoutId: string; url: string } | null> {
+    try {
+      const r = await fetch(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ redirectUrl }) });
+      if (!r.ok) return null;
+      const b = await r.json() as { checkoutId?: string; url?: string };
+      return b.checkoutId && b.url ? { checkoutId: b.checkoutId, url: b.url } : null;
+    } catch { return null; }
   }
 
   /** The buyer: a token after the licence is read; the deposit once captured. */
@@ -74,5 +78,20 @@ export class RemoteAuctionServer {
   static async deposit(base: string, token: string, paymentId?: string): Promise<boolean> {
     const r = await fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ paymentId }) });
     return r.ok;
+  }
+
+  /** Who the Worker thinks the buyer is, and where the deposit stands. */
+  static async me(base: string, token: string): Promise<{ id: string; name?: string; state?: string; deposit_status?: string } | null> {
+    try {
+      const r = await fetch(`${base}/me`, { headers: { authorization: `Bearer ${token}` } });
+      return r.ok ? await r.json() as { id: string; name?: string; state?: string; deposit_status?: string } : null;
+    } catch { return null; }
+  }
+  /** The deposit back to the buyer: only while they lead nothing and owe nothing (the Worker answers 409 otherwise). */
+  static async releaseDeposit(base: string, token: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+    try {
+      const r = await fetch(`${base}/me/deposit/release`, { method: 'POST', headers: { authorization: `Bearer ${token}` } });
+      return r.ok ? { ok: true } : { ok: false, reason: (await r.text()) || `status ${r.status}` };
+    } catch { return { ok: false, reason: 'network' }; }
   }
 }

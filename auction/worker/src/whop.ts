@@ -14,6 +14,12 @@ export type WhopPayment = {
   refundable?: boolean; refunded_amount?: number | null; user?: { id?: string } | null;
 };
 
+/** POST /checkout_configurations: `purchase_url` is the hosted checkout the buyer opens. */
+export type WhopCheckoutConfiguration = {
+  id: string; purchase_url: string; redirect_url?: string | null;
+  metadata?: Record<string, string> | null; plan?: { id?: string } | null;
+};
+
 export class Whop {
   constructor(private env: WhopEnv) {}
   get ready() { return !!this.env.WHOP_API_KEY; }
@@ -31,7 +37,7 @@ export class Whop {
 
   /** A hosted checkout for the deposit: one payment, our metadata on it, back to the app after. */
   createDepositCheckout(buyerId: string, amountUsd: number, redirectUrl: string) {
-    return this.call<{ id: string }>('POST', '/checkout_configurations', {
+    return this.call<WhopCheckoutConfiguration>('POST', '/checkout_configurations', {
       account_id: this.env.WHOP_ACCOUNT_ID, mode: 'payment', currency: 'usd', redirect_url: redirectUrl,
       metadata: { kind: 'deposit', buyer: buyerId },
       plan: { plan_type: 'one_time', initial_price: amountUsd, currency: 'usd', title: 'Obavia deposit' },

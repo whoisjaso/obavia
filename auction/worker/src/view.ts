@@ -10,7 +10,7 @@ export function viewerHtml(pdfUrl: string): string {
 <script type="module">
 import * as pdfjs from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
-const post = m => { try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(m); } catch {} };
+const post = m => { try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(m); } catch {} try { window.parent !== window && window.parent.postMessage(m, '*'); } catch {} };
 const doc = await pdfjs.getDocument(${u}).promise;
 const host = document.getElementById('pages'); const scale = (window.devicePixelRatio || 1) * 1.5;
 for (let i = 1; i <= doc.numPages; i++) {

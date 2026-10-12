@@ -1,8 +1,8 @@
 /* The app's one connection to the auction. With EXPO_PUBLIC_AUCTION_URL set
    it is the Worker and its Durable Objects (worker/); without it, a local
    stand-in with the same surface, so the screens never know which. */
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { seedLots } from './data/cars';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { carFromLot, cars as seeded, seedLots, type Car } from './data/cars';
 import { RemoteAuctionServer } from './engine/client';
 import { LocalAuctionServer, type Ack, type BidRequest, type Event, type Lot } from './engine/server';
 
@@ -79,6 +79,19 @@ export function useLots(): { lots: Record<string, Lot>; now: number } {
     else setLots(prev => ({ ...prev, [e.lotId]: e.lot }));
   }), [s]);
   return { lots, now };
+}
+
+/** The lots in lane order: open ones by closing time, then closed ones I won. */
+export function laneCars(lots: Record<string, Lot>, base: string, me: string): Car[] {
+  const all = Object.values(lots);
+  const open = all.filter(l => !l.closed).sort((a, b) => a.closesAt - b.closesAt);
+  const mine = all.filter(l => l.closed && l.sale?.buyer === me).sort((a, b) => a.closesAt - b.closesAt);
+  return [...open, ...mine].map(l => carFromLot(l, base)).filter((c): c is Car => c !== null);
+}
+
+/** The cars on the glass: the Worker's lots when AUCTION_URL is set, the seeded lane otherwise. */
+export function useCars(lots: Record<string, Lot>): Car[] {
+  return useMemo(() => (AUCTION_URL ? laneCars(lots, AUCTION_URL, ME) : seeded), [lots]);
 }
 
 /** Things the buyer has done once, ever. In memory for now; Keychain later. */

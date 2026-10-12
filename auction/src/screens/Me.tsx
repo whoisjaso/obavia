@@ -11,13 +11,13 @@ import Animated, { FadeIn, FadeInDown, runOnJS, useAnimatedStyle, useSharedValue
 import { Ring } from '../components/Ring';
 import { Sheet } from '../components/Sheet';
 import { Body, Button, Caps, Hairline, Label, Page, Pager, Serif } from '../components/Type';
-import { cars } from '../data/cars';
+import type { Car } from '../data/cars';
 import { inLastTwoMinutes } from '../engine/auction';
 import { dollars } from '../engine/money';
 import type { Lot } from '../engine/server';
 import { feel } from '../feel';
 import { useSale } from '../sale';
-import { DEPOSIT, ME, me, once, toggleWatch, useWatched } from '../store';
+import { DEPOSIT, ME, me, once, toggleWatch, useCars, useWatched } from '../store';
 import { theme } from '../theme';
 
 function remaining(lot: Lot, now: number) {
@@ -27,8 +27,7 @@ function remaining(lot: Lot, now: number) {
 }
 
 /** One watched car: a ring, the price, the name; swipe left to let it go. */
-function Watch({ id, lot, now, first, onOpen }: { id: string; lot: Lot; now: number; first: boolean; onOpen: () => void }) {
-  const car = cars.find(c => c.id === id)!;
+function Watch({ car, id, lot, now, first, onOpen }: { car: Car; id: string; lot: Lot; now: number; first: boolean; onOpen: () => void }) {
   const x = useSharedValue(0);
   const spin = useSharedValue(first ? 0.2 : 1);
   useEffect(() => { if (first) { spin.value = withSpring(1, { damping: 14, stiffness: 120 }); feel.heartbeat(); } }, []);
@@ -64,6 +63,7 @@ function Watch({ id, lot, now, first, onOpen }: { id: string; lot: Lot; now: num
 export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot>; now: number; onClose: () => void; onOpenCar: (id: string) => void }) {
   const watched = useWatched();
   const sale = useSale();
+  const cars = useCars(lots);
   const back = useRef(Date.now() - me.lastOpened > 24 * 3_600_000).current;
   useEffect(() => { me.lastOpened = Date.now(); }, []);
   const won = sale ? [sale] : [];
@@ -81,7 +81,8 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
       {won.length === 0 ? (
         <Body ink={theme.color.faint} style={{ marginTop: 4 }}>none yet</Body>
       ) : won.map(w => {
-        const car = cars.find(c => c.id === w.lotId)!;
+        const car = cars.find(c => c.id === w.lotId);
+        if (!car) return null;
         return (
           <View key={w.lotId} style={s.pass} accessible accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${dollars(w.hammer)} dollars`}>
             <View style={s.passThumb}><Image source={car.photos[0].src} style={StyleSheet.absoluteFill} contentFit="cover" /></View>
@@ -111,7 +112,7 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ gap: theme.space.m, paddingBottom: theme.space.xl }} showsVerticalScrollIndicator={false}>
-          {watched.map((id, i) => lots[id] && <Watch key={id} id={id} lot={lots[id]} now={now} first={back && i === 0} onOpen={() => onOpenCar(id)} />)}
+          {watched.map((id, i) => { const car = cars.find(c => c.id === id); return lots[id] && car && <Watch key={id} car={car} id={id} lot={lots[id]} now={now} first={back && i === 0} onOpen={() => onOpenCar(id)} />; })}
         </ScrollView>
       )}
     </View>

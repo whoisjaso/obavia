@@ -1,9 +1,12 @@
 /* ID and insurance. Point the phone; the frame reads; the facts come back as
    centered lines; confirm each with a touch; "That's me". The licence's state
-   decides whether the last step says Plates or Title. The camera (expo-camera)
-   and the read (ML Kit / Vision) are the next wiring; the frames are the same. */
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+   decides whether the last step says Plates or Title. On native the camera
+   (expo-camera) runs behind the frames and the shutter takes a real picture;
+   the read (ML Kit / Vision) is a later phase, so the facts stay as they are.
+   On web the frame stays dark. */
+import React, { useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,16 +17,41 @@ import { theme } from '../../theme';
 
 const STATES = ['TX', 'OK', 'LA', 'NM'];
 
+const NATIVE = Platform.OS !== 'web';
+
+/* Native only: the camera and its permission. Asked when the frame mounts
+   (the buyer has just chosen to scan), never at launch. Denied keeps the dark frame. */
+function Lens({ camera }: { camera: React.RefObject<CameraView | null> }) {
+  const [permission, request] = useCameraPermissions();
+  useEffect(() => {
+    if (permission && !permission.granted && permission.canAskAgain && permission.status === 'undetermined') request().catch(() => {});
+  }, [permission, request]);
+  if (!permission?.granted) return null;
+  return <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" />;
+}
+
 function Frame({ kind, read, onShutter }: { kind: 'licence' | 'card'; read: boolean; onShutter: () => void }) {
+  const camera = useRef<CameraView | null>(null);
+  const [, setShot] = useState<string | null>(null);   // the picture's uri; held for the read, never persisted
+  const press = async () => {
+    if (NATIVE && camera.current) {
+      try {
+        const pic = await camera.current.takePictureAsync({ quality: 0.6, skipProcessing: true });
+        if (pic?.uri) setShot(pic.uri);
+      } catch { /* no picture: the sequence still runs */ }
+    }
+    onShutter();
+  };
   return (
     <View style={s.viewfinder}>
+      {NATIVE && <Lens camera={camera} />}
       <Svg width="100%" height="100%" viewBox="0 0 320 420" preserveAspectRatio="xMidYMid meet">
         <Rect x={30} y={130} width={260} height={kind === 'licence' ? 164 : 150} rx={14} stroke={read ? theme.color.good : theme.color.cloud} strokeWidth={1.5} strokeOpacity={read ? 1 : 0.7} fill="rgba(255,255,255,0.04)" />
         {kind === 'licence' && <><Rect x={50} y={160} width={64} height={80} rx={8} fill="rgba(255,255,255,0.14)" /><Path d="M130 170h120M130 192h90M130 214h110M130 236h70" stroke="rgba(255,255,255,0.28)" strokeWidth={5} strokeLinecap="round" /></>}
         {kind === 'card' && <Path d="M50 160h150M50 190h220M50 215h180M50 250h120" stroke="rgba(255,255,255,0.28)" strokeWidth={5} strokeLinecap="round" />}
       </Svg>
       {!read && (
-        <Pressable onPress={onShutter} style={s.shutter} accessibilityRole="button" accessibilityLabel="Take the photo">
+        <Pressable onPress={press} style={s.shutter} accessibilityRole="button" accessibilityLabel="Take the photo">
           <View style={s.shutterInner} />
         </Pressable>
       )}

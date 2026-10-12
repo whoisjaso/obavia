@@ -5,10 +5,11 @@
    the sale. */
 import type { Lot } from '../engine/server';
 import type { Fees } from '../engine/money';
+import type { Collateral } from '../engine/meta';
 import { TEXAS } from '../engine/money';
 
 /** A photo knows its own shape so the glass can treat sideways shots properly. */
-export type Photo = { src: number; w: number; h: number };
+export type Photo = { src: number | { uri: string }; w: number; h: number };
 export const isWide = (p: Photo) => p.w > p.h;
 
 export type Car = {
@@ -21,7 +22,39 @@ export type Car = {
   dealer: { name: string; city: string; street: string; gdn: string; phone: string; afterHours: string; fees: Fees };
   grade: [number, number, number, number, number, number]; // paint, glass, tires, lights, A/C, drives: 0..1
   title: 'in hand' | 'at lender';
+  collateral?: Collateral;       // who holds the title and how long its release takes; from the Desk
+  documents?: { guide?: string; bill?: string; title?: string };   // absolute URLs
+  hours?: string[];              // pickup windows the dealer offers
 };
+
+/** A Worker path ("/photos/x/0.jpg") made absolute against the Worker base. */
+function absolute(base: string, path: string): string {
+  if (/^https?:\/\//.test(path)) return path;
+  return `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+}
+
+/** The car a Worker lot carries, as the glass reads it. Null when the lot has no car yet. */
+export function carFromLot(lot: Lot, base: string): Car | null {
+  const m = lot.car;
+  if (!m) return null;
+  const docs = m.documents;
+  return {
+    id: lot.id,
+    year: m.year, make: m.make, model: m.model,
+    miles: m.miles, vin: m.vin,
+    photos: m.photos.map(p => ({ src: { uri: absolute(base, p.url) }, w: p.w, h: p.h })),
+    dealer: { ...m.dealer, fees: { ...m.dealer.fees } },
+    grade: m.grade,
+    title: m.title,
+    collateral: m.collateral,
+    documents: docs && {
+      ...(docs.guide ? { guide: absolute(base, docs.guide) } : {}),
+      ...(docs.bill ? { bill: absolute(base, docs.bill) } : {}),
+      ...(docs.title ? { title: absolute(base, docs.title) } : {}),
+    },
+    hours: m.hours,
+  };
+}
 
 export const GRADE_WORDS = ['paint', 'glass', 'tires', 'lights', 'A/C', 'drives'] as const;
 

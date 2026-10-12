@@ -14,7 +14,7 @@ const DOCS: { key: Doc; title: string; subtitle?: string }[] = [
   { key: 'title', title: 'Title Assignment' },
 ];
 
-export function SignDocs({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
+export function SignDocs({ onDone, onClose, docs }: { onDone: () => void; onClose: () => void; docs?: { guide?: string; bill?: string; title?: string } }) {
   const sale = useSale();
   const [open, setOpen] = useState<Doc | null>(null);
   if (!sale) return null;
@@ -31,7 +31,7 @@ export function SignDocs({ onDone, onClose }: { onDone: () => void; onClose: () 
         })}
       </View>
       {doc && (
-        <Paper title={doc.title} subtitle={doc.subtitle} onClose={() => setOpen(null)} reuse={doc.key !== 'guide' ? first : undefined}
+        <Paper title={doc.title} subtitle={doc.subtitle} url={docs?.[doc.key]} onClose={() => setOpen(null)} reuse={doc.key !== 'guide' ? first : undefined}
           sign={sig => { setSale({ signed: { ...sale.signed, [doc.key]: sig } }); setOpen(null); }} />
       )}
     </Page>

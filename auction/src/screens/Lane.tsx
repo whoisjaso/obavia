@@ -11,7 +11,7 @@ import { Bars } from '../components/Bars';
 import { LanePhoto } from '../components/LanePhoto';
 import { Price } from '../components/Price';
 import { Ring } from '../components/Ring';
-import { cars, type Car } from '../data/cars';
+import { carFromLot, type Car } from '../data/cars';
 import { inLastTwoMinutes, roll } from '../engine/auction';
 import { outTheDoor } from '../engine/money';
 import type { Lot } from '../engine/server';
@@ -20,8 +20,9 @@ import { theme } from '../theme';
 import { BidSheet } from './BidSheet';
 import { CarSheet } from './CarSheet';
 import { Won } from './won/Won';
-import { ME, isWatched, toggleWatch, useLots, useWatched } from '../store';
+import { AUCTION_URL, ME, isWatched, toggleWatch, useCars, useLots, useWatched } from '../store';
 import { Me } from './Me';
+import { Label } from '../components/Type';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { openSale, useSale } from '../sale';
 
@@ -156,6 +157,7 @@ function Mark({ size }: { size: number }) {
 export function Lane() {
   const { width, height } = useWindowDimensions();
   const { lots, now } = useLots();
+  const cars = useCars(lots);
   const sale = useSale();
   const [index, setIndex] = useState(0);
   const [sheet, setSheet] = useState<{ car: Car; steps: number; key: number } | null>(null);
@@ -168,7 +170,7 @@ export function Lane() {
   for (const l of Object.values(lots)) {
     if (l.closed && !closedSeen.current[l.id]) {
       closedSeen.current[l.id] = true;
-      const car = cars.find(c => c.id === l.id);
+      const car = cars.find(c => c.id === l.id) ?? (AUCTION_URL ? carFromLot(l, AUCTION_URL) ?? undefined : undefined);
       if (car && l.leader === ME && l.closed.sold) {
         openSale({ lotId: l.id, hammer: l.high, total: outTheDoor(l.high, car.dealer.fees).total });
         setSheet(null); setWon(car);
@@ -203,13 +205,14 @@ export function Lane() {
         ref={listRef}
         data={cars}
         keyExtractor={c => c.id}
-        renderItem={({ item, index: i }) => (
+        renderItem={({ item, index: i }) => lots[item.id] ? (
           <CarPage car={item} lot={lots[item.id]} now={now} width={width} height={height} active={i === index}
             refillKey={refills.current[item.id] ?? 0}
             onOpen={() => { feel.select(); setOpen(item); }}
             onMe={() => setMe(true)}
             onArm={steps => setSheet({ car: item, steps, key: Date.now() })} />
-        )}
+        ) : null}
+        ListEmptyComponent={<View style={[s.empty, { height }]}><Label ink={theme.color.cloud}>Nothing on the lane yet</Label></View>}
         pagingEnabled
         snapToInterval={height}
         decelerationRate="fast"
@@ -236,6 +239,7 @@ const s = StyleSheet.create({
   eye: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   eyeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.cloud, opacity: 0.8 },
   eyeText: { color: theme.color.cloud, opacity: 0.9, ...theme.type.sans, fontSize: 12, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
+  empty: { alignItems: 'center', justifyContent: 'center' },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 22 },
   priceHit: { alignSelf: 'flex-start', paddingVertical: 8, paddingRight: 40 },
   foot: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

@@ -143,3 +143,38 @@ describe('collateral', () => {
   });
   it('uninsured: refused', () => { expect(collateralRefusal({ ...ok, insured: false })).toMatch(/insured/); });
 });
+
+describe('carFromLot', async () => {
+  // cars.ts requires the seeded photos as Metro assets; under Node they are just ids.
+  const { createRequire } = await import('node:module');
+  const Module = createRequire(import.meta.url)('node:module') as { _extensions: Record<string, (m: { exports: unknown }) => void> };
+  Module._extensions['.jpg'] = m => { m.exports = 1; };
+  const { carFromLot, isWide } = await import('../data/cars');
+  const meta = {
+    year: 2016, make: 'Toyota', model: 'Camry', miles: 88_000, vin: '4T1BF1FK0GU000004',
+    photos: [{ url: '/photos/camry/0.jpg', w: 1600, h: 900 }, { url: 'photos/camry/1.jpg', w: 900, h: 1600 }],
+    grade: [1, 1, 1, 1, 1, 1] as [number, number, number, number, number, number],
+    title: 'at lender' as const,
+    dealer: { name: 'Triple J Auto', city: 'Houston', street: '100 Example St', gdn: 'P000000', phone: '(555) 010-0000', afterHours: '(555) 010-0001', fees: { ...TEXAS, doc: 150 } },
+    documents: { guide: '/docs/camry/guide.pdf' },
+    collateral: { title: { status: 'lender' as const, lienholder: 'Westlake', payoff: 3000, releaseDays: 10 }, floor: 4000, insured: true },
+  };
+  const lot: Lot = { id: 'camry', start: 4000, retail: 7995, opensAt: 0, closesAt: 1, high: 4000, bids: 0, watching: 0, car: meta };
+  it('prefixes photo and document paths with the Worker base', () => {
+    const car = carFromLot(lot, 'https://auction.example.com/')!;
+    expect(car.id).toBe('camry');
+    expect(car.photos[0].src).toEqual({ uri: 'https://auction.example.com/photos/camry/0.jpg' });
+    expect(car.photos[1].src).toEqual({ uri: 'https://auction.example.com/photos/camry/1.jpg' });
+    expect(car.documents?.guide).toBe('https://auction.example.com/docs/camry/guide.pdf');
+    expect(car.collateral?.title.releaseDays).toBe(10);
+  });
+  it('keeps each photo shape so sideways shots read wide', () => {
+    const car = carFromLot(lot, 'https://auction.example.com')!;
+    expect(isWide(car.photos[0])).toBe(true);
+    expect(isWide(car.photos[1])).toBe(false);
+  });
+  it('a lot without a car is null', () => {
+    const { car: _, ...bare } = lot;
+    expect(carFromLot(bare, 'https://auction.example.com')).toBeNull();
+  });
+});
