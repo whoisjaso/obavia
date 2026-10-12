@@ -14,6 +14,7 @@ You own what is on the glass and the proof that it renders.
 - `obavia-co/`: the public site, icy blues and cloud atmosphere, reduced motion respected.
 - Every change ships with `tsc` clean, the test suite green, and a 393×852 screenshot of each touched screen in the report.
 - Hick's Law audit on every new screen: one primary action, hidden advanced, nothing not yet relevant.
+- Lego audit on every new screen (`docs/design/lego.md` §7): the two pieces, their placement, under four words that must be read, the inference the user makes, the body proof. 97 percent visual; instructions and confirmations as text are banned.
 
 Phase ownership: every phase's visible surface.
 
@@ -25,7 +26,7 @@ Phase ownership: every phase's visible surface.
 4. The house register still wins over any skill default: upright spaced capitals, Bodoni Moda for money and names only, platform face for small type, squared ink buttons, no pills, no italics, one action per screen.
 
 ## House law (every agent, every phase)
-- Read first: `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
+- Read first: `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/design/cloud-system.md`, `docs/design/lego.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
 - One action per screen, one verb per message, one number per decision. Hick's Law is the house rule.
 - Claims match verified capability. Seeded figures are labelled seeded. Financial outcomes are never guaranteed.
 - Obavia never carries a risk it is not paid for; no fee of any kind before the GDN issues (43 TAC §215.85). Payments run on Whop.

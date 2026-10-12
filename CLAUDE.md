@@ -18,7 +18,7 @@ Legacy, not to be expanded: the agency-owner sales product in app/ (app.obavia.c
 
 Accountability: the growth plan is rigid. A request that deviates from it is named as a deviation in the first line of the reply, with the plan line it conflicts with, and is not built until the plan's changelog carries a dated amendment. Missed gates are reported bluntly with the number and the days late.
 
-Use one clear next action, deliberate details, the original Obavia mark, icy blues and cloud atmosphere. Respect reduced motion. Claims must match verified capability; inferred meanings remain hypotheses anchored to observable words. Show data provenance clearly.
+Every surface follows docs/design/cloud-system.md (the material) and docs/design/lego.md (adjacency: pieces placed next to each other, 97 percent visual, the body confirms, nothing explained). Use one clear next action, deliberate details, the original Obavia mark, icy blues and cloud atmosphere. Respect reduced motion. Claims must match verified capability; inferred meanings remain hypotheses anchored to observable words. Show data provenance clearly.
 
 The obsolete vehicle-rental project has been removed from the active tree. Git history is historical evidence, not current product direction. Do not restore rental pages or instructions.
 
