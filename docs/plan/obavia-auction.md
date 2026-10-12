@@ -48,17 +48,17 @@ The dealer's job becomes one decision: **"What's the least you'll take?"** Every
 | Can a non-dealer platform consign cars to the public? | No. That is the "fly-by-night public auction" the law was written to stop (2005 bill history). The seller of record must be a GDN holder, and consignment at a location needs a GDN for that location unless it is a wholesale auction. | §503.021, §503.027 history, HB 2495 (79R) analysis |
 | Does an online auction need an auctioneer licence? | No: Chapter 1802 exempts "(12) a sale of motor vehicles at auction by a person licensed under Chapter 2301 or 2302; (13) a sale of motor vehicles at auction by a person who holds a wholesale motor vehicle auction GDN or an independent motor vehicle GDN; or **(14) an auction of property through the Internet.**" TDLR's rule adds that it does not apply to "a person providing an online platform to facilitate an auction." | Occ. Code §1802.002(a)(12)–(14); 16 TAC §67.30 |
 | Is a bid caller a dealer? | Not if "legal or equitable title does not pass to the auctioneer" and, for a GDN holder's cars, the auction is at the GDN holder's licensed location. | §503.024(d) |
-| Is Obavia a "broker"? | "A person may not act as, offer to act as, or claim to be a broker." But the statutory broker is one who arranges the sale of a **new** motor vehicle. The TxDMV dealer manual: "The brokering of used motor vehicles is allowed by those licensees possessing a valid GDN." Advertising for others in your own name is not brokering. | Occ. Code §2301.006, §2301.002(3); Dealer Manual §4.34; 43 TAC §215.84–.85 |
+| Is Obavia a "broker"? | The statutory broker (§2301.006) arranges sales of **new** vehicles, so that ban does not reach us. The governing used-vehicle rule is **43 TAC §215.85**: a person who arranges or advertises used-vehicle sales for others may do so without a GDN only on a flat, equal subscription with no per-transaction or success fee, no buyer's premium, no price suggestion to either side, and no advertising of a "special discounted price". Anything else (percentage fee, premium, pricing the car) requires the arranger to hold its own GDN. (Earlier draft cited Dealer Manual §4.34, which is the new-vehicle rule; corrected.) | Occ. Code §2301.006, §2301.002(3); **43 TAC §215.85** (verified); §215.84 |
 | Buyer's Guide at a public auction? | Yes. "At public auctions, dealers and the auction company must comply. The Rule does not apply at auctions that are closed to consumers." A Buyers Guide must be displayed on every used vehicle offered to a consumer. | 16 CFR Part 455; FTC Dealer's Guide |
 | Title and tax after the sale | The dealer files the title application (130-U) within 30 days, collects the 6.25% motor vehicle sales tax, and the buyer never goes to the county. This is exactly what the Desk already does (sale → 130-U → webDEALER → plates). | Our Desk; TxDMV |
 
-**Two structures fall out of this.**
+**Two structures fall out of this.** *(Superseded: see `obavia-auction-decisions.md` §0. Under §215.85 Structure A cannot carry a success fee or buyer's premium, so the pilot runs on Triple J's own GDN fee-free while Obavia files for its own GDN.)*
 
 **A. Obavia is the software and the advertising; the dealer is the seller of record.** The dealer's GDN sells the car, in its own name, from its own lot. Obavia charges the dealer for software and listings (the eBay Motors shape), and the buyer pays the dealer. Lowest regulatory exposure; we can launch on it with Triple J tomorrow. The question for counsel is whether a success fee charged to the dealer, or a buyer's premium collected by Obavia, reads as "brokering" of used vehicles by a non-GDN holder. The manual's wording suggests the safe answers are a flat listing/subscription fee to the dealer, or Obavia holding its own GDN.
 
 **B. Obavia (an Obavia entity) holds an Independent GDN, later a Wholesale Motor Vehicle Auction GDN.** Then Obavia can consign, run the buyer's premium, hold deposits, and be the auction of record, like Peak's Texas operation. Costs: the GDN application, a surety bond, a licensed premises, and dealer-level compliance. This is the 6-to-12-month target because it also lets us run the dealer-to-dealer lane later.
 
-**Counsel items (before launch):** the fee structure under §2301.006 and Dealer Manual §4.34; whether consignment to an online auction counts as the dealer's "location"; sales tax on a buyer's premium; out-of-state buyers and title delivery; deposit handling and the Texas "deceptive trade practices" exposure on "as is" sales; arbitration terms; the Buyers Guide displayed in-app (the Rule says "on the vehicle"; at pickup it must be physical too).
+**Counsel items (before launch):** the fee structure under 43 TAC §215.85 (flat equal subscription vs. per-car fee once Obavia holds a GDN); whether consignment to an online auction counts as the dealer's "location"; sales tax on a buyer's premium; out-of-state buyers and title delivery; deposit handling and the Texas "deceptive trade practices" exposure on "as is" sales; arbitration terms; the Buyers Guide displayed in-app (the Rule says "on the vehicle"; at pickup it must be physical too).
 
 ---
 
@@ -177,6 +177,8 @@ Inside the Desk, next to each car's days-on-lot ring (which already turns amber)
 ---
 
 ## 10. Open questions for the owner
+
+*Questions 1–4 are answered in `obavia-auction-decisions.md` §1 (derived from the six-seat simulation in `sim/`). Only 5, and the ten pilot cars with floors, remain with the owner.*
 
 1. Structure A (software, dealer sells) to launch, with B (our own GDN) as the target? Or straight to B?
 2. The buyer's premium: single digits, or zero premium and a dealer-side fee?
