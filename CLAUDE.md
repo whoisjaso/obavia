@@ -7,6 +7,7 @@ Read docs/obavia-spec.md, docs/sales-doctrine.md, docs/obavia-positioning.md and
 - obavia-co/: public marketing site for obavia.co.
 - app/: Vite/React application frontend for app.obavia.co. Current figures are seeded; integrations and authentication are not operational.
 - films/: source for product films.
+- auction/: Expo buyer app for the phone-first public auction (Lane, Bid sheet; local stand-in server). Read docs/plan/obavia-auction-decisions.md first.
 - deploy/site/: public-site deployment preserving the existing waitlist API, email sender, cron and search content.
 
 Use one clear next action, deliberate details, the original Obavia mark, icy blues and cloud atmosphere. Respect reduced motion. Claims must match verified capability; inferred meanings remain hypotheses anchored to observable words. Show data provenance clearly.
