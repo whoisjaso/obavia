@@ -158,16 +158,6 @@ export class RemoteAuctionServer {
     await fetch(`${this.base}/lots/${id}/watch?delta=${on ? 1 : -1}`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
   }
 
-  /** The deposit checkout on Whop: the Worker makes it; the app opens it in an in-app browser and returns by deep link. */
-  static async depositCheckout(base: string, token: string, redirectUrl: string): Promise<{ checkoutId: string; url: string } | null> {
-    try {
-      const r = await fetch(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ redirectUrl }) });
-      if (!r.ok) return null;
-      const b = await r.json() as { checkoutId?: string; url?: string };
-      return b.checkoutId && b.url ? { checkoutId: b.checkoutId, url: b.url } : null;
-    } catch { return null; }
-  }
-
   /** Sign-in (worker/README.md, Buyer tokens). Nothing stored: the profile with no id and no authorization; the
       Worker makes the buyer and returns `{ id, token }` once. Stored: the token as Bearer with the id; the answer
       is the same id and its token. A 401 throws Refused('not_yours'): the stored token is dead, and the caller

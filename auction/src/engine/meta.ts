@@ -12,7 +12,7 @@ export type CarMeta = {
   title: 'in hand' | 'at lender';
   dealer: { name: string; city: string; street: string; gdn: string; phone: string; afterHours: string; fees: Fees };
   documents?: { guide?: string; bill?: string; title?: string };   // URLs on the Worker, as the Desk files them
-  hours?: string[];                      // pickup windows the dealer offers, e.g. "Sat 10–2"
+  hours?: string[];                      // pickup windows the dealer offers, e.g. "Sat 10 to 2"
   collateral: Collateral;                // who holds what before the first bid; the lane refuses without it
 };
 

@@ -35,7 +35,7 @@ npx expo start            # iOS / Android via a development build (haptics, audi
 npm run typecheck && npm test
 npx expo export --platform web --output-dir dist   # the web preview used for screenshots; no haptics on web
 ```
-Preview switches on the web build only: `?closeIn=3000&lag=1500` closes the first lot in 3 s with 1.5 s of network latency, to watch a late bid get rejected; `?win=1` drops the hammer 2.5 s after your first bid, to walk Won through Plates. In Pickup, hold the pass to stand in for the dealer's VIN scan.
+Preview switches on the web build only: `?closeIn=3000&lag=1500` closes the first lot in 3 s with 1.5 s of network latency, to watch a late bid get rejected; `?win=1` drops the hammer 2.5 s after your first bid, to walk Won through Plates. In Pickup on the local server, hold the pass to stand in for the dealer's VIN scan. On a Worker the hold does nothing: the pass waits for the Desk, whose Type The Pass turns it green.
 
 ## Push (device builds)
 The config is `app.config.ts` (it replaced `app.json`). Push tokens need the EAS project id on a device build: `src/push.ts` passes `extra.eas.projectId` to `getExpoPushTokenAsync`, and the config reads it from `EAS_PROJECT_ID` in the environment. Without it a phone build registers no token and hears nothing.
