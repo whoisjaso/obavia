@@ -46,7 +46,14 @@ export type SaleState = {
   paidAt?: number; startedAt?: number; forfeitedAt?: number; voidedAt?: number;
   deposit?: 'held' | 'applied' | 'to_dealer' | 'released';   // where the buyer's $250 went; applied: counted toward the price at the engine start, the dealer's
   payout?: Payout;   // the dealer's $250 on an applied or forfeited sale (worker/src/auction.ts)
+  plates?: Plates;   // the county's clock after the start, as the Desk marks it (worker/src/auction.ts POST /plates)
 };
+
+/** Where the buyer's plates stand (phases.md Phase 2 Paperwork: filed, approved, mailed, kickback). Written by the dealer's
+    Desk on a started sale; forward only, except a kickback, which follows filed and is followed by filed again. The phone's
+    ring reads `state` (src/sale.ts PLATES_WORDS: Filed, Approved, Mailed, Dealer fixing); `note` is the county's words on a kickback. */
+export type PlatesState = 'filed' | 'approved' | 'mailed' | 'kickback';
+export type Plates = { state: PlatesState; at: number; note?: string };
 
 /** Where the dealer's $250 stands: owed until a Whop transfer lands, then sent with the transfer id. */
 export type Payout = { state: 'owed' | 'sent' | 'paid'; transferId?: string; method?: 'wire' | 'check' | 'cash'; at?: number };   // paid: by hand outside Whop (worker/src/auction.ts LotPayout)

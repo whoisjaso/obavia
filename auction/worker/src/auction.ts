@@ -12,13 +12,13 @@ import { collateralRefusal, type CarMeta } from '../../src/engine/meta';
 import type { Ack, BidRequest, Event, Lot } from '../../src/engine/server';
 import type { Env } from './env';
 import { outTheDoor, dollars } from '../../src/engine/money';
-import type { Payout, SaleState } from '../../src/engine/meta';
+import type { Payout, Plates, PlatesState, SaleState } from '../../src/engine/meta';
 import { payBy, push, pushDealer } from './push';
 import { shillMatch, type Who } from './bidders';
 import { Whop } from './whop';
 
 export type OpenRequest = { id: string; dealer: string; start: number; retail: number; opensAt?: number; closesAt: number; car?: CarMeta };
-export type { Payout, SaleState };
+export type { Payout, Plates, PlatesState, SaleState };
 /** The dealer's $250 as the lot keeps it: owed, sent by a Whop transfer, or paid by hand (wire, check, cash). Wider than the
     engine's Payout (src/engine/meta.ts, 'owed' | 'sent'), which does not yet carry 'paid', the method or the time. */
 export type LotPayout = { state: 'owed' | 'sent' | 'paid'; transferId?: string; method?: PayMethod; at?: number };
@@ -39,7 +39,13 @@ export const REMIND_HOURS = [24, 6] as const;
 export const DEPOSIT_USD = 250;
 /** The soft close (decisions §2 #8): Sell It Now is refused inside the last two minutes of a lot with bids. */
 export const SOFT_CLOSE_MS = 120_000;
-const DEALER_ROUTES = ['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/copy'];
+const DEALER_ROUTES = ['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/plates', '/copy'];
+/** The plates clock, forward only (phases.md Phase 2 Paperwork: filed, approved, mailed, kickback): what may follow each state.
+    A kickback follows filed and is followed by filed again (the Desk fixed the 130-U and refiled). Nothing follows mailed. */
+export const PLATES_NEXT: Record<'none' | PlatesState, readonly PlatesState[]> = {
+  none: ['filed'], filed: ['approved', 'kickback'], kickback: ['filed'], approved: ['mailed'], mailed: [],
+};
+const PLATES_STATES: readonly PlatesState[] = ['filed', 'approved', 'mailed', 'kickback'];
 
 export class Auction extends DurableObject<Env> {
   private lot: Stored | null = null;
@@ -124,6 +130,24 @@ export class Auction extends DurableObject<Env> {
         if (!admin) return text('admin only', 403);
         const b = await req.json<Partial<PayoutNews>>().catch(() => ({} as Partial<PayoutNews>));
         return this.payoutNews(lot, b);
+      }
+      case 'POST /plates': {   // the Desk marks the county's clock on a started sale: filed, approved, mailed, or a kickback
+        const s = lot?.sale;
+        const why = !s ? 'no sale' : s.voidedAt ? 'sale_voided' : s.forfeitedAt ? 'sale_forfeited' : !s.startedAt ? 'not_started' : null;
+        if (why || !lot || !s) return text(why ?? 'no sale', 409);
+        const b = await req.json<{ state?: unknown; note?: unknown }>().catch(() => ({} as { state?: unknown; note?: unknown }));
+        const state = PLATES_STATES.find(x => x === b.state);
+        if (!state) return text('bad_state', 400);
+        if (s.plates?.state === state) return json(this.publicLot(lot));   // the same word again (a retried tap) changes nothing
+        if (!PLATES_NEXT[s.plates?.state ?? 'none'].includes(state)) return text('plates_order', 409);
+        const note = typeof b.note === 'string' ? b.note.trim().slice(0, 240) : '';
+        const plates: Plates = note ? { state, at: now, note } : { state, at: now };
+        // the record first, like every sale event; no money moves, so no amount
+        await this.money(`plates:${lot.id}:${now}`, 'sale.plates', { lotId: lot.id, buyer: s.buyer, dealer: lot.dealer, state, from: s.plates?.state ?? null, note: note || null, actor: 'dealer' }, now);
+        s.plates = plates; await this.save(lot);
+        this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
+        if (state === 'mailed') this.ctx.waitUntil(push(this.env, s.buyer, 'Plates mailed', carName(lot) || lot.id, { lotId: lot.id, screen: 'won' }));   // the one push: the ring's last tick
+        return json(this.publicLot(lot));
       }
       case 'POST /forfeit': {   // the buyer did not pay: the deposit is the dealer's (collateral.md §2). The dealer only at the deadline; the admin any time.
         const s = lot?.sale;

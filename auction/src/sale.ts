@@ -111,14 +111,15 @@ export { payByWords } from './engine/time';
 
 /** The server's sale as the glass follows it: the pay-by, the hammer time, the dealer's scan and, once the
     Worker carries them, the plates states. The Lane calls this on every lot change for the sale I hold. */
-export type ServerSale = { wonAt: number; deadlineAt: number; startedAt?: number; plates?: Plates };
+export type ServerSale = { wonAt: number; deadlineAt: number; startedAt?: number; plates?: Plates | { state: Plates } };   // the Worker sends { state, at, note? } (engine/meta.ts Plates); the ring reads state
 export function followServer(server: ServerSale) {
   const cur = sale; if (!cur) return;
   const patch: Partial<Sale> = {};
+  const platesIn = server.plates && typeof server.plates === 'object' ? server.plates.state : server.plates;
   if (cur.wonAt !== server.wonAt) patch.wonAt = server.wonAt;   // the server's hammer time, so the pass matches the Desk's
   if (cur.deadlineAt !== server.deadlineAt) patch.deadlineAt = server.deadlineAt;
   if (server.startedAt && !cur.pickedUp) patch.pickedUp = true;   // the dealer's VIN scan
-  if (server.plates && server.plates !== cur.plates) patch.plates = server.plates;
+  if (platesIn && platesIn !== cur.plates) patch.plates = platesIn;
   if (Object.keys(patch).length) setSale(patch);
 }
 

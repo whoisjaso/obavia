@@ -87,8 +87,8 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const stub = env.AUCTION.get(env.AUCTION.idFromName(id));
       const toObject = (init: RequestInit & { dealer?: string }) => stub.fetch(new Request(req.url, { ...init, headers: { 'content-type': 'application/json', ...(init.dealer ? { 'x-dealer': init.dealer } : {}) } }));
 
-      // dealer: open, close, paid, pickup, car, void, forfeit, photos, documents
-      if (['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit'].includes(rest) || rest.startsWith('/photos/') || rest.startsWith('/documents/')) {
+      // dealer: open, close, paid, pickup, car, void, forfeit, plates, photos, documents
+      if (['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/plates'].includes(rest) || rest.startsWith('/photos/') || rest.startsWith('/documents/')) {
         const dealer = await dealerFrom(req, env.DEALER_SECRET);
         if (!dealer) return text('dealer only', 403);
         if (req.method === 'PUT' && (rest.startsWith('/photos/') || rest.startsWith('/documents/'))) {
