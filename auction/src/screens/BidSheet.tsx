@@ -266,7 +266,7 @@ function Deposit({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () 
       <Text style={s.depositAmt}>${DEPOSIT}</Text>
       <Text style={s.depositLine}>refunded if you lose</Text>
       <CloudButton label="Pay" onPress={onConfirm} style={{ marginTop: theme.space.s }} accessibilityLabel={`Pay ${DEPOSIT} dollars with Apple Pay`} />
-      <Pressable onPress={onCancel} hitSlop={12}><Text style={s.cancel}>Not now</Text></Pressable>
+      <Pressable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel="Not now"><Text style={s.cancel}>Not now</Text></Pressable>
     </View>
   );
 }

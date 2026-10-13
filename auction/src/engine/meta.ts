@@ -49,4 +49,4 @@ export type SaleState = {
 };
 
 /** Where the dealer's $250 stands: owed until a Whop transfer lands, then sent with the transfer id. */
-export type Payout = { state: 'owed' | 'sent'; transferId?: string };
+export type Payout = { state: 'owed' | 'sent' | 'paid'; transferId?: string; method?: 'wire' | 'check' | 'cash'; at?: number };   // paid: by hand outside Whop (worker/src/auction.ts LotPayout)

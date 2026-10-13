@@ -10,7 +10,7 @@ import { viewerHtml } from './view';
 import { lastReconciliations, reconcile, reserveRatio } from './reconcile';
 import { Whop } from './whop';
 import { COUNT_SQL, TERMS_VERSION, WINS_PER_YEAR, committed, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
-import type { BidIn } from './auction';
+import type { BidIn, PayMethod, PayoutNews } from './auction';
 import { maskPhone, sendCode, verifiedForReal, verifyCode } from './phone';
 export { Auction } from './auction';
 
@@ -24,6 +24,9 @@ const MINT_WINDOW_MS = 3_600_000, MINT_PER_WINDOW = 20;   // every lane mint tog
 const fail = (error: string, status: number, extra: Record<string, string> = {}) => new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json', ...extra, ...CORS } });
 const PUSH_TOKEN = /^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]{8,64}\]$/;
 const PAY_METHODS: unknown[] = ['wire', 'check', 'cash'];   // a payout paid by hand (desk/src/lib/admin-api.ts PayMethod)
+const WHOP_BIZ = /^biz_[A-Za-z0-9]{4,60}$/;   // a Whop connected account id
+/** biz_••••ab12: enough for the dealer to recognise it, never the whole id. */
+const maskAccount = (a: string) => `biz_••••${a.slice(-4)}`;
 /** Every deposit state, so the admin's byStatus shows a zero rather than leaving a state out. */
 const DEPOSIT_STATES = { none: 0, captured: 0, applied: 0, forfeited: 0, refunded: 0, disputed: 0 };
 /** An admin's reason: one plain line, 1 to 200 characters (admin-api.ts reasonOf). */
@@ -250,6 +253,7 @@ async function handle(req: Request, env: Env): Promise<Response> {
         env.DB.prepare(`UPDATE dealer_payouts SET state = 'paid', method = ?2, paid_note = ?3, sent_at = ?4, error = NULL WHERE id = ?1 AND state = 'owed' AND held = 1`).bind(pid, method, note, now),
       ]);
       if (!moved.meta.changes) return fail('already_paid', 409);
+      await tellLot(env, p.lot_id, { id: pid, state: 'paid', method: method as PayMethod, at: now });   // the Desk's Sold follows the row
       return json(payoutOut((await env.DB.prepare('SELECT * FROM dealer_payouts WHERE id = ?1').bind(pid).first<PayoutRow>())!));
     }
     // the admin gives a buyer's deposit back, with a reason: refused when it is applied to a car, forfeited, or backs a bid or a sale
@@ -331,13 +335,52 @@ async function handle(req: Request, env: Env): Promise<Response> {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
       const b = await body(req);
       const gdn = typeof b.gdn === 'string' && /^[A-Z0-9]{5,12}$/.test(b.gdn) ? b.gdn : null;
-      const account = typeof b.account === 'string' && /^biz_[A-Za-z0-9]{4,60}$/.test(b.account) ? b.account : null;
+      const account = typeof b.account === 'string' && WHOP_BIZ.test(b.account) ? b.account : null;
       if (!gdn || !account) return fail('bad_account', 400);
       const r = await env.DB.prepare('UPDATE dealers SET whop_account = ?2 WHERE gdn = ?1').bind(gdn, account).run();
       if (!r.meta.changes) return fail('no_such_dealer', 404);
       await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
         .bind(`account:${gdn}:${Date.now()}`, 'dealer.account', JSON.stringify({ dealer: gdn, account, actor: 'admin' }), Date.now()).run();
       return json({ gdn, account, payouts: await sendOwed(env, gdn) });
+    }
+    // the dealer's own Whop account: the dealer's key asks, Whop creates the connected account (and runs the identity checks), and
+    // only the id in Whop's own answer is stored. Nothing the client sends can name the account. A dealer key sets it once;
+    // replacing it is the admin's (POST /dealers/account), so a leaked key cannot move the $250 to another account.
+    if (req.method === 'POST' && url.pathname === '/dealers/account/start') {
+      const gdn = await dealerFrom(req, env.DEALER_SECRET);
+      if (!gdn || gdn === '*') return text('dealer only', 403);
+      const b = await body(req);
+      if (['account', 'whopAccount', 'whop_account', 'id'].some(k => k in b)) return fail('account_from_whop_only', 400);
+      const whop = new Whop(env);
+      if (!whop.ready) return fail('whop_unavailable', 503);
+      const email = typeof b.email === 'string' && b.email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email.trim()) ? b.email.trim() : null;
+      if (!email) return fail('bad_email', 400);
+      const d = await env.DB.prepare('SELECT name, whop_account FROM dealers WHERE gdn = ?1').bind(gdn).first<{ name: string; whop_account: string | null }>();
+      if (!d) return fail('no_such_dealer', 404);
+      if (d.whop_account) return fail('account_exists', 409);
+      let made: { id?: unknown };
+      try { made = await whop.createDealerAccount(email, d.name, gdn); } catch { return fail('whop_refused', 502); }   // Whop's words are not echoed: they may carry the email
+      const account = typeof made?.id === 'string' && WHOP_BIZ.test(made.id) ? made.id : null;
+      if (!account) return fail('whop_bad_account', 502);
+      const now = Date.now();
+      const r = await env.DB.prepare('UPDATE dealers SET whop_account = ?2 WHERE gdn = ?1 AND whop_account IS NULL').bind(gdn, account).run();
+      if (!r.meta.changes) {   // a second tap won the race: this Whop account is left unused, on the ledger for the admin
+        await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+          .bind(`account:${gdn}:${now}:unused`, 'dealer.account_unused', JSON.stringify({ dealer: gdn, account, actor: 'dealer', via: 'whop' }), now).run();
+        return fail('account_exists', 409);
+      }
+      await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+        .bind(`account:${gdn}:${now}`, 'dealer.account', JSON.stringify({ dealer: gdn, account, actor: 'dealer', via: 'whop' }), now).run();
+      return json({ gdn, whopAccount: maskAccount(account), payouts: await sendOwed(env, gdn) });
+    }
+    // the Desk's settings row: Connected or Not yet. The dealer's own key only; the account masked
+    if (req.method === 'GET' && url.pathname === '/dealers/me') {
+      const gdn = await dealerFrom(req, env.DEALER_SECRET);
+      if (!gdn || gdn === '*') return text('dealer only', 403);
+      const d = await env.DB.prepare(`SELECT d.gdn, d.name, d.whop_account, (SELECT COALESCE(SUM(p.amount), 0) FROM dealer_payouts p WHERE p.dealer = d.gdn AND p.state = 'owed' AND p.held = 1) AS owed FROM dealers d WHERE d.gdn = ?1`)
+        .bind(gdn).first<{ gdn: string; name: string; whop_account: string | null; owed: number }>();
+      if (!d) return fail('no_such_dealer', 404);
+      return json({ gdn: d.gdn, name: d.name, whopAccount: d.whop_account ? maskAccount(d.whop_account) : null, payoutsOwed: d.owed });
     }
     // standing: the owner suspends or restores a dealer; a suspended dealer cannot open a lot
     const standing = url.pathname.match(/^\/dealers\/([A-Z0-9]{5,12})\/(suspend|restore)$/);
@@ -671,8 +714,8 @@ async function releaseDeposit(env: Env, whop: Whop, buyer: string, ref: string |
 
 /** Every payout left owed for a dealer, sent now when the dealer has a connected account and Whop is configured. Each transfer
     carries the payout's own id as its idempotency key (applied:<lot> or forfeit:<lot>, as the lot's object sent it), so a payout
-    the object already sent is never sent twice. A refusal stays owed with its error. The lot's sale.payout is the object's and is
-    not moved here: dealer_payouts is the record. */
+    the object already sent is never sent twice. A refusal stays owed with its error. dealer_payouts is the record; the lot's
+    sale.payout follows it through the object's POST /payout. */
 export async function sendOwed(env: Env, gdn: string): Promise<{ sent: number; owed: number }> {
   const rows = (await env.DB.prepare(`SELECT * FROM dealer_payouts WHERE dealer = ?1 AND state = 'owed' AND held = 1 ORDER BY created_at`).bind(gdn).all<PayoutRow>()).results;
   const whop = new Whop(env);
@@ -683,17 +726,26 @@ export async function sendOwed(env: Env, gdn: string): Promise<{ sent: number; o
     try {
       const t = await whop.transferToDealer(acct, p.amount, p.id, `${p.reason} ${p.lot_id}`);
       const now = Date.now();
-      await env.DB.batch([
+      const [moved] = await env.DB.batch([
         env.DB.prepare('UPDATE dealer_payouts SET state = ?2, transfer_id = ?3, sent_at = ?4, error = NULL WHERE id = ?1 AND state = ?5').bind(p.id, 'sent', t.id, now, 'owed'),
         env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
           .bind(`payout:${p.id}`, 'payout.sent', JSON.stringify({ lotId: p.lot_id, dealer: gdn, amount: p.amount, reason: p.reason, transferId: t.id, via: 'retry', actor: 'lane' }), now),
       ]);
       sent += 1;
+      if (moved.meta.changes) await tellLot(env, p.lot_id, { id: p.id, state: 'sent', transferId: t.id, at: now });
     } catch (e) {
       await env.DB.prepare('UPDATE dealer_payouts SET error = ?2 WHERE id = ?1').bind(p.id, String((e as Error)?.message ?? e).slice(0, 240)).run().catch(() => {});
     }
   }
   return { sent, owed: rows.length - sent };
+}
+
+/** The lot's sale.payout follows a dealer_payouts row moved here (paid by hand, sent by the retry). Called after the D1 write,
+    which is the record; a refusal or a failure here leaves the row as it is and the Sold page one step behind. */
+async function tellLot(env: Env, lotId: string, news: PayoutNews): Promise<void> {
+  try {
+    await env.AUCTION.get(env.AUCTION.idFromName(lotId)).fetch(new Request(`https://auction/lots/${lotId}/payout`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(news) }));   // no x-dealer: the admin
+  } catch { /* the row is the truth */ }
 }
 
 /** The nightly pass: every dealer with a connected account and a payout owed. */

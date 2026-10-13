@@ -41,7 +41,7 @@ const SPEC = {
   'lane-watched':    { title: 'Lane, watched (double tap)', gesture: 'drag the price', anchor: /dollars, .* left/, allow: [/^Me$/, /photos, open the car$/, /^[\d,]+ dollars$/] },
   'bid-first':       { title: 'Bid sheet, first bid', primary: /^Bid/, before: [/^[\d,]+ dollars$/], verb: 'Bid', kept: 'terms' },
   'phone-number':    { title: 'Phone, your number', primary: /^Your number$/ },
-  'phone-code':      { title: 'Phone, the code', gesture: 'type the six (the keyboard is up)', anchor: /^Code$/, allow: [/^Not now$/, /^Sent to /, /^$/] },
+  'phone-code':      { title: 'Phone, the code', gesture: 'type the six (the keyboard is up)', anchor: /^Code$/, allow: [/^Not now$/, /^Sent to /, /^Code$/, /^$/] },
   'id-frame':        { title: 'ID frame (first bid)', primary: /^Take the photo$/ },
   'id-facts':        { title: 'ID facts', primary: /^That's me$/, before: [/^(Name|Born|Address|Licen[cs]e|State) /], verb: "That's me" },
   'deposit':         { title: 'Deposit', primary: /^Pay \d+ dollars/, verb: 'Pay', kept: 'deposit' },

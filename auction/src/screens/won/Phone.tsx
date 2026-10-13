@@ -98,12 +98,6 @@ export function PhoneSignIn({ onDone, onCancel }: { onDone: () => void; onCancel
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.sky, paddingTop: insets.top, paddingBottom: insets.bottom + theme.space.m }]}>
         <Sky />
         <Feather />
-        {!proved && (
-          <Pressable onPress={onCancel} hitSlop={12} style={[s.later, { top: insets.top + theme.space.s }]} accessibilityRole="button" accessibilityLabel="Not now">
-            <Text style={s.laterText}>Not now</Text>
-          </Pressable>
-        )}
-
         {page === 'number' ? (
           <View style={s.page} key="number">
             <View style={s.middle}>
@@ -143,6 +137,13 @@ export function PhoneSignIn({ onDone, onCancel }: { onDone: () => void; onCancel
             </View>
           </Settle>
         )}
+        {/* "Not now" sits top left on the glass but comes last in the reading order: after the field and the
+            verb, so a screen reader meets the one action first. Absolute, so moving it here moves nothing. */}
+        {!proved && (
+          <Pressable onPress={onCancel} hitSlop={12} style={[s.later, { top: insets.top + theme.space.s }]} accessibilityRole="button" accessibilityLabel="Not now">
+            <Text style={s.laterText}>Not now</Text>
+          </Pressable>
+        )}
       </KeyboardAvoidingView>
     </Arrive>
   );
@@ -160,7 +161,7 @@ function Six({ code, proved, onPress, children }: { code: string; proved: number
   }, [proved]);
   const st = useAnimatedStyle(() => ({ transform: [{ scale: sw.value }] }));
   return (
-    <Pressable onPress={onPress} accessible={false} style={s.sixHit}>
+    <Pressable onPress={onPress} accessible={false} style={s.sixHit} accessibilityLabel="Code">
       <Animated.View style={[s.six, st]}>
         {Array.from({ length: 6 }, (_, i) => {
           const d = code[i];

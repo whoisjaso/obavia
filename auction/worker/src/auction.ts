@@ -19,7 +19,14 @@ import { Whop } from './whop';
 
 export type OpenRequest = { id: string; dealer: string; start: number; retail: number; opensAt?: number; closesAt: number; car?: CarMeta };
 export type { Payout, SaleState };
-type Stored = Lot & { dealer: string; reminded?: number[] };   // reminded: the pay-by pushes sent, in hours before the deadline
+/** The dealer's $250 as the lot keeps it: owed, sent by a Whop transfer, or paid by hand (wire, check, cash). Wider than the
+    engine's Payout (src/engine/meta.ts, 'owed' | 'sent'), which does not yet carry 'paid', the method or the time. */
+export type LotPayout = { state: 'owed' | 'sent' | 'paid'; transferId?: string; method?: PayMethod; at?: number };
+export type PayMethod = 'wire' | 'check' | 'cash';
+/** POST /payout, Worker-internal: the dealer_payouts row moved outside the object (paid by hand, or sent by the retry). */
+export type PayoutNews = { id: string; state: 'sent' | 'paid'; transferId?: string; method?: PayMethod; at: number };
+type StoredSale = Omit<SaleState, 'payout'> & { payout?: LotPayout };
+type Stored = Omit<Lot, 'sale'> & { sale?: StoredSale; dealer: string; reminded?: number[] };   // reminded: the pay-by pushes sent, in hours before the deadline
 type PayoutReason = 'applied' | 'forfeit' | 'no_pay';
 /** The bid as the Worker forwards it: the engine's request plus what the Worker knows of the bidder (D11). */
 export type BidIn = BidRequest & { who?: Who };
@@ -112,6 +119,11 @@ export class Auction extends DurableObject<Env> {
         this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
         this.ctx.waitUntil(push(this.env, s.buyer, carName(lot) || 'Your car', 'Started. It is yours.', { lotId: lot.id, screen: 'pickup' }));
         return json(this.publicLot(lot));
+      }
+      case 'POST /payout': {   // Worker-internal (never forwarded from outside): the dealer_payouts row moved; the Sold page follows it
+        if (!admin) return text('admin only', 403);
+        const b = await req.json<Partial<PayoutNews>>().catch(() => ({} as Partial<PayoutNews>));
+        return this.payoutNews(lot, b);
       }
       case 'POST /forfeit': {   // the buyer did not pay: the deposit is the dealer's (collateral.md §2). The dealer only at the deadline; the admin any time.
         const s = lot?.sale;
@@ -215,6 +227,30 @@ export class Auction extends DurableObject<Env> {
     }
   }
 
+  /** The payout as dealer_payouts now says it: sent by the retry (with the transfer id) or paid by hand (with the method).
+      Idempotent: the same news twice answers the same lot. A payout already settled another way is 409 `payout_settled`. */
+  private async payoutNews(lot: Stored | null, b: Partial<PayoutNews>): Promise<Response> {
+    const s = lot?.sale;
+    if (!lot || !s?.payout) return text('no_payout', 409);
+    const key = `${s.startedAt ? 'applied' : 'forfeit'}:${lot.id}`;
+    if (b.id !== key) return text('wrong_payout', 409);
+    const at = typeof b.at === 'number' && Number.isFinite(b.at) && b.at > 0 ? b.at : null;
+    const next: LotPayout | null = !at ? null
+      : b.state === 'sent' && typeof b.transferId === 'string' && b.transferId ? { state: 'sent', transferId: b.transferId.slice(0, 120), at }
+      : b.state === 'paid' && (b.method === 'wire' || b.method === 'check' || b.method === 'cash') ? { state: 'paid', method: b.method, at }
+      : null;
+    if (!next) return text('bad_payout', 400);
+    const cur = s.payout;
+    if (cur.state !== 'owed') {   // once settled, only the same news again
+      const same = cur.state === next.state && (next.state === 'sent' ? cur.transferId === next.transferId : cur.method === next.method);
+      return same ? json(this.publicLot(lot)) : text('payout_settled', 409);
+    }
+    s.payout = next;
+    await this.save(lot);
+    this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
+    return json(this.publicLot(lot));
+  }
+
   private async open(o: OpenRequest, dealer: string): Promise<Response> {
     const existing = await this.load();
     if (existing && !existing.closed) return text('already open', 409);
@@ -302,7 +338,7 @@ export class Auction extends DurableObject<Env> {
   }
   private async save(lot: Stored) { this.lot = lot; await this.ctx.storage.put('lot', lot); this.ctx.waitUntil(this.copy(lot)); }
   /** What leaves the object: never the ceiling, never the dealer's name on the wire beyond the car's own dealer block. */
-  private publicLot(lot: Stored): Lot { const { dealer: _d, max: _m, reminded: _r, ...pub } = lot; return { ...pub, max: undefined }; }
+  private publicLot(lot: Stored): Lot { const { dealer: _d, max: _m, reminded: _r, ...pub } = lot; return { ...pub, max: undefined } as Lot; }   // sale.payout may be 'paid' (LotPayout)
 
   /** D1: the copy, compared nightly; never read on the bid path. */
   private async copy(lot: Stored, req?: BidRequest, ack?: Ack, shillCheck = '') {
