@@ -17,5 +17,7 @@ export type Env = {
   META_PIXEL_ID?: string;       // the Meta dataset (pixel) id; with META_CAPI_TOKEN the four standard events go to the Conversions API (src/marketing.ts). Unset: recorded in marketing_events, never sent
   META_CAPI_TOKEN?: string;     // secret: the Conversions API access token from Events Manager
   META_TEST_EVENT_CODE?: string; // TEST#### from Events Manager's Test events tab; set while verifying the four events, removed before the first dollar
+  GOOGLE_WALLET_ISSUER_ID?: string;       // var: the Google Wallet issuer id; with the service account GET /lots/:id/pass signs a generic pass (gap table deviation 10, KEYS)
+  GOOGLE_WALLET_SERVICE_ACCOUNT?: string; // secret: the service account's JSON (client_email, private_key); without both the pass route is 503 pass_unavailable
   DEV: string;   // "1" admits a deposit without Whop, for wrangler dev and tests only; never on a deployed Worker
 };

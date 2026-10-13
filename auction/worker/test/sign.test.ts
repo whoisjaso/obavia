@@ -2,7 +2,8 @@ import { env, SELF, applyD1Migrations, runDurableObjectAlarm, runInDurableObject
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { D1Migration } from '@cloudflare/vitest-pool-workers';
 import type { Env as WorkerEnv } from '../src/env';
-import { CONSENT_VERSION, inspectPdf, parseSignature, sales, stampPdf, type SignFields } from '../src/sign';
+import { CONSENT_VERSION, PACK_WORDS, assemblePack, evidencePack, inspectPdf, parseSignature, sales, stampPdf, type SignFields } from '../src/sign';
+import { TERMS, TERMS_VERSION } from '../src/bidders';
 
 declare global { namespace Cloudflare { interface Env extends WorkerEnv { TEST_MIGRATIONS: D1Migration[] } } }
 
@@ -259,5 +260,85 @@ describe('fields, papers, the signed PDF and its viewer', () => {
     const html = await v.text();
     expect(html).toContain(`${base}/sales/s1/signed/guide.pdf?token=${encodeURIComponent(buyer)}`);
     expect(html).toContain("post('end')");
+  });
+});
+
+/* ---------- the evidence pack (W3-F; collateral.md §2 "After pickup") */
+describe('evidencePack(lot, env)', () => {
+  it('a started sale with both papers signed: one PDF in R2, hashed, with the terms, the hashes, the six scanned, the pages and the files', async () => {
+    // s1 has its guide and bill signed above; pay it and start it
+    expect((await SELF.fetch(`${base}/lots/s1/paid`, { method: 'POST', headers: DEALER })).status).toBe(200);
+    expect((await SELF.fetch(`${base}/lots/s1/pickup`, { method: 'POST', headers: DEALER, body: JSON.stringify({ vin: CAR.vin }) })).status).toBe(200);
+    const pack = await evidencePack('s1', env);
+    expect(pack).not.toBeNull();
+    expect(pack!.lotId).toBe('s1'); expect(pack!.buyer).toBe('buyer-sign');
+    expect(pack!.key).toMatch(/^evidence\/s1\/\d+\.pdf$/);
+    expect(pack!.parts.termsVersion).toBe(TERMS_VERSION);
+    expect(pack!.parts.startedAt).toBeGreaterThan(0);
+    const rows = await env.DB.prepare('SELECT doc, signed_sha256 FROM signatures WHERE lot_id = ?1').bind('s1').all<{ doc: string; signed_sha256: string }>();
+    const sha = (d: string) => rows.results.find(r => r.doc === d)!.signed_sha256;
+    expect(pack!.parts).toMatchObject({ guide: sha('guide'), bill: sha('bill') });
+
+    const obj = await env.FILES.get(pack!.key);
+    expect(obj).not.toBeNull();
+    const pdf = new Uint8Array(await obj!.arrayBuffer());
+    expect(pdf.length).toBe(pack!.bytes);
+    const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', pdf)), x => x.toString(16).padStart(2, '0')).join('');
+    expect(digest).toBe(pack!.sha256);
+    expect(obj!.customMetadata).toEqual({ sha256: pack!.sha256, lot: 's1' });
+
+    // the row, in the names the Desk's admin reads (desk/src/lib/admin-api.ts readPack)
+    const row = await env.DB.prepare('SELECT * FROM evidence_packs WHERE id = ?1').bind(pack!.id).first<Record<string, unknown>>();
+    expect(row).toMatchObject({ lot_id: 's1', buyer: 'buyer-sign', key: pack!.key, sha256: pack!.sha256, bytes: pack!.bytes, at: pack!.at, terms_version: TERMS_VERSION, guide_sha256: sha('guide'), bill_sha256: sha('bill'), dispute_id: null, uploaded_at: null, upload_error: null });
+
+    // the cover: the four terms word for word, the capture, the hammer, both hashes, the six scanned
+    const t = text(pdf);
+    for (const term of TERMS) expect(t).toContain(`${term[0].toUpperCase()}${term.slice(1)}.`);
+    expect(t).toContain(`version ${TERMS_VERSION}`);
+    expect(t).toContain('held \\267 back if you lose'.replace('\\267', '\xb7'));
+    expect(t).toContain('Hammer $5,100');
+    expect(t).toContain(sha('guide')); expect(t).toContain(sha('bill'));
+    expect(t).toContain(`last six ${CAR.vin.slice(-6)}`);
+    expect(t).not.toContain(PACK_WORDS.unsigned); expect(t).not.toContain(PACK_WORDS.unstarted);
+    expect(t).not.toContain('M20.0 90.0');                                      // the drawing itself is never written as text
+
+    // the pages: the cover, the guide's one page, the bill's two; the fonts the stamp added travel with them
+    expect((await inspectPdf(pdf, 0)).pages).toBe(4);
+    expect((await inspectPdf(pdf, 1)).fonts).toEqual(['F1', 'ObvHelv']);
+    expect((await inspectPdf(pdf, 2)).fonts).toEqual(['F1', 'ObvHelv']);   // the bill's stamped first page
+    expect((await inspectPdf(pdf, 3)).fonts).toEqual([]);                  // its untouched second page
+    // the files: attached byte for byte
+    const guide = new Uint8Array(await (await env.FILES.get('signed/s1/guide.pdf'))!.arrayBuffer());
+    const bill = new Uint8Array(await (await env.FILES.get('signed/s1/bill.pdf'))!.arrayBuffer());
+    expect(t).toContain('(guide.signed.pdf)'); expect(t).toContain('(bill.signed.pdf)');
+    expect(t.indexOf(text(guide))).toBeGreaterThan(0); expect(t.indexOf(text(bill))).toBeGreaterThan(0);
+    expect(t).toContain(`/Desc (SHA-256 ${sha('guide')})`);
+  });
+
+  it('the admin reads the latest pack at /sales/:lot/evidence.pdf; a buyer cannot', async () => {
+    const r = await call('/sales/s1/evidence.pdf', { headers: DEALER });
+    expect(r.status).toBe(200); expect(r.headers.get('content-type')).toBe('application/pdf');
+    expect((await call('/sales/s1/evidence.pdf', { headers: { authorization: `Bearer ${buyer}` } })).status).toBe(403);
+    expect((await call('/sales/s2/evidence.pdf', { headers: DEALER })).status).toBe(404);
+  });
+
+  it('a lot with no sale, or unsigned and unstarted, still gets a pack that says so; an unknown lot gets none', async () => {
+    const open = await evidencePack('s4', env);                                 // opened above, never closed
+    expect(open).not.toBeNull();
+    expect(open!.buyer).toBeNull(); expect(open!.parts).toEqual({ termsVersion: null, guide: null, bill: null, startedAt: null });
+    const t = text(new Uint8Array(await (await env.FILES.get(open!.key))!.arrayBuffer()));
+    expect(t).toContain(PACK_WORDS.noSale); expect(t).toContain(PACK_WORDS.unsigned); expect(t).toContain(PACK_WORDS.unstarted);
+    expect((await inspectPdf(new Uint8Array(await (await env.FILES.get(open!.key))!.arrayBuffer()), 0)).pages).toBe(1);
+    const won = await evidencePack('s3', env);                                  // won, nothing signed, not started
+    expect(won!.buyer).toBe('buyer-sign'); expect(won!.parts.termsVersion).toBe(TERMS_VERSION); expect(won!.parts.guide).toBeNull();
+    expect(await evidencePack('never-opened', env)).toBeNull();
+  });
+
+  it('assemblePack: a file whose pages cannot be read is still attached, and the cover says so', async () => {
+    const junk = enc.encode('%PDF-1.4\nnot a real file\n');
+    const pdf = await assemblePack([{ t: 'Cover', bold: true }], [{ name: 'x.pdf', bytes: junk, sha256: 'abc' }]);
+    const t = text(pdf);
+    expect(t).toContain('Pages not copied'); expect(t).toContain('(x.pdf)'); expect(t).toContain('not a real file');
+    expect((await inspectPdf(pdf, 0)).pages).toBe(1);
   });
 });

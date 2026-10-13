@@ -22,9 +22,14 @@ const DOCS: { key: Doc; title: string; subtitle?: string }[] = [
   { key: 'guide', title: 'Buyers Guide', subtitle: 'AS IS - NO DEALER WARRANTY' },
   { key: 'bill', title: 'Bill of Sale' },
 ];
-/* the buyer's words: "webDEALER" is the state's system, which the dealer runs; the buyer signs at the lot */
-const TITLE_TX = 'The title is signed at pickup.';
-const TITLE_AWAY = 'Paper packet at pickup: Form 14-312, the assigned title, a green 60-day plate.';
+/* The title line: which step follows at pickup, by licence state (decisions §9 D8, D9). The same words as the
+   Desk's Sold step, desk/src/lib/filed.ts laneTitleStep (TITLE_STEP), which places them for the dealer; the Desk's
+   sign.test.ts reads this file and holds the two equal. Four words or fewer per line; no county timing, no fee. */
+export const TITLE_STEP = {
+  acknowledgment: { title: 'Title at pickup', lines: ['Buyer Acknowledgment in webDEALER', 'Texas DL or ID', 'Last four, audit number', 'No drawn signature'] },
+  packet: { title: 'Paper packet at pickup', lines: ['Form 14-312, signed', 'Assigned title handed over', 'Or filed, 30 days', 'Green 60-day plate'] },
+} as const;
+const titleLine = (k: keyof typeof TITLE_STEP) => [TITLE_STEP[k].title, ...TITLE_STEP[k].lines].join(' · ');
 
 /** The first drawing of this sale, for the second document's one-tap reuse. Memory only. */
 let drawn: { lotId: string; sig: Signature } | null = null;
@@ -75,7 +80,7 @@ export function SignDocs({ onDone, onClose, docs }: { onDone: () => void; onClos
             return <Choice key={d.key} label={d.title} detail={done ? 'signed' : live ? 'next' : undefined} selected={live} dim={!live && !done} onPress={live || done ? () => setOpen(d.key) : undefined} size={26} />;
           })}
         </View>
-        <Body ink={theme.color.muted} style={{ textAlign: 'center', marginTop: theme.space.m, paddingHorizontal: theme.space.m }}>{outOfState(sale) ? TITLE_AWAY : TITLE_TX}</Body>
+        <Body ink={theme.color.muted} style={{ textAlign: 'center', marginTop: theme.space.m, paddingHorizontal: theme.space.m }}>{titleLine(outOfState(sale) ? 'packet' : 'acknowledgment')}</Body>
       </Page>
       {/* the document opens over the whole glass, from where the step was: outside the Page, whose
           centred column clipped it to its own box (it opened half-height, its title off the top) */}

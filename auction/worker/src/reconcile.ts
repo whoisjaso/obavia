@@ -7,19 +7,33 @@
       not yet sent or paid). GET /ledger_accounts/{biz_…} → balances[].balance
       in USD. Only the settled `balance` is counted; pending and reserve are
       noted, not added.
+   3. The alarm audit (gap table deviation 7, the proposed definition until
+      amended): lots past closesAt not closed, and sales past deadlineAt
+      neither paid, started, forfeited nor voided, each read from the object
+      without dropping the hammer (POST /audit), counted on the row as
+      lots_past_close and sales_past_deadline (0017) and named in
+      `differences` as field 'alarm.close' or 'alarm.deadline'. Either
+      non-zero makes the night not equal. The comparison in 1 then reads the
+      object the ordinary way, which drops the late hammer, so the next night
+      is equal unless the alarm is late again.
    One row per run in `reconciliations` (equal 1 or 0, the ids that differed,
    and since 0014 which field of each: `differences`); the admin reads the last
    seven on GET /admin/exposure and the streak on GET /admin/reconcile. */
 import type { Env } from './env';
+import type { Audit } from './auction';
 import { Whop } from './whop';
 
 export const DEPOSIT_CENTS = 25_000;
+/** How late an alarm may run before the audit counts it: the Phase 1 walk saw about 90 s on a loaded box; five minutes
+    is past any of that and far inside the hours a buyer or a dealer would notice. */
+export const ALARM_GRACE_MS = 5 * 60_000;
 
 export type Row = {
   id: string; ran_at: number; lots_checked: number; lots_differing: number; differing: string[];
   deposits_held: number; whop_balance_cents: number | null; equal: 0 | 1; note: string;
   payouts_owed: number; payouts_owed_cents: number;
   differences: Difference[];
+  lots_past_close: number; sales_past_deadline: number;
 };
 /** One field of one lot where the copy and the object disagreed; `object: null` with `field: 'object'` when the object is gone. */
 export type Difference = { lot: string; field: string; copy: unknown; object: unknown };
@@ -48,11 +62,22 @@ export async function reconcile(env: Env): Promise<Row> {
   const unrepaired: string[] = [];
   const differences: Difference[] = [];
 
+  const pastClose: string[] = [], pastDeadline: string[] = [];
+
   const rows = (await env.DB.prepare('SELECT id, lot FROM lots').all<{ id: string; lot: string }>()).results;
   for (const row of rows) {
     const stub = env.AUCTION.get(env.AUCTION.idFromName(row.id));
     let copy: LotLike;
     try { copy = JSON.parse(row.lot); } catch { copy = {}; }
+    // the alarm audit first, from the object as stored: the ordinary read below would drop the late hammer and hide it
+    try {
+      const a = await stub.fetch(`https://auction/lots/${encodeURIComponent(row.id)}/audit`, { method: 'POST' });
+      if (a.ok) {
+        const audit = await a.json<Audit>();
+        if (!audit.closed && ranAt - audit.closesAt > ALARM_GRACE_MS) { pastClose.push(row.id); differences.push({ lot: row.id, field: 'alarm.close', copy: audit.closesAt, object: { closed: false, lateMs: ranAt - audit.closesAt } }); }
+        if (audit.sale && !audit.sale.settled && ranAt - audit.sale.deadlineAt > ALARM_GRACE_MS) { pastDeadline.push(row.id); differences.push({ lot: row.id, field: 'alarm.deadline', copy: audit.sale.deadlineAt, object: { settled: false, lateMs: ranAt - audit.sale.deadlineAt } }); }
+      }
+    } catch { /* no object: named below as field 'object' */ }
     let live: LotLike | null = null;
     try {
       const r = await stub.fetch(`https://auction/lots/${encodeURIComponent(row.id)}`);
@@ -69,6 +94,8 @@ export async function reconcile(env: Env): Promise<Row> {
     try { fixed = !!after && facts(JSON.parse(after.lot)) === facts(live); } catch { fixed = false; }
     if (!fixed) unrepaired.push(row.id);
   }
+  if (pastClose.length) notes.push(`alarm audit: ${pastClose.length} lot(s) past closesAt not closed: ${pastClose.join(', ')}`);
+  if (pastDeadline.length) notes.push(`alarm audit: ${pastDeadline.length} sale(s) past deadlineAt not settled: ${pastDeadline.join(', ')}`);
   if (differing.length) notes.push(`${differing.length} copy(ies) differed from the object; repaired from the object: ${differing.length - unrepaired.length}`);
   if (unrepaired.length) notes.push(`not repaired (no object or the rewrite did not land): ${unrepaired.join(', ')}`);
 
@@ -97,12 +124,13 @@ export async function reconcile(env: Env): Promise<Row> {
 
   const out: Row = {
     id: `rec_${ranAt}_${crypto.randomUUID().slice(0, 8)}`, ran_at: ranAt, lots_checked: rows.length, lots_differing: differing.length, differing,
-    deposits_held: held, whop_balance_cents: balanceCents, equal: differing.length === 0 && covered ? 1 : 0, note: notes.join('; ') || 'equal',
+    deposits_held: held, whop_balance_cents: balanceCents, equal: differing.length === 0 && covered && pastClose.length === 0 && pastDeadline.length === 0 ? 1 : 0, note: notes.join('; ') || 'equal',
     payouts_owed: owedN, payouts_owed_cents: owedCents,
     differences,
+    lots_past_close: pastClose.length, sales_past_deadline: pastDeadline.length,
   };
-  await env.DB.prepare('INSERT INTO reconciliations (id, ran_at, lots_checked, lots_differing, differing, deposits_held, whop_balance_cents, equal, note, payouts_owed, payouts_owed_cents, differences) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)')
-    .bind(out.id, out.ran_at, out.lots_checked, out.lots_differing, JSON.stringify(out.differing), out.deposits_held, out.whop_balance_cents, out.equal, out.note, out.payouts_owed, out.payouts_owed_cents, JSON.stringify(out.differences)).run();
+  await env.DB.prepare('INSERT INTO reconciliations (id, ran_at, lots_checked, lots_differing, differing, deposits_held, whop_balance_cents, equal, note, payouts_owed, payouts_owed_cents, differences, lots_past_close, sales_past_deadline) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)')
+    .bind(out.id, out.ran_at, out.lots_checked, out.lots_differing, JSON.stringify(out.differing), out.deposits_held, out.whop_balance_cents, out.equal, out.note, out.payouts_owed, out.payouts_owed_cents, JSON.stringify(out.differences), out.lots_past_close, out.sales_past_deadline).run();
   return out;
 }
 

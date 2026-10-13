@@ -35,7 +35,8 @@ database_name = "obavia-auction"
 database_id = "replace-with-the-id-wrangler-prints"
 migrations_dir = "migrations"
 
-# Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, MINT_SECRET (POST /dealers/mint only), WHOP_API_KEY, WHOP_WEBHOOK_SECRET, TELNYX_API_KEY, META_CAPI_TOKEN
+# Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, MINT_SECRET (POST /dealers/mint only), WHOP_API_KEY, WHOP_WEBHOOK_SECRET, TELNYX_API_KEY, META_CAPI_TOKEN,
+#   GOOGLE_WALLET_SERVICE_ACCOUNT (the service account's JSON; with GOOGLE_WALLET_ISSUER_ID, GET /lots/:id/pass signs the Google Wallet pass; without both it is 503 pass_unavailable)
 # Vars to set: WHOP_ACCOUNT_ID (biz_…), WHOP_API_BASE (sandbox in staging), TELNYX_VERIFY_PROFILE_ID, META_PIXEL_ID (the Meta dataset id; without it and META_CAPI_TOKEN no event leaves),
-#   META_TEST_EVENT_CODE (Events Manager's test code, set only while verifying the four events; remove before any spend)
-# Migrations: 0015 before this code (marketing_events: the four standard Meta events, sent or only recorded); 0014 before this code (bid_attempts for the bids-per-buyer limit, reconciliations.differences); 0013 before the earlier code (dealer_payouts.method, reconciliations.payouts_owed, the one-phone-one-buyer index)
+#   META_TEST_EVENT_CODE (Events Manager's test code, set only while verifying the four events; remove before any spend), GOOGLE_WALLET_ISSUER_ID
+# Migrations: 0017 before this code (dealers.whop_account_verified_at, the alarm audit's two counts on reconciliations, recoveries); 0016 (W3-A: platform, invoices) before POST /admin/gdn answers; 0015 before the earlier code (marketing_events: the four standard Meta events, sent or only recorded); 0014 before this code (bid_attempts for the bids-per-buyer limit, reconciliations.differences); 0013 before the earlier code (dealer_payouts.method, reconciliations.payouts_owed, the one-phone-one-buyer index)

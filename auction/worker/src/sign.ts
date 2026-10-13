@@ -17,8 +17,18 @@
      POST /sales/:lot/sign              buyer      { doc, svg, consent: true, consentVersion?, reuse? } -> the signed PDF
      GET  /sales/:lot/papers            buyer|dealer  what is signed, when, and where each PDF is
      GET  /sales/:lot/signed/:doc.pdf   buyer|dealer  the signed bytes
-     GET  /sales/:lot/view/:doc         anyone     the viewer page (view.ts) for the signed PDF; the PDF itself needs the token */
+     GET  /sales/:lot/view/:doc         anyone     the viewer page (view.ts) for the signed PDF; the PDF itself needs the token
+     GET  /sales/:lot/evidence.pdf      admin      the latest evidence pack for the lot (below), for a dispute answered by hand
+
+   The evidence pack (gap table W3-F; collateral.md §2 "After pickup": a buyer disputes the deposit charge with the
+   card issuer; the pack is assembled, dated, hashed): evidencePack(lot, env), called by index.ts on dispute.created
+   (W3-B), writes one PDF to R2 under evidence/<lot>/<at>.pdf and one row in evidence_packs (migration 0018). The
+   PDF is a cover page (the deposit terms line as the buyer accepted it, the capture, the hammer, the signatures'
+   hashes, the engine start with the six scanned), then every page of the signed Buyers Guide and bill of sale copied
+   object for object from the signed bytes, and the signed files themselves attached unchanged (ISO 32000-1 §7.11.4,
+   embedded files), so the hashes on the row can be checked against the attachments by anyone holding the pack. */
 import { buyerFrom, dealerFrom } from './auth';
+import { TERMS } from './bidders';
 import type { Env } from './env';
 import { viewerHtml } from './view';
 
@@ -71,7 +81,7 @@ const viewUrl = (origin: string, lot: string, doc: SignDoc, token: string) => `$
 
 export async function sales(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
-  const m = url.pathname.match(/^\/sales\/([A-Za-z0-9_-]{1,64})\/(sign|papers|fields\/(guide|bill)|signed\/(guide|bill)\.pdf|view\/(guide|bill))$/);
+  const m = url.pathname.match(/^\/sales\/([A-Za-z0-9_-]{1,64})\/(sign|papers|evidence\.pdf|fields\/(guide|bill)|signed\/(guide|bill)\.pdf|view\/(guide|bill))$/);
   if (!m) return fail('not_found', 404);
   const lot = m[1], route = m[2];
   const doc = (m[3] ?? m[4] ?? m[5]) as SignDoc | undefined;
@@ -79,6 +89,13 @@ export async function sales(req: Request, env: Env): Promise<Response> {
   if (route.startsWith('fields/') && req.method === 'PUT') return putFields(req, env, lot, doc!);
   if (route === 'sign' && req.method === 'POST') return sign(req, env, lot);
   if (route === 'papers' && req.method === 'GET') return papers(req, env, lot);
+  if (route === 'evidence.pdf' && req.method === 'GET') {   // the admin only: the pack names the buyer and carries the signed papers
+    if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return fail('admin_only', 403);
+    const row = await env.DB.prepare('SELECT key FROM evidence_packs WHERE lot_id = ?1 ORDER BY at DESC LIMIT 1').bind(lot).first<{ key: string }>();
+    const obj = row ? await env.FILES.get(row.key) : null;
+    if (!obj) return fail('no_pack', 404);
+    return new Response(obj.body, { headers: { 'content-type': 'application/pdf', 'cache-control': 'private, no-store' } });
+  }
   if (route.startsWith('signed/') && req.method === 'GET') {
     const l = await readLot(env, lot);
     if (!(await reader(req, env, lot, l?.sale))) return fail('not_yours', 403);
@@ -492,27 +509,40 @@ class Pdf {
 
   async resolve(v: Val | undefined): Promise<Val | undefined> { return isRef(v) ? this.get(v) : v; }
 
-  /** Every page in order: its reference, its dictionary, and the resources it inherits. */
-  async pages(): Promise<{ ref: Ref; dict: Dict; inherited?: Val }[]> {
+  /** `n g obj` for a reference: the value and, for a stream, its raw (still encoded) data; an object inside an
+      object stream has no data (ISO 32000-1 §7.5.7). Null for a free or missing entry. */
+  async fetch(r: Ref): Promise<{ val: Val; data: Uint8Array | null }> {
+    const e = this.xref.get(r.n);
+    if (!e || (e.t === 1 && e.off < 0)) return { val: null, data: null };
+    if (e.t === 1) return this.objectAt(e.off);
+    return { val: await this.get(r), data: null };
+  }
+
+  /** Every page in order: its reference, its dictionary, the resources it inherits (`inherited`, as stampPdf reads
+      them) and every inheritable attribute an ancestor set that the page itself does not (`inh`: Resources, MediaBox,
+      CropBox, Rotate; ISO 32000-1 table 30), as the page copy needs them. */
+  async pages(): Promise<{ ref: Ref; dict: Dict; inherited?: Val; inh: Map<string, Val> }[]> {
     const root = await this.resolve(this.trailer.m.get('Root'));
     if (!isDict(root)) throw new Error('pdf: root');
-    const out: { ref: Ref; dict: Dict; inherited?: Val }[] = [];
-    const walk = async (ref: Ref, inherited: Val | undefined, depth: number) => {
+    const out: { ref: Ref; dict: Dict; inherited?: Val; inh: Map<string, Val> }[] = [];
+    const walk = async (ref: Ref, above: Map<string, Val>, depth: number) => {
       if (depth > 32 || out.length > 2000) throw new Error('pdf: page tree');
       const node = await this.get(ref);
       if (!isDict(node)) return;
-      const res = node.m.get('Resources') ?? inherited;
+      const inh = new Map(above);
+      for (const k of INHERITABLE) { const v = node.m.get(k); if (v !== undefined) inh.set(k, v); }
       if (isName(node.m.get('Type'), 'Pages') || node.m.has('Kids')) {
         const kids = await this.resolve(node.m.get('Kids'));
-        if (Array.isArray(kids)) for (const k of kids) if (isRef(k)) await walk(k, res, depth + 1);
-      } else out.push({ ref, dict: node, inherited: res });
+        if (Array.isArray(kids)) for (const k of kids) if (isRef(k)) await walk(k, inh, depth + 1);
+      } else out.push({ ref, dict: node, inherited: node.m.get('Resources') ?? above.get('Resources'), inh: above });
     };
     const top = root.m.get('Pages');
     if (!isRef(top)) throw new Error('pdf: pages');
-    await walk(top, undefined, 0);
+    await walk(top, new Map(), 0);
     return out;
   }
 }
+const INHERITABLE = ['Resources', 'MediaBox', 'CropBox', 'Rotate'] as const;
 
 /* ---------------------------------------------------------------- the PDF: write */
 
@@ -655,4 +685,245 @@ export async function inspectPdf(bytes: Uint8Array, pageIndex = 0): Promise<{ pa
   const res = await pdf.resolve(p.dict.m.get('Resources') ?? p.inherited);
   const fonts = isDict(res) ? await pdf.resolve(res.m.get('Font')) : undefined;
   return { pages: pages.length, contents: Array.isArray(c) ? c.length : c ? 1 : 0, fonts: isDict(fonts) ? [...fonts.m.keys()] : [] };
+}
+
+/* ---------------------------------------------------------------- the evidence pack */
+
+/** The four parts collateral.md §2 names, as the pack found them: the terms version stamped on the buyer, the signed
+    Guide's and bill's hashes (null when unsigned), the engine start (null when not started). */
+export type EvidencePack = {
+  id: number; lotId: string; buyer: string | null; key: string; sha256: string; bytes: number; at: number;
+  parts: { termsVersion: string | null; guide: string | null; bill: string | null; startedAt: number | null };
+};
+
+/** The pack's own words, the same on the cover and in the admin's rows. */
+export const PACK_WORDS = { unsigned: 'Not signed.', unstarted: 'Not started.', noSale: 'No sale on this lot.', mismatch: 'The stored bytes do not match the recorded hash; not copied.' } as const;
+
+type BuyerRow = { id: string; name: string | null; state: string | null; deposit_status: string; deposit_ref: string | null; terms_version: string | null; terms_at: number | null };
+type SigRow = { doc: SignDoc; at: number; reuse: number; consent_version: string; signed_sha256: string | null; original_sha256: string | null; signed_key: string | null };
+type PackLot = SaleLot & { dealer?: string; car?: { year?: number; make?: string; model?: string; vin?: string; dealer?: { name?: string; gdn?: string; city?: string } }; sale?: SaleLot['sale'] & { deadlineAt?: number; paidAt?: number; startedAt?: number; deposit?: string; plates?: { state: string; at: number } } };
+
+/** Assembles the evidence pack for a lot: the PDF into R2, the row into evidence_packs, both hashed. Null only when the
+    lot does not exist; a lot with no sale, no signature or no start still gets a pack that says so, since the deposit
+    terms and the capture are evidence on their own. Called by index.ts on dispute.created (W3-B); the caller fills
+    dispute_id and the upload columns. */
+export async function evidencePack(lot: string, env: Env): Promise<EvidencePack | null> {
+  let l: PackLot | null = await readLot(env, lot) as PackLot | null;
+  if (!l) {
+    const copy = await env.DB.prepare('SELECT lot FROM lots WHERE id = ?1').bind(lot).first<{ lot: string }>();
+    if (!copy) return null;
+    try { l = JSON.parse(copy.lot) as PackLot; } catch { return null; }
+  }
+  const now = Date.now();
+  const sale = l.sale, buyerId = sale?.buyer ?? null;
+  const buyer = buyerId ? await env.DB.prepare('SELECT id, name, state, deposit_status, deposit_ref, terms_version, terms_at FROM buyers WHERE id = ?1').bind(buyerId).first<BuyerRow>() : null;
+  const capture = buyerId ? await env.DB.prepare("SELECT id, received_at FROM money_events WHERE type = 'deposit.captured' AND json_extract(body, '$.buyer') = ?1 ORDER BY received_at DESC LIMIT 1").bind(buyerId).first<{ id: string; received_at: number }>() : null;
+  const sigs = (await env.DB.prepare('SELECT doc, at, reuse, consent_version, signed_sha256, original_sha256, signed_key FROM signatures WHERE lot_id = ?1 AND signed_sha256 IS NOT NULL').bind(lot).all<SigRow>()).results;
+  const refusals = (await env.DB.prepare('SELECT reason, presented, at FROM pickup_refusals WHERE lot_id = ?1 ORDER BY at').bind(lot).all<{ reason: string; presented: string | null; at: number }>()).results;
+  const dealer = l.car?.dealer ?? {};
+  const car = l.car ? [l.car.year, l.car.make, l.car.model].filter(Boolean).join(' ') : '';
+
+  // the signed files: read back, checked against the row, copied into the pack and attached unchanged
+  const signed: { doc: SignDoc; row: SigRow; bytes: Uint8Array | null; ok: boolean }[] = [];
+  for (const d of DOCS) {
+    const row = sigs.find(x => x.doc === d);
+    if (!row?.signed_key) continue;
+    const obj = await env.FILES.get(row.signed_key);
+    const bytes = obj ? new Uint8Array(await obj.arrayBuffer()) : null;
+    signed.push({ doc: d, row, bytes, ok: !!bytes && (await sha256Hex(bytes)) === row.signed_sha256 });
+  }
+
+  const facts: PackFacts = {
+    lotId: lot, now, car, vin: l.car?.vin ?? '', dealer: { name: dealer.name, gdn: dealer.gdn, city: dealer.city, key: l.dealer },
+    buyer: buyer ? { id: buyer.id, name: buyer.name, state: buyer.state, depositStatus: buyer.deposit_status, depositRef: buyer.deposit_ref, termsVersion: buyer.terms_version, termsAt: buyer.terms_at } : null,
+    capture: capture ? { id: capture.id, at: capture.received_at } : null,
+    sale: sale ? { hammer: sale.hammer, wonAt: sale.wonAt, deadlineAt: sale.deadlineAt ?? null, paidAt: sale.paidAt ?? null, startedAt: sale.startedAt ?? null, voidedAt: sale.voidedAt ?? null, forfeitedAt: sale.forfeitedAt ?? null, plates: sale.plates ?? null } : null,
+    signed: signed.map(x => ({ doc: x.doc, at: x.row.at, consent: x.row.consent_version, reuse: x.row.reuse === 1, signedSha256: x.row.signed_sha256!, originalSha256: x.row.original_sha256, ok: x.ok })),
+    refusals,
+  };
+  const cover = packCover(facts);
+  const pdf = await assemblePack(cover, signed.filter(s => s.ok && s.bytes).map(s => ({ name: `${s.doc}.signed.pdf`, bytes: s.bytes!, sha256: s.row.signed_sha256! })));
+  const sha = await sha256Hex(pdf);
+  const key = `evidence/${lot}/${now}.pdf`;
+  await env.FILES.put(key, pdf, { httpMetadata: { contentType: 'application/pdf' }, customMetadata: { sha256: sha, lot } });
+  const guide = sigs.find(x => x.doc === 'guide')?.signed_sha256 ?? null, bill = sigs.find(x => x.doc === 'bill')?.signed_sha256 ?? null;
+  const row = await env.DB.prepare(`INSERT INTO evidence_packs (lot_id, buyer, key, sha256, bytes, at, terms_version, guide_sha256, bill_sha256, started_at)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) RETURNING id`).bind(lot, buyerId, key, sha, pdf.length, now, buyer?.terms_version ?? null, guide, bill, sale?.startedAt ?? null).first<{ id: number }>();
+  return { id: row!.id, lotId: lot, buyer: buyerId, key, sha256: sha, bytes: pdf.length, at: now, parts: { termsVersion: buyer?.terms_version ?? null, guide, bill, startedAt: sale?.startedAt ?? null } };
+}
+
+/** What the cover page says, gathered by evidencePack from the object, D1 and R2; pure, so the Desk's tests can
+    render the same cover on the Desk's real signed bytes. */
+export type PackFacts = {
+  lotId: string; now: number; car: string; vin: string;
+  dealer: { name?: string; gdn?: string; city?: string; key?: string };
+  buyer: { id: string; name: string | null; state: string | null; depositStatus: string; depositRef: string | null; termsVersion: string | null; termsAt: number | null } | null;
+  capture: { id: string; at: number } | null;
+  sale: { hammer: number; wonAt: number; deadlineAt: number | null; paidAt: number | null; startedAt: number | null; voidedAt: number | null; forfeitedAt: number | null; plates: { state: string; at: number } | null } | null;
+  signed: { doc: SignDoc; at: number; consent: string; reuse: boolean; signedSha256: string; originalSha256: string | null; ok: boolean }[];
+  refusals: { reason: string; presented: string | null; at: number }[];
+};
+
+/** The cover's lines, in collateral.md §2's order: the deposit and the terms, the Guide, the bill, the pickup. */
+export function packCover(f: PackFacts): CoverLine[] {
+  const B = (t: string): CoverLine => ({ t, bold: true }), T = (t: string): CoverLine => ({ t }), GAP: CoverLine = { t: '' };
+  const when = (at: number) => `${centralDate(at)} ${centralTime(at)} Central`;
+  const { buyer, sale, capture } = f;
+  const cover: CoverLine[] = [
+    { t: 'Evidence pack', bold: true, size: 18 },
+    T(`Lot ${f.lotId}${f.car ? ` · ${f.car}` : ''}${f.vin ? ` · VIN ${f.vin}` : ''}`),
+    T(`Assembled ${when(f.now)} by the Obavia lane. The SHA-256 of this file is on its evidence_packs row.`),
+    T(`Dealer: ${[f.dealer.name, f.dealer.gdn ? `GDN ${f.dealer.gdn}` : '', f.dealer.city].filter(Boolean).join(', ') || f.dealer.key || 'unknown'}`),
+    T(buyer ? `Buyer: ${buyer.name || '(no name given)'} (${buyer.id})${buyer.state ? `, licence state ${buyer.state}` : ''}` : PACK_WORDS.noSale),
+    GAP,
+    B('1. The deposit and the terms'),
+  ];
+  if (buyer) {
+    cover.push(T(`Deposit: $250, standing "${buyer.depositStatus}"${capture ? `, captured ${when(capture.at)} (ledger row ${capture.id})` : ', no capture row found'}${buyer.depositRef ? `, payment ${buyer.depositRef}` : ''}.`));
+    cover.push(T('The line under the $250 on the phone while it stands: "held · back if you lose".'));
+    cover.push(T(buyer.termsVersion ? `Terms accepted at the buyer's first bid, version ${buyer.termsVersion}${buyer.termsAt ? `, ${when(buyer.termsAt)}` : ''}:` : 'No terms version is stamped on the buyer.'));
+    for (const t of TERMS) cover.push(T(`   - ${t[0].toUpperCase()}${t.slice(1)}.`));
+    if (sale) cover.push(T(`Hammer ${usd(sale.hammer)} ${when(sale.wonAt)}${sale.deadlineAt ? `; pay by ${when(sale.deadlineAt)}` : ''}${sale.paidAt ? `; balance paid ${when(sale.paidAt)}` : ''}${sale.voidedAt ? `; voided ${when(sale.voidedAt)}` : ''}${sale.forfeitedAt ? `; forfeited ${when(sale.forfeitedAt)}` : ''}.`));
+  } else cover.push(T(PACK_WORDS.noSale));
+  const DOC_NAME: Record<SignDoc, string> = { guide: 'The Buyers Guide, signed', bill: 'The bill of sale, signed' };
+  let n = 2;
+  for (const d of DOCS) {
+    cover.push(GAP, B(`${n}. ${DOC_NAME[d]}`)); n++;
+    const s = f.signed.find(x => x.doc === d);
+    if (!s) { cover.push(T(PACK_WORDS.unsigned)); continue; }
+    cover.push(T(`Signed electronically ${when(s.at)}, consent ${s.consent}${s.reuse ? ', the first signature reused with consent' : ''}.`));
+    cover.push(T(`SHA-256 of the signed file: ${s.signedSha256}`));
+    cover.push(T(`SHA-256 of the file uploaded at Go: ${s.originalSha256 ?? 'unknown'}`));
+    cover.push(T(s.ok ? `Its pages follow; the file itself is attached as ${d}.signed.pdf.` : PACK_WORDS.mismatch));
+  }
+  cover.push(GAP, B(`${n}. The pickup`));
+  const six = f.vin.toUpperCase().slice(-6);
+  if (sale?.startedAt) cover.push(T(`VIN scanned (last six ${six || 'unknown'}) and the engine started ${when(sale.startedAt)}: the sale completed (term 4).`));
+  else cover.push(T(PACK_WORDS.unstarted));
+  if (f.refusals.length) cover.push(T(`Pickup scans the lane refused before that: ${f.refusals.map(r => `${r.reason}${r.presented ? ` (${r.presented})` : ''} ${centralDate(r.at)}`).join('; ')}.`));
+  if (sale?.plates) cover.push(T(`Plates: ${sale.plates.state} ${when(sale.plates.at)}.`));
+  return cover;
+}
+
+/** HH:MM in Central time, beside centralDate. */
+export function centralTime(at: number): string {
+  const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(at));
+  const g = (t: string) => p.find(x => x.type === t)?.value ?? '';
+  return `${g('hour')}:${g('minute')}`;
+}
+
+export type CoverLine = { t: string; bold?: boolean; size?: number };
+
+/** A new PDF: the cover page, then every page of each attached file copied in, then the files themselves as
+    embedded files. Classic cross-reference table, every object generation 0. A file whose pages cannot be copied
+    (encrypted, a filter this reader does not know) is still attached, and the cover's line for it says so. */
+export async function assemblePack(cover: CoverLine[], files: { name: string; bytes: Uint8Array; sha256: string }[]): Promise<Uint8Array> {
+  const objs = new Map<number, string>();   // number -> `<<dict>>` or `<<dict>>\nstream\n...\nendstream`, latin1
+  let next = 1;
+  const alloc = () => next++;
+  const CATALOG = alloc(), PAGES = alloc(), COVER = alloc(), COVER_CONTENT = alloc(), HELV = alloc(), HELV_BOLD = alloc();
+  objs.set(HELV, '<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>');
+  objs.set(HELV_BOLD, '<</Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding>>');
+
+  // the files, attached unchanged
+  const names: string[] = [];
+  const copied: { name: string; pages: number[]; note?: string }[] = [];
+  for (const f of files) {
+    const stream = alloc(), spec = alloc();
+    objs.set(stream, `<</Type /EmbeddedFile /Subtype /application#2Fpdf /Length ${f.bytes.length} /Params <</Size ${f.bytes.length}>>>>\nstream\n${latin1(f.bytes)}\nendstream`);
+    objs.set(spec, `<</Type /Filespec /F ${pdfText(f.name)} /UF ${pdfText(f.name)} /Desc ${pdfText(`SHA-256 ${f.sha256}`)} /EF <</F ${stream} 0 R>>>>`);
+    names.push(`${pdfText(f.name)} ${spec} 0 R`);
+    try {
+      copied.push({ name: f.name, pages: await copyPages(f.bytes, objs, alloc, PAGES) });
+    } catch (e) {
+      copied.push({ name: f.name, pages: [], note: `Pages not copied (${String((e as Error)?.message ?? e).slice(0, 60)}); the file is attached.` });
+    }
+  }
+
+  // the cover: wrapped lines, Helvetica, down the page
+  const lines: CoverLine[] = [...cover];
+  for (const c of copied) if (c.note) lines.push({ t: `${c.name}: ${c.note}` });
+  let ops = '', y = 740;
+  const W = 504;
+  for (const line of lines) {
+    const size = line.size ?? 9.5, font = line.bold ? 'F2' : 'F1', lead = size * 1.4;
+    if (!line.t) { y -= lead * 0.6; continue; }
+    const words = line.t.split(' '); let cur = '';
+    const put = (t: string) => { ops += `BT /${font} ${num(size)} Tf 0 0 0 rg 54 ${num(y)} Td ${pdfText(t)} Tj ET\n`; y -= lead; };
+    for (const w of words) {
+      const trial = cur ? `${cur} ${w}` : w;
+      if (textWidth(trial, size) > W && cur) { put(cur); cur = w; } else cur = trial;
+    }
+    if (cur) put(cur);
+    if (y < 60) { ops += ''; break; }   // one cover page: what does not fit is in the row and the attachments
+  }
+  objs.set(COVER_CONTENT, `<</Length ${ops.length}>>\nstream\n${ops}\nendstream`);
+  objs.set(COVER, `<</Type /Page /Parent ${PAGES} 0 R /MediaBox [0 0 612 792] /Contents ${COVER_CONTENT} 0 R /Resources <</Font <</F1 ${HELV} 0 R /F2 ${HELV_BOLD} 0 R>>>>>>`);
+  const kids = [COVER, ...copied.flatMap(c => c.pages)];
+  objs.set(PAGES, `<</Type /Pages /Kids [${kids.map(k => `${k} 0 R`).join(' ')}] /Count ${kids.length}>>`);
+  objs.set(CATALOG, `<</Type /Catalog /Pages ${PAGES} 0 R${names.length ? ` /Names <</EmbeddedFiles <</Names [${names.join(' ')}]>>>> /PageMode /UseAttachments` : ''}>>`);
+
+  // the file
+  const pieces: string[] = []; let at = 0;
+  const push = (s: string) => { pieces.push(s); at += s.length; };
+  push('%PDF-1.7\n%\xe2\xe3\xcf\xd3\n');
+  const offs: number[] = [];
+  for (let i = 1; i < next; i++) {
+    offs[i] = at;
+    push(`${i} 0 obj\n${objs.get(i) ?? 'null'}\nendobj\n`);
+  }
+  const xref = at;
+  push(`xref\n0 ${next}\n0000000000 65535 f\r\n${Array.from({ length: next - 1 }, (_, i) => `${String(offs[i + 1]).padStart(10, '0')} 00000 n\r\n`).join('')}trailer\n<</Size ${next} /Root ${CATALOG} 0 R>>\nstartxref\n${xref}\n%%EOF\n`);
+  return bytesOf(pieces.join(''));
+}
+
+const MAX_COPY_OBJECTS = 20_000;
+
+/** Every page of `src` copied into `objs` under new numbers, with everything each page reaches (resources, fonts,
+    images, annotations), the inherited attributes written onto the page itself and /Parent pointed at `parent`.
+    Streams keep their filters and their raw data. Returns the new page numbers in order. */
+async function copyPages(src: Uint8Array, objs: Map<number, string>, alloc: () => number, parent: number): Promise<number[]> {
+  const pdf = new Pdf(src);
+  await pdf.load();
+  const pages = await pdf.pages();
+  const map = new Map<string, number>();   // "n g" -> new number
+  const queue: Ref[] = [];
+  const keyOf = (r: Ref) => `${r.n} ${r.g}`;
+  const newNum = (r: Ref): number => {
+    const k = keyOf(r);
+    let n = map.get(k);
+    if (n === undefined) { n = alloc(); map.set(k, n); queue.push(r); if (map.size > MAX_COPY_OBJECTS) throw new Error('too many objects'); }
+    return n;
+  };
+  const remap = (v: Val): Val => {
+    if (v === null || typeof v !== 'object') return v;
+    if (Array.isArray(v)) return v.map(remap);
+    if (v.k === 'ref') return { k: 'ref', n: newNum(v), g: 0 };
+    if (v.k === 'dict') { const m = new Map<string, Val>(); for (const [key, x] of v.m) if (key !== 'Parent') m.set(key, remap(x)); return { k: 'dict', m }; }
+    return v;
+  };
+  // the pages first, so an annotation's /P lands on the copied page and not a second copy of it
+  const out: number[] = [];
+  for (const p of pages) { const n = alloc(); map.set(keyOf(p.ref), n); out.push(n); }
+  for (const p of pages) {
+    const m = new Map<string, Val>();
+    for (const [k, v] of p.inh) if (!p.dict.m.has(k)) m.set(k, v);   // what an ancestor set, now on the page itself
+    for (const [k, v] of p.dict.m) if (k !== 'Parent') m.set(k, v);
+    const d = remap({ k: 'dict', m }) as Dict;
+    d.m.set('Parent', { k: 'ref', n: parent, g: 0 });
+    objs.set(map.get(keyOf(p.ref))!, ser(d));
+  }
+  while (queue.length) {
+    const r = queue.shift()!;
+    const n = map.get(keyOf(r))!;
+    const { val, data } = await pdf.fetch(r);
+    if (data !== null && isDict(val)) {
+      const d = { k: 'dict', m: new Map(val.m) } as Dict;
+      d.m.delete('Length');
+      const rd = remap(d) as Dict;
+      rd.m.set('Length', data.length);
+      objs.set(n, `${ser(rd)}\nstream\n${latin1(data)}\nendstream`);
+    } else objs.set(n, ser(remap(val)));
+  }
+  return out;
 }

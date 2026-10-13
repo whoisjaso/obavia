@@ -59,7 +59,7 @@ export type LaneOpened = { buyerName: string; guide?: LaneOpenedDoc; bill?: Lane
     the browser-only auction module the Desk's server build cannot read. */
 export type LaneIo = { api: string; key: string | null; fetch: typeof fetch };
 
-async function sha256Hex(b: Uint8Array): Promise<string> {
+export async function sha256Hex(b: Uint8Array): Promise<string> {
   const d = new Uint8Array(await crypto.subtle.digest('SHA-256', b.slice()));
   return Array.from(d, x => x.toString(16).padStart(2, '0')).join('');
 }
@@ -104,3 +104,44 @@ export function laneBillAgreement(doc: LaneOpenedDoc, frozen: Frozen): Agreement
   const at = new Date(doc.at).toISOString();
   return { state: 'filed', frozen, buyerSigned: true, signedAt: at, signatureReused: !!doc.reuse, ...(doc.reuse ? { reuseConsentAt: at } : {}) };
 }
+
+/* ---------- the Filed mark (gap table W3-F: "the Desk's Filed mark carries the filed 130-U's hash") ----------
+   Sold's Filed tap (W3-C, desk/src/Auction.tsx) marks the county's clock on the Worker (POST /lots/:id/plates). The
+   mark names the exact 130-U that went to the county: the SHA-256 of its bytes, which are stable for a filed document
+   (official.ts form130U with documents/stable-pdf.ts), the business date it was filed on and the agent on its seller
+   line. W3-B's plates route takes the mark beside the state; until it does, the Desk keeps it on the sale. */
+export type FiledMark = { state: 'filed'; form130U: { sha256: string; filedOn: string; agent?: string } };
+
+/** The mark for a sale whose 130-U is filed, from the bytes the Desk printed (official.ts filed130U). Null while the
+    130-U is a draft: a draft has no fixed bytes to name. */
+export async function filedMark(sale: Sale, pdf: Uint8Array): Promise<FiledMark | null> {
+  const f = sale.documents.form130U;
+  if (f?.state !== 'filed' || !f.frozen) return null;
+  return { state: 'filed', form130U: { sha256: await sha256Hex(pdf), filedOn: f.frozen.date, ...(f.frozen.agent ? { agent: f.frozen.agent } : {}) } };
+}
+
+/* ---------- the title step after the engine start (decisions §9 D8 and D9) ----------
+   The words for the one step on Sold after the start (placed by W3-C) and the one line under Sign on the phone
+   (auction/src/screens/won/SignDocs.tsx carries the same words; the Desk's sign.test.ts reads that file and holds
+   them equal). Four words or fewer per line (DOCTRINE §4.7). Nothing here claims a county's timing or a fee.
+   D8 (webDEALER Dealer User Guide, July 2026, pp. 8-9, App. 2; Bus. & Com. Code §322.007): a Texas licence signs the
+   130-U and the odometer disclosure through the webDEALER Buyer Acknowledgment (Texas DL or ID, last four of the
+   SSN, the audit number), not a drawn signature.
+   D9 (43 TAC §215.144(g); Tax Code §152.092; Transp. Code §503.063 as amended by HB 718, eff. 7/1/2025): any other
+   licence takes the paper packet at pickup: Form 14-312 signed in ink, the assigned title handed over or filed
+   within 30 days, the green 60-day out-of-state plate. */
+export type LaneTitleStep = { kind: 'acknowledgment' | 'packet'; title: string; lines: string[]; law: string };
+export const TITLE_STEP: Record<LaneTitleStep['kind'], LaneTitleStep> = {
+  acknowledgment: { kind: 'acknowledgment', title: 'Title at pickup', lines: ['Buyer Acknowledgment in webDEALER', 'Texas DL or ID', 'Last four, audit number', 'No drawn signature'],
+    law: 'webDEALER Dealer User Guide (July 2026) pp. 8-9; Bus. & Com. Code §322.007' },
+  packet: { kind: 'packet', title: 'Paper packet at pickup', lines: ['Form 14-312, signed', 'Assigned title handed over', 'Or filed, 30 days', 'Green 60-day plate'],
+    law: '43 TAC §215.144(g); Tax Code §152.092; Transp. Code §503.063' },
+};
+/** The step for a buyer by licence state: Texas (or no state yet: the lane admits Texas licences only at launch) is
+    the Buyer Acknowledgment; any other state is the paper packet. */
+export function laneTitleStep(licenceState: string | null | undefined): LaneTitleStep {
+  const s = (licenceState ?? '').trim().toUpperCase();
+  return !s || s === 'TX' ? TITLE_STEP.acknowledgment : TITLE_STEP.packet;
+}
+/** The phone's one line under Sign: the title, then the lines, joined by the house dot. */
+export const laneTitleLine = (step: LaneTitleStep) => [step.title, ...step.lines].join(' · ');

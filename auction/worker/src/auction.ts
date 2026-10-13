@@ -3,9 +3,10 @@
    transaction that writes the price, the close time and the ack together;
    the ack is what the glass thumps on. The close is an alarm plus a read-time
    check. After the hammer the same alarm carries the buyer's 48-hour deadline:
-   a pay-by push at 24 h and at 6 h before it, then the no-pay forfeit at it.
-   Every connected phone gets the lot on every change over a hibernating
-   WebSocket. D1 gets a copy. */
+   a pay-by push at 24 h and at 6 h before it, then the no-pay forfeit at it,
+   then the under-bidder's 12-hour second-chance offer and its expiry
+   (decisions §2 row 9). Every connected phone gets the lot on every change
+   over a hibernating WebSocket. D1 gets a copy. */
 import { DurableObject } from 'cloudflare:workers';
 import { closeAfterBid, proxy, type Proxy } from '../../src/engine/auction';
 import { collateralRefusal, type CarMeta } from '../../src/engine/meta';
@@ -25,9 +26,19 @@ export type LotPayout = { state: 'owed' | 'sent' | 'paid'; transferId?: string; 
 export type PayMethod = 'wire' | 'check' | 'cash';
 /** POST /payout, Worker-internal: the dealer_payouts row moved outside the object (paid by hand, or sent by the retry). */
 export type PayoutNews = { id: string; state: 'sent' | 'paid'; transferId?: string; method?: PayMethod; at: number };
-type StoredSale = Omit<SaleState, 'payout'> & { payout?: LotPayout };
-type Stored = Omit<Lot, 'sale'> & { sale?: StoredSale; dealer: string; reminded?: number[] };   // reminded: the pay-by pushes sent, in hours before the deadline
+/** The second-chance offer (decisions §2 row 9): at a no-pay forfeit the under-bidder is offered the car at their own
+    ceiling for twelve hours. `buyer` is the under-bidder, `amount` their max; accepted writes the new sale, the alarm
+    expires it. The engine's SaleState (src/engine/meta.ts) does not carry it yet: W3-D adds `offer` there. */
+export type Offer = { buyer: string; amount: number; madeAt: number; expiresAt: number; acceptedAt?: number; expiredAt?: number };
+type StoredSale = Omit<SaleState, 'payout'> & { payout?: LotPayout; offer?: Offer };
+/** `under`: the standing under-bidder and their ceiling, kept only here (never on the wire), for the offer.
+    `prior`: sales this lot carried before the current one (a forfeit whose offer was taken), kept whole. */
+type Stored = Omit<Lot, 'sale'> & { sale?: StoredSale; dealer: string; reminded?: number[]; under?: { bidder: string; max: number }; prior?: StoredSale[] };   // reminded: the pay-by pushes sent, in hours before the deadline
 type PayoutReason = 'applied' | 'forfeit' | 'no_pay';
+/** The Desk's patch of the car: CarMeta, plus the dealer's own Marketplace listing URL (deviation 6; W3-C sends it, the lane carries it). */
+type CarPatch = Partial<CarMeta> & { listingUrl?: unknown };
+/** What the nightly alarm audit reads (src/reconcile.ts): the lot's clocks and state, read without dropping the hammer. */
+export type Audit = { id: string; closesAt: number; closed: boolean; sale: null | { deadlineAt: number; settled: boolean; offerExpiresAt: number | null; offerSettled: boolean } };
 /** The bid as the Worker forwards it: the engine's request plus what the Worker knows of the bidder (D11). */
 export type BidIn = BidRequest & { who?: Who };
 
@@ -36,10 +47,15 @@ export type BidIn = BidRequest & { who?: Who };
 export const PAY_WINDOW_MS = 48 * 3_600_000;
 /** The pay-by pushes, in hours before the deadline. */
 export const REMIND_HOURS = [24, 6] as const;
+/** The second-chance offer's window: 12 hours from the no-pay forfeit (decisions §2 row 9; gap table deviation 8 keeps it). */
+export const OFFER_WINDOW_MS = 12 * 3_600_000;
+/** A Marketplace listing URL the lane will carry: https, at most 300 characters, no control characters. */
+export const LISTING_URL_MAX = 300;
+export const listingUrlOf = (v: unknown): string | null => typeof v === 'string' && v.length <= LISTING_URL_MAX && /^https:\/\/[^\s\u0000-\u001f\u007f]+$/.test(v) ? v : null;
 export const DEPOSIT_USD = 250;
 /** The soft close (decisions §2 #8): Sell It Now is refused inside the last two minutes of a lot with bids. */
 export const SOFT_CLOSE_MS = 120_000;
-const DEALER_ROUTES = ['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/plates', '/copy'];
+const DEALER_ROUTES = ['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/plates', '/copy', '/audit'];
 /** The plates clock, forward only (phases.md Phase 2 Paperwork: filed, approved, mailed, kickback): what may follow each state.
     A kickback follows filed and is followed by filed again (the Desk fixed the 130-U and refiled). Nothing follows mailed. */
 export const PLATES_NEXT: Record<'none' | PlatesState, readonly PlatesState[]> = {
@@ -65,9 +81,10 @@ export class Auction extends DurableObject<Env> {
     switch (`${req.method} ${path}`) {
       case 'GET /': { if (!lot) return text('no lot', 404); await this.hammer(lot, now); return json(this.publicLot(lot)); }   // the read-time close writes the sale too
       case 'POST /open': return this.open(await req.json<OpenRequest>(), dealer);
-      case 'POST /car': {   // the Desk updates photos, documents, hours after Go
+      case 'POST /car': {   // the Desk updates photos, documents, hours, the listing URL after Go
         if (!lot) return text('no lot', 404);
-        const patch = await req.json<Partial<CarMeta>>();
+        const patch = await req.json<CarPatch>();
+        if ('listingUrl' in patch && patch.listingUrl != null && !listingUrlOf(patch.listingUrl)) return text('bad_listing', 400);   // https only; null clears it
         if (patch.collateral) {   // the floor can move only while nobody has bid, only down, and only on collateral the lane still accepts
           const why = collateralRefusal(patch.collateral); if (why) return text(why, 422);
           if (lot.bids > 0 && patch.collateral.floor !== lot.car?.collateral.floor) return text('bids placed', 409);
@@ -80,6 +97,20 @@ export class Auction extends DurableObject<Env> {
       case 'POST /copy': {   // the nightly reconciliation: the object rewrites its own D1 copy (not routed by the Worker)
         if (!lot) return text('no lot', 404);
         await this.copy(lot); return json(this.publicLot(lot));
+      }
+      case 'POST /audit': {   // the nightly alarm audit (src/reconcile.ts): the clocks as stored, no hammer, no change (Worker-internal, admin only)
+        if (!admin) return text('admin only', 403);
+        if (!lot) return text('no lot', 404);
+        return json(this.audit(lot));
+      }
+      case 'POST /offer/accept': {   // the under-bidder takes the second-chance offer: the new sale, its own deadline, its own payout (the Worker checked the token and the deposit)
+        if (!lot?.sale?.offer) return text('no_offer', 409);
+        const buyer = req.headers.get('x-buyer') ?? '';
+        const o = lot.sale.offer;
+        if (!buyer || buyer !== o.buyer) return text('not_yours', 403);
+        if (o.acceptedAt) return json(this.publicLot(lot));   // once: the same answer again
+        if (o.expiredAt || now >= o.expiresAt) return text('offer_expired', 409);
+        return this.acceptOffer(lot, now);
       }
       case 'POST /bids': return this.bid(await req.json<BidIn>(), Date.now());
       case 'POST /watch': return this.watch(Number(url.searchParams.get('delta') ?? 1));
@@ -172,7 +203,15 @@ export class Auction extends DurableObject<Env> {
       return;
     }
     const s = lot.sale;
-    if (!s || s.paidAt || s.startedAt || s.voidedAt || s.forfeitedAt) return;
+    if (!s) return;
+    if (s.forfeitedAt && s.offer && !s.offer.acceptedAt && !s.offer.expiredAt) {   // the second-chance offer runs out
+      if (now < s.offer.expiresAt) { await this.ctx.storage.setAlarm(s.offer.expiresAt); return; }
+      await this.money(`offer_expired:${lot.id}`, 'sale.offer_expired', { lotId: lot.id, buyer: s.offer.buyer, dealer: lot.dealer, amount: s.offer.amount, actor: 'lane' }, now);
+      s.offer.expiredAt = now; await this.save(lot);
+      this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
+      return;
+    }
+    if (s.paidAt || s.startedAt || s.voidedAt || s.forfeitedAt) return;
     if (now >= s.deadlineAt) { await this.forfeit(lot, 'no_pay', '', now); return; }   // throws on a ledger failure: the alarm retries
     const due = REMIND_HOURS.filter(h => now >= s.deadlineAt - h * 3_600_000 && !(lot.reminded ?? []).includes(h));
     if (due.length) {   // one push for the latest due, even if an earlier one was missed; a different pair each time (AD10)
@@ -227,10 +266,56 @@ export class Auction extends DurableObject<Env> {
     const held = (r.meta.changes ?? 0) > 0;   // this forfeit took a captured deposit; a second sale by the same buyer finds none
     await this.money(`forfeit:${lot.id}`, 'deposit.forfeited', { lotId: lot.id, buyer: s.buyer, dealer: lot.dealer, amount: DEPOSIT_USD, to: 'dealer', reason, held }, now);
     await this.payDealer(lot, reason, note, now, held);
+    if (reason === 'no_pay') await this.offer(lot, now);   // the under-bidder's second chance (decisions §2 row 9)
     this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
     const car = carName(lot) || lot.id;
     this.ctx.waitUntil(push(this.env, s.buyer, 'Deposit forfeited', car, { lotId: lot.id, screen: 'me' }));
     this.ctx.waitUntil(pushDealer(this.env, lot.dealer, 'Deposit forfeited', `${car} · $${DEPOSIT_USD} is yours`, { lotId: lot.id, screen: 'sold' }));
+  }
+
+  /** The second-chance offer (decisions §2 row 9; gap table W3-B): at a no-pay forfeit, the standing under-bidder (a deposit
+      still captured, not the buyer who walked) is offered the car at their own ceiling for twelve hours. The ledger row first,
+      then sale.offer, then the alarm at its expiry and the push "Second chance · <car> · $X · 12 h" (screen offer). No
+      under-bidder, or one whose deposit is gone: nothing is written and the Desk's Sold shows Relist alone. */
+  private async offer(lot: Stored, now: number) {
+    const s = lot.sale!, u = lot.under;
+    if (!u || u.bidder === s.buyer || !(u.max > 0)) return;
+    const row = await this.env.DB.prepare('SELECT deposit_status FROM buyers WHERE id = ?1').bind(u.bidder).first<{ deposit_status: string }>();
+    if (row?.deposit_status !== 'captured') return;
+    const offer: Offer = { buyer: u.bidder, amount: u.max, madeAt: now, expiresAt: now + OFFER_WINDOW_MS };
+    await this.money(`offer:${lot.id}:${now}`, 'sale.offer', { lotId: lot.id, buyer: u.bidder, dealer: lot.dealer, amount: u.max, expiresAt: offer.expiresAt, actor: 'lane' }, now);
+    s.offer = offer; await this.save(lot);
+    await this.ctx.storage.setAlarm(offer.expiresAt);
+    this.ctx.waitUntil(push(this.env, u.bidder, 'Second chance', `${carName(lot) || lot.id} · $${dollars(u.max)} · 12 h`, { lotId: lot.id, screen: 'offer' }));
+  }
+
+  /** The offer taken: the forfeited sale is kept whole under `prior`, and the lot carries a new sale for the under-bidder at
+      the offer's amount with its own 48-hour deadline, its own pay-by pushes and, at the engine start, its own payout
+      (applied:<lot>, apart from the forfeit's forfeit:<lot>). The same "Yours" push as the hammer (CP9: the same words). */
+  private async acceptOffer(lot: Stored, now: number): Promise<Response> {
+    const old = lot.sale!, o = old.offer!;
+    const deadlineAt = now + PAY_WINDOW_MS;
+    await this.money(`offer_accepted:${lot.id}:${now}`, 'sale.offer_accepted', { lotId: lot.id, buyer: o.buyer, dealer: lot.dealer, amount: o.amount, hammer: o.amount, deadlineAt, actor: 'buyer' }, now);
+    o.acceptedAt = now;
+    lot.prior = [...(lot.prior ?? []), old];
+    lot.sale = { buyer: o.buyer, hammer: o.amount, wonAt: now, deadlineAt, deposit: 'held' };
+    lot.high = o.amount; lot.leader = o.buyer; lot.under = undefined; lot.reminded = [];
+    if (lot.closed) lot.closed = { ...lot.closed, sold: true };
+    await this.save(lot);
+    await this.scheduleSale(lot, now);
+    this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
+    const car = carName(lot) || lot.id;
+    this.ctx.waitUntil(push(this.env, o.buyer, 'Yours', `$${dollars(o.amount)} · ${car} · Pay by ${payBy(deadlineAt)}`, { lotId: lot.id, screen: 'won' }));
+    this.ctx.waitUntil(pushDealer(this.env, lot.dealer, 'Second chance taken', `${car} · $${dollars(o.amount)}`, { lotId: lot.id, screen: 'sold' }));
+    return json(this.publicLot(lot));
+  }
+
+  /** The clocks as stored, for the nightly alarm audit; nothing here closes, forfeits or expires anything. */
+  private audit(lot: Stored): Audit {
+    const s = lot.sale;
+    return { id: lot.id, closesAt: lot.closesAt, closed: !!lot.closed, sale: !s ? null : {
+      deadlineAt: s.deadlineAt, settled: !!(s.paidAt || s.startedAt || s.voidedAt || s.forfeitedAt),
+      offerExpiresAt: s.offer?.expiresAt ?? null, offerSettled: !s.offer || !!(s.offer.acceptedAt || s.offer.expiredAt) } };
   }
 
   /** The dealer's $250: a dealer_payouts row (owed), the sale's state, then a Whop transfer when the dealer has a connected
@@ -265,9 +350,11 @@ export class Auction extends DurableObject<Env> {
   /** The payout as dealer_payouts now says it: sent by the retry (with the transfer id) or paid by hand (with the method).
       Idempotent: the same news twice answers the same lot. A payout already settled another way is 409 `payout_settled`. */
   private async payoutNews(lot: Stored | null, b: Partial<PayoutNews>): Promise<Response> {
-    const s = lot?.sale;
+    // the sale that carries this payout: the current one, or a forfeited sale kept under `prior` once its offer was taken
+    const keyOf = (x: StoredSale) => `${x.startedAt ? 'applied' : 'forfeit'}:${lot!.id}`;
+    const s = lot ? [lot.sale, ...(lot.prior ?? [])].find(x => x?.payout && keyOf(x) === b.id) ?? lot.sale : undefined;
     if (!lot || !s?.payout) return text('no_payout', 409);
-    const key = `${s.startedAt ? 'applied' : 'forfeit'}:${lot.id}`;
+    const key = keyOf(s);
     if (b.id !== key) return text('wrong_payout', 409);
     const at = typeof b.at === 'number' && Number.isFinite(b.at) && b.at > 0 ? b.at : null;
     const next: LotPayout | null = !at ? null
@@ -322,6 +409,10 @@ export class Auction extends DurableObject<Env> {
         ack = { ok: false, reason: 'low', lot: this.publicLot(lot), stampedAt: now };
       } else {
         if (lot.leader && lot.leader !== after.leader && lot.leader !== req.bidder) outbid = lot.leader;
+        // the standing under-bidder, for the second-chance offer: the leader just beaten keeps their ceiling; a challenger
+        // a standing ceiling beat stands at theirs when it tops the one kept; a leader raising their own changes nothing
+        if (outbid && lot.max != null) lot.under = { bidder: outbid, max: lot.max };
+        else if (after.leader !== req.bidder && (!lot.under || lot.under.bidder === req.bidder || req.max > lot.under.max)) lot.under = { bidder: req.bidder, max: req.max };
         lot.high = after.high; lot.leader = after.leader; lot.max = after.max; lot.bids += 1;
         const was = lot.closesAt; lot.closesAt = closeAfterBid(lot.closesAt, now);
         if (lot.closesAt !== was) await this.ctx.storage.setAlarm(lot.closesAt);
@@ -374,7 +465,7 @@ export class Auction extends DurableObject<Env> {
   }
   private async save(lot: Stored) { this.lot = lot; await this.ctx.storage.put('lot', lot); this.ctx.waitUntil(this.copy(lot)); }
   /** What leaves the object: never the ceiling, never the dealer's name on the wire beyond the car's own dealer block. */
-  private publicLot(lot: Stored): Lot { const { dealer: _d, max: _m, reminded: _r, ...pub } = lot; return { ...pub, max: undefined } as Lot; }   // sale.payout may be 'paid' (LotPayout)
+  private publicLot(lot: Stored): Lot { const { dealer: _d, max: _m, reminded: _r, under: _u, prior: _p, ...pub } = lot; return { ...pub, max: undefined } as Lot; }   // sale.payout may be 'paid' (LotPayout); sale.offer rides along
 
   /** D1: the copy, compared nightly; never read on the bid path. */
   private async copy(lot: Stored, req?: BidRequest, ack?: Ack, shillCheck = '') {

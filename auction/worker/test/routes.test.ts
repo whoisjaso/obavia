@@ -461,6 +461,272 @@ describe('9. the reconciliation counts owed payouts as liabilities', () => {
   });
 });
 
+/* ---------------------------------------------------------------- Wave 3-B (gap table §4) */
+
+describe('10. the /invoices/ mount (src/invoice.ts, Wave 3-A), the balance row at the hammer, Paid At The Lot, the fee at the start', () => {
+  it('/invoices/ goes to invoice.ts with the CORS headers; the buyer asks for the balance row (held on deviation 2); the dealer\'s Paid At The Lot settles it and writes the split', async () => {
+    const r = await get('/invoices/anything', ADMIN);
+    expect(r.status).toBe(404); expect(await r.json()).toEqual({ error: 'no_lot' });
+    expect(r.headers.get('access-control-allow-origin')).toBe('*');
+    const d = await dealer('P801001');
+    const t = await sold('iv1', d, 'P801001', 'rt-iv1');
+    expect(await env.DB.prepare('SELECT id FROM invoices WHERE lot_id = ?1').bind('iv1').first()).toBeNull();   // the hammer writes no row (invoice.test.ts 4: the first call after it does)
+    const asked = await post('/invoices/iv1', as(t));
+    expect(asked.status).toBe(200);
+    expect(await asked.json()).toMatchObject({ id: 'balance:iv1', kind: 'balance', state: 'held', amountCents: 533050, held: 'payee_unnamed' });   // deviation 2: nothing asked of Whop
+    const mine = await (await get('/invoices/iv1', as(t))).json<any>();
+    expect(mine.balance).toMatchObject({ id: 'balance:iv1', state: 'held', amountUsd: 5330.5 }); expect(mine.fee).toBeNull();
+    expect((await post('/lots/iv1/paid', as(d))).status).toBe(200);
+    expect((await env.DB.prepare('SELECT state FROM invoices WHERE id = ?1').bind('balance:iv1').first<any>())?.state).toBe('paid_at_lot');
+    expect((await eventById('settled:balance:iv1'))?.type).toBe('invoice.settled');
+    expect((await env.DB.prepare('SELECT id, reason, held, state FROM dealer_payouts WHERE lot_id = ?1 ORDER BY id').bind('iv1').all<any>()).results).toEqual([{ id: 'applied_net:iv1', reason: 'applied_net', held: 0, state: 'owed' }]);
+    expect(whopCalls()).toEqual([]);
+  });
+  it('the start writes no fee row while the platform row is unset; with the GDN set, one fee row held for the dealer', async () => {
+    const d = await dealer('P801002');
+    await sold('iv2', d, 'P801002', 'rt-iv2');
+    expect((await post('/lots/iv2/paid', as(d))).status).toBe(200);
+    expect((await post('/lots/iv2/pickup', as(d), { vin: '000001' })).status).toBe(200);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM invoices WHERE kind = 'fee'").first<{ n: number }>())?.n).toBe(0);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM money_events WHERE type LIKE 'fee.%'").first<{ n: number }>())?.n).toBe(0);
+    expect((await post('/admin/gdn', ADMIN, { issuedAt: Date.now() - 86_400_000, feePerCarCents: 19900, feeMonthlyCents: 29900 })).status).toBe(200);
+    await sold('iv3', d, 'P801002', 'rt-iv3');
+    expect((await post('/lots/iv3/paid', as(d))).status).toBe(200);
+    expect((await post('/lots/iv3/pickup', as(d), { vin: '000001' })).status).toBe(200);
+    const fee = await env.DB.prepare("SELECT id, payer, state, amount_cents, error FROM invoices WHERE kind = 'fee'").first<any>();
+    expect(fee).toEqual({ id: 'fee:iv3', payer: 'P801002', state: 'held', amount_cents: 19900, error: 'whop_unavailable' });   // no Whop key here: held, nothing sent
+    expect((await (await get('/admin/exposure', ADMIN)).json<any>()).obaviaFeesOwed).toBe(199);
+  });
+  it('invoice.paid and transfer.completed go to onWebhook; what it cannot match is kept as webhook.unhandled; the webhook is 200 either way', async () => {
+    const r = await webhook({ type: 'invoice.paid', data: { id: 'inv_unknown1', status: 'paid' } }, 'msg_inv_1');
+    expect(r.status).toBe(200);
+    expect((await eventById('msg_inv_1'))?.type).toBe('invoice.paid');   // kept by type first, like every event
+    expect(JSON.parse((await eventById('unhandled:msg_inv_1'))!.body)).toMatchObject({ type: 'invoice.paid', reason: 'unknown_invoice' });
+    expect((await webhook({ type: 'transfer.completed', data: { id: 'tr_unknown1' } }, 'msg_tr_1')).status).toBe(200);
+    expect(JSON.parse((await eventById('unhandled:msg_tr_1'))!.body)).toMatchObject({ type: 'transfer.completed', reason: 'unknown_transfer' });
+  });
+});
+
+describe('11. account.updated: the dealer\'s account verified, then the owed-payout retry', () => {
+  it('sets dealers.whop_account_verified_at once, writes dealer.account_verified, and sends what was owed; an unverified update sends nothing', async () => {
+    const d = await dealer('P801101');
+    await sold('au1', d, 'P801101', 'rt-au1');
+    await edit('au1', l => { l.sale.deadlineAt = Date.now() - 1; });
+    expect((await post('/lots/au1/forfeit', as(d), { reason: 'no show' })).status).toBe(200);   // forfeit:au1 owed, no account yet
+    await env.DB.prepare('UPDATE dealers SET whop_account = ?2 WHERE gdn = ?1').bind('P801101', 'biz_au1001').run();
+    // not verified yet: nothing moves
+    expect((await webhook({ type: 'account.updated', data: { id: 'biz_au1001', status: 'pending' } })).status).toBe(200);
+    expect((await env.DB.prepare('SELECT whop_account_verified_at AS v FROM dealers WHERE gdn = ?1').bind('P801101').first<{ v: number | null }>())?.v).toBeNull();
+    // verified: the time lands once, the ledger says so, and the retry runs through the Worker's own environment (Whop keys needed to send)
+    calls = [];
+    const e = withEnv({ WHOP_API_KEY: 'test-whop-key', WHOP_API_BASE: 'https://whop.test/api/v1', WHOP_ACCOUNT_ID: 'biz_obavia' });
+    const raw = JSON.stringify({ type: 'account.updated', data: { id: 'biz_au1001', verified: true } }), ts = String(Math.floor(Date.now() / 1000)), id = 'msg_au1';
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode('test-whop-secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${id}.${ts}.${raw}`)));
+    const r = await worker.fetch(new Request(`${base}/webhooks/whop`, { method: 'POST', headers: { 'webhook-id': id, 'webhook-timestamp': ts, 'webhook-signature': `v1,${btoa(String.fromCharCode(...mac))}`, 'content-type': 'application/json' }, body: raw }), e);
+    expect(r.status).toBe(200);
+    const v = (await env.DB.prepare('SELECT whop_account_verified_at AS v FROM dealers WHERE gdn = ?1').bind('P801101').first<{ v: number | null }>())?.v;
+    expect(v).toBeGreaterThan(0);
+    expect(JSON.parse((await eventById('account_verified:P801101'))!.body)).toMatchObject({ dealer: 'P801101', account: 'biz_au1001', actor: 'whop' });
+    expect(whopCalls().map(c => c.headers['idempotency-key'])).toEqual(['forfeit:au1']);
+    expect((await env.DB.prepare('SELECT state FROM dealer_payouts WHERE id = ?1').bind('forfeit:au1').first<{ state: string }>())?.state).toBe('sent');
+    // a second verified update keeps the first time
+    expect((await webhook({ type: 'account.updated', data: { id: 'biz_au1001', status: 'active' } })).status).toBe(200);
+    expect((await env.DB.prepare('SELECT whop_account_verified_at AS v FROM dealers WHERE gdn = ?1').bind('P801101').first<{ v: number | null }>())?.v).toBe(v);
+  });
+});
+
+describe('12. recovery by phone: POST /me/recover and /me/recover/verify', () => {
+  it('a second install proves the same number and gets the first buyer\'s id with a new token; the old token is 401; a row in recoveries', async () => {
+    const first = await buyer('rt-rec1');   // proves PHONE with the fake provider (DEV=1 admits it)
+    expect((await get('/me', as(first))).status).toBe(200);
+    // no token: the code to the number; the answer says nothing about who holds it
+    const sent = await post('/me/recover', { 'content-type': 'application/json' }, { phone: PHONE });
+    expect(sent.status).toBe(200); expect(await sent.json()).toMatchObject({ sent: true, phone: '(•••) •••-0142' });
+    expect((await post('/me/recover', { 'content-type': 'application/json' }, { phone: 'not a number' })).status).toBe(400);
+    const wrong = await post('/me/recover/verify', { 'content-type': 'application/json' }, { phone: PHONE, code: '123456' });
+    expect(wrong.status).toBe(422); expect(await wrong.json()).toEqual({ error: 'wrong_code' });
+    const ok = await post('/me/recover/verify', { 'content-type': 'application/json' }, { phone: PHONE, code: '000000' });
+    expect(ok.status).toBe(200);
+    const got = await ok.json<{ id: string; token: string; phone: string }>();
+    expect(got.id).toBe('rt-rec1'); expect(got.token).not.toBe(first); expect(got.phone).toBe('(•••) •••-0142');
+    expect((await get('/me', as(first))).status).toBe(401);   // the old epoch is bumped: every old token stops
+    const me = await (await get('/me', as(got.token))).json<any>();
+    expect(me.id).toBe('rt-rec1'); expect(me.phoneVerified).toBe(true); expect(me.deposit_status).toBe('captured');
+    expect((await env.DB.prepare('SELECT buyer, from_epoch, to_epoch FROM recoveries WHERE buyer = ?1').bind('rt-rec1').first()) ).toEqual({ buyer: 'rt-rec1', from_epoch: 0, to_epoch: 1 });
+    // the code proves once
+    const again = await post('/me/recover/verify', { 'content-type': 'application/json' }, { phone: PHONE, code: '000000' });
+    expect(again.status).toBe(429);
+  });
+  it('a proved number nobody holds is 404 no_such_phone, and only after the code; the per-number limits hold', async () => {
+    const other = '+12145550199';
+    expect((await post('/me/recover', { 'content-type': 'application/json' }, { phone: other })).status).toBe(200);
+    const gap = await post('/me/recover', { 'content-type': 'application/json' }, { phone: other });
+    expect(gap.status).toBe(429); expect(gap.headers.get('retry-after')).toMatch(/^\d+$/);   // one send per 30 s per number
+    const r = await post('/me/recover/verify', { 'content-type': 'application/json' }, { phone: other, code: '000000' });
+    expect(r.status).toBe(404); expect(await r.json()).toEqual({ error: 'no_such_phone' });
+    expect((await post('/me/recover/verify', { 'content-type': 'application/json' }, { phone: other })).status).toBe(400);
+  });
+  it('a fake proof recovers nothing on a DEV=0 Worker: the number was never proved for real', async () => {
+    await buyer('rt-rec3');
+    await env.DB.prepare("DELETE FROM phone_codes WHERE buyer_id = 'recover:+12145550142'").run();   // the 30 s gap from the test above
+    const e = withEnv({ DEV: '0' });
+    expect((await call(e, '/me/recover', { body: { phone: PHONE } })).status).toBe(200);
+    const r = await call(e, '/me/recover/verify', { body: { phone: PHONE, code: '000000' } });
+    expect(r.status).toBe(404);
+  });
+});
+
+describe('13. GET /admin/lots/:id/log: one lot, every row, in time order', () => {
+  it('lists the bids, the refusals, the money rows (the deposit applied, the plates, the payout), the pickup refusal and the signature rows for that lot alone; admin only', async () => {
+    const d = await dealer('P801301');
+    const t = await sold('lg1', d, 'P801301', 'rt-lg1');
+    await sold('lg2', d, 'P801301', 'rt-lg2');   // another lot: none of its rows below
+    expect((await bid('lg1', t, 9000)).status).toBe(200);   // a late bid, stamped closed
+    expect((await post('/lots/lg1/paid', as(d))).status).toBe(200);
+    expect((await post('/lots/lg1/pickup', as(d), { vin: '999999' })).status).toBe(409);   // wrong car: a pickup refusal
+    expect((await post('/lots/lg1/pickup', as(d), { vin: '000001' })).status).toBe(200);
+    expect((await post('/lots/lg1/plates', as(d), { state: 'filed' })).status).toBe(200);
+    expect((await get('/admin/lots/lg1/log')).status).toBe(403);
+    expect((await get('/admin/lots/lg1/log', as(d))).status).toBe(403);
+    const log = await (await get('/admin/lots/lg1/log', ADMIN)).json<{ lotId: string; dealer: string; rows: any[] }>();
+    expect(log.lotId).toBe('lg1'); expect(log.dealer).toBe('P801301');
+    const ats = log.rows.map(r => r.at);
+    expect(ats).toEqual([...ats].sort((a, b) => a - b));
+    expect(log.rows.filter(r => r.kind === 'bid').map(r => [r.bidder, r.amount, r.ok, r.reason])).toEqual([['rt-lg1', 5000, 1, null], ['rt-lg1', 9000, 0, 'closed']]);
+    expect(log.rows.filter(r => r.kind === 'pickup_refusal').map(r => [r.reason, r.presented])).toEqual([['wrong car', '999999']]);
+    expect(log.rows.filter(r => r.kind === 'money').map(r => r.type)).toEqual(['balance.paid_at_lot', 'invoice.settled', 'payout.split', 'deposit.applied', 'sale.plates']);   // W3-A's rows at Paid At The Lot sit between
+    expect(log.rows.filter(r => r.kind === 'payout').map(r => [r.id, r.reason, r.state])).toEqual([['applied_net:lg1', 'applied_net', 'owed'], ['applied:lg1', 'applied', 'owed']]);
+    expect(log.rows.filter(r => r.kind === 'invoice').map(r => [r.id, r.state])).toContainEqual(['balance:lg1', 'paid_at_lot']);   // and fee:lg1 held, since section 10 set the GDN in this file
+    expect(log.rows.some(r => JSON.stringify(r).includes('lg2'))).toBe(false);
+    expect(log.rows.some(r => r.kind === 'money' && r.type === 'deposit.captured')).toBe(false);   // the capture names no lot
+  });
+});
+
+describe('14. GET /admin/exposure: watchers per open lot, wonAt and startedAt per sale, hammer and floor per closed lot', () => {
+  it('the three new fields, from the copy', async () => {
+    const d = await dealer('P801401');
+    const t = await sold('xw1', d, 'P801401', 'rt-xw1');
+    expect((await post('/lots/xw1/paid', as(d))).status).toBe(200);
+    expect((await post('/lots/xw1/pickup', as(d), { vin: '000001' })).status).toBe(200);
+    expect((await openLot('xw2', d, 'P801401')).status).toBe(200);
+    expect((await post('/lots/xw2/watch?delta=1', as(t))).status).toBe(200);
+    expect((await post('/lots/xw2/watch?delta=1', as(t))).status).toBe(200);
+    await settle();
+    const x = await (await get('/admin/exposure', ADMIN)).json<any>();
+    expect(x.watchers.find((w: any) => w.lotId === 'xw2')).toEqual({ lotId: 'xw2', dealer: 'P801401', watching: 2 });
+    expect(x.watchers.some((w: any) => w.lotId === 'xw1')).toBe(false);   // closed: not an open lot
+    const sale = x.sales.find((s: any) => s.lotId === 'xw1');
+    expect(sale.wonAt).toBeGreaterThan(0); expect(sale.startedAt).toBeGreaterThanOrEqual(sale.wonAt); expect(sale.offer).toBeNull();
+    expect(x.bidders.find((b: any) => b.lotId === 'xw1')).toMatchObject({ sold: true, hammer: 5000, floor: 4900, bidders: 1 });
+    expect(x.platform === null || typeof x.platform === 'object').toBe(true);
+  });
+});
+
+describe('15. POST /admin/gdn: the owner types the date and the fee numbers, never the code', () => {
+  it('writes W3-A\'s platform row (0016, src/fees.ts setPlatform) once and the ledger row admin.gdn; bad input 400; admin only', async () => {
+    const body = { issuedAt: Date.now() - 86_400_000, feePerCarCents: 19900, feeMonthlyCents: 29900 };
+    expect((await post('/admin/gdn', { 'content-type': 'application/json' }, body)).status).toBe(403);
+    expect((await post('/admin/gdn', ADMIN, { ...body, issuedAt: Date.now() + 7 * 86_400_000 })).status).toBe(400);   // never a date in the future
+    expect((await post('/admin/gdn', ADMIN, { ...body, feePerCarCents: -1 })).status).toBe(400);
+    expect((await post('/admin/gdn', ADMIN, { ...body, feeMonthlyCents: 1.5 })).status).toBe(400);
+    const r = await post('/admin/gdn', ADMIN, body);
+    expect(r.status).toBe(200); expect(await r.json()).toEqual({ gdnIssuedAt: body.issuedAt, feePerCarCents: 19900, feeMonthlyCents: 29900 });
+    const row = await env.DB.prepare('SELECT id, gdn_issued_at, fee_per_car_cents, fee_monthly_cents, balance_payee FROM platform').first<any>();
+    expect(row).toEqual({ id: 1, gdn_issued_at: body.issuedAt, fee_per_car_cents: 19900, fee_monthly_cents: 29900, balance_payee: null });   // the payee is deviation 2's line, never set here
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM platform').first<{ n: number }>())?.n).toBe(1);
+    const ev = await events('admin.gdn');
+    expect(ev.length).toBeGreaterThanOrEqual(1);
+    expect(JSON.parse(ev.at(-1)!.body)).toMatchObject({ actor: 'admin', issuedAt: body.issuedAt, feePerCarCents: 19900, feeMonthlyCents: 29900 });
+    // typed again: still one row, the ledger keeps what it was before
+    const again = await post('/admin/gdn', ADMIN, { ...body, feePerCarCents: 20000 });
+    expect(again.status).toBe(200);
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM platform').first<{ n: number }>())?.n).toBe(1);
+    expect(JSON.parse((await events('admin.gdn')).at(-1)!.body).before).toMatchObject({ feePerCarCents: 19900 });
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM money_events WHERE type LIKE ?1').bind('fee.%').first<{ n: number }>())?.n).toBe(0);   // nothing here invoices a fee: W3-A's feeFor does, behind this row
+  });
+});
+
+describe('16. GET /lots/:id/pass: the Google Wallet pass, signed only with both keys', () => {
+  const pem = (b: ArrayBuffer, label: string) => `-----BEGIN ${label}-----\n${btoa(String.fromCharCode(...new Uint8Array(b))).match(/.{1,64}/g)!.join('\n')}\n-----END ${label}-----\n`;
+  const b64url = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=')), c => c.charCodeAt(0));
+  it('503 pass_unavailable without the two names; with them a JWT whose RS256 signature verifies and whose QR is the app\'s pass; only the sale\'s buyer', async () => {
+    const d = await dealer('P801601');
+    const t = await sold('gw1', d, 'P801601', 'rt-gw1');
+    const stranger = await buyer('rt-gw2');
+    const none = await get('/lots/gw1/pass', as(t));
+    expect(none.status).toBe(503); expect(await none.json()).toEqual({ error: 'pass_unavailable' });
+    expect((await get('/lots/gw1/pass')).status).toBe(401);
+    const kp = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']) as CryptoKeyPair;
+    const sa = JSON.stringify({ type: 'service_account', client_email: 'wallet@obavia-test.iam.gserviceaccount.com', private_key: pem(await crypto.subtle.exportKey('pkcs8', kp.privateKey) as ArrayBuffer, 'PRIVATE KEY') });
+    const half = withEnv({ GOOGLE_WALLET_ISSUER_ID: '3388000000012345678' });
+    expect((await call(half, '/lots/gw1/pass', { method: 'GET', headers: as(t) })).status).toBe(503);   // one name is not both
+    const e = withEnv({ GOOGLE_WALLET_ISSUER_ID: '3388000000012345678', GOOGLE_WALLET_SERVICE_ACCOUNT: sa });
+    const r = await call(e, '/lots/gw1/pass', { method: 'GET', headers: as(t) });
+    expect(r.status).toBe(200);
+    const out = await r.json<{ url: string; objectId: string; expiresAt: number }>();
+    expect(out.url.startsWith('https://pay.google.com/gp/v/save/')).toBe(true);
+    expect(out.objectId).toBe('3388000000012345678.gw1-rt-gw1');
+    const [h, p, sig] = out.url.slice('https://pay.google.com/gp/v/save/'.length).split('.');
+    expect(JSON.parse(new TextDecoder().decode(b64url(h)))).toEqual({ alg: 'RS256', typ: 'JWT' });
+    const claims = JSON.parse(new TextDecoder().decode(b64url(p)));
+    expect(claims).toMatchObject({ iss: 'wallet@obavia-test.iam.gserviceaccount.com', aud: 'google', typ: 'savetowallet' });
+    const obj = claims.payload.genericObjects[0];
+    const lot = await (await get('/lots/gw1')).json<any>();
+    expect(obj).toMatchObject({ id: out.objectId, classId: '3388000000012345678.obavia_pickup', barcode: { type: 'QR_CODE', value: `obavia:gw1:1N4AL3AP0EC000001:${lot.sale.wonAt}`, alternateText: '000001' } });
+    expect(obj.header.defaultValue.value).toBe('2014 Nissan Altima');
+    expect(JSON.stringify(obj)).not.toMatch(/\$|5,000|deadline|pay by/i);   // no money and no clock on the pass
+    expect(await crypto.subtle.verify('RSASSA-PKCS1-v1_5', kp.publicKey, b64url(sig), new TextEncoder().encode(`${h}.${p}`))).toBe(true);
+    const theirs = await call(e, '/lots/gw1/pass', { method: 'GET', headers: as(stranger) });
+    expect(theirs.status).toBe(403); expect(await theirs.json()).toEqual({ error: 'not_yours' });
+    const bad = await call(withEnv({ GOOGLE_WALLET_ISSUER_ID: '1', GOOGLE_WALLET_SERVICE_ACCOUNT: '{"client_email":"x"}' }), '/lots/gw1/pass', { method: 'GET', headers: as(t) });
+    expect(bad.status).toBe(503); expect(await bad.json()).toEqual({ error: 'pass_unavailable' });   // a key that cannot sign: the same answer, nothing said about it
+  });
+});
+
+describe('17. dispute.created: the evidence pack (src/sign.ts, W3-F) and the upload (src/invoice.ts, W3-A), the result on the pack row', () => {
+  it('builds the pack for the sale the deposit backs, names the dispute on its row, and without WHOP_API_KEY keeps "not sent" on the row and the ledger; the lot\'s log lists it', async () => {
+    const d = await dealer('P801701');
+    await sold('dv1', d, 'P801701', 'rt-dv1');
+    await env.DB.prepare("UPDATE buyers SET deposit_ref = 'pay_dv1' WHERE id = 'rt-dv1'").run();
+    expect((await webhook({ type: 'dispute.created', data: { id: 'dsp_dv1', payment_id: 'pay_dv1' } })).status).toBe(200);
+    expect(await depositOf('rt-dv1')).toBe('disputed');
+    const row = JSON.parse((await eventById('dispute_pack:pay_dv1'))!.body);
+    expect(row).toMatchObject({ buyer: 'rt-dv1', ref: 'pay_dv1', disputeId: 'dsp_dv1', lotId: 'dv1', pack: 'built', upload: 'not_sent', uploadReason: 'whop_unavailable' });
+    expect(row.packSha256).toMatch(/^[0-9a-f]{64}$/);
+    const pack = await env.DB.prepare('SELECT lot_id, buyer, dispute_id, sha256, uploaded_at, upload_ref, upload_error FROM evidence_packs WHERE id = ?1').bind(row.packId).first<any>();
+    expect(pack).toEqual({ lot_id: 'dv1', buyer: 'rt-dv1', dispute_id: 'dsp_dv1', sha256: row.packSha256, uploaded_at: null, upload_ref: null, upload_error: 'whop_unavailable' });
+    expect(await env.FILES.get(row.packKey)).not.toBeNull();
+    expect(whopCalls()).toEqual([]);
+    const log = await (await get('/admin/lots/dv1/log', ADMIN)).json<any>();
+    expect(log.rows.filter((r: any) => r.kind === 'evidence_pack').map((r: any) => [r.dispute_id, r.sha256])).toEqual([['dsp_dv1', row.packSha256]]);
+    expect(log.rows.filter((r: any) => r.kind === 'money').map((r: any) => r.type)).toContain('dispute.pack');
+    // a dispute on a deposit that backs no sale: the ledger says so, no pack
+    await buyer('rt-dv2');
+    await env.DB.prepare("UPDATE buyers SET deposit_ref = 'pay_dv2' WHERE id = 'rt-dv2'").run();
+    expect((await webhook({ type: 'dispute.created', data: { id: 'dsp_dv2', payment_id: 'pay_dv2' } })).status).toBe(200);
+    expect(JSON.parse((await eventById('dispute_pack:pay_dv2'))!.body)).toMatchObject({ pack: 'no_sale', upload: 'no_pack', lotId: null });
+  });
+});
+
+describe('18. POST /lots/:id/car carries the dealer\'s own Marketplace listing URL', () => {
+  it('an https URL is kept on the car and the lane carries it; anything else is 400 bad_listing; null clears it', async () => {
+    const d = await dealer('P801801');
+    expect((await openLot('mk1', d, 'P801801')).status).toBe(200);
+    const url = 'https://www.facebook.com/marketplace/item/1234567890/';
+    const r = await post('/lots/mk1/car', as(d), { listingUrl: url });
+    expect(r.status).toBe(200); expect((await r.json<any>()).car.listingUrl).toBe(url);
+    await settle();
+    expect((await (await get('/lots')).json<any[]>()).find(l => l.id === 'mk1').car.listingUrl).toBe(url);
+    for (const bad of ['http://example.com/x', 'javascript:alert(1)', 'x'.repeat(301), 42]) {
+      const b = await post('/lots/mk1/car', as(d), { listingUrl: bad });
+      expect(b.status, String(bad).slice(0, 20)).toBe(400); expect(await b.text()).toBe('bad_listing');
+    }
+    expect((await (await get('/lots/mk1')).json<any>()).car.listingUrl).toBe(url);
+    expect((await (await post('/lots/mk1/car', as(d), { listingUrl: null })).json<any>()).car.listingUrl).toBeNull();
+  });
+});
+
 describe('the /sales/ mount (src/sign.ts)', () => {
   it('the Worker hands /sales/ to sign.ts, with the CORS headers', async () => {
     const r = await get('/sales/nolot/nothing');

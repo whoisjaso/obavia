@@ -119,31 +119,76 @@ export async function sendCode(req: Request, env: Env, buyer: string, headers: R
   return answer({ status: 200, body: { sent: true, phone: maskPhone(phone), retryIn: CODE_GAP_MS / 1000 } }, headers);
 }
 
+/** The code against the pending row under `key` (a buyer id, or `recover:<number>` for recovery by phone): the attempts,
+    the ten minutes, the provider's answer. Accepted spends the code and returns the number it proved; anything else is
+    the refusal to answer with. Shared by POST /me/phone/verify and POST /me/recover/verify. */
+export async function checkCode(env: Env, key: string, code: string, provider: PhoneProvider | null): Promise<{ proved: true; phone: string; via: string } | { proved: false; refusal: Answer }> {
+  const at = Date.now();
+  const claimed = await env.DB.prepare('UPDATE phone_codes SET attempts = attempts + 1 WHERE buyer_id = ?1 AND sent_at > ?2 AND attempts < ?3 RETURNING phone, via')
+    .bind(key, at - CODE_TTL_MS, CODE_ATTEMPTS).first<{ phone: string; via: string }>();
+  if (!claimed) {
+    const row = await env.DB.prepare('SELECT sent_at FROM phone_codes WHERE buyer_id = ?1').bind(key).first<{ sent_at: number }>();
+    if (!row || row.sent_at <= at - CODE_TTL_MS) return { proved: false, refusal: { status: 410, body: { error: 'code_expired' } } };
+    return { proved: false, refusal: { status: 429, body: { error: 'too_many_attempts' }, retryAfter: Math.max(1, Math.ceil((row.sent_at + CODE_GAP_MS - at) / 1000)) } };
+  }
+  if (!provider || claimed.via !== provider.name) return { proved: false, refusal: { status: 410, body: { error: 'code_expired' } } };
+  let result: VerifyResult;
+  try { result = await provider.checkVerification(claimed.phone, code); }
+  catch { return { proved: false, refusal: { status: 502, body: { error: 'verify_unavailable' } } }; }
+  if (result === 'expired') return { proved: false, refusal: { status: 410, body: { error: 'code_expired' } } };
+  if (result === 'too_many_attempts') return { proved: false, refusal: { status: 429, body: { error: 'too_many_attempts' }, retryAfter: 30 } };
+  if (result !== 'accepted') return { proved: false, refusal: { status: 422, body: { error: 'wrong_code' } } };
+  await env.DB.prepare('UPDATE phone_codes SET attempts = ?2 WHERE buyer_id = ?1').bind(key, CODE_ATTEMPTS).run();   // spent: no attempts left on it
+  return { proved: true, phone: claimed.phone, via: claimed.via };
+}
+
 /** POST /me/phone/verify `{ code }`: the code against the number it was sent to; on accepted, buyers.phone is that number. */
 export async function verifyCode(req: Request, env: Env, buyer: string, headers: Record<string, string>, provider = phoneProvider(env)): Promise<Response> {
   const b = await readJson(req);
   const code = typeof b?.code === 'string' && /^\d{6}$/.test(b.code) ? b.code : null;
   if (!code) return answer({ status: 400, body: { error: 'bad_code' } }, headers);
+  const r = await checkCode(env, buyer, code, provider);
+  if (!r.proved) return answer(r.refusal, headers);
+  // proved: the number becomes the buyer's
+  await env.DB.prepare('UPDATE buyers SET phone = ?2, phone_verified_at = ?3, phone_verified_via = ?4 WHERE id = ?1').bind(buyer, r.phone.slice(2), Date.now(), r.via).run();
+  const real = verifiedForReal(env, 1, r.via);
+  return answer({ status: 200, body: { verified: real, phone: maskPhone(r.phone) } }, headers);
+}
+
+/** Recovery by phone (gap table Phase 2 Onboarding (buyer); W3-B): a new install with no token proves the number again.
+    The pending code is kept under `recover:<number>`, so one number has one pending code and the same limits as a buyer
+    (one send per 30 s, five an hour) plus the hourly ceiling for all. The send says nothing about whether a buyer holds
+    the number: a stranger learns nothing, and the number's owner gets the code either way. */
+export const recoverKey = (phone: string) => `recover:${phone}`;
+export async function sendRecoveryCode(req: Request, env: Env, headers: Record<string, string>, provider = phoneProvider(env)): Promise<Response> {
+  const b = await readJson(req);
+  const phone = usE164(b?.phone);
+  if (!phone) return answer({ status: 400, body: { error: 'bad_phone' } }, headers);
+  const again = new Request(req.url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone }) });
+  return sendCode(again, env, recoverKey(phone), headers, provider);
+}
+
+/** POST /me/recover/verify `{ phone, code }`: the code proves the number; the buyer that number was proved for (Telnyx, or
+    the fake on a DEV=1 Worker) moves to a fresh token: the epoch is bumped (every old token stops, 401 everywhere) and the
+    new token is minted at the new epoch. One row in `recoveries`. A proved number nobody holds is 404 no_such_phone: only
+    the person who just proved the number hears that, after the code. */
+export async function verifyRecovery(req: Request, env: Env, headers: Record<string, string>, mint: (id: string, epoch: number) => Promise<string>, provider = phoneProvider(env)): Promise<Response> {
+  const b = await readJson(req);
+  const phone = usE164(b?.phone);
+  const code = typeof b?.code === 'string' && /^\d{6}$/.test(b.code) ? b.code : null;
+  if (!phone) return answer({ status: 400, body: { error: 'bad_phone' } }, headers);
+  if (!code) return answer({ status: 400, body: { error: 'bad_code' } }, headers);
+  const r = await checkCode(env, recoverKey(phone), code, provider);
+  if (!r.proved) return answer(r.refusal, headers);
+  // the buyer this number proves: a Telnyx proof always; a fake proof only on a DEV=1 Worker (never for real)
+  const via = r.via === 'telnyx' ? ['telnyx'] : env.DEV === '1' ? ['telnyx', 'fake'] : [];
+  const rows = (await env.DB.prepare('SELECT id, token_epoch, phone_verified_via FROM buyers WHERE phone = ?1 AND phone_verified_at IS NOT NULL ORDER BY phone_verified_at DESC').bind(r.phone.slice(2)).all<{ id: string; token_epoch: number; phone_verified_via: string }>()).results
+    .filter(x => via.includes(x.phone_verified_via));
+  const owner = rows[0];
+  if (!owner) return answer({ status: 404, body: { error: 'no_such_phone' } }, headers);
   const at = Date.now();
-  const claimed = await env.DB.prepare('UPDATE phone_codes SET attempts = attempts + 1 WHERE buyer_id = ?1 AND sent_at > ?2 AND attempts < ?3 RETURNING phone, via')
-    .bind(buyer, at - CODE_TTL_MS, CODE_ATTEMPTS).first<{ phone: string; via: string }>();
-  if (!claimed) {
-    const row = await env.DB.prepare('SELECT sent_at FROM phone_codes WHERE buyer_id = ?1').bind(buyer).first<{ sent_at: number }>();
-    if (!row || row.sent_at <= at - CODE_TTL_MS) return answer({ status: 410, body: { error: 'code_expired' } }, headers);
-    return answer({ status: 429, body: { error: 'too_many_attempts' }, retryAfter: Math.max(1, Math.ceil((row.sent_at + CODE_GAP_MS - at) / 1000)) }, headers);
-  }
-  if (!provider || claimed.via !== provider.name) return answer({ status: 410, body: { error: 'code_expired' } }, headers);
-  let result: VerifyResult;
-  try { result = await provider.checkVerification(claimed.phone, code); }
-  catch { return answer({ status: 502, body: { error: 'verify_unavailable' } }, headers); }
-  if (result === 'expired') return answer({ status: 410, body: { error: 'code_expired' } }, headers);
-  if (result === 'too_many_attempts') return answer({ status: 429, body: { error: 'too_many_attempts' }, retryAfter: 30 }, headers);
-  if (result !== 'accepted') return answer({ status: 422, body: { error: 'wrong_code' } }, headers);
-  // proved: the number becomes the buyer's; the pending code is spent (no attempts left on it)
-  await env.DB.batch([
-    env.DB.prepare('UPDATE buyers SET phone = ?2, phone_verified_at = ?3, phone_verified_via = ?4 WHERE id = ?1').bind(buyer, claimed.phone.slice(2), Date.now(), claimed.via),
-    env.DB.prepare('UPDATE phone_codes SET attempts = ?2 WHERE buyer_id = ?1').bind(buyer, CODE_ATTEMPTS),
-  ]);
-  const real = verifiedForReal(env, 1, claimed.via);
-  return answer({ status: 200, body: { verified: real, phone: maskPhone(claimed.phone) } }, headers);
+  const moved = await env.DB.prepare('UPDATE buyers SET token_epoch = token_epoch + 1 WHERE id = ?1 AND token_epoch = ?2 RETURNING token_epoch').bind(owner.id, owner.token_epoch).first<{ token_epoch: number }>();
+  if (!moved) return answer({ status: 409, body: { error: 'try_again' } }, headers);   // another recovery landed between the read and the bump
+  await env.DB.prepare('INSERT INTO recoveries (buyer, from_epoch, to_epoch, at) VALUES (?1, ?2, ?3, ?4)').bind(owner.id, owner.token_epoch, moved.token_epoch, at).run().catch(() => {});
+  return answer({ status: 200, body: { id: owner.id, token: await mint(owner.id, moved.token_epoch), phone: maskPhone(r.phone) } }, headers);
 }

@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import type { D1Migration } from '@cloudflare/vitest-pool-workers';
 import type { Env as WorkerEnv } from '../src/env';
 import { BIDS_PER_MINUTE, BID_WINDOW_MS, OPEN_BIDS_UNTIL_PAID, oneOpenBidRefuses, openBids } from '../src/bidders';
-import { equalNights, reconcile } from '../src/reconcile';
+import { ALARM_GRACE_MS, equalNights, reconcile } from '../src/reconcile';
 
 declare global { namespace Cloudflare { interface Env extends WorkerEnv { TEST_MIGRATIONS: D1Migration[] } } }
 const base = 'https://auction.test';
@@ -192,5 +192,52 @@ describe('3. the nightly row and the streak: GET /admin/reconcile', () => {
     expect(seven.latest.id).toBe(seventh.id);
     expect(equalNights([{ equal: 1 }, { equal: 1 }, { equal: 0 }, { equal: 1 }])).toBe(2);
     expect(equalNights([])).toBe(0);
+  });
+});
+
+describe('4. the alarm audit on the nightly row (gap table deviation 7, the proposed definition)', () => {
+  it('a lot past closesAt that nobody read: equal = 0, lotsPastClose = 1, the lot named; after one read the next night is equal', async () => {
+    await openLot('aa1');
+    expect((await bid('aa1', await buyer('gate-aa1'), 5300, 5900)).status).toBe(200); await settle();
+    // the clock moved past the close and the grace with no alarm and no read: the object still says open
+    await runInDurableObject(stub('aa1'), async (inst: any, state) => {
+      const lot = await state.storage.get<any>('lot'); lot.closesAt = Date.now() - ALARM_GRACE_MS - 60_000;
+      await state.storage.put('lot', lot); inst.lot = lot; await state.storage.deleteAlarm();
+    });
+    const night = await reconcile(env);
+    expect(night.equal).toBe(0); expect(night.lots_past_close).toBe(1); expect(night.sales_past_deadline).toBe(0);
+    expect(night.differences.find(d => d.field === 'alarm.close')).toMatchObject({ lot: 'aa1', field: 'alarm.close' });
+    expect(night.note).toContain('alarm audit: 1 lot(s) past closesAt not closed: aa1');
+    const r = await (await get('/admin/reconcile', ADMIN)).json<any>();
+    expect(r.nights[0]).toMatchObject({ equal: false, lotsPastClose: 1, salesPastDeadline: 0 });
+    // the reconciliation's own ordinary read dropped the hammer (README: the first read past closesAt closes the lot): the next night is equal
+    const lot = await (await get('/lots/aa1')).json<any>();
+    expect(lot.closed.sold).toBe(true); expect(lot.sale.buyer).toBe('gate-aa1');
+    const next = await reconcile(env);
+    expect(next.equal).toBe(1); expect(next.lots_past_close).toBe(0);
+  });
+  it('a sale past deadlineAt neither paid, started, forfeited nor voided: salesPastDeadline = 1; the alarm forfeits it and the next night is equal; inside the grace nothing is counted', async () => {
+    await openLot('aa2');
+    expect((await bid('aa2', await buyer('gate-aa2'), 5300)).status).toBe(200);
+    await hammer('aa2');
+    await runInDurableObject(stub('aa2'), async (inst: any, state) => {
+      const lot = await state.storage.get<any>('lot'); lot.sale.deadlineAt = Date.now() - 60_000;   // late, inside the grace
+      await state.storage.put('lot', lot); inst.lot = lot; await state.storage.deleteAlarm();
+    });
+    expect((await reconcile(env)).sales_past_deadline).toBe(0);
+    await runInDurableObject(stub('aa2'), async (inst: any, state) => {
+      const lot = await state.storage.get<any>('lot'); lot.sale.deadlineAt = Date.now() - ALARM_GRACE_MS - 60_000;
+      await state.storage.put('lot', lot); inst.lot = lot; await state.storage.setAlarm(Date.now() + 3_600_000);
+    });
+    const night = await reconcile(env);
+    expect(night.equal).toBe(0); expect(night.sales_past_deadline).toBe(1); expect(night.lots_past_close).toBe(0);
+    expect(night.differences.find(d => d.field === 'alarm.deadline')).toMatchObject({ lot: 'aa2', field: 'alarm.deadline' });
+    expect((await (await get('/lots/aa2')).json<any>()).sale.forfeitedAt).toBeUndefined();   // a read does not forfeit: only the alarm does
+    await runDurableObjectAlarm(stub('aa2')); await settle();
+    expect((await (await get('/lots/aa2')).json<any>()).sale.forfeitedAt).toBeGreaterThan(0);
+    const next = await reconcile(env);
+    expect(next.equal).toBe(1); expect(next.sales_past_deadline).toBe(0);
+    const stored = await env.DB.prepare('SELECT lots_past_close, sales_past_deadline FROM reconciliations WHERE id = ?1').bind(night.id).first();
+    expect(stored).toEqual({ lots_past_close: 0, sales_past_deadline: 1 });
   });
 });

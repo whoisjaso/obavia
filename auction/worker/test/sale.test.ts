@@ -5,7 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import type { D1Migration } from '@cloudflare/vitest-pool-workers';
 import type { Env as WorkerEnv } from '../src/env';
 import { payBy } from '../src/push';
-import { PAY_WINDOW_MS } from '../src/auction';
+import { OFFER_WINDOW_MS, PAY_WINDOW_MS } from '../src/auction';
 
 declare global { namespace Cloudflare { interface Env extends WorkerEnv { TEST_MIGRATIONS: D1Migration[] } } }
 const base = 'https://auction.test';
@@ -62,7 +62,8 @@ async function sold(id: string, dealerToken: string, gdn: string, buyerId: strin
   return t;
 }
 const lotOf = async (id: string) => (await SELF.fetch(`${base}/lots/${id}`)).json<any>();
-const payoutRow = (id: string) => env.DB.prepare('SELECT reason, state, amount, held, transfer_id, dealer FROM dealer_payouts WHERE lot_id = ?1').bind(id).first<any>();
+/** The $250 row (applied, forfeit, no_pay); the lender-first split rows W3-A writes at Paid At The Lot (lender, applied_net; held 0) are read in invoice.test.ts. */
+const payoutRow = (id: string) => env.DB.prepare("SELECT reason, state, amount, held, transfer_id, dealer FROM dealer_payouts WHERE lot_id = ?1 AND reason IN ('applied', 'forfeit', 'no_pay')").bind(id).first<any>();
 const depositOf = async (id: string) => (await env.DB.prepare('SELECT deposit_status FROM buyers WHERE id = ?1').bind(id).first<{ deposit_status: string }>())?.deposit_status;
 const event = (id: string) => env.DB.prepare('SELECT type, body FROM money_events WHERE id = ?1').bind(id).first<{ type: string; body: string }>();
 
@@ -312,5 +313,110 @@ describe('close and reopen', () => {
     await runDurableObjectAlarm(stub('r2')); await settle();
     expect((await lotOf('r2')).closed?.sold).toBe(false);
     expect((await post('/lots/r2/open', as(d), { id: 'r2', dealer: 'P700051', start: 4500, retail: 7995, closesAt: Date.now() + 600_000, car: car('P700051') })).status).toBe(200);
+  });
+});
+
+describe('the second-chance offer (decisions §2 row 9; Wave 3-B)', () => {
+  /** Two buyers on one lot: the winner at 5,000 (ceiling 5,500) and an under-bidder beaten at a ceiling of 5,200. */
+  async function twoBidders(id: string, gdn: string, d: string, under = `${id}-under`) {
+    const o = await post(`/lots/${id}/open`, as(d), { id, dealer: gdn, start: 4900, retail: 7995, closesAt: Date.now() + 10 * 60_000, car: car(gdn) });
+    expect(o.status).toBe(200);
+    const tw = await buyer(`${id}-winner`), tu = await buyer(under);
+    expect((await post(`/lots/${id}/bids`, as(tw), { amount: 4900, max: 5500, key: crypto.randomUUID(), terms: TERMS })).status).toBe(200);
+    const beaten = await (await post(`/lots/${id}/bids`, as(tu), { amount: 5000, max: 5200, key: crypto.randomUUID(), terms: TERMS })).json<any>();
+    expect(beaten.ok).toBe(false); expect(beaten.reason).toBe('outbid');
+    await edit(id, l => { l.closesAt = Date.now() - 1; });
+    await runInDurableObject(stub(id), (_i, state) => state.storage.setAlarm(Date.now()));
+    await runDurableObjectAlarm(stub(id)); await settle();
+    const lot = await lotOf(id);
+    expect(lot.sale.buyer).toBe(`${id}-winner`); expect(lot.sale.hammer).toBe(5450);   // the under-bidder's 5,200 plus one increment
+    expect(JSON.stringify(lot)).not.toContain('"under"');   // the under-bidder and their ceiling never leave the object
+    return { tw, tu };
+  }
+  it('the no-pay forfeit writes sale.offer to the under-bidder at their ceiling for 12 h, pushes "Second chance", and the alarm expires it', async () => {
+    const gdn = 'P700060', d = await dealer(gdn);
+    const { tu } = await twoBidders('sc1', gdn, d);
+    calls = [];
+    await edit('sc1', x => { x.sale.deadlineAt = Date.now() - 1; });
+    await runDurableObjectAlarm(stub('sc1')); await settle();
+    const l = await lotOf('sc1');
+    expect(l.sale.forfeitedAt).toBeGreaterThan(0);
+    expect(l.sale.offer).toMatchObject({ buyer: 'sc1-under', amount: 5200 });
+    expect(l.sale.offer.expiresAt - l.sale.offer.madeAt).toBe(OFFER_WINDOW_MS); expect(OFFER_WINDOW_MS).toBe(12 * H);
+    expect(await runInDurableObject(stub('sc1'), (_i, s) => s.storage.getAlarm())).toBe(l.sale.offer.expiresAt);
+    expect(pushes().sort((a, b) => a.to.localeCompare(b.to))).toEqual([   // two pushes in flight together: the order is not the point
+      { to: 'ExponentPushToken[sc1under]', line: 'Second chance · 2014 Nissan Altima · $5,200 · 12 h', screen: 'offer' },
+      { to: 'ExponentPushToken[sc1winner]', line: 'Deposit forfeited · 2014 Nissan Altima', screen: 'me' },
+    ]);
+    expect(JSON.parse((await env.DB.prepare("SELECT body FROM money_events WHERE type = 'sale.offer' AND json_extract(body, '$.lotId') = 'sc1'").first<{ body: string }>())!.body)).toMatchObject({ buyer: 'sc1-under', amount: 5200, dealer: gdn });
+    // the copy carries the offer for the Desk's Sold and the exposure
+    expect(JSON.parse((await env.DB.prepare('SELECT lot FROM lots WHERE id = ?1').bind('sc1').first<{ lot: string }>())!.lot).sale.offer.buyer).toBe('sc1-under');
+    // the alarm at the expiry: expiredAt, nothing else moves, the Desk's socket hears it
+    calls = [];
+    await edit('sc1', x => { x.sale.offer.expiresAt = Date.now() - 1; });
+    await runDurableObjectAlarm(stub('sc1')); await settle();
+    const after = await lotOf('sc1');
+    expect(after.sale.offer.expiredAt).toBeGreaterThan(0); expect(after.sale.buyer).toBe('sc1-winner');
+    expect((await event('offer_expired:sc1'))?.type).toBe('sale.offer_expired');
+    const late = await post('/lots/sc1/offer/accept', as(tu));
+    expect(late.status).toBe(409); expect(await late.json()).toEqual({ error: 'offer_expired' });
+  });
+  it('POST /lots/:id/offer/accept: only the offered buyer, with a deposit; the new sale with its own deadline, the forfeited one kept; pickup pays applied:<lot> beside forfeit:<lot>', async () => {
+    const gdn = 'P700061', d = await dealer(gdn);
+    const { tw, tu } = await twoBidders('sc2', gdn, d);
+    await edit('sc2', x => { x.sale.deadlineAt = Date.now() - 1; });
+    await runDurableObjectAlarm(stub('sc2')); await settle();
+    expect((await lotOf('sc2')).sale.offer.buyer).toBe('sc2-under');
+    expect((await post('/lots/sc2/offer/accept', { 'content-type': 'application/json' })).status).toBe(401);
+    const walked = await post('/lots/sc2/offer/accept', as(tw));
+    expect(walked.status).toBe(402); expect(await walked.json()).toEqual({ error: 'deposit_first' });   // the buyer who walked: the deposit is forfeited, nothing backs a bid
+    const theirs = await post('/lots/sc2/offer/accept', as(await buyer('sc2-stranger')));
+    expect(theirs.status).toBe(403); expect(await theirs.json()).toEqual({ error: 'not_yours' });
+    expect((await post('/lots/sc2/offer/accept', as(d))).status).toBe(401);   // a dealer key is no buyer
+    calls = [];
+    const before = Date.now();
+    const ok = await post('/lots/sc2/offer/accept', as(tu));
+    expect(ok.status).toBe(200);
+    const l = await ok.json<any>();
+    expect(l.sale).toMatchObject({ buyer: 'sc2-under', hammer: 5200, deposit: 'held' });
+    expect(l.sale.wonAt).toBeGreaterThanOrEqual(before); expect(l.sale.deadlineAt - l.sale.wonAt).toBe(PAY_WINDOW_MS);
+    expect(l.sale.forfeitedAt).toBeUndefined(); expect(l.sale.offer).toBeUndefined(); expect(l.closed.sold).toBe(true);
+    expect(l.high).toBe(5200); expect(l.leader).toBe('sc2-under');
+    await settle();
+    expect(pushes()).toEqual([
+      { to: 'ExponentPushToken[sc2under]', line: `Yours · $5,200 · 2014 Nissan Altima · Pay by ${payBy(l.sale.deadlineAt)}`, screen: 'won' },
+    ]);
+    expect(JSON.parse((await env.DB.prepare("SELECT body FROM money_events WHERE type = 'sale.offer_accepted' AND json_extract(body, '$.lotId') = 'sc2'").first<{ body: string }>())!.body)).toMatchObject({ buyer: 'sc2-under', amount: 5200, actor: 'buyer' });
+    expect(await runInDurableObject(stub('sc2'), (_i, s) => s.storage.getAlarm())).toBe(l.sale.deadlineAt - 24 * H);   // its own pay-by pushes
+    expect((await post('/lots/sc2/offer/accept', as(tu))).status).toBe(409);   // the offer is taken: no offer on the new sale
+    // the forfeited sale is kept whole in the object; its payout row stays the dealer's
+    const prior = await runInDurableObject(stub('sc2'), async (_i, s) => (await s.storage.get<any>('lot')).prior);
+    expect(prior).toHaveLength(1); expect(prior[0]).toMatchObject({ buyer: 'sc2-winner', hammer: 5450, deposit: 'to_dealer', payout: { state: 'owed' } });
+    expect(await depositOf('sc2-winner')).toBe('forfeited'); expect(await depositOf('sc2-under')).toBe('captured');
+    // the new buyer pays and picks up: applied:<lot> beside forfeit:<lot>, two payouts on one lot
+    expect((await post('/lots/sc2/paid', as(d))).status).toBe(200);
+    expect((await post('/lots/sc2/pickup', as(d), { vin: '000001' })).status).toBe(200);
+    const rows = (await env.DB.prepare("SELECT id, reason, buyer, state FROM dealer_payouts WHERE lot_id = ?1 AND reason IN ('applied', 'forfeit', 'no_pay') ORDER BY created_at").bind('sc2').all<any>()).results;
+    expect(rows).toEqual([{ id: 'forfeit:sc2', reason: 'no_pay', buyer: 'sc2-winner', state: 'owed' }, { id: 'applied:sc2', reason: 'applied', buyer: 'sc2-under', state: 'owed' }]);
+    expect(await depositOf('sc2-under')).toBe('applied');
+    // the forfeit's payout paid by hand still reaches the lot: the prior sale follows the row
+    expect((await post('/admin/payouts/forfeit%3Asc2/paid', ADMIN, { method: 'check' })).status).toBe(200);
+    const kept = await runInDurableObject(stub('sc2'), async (_i, s) => (await s.storage.get<any>('lot')).prior[0].payout);
+    expect(kept).toMatchObject({ state: 'paid', method: 'check' });
+    expect((await lotOf('sc2')).sale.payout).toEqual({ state: 'owed' });
+  });
+  it('no offer without a standing under-bidder: one bidder, or an under-bidder whose deposit is gone; a dealer forfeit before the deadline makes none', async () => {
+    const gdn = 'P700062', d = await dealer(gdn);
+    await sold('sc3', d, gdn, 'sale-sc3');   // one bidder
+    await edit('sc3', x => { x.sale.deadlineAt = Date.now() - 1; });
+    await runDurableObjectAlarm(stub('sc3')); await settle();
+    expect((await lotOf('sc3')).sale.offer).toBeUndefined();
+    const { tu } = await twoBidders('sc4', gdn, d);
+    expect((await post('/me/deposit/release', as(tu))).status).toBe(200);   // the under-bidder walked (leads nothing, owes nothing)
+    await edit('sc4', x => { x.sale.deadlineAt = Date.now() - 1; });
+    await runDurableObjectAlarm(stub('sc4')); await settle();
+    const l = await lotOf('sc4');
+    expect(l.sale.forfeitedAt).toBeGreaterThan(0); expect(l.sale.offer).toBeUndefined();
+    expect(pushes().some(p => p.screen === 'offer')).toBe(false);
   });
 });

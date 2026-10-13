@@ -11,7 +11,10 @@ import { equalNights, lastReconciliations, reconcile, reserveRatio } from './rec
 import { Whop } from './whop';
 import { BIDS_PER_MINUTE, BID_WINDOW_MS, COUNT_SQL, TERMS_VERSION, WINS_PER_YEAR, committed, oneOpenBidRefuses, openBids, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
 import type { BidIn, PayMethod, PayoutNews } from './auction';
-import { maskPhone, sendCode, verifiedForReal, verifyCode } from './phone';
+import { maskPhone, sendCode, sendRecoveryCode, verifiedForReal, verifyCode, verifyRecovery } from './phone';
+import { passSix, passValue } from '../../src/pass';
+import { invoices, markPaidAtLot, onWebhook, uploadEvidence } from './invoice';
+import { feeFor, feesOwedCents, platformRow, setPlatform } from './fees';
 import { buyerPhoneOf, clientOf, record as recordMarketing, recordPurchase, summary as marketingSummary, type Client } from './marketing';
 export { Auction } from './auction';
 
@@ -54,6 +57,8 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
     // signing on the lane (src/sign.ts, Wave 2-A): /sales/:lot/... ; withCors wraps it like every route
     if (url.pathname.startsWith('/sales/')) return (await import('./sign')).sales(req, env);
+    // the balance and fee invoices (src/invoice.ts, Wave 3-A): /invoices/:lot, /invoices/:lot/paid
+    if (url.pathname.startsWith('/invoices/')) return invoices(req, env);
     const whop = new Whop(env);
 
     // the lane: every open lot, from the copy
@@ -113,7 +118,10 @@ async function handle(req: Request, env: Env): Promise<Response> {
         if (rest === '/pickup' && answered.status === 200) {   // the car started: Purchase with the hammer as value (AD3), recorded, sent only with the Meta keys
           const lot = await answered.clone().json<{ id?: unknown; sale?: { startedAt?: unknown; hammer?: unknown; buyer?: unknown } | null }>().catch(() => null);
           if (lot) await recordPurchase(env, lot);
+          // the seller-side fee, once per started car, only after the GDN issued (src/fees.ts feeFor: null and nothing written while platform.gdn_issued_at is null)
+          if (lot && typeof lot.id === 'string') await feeFor(lot as Parameters<typeof feeFor>[0], env).catch(() => null);
         }
+        if (rest === '/paid' && answered.status === 200) await markPaidAtLot(id, env).catch(() => null);   // the balance row paid_at_lot, the open Whop invoice voided, the split (src/invoice.ts)
         return withContact(answered, env, id, dealer);
       }
       // the Desk's Live: the lot's own dealer key, or the admin key, opens the same socket a buyer does (the token in ?token=)
@@ -126,6 +134,35 @@ async function handle(req: Request, env: Env): Promise<Response> {
           }
           return stub.fetch(req);
         }
+      }
+      // buyer: the second-chance offer taken (decisions §2 row 9). The Worker admits the buyer as the bid path does (the
+      // epoch, a captured deposit, the win cap); the object checks the offer is theirs and still open and writes the new sale
+      if (rest === '/offer/accept' && req.method === 'POST') {
+        const claim = await buyerClaim(req, env.BUYER_SECRET);
+        if (!claim) return text('sign in', 401);
+        const row = await env.DB.prepare(`SELECT b.token_epoch, b.deposit_status, c.wins, c.owed, c.leading, c.paid FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
+          .bind(claim.id, yearStart(Date.now()), id).first<{ token_epoch: number; deposit_status: string } & Counts>();
+        if (row?.token_epoch !== claim.epoch) return text('sign in', 401);
+        if (row.deposit_status !== 'captured') return fail('deposit_first', 402);
+        const count = committed(row);
+        if (count >= WINS_PER_YEAR) { await refuse(env, id, claim.id, 'win_cap', String(count)); return json({ error: 'win_cap', count, cap: WINS_PER_YEAR }, 403); }
+        const r = await stub.fetch(new Request(req.url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-buyer': claim.id } }));
+        if (r.status !== 200) return fail((await r.text()).trim() || 'refused', r.status);
+        return r;
+      }
+      // buyer: the pickup pass for Google Wallet (Phase 2 Frontend; gap table deviation 10): signed only with both keys
+      if (rest === '/pass' && req.method === 'GET') {
+        const buyer = await buyerFrom(req, env);
+        if (!buyer) return text('sign in', 401);
+        if (!env.GOOGLE_WALLET_ISSUER_ID || !env.GOOGLE_WALLET_SERVICE_ACCOUNT) return fail('pass_unavailable', 503);
+        const r = await stub.fetch(new Request(req.url.replace(/\/pass(\?.*)?$/, ''), { method: 'GET' }));
+        if (r.status !== 200) return fail('no_lot', 404);
+        const lot = await r.json<{ id: string; sale?: { buyer: string; wonAt: number; startedAt?: number; voidedAt?: number; forfeitedAt?: number } | null; car?: { year?: number; make?: string; model?: string; vin?: string; dealer?: { name?: string; street?: string; city?: string } } }>();
+        if (!lot.sale || lot.sale.buyer !== buyer) return fail('not_yours', 403);
+        if (lot.sale.voidedAt || lot.sale.forfeitedAt) return fail('no_sale', 409);
+        if (!lot.car?.vin) return fail('vin_unknown', 409);
+        try { return json(await walletPass(env, { lotId: lot.id, buyer, vin: lot.car.vin, wonAt: lot.sale.wonAt, car: `${lot.car.year ?? ''} ${lot.car.make ?? ''} ${lot.car.model ?? ''}`.trim(), dealer: lot.car.dealer?.name ?? '', where: [lot.car.dealer?.street, lot.car.dealer?.city].filter(Boolean).join(', '), started: !!lot.sale.startedAt })); }
+        catch { return fail('pass_unavailable', 503); }   // a key that does not parse or sign: the same answer, nothing said about the key
       }
       // buyer: bid, watch, live
       if (rest === '/bids' || rest === '/watch' || rest === '/live') {
@@ -226,30 +263,68 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const payoutRows = (await env.DB.prepare('SELECT * FROM dealer_payouts').all<PayoutRow>()).results;
       const payoutOfLot = new Map(payoutRows.map(p => [p.lot_id, payoutOut(p).state]));
       const sales = lots.filter(l => l.sale).map(l => ({ lotId: l.id, dealer: l.dealer, state: saleState(l.sale), deposit: l.sale.deposit, hammer: l.sale.hammer, deadlineAt: l.sale.deadlineAt,
+        wonAt: l.sale.wonAt ?? null, startedAt: l.sale.startedAt ?? null,   // days to pickup on the Desk's Home: startedAt less wonAt (W3-E)
+        offer: l.sale.offer ? { buyer: l.sale.offer.buyer, amount: l.sale.offer.amount, expiresAt: l.sale.offer.expiresAt, state: l.sale.offer.acceptedAt ? 'accepted' : l.sale.offer.expiredAt ? 'expired' : 'open' } : null,
         payout: payoutOfLot.get(l.id) ?? null,   // dealer_payouts, the record: the object's sale.payout does not see a payout paid by hand or retried
         buyer: winners.get(l.sale.buyer) ?? { name: null, phone: null } }));   // the desk person's one call (CF9); admin only
       const recs = await lastReconciliations(env, 7);
       const pickupRefusals = await env.DB.prepare('SELECT lot_id AS lotId, dealer, reason, presented, at FROM pickup_refusals ORDER BY at DESC, id DESC LIMIT 20').all();
       // B on the scorecard: distinct buyers whose bid was placed (it led, or a standing ceiling beat it), per closed lot
+      // with the hammer and the floor per closed lot (hammer over floor on the Desk's Home, W3-E): hammer null when unsold
       const bidders = (await env.DB.prepare(`SELECT l.id AS lotId, l.dealer AS dealer, json_extract(l.lot, '$.closed.at') AS closedAt, json_extract(l.lot, '$.closed.sold') AS sold,
+          json_extract(l.lot, '$.sale.hammer') AS hammer, json_extract(l.lot, '$.car.collateral.floor') AS floor,
           (SELECT COUNT(DISTINCT b.bidder) FROM bids b WHERE b.lot_id = l.id AND (b.ok = 1 OR b.reason = 'outbid')) AS bidders
-        FROM lots l WHERE json_extract(l.lot, '$.closed') IS NOT NULL ORDER BY closedAt DESC LIMIT 500`).all<{ lotId: string; dealer: string; closedAt: number; sold: number; bidders: number }>()).results
+        FROM lots l WHERE json_extract(l.lot, '$.closed') IS NOT NULL ORDER BY closedAt DESC LIMIT 500`).all<{ lotId: string; dealer: string; closedAt: number; sold: number; hammer: number | null; floor: number | null; bidders: number }>()).results
         .map(b => ({ ...b, sold: !!b.sold }));
+      // watchers per open lot (the Desk's Home, W3-E): the object's count as the copy carries it
+      const watchers = lots.filter(l => !l.closed).map(l => ({ lotId: l.id, dealer: l.dealer, watching: l.watching ?? 0 }));
+      const platform = await platformRow(env);   // W3-A's row (0016): null until the owner's POST /admin/gdn
       return json({
         // the reserve ratio is the last reconciliation's: Whop's settled balance over the deposits held plus the payouts owed; null when never read
         deposits: { heldCount: held, heldUsd: held * DEPOSIT_USD, byStatus: { ...DEPOSIT_STATES, ...Object.fromEntries(dep.results.map(d => [d.s, d.n])) }, reserveRatio: reserveRatio(recs[0]), reserveReadAt: recs[0]?.whop_balance_cents == null ? null : recs[0].ran_at },
         payouts: payoutSums(payoutRows),
         pickupRefusals: pickupRefusals.results,
         bidders,
+        watchers,
         lots: { open: lots.filter(l => !l.closed).length, atLender: lots.filter(l => !l.closed && l.car?.collateral?.title?.status === 'lender').length, floorBelowPayoff: lots.filter(l => !l.closed && (l.car?.collateral?.title?.payoff ?? 0) > (l.car?.collateral?.floor ?? Infinity)).length },
         sales,
         incidentsByDealer: Object.fromEntries(incidents.results.map(i => [i.dealer, i.n])),
         bidRefusals: { byReason: Object.fromEntries(refusals.results.map(r => [r.reason, r.n])), recent: recentRefusals.results },   // D11 and D15
         tokenRefusals: { byPresented: Object.fromEntries(tokenRefusals.results.map(r => [r.presented, r.n])), recent: recentTokenRefusals.results },   // POST /me not_yours
         dealers: await dealerRows(),
-        obaviaFeesOwed: 0,   // none until the GDN issues (43 TAC §215.85)
+        obaviaFeesOwed: (await feesOwedCents(env)) / 100,   // zero by construction until the GDN issues (43 TAC §215.85): no fee row can exist before platform.gdn_issued_at (src/fees.ts)
+        platform: platform ? { gdnIssuedAt: platform.gdnIssuedAt, feePerCarCents: platform.feePerCarCents, feeMonthlyCents: platform.feeMonthlyCents, balancePayee: platform.balancePayee, updatedAt: platform.updatedAt } : null,   // null until the owner's POST /admin/gdn
         reconciliations: recs,   // the nightly D1 vs object and Whop vs deposits and payouts report
       });
+    }
+    // the GDN issued (growth plan line 88; 43 TAC §215.85): the owner types the date and the two fee numbers here, never in code.
+    // Writes W3-A's platform row (migration 0016) and the ledger row admin.gdn; 503 while that table is not applied
+    if (req.method === 'POST' && url.pathname === '/admin/gdn') {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const b = await body(req);
+      const now = Date.now();
+      const issuedAt = typeof b.issuedAt === 'number' && Number.isFinite(b.issuedAt) && b.issuedAt > 0 && b.issuedAt <= now + 86_400_000 ? Math.round(b.issuedAt) : null;   // never a date in the future
+      const cents = (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 100_000_000 ? v : null;
+      const feePerCarCents = cents(b.feePerCarCents), feeMonthlyCents = cents(b.feeMonthlyCents);
+      if (!issuedAt) return fail('bad_issued_at', 400);
+      if (feePerCarCents == null || feeMonthlyCents == null) return fail('bad_fee', 400);
+      let before: Awaited<ReturnType<typeof platformRow>>;
+      try {
+        before = await platformRow(env);
+        await setPlatform(env, { gdnIssuedAt: issuedAt, feePerCarCents, feeMonthlyCents }, now);   // src/fees.ts: the one row, id 1; balance_payee untouched (deviation 2)
+      } catch (e) {
+        const msg = String((e as Error)?.message ?? e);
+        return fail(/no such table/i.test(msg) ? 'platform_unavailable' : msg === 'bad_platform' ? 'bad_platform' : 'platform_write_failed', /bad_platform/.test(msg) ? 400 : 503);
+      }
+      await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+        .bind(`gdn:${now}`, 'admin.gdn', JSON.stringify({ actor: 'admin', issuedAt, feePerCarCents, feeMonthlyCents, before: before ? { issuedAt: before.gdnIssuedAt, feePerCarCents: before.feePerCarCents, feeMonthlyCents: before.feeMonthlyCents } : null }), now).run();
+      return json({ gdnIssuedAt: issuedAt, feePerCarCents, feeMonthlyCents });
+    }
+    // one lot's audit log (phases.md Phase 3 Admin): every row the lane kept about it, in time order, for the Desk's lot page (W3-E)
+    const lotLog = url.pathname.match(/^\/admin\/lots\/([A-Za-z0-9_-]{1,64})\/log$/);
+    if (req.method === 'GET' && lotLog) {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      return json(await lotLogOf(env, lotLog[1]));
     }
     // run the nightly reconciliation now (admin); the cron runs it at 03:00 Central
     if (req.method === 'POST' && url.pathname === '/admin/reconcile') {
@@ -266,7 +341,8 @@ async function handle(req: Request, env: Env): Promise<Response> {
         equalNights: streak, sevenEqual: streak >= 7,
         latest: rows[0] ? { id: rows[0].id, ranAt: rows[0].ran_at, equal: rows[0].equal === 1 } : null,
         nights: rows.slice(0, n).map(r => ({ id: r.id, ranAt: r.ran_at, equal: r.equal === 1, lotsChecked: r.lots_checked, lotsDiffering: r.lots_differing, differing: r.differing, differences: r.differences,
-          depositsHeld: r.deposits_held, payoutsOwed: r.payouts_owed, payoutsOwedCents: r.payouts_owed_cents, whopBalanceCents: r.whop_balance_cents, reserveRatio: reserveRatio(r), note: r.note })),
+          depositsHeld: r.deposits_held, payoutsOwed: r.payouts_owed, payoutsOwedCents: r.payouts_owed_cents, whopBalanceCents: r.whop_balance_cents, reserveRatio: reserveRatio(r), note: r.note,
+          lotsPastClose: r.lots_past_close ?? 0, salesPastDeadline: r.sales_past_deadline ?? 0 })),   // the alarm audit (deviation 7)
       });
     }
 
@@ -472,6 +548,10 @@ async function handle(req: Request, env: Env): Promise<Response> {
       try { return await verifyCode(req, env, buyer, CORS); }
       catch (e) { if (/UNIQUE constraint failed: buyers\.phone/.test(String((e as Error)?.message ?? e))) return fail('phone_in_use', 409); throw e; }
     }
+    // recovery by phone (Phase 2 Onboarding (buyer); W3-B): no token. A code to the number, then the code with the number:
+    // the buyer that number proves moves to a fresh token and every old token stops. The app's "This is a new phone" path (W3-D)
+    if (req.method === 'POST' && url.pathname === '/me/recover') return sendRecoveryCode(req, env, CORS);
+    if (req.method === 'POST' && url.pathname === '/me/recover/verify') return verifyRecovery(req, env, CORS, (id, epoch) => mintBuyerToken(env.BUYER_SECRET, id, epoch));
     if (req.method === 'POST' && url.pathname === '/me/push') {
       const buyer = await buyerFrom(req, env);
       if (!buyer) return text('sign in', 401);
@@ -568,6 +648,32 @@ async function handle(req: Request, env: Env): Promise<Response> {
           await money(`dispute:${ref}`, 'deposit.disputed', { buyer: owner.id, amount: DEPOSIT_USD, ref, actor: 'whop' });
           await env.DB.prepare("UPDATE buyers SET deposit_status = 'disputed' WHERE id = ?1 AND deposit_status = 'captured' AND deposit_ref = ?2").bind(owner.id, ref).run();
         }
+        if (owner && type === 'dispute.created') await evidenceFor(env, owner.id, ref, typeof d.id === 'string' ? d.id : ref);   // the pack (W3-F) and the upload (W3-A), the result on the ledger
+      }
+      // Whop finished (or changed) its checks on a dealer's connected account: the verified time on the dealer, then the owed-payout retry.
+      // Whop's account.updated shape is UNVERIFIED (README "Not yet"): `id` is the biz_ account; verified is read from
+      // `verified`, `status` or `verification.status` (verified, active, approved, enabled, completed)
+      if (type === 'account.updated' && typeof d.id === 'string' && WHOP_BIZ.test(d.id)) {
+        const dd = d as Record<string, unknown>;
+        const status = String(dd.status ?? dd.verification_status ?? (dd.verification as Record<string, unknown> | undefined)?.status ?? '').toLowerCase();
+        const verified = dd.verified === true || ['verified', 'active', 'approved', 'enabled', 'completed'].includes(status);
+        const row = await env.DB.prepare('SELECT gdn, whop_account_verified_at FROM dealers WHERE whop_account = ?1').bind(d.id).first<{ gdn: string; whop_account_verified_at: number | null }>();
+        if (row && verified) {
+          const now = Date.now();
+          if (!row.whop_account_verified_at) {
+            await env.DB.prepare('UPDATE dealers SET whop_account_verified_at = ?2 WHERE gdn = ?1 AND whop_account_verified_at IS NULL').bind(row.gdn, now).run();
+            await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+              .bind(`account_verified:${row.gdn}`, 'dealer.account_verified', JSON.stringify({ dealer: row.gdn, account: d.id, actor: 'whop' }), now).run();
+          }
+          await sendOwed(env, row.gdn);   // every payout left owed to him goes out now, each with its own key
+        }
+      }
+      // the balance and fee invoices and the dealer transfers are W3-A's (src/invoice.ts onWebhook, never throws): invoice.* and transfer.* go there;
+      // what it could not match is kept beside the raw event so the admin can see a webhook that named nothing of ours
+      if (type.startsWith('invoice.') || type.startsWith('transfer.')) {
+        const r = await onWebhook(type, d, env);
+        if (!r.handled && r.reason !== 'ignored') await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+          .bind(`unhandled:${req.headers.get('webhook-id') ?? crypto.randomUUID()}`, 'webhook.unhandled', JSON.stringify({ type, reason: r.reason ?? null, actor: 'lane' }), Date.now()).run();
       }
       return json({ ok: true });
     }
@@ -832,6 +938,102 @@ async function tellLot(env: Env, lotId: string, news: PayoutNews): Promise<void>
   try {
     await env.AUCTION.get(env.AUCTION.idFromName(lotId)).fetch(new Request(`https://auction/lots/${lotId}/payout`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(news) }));   // no x-dealer: the admin
   } catch { /* the row is the truth */ }
+}
+
+/** A dispute on a buyer's deposit (phases.md Phase 3 Admin; collateral.md §2 "After pickup"): the evidence pack for the sale
+    that deposit backs (W3-F's evidencePack in src/sign.ts: the terms line, the signed Guide and bill, the pickup row, one PDF in
+    R2 with its sha256 and a row in evidence_packs, migration 0018), then the upload onto the Whop dispute (W3-A's uploadEvidence
+    in src/invoice.ts: attach only, nothing without WHOP_API_KEY). The result lands on the pack row (dispute_id, uploaded_at and
+    upload_ref, or upload_error) and on the ledger as `dispute.pack` (`dispute_pack:<payment>`). The sale: the buyer's latest sale
+    not voided; with none, the row says `no_sale` and no pack is built. Nothing here throws into the webhook. */
+async function evidenceFor(env: Env, buyer: string, ref: string, disputeId: string): Promise<void> {
+  const now = Date.now();
+  const out: Record<string, unknown> = { buyer, ref, disputeId, actor: 'lane' };
+  try {
+    const sale = await env.DB.prepare(`SELECT id FROM lots WHERE json_extract(lot, '$.sale.buyer') = ?1 AND json_extract(lot, '$.sale.voidedAt') IS NULL ORDER BY json_extract(lot, '$.sale.wonAt') DESC LIMIT 1`).bind(buyer).first<{ id: string }>();
+    out.lotId = sale?.id ?? null;
+    if (!sale) { out.pack = 'no_sale'; out.upload = 'no_pack'; }
+    else {
+      const { evidencePack } = await import('./sign');
+      let pack: Awaited<ReturnType<typeof evidencePack>> = null;
+      try { pack = await evidencePack(sale.id, env); out.pack = pack ? 'built' : 'no_lot'; }
+      catch (e) { out.pack = 'failed'; out.packError = String((e as Error)?.message ?? e).slice(0, 240); }
+      if (pack) {
+        out.packId = pack.id; out.packKey = pack.key; out.packSha256 = pack.sha256; out.packBytes = pack.bytes;
+        await env.DB.prepare('UPDATE evidence_packs SET dispute_id = ?2 WHERE id = ?1').bind(pack.id, disputeId.slice(0, 120)).run();
+        const obj = await env.FILES.get(pack.key);
+        const bytes = obj ? new Uint8Array(await obj.arrayBuffer()) : null;
+        if (!bytes) { out.upload = 'no_bytes'; await env.DB.prepare('UPDATE evidence_packs SET upload_error = ?2 WHERE id = ?1').bind(pack.id, 'pack bytes not found in R2').run(); }
+        else {
+          const r = await uploadEvidence(disputeId, bytes, env, now);
+          if (r.sent) { out.upload = 'sent'; out.uploadRef = r.fileId; await env.DB.prepare('UPDATE evidence_packs SET uploaded_at = ?2, upload_ref = ?3, upload_error = NULL WHERE id = ?1').bind(pack.id, r.at, r.fileId).run(); }
+          else { out.upload = 'not_sent'; out.uploadReason = r.reason; await env.DB.prepare('UPDATE evidence_packs SET upload_error = ?2 WHERE id = ?1').bind(pack.id, r.reason.slice(0, 240)).run(); }
+        }
+      } else out.upload = 'no_pack';
+    }
+  } catch (e) { out.error = String((e as Error)?.message ?? e).slice(0, 240); }
+  await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)').bind(`dispute_pack:${ref}`, 'dispute.pack', JSON.stringify(out), now).run();
+}
+
+/** One lot's log (GET /admin/lots/:id/log): every row the lane kept about it, in time order, newest last. Each row is
+    `{ at, kind, ...the row }`; `kind` is the table it came from (bids, bid_refusals, pickup_refusals, signatures, money (every
+    money_events row naming the lot: the plates, the payouts, the deposit, the offer, the dispute), incidents, evidence_packs,
+    recoveries are not here: they name no lot), invoice (the balance and the fee rows, 0016), evidence_pack (0018). */
+async function lotLogOf(env: Env, lotId: string) {
+  const rows: Record<string, unknown>[] = [];
+  const add = (kind: string, list: Record<string, unknown>[], at: (r: Record<string, unknown>) => number) => { for (const r of list) rows.push({ ...r, at: at(r), kind }); };   // kind last: the table's name, never a column's
+  const q = async (sql: string) => { try { return (await env.DB.prepare(sql).bind(lotId).all<Record<string, unknown>>()).results; } catch { return []; } };   // a table not yet applied lists nothing
+  add('bid', await q('SELECT key, bidder, amount, ok, reason, stamped_at, shill_check FROM bids WHERE lot_id = ?1 ORDER BY stamped_at'), r => r.stamped_at as number);
+  add('bid_refusal', await q('SELECT who, reason, matched, at FROM bid_refusals WHERE lot_id = ?1 ORDER BY at'), r => r.at as number);
+  add('pickup_refusal', await q('SELECT dealer, reason, presented, at FROM pickup_refusals WHERE lot_id = ?1 ORDER BY at'), r => r.at as number);
+  add('signature', await q('SELECT doc, buyer, at, consent_version, reuse, signed_sha256, original_sha256 FROM signatures WHERE lot_id = ?1 ORDER BY at'), r => r.at as number);
+  add('incident', await q('SELECT id, dealer, kind AS incident, note, at FROM incidents WHERE lot_id = ?1 ORDER BY at'), r => r.at as number);
+  add('payout', await q('SELECT id, dealer, buyer, amount, reason, note, held, state, transfer_id, method, created_at, sent_at FROM dealer_payouts WHERE lot_id = ?1 ORDER BY created_at'), r => r.created_at as number);
+  add('invoice', await q('SELECT id, kind AS invoice_kind, payer, payee, whop_id, state, amount_cents, payment_ref, error, created_at, paid_at FROM invoices WHERE lot_id = ?1 ORDER BY created_at'), r => r.created_at as number);
+  add('money', (await q(`SELECT id, type, body, received_at FROM money_events WHERE json_extract(body, '$.lotId') = ?1 OR json_extract(body, '$.data.metadata.lot') = ?1 ORDER BY received_at`)).map(r => { const e = moneyEvent(r as unknown as EventRow); return { id: e.id, type: e.type, amountUsd: e.amountUsd, buyer: e.buyer, actor: e.actor, reason: e.reason, received_at: r.received_at }; }), r => r.received_at as number);
+  add('evidence_pack', await q('SELECT id, buyer, dispute_id, key, sha256, bytes, at, terms_version, guide_sha256, bill_sha256, started_at, uploaded_at, upload_ref, upload_error FROM evidence_packs WHERE lot_id = ?1 ORDER BY at'), r => r.at as number);
+  rows.sort((a, b) => (a.at as number) - (b.at as number));
+  const lot = await env.DB.prepare('SELECT dealer, updated_at FROM lots WHERE id = ?1').bind(lotId).first<{ dealer: string; updated_at: number }>();
+  return { lotId, dealer: lot?.dealer ?? null, updatedAt: lot?.updated_at ?? null, rows };
+}
+
+/* ---------------------------------------------------------------- the Google Wallet pass */
+
+/** GET /lots/:id/pass: a Google Wallet generic pass as a signed "Save to Google Wallet" JWT (RS256 with the service account's
+    key; `iss` its client_email, `aud` google, `typ` savetowallet; Google Wallet API, "Add to Google Wallet" link flow, read
+    2026-10-13). The pass is the same pass the phone shows (src/pass.ts): the QR is `obavia:<lot>:<vin>:<wonAt>` and the six
+    under it the VIN's last six, so the Desk's scanner and its Type The Pass read the Wallet pass as they read the app's. The
+    object id is `<issuer>.<lot>-<buyer>` (one pass per sale), the class `<issuer>.obavia_pickup` (made once in the issuer's
+    console). No price, no fee, no deadline on the pass: the car, the dealer, where, and the code. `started` turns the state
+    line to "Started"; the pass does not change after it is saved (the Wallet API's object update is not called here). */
+export async function walletPass(env: Env, p: { lotId: string; buyer: string; vin: string; wonAt: number; car: string; dealer: string; where: string; started: boolean }): Promise<{ url: string; objectId: string; expiresAt: number }> {
+  const sa = JSON.parse(env.GOOGLE_WALLET_SERVICE_ACCOUNT ?? '{}') as { client_email?: unknown; private_key?: unknown };
+  if (typeof sa.client_email !== 'string' || typeof sa.private_key !== 'string') throw new Error('bad service account');
+  const issuer = env.GOOGLE_WALLET_ISSUER_ID!;
+  const objectId = `${issuer}.${p.lotId}-${p.buyer}`.replace(/[^A-Za-z0-9._-]/g, '_');
+  const object = {
+    id: objectId, classId: `${issuer}.obavia_pickup`, state: 'ACTIVE',
+    cardTitle: { defaultValue: { language: 'en-US', value: 'Obavia' } },
+    header: { defaultValue: { language: 'en-US', value: p.car || 'Your car' } },
+    subheader: { defaultValue: { language: 'en-US', value: p.dealer || 'Pickup' } },
+    barcode: { type: 'QR_CODE', value: passValue(p.lotId, p.vin, p.wonAt), alternateText: passSix(p.vin) },
+    textModulesData: [
+      { id: 'six', header: 'Pass', body: passSix(p.vin) },
+      ...(p.where ? [{ id: 'where', header: 'Where', body: p.where }] : []),
+      { id: 'state', header: 'At the lot', body: p.started ? 'Started' : 'Scan, start' },
+    ],
+    hexBackgroundColor: '#dfeefb',
+  };
+  const iat = Math.floor(Date.now() / 1000), exp = iat + 3600;   // the link is good for an hour; the saved pass stays
+  const claims = { iss: sa.client_email, aud: 'google', typ: 'savetowallet', iat, exp, origins: [], payload: { genericObjects: [object] } };
+  const b64 = (x: ArrayBuffer | string) => (typeof x === 'string' ? btoa(unescape(encodeURIComponent(x))) : btoa(String.fromCharCode(...new Uint8Array(x)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const signing = `${b64(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64(JSON.stringify(claims))}`;
+  const pem = sa.private_key.replace(/-----[A-Z ]+-----/g, '').replace(/\s+/g, '');
+  const der = Uint8Array.from(atob(pem), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('pkcs8', der, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(signing));
+  const jwt = `${signing}.${b64(sig)}`;
+  return { url: `https://pay.google.com/gp/v/save/${jwt}`, objectId, expiresAt: exp * 1000 };
 }
 
 /** The nightly pass: every dealer with a connected account and a payout owed. */

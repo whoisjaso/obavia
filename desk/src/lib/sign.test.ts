@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFName } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { EXAMPLE_DEALER } from './config';
 import type { Vehicle } from './sale';
 import { BILL_FIELDS, CONSENT_VERSION, FIELDS, GUIDE_BOX, GUIDE_FIELDS, LANE_TERMS, LANE_TERMS_VERSION, UPLOAD_STEPS, laneDocuments, uploadLaneDocuments, type Rect } from './sign';
-import { freeze, laneBillAgreement, laneBuyer, openLanePapers, type LanePapers } from './filed';
+import { TITLE_STEP, filedMark, freeze, laneBillAgreement, laneBuyer, laneTitleLine, laneTitleStep, openLanePapers, type LanePapers } from './filed';
+import { readFileSync } from 'node:fs';
 // the Worker's own stamper and checks, run on the Desk's real bytes: the same code that signs in production
-import { CONSENT_VERSION as WORKER_CONSENT, parseFields, parseSignature, stampPdf } from '../../../auction/worker/src/sign';
+import { CONSENT_VERSION as WORKER_CONSENT, assemblePack, packCover, parseFields, parseSignature, stampPdf, type PackFacts } from '../../../auction/worker/src/sign';
 import { TERMS, TERMS_VERSION } from '../../../auction/worker/src/bidders';
 
 const CAR: Vehicle = { id: 'v1', stock: 'A1042', vin: '1N4AL3AP0EC000001', year: 2014, make: 'Nissan', model: 'Altima', bodyStyle: 'Sedan', price: 7995, mileage: 128400, emptyWeight: 3100, color: 'Silver', titleStatus: 'clean' } as Vehicle;
@@ -186,5 +187,77 @@ describe('Go uploads the paper in the order the Worker needs, and refuses Go whe
     expect(await uploadLaneDocuments('l1', d, { ...dead.io, api: '' })).toEqual({ ok: false, reason: 'offline' });
     expect(await uploadLaneDocuments('l1', d, { ...dead.io, key: null })).toEqual({ ok: false, reason: 'no key' });
     expect(dead.calls).toHaveLength(0);
+  });
+});
+
+describe('the title step after the start (D8, D9): the Desk\'s words and the phone\'s are one set', () => {
+  it('Texas, or no state yet, is the Buyer Acknowledgment; any other state the paper packet; four words or fewer a line; no timing, no fee', () => {
+    expect(laneTitleStep('TX').kind).toBe('acknowledgment'); expect(laneTitleStep('tx ').kind).toBe('acknowledgment');
+    expect(laneTitleStep(null).kind).toBe('acknowledgment'); expect(laneTitleStep('').kind).toBe('acknowledgment');
+    expect(laneTitleStep('LA').kind).toBe('packet'); expect(laneTitleStep('ok').kind).toBe('packet');
+    for (const step of Object.values(TITLE_STEP)) {
+      for (const l of [step.title, ...step.lines]) expect(l.split(' ').length, l).toBeLessThanOrEqual(4);
+      const all = [step.title, ...step.lines, step.law].join(' ');
+      expect(all).not.toMatch(/\bfee\b/i); expect(all).not.toMatch(/business day|within \d+ days|by day/i);
+    }
+    expect(laneTitleStep('LA').lines).toContain('Form 14-312, signed');
+    expect(laneTitleStep('LA').lines).toContain('Green 60-day plate');
+    expect(laneTitleStep('TX').lines).toContain('Buyer Acknowledgment in webDEALER');
+    expect(laneTitleLine(laneTitleStep('LA'))).toBe('Paper packet at pickup · Form 14-312, signed · Assigned title handed over · Or filed, 30 days · Green 60-day plate');
+  });
+
+  it('SignDocs.tsx carries the same words, verbatim', () => {
+    const src = readFileSync(new URL('../../../auction/src/screens/won/SignDocs.tsx', import.meta.url), 'utf8');
+    for (const step of Object.values(TITLE_STEP)) {
+      expect(src).toContain(`title: '${step.title}'`);
+      expect(src).toContain(`lines: [${step.lines.map(l => `'${l}'`).join(', ')}]`);
+    }
+    expect(src).not.toContain('TITLE_AWAY');
+  });
+});
+
+describe('the Filed mark names the 130-U by its hash', () => {
+  it('a filed 130-U gives its sha256, the business date and the agent; a draft gives nothing', async () => {
+    const s = { vehicle: CAR, buyer: laneBuyer({ buyerName: 'Ana' }), step: {}, language: 'en', documents: {} } as never as import('./sale').Sale;
+    const frozen = freeze(s, EXAMPLE_DEALER, new Date(Date.UTC(2026, 9, 13, 17)), 'Jordan Rivera');
+    const bytes = new TextEncoder().encode('%PDF-1.7 the filed bytes');
+    const sha = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), x => x.toString(16).padStart(2, '0')).join('');
+    expect(await filedMark({ ...s, documents: { form130U: { state: 'filed', frozen } } }, bytes)).toEqual({ state: 'filed', form130U: { sha256: sha, filedOn: frozen.date, agent: 'Jordan Rivera' } });
+    expect(await filedMark({ ...s, documents: { form130U: { state: 'draft' } } }, bytes)).toBeNull();
+    expect(await filedMark(s, bytes)).toBeNull();
+  });
+});
+
+describe('the evidence pack on the Desk\'s real signed bytes (the Worker\'s assemblePack)', () => {
+  it('copies every page of both signed documents after the cover, readable by pdf.js with the name and the hammer on them; the files ride along unchanged', async () => {
+    const { guide, bill } = await docs;
+    const stamp = (d: typeof guide) => stampPdf(d.pdf, d.fields, { ink: parseSignature(SVG)!, name: 'Marisol Treviño', date: '10/13/2026', price: '$5,100', soldOn: '10/12/2026' });
+    const g = await stamp(guide), b = await stamp(bill);
+    const sha = async (x: Uint8Array) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', x.slice())), n => n.toString(16).padStart(2, '0')).join('');
+    const T0 = Date.UTC(2026, 9, 12, 17);
+    const facts: PackFacts = {   // the cover as the Worker gathers it (sign.ts evidencePack), here from fixed facts
+      lotId: 'l1', now: T0 + 5 * 86_400_000, car: '2014 Nissan Altima', vin: CAR.vin, dealer: { name: EXAMPLE_DEALER.legalName, gdn: EXAMPLE_DEALER.licence, city: EXAMPLE_DEALER.city },
+      buyer: { id: 'b_example', name: 'Marisol Treviño', state: 'TX', depositStatus: 'applied', depositRef: 'pay_example', termsVersion: '2026-10-13', termsAt: T0 - 3_600_000 },
+      capture: { id: 'capture:pay_example', at: T0 - 3_700_000 },
+      sale: { hammer: 5100, wonAt: T0, deadlineAt: T0 + 48 * 3_600_000, paidAt: T0 + 20 * 3_600_000, startedAt: T0 + 26 * 3_600_000, voidedAt: null, forfeitedAt: null, plates: { state: 'filed', at: T0 + 3 * 86_400_000 } },
+      signed: [{ doc: 'guide', at: T0 + 3_600_000, consent: CONSENT_VERSION, reuse: false, signedSha256: await sha(g), originalSha256: await sha(guide.pdf), ok: true },
+        { doc: 'bill', at: T0 + 3_700_000, consent: CONSENT_VERSION, reuse: true, signedSha256: await sha(b), originalSha256: await sha(bill.pdf), ok: true }],
+      refusals: [{ reason: 'wrong car', presented: 'C00009', at: T0 + 25 * 3_600_000 }],
+    };
+    const pack = await assemblePack(packCover(facts), [{ name: 'guide.signed.pdf', bytes: g, sha256: await sha(g) }, { name: 'bill.signed.pdf', bytes: b, sha256: await sha(b) }]);
+    if (process.env.FORMS_OUT) { mkdirSync(process.env.FORMS_OUT, { recursive: true }); writeFileSync(`${process.env.FORMS_OUT}/evidence-pack.pdf`, pack); }
+    const again = await PDFDocument.load(pack);
+    const gp = (await PDFDocument.load(g)).getPageCount(), bp = (await PDFDocument.load(b)).getPageCount();
+    expect(again.getPageCount()).toBe(1 + gp + bp);
+    const cover = (await pageText(pack, 0)).items.map(i => i.str).join(' ');
+    expect(cover).toContain('Evidence pack'); expect(cover).toContain('Hammer $5,100'); expect(cover).toContain(await sha(g)); expect(cover).toContain(`last six ${CAR.vin.slice(-6)}`);
+    expect(cover).toContain('the first signature reused with consent'); expect(cover).toContain('wrong car (C00009)');
+    const guidePage = (await pageText(pack, 1)).items.map(i => i.str).join(' ');
+    expect(guidePage).toContain('Marisol Treviño'); expect(guidePage).toContain('I hereby acknowledge receipt of the Buyers Guide at the closing of this sale.');
+    const billPage = (await pageText(pack, 1 + gp)).items.map(i => i.str).join(' ');
+    expect(billPage).toContain('Bill of Sale'); expect(billPage).toContain('$5,100'); expect(billPage).toContain('Marisol Treviño');
+    const packBuf = Buffer.from(pack);
+    expect(packBuf.indexOf(Buffer.from(g))).toBeGreaterThan(0); expect(packBuf.indexOf(Buffer.from(b))).toBeGreaterThan(0);
+    expect(again.catalog.has(PDFName.of('Names'))).toBe(true);
   });
 });
