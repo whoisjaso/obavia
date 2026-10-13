@@ -32,7 +32,7 @@ bucket_name = "obavia-auction-files"
 [[d1_databases]]
 binding = "DB"
 database_name = "obavia-auction"
-database_id = "replace-with-the-id-wrangler-prints"
+database_id = "8d5270dc-a2c4-41bc-8ca3-8bdbd8a01ef7"
 migrations_dir = "migrations"
 
 # Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, MINT_SECRET (POST /dealers/mint only), WHOP_API_KEY, WHOP_WEBHOOK_SECRET, TELNYX_API_KEY, META_CAPI_TOKEN,
