@@ -3,6 +3,10 @@
    The drag only arms; the button bids; over 2× asks a 600 ms hold. The thump
    fires on the server's ack, never before. A bid that lands after close is
    the one place a sentence is allowed, and it is the server's sentence.
+   The first Bid ever runs the licence (IdScan, full screen) and then the
+   deposit, two screens, once (decisions §3.1, first bid). The deposit back
+   from Whop lands its held line with the success haptic and the air swell,
+   one event, 200 ms before the bid goes; the thud is the bid's own ack.
    The first bid ever states the auction terms once (decisions §9 D10): four
    short lines under the price, and that Bid carries the terms version. */
 import React, { useEffect, useRef, useState } from 'react';
@@ -30,10 +34,11 @@ import { AUCTION_URL, DEPOSIT, ME, getServer, once, peekBuyer, setBuyer } from '
 import { Refused, TERMS, TERMS_VERSION } from '../engine/client';
 import { EASE_OUT, EASE_SHEET, cloud, ms, spring } from '../motion';
 import { theme } from '../theme';
+import { IdScan } from './won/Scan';
 
 const STEP_PT = 28;
 const TERMS_ROOM = 40;
-type Phase = 'arming' | 'deposit' | 'inflight' | 'landed' | 'rejected';
+type Phase = 'arming' | 'id' | 'deposit' | 'inflight' | 'landed' | 'rejected';
 
 export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot; now: number; steps: number; onClose: () => void }) {
   const { height } = useWindowDimensions();
@@ -108,7 +113,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   useEffect(() => { dragSteps.value = stepsNow; if (phase === 'arming') setStamp(null); }, [stepsNow]);   // a reset moves the base too; a new number clears an old line
 
   const place = async () => {
-    if (!once.deposit) { setPhase('deposit'); return; }
+    if (!once.deposit) { setPhase(once.licence ? 'deposit' : 'id'); return; }
     setPhase('inflight'); setStamp(null);
     const key = `${ME}-${car.id}-${Date.now()}`;
     let ack: Ack;
@@ -145,7 +150,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     const r = await takeDeposit();
     if (r === 'cancelled') { setPhase('arming'); return; }              // silence is the punishment
     if (r === 'failed') { setPhase('arming'); return; }                   // silent too: the button is still there
-    setLand(Date.now()); feel.touch(); setPhase('arming'); later(place, ms.land);   // the line lands, then the bid goes
+    setLand(Date.now()); setPhase('arming'); later(place, ms.land);   // the line lands (feel.held on its first frame), then the bid goes
   };
 
   return (
@@ -196,7 +201,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
                 <BidButton phase={phase} hold={hold} disabled={closed || phase === 'rejected'} onBid={place} landedKey={punch} />
                 {/* the line's room is always kept, so the button never moves under the thumb when it lands */}
                 <View style={s.depositRoom}>
-                  {landKey !== undefined && <Landing animate={landKey > 0}><Label style={{ alignSelf: 'center' }}>${DEPOSIT} held · back if you lose</Label></Landing>}
+                  {landKey !== undefined && <Landing animate={landKey > 0} onLand={feel.held}><Label style={{ alignSelf: 'center' }}>${DEPOSIT} held · back if you lose</Label></Landing>}
                 </View>
               </View>
             </>
@@ -204,6 +209,8 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
         </Animated.View>
       </GestureDetector>
       {teach && <Teach />}
+      {/* the first bid: the licence before the deposit; the sheet waits under it */}
+      {phase === 'id' && <IdScan onDone={id => { once.licence = id; setPhase('deposit'); }} onCancel={() => setPhase('arming')} />}
     </View>
   );
 }
@@ -269,11 +276,12 @@ function Stamp({ text }: { text: string }) {
   return <Animated.View style={[{ marginTop: 6 }, st]} accessibilityLiveRegion="polite"><Label ink={theme.color.warn}>{text}</Label></Animated.View>;
 }
 
-/** A line that arrives because something just happened (the deposit, held): up 6 pt and in, 200 ms. */
-function Landing({ animate, children }: { animate: boolean; children: React.ReactNode }) {
+/** A line that arrives because something just happened (the deposit, held): up 6 pt and in, 200 ms.
+    `onLand` fires on the frame it starts, so the body hears it with the eye. */
+function Landing({ animate, onLand, children }: { animate: boolean; onLand?: () => void; children: React.ReactNode }) {
   const reduce = useReducedMotion();
   const k = useSharedValue(animate ? 0 : 1);
-  useEffect(() => { if (animate) k.value = withTiming(1, { duration: ms.land, easing: EASE_OUT }); }, []);
+  useEffect(() => { if (animate) { k.value = withTiming(1, { duration: ms.land, easing: EASE_OUT }); onLand?.(); } }, []);
   const st = useAnimatedStyle(() => ({ opacity: k.value, transform: [{ translateY: reduce ? 0 : 6 * (1 - k.value) }] }));
   return <Animated.View style={st}>{children}</Animated.View>;
 }

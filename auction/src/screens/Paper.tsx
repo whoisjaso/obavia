@@ -64,7 +64,7 @@ export function Paper({ title, subtitle, onClose, sign, reuse, url }: {
   const draw = Gesture.Pan().minDistance(0).runOnJS(true)
     .onBegin(e => { pts.current.push(`M${e.x.toFixed(1)} ${e.y.toFixed(1)}`); setPath(pts.current.join(' ')); })
     .onUpdate(e => { pts.current.push(`L${e.x.toFixed(1)} ${e.y.toFixed(1)}`); setPath(pts.current.join(' ')); });
-  const file = (sig: Signature) => { feel.done(); sign?.(sig); };
+  const file = (sig: Signature) => { feel.step(); sign?.(sig); };   // a step, not the win: the ding and a light impact
 
   return (
     <Sheet detents={[0.5, 1]} initial={1} onClose={onClose} header={<View style={s.head}><Text style={s.title}>{title}</Text>{subtitle && <Text style={s.sub}>{subtitle}</Text>}</View>}>

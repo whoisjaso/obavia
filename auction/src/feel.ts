@@ -15,6 +15,7 @@ const sources = {
   chime: require('../assets/sfx/chime.wav'),
   refill: require('../assets/sfx/refill.wav'),
   lead: require('../assets/sfx/lead.wav'),
+  ding: require('../assets/sfx/ding.wav'),   // one short E6 with a bell's first partial, 220 ms: a Won step done
   // the cloud kit (docs/design/cloud-system.md §3): filtered noise, one room, every file peaks at -18 dBFS,
   // so the players stay at volume 1 and the kit never rises above that; it is texture under ordinary touches
   puff: require('../assets/sfx/cloud/cloud-touch.wav'),
@@ -100,13 +101,28 @@ export const feel = {
   refill() { play('refill'); impact(Haptics.ImpactFeedbackStyle.Medium); },
   /** The one rejection the doctrine keeps. */
   rejected() { play('warn'); notify(Haptics.NotificationFeedbackType.Warning); },
-  /** Won, or a hold completed: the chime, the air swell under it (cloud-landed), the success haptic, and
+  /** Won, a hold completed, the car started at pickup: the chime, the air swell under it (cloud-landed), the success haptic, and
       the landed swell on whatever surface was just pressed, all in this one call. */
   done() {
     lastMoment = Date.now();
     play('chime'); play('swell'); notify(Haptics.NotificationFeedbackType.Success);
     doneListeners.forEach(f => { try { f(); } catch {} });
   },
+  /** A Won step done (ID, Insure, each signature): a short ding and a light impact, and the pressed surface
+      breathes once. Lighter than done, so the win's chime keeps its meaning (native-patterns §6 item 6). */
+  step() {
+    lastMoment = Date.now();
+    play('ding'); impact(Haptics.ImpactFeedbackStyle.Light);
+    doneListeners.forEach(f => { try { f(); } catch {} });
+  },
+  /** Watching a car (the double tap): the puff and a light impact, on the frame the mark blooms. */
+  watch() { play('puff'); impact(Haptics.ImpactFeedbackStyle.Light); },
+  /** The deposit came back held from Whop: the success haptic and the air swell (cloud-landed), on the frame
+      the held line lands. The bid's thud follows on its own ack. */
+  held() { lastMoment = Date.now(); play('swell'); notify(Haptics.NotificationFeedbackType.Success); },
+  /** The condition badge seen the first time: six light impacts, 60 ms apart, one per row, `each` lighting its
+      dot on the same tick. Touch only. */
+  six(each?: (i: number) => void) { for (let i = 0; i < 6; i++) setTimeout(() => { impact(Haptics.ImpactFeedbackStyle.Light); each?.(i); }, i * 60); },
   /** Subscribe to completion: returns the unsubscribe. */
   onDone(f: () => void) { doneListeners.add(f); return () => { doneListeners.delete(f); }; },
   /** A cloud surface touched down: the puff. Sound only; a press is not worth a haptic. */

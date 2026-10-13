@@ -153,10 +153,9 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
   const watching = (
     <View style={{ flex: 1, paddingTop: theme.space.xl }}>
       <Label style={{ marginBottom: theme.space.m }}>Watching</Label>
-      {watched.length === 0 ? (
+      {watched.length === 0 ? (   // the empty ring alone: the double tap's bloom on the Lane teaches the gesture
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.space.s }}>
           <Ring size={64} stroke={4} progress={0} blue={false} grey />
-          <Body ink={theme.color.faint}>double-tap a car to watch it</Body>
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ gap: theme.space.m, paddingBottom: theme.space.xl }} showsVerticalScrollIndicator={false}>

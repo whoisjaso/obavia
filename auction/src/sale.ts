@@ -10,10 +10,12 @@ import { feel } from './feel';
     is never drawn (D8, D9): a Texas licence signs it through webDEALER at pickup, any other licence gets paper. */
 export type Doc = 'guide' | 'bill';
 export type Plates = 'none' | 'filed' | 'approved' | 'mailed' | 'kickback';
+/** A licence as the frame read it and the buyer confirmed it, fact by fact. */
+export type Licence = { name: string; dob: string; address: string; licence: string; state: string; confirmed: boolean };
 export type Sale = {
   lotId: string; hammer: number; total: number; wonAt: number;
   forWhom?: 'me' | 'other';
-  id?: { name: string; dob: string; address: string; licence: string; state: string; confirmed: boolean };
+  id?: Licence;
   insured?: boolean;
   signed: Partial<Record<Doc, Signature>>;
   pay?: 'ach' | 'wire' | 'cash';

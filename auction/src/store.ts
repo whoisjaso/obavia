@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { carFromLot, cars as seeded, seedLots, type Car } from './data/cars';
 import { RemoteAuctionServer, Refused, TERMS_VERSION, type Profile, type Session } from './engine/client';
 import { LocalAuctionServer, type Ack, type BidRequest, type Event, type Lot } from './engine/server';
+import { kv } from './kv';
+import type { Licence } from './sale';
 
 export const DEPOSIT = 250;
 export const AUCTION_URL = (process.env.EXPO_PUBLIC_AUCTION_URL ?? '').replace(/\/$/, '');
@@ -20,14 +22,8 @@ export type AuctionServer = {
   bid(req: BidRequest): Promise<Ack>;
 };
 
-/* Where the buyer's id and token live. expo-secure-store is not in node_modules, so they sit where the app
-   already keeps things: localStorage, which the web build has and iOS and Android do not. On a phone build
-   nothing persists yet: every launch is a first launch and makes a new buyer, until secure storage lands. */
+/* Where the buyer's id and token live: secure storage on a phone, localStorage on the web (./kv). */
 const SESSION_KEY = 'obavia.buyer', PROFILE_KEY = 'obavia.profile';
-const kv = {
-  get(k: string): string | null { try { return (globalThis as { localStorage?: Storage }).localStorage?.getItem(k) ?? null; } catch { return null; } },
-  set(k: string, v: string) { try { (globalThis as { localStorage?: Storage }).localStorage?.setItem(k, v); } catch { /* nowhere to keep it */ } },
-};
 function readJSON<T>(k: string): T | null { try { const v = kv.get(k); return v ? JSON.parse(v) as T : null; } catch { return null; } }
 
 /** D15 (decisions §9): four wins a calendar year. The Worker's number decides; this is the local stand-in's. */
@@ -173,8 +169,10 @@ export function useCars(lots: Record<string, Lot>): Car[] {
   return useMemo(() => (AUCTION_URL ? laneCars(lots, AUCTION_URL, ME) : seeded), [lots]);
 }
 
-/** Things the buyer has done once, ever. In memory for now; Keychain later. */
-export const once = { deposit: false, sawRefill: false };
+/** Things the buyer has done once, ever. In memory for now; Keychain later. `licence`: the ID the first bid
+    scanned and the buyer confirmed (decisions §3.1, first bid: the licence, then the deposit). It prefills the
+    ID step after a win when the car is for the buyer. Never persisted and never sent as is. */
+export const once: { deposit: boolean; sawRefill: boolean; licence: Licence | null } = { deposit: false, sawRefill: false, licence: null };
 
 /** Cars the buyer is watching. Double-tap the photo. A column of rings on the Me page. */
 let watched: string[] = [];

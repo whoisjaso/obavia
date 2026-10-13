@@ -76,7 +76,7 @@ export const press3d = {
   breath: 1200,        // one full breath, ms
   breathAmp: 0.01,     // 1 %
   holdGain: 0.18,      // the drift loop under a held cloud
-  wisps: 7, wispMs: 600, wispOpacity: 0.3, wispPeakAt: 120,
-  ringMs: 600, ringPeak: 0.18, ringPeakAt: 120, ringScale: 1.4,
+  wisps: 7, wispMs: 600, wispOpacity: 0.45, wispPeakAt: 120,   // 0.3 and 0.18 read too faint on a phone (October 13); cloud-system §2 says 0.18 for the web ring
+  ringMs: 600, ringPeak: 0.22, ringPeakAt: 120, ringScale: 1.4,
   shadowLong: 0.08,    // the contact shadow lengthens this much as the cloud lifts off it, then settles
 } as const;

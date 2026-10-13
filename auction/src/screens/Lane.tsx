@@ -5,9 +5,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
+import Animated, { ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { drift, spring } from '../motion';
+import { BREATH, EASE_OUT, cloud, drift, ms, spring } from '../motion';
 import { LaneClouds, useDrift } from '../components/Cloud';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bars } from '../components/Bars';
@@ -31,6 +31,7 @@ import { clearSale, openSale, peekSale, setSale, useSale } from '../sale';
 import { clearIntent, useIntent } from '../nav';
 
 const STEP_PT = 28;   // one increment per 28 pt of drag
+const BLOOM = 88;     // the watch mark under the thumb, pt
 
 function remaining(lot: Lot, now: number) {
   const left = Math.max(0, lot.closesAt - now);
@@ -65,12 +66,28 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
   const photos = car.photos.length;
   const photo = photos ? car.photos[angle % photos] : undefined;
 
-  // Tap: next angle. Stories' tap-to-advance. Double-tap: watch, Instagram's heart without the heart.
+  // Tap: next angle. Stories' tap-to-advance. Double-tap: watch, Instagram's heart as the Obavia mark.
   const nextAngle = () => { if (photos > 1) { setAngle(a => (a + 1) % photos); feel.select(); } };
   const tap = Gesture.Tap().maxDuration(220).onEnd(() => { scheduleOnRN(nextAngle); });
-  // a watch is a selection, not a win: the chime is kept for the high-bidder moment and the hammer
-  const watch = () => { const on = toggleWatch(car.id); if (on) feel.select(); };
-  const doubleTap = Gesture.Tap().numberOfTaps(2).maxDuration(260).onEnd(() => { scheduleOnRN(watch); });
+  // The watch: the mark blooms under the thumb, where the second tap landed, on the UI thread in the same
+  // frame as the gesture; it fades in over 90 ms, swells 1.03 and settles over 420 ms (the one landed swell),
+  // then leaves in 240 ms. A watch is a want, not a win: the puff and a light impact, no chime. Unwatching
+  // by double tap blooms nothing and is silent.
+  const watchingNow = useSharedValue(watching);
+  useEffect(() => { watchingNow.value = watching; }, [watching]);
+  const bx = useSharedValue(0), by = useSharedValue(0), bo = useSharedValue(0), bs = useSharedValue(1);
+  const watch = () => { if (toggleWatch(car.id)) feel.watch(); };
+  const doubleTap = Gesture.Tap().numberOfTaps(2).maxDuration(260).onEnd(e => {
+    if (!watchingNow.value) {
+      bx.value = e.x; by.value = e.y;
+      // opacity is not motion: under reduced motion the mark still fades in and out where the thumb was
+      bo.value = withSequence(ReduceMotion.Never, withTiming(1, { duration: 90, easing: EASE_OUT, reduceMotion: ReduceMotion.Never }), withDelay(ms.swell - 90, withTiming(0, { duration: 240, easing: EASE_OUT, reduceMotion: ReduceMotion.Never }), ReduceMotion.Never));
+      bs.value = 1;
+      if (!reduce) bs.value = withSequence(withTiming(cloud.swell, { duration: ms.swell / 2, easing: BREATH }), withTiming(1, { duration: ms.swell / 2, easing: BREATH }));
+    }
+    scheduleOnRN(watch);
+  });
+  const bloomStyle = useAnimatedStyle(() => ({ opacity: bo.value, transform: [{ translateX: bx.value - BLOOM / 2 }, { translateY: by.value - BLOOM / 2 }, { scale: bs.value }] }));
   // Hold: the engine (no recording seeded yet: the photo settles in, a soft pulse). Reduced motion: the pulse only.
   const hold = Gesture.LongPress().minDuration(350).onStart(() => {
     if (!reduce) photoScale.value = withSpring(1.03, spring.settle);
@@ -116,6 +133,7 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
       {/* the cloud scrim: ice behind the ring and behind the price, never across the car (only on this page
           and its neighbours: the pages further down the list draw nothing) */}
       {near && <LaneClouds width={width} height={height} far={clouds.far} mid={clouds.mid} />}
+      <Animated.View pointerEvents="none" style={[s.bloom, bloomStyle]}><Mark size={BLOOM} id="bloom" /></Animated.View>
 
       {/* top: the ring and the watchers */}
       <View style={[s.top, { paddingTop: insets.top + 10 }]} pointerEvents="box-none">
@@ -169,11 +187,11 @@ function Empty({ height, onMe }: { height: number; onMe: () => void }) {
 }
 
 /** The Obavia mark: its own gradient, drawn small. */
-function Mark({ size }: { size: number }) {
+function Mark({ size, id = 'm' }: { size: number; id?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64">
-      <Defs><SvgGradient id="m" x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor="#E9EFFE" /><Stop offset="0.55" stopColor="#B8C8F1" /><Stop offset="1" stopColor="#869FD6" /></SvgGradient></Defs>
-      <Circle cx={32} cy={32} r={30} fill="url(#m)" />
+      <Defs><SvgGradient id={id} x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor="#E9EFFE" /><Stop offset="0.55" stopColor="#B8C8F1" /><Stop offset="1" stopColor="#869FD6" /></SvgGradient></Defs>
+      <Circle cx={32} cy={32} r={30} fill={`url(#${id})`} />
     </Svg>
   );
 }
@@ -309,6 +327,7 @@ export function Lane() {
 }
 
 const s = StyleSheet.create({
+  bloom: { position: 'absolute', left: 0, top: 0, width: BLOOM, height: BLOOM, borderRadius: BLOOM / 2, shadowColor: '#080E1E', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   ringWrap: { padding: 6, marginLeft: -6 },
   toast: { position: 'absolute', left: 60, top: 14, backgroundColor: 'rgba(8,14,30,0.7)', paddingHorizontal: 10, height: 28, borderRadius: 4, justifyContent: 'center' },   // squared: no pills

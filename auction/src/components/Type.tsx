@@ -2,7 +2,7 @@
    serif word or number that owns the page, a choice that is only its words,
    a hairline, a page that centers its content, a pager with dots. */
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feel } from '../feel';
@@ -106,15 +106,23 @@ export function Pager({ pages, initial = 0, onIndex }: { pages: React.ReactNode[
   const [i, setI] = useState(initial);
   const ref = useRef<ScrollView>(null);
   const rest = useRef(initial);
+  // the air and the tick at rest, as the lane does, not at the halfway mark
+  const atRest = (x: number) => {
+    const n = Math.round(x / width);
+    if (n !== rest.current) { rest.current = n; setI(n); onIndex?.(n); feel.snap(); }
+  };
+  // react-native-web never fires onMomentumScrollEnd: on the web, rest is 140 ms without a scroll event
+  const quiet = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (quiet.current) clearTimeout(quiet.current); }, []);
   return (
     <View style={{ flex: 1 }}>
       <ScrollView ref={ref} horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: initial * width, y: 0 }} scrollEventThrottle={32}
         onLayout={() => { if (initial > 0) ref.current?.scrollTo({ x: initial * width, animated: false }); }}
-        onScroll={e => { const n = Math.round(e.nativeEvent.contentOffset.x / width); if (n !== i) setI(n); }}
-        onMomentumScrollEnd={e => {   // the air and the tick at rest, as the lane does, not at the halfway mark
-          const n = Math.round(e.nativeEvent.contentOffset.x / width);
-          if (n !== rest.current) { rest.current = n; setI(n); onIndex?.(n); feel.snap(); }
-        }}>
+        onScroll={e => {
+          const x = e.nativeEvent.contentOffset.x, n = Math.round(x / width); if (n !== i) setI(n);
+          if (Platform.OS === 'web') { if (quiet.current) clearTimeout(quiet.current); quiet.current = setTimeout(() => atRest(x), 140); }
+        }}
+        onMomentumScrollEnd={e => atRest(e.nativeEvent.contentOffset.x)}>
         {pages.map((p, k) => <View key={k} style={{ width, flex: 1 }}>{p}</View>)}
       </ScrollView>
       <View style={s.dots} pointerEvents="none">

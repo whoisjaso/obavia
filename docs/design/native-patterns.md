@@ -301,6 +301,8 @@ The app never loads `cloud-hover` (`feel.ts:9-24`). That is correct: a touch scr
 5. **Reduced motion and sound.** The app keeps sound and haptics under reduced motion (`CloudButton.tsx:21-22`), and the site now does too, citing the owner on October 13: "sounds stay" (`site.js:120-125`). The Desk still mutes every sound under reduced motion (`ui.tsx:8`, `ui.tsx:13`, `ui.tsx:40`). cloud-system §4 does not carry the owner's line yet.
 6. **Step completion chimes.** `feel.ts:103-104` keeps `done` for "Won, or a hold completed"; the Won steps fire it five more times (ID, Insure, three signatures). decisions §3.1 gives each tile "ding + light". The win chime loses its meaning by the fifth repeat (apple-design §13, utility).
 
+## 7. (Lines 1, 3 to 7 and 13 built October 13, 2026 in auction/: feel.watch bloom at the tap point, feel.step with ding.wav on Won steps, feel.held on the deposit return, ID before deposit on the first bid, the State wheel, pass brightness via expo-brightness, the Lightbox with pinch and swipe-down, the six-tick condition badge; secure storage for the buyer token. Line 2 waits for the decisions amendment. Lines 8 to 12 are the Desk's and are open.)
+
 ## 7. Missing, in phase order
 
 Phase 1 first (pilot, weeks 1 to 3, exit test Mon Nov 2, 2026), then Phase 2. Each line is a brief a frontend agent can take.

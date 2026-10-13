@@ -12,11 +12,11 @@
      down     frames 0 to 5 in 100 ms, the sink (+2.5 pt, 0.985), the shadow shortening, cloud-touch and the
               light impact.
      hold     past 400 ms it stays down and breathes (1 %, 1.2 s sine) over the drift loop at low gain.
-     release  frames 6 to 23 on the 0.65 spring with the body; cloud-rise; seven wisps shed from its top edge
+     release  frames 6 to 23 on the 0.65 spring with the body; cloud-rise; seven wisps (peak 0.45) shed from its top edge
               and drift up and out over 600 ms; the label dips 1 pt and comes back; the shadow lengthens as the
               cloud lifts off it, then settles.
      cancel   back to rest at damping 1.0, silent, nothing shed.
-     landed   the one swell (1, 1.03, 1 over 420 ms) and a soft air ring behind it (1 to 1.4, peak 0.18 at
+     landed   the one swell (1, 1.03, 1 over 420 ms) and a soft air ring behind it (1 to 1.4, peak 0.22 at
               120 ms), with cloud-landed and the heavy impact.
    Disabled never sinks. Reduced motion: no transform, no wisps, no ring, no breath; the press is an opacity
    and the frames jump rest, pressed, rest; sounds and haptics stay. */

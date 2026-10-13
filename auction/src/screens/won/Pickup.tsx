@@ -1,9 +1,13 @@
 /* Pickup. Three pages: where; when; the pass. At the lot the dealer scans the
    VIN, the car starts, the pass turns green: that is when the sale completes.
    Locally, hold the pass to stand in for the dealer's scan; on the server the
-   scan sets the lot's sale.startedAt and the pass turns green from that. */
-import React, { useEffect } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+   scan sets the lot's sale.startedAt and the pass turns green from that.
+   While the pass is on the glass the screen goes to full brightness, as a
+   Wallet pass does for its barcode; leaving the page, the app or Pickup puts
+   it back where the buyer had it. */
+import React, { useEffect, useRef, useState } from 'react';
+import * as Brightness from 'expo-brightness';
+import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { BREATH, EASE_OUT, ms } from '../../motion';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -30,6 +34,8 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
     if (sale?.pickedUp) green.value = withTiming(1, { duration: ms.green, easing: EASE_OUT });
   }, [sale?.arrived, sale?.pickedUp]);
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  const [page, setPage] = useState(sale?.slot ? 2 : 0);
+  useFullBrightness(page === 2 && !!sale?.slot);
   const greenStyle = useAnimatedStyle(() => ({ opacity: green.value }));
   if (!sale) return null;
   const started = !!sale.pickedUp;
@@ -83,7 +89,31 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
     </Page>
   );
 
-  return <Pager pages={[where, when, pass]} initial={sale.slot ? 2 : 0} />;
+  return <Pager pages={[where, when, pass]} initial={sale.slot ? 2 : 0} onIndex={setPage} />;
+}
+
+/* Full brightness while `on`, the buyer's own level back the moment it is not (the page changes, Pickup
+   closes, the app goes to the background). iOS keeps a brightness an app set after the app leaves, so the
+   restore is not optional. Phones only; a refusal leaves the screen as it was. */
+function useFullBrightness(on: boolean) {
+  const saved = useRef<number | null>(null);
+  useEffect(() => {
+    if (Platform.OS === 'web' || !on) return;
+    let live = true;
+    const up = async () => {
+      try {
+        if (saved.current === null) saved.current = await Brightness.getBrightnessAsync();
+        if (live) await Brightness.setBrightnessAsync(1);
+      } catch { /* not allowed: the pass shows at the buyer's level */ }
+    };
+    const down = () => {
+      const v = saved.current; saved.current = null;
+      if (v !== null) Brightness.setBrightnessAsync(v).catch(() => {});
+    };
+    void up();
+    const sub = AppState.addEventListener('change', st => { if (st === 'active') void up(); else down(); });
+    return () => { live = false; sub.remove(); down(); };
+  }, [on]);
 }
 
 const s = StyleSheet.create({

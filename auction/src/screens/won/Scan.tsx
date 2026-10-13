@@ -1,11 +1,13 @@
 /* ID and insurance. Point the phone; the frame reads; the facts come back as
-   centered lines; confirm each with a touch; "That's me". The licence's state
+   centered lines; confirm each with a touch; State opens a wheel; "That's me".
+   The ID runs twice in a buyer's life: before the first bid (BidSheet, then
+   the deposit) and as the first step after a win, prefilled from the first. The licence's state
    decides whether the last step says Plates or Title. On native the camera
    (expo-camera) runs behind the frames and the shutter takes a real picture;
    the read (ML Kit / Vision) is a later phase, so the facts stay as they are.
    On web the frame stays dark. */
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
@@ -14,11 +16,10 @@ import { Button, Label } from '../../components/Type';
 import { Feather } from '../../components/Cloud';
 import { Sky } from '../../components/Sky';
 import { feel } from '../../feel';
-import { setSale, useSale } from '../../sale';
+import { setSale, type Licence } from '../../sale';
+import { Wheel } from '../../components/Wheel';
 import { saveProfile } from '../../store';
 import { theme } from '../../theme';
-
-const STATES = ['TX', 'OK', 'LA', 'NM'];
 
 /* The licence read (ML Kit / Vision) is a later phase: until it lands every scan shows these facts. They are
    never sent to the Worker as the buyer's address; only a real read's street line feeds the shill check (D11). */
@@ -66,42 +67,61 @@ function Frame({ kind, read, onShutter }: { kind: 'licence' | 'card'; read: bool
   );
 }
 
-export function IdScan({ onDone }: { onDone: () => void }) {
+/* Every US licence, in the order a wheel lists them. Texas buyers only at launch (decisions §3.1, row 5), but
+   the read can come back with any state, and a non-Texas one turns the last step into Title. */
+const STATES = ['AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL', 'GA', 'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY'];
+
+/** The licence: frame, shutter, five facts, "That's me". `initial`: a licence already read (the first bid's,
+    or the sale's); confirmed, every fact starts lit. `onCancel`: the first bid's way back to the Bid sheet. */
+export function IdScan({ initial, onDone, onCancel }: { initial?: Licence; onDone: (id: Licence) => void; onCancel?: () => void }) {
   const insets = useSafeAreaInsets();
-  const sale = useSale();
-  const [read, setRead] = useState(!!sale?.id);
-  const [ok, setOk] = useState<Record<string, boolean>>({});
-  const [state, setState] = useState(sale?.id?.state ?? 'TX');
-  const id = sale?.id ?? { ...FIXTURE, state, confirmed: false };
+  const { width } = useWindowDimensions();
+  const [read, setRead] = useState(!!initial);
+  const pre = !!initial?.confirmed;
+  const [ok, setOk] = useState<Record<string, boolean>>(pre ? { Name: true, Born: true, Address: true, Licence: true, State: true } : {});
+  const [state, setState] = useState(initial?.state ?? 'TX');
+  const [wheel, setWheel] = useState(false);   // the State wheel: hidden until State is tapped
+  const id: Licence = initial ?? { ...FIXTURE, state, confirmed: false };
   const fields: [string, string][] = [['Name', id.name], ['Born', id.dob], ['Address', id.address], ['Licence', id.licence], ['State', state]];
   const all = fields.every(([k]) => ok[k]);
-  const shutter = () => { feel.touch(); setTimeout(() => { setRead(true); feel.select(); setSale({ id: { ...id, state, confirmed: false } }); }, 500); };
-  const confirm = (k: string) => { setOk(o => ({ ...o, [k]: true })); feel.touch(); };
-  const cycle = () => { const n = STATES[(STATES.indexOf(state) + 1) % STATES.length]; setState(n); setOk(o => ({ ...o, State: false })); feel.select(); };
+  const shutter = () => { feel.touch(); setTimeout(() => { setRead(true); feel.select(); }, 500); };
+  const confirm = (k: string) => {
+    if (k === 'State') { setWheel(w => !w); feel.select(); return; }   // State opens the wheel; picking a value confirms it
+    setOk(o => ({ ...o, [k]: true })); feel.touch();
+  };
+  const pickState = (v: string) => { setState(v); setOk(o => ({ ...o, State: true })); setWheel(false); feel.touch(); };
   const thatsMe = () => {
-    setSale({ id: { ...id, state, confirmed: true } });
+    const done = { ...id, state, confirmed: true };
     if (id.address !== FIXTURE.address) saveProfile({ address: id.address.split(',')[0] });   // the street line, as the Worker compares it
-    feel.done(); onDone();
+    feel.step(); onDone(done);
   };
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.ink, paddingTop: insets.top }]}>
       <Frame kind="licence" read={read} onShutter={shutter} />
+      {onCancel && !read && (
+        <Pressable onPress={onCancel} hitSlop={12} style={[s.later, { top: insets.top + theme.space.s }]} accessibilityRole="button">
+          <Text style={s.laterText}>Not now</Text>
+        </Pressable>
+      )}
       {read && (
         <Animated.View entering={FadeIn.duration(200)} style={[s.sheet, { paddingBottom: insets.bottom + theme.space.m }]}>
           <Feather />
           <Sky radius={28} low />
           <View style={s.facts}>
             {fields.map(([k, v], i) => (
-              <Animated.View key={k} entering={FadeInDown.delay(i * 60).duration(180)}>
-                <Pressable onPress={() => confirm(k)} onLongPress={k === 'State' ? cycle : undefined} style={s.fact} accessibilityRole="button" accessibilityLabel={`${k} ${v}`} accessibilityState={{ selected: !!ok[k] }}>
+              <Animated.View key={k} entering={pre ? undefined : FadeInDown.delay(i * 60).duration(180)} style={{ alignSelf: 'stretch', alignItems: 'center' }}>
+                <Pressable onPress={() => confirm(k)} style={s.fact} accessibilityRole="button" accessibilityLabel={`${k} ${v}`} accessibilityState={{ selected: !!ok[k], expanded: k === 'State' ? wheel : undefined }}>
                   <Label>{k}</Label>
-                  <Text style={[s.value, ok[k] && { color: theme.color.ink }]}>{v}</Text>
-                  <View style={[s.mark, ok[k] && s.markOn]} />
+                  {!(k === 'State' && wheel) && <Text style={[s.value, ok[k] && { color: theme.color.ink }]}>{v}</Text>}
+                  {!(k === 'State' && wheel) && <View style={[s.mark, ok[k] && s.markOn]} />}
                 </Pressable>
+                {k === 'State' && wheel && (
+                  <Wheel items={STATES} value={state} width={width - theme.space.m * 2} onChange={setState} onPick={pickState} label="State" />
+                )}
               </Animated.View>
             ))}
           </View>
-          <Button label="That's me" onPress={thatsMe} disabled={!all} />
+          <Button label="That's me" onPress={thatsMe} disabled={!all || wheel} />
         </Animated.View>
       )}
     </View>
@@ -111,7 +131,7 @@ export function IdScan({ onDone }: { onDone: () => void }) {
 export function InsureScan({ vin, onDone }: { vin: string; onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const [read, setRead] = useState(false);
-  const shutter = () => { feel.touch(); setTimeout(() => { setRead(true); setSale({ insured: true }); feel.done(); setTimeout(onDone, 700); }, 500); };
+  const shutter = () => { feel.touch(); setTimeout(() => { setRead(true); setSale({ insured: true }); feel.step(); setTimeout(onDone, 700); }, 500); };
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.ink, paddingTop: insets.top + theme.space.m }]}>
       <Label ink={theme.color.ice}>VIN</Label>
@@ -131,5 +151,7 @@ const s = StyleSheet.create({
   value: { ...theme.type.sans, fontSize: 18, color: theme.color.muted, textAlign: 'center' },
   mark: { width: 18, height: 2, borderRadius: 1, backgroundColor: 'transparent', marginTop: 3 },
   markOn: { backgroundColor: theme.color.good },
+  later: { position: 'absolute', left: theme.space.m },
+  laterText: { ...theme.type.sans, fontSize: 14, color: theme.color.cloud, opacity: 0.6 },
   vin: { ...theme.type.sansBold, fontSize: 16, color: theme.color.cloud, letterSpacing: 1.5, textAlign: 'center', marginTop: 4 },
 });
