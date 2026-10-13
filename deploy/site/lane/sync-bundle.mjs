@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Writes deploy/site/lane/*.mjs into the obavia-waitlist bundle
+// Writes deploy/site/lane/*.mjs (MODULES below) into the obavia-waitlist bundle
 // (deploy/site/live-worker.js) as verbatim copies, between the markers
 //   // lane:begin <module>   and   // lane:end <module>
 // The only change is that a leading "export " is dropped, because the bundle is
@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-export const MODULES = ['template-v9.mjs', 'template-v10.mjs', 'events.mjs', 'lane.mjs', 'assets.mjs'];
+export const MODULES = ['template-v9.mjs', 'template-v10.mjs', 'events.mjs', 'lane.mjs', 'assets.mjs', 'lane-page.mjs'];
 const here = new URL('./', import.meta.url);
 
 export const inline = source => source.replace(/^export (?=(?:async function|function|const|let|class) )/gm, '');

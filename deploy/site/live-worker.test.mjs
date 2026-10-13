@@ -14,6 +14,7 @@ import * as lane from './lane/lane.mjs';
 import { renderLaneConfirmation } from './lane/template-v9.mjs';
 import { renderWaitlistV10, waitlistTemplateVersion, BUYER_TEMPLATE_VERSION } from './lane/template-v10.mjs';
 import { serveSiteAsset, siteAssetType, SITE_ASSET_FOLDERS } from './lane/assets.mjs';
+import { serveLanePage, lanePageLot, LANE_PAGE } from './lane/lane-page.mjs';
 import { syncBundle } from './lane/sync-bundle.mjs';
 import { createMetaEvents, metaEventId, metaNormalizeEmail, metaNormalizePhone, metaPayload, metaReady, metaSha256, metaUserData } from './lane/events.mjs';
 
@@ -395,7 +396,7 @@ test('v9 confirmation: dealer copy, one action, no dashes, no fee, no agency cop
   assert.ok(renderLaneConfirmation(undefined).text.startsWith('Hello,'));
 });
 test('the lane modules carry no en or em dash', () => {
-  for (const f of ['lane.mjs', 'events.mjs', 'template-v9.mjs', 'template-v10.mjs', 'assets.mjs', 'sync-bundle.mjs', 'README.md', '0001_lane_application.sql', '0002_marketing_events.sql']) {
+  for (const f of ['lane.mjs', 'events.mjs', 'template-v9.mjs', 'template-v10.mjs', 'assets.mjs', 'lane-page.mjs', 'sync-bundle.mjs', 'README.md', '0001_lane_application.sql', '0002_marketing_events.sql']) {
     const s = readFileSync(new URL(`./lane/${f}`, import.meta.url), 'utf8');
     assert.ok(!/[\u2013\u2014]/.test(s), f);
   }
@@ -410,6 +411,7 @@ btest('the bundle carries verbatim copies of deploy/site/lane', () => {
   assert.equal(bundle.waitlistTemplateVersion({}, 'x'), waitlistTemplateVersion({}, 'x'));
   assert.equal(bundle.serveSiteAsset.toString(), serveSiteAsset.toString());
   assert.equal(bundle.createMetaEvents.toString(), createMetaEvents.toString());
+  assert.equal(bundle.serveLanePage.toString(), serveLanePage.toString());
 });
 const entry = (h, email) => h.db.raw.prepare('SELECT * FROM waitlist_entries WHERE email=?').get(email);
 const outbox = (h, id) => h.db.raw.prepare('SELECT * FROM confirmation_outbox WHERE id=?').get(id);
@@ -646,4 +648,76 @@ btest('the bundle serves /results and /results.html like the other pages, under 
   assert.equal((await get('/results.css')).status, 200, 'the page\'s stylesheet rides the existing top-level asset branch');
   for (const path of ['/results.htm', '/results/', '/nope.html']) assert.equal((await get(path)).status, 404, path);
   assert.equal((await get('/results', 'POST')).status, 404);
+});
+
+/* ---------- the lane link's page (obavia-co/lane/index.html, /lane/<lotId>; auction/src/store.ts and desk/src/lib/post.ts laneLink) ---------- */
+test('lane page: the lot id is the Worker\'s own shape; the page is served for it alone, under /obavia/ too; HEAD empty; the rest 404 or null', async () => {
+  assert.equal(LANE_PAGE, '/lane/index.html');
+  assert.equal(lanePageLot('/lane/lot-2014_altima'), 'lot-2014_altima');
+  assert.equal(lanePageLot('/obavia/lane/abc'), 'abc');
+  for (const p of ['/lane', '/lane/', '/lane/a.b', '/lane/a/b', '/lane/index.html', '/lane/' + 'x'.repeat(65), '/lanes/abc', '/lane/a%20b', null]) assert.equal(lanePageLot(p), null, String(p));
+  for (const path of ['/lane/lot-1', '/obavia/lane/lot-1', '/lane/lot-1?x=1']) {
+    const ASSETS = fakeAssets();
+    const r = await serveLanePage(new Request(ORIGIN + path), { ASSETS });
+    assert.equal(r.status, 200, path);
+    assert.equal(r.headers.get('Content-Type'), 'text/html; charset=utf-8');
+    assert.equal(r.headers.get('Cache-Control'), 'public, max-age=600', 'the ASSETS cache headers, as the pages branch');
+    assert.equal(r.headers.get('X-Content-Type-Options'), 'nosniff'); assert.equal(r.headers.get('Referrer-Policy'), 'no-referrer');
+    assert.equal(await r.text(), 'bytes');
+    assert.deepEqual(ASSETS.seen, ['/lane/index.html'], 'one page for every lot');
+  }
+  const head = await serveLanePage(new Request(ORIGIN + '/lane/lot-1', { method: 'HEAD' }), { ASSETS: fakeAssets() });
+  assert.equal(head.status, 200); assert.equal(await head.text(), '');
+  for (const path of ['/lane', '/lane/', '/lane/a.b', '/lane/a/b', '/lane/index.html', '/obavia/lane/']) {
+    const ASSETS = fakeAssets();
+    const r = await serveLanePage(new Request(ORIGIN + path), { ASSETS });
+    assert.equal(r.status, 404, path); assert.equal(r.headers.get('Cache-Control'), 'private, no-store'); assert.deepEqual(ASSETS.seen, [], path);
+  }
+  assert.equal((await serveLanePage(new Request(ORIGIN + '/lane/lot-1', { method: 'POST' }), { ASSETS: fakeAssets() })).status, 404);
+  assert.equal((await serveLanePage(new Request(ORIGIN + '/lane/lot-1'), {})).status, 404, 'no ASSETS binding');
+  const missing = await serveLanePage(new Request(ORIGIN + '/lane/lot-1'), { ASSETS: fakeAssets(404) });
+  assert.equal(missing.status, 404); assert.equal(missing.headers.get('Content-Type'), 'application/octet-stream', 'a miss keeps the ASSETS type');
+  for (const path of ['/', '/lanes/abc', '/results', '/sky/paper.png', '/api/waitlist', '/lane.css']) assert.equal(await serveLanePage(new Request(ORIGIN + path), { ASSETS: fakeAssets() }), null, path);
+});
+test('lane page: the page reads the lot from the Worker placeholder, shows the car, the price, the clock and the dealer, one action to the app, no buyer, no dashes; Pages rewrites it; the styles exist', () => {
+  const page = readFileSync(new URL('../../obavia-co/lane/index.html', import.meta.url), 'utf8');
+  assert.ok(page.includes('<base href="/">'), 'one folder down: every path from the root');
+  assert.ok(page.includes('data-worker="'), 'the Worker origin is a data attribute (a PLACEHOLDER until the Worker is deployed)');
+  assert.ok(page.includes('data-path="/lots/"'), 'the public GET /lots/:id');
+  assert.ok(page.includes('data-ios="') && page.includes('data-android="'), 'the store links the owner fills');
+  assert.ok(page.includes("'Not read'"), 'a null reads Not read');
+  assert.ok(/\[A-Za-z0-9_-\]\{1,64\}/.test(page), 'the lot id shape the Worker uses');
+  assert.equal((page.match(/class="btn cloud[^"]*"/g) ?? []).length, 1, 'one action');
+  assert.ok(page.includes("'obavia://lane/'") && page.includes('href="obavia://lane/"'), 'the app\'s scheme with the lot');
+  assert.ok(!/href="#/.test(page), 'no fragment link: base would send it to the dealer page');
+  assert.ok(!/<a [^>]*href="(?:\/|index\.html|waitlist\.html|results\.html)"/.test(page), 'no link but the one action');
+  for (const word of ['leader', 'sale.buyer', 'contact', 'guarantee', 'save', 'cheaper', 'better than', 'fee of']) assert.ok(!page.includes(word), word);
+  assert.ok(!/[\u2013\u2014]/.test(page), 'no em or en dashes');
+  // four words or fewer per label: the static words on the glass and every clock or price word the script writes
+  const labels = ['On the lane', 'Open the app', 'Not read', 'Reading', 'now', 'to open', 'sold', 'closed', 'Sold', 'Closed', 'Opens in 2h 14m', '3d 2h left', '2h 14m left', '4m 12s left', '48s left'];
+  for (const l of labels) assert.ok(l.split(' ').length <= 4, l);
+  for (const l of ['On the lane', 'Open the app', "'Not read'", "'to open'", "'Opens in '", "' left'"]) assert.ok(page.includes(l), l);
+  const redirects = readFileSync(new URL('../../obavia-co/_redirects', import.meta.url), 'utf8');
+  assert.ok(/^\/lane\/\*\s+\/lane\/index\.html\s+200$/m.test(redirects), 'Pages serves the one page for every lot');
+  const css = readFileSync(new URL('../../obavia-co/lane.css', import.meta.url), 'utf8');
+  for (const sel of ['.ln-hero', '.ln-car', '.ln-rows', '.ln-n', '.ln-v', '.ln-open']) assert.ok(css.includes(sel), sel);
+  assert.ok(!/[\u2013\u2014]/.test(css), 'no em or en dashes in lane.css');
+  for (const px of css.slice(css.indexOf('the lane link')).match(/\b(\d+(?:\.\d+)?)px/g) ?? []) {
+    const n = Number(px.slice(0, -2));
+    assert.ok(n >= 17 || n <= 14, 'no type between 14 and 17 px: ' + px);   // the small numbers are gaps and lines, never a size
+  }
+});
+btest('the bundle serves /lane/<lotId> from the one page before the pages set, and still 404s the rest of /lane/', async () => {
+  const worker = bundle.createWorker();
+  const seen = [];
+  const get = async (path, method = 'GET') => { const a = fakeAssets(); const r = await worker.fetch(new Request(ORIGIN + path, { method }), { PUBLIC_ORIGIN: ORIGIN, ASSETS: a }); seen.push(...a.seen); return r; };
+  for (const path of ['/lane/lot-1', '/obavia/lane/lot-1', '/lane/' + 'a'.repeat(64)]) {
+    const r = await get(path);
+    assert.equal(r.status, 200, path); assert.equal(r.headers.get('Content-Type'), 'text/html; charset=utf-8', path); assert.equal(r.headers.get('X-Content-Type-Options'), 'nosniff', path);
+  }
+  assert.deepEqual(seen, ['/lane/index.html', '/lane/index.html', '/lane/index.html']);
+  for (const path of ['/lane', '/lane/', '/lane/index.html', '/lane/a.b', '/lane/a/b', '/lane/' + 'a'.repeat(65)]) assert.equal((await get(path)).status, 404, path);
+  assert.equal((await get('/lane/lot-1', 'POST')).status, 404);
+  assert.equal((await get('/lane.css')).status, 200, 'the stylesheet rides the existing top-level asset branch');
+  assert.equal((await get('/results')).status, 200, 'the pages set is unchanged');
 });

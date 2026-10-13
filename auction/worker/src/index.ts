@@ -511,12 +511,14 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (req.method === 'GET' && url.pathname === '/dealers/me') {
       const gdn = await dealerFrom(req, env.DEALER_SECRET);
       if (!gdn || gdn === '*') return text('dealer only', 403);
-      const d = await env.DB.prepare(`SELECT d.gdn, d.name, d.whop_account, (SELECT COALESCE(SUM(p.amount), 0) FROM dealer_payouts p WHERE p.dealer = d.gdn AND p.state = 'owed' AND p.held = 1) AS owed FROM dealers d WHERE d.gdn = ?1`)
-        .bind(gdn).first<{ gdn: string; name: string; whop_account: string | null; owed: number }>();
+      const d = await env.DB.prepare(`SELECT d.gdn, d.name, d.whop_account, d.whop_account_verified_at, (SELECT COALESCE(SUM(p.amount), 0) FROM dealer_payouts p WHERE p.dealer = d.gdn AND p.state = 'owed' AND p.held = 1) AS owed FROM dealers d WHERE d.gdn = ?1`)
+        .bind(gdn).first<{ gdn: string; name: string; whop_account: string | null; whop_account_verified_at: number | null; owed: number }>();
       if (!d) return fail('no_such_dealer', 404);
       // the key kept in the Desk, by the link or the paste: the Desk's first call with it is this one (CompleteRegistration, AD1; once per GDN)
       await recordMarketing(env, { event: 'CompleteRegistration', sourceId: gdn, client: clientOf(req), sourceUrl: req.headers.get('origin') ?? undefined });
-      return json({ gdn: d.gdn, name: d.name, whopAccount: d.whop_account ? maskAccount(d.whop_account) : null, payoutsOwed: d.owed });
+      // whopAccountVerifiedAt: when Whop's account.updated marked the connected account verified (0017); null until then. The Desk's
+      // settings row reads it (desk/src/lib/auction.ts accountWords: "Whop checking" while null beside a Connected account)
+      return json({ gdn: d.gdn, name: d.name, whopAccount: d.whop_account ? maskAccount(d.whop_account) : null, whopAccountVerifiedAt: d.whop_account_verified_at ?? null, payoutsOwed: d.owed });
     }
     // standing: the owner suspends or restores a dealer; a suspended dealer cannot open a lot
     const standing = url.pathname.match(/^\/dealers\/([A-Z0-9]{5,12})\/(suspend|restore)$/);

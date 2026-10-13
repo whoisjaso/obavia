@@ -517,6 +517,8 @@ describe('11. account.updated: the dealer\'s account verified, then the owed-pay
     // not verified yet: nothing moves
     expect((await webhook({ type: 'account.updated', data: { id: 'biz_au1001', status: 'pending' } })).status).toBe(200);
     expect((await env.DB.prepare('SELECT whop_account_verified_at AS v FROM dealers WHERE gdn = ?1').bind('P801101').first<{ v: number | null }>())?.v).toBeNull();
+    // GET /dealers/me carries the column as whopAccountVerifiedAt (the Desk's accountWords: "Whop checking" while null)
+    expect(await (await get('/dealers/me', as(d))).json()).toEqual({ gdn: 'P801101', name: 'Dealer P801101', whopAccount: 'biz_••••1001', whopAccountVerifiedAt: null, payoutsOwed: 250 });
     // verified: the time lands once, the ledger says so, and the retry runs through the Worker's own environment (Whop keys needed to send)
     calls = [];
     const e = withEnv({ WHOP_API_KEY: 'test-whop-key', WHOP_API_BASE: 'https://whop.test/api/v1', WHOP_ACCOUNT_ID: 'biz_obavia' });
@@ -527,6 +529,7 @@ describe('11. account.updated: the dealer\'s account verified, then the owed-pay
     expect(r.status).toBe(200);
     const v = (await env.DB.prepare('SELECT whop_account_verified_at AS v FROM dealers WHERE gdn = ?1').bind('P801101').first<{ v: number | null }>())?.v;
     expect(v).toBeGreaterThan(0);
+    expect(await (await get('/dealers/me', as(d))).json()).toMatchObject({ whopAccount: 'biz_••••1001', whopAccountVerifiedAt: v });
     expect(JSON.parse((await eventById('account_verified:P801101'))!.body)).toMatchObject({ dealer: 'P801101', account: 'biz_au1001', actor: 'whop' });
     expect(whopCalls().map(c => c.headers['idempotency-key'])).toEqual(['forfeit:au1']);
     expect((await env.DB.prepare('SELECT state FROM dealer_payouts WHERE id = ?1').bind('forfeit:au1').first<{ state: string }>())?.state).toBe('sent');

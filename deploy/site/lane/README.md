@@ -13,7 +13,8 @@ Written October 13, 2026 by systems. This folder is the committed source for the
 | `template-v10.mjs` | The buyer confirmation email, template version `waitlist-confirmation-v10` (`renderWaitlistV10`), and `waitlistTemplateVersion`, the one rule that picks the template for every body. No imports. |
 | `assets.mjs` | `serveSiteAsset` and `siteAssetType`: the asset folders below the top level (`/sky/`, `/audio/`, `/logos/`, `/connections/`, `/assets/cloud-3d/`). No imports. |
 | `0001_lane_application.sql` | The D1 migration for `WAITLIST_DB`. Additive only. |
-| `sync-bundle.mjs` | Writes the five modules (`template-v9.mjs`, `template-v10.mjs`, `events.mjs`, `lane.mjs`, `assets.mjs`) into `live-worker.js` between `// lane:begin <module>` and `// lane:end <module>`. `--check` exits 1 if the bundle differs. |
+| `lane-page.mjs` | `serveLanePage` and `lanePageLot`: the lane link's page, `GET /lane/<lotId>` (and under `/obavia/`), served from `obavia-co/lane/index.html` for every lot id of the auction Worker's shape (`[A-Za-z0-9_-]{1,64}`); 404 for anything else under `/lane/`; null outside it. The page itself reads the lot from the auction Worker's public `GET /lots/:id`; this worker reads nothing. No imports. |
+| `sync-bundle.mjs` | Writes the six modules (`template-v9.mjs`, `template-v10.mjs`, `events.mjs`, `lane.mjs`, `assets.mjs`, `lane-page.mjs`) into `live-worker.js` between `// lane:begin <module>` and `// lane:end <module>`. `--check` exits 1 if the bundle differs. |
 | `../live-worker.test.mjs` | `node --test deploy/site/live-worker.test.mjs`. The lane cases run against these modules in any checkout; the bundle cases run only when `live-worker.js` is present and are skipped with a printed reason otherwise. |
 
 The bundle's sections are verbatim copies of the modules. The only change is that a leading `export ` is dropped, because the bundle is one module with its own export list. A test checks that they match.
@@ -84,7 +85,7 @@ Unchanged: `PUBLIC_ORIGIN`, `SECONDARY_ORIGIN`, `ABUSE_HMAC_KEY`, `WAITLIST_DB`,
 
 ## Porting into the private source
 
-1. Copy `lane.mjs`, `template-v9.mjs`, `template-v10.mjs` and `assets.mjs` into the worker source unchanged, next to `worker.mjs` and `templates/`.
+1. Copy `lane.mjs`, `template-v9.mjs`, `template-v10.mjs`, `assets.mjs` and `lane-page.mjs` into the worker source unchanged, next to `worker.mjs` and `templates/`.
 2. `endpoint.ts`:
    - Import `handleLaneStep` and `LANE_MAX_BYTES`.
    - Read up to `dependencies.lane ? LANE_MAX_BYTES : MAX_BYTES`.
@@ -107,7 +108,9 @@ Unchanged: `PUBLIC_ORIGIN`, `SECONDARY_ORIGIN`, `ABUSE_HMAC_KEY`, `WAITLIST_DB`,
 
    Before the existing asset branch (the `const asset = /^\/(?:obavia\/)?(?:assets...` test), add `const siteAsset = await serveSiteAsset(request, env, url); if (siteAsset) return siteAsset;`.
 
-   Export `renderWaitlistV10`, `waitlistTemplateVersion`, `serveSiteAsset` and `createMetaEvents` from the bundle beside `renderLaneConfirmation`; the tests compare them with the modules.
+   The lane link's page (October 13, 2026): before that `serveSiteAsset` call, add `const lanePage = await serveLanePage(request, env, url); if (lanePage) return lanePage;`. It answers `/lane/<lotId>` from `/lane/index.html` on `ASSETS` and leaves every other path to the branches below; the `pages` set is unchanged.
+
+   Export `renderWaitlistV10`, `waitlistTemplateVersion`, `serveSiteAsset`, `serveLanePage` and `createMetaEvents` from the bundle beside `renderLaneConfirmation`; the tests compare them with the modules.
 
    The bundle shows each of these steps exactly. Diff it against the pre-change copy.
 6. Run `node --test deploy/site/live-worker.test.mjs` against the new build placed at `deploy/site/live-worker.js`.

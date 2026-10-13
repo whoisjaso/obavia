@@ -138,7 +138,7 @@ describe('2. The dealer\'s own Whop account', () => {
     const own = await dealer('P900011');
     await forfeited('po11', own, 'P900011', 'po-b11');
     const me0 = await call(WHOP, '/dealers/me', { method: 'GET', headers: { authorization: `Bearer ${own}` } });
-    expect(await me0.json()).toEqual({ gdn: 'P900011', name: 'Dealer P900011', whopAccount: null, payoutsOwed: 250 });
+    expect(await me0.json()).toEqual({ gdn: 'P900011', name: 'Dealer P900011', whopAccount: null, whopAccountVerifiedAt: null, payoutsOwed: 250 });
     whopWith(() => Response.json({ id: 'biz_whopmade11' }), () => Response.json({ id: 'tr_po11' }));
     const r = await call(WHOP, '/dealers/account/start', { headers: { authorization: `Bearer ${own}` }, body: { email: 'desk@example.com' } });
     expect(r.status).toBe(200);
@@ -154,7 +154,7 @@ describe('2. The dealer\'s own Whop account', () => {
     expect(JSON.parse(ev!.body)).toEqual({ dealer: 'P900011', account: 'biz_whopmade11', actor: 'dealer', via: 'whop' });
     expect(ev!.body).not.toContain('desk@example.com');
     const me1 = await call(WHOP, '/dealers/me', { method: 'GET', headers: { authorization: `Bearer ${own}` } });
-    expect(await me1.json()).toEqual({ gdn: 'P900011', name: 'Dealer P900011', whopAccount: 'biz_••••de11', payoutsOwed: 0 });
+    expect(await me1.json()).toEqual({ gdn: 'P900011', name: 'Dealer P900011', whopAccount: 'biz_••••de11', whopAccountVerifiedAt: null, payoutsOwed: 0 });
     // set once by the dealer: a second start is refused and Whop is not asked
     calls = [];
     const again = await call(WHOP, '/dealers/account/start', { headers: { authorization: `Bearer ${own}` }, body: { email: 'other@example.com' } });
