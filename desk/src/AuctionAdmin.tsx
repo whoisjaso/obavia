@@ -8,6 +8,7 @@ import { auctionLive, getExposure, isAdminKey, mintDealer, restoreDealer, suspen
 import { usd } from './lib/money';
 import { Back, Ic, feel, transition } from './ui';
 import { Count } from './motion';
+import { ActionSheet } from './BottomSheet';
 
 const DEPOSIT_USD = 250;
 const STATES: { s: SaleState; label: string; gloss: string }[] = [
@@ -43,13 +44,14 @@ function Cockpit() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [asking, setAsking] = useState<DealerRow | null>(null);
   const load = async () => { const r = await getExposure(); if (r.ok) { setX(r.value); setErr(null); } else setErr(say(r.reason)); };
   useEffect(() => { let on = true; const tick = () => { if (on) load(); }; tick(); const t = setInterval(tick, 10_000); return () => { on = false; clearInterval(t); }; }, []);
 
   if (adding) return <AddDealer onDone={() => { setAdding(false); load(); }} />;
 
+  /* Suspend and Restore are asked on a bottom sheet (native-patterns §7 line 12), never a browser confirm(). */
   const standing = async (d: DealerRow) => {
-    if (!d.suspended && !confirm(`Suspend ${d.name} (${d.gdn})? They cannot open a lot until you restore them. Lots already open keep running.`)) return;
     setBusy(d.gdn); setErr(null);
     const r = d.suspended ? await restoreDealer(d.gdn) : await suspendDealer(d.gdn);
     setBusy(null);
@@ -94,7 +96,7 @@ function Cockpit() {
           <div className="group">
             {!x.dealers.length && <div className="row"><span className="t"><b>No dealers yet</b><small>Add one below.</small></span></div>}
             {x.dealers.map(d => (
-              <button className="row" key={d.gdn} disabled={busy === d.gdn} onClick={() => standing(d)}>
+              <button className="row" key={d.gdn} disabled={busy === d.gdn} onClick={() => { feel.tap(); setAsking(d); }}>
                 <span className="t"><b>{d.name}</b><small>{d.gdn} · {d.incidents} {d.incidents === 1 ? 'incident' : 'incidents'}{d.suspended ? ' · suspended' : ''}</small></span>
                 <span className="v" style={{ color: d.suspended ? 'var(--accent)' : 'var(--red)' }}>{busy === d.gdn ? '…' : d.suspended ? 'Restore' : 'Suspend'}</span>
               </button>
@@ -103,6 +105,9 @@ function Cockpit() {
           {err && <p className="note">{err}</p>}
         </>}
       </section>
+      {asking && <ActionSheet
+        line={asking.suspended ? <><b>{asking.name}</b> ({asking.gdn}) can open lots again.</> : <><b>{asking.name}</b> ({asking.gdn}) cannot open a lot until you restore them. Lots already open keep running.</>}
+        verb={asking.suspended ? 'Restore' : 'Suspend'} onAct={() => standing(asking)} onClose={() => setAsking(null)} />}
       <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); setAdding(true); }}>Add A Dealer</button></div></div>
     </main>
   );

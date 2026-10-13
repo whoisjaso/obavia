@@ -77,6 +77,13 @@ export const feel = {
   next: () => { haptic(); chime([523.25, 783.99], 0.011, 0.08, 0.6); },
   /** An action completed: the house chime, the cloud-landed swell of air, and the pressed control breathes once. */
   done: () => { haptic(); chime([523.25, 659.25, 783.99, 1046.5], 0.012, 0.11, 0.9); puff('landed'); landed(pressedNow()); },
+  /** A bid landed on a lot the dealer is watching: the one-note house tone a step above tap's, and the tick. */
+  bid: () => { haptic(); chime([783.99], 0.011, 0, 0.5); },
+  /** The hammer, or the pass caught: the completed moment on a figure no thumb pressed. The chime is the
+   *  hammer's; a scan that only fills a field passes `chime = false` and keeps the air and the tick. */
+  landedOn: (el: HTMLElement | null | undefined, chimes = true) => { haptic(); if (chimes) chime([523.25, 659.25, 783.99, 1046.5], 0.012, 0.11, 0.9); puff('landed'); landed(el); },
+  /** A sheet rose because a thumb asked for it: the settle air, softer than a page's. */
+  sheet: () => { if (performance.now() - lastGesture < 1500) puff('settle', 0, 0.7); },
   /** A barely-there tick on each keystroke. */
   key: () => { const t = performance.now(); if (t - lastKey < 40) return; lastKey = t; chime([392 + Math.random() * 40], 0.006, 0, 0.12); },
   /** A thumb lands on a cloud (cloudPress, after its scroll guard). */

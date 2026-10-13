@@ -13,7 +13,9 @@ import type { Sale, Vehicle } from './lib/sale';
 import { shrink } from './Paper';
 import { startSale, useStore } from './store';
 import { Back, CarArt, Choice, Ic, feel, go, transition } from './ui';
-import { Count, Ring, land } from './motion';
+import { Count, Ring, bidPulse, land } from './motion';
+import { ActionSheet, PhotoSheet } from './BottomSheet';
+import { canScan, passSix, startScan } from './lib/scan';
 
 const carName = (v: Vehicle) => `${v.year} ${v.make} ${v.model}`;
 /* break-ui: counts and typed dollars read with separators (1,284 watching; 12,500 in the field). */
@@ -115,6 +117,7 @@ export function LetItGo() {
   const [release, setRelease] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
+  const [shot, setShot] = useState<{ i: number; src: string } | null>(null);
   const [grade, setGrade] = useState<(number | null)[]>([null, null, null, null, null, null]);
   const [insured, setInsured] = useState(false);
   const [days, setDays] = useState<number | null>(null);
@@ -218,9 +221,10 @@ export function LetItGo() {
       {page === 'photos' && car && <section className="enter" key="photos">
         <h1 className="q">Show <em>it.</em></h1>
         <p className="note">Front three-quarter, the rear, the driver’s side; then the dash, the seats, and anything worn. Sideways photos are fine.</p>
-        <div className="choices grid2" style={{ gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>{photos.map((p, i) => <button key={i} className="choice" style={{ padding: 0, minHeight: 0, aspectRatio: '1', borderRadius: 18, overflow: 'hidden' }} onClick={() => { feel.tap(); setPhotos(x => x.filter((_, j) => j !== i)); }} aria-label={`Remove photo ${i + 1}`}><img src={p} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></button>)}
+        <div className="choices grid2" style={{ gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>{photos.map((p, i) => <button key={i} className="choice shot-cell" style={{ padding: 0, minHeight: 0, aspectRatio: '1', borderRadius: 18, overflow: 'hidden' }} onClick={() => { feel.tap(); setShot({ i, src: p }); }} aria-label={`Open photo ${i + 1}`}><img src={p} alt="" /></button>)}
           {photos.length < 12 && <label className="choice" style={{ gridColumn: '1 / -1', flexDirection: 'row', alignItems: 'center', minHeight: 96, cursor: 'pointer' }}><span className="art"><Ic n="upload" s={24} /></span><span className="t"><b>{adding ? 'Adding…' : photos.length ? 'Add more' : 'Take photos'}</b><small>{photos.length} of 12</small></span><input type="file" accept="image/*" capture="environment" multiple hidden onChange={e => add(e.target.files)} /></label>}
         </div>
+        {shot && <PhotoSheet src={shot.src} n={shot.i + 1} onRemove={() => setPhotos(x => x.filter((_, j) => j !== shot.i))} onClose={() => setShot(null)} />}
       </section>}
 
       {word >= 0 && <section className="enter" key={page}>
@@ -287,6 +291,19 @@ export function LotPage({ id }: { id: string }) {
   const [lot, setLot] = useState<Lot | null>(null);
   const [gone, setGone] = useState(false);
   const [, tick] = useState(0);
+  /* The hammer (native-patterns §7 line 8): a sale that arrives while Live is on the glass lands on
+     Live's own figure first (the swell, the chime, cloud-landed, the haptic), then the page settles into
+     Sold. A lot opened already sold goes straight to Sold, silently: nothing happened in front of anyone. */
+  const [hammer, setHammer] = useState(false);
+  const sawLive = useRef(false);
+  useEffect(() => {
+    if (!lot) return;
+    if (!lot.sale) { sawLive.current = true; return; }
+    if (!sawLive.current) return;
+    sawLive.current = false; setHammer(true);
+    const t = setTimeout(() => transition(() => { setHammer(false); scrollTo(0, 0); }), 760);
+    return () => clearTimeout(t);
+  }, [lot ? (lot.sale ? 1 : 0) : -1]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     let on = true;
     getLot(id).then(r => { if (!on) return; if (r.ok) setLot(r.value); else setGone(true); });
@@ -298,14 +315,26 @@ export function LotPage({ id }: { id: string }) {
   const v = cars.find(c => c.id === link?.vehicleId);
   if (gone) return <main className="wrap center"><div className="top"><Back to="#/auction" label="Lane" /></div><p className="empty">This lot is not on the lane.</p></main>;
   if (!lot) return <main className="wrap center"><div className="top"><Back to="#/auction" label="Lane" /></div><p className="empty">Reaching the lane…</p></main>;
-  if (lot.sale) return <Sold lot={lot} v={v} link={link} />;
-  return <Live lot={lot} v={v} link={link} />;
+  /* the frame the sale arrives on is already the hammer's (the effect above has not run yet) */
+  const landing = hammer || (!!lot.sale && sawLive.current);
+  if (lot.sale && !landing) return <Sold lot={lot} v={v} link={link} />;
+  return <Live lot={lot} v={v} link={link} hammer={landing} onLot={setLot} />;
 }
 
-function Live({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
+function Live({ lot, v, link, hammer, onLot }: { lot: Lot; v?: Vehicle; link?: LotLink; hammer?: boolean; onLot: (l: Lot) => void }) {
   const [busy, setBusy] = useState(false);
   const [lowering, setLowering] = useState(false);
   const [newFloor, setNewFloor] = useState('');
+  const [asking, setAsking] = useState(false);
+  /* A bid lands: the figure lifts once, the one-note tone, the tick. Keyed on the count of bids, so the
+     one-second clock, a poll that brings the same lot back and a remount are all silent. */
+  const fig = useRef<HTMLHeadingElement>(null), bids = useRef(lot.bids);
+  useEffect(() => {
+    if (lot.bids > bids.current && !hammer) { bidPulse(fig.current); feel.bid(); }
+    bids.current = lot.bids;
+  }, [lot.bids]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (hammer) feel.landedOn(fig.current); }, [hammer]);
+  const sell = async () => { setBusy(true); const r = await closeLot(lot.id); setBusy(false); if (r.ok) onLot(r.value); };
   /* The new-floor field opens at the foot of the page; bring it clear of the dock so the thumb and the keyboard land on it. */
   useEffect(() => { if (lowering) requestAnimationFrame(() => scrollTo(0, document.documentElement.scrollHeight)); }, [lowering]);
   const total = Math.max(1, lot.closesAt - (link ? Date.parse(link.openedAt) : lot.opensAt));
@@ -319,7 +348,7 @@ function Live({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
       <div className="top"><Back to="#/auction" label="Lane" /></div>
       <section className="enter" key="live">
         <Ring className="ring big" p={closed ? 100 : p}><span className="num" style={FACE}>{closed ? 'Done' : timeLeft(lot.closesAt)}</span></Ring>
-        <h1 className="q num">{lot.bids ? <Count value={lot.high} format={dollars} /> : <>No bids <em>yet.</em></>}</h1>
+        <h1 className="q num" ref={fig}>{hammer && lot.sale ? usd(lot.sale.hammer) : lot.bids ? <Count value={lot.high} format={dollars} /> : <>No bids <em>yet.</em></>}</h1>
         <p className="note">{name}{lot.bids ? ` · ${n(lot.bids)} ${lot.bids === 1 ? 'bid' : 'bids'}` : ''}{lot.watching ? ` · ${n(lot.watching)} watching` : ''}</p>
         <div className="group">
           <div className="row"><span className="t"><b>Floor</b><small>{lot.bids ? (lot.high >= floor ? 'Covered' : 'Not yet reached') : 'Bidding opens here'}</small></span><span className="v num">{usd(floor)}</span></div>
@@ -332,14 +361,15 @@ function Live({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
           <div className="money"><input className="input num" inputMode="numeric" autoFocus value={grouped(newFloor)} onChange={e => setNewFloor(digits(e.target.value))} placeholder={n(floor)} /></div>
         </>}
       </section>
-      <div className="dock"><div className="in">
+      {asking && <ActionSheet line={<>End it now at <b className="num">{usd(lot.high)}</b>. The high bidder has it.</>} verb="Sell It Now" onAct={sell} onClose={() => setAsking(false)} />}
+      {!hammer && <div className="dock"><div className="in">
         {closed ? <button className="btn primary block" onClick={() => { feel.next(); go('/auction/go'); }}>Let It Go Again</button>
           : lowering ? <button className="btn primary block" disabled={busy || !Number(newFloor) || Number(newFloor) >= floor} onClick={async () => { setBusy(true); const c = lot.car!.collateral; const r = await updateCar(lot.id, { collateral: { ...c, floor: Number(newFloor), payoffAcknowledged: (c.title.payoff ?? 0) > Number(newFloor) ? c.payoffAcknowledged : undefined } }); setBusy(false); if (r.ok) { feel.done(); setLowering(false); } }}>Set The Floor</button>
-          : lot.bids >= 1 ? <button className="btn primary block" disabled={busy} onClick={async () => { if (!confirm(`End it now at ${usd(lot.high)}? The high bidder has it.`)) return; setBusy(true); const r = await closeLot(lot.id); setBusy(false); if (r.ok) feel.done(); }}>Sell It Now</button>
+          : lot.bids >= 1 ? <button className="btn primary block" disabled={busy} onClick={() => { feel.tap(); setAsking(true); }}>Sell It Now</button>
           : <button className="btn primary block" onClick={() => { feel.tap(); setLowering(true); }}>Lower The Floor</button>}
         {!closed && !lowering && lot.bids >= 1 && <button className="textlink" onClick={() => { feel.tap(); setLowering(true); }}>Lower the floor</button>}
         {lowering && <button className="textlink" onClick={() => { feel.tap(); setLowering(false); }}>Leave it</button>}
-      </div></div>
+      </div></div>}
     </main>
   );
 }
@@ -358,6 +388,23 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
   const [vin, setVin] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [why, setWhy] = useState<string | null>(null);
+  /* The pickup (native-patterns §7 line 9): where the browser can read a QR, the camera reads the
+     buyer's pass; where it cannot, the button says "Type The VIN" and the page is the typed six. */
+  const [scanner] = useState(canScan);
+  const [cam, setCam] = useState(false), [caught, setCaught] = useState(false);
+  const video = useRef<HTMLVideoElement>(null), six = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!cam || !video.current) return;
+    return startScan(video.current, raw => {
+      const got = passSix(raw, lot.id);
+      if (!got || (v && !v.vin.toUpperCase().endsWith(got))) return false; // another lot's pass, or not a pass: keep looking, silently
+      setVin(got); setCaught(true); setCam(false);
+      return true;
+    }, () => setCam(false)); // no camera, or no permission: the typed six, silently
+  }, [cam]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* the pass is caught: the six fill in where the camera was, the field breathes once, the air and the tick */
+  useEffect(() => { if (caught) feel.landedOn(six.current, false); }, [caught]);
   const name = v ? carName(v) : lot.car ? `${lot.car.year} ${lot.car.make} ${lot.car.model}` : lot.id;
   const state = s.startedAt ? 'started' : s.voidedAt ? 'voided' : s.forfeitedAt ? 'forfeited' : s.paidAt ? 'paid' : 'owed';
   const left = s.deadlineAt - Date.now();
@@ -381,7 +428,7 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
           state === 'started' ? `Picked up ${new Date(s.startedAt!).toLocaleString()}` :
           state === 'voided' ? 'Voided. The buyer’s deposit went back.' :
           state === 'forfeited' ? 'The buyer walked. Their deposit is yours; the car is still yours.' :
-          state === 'paid' ? 'Paid. Scan the VIN when the buyer is here.' :
+          state === 'paid' ? (scanner ? 'Paid. Scan their pass when the buyer is here.' : 'Paid. Type the VIN when the buyer is here.') :
           `Sold. The buyer has ${h(left)} to pay.`}</p>
         {mode === 'sale' && <div className="group">
           <div className="row"><span className="t"><b>Won</b></span><span className="v">{new Date(s.wonAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></div>
@@ -391,27 +438,30 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
           {live && <div className="row"><span className="t"><b>Title to the buyer before day 21.</b></span><span className="v" style={{ whiteSpace: 'nowrap' }}>{titleW.state === 'done' ? 'Done' : shortDay(titleW.due)} <i className={`dot ${tone(titleW)}`} style={DOT} aria-label={titleW.state} /></span></div>}
           {live && <div className="row"><span className="t"><b>Tax to the county.</b></span><span className="v" style={{ whiteSpace: 'nowrap' }}>{taxW.state === 'done' ? 'Done' : shortDay(taxW.due)} <i className={`dot ${tone(taxW)}`} style={DOT} aria-label={taxW.state} /></span></div>}
         </div>}
-        {mode === 'vin' && <>
-          <p className="note" style={{ marginTop: 28 }}>The last six of the VIN, read off the door jamb with the buyer standing there. Then the key.</p>
-          <label className="field"><input className="input big num" autoFocus value={vin} onChange={e => setVin(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))} placeholder="Last 6" autoCapitalize="characters" /></label>
-          {v && <p className="note">Ends in {v.vin.slice(-6)}</p>}
+        {mode === 'vin' && cam && <div className="scan"><video ref={video} muted playsInline autoPlay aria-label="The buyer’s pass, through the camera" /><i aria-hidden="true" /></div>}
+        {mode === 'vin' && !cam && <>
+          {!caught && <p className="note" style={{ marginTop: 28 }}>The last six of the VIN, read off the door jamb with the buyer standing there. Then the key.</p>}
+          <label className={'field' + (caught ? ' caught' : '')} style={caught ? { marginTop: 28 } : undefined}><input ref={six} className="input big num" autoFocus={!caught} value={vin} onChange={e => { setCaught(false); setVin(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)); }} placeholder="Last 6" autoCapitalize="characters" aria-label="Last six of the VIN" /></label>
+          {v && !caught && <p className="note">Ends in {v.vin.slice(-6)}</p>}
         </>}
         {mode === 'void' && <>
           <p className="note" style={{ marginTop: 28 }}>Ending a sale you cannot deliver returns the buyer’s deposit in full and counts against your lane standing. A second one closes the lane to you.</p>
-          <div className="choices">{WHY.map(w => <Choice key={w} label={w} disabled={busy} onPick={() => act(() => voidSale(lot.id, w))} />)}</div>
+          <div className="choices">{WHY.map(w => <Choice key={w} label={w} disabled={busy} onPick={() => setWhy(w)} />)}</div>
         </>}
         {err && <p className="note">{err}</p>}
       </section>
+      {why && <ActionSheet line={<>The buyer’s <b className="num">{usd(250)}</b> deposit goes back in full. This counts against your lane standing.</>} verb="End The Sale" onAct={() => act(() => voidSale(lot.id, why))} onClose={() => setWhy(null)} />}
       <div className="dock"><div className="in">
         {mode === 'sale' && state === 'owed' && <button className="btn primary block" disabled={busy} onClick={() => act(() => markPaid(lot.id))}>Paid At The Lot</button>}
-        {mode === 'sale' && state === 'paid' && <button className="btn primary block" onClick={() => { feel.next(); setMode('vin'); }}>Scan The VIN</button>}
+        {mode === 'sale' && state === 'paid' && <button className="btn primary block" onClick={() => { feel.next(); setVin(''); setCaught(false); setCam(scanner); setMode('vin'); }}>{scanner ? 'Scan The Pass' : 'Type The VIN'}</button>}
         {mode === 'sale' && state === 'started' && v && <button className="btn primary block" onClick={() => { feel.done(); const id = startSale(v, { fullName: '', phone: '', address: '', city: '', state: 'TX', zip: '', county: '', idType: 'dl', idNumber: '' }, 'en', v.mileage ?? 0, v.titleStatus); go(`/sale/${id}/guide`); }}>Open The Paperwork</button>}
         {mode === 'sale' && (state === 'forfeited' || state === 'voided') && <button className="btn primary block" onClick={() => { feel.next(); go('/auction/go'); }}>Let It Go Again</button>}
         {mode === 'vin' && <button className="btn primary block" disabled={busy || vin.length < 6} onClick={() => act(() => pickup(lot.id, vin))}>It Started</button>}
         {mode === 'sale' && (state === 'owed' || state === 'paid') && <button className="textlink" onClick={() => { feel.tap(); setMode('void'); }}>I can’t deliver this car</button>}
         {mode === 'sale' && state === 'started' && titleW.state !== 'done' && <button className="textlink" onClick={() => mark('titleTo')}>The Buyer Has The Title</button>}
         {mode === 'sale' && state === 'started' && titleW.state === 'done' && taxW.state !== 'done' && <button className="textlink" onClick={() => mark('taxSent')}>The Tax Went To The County</button>}
-        {mode !== 'sale' && <button className="textlink" onClick={() => { feel.tap(); setMode('sale'); }}>Back</button>}
+        {mode === 'vin' && cam && <button className="textlink" onClick={() => { feel.tap(); setCam(false); }}>Type the VIN</button>}
+        {mode !== 'sale' && <button className="textlink" onClick={() => { feel.tap(); setCam(false); setMode('sale'); }}>Back</button>}
       </div></div>
     </main>
   );

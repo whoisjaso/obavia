@@ -674,7 +674,7 @@ button.row:active{background:rgba(255,255,255,.7)}
 .idcard dl,.due-card dl{border-top:0;box-shadow:inset 0 1px 0 rgba(28,36,54,.06),inset 0 2px 0 rgba(255,255,255,.7)}
 .idcard dl div+div{border-left:0;box-shadow:inset 1px 0 0 rgba(28,36,54,.06),inset 2px 0 0 rgba(255,255,255,.7)}
 @media (hover:hover) and (pointer:fine){.row:hover{background:rgba(255,255,255,.45)}}
-button.row:active,button.row.is-pressed{background:rgba(255,255,255,.55)}
+:is(button,a,label).row:active,.row.is-pressed{background:rgba(255,255,255,.55)}
 /* inputs: a cloud you write on; grain in the background itself (an input has no pseudo-elements) */
 .input{background:var(--grain) 0 0/256px 256px,linear-gradient(180deg,#F7F9FF,#EDF2FE);background-blend-mode:soft-light,normal;
   box-shadow:var(--cloud-in),var(--cloud-ao),0 5px 12px rgba(28,36,54,.08);transition:box-shadow .2s}
@@ -715,3 +715,41 @@ button.row:active,button.row.is-pressed{background:rgba(255,255,255,.55)}
 .sky.c3d-sky-on>.c3d-sky{opacity:1}
 .sky.c3d-sky-on>.layer{opacity:0;transition:opacity 1.6s var(--cl-ease)}
 @media (prefers-reduced-motion:reduce){.c3d-sky,.sky.c3d-sky-on>.layer,.btn.primary.c3d-on{transition:none}}
+
+/* ---------- the bottom sheet (BottomSheet.tsx): a cloud forming from the bottom, over a scrim ----------
+   cloud-system §4: it rises from its own height on the 0.75 spring (motion.ts sheetIn), its top edge
+   feathered into light so it does not read as a card; it leaves faster, on the iOS sheet curve. The
+   panel owns every axis of a drag (touch-action:none); there is nothing in it to scroll. */
+.sheet-scrim{position:fixed;inset:0;z-index:60;background:rgba(28,36,54,.32);-webkit-tap-highlight-color:transparent}
+.sheet-panel{position:fixed;left:0;right:0;bottom:0;z-index:61;max-width:640px;margin:0 auto;padding:10px 20px calc(14px + env(safe-area-inset-bottom,0px));
+  border-radius:30px 30px 0 0;background:var(--grain) 0 0/256px 256px,linear-gradient(180deg,#FFFFFF 0%,#F7F9FF 60%,#EEF3FE 100%);background-blend-mode:soft-light,normal;
+  box-shadow:inset 0 1.5px 0 #fff,0 -14px 34px -10px rgba(28,36,54,.16);outline:0;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+/* the feather: light catching the top edge and fading off it, wider than the panel */
+.sheet-panel::before{content:"";position:absolute;z-index:-1;left:-6%;right:-6%;top:-22px;height:60px;pointer-events:none;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,255,255,.9),rgba(255,255,255,.4) 55%,rgba(255,255,255,0))}
+.sheet-grab{display:block;width:38px;height:5px;margin:0 auto 16px;border-radius:3px;background:rgba(28,36,54,.16)}
+.sheet-line{margin:2px 10px 20px;text-align:center;font:550 16px/1.45 var(--sans);color:var(--text);text-wrap:balance}
+.sheet-line b{color:var(--ink);font-weight:750}
+.sheet-panel .textlink.sheet-not{margin-top:8px;color:var(--muted);font-weight:600}
+/* the photo: full-bleed, as iOS Photos opens one; Remove sits on the photo, frosted, in ink */
+.sheet-panel.photo{top:max(44px,calc(env(safe-area-inset-top,0px) + 14px));display:flex;flex-direction:column;padding:10px 0 0;background:#F4F7FE}
+.sheet-panel.photo .sheet-grab{margin-bottom:10px}
+.sheet-photo{position:relative;flex:1;min-height:0;display:grid;place-items:center;overflow:hidden}
+.sheet-photo img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+.sheet-remove{position:absolute;left:0;right:0;bottom:calc(22px + env(safe-area-inset-bottom,0px));width:max-content;margin:0 auto;height:48px;padding:0 26px;border-radius:999px;
+  background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  box-shadow:inset 0 1px 0 #fff,0 8px 22px -6px rgba(28,36,54,.3);font:750 16px/1 var(--sans);color:var(--ink)}
+@media (prefers-reduced-transparency:reduce){.sheet-remove{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media (forced-colors:active){.sheet-panel{border:1px solid CanvasText}.sheet-remove{border:1px solid ButtonText}}
+/* a photo in the Let It Go grid opens; it never removes on a tap */
+.shot-cell{padding:0;min-height:0;aspect-ratio:1;border-radius:18px;overflow:hidden}
+.shot-cell img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+
+/* ---------- the pickup scan: the buyer's pass in a square, the camera behind it ---------- */
+.scan{position:relative;width:min(100%,300px);aspect-ratio:1;margin:26px auto 0;border-radius:30px;overflow:hidden;background:#28344F;
+  box-shadow:var(--cloud-in),var(--cloud-ao),0 14px 34px -14px rgba(28,36,54,.45)}
+.scan video{display:block;width:100%;height:100%;object-fit:cover}
+/* the square the pass goes in: the camera outside it dims, the inside stays clear */
+.scan i{position:absolute;inset:17%;border-radius:22px;box-shadow:0 0 0 2px rgba(255,255,255,.92),0 0 0 999px rgba(28,36,54,.3);pointer-events:none}
+/* the six from the pass, filled in where the camera was */
+.field.caught .input{box-shadow:0 0 0 2px var(--good),var(--cloud-in),var(--cloud-ao),0 5px 12px rgba(28,36,54,.08)}

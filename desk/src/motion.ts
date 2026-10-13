@@ -164,8 +164,52 @@ export function landed(el: HTMLElement | null | undefined) {
 /** The Go button's landed state (kept as a name for Auction.tsx). */
 export const land = landed;
 
+/* ---------- a bid lands: the figure lifts once ---------- */
+/** native-patterns §7 line 8: scale 1 → 1.04 → 1 over 420 ms on the house curve (--ease), once per new
+ *  bid. Bigger than landed's 1.03 because nobody pressed anything: the eye has to be called. Reduced
+ *  motion keeps a short fade back to full; the tone and the haptic stay (cloud-system §4). */
+export function bidPulse(el: HTMLElement | null | undefined) {
+  if (!el || !el.isConnected) return;
+  if (reduced) { gsap.fromTo(el, { opacity: 0.6 }, { opacity: 1, duration: 0.2, ease: 'none', overwrite: 'auto', clearProps: 'opacity' }); return; }
+  gsap.timeline({ onComplete: () => { gsap.set(el, { clearProps: TRANSFORM }); } })
+    .to(el, { scale: 1.04, duration: 0.18, ease: EASE, overwrite: 'auto' })
+    .to(el, { scale: 1, duration: 0.24, ease: EASE });
+}
+
+/* ---------- the bottom sheet: rises on the §4 spring, leaves faster on the iOS sheet curve ---------- */
+/** Spec §4: from its own height on a spring at damping 0.75 with the scrim fading in. Reduced motion: a fade. */
+export function sheetIn(panel: HTMLElement, scrim: HTMLElement) {
+  gsap.killTweensOf([panel, scrim]);
+  if (reduced) { gsap.fromTo([panel, scrim], { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'none', clearProps: 'opacity' }); return; }
+  gsap.fromTo(scrim, { opacity: 0 }, { opacity: 1, duration: 0.42, ease: EASE });
+  gsap.fromTo(panel, { y: panel.offsetHeight || innerHeight * 0.6 }, { y: 0, duration: 0.62, ease: SHEET });
+}
+/** The sheet follows the thumb: y in px (already damped by the caller), the scrim thins as it goes. */
+export function sheetDrag(panel: HTMLElement, scrim: HTMLElement, y: number) {
+  gsap.killTweensOf([panel, scrim]);
+  gsap.set(panel, { y });
+  gsap.set(scrim, { opacity: 1 - Math.max(0, y) / Math.max(1, panel.offsetHeight) * 0.85 });
+}
+/** Let go short of the line: back up on the same spring, carrying no overshoot past the top. */
+export function sheetBack(panel: HTMLElement, scrim: HTMLElement) {
+  gsap.to(panel, { y: 0, duration: 0.42, ease: SHEET, overwrite: 'auto' });
+  gsap.to(scrim, { opacity: 1, duration: 0.3, ease: EASE, overwrite: 'auto' });
+}
+/** Away down the path it came in on, on the iOS sheet curve; a flick (v, px per ms) shortens the trip. */
+export function sheetOut(panel: HTMLElement, scrim: HTMLElement, done: () => void, v = 0) {
+  gsap.killTweensOf([panel, scrim]);
+  if (reduced) { gsap.to([panel, scrim], { opacity: 0, duration: 0.16, ease: 'none', onComplete: done }); return; }
+  const h = panel.offsetHeight || innerHeight * 0.6, at = Number(gsap.getProperty(panel, 'y')) || 0;
+  const t = v > 0 ? Math.min(0.32, Math.max(0.16, (h - at) / v / 1000)) : 0.32;
+  gsap.to(scrim, { opacity: 0, duration: t, ease: SPRING });
+  gsap.to(panel, { y: h + 12, duration: t, ease: SPRING, onComplete: done });
+}
+
 /* ---------- cloudPress: a control is a cloud you push your thumb into ---------- */
-const PRESSABLE = 'button, .btn, .choice, .back, .textlink, .top .link, label.choice';
+const PRESSABLE = 'button, .btn, .choice, .back, .textlink, .top .link, label.choice, a.row, label.row, .row.toggle, .row.more, .row[role="button"]';
+/* Choices and rows that act are flatter clouds (cloud-system §2, the Desk native pass of October 13): they sink 1.5 px, shed no
+   wisps and make only the cloud-touch puff; the rise is silent. */
+const isFlat = (el: HTMLElement) => el.matches('.choice, .row');
 const TRANSFORM = 'transform,translate,scale,rotate';
 let lastPress: { el: HTMLElement; at: number } | null = null;
 /** The control pressed in the last 1.5 s, for feel.done() to swell; null after that, so a done that no
@@ -176,7 +220,7 @@ function sink(el: HTMLElement) {
   el.classList.add('is-pressed'); // the shade pseudo-element fades to 55 percent in CSS (100 ms)
   if (cloud3d.has(el)) { cloud3d.press(el); return; } // a cloud volume: the engine sinks the box and compresses the field together
   if (reduced) { gsap.to(el, { opacity: 0.7, duration: 0.08, ease: 'none', overwrite: 'auto' }); return; }
-  gsap.to(el, { y: 2.5, scale: 0.985, duration: 0.1, ease: OUT, overwrite: 'auto' });
+  gsap.to(el, { y: isFlat(el) ? 1.5 : 2.5, scale: 0.985, duration: 0.1, ease: OUT, overwrite: 'auto' });
 }
 function rise(el: HTMLElement, cancel: boolean) {
   el.classList.remove('is-pressed');
@@ -185,7 +229,7 @@ function rise(el: HTMLElement, cancel: boolean) {
   gsap.to(el, { y: 0, scale: 1, duration: 0.3, ease: cancel ? OUT : RISE, overwrite: 'auto', clearProps: TRANSFORM });
 }
 /** Every press under root, by delegation: sink on pointerdown before any logic (100 ms ease-out:
- *  2.5 px down, scale 0.985, shade down), rise on release (300 ms, a spring at damping 0.65 held to
+ *  2.5 px down, 1.5 px for a choice or a row, scale 0.985, shade down), rise on release (300 ms, a spring at damping 0.65 held to
  *  3 percent over), rise without the overshoot on cancel or drag-off. Disabled controls never sink.
  *  Transform and opacity only. `press` is told when a thumb lands (a touch waits 40 ms, so the start of
  *  a scroll stays silent), `release` when it lifts on the control. */
@@ -206,7 +250,7 @@ export function cloudPress(root: HTMLElement | Document = document, hooks: { pre
       el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up);
       el.removeEventListener('pointercancel', off); el.removeEventListener('pointerleave', off);
       rise(el, cancel);
-      if (!cancel) { sound(); lastPress = { el, at: performance.now() }; hooks.release?.(); }
+      if (!cancel) { sound(); lastPress = { el, at: performance.now() }; if (!isFlat(el)) hooks.release?.(); }
     };
     const up = () => end(false), off = () => { sounded = true; end(true); };
     el.addEventListener('pointermove', move, { passive: true }); el.addEventListener('pointerup', up);
