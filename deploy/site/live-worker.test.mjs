@@ -624,3 +624,26 @@ btest('the bundle serves each asset folder and still 404s anything else', async 
     assert.equal((await get(path)).status, 404, path);
   assert.equal((await get('/sky/paper.png', 'POST')).status, 404);
 });
+
+/* ---------- the results page (obavia-co/results.html, growth plan CP5) ---------- */
+test('results.html ships beside the dealer page and reads the Worker from a data attribute, with no outcome claim', () => {
+  const page = readFileSync(new URL('../../obavia-co/results.html', import.meta.url), 'utf8');
+  assert.ok(page.includes('data-worker="'), 'the Worker origin is a data attribute (a PLACEHOLDER until the Worker is deployed)');
+  assert.ok(page.includes('data-path="/results"'));
+  assert.ok(page.includes('href="index.html#apply"'), 'the one action is the dealer page\'s existing link');
+  for (const word of ['guarantee', 'save', 'cheaper', 'better than', 'fee of']) assert.ok(!page.toLowerCase().includes(word), word);
+  assert.ok(!/[\u2013\u2014]/.test(page), 'no em or en dashes');
+  const index = readFileSync(new URL('../../obavia-co/index.html', import.meta.url), 'utf8');
+  assert.ok(index.includes('<a href="results.html">Results</a>'), 'the dealer page\'s footer lists it');
+});
+btest('the bundle serves /results and /results.html like the other pages, under /obavia/ too', async () => {
+  const worker = bundle.createWorker();
+  const get = async (path, method = 'GET') => worker.fetch(new Request(ORIGIN + path, { method }), { PUBLIC_ORIGIN: ORIGIN, ASSETS: fakeAssets() });
+  for (const path of ['/results', '/results.html', '/obavia/results', '/obavia/results.html', '/waitlist', '/']) {
+    const r = await get(path);
+    assert.equal(r.status, 200, path); assert.equal(r.headers.get('X-Content-Type-Options'), 'nosniff', path);
+  }
+  assert.equal((await get('/results.css')).status, 200, 'the page\'s stylesheet rides the existing top-level asset branch');
+  for (const path of ['/results.htm', '/results/', '/nope.html']) assert.equal((await get(path)).status, 404, path);
+  assert.equal((await get('/results', 'POST')).status, 404);
+});

@@ -192,6 +192,24 @@ async function handle(req: Request, env: Env): Promise<Response> {
     const dealerRows = async () => (await env.DB.prepare('SELECT d.gdn, d.name, d.created_at, d.suspended_at, (SELECT COUNT(*) FROM incidents i WHERE i.dealer = d.gdn) AS incidents FROM dealers d ORDER BY d.created_at').all<{ gdn: string; name: string; created_at: number; suspended_at: number | null; incidents: number }>()).results
       .map(d => ({ ...d, suspended: d.suspended_at != null }));
 
+    // the public results page (obavia.co/results; growth plan CP5): aggregate, dated counts from the copy, the ledger and the
+    // last reconciliation, no key. No name, no GDN, no lot id, no dollar amount per lot, no fee (43 TAC §215.85). The reserve
+    // ratio is the last reconciliation's or null (never a hard-coded 1.00); a sold car is a hammer not voided and not forfeited;
+    // the disputes are the deposit.disputed rows the webhook wrote. Cached ten minutes at the edge and in the browser.
+    if (req.method === 'GET' && url.pathname === '/results') {
+      const count = (sql: string) => env.DB.prepare(sql);
+      const [lotsOpened, carsSold, carsStarted, depositsRefunded, disputes] = (await env.DB.batch<{ n: number }>([
+        count('SELECT COUNT(*) AS n FROM lots'),
+        count("SELECT COUNT(*) AS n FROM lots WHERE json_extract(lot, '$.closed.sold') = 1 AND json_extract(lot, '$.sale.voidedAt') IS NULL AND json_extract(lot, '$.sale.forfeitedAt') IS NULL"),
+        count("SELECT COUNT(*) AS n FROM lots WHERE json_extract(lot, '$.sale.startedAt') IS NOT NULL"),
+        count("SELECT COUNT(*) AS n FROM money_events WHERE type = 'deposit.released'"),
+        count("SELECT COUNT(*) AS n FROM money_events WHERE type = 'deposit.disputed'"),
+      ])).map(r => r.results[0]?.n ?? 0);
+      const recs = await lastReconciliations(env, 100);
+      const out = { lotsOpened, carsSold, carsStarted, depositsRefunded, reserveRatio: reserveRatio(recs[0]), disputes, nightsEqual: equalNights(recs), reconciledAt: recs[0]?.ran_at ?? null, readAt: Date.now() };
+      return new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=600', ...CORS } });
+    }
+
     // the owner's view: every dollar and every risk, now (collateral.md §5)
     if (req.method === 'GET' && url.pathname === '/admin/exposure') {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
