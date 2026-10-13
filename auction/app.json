@@ -29,7 +29,8 @@
       "expo-audio",
       "expo-image",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-secure-store"
     ],
     "backgroundColor": "#1C2436"
   }
