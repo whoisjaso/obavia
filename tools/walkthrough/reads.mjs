@@ -13,7 +13,7 @@ const WRITE = args.includes('--write-baseline');
 const STRICT = args.includes('--strict');
 if (!DIR || !BASE) { console.error('usage: node reads.mjs <shotdir> <baseline.json> [--write-baseline] [--strict]'); process.exit(2); }
 
-const CEILING = 4;   // DOCTRINE §4 rule 9 and CP1: four words to act on a scanner surface, the kept reads aside
+const CEILING = 3;   // DOCTRINE §4 rules 9 and 15 and CP1: three words to act on a scanner surface, the kept reads aside
 
 /* Names and places the fixture shows in the platform face: scanned like a sign, not read. Bodoni names
    are scanned by face. Add a line here only for a proper noun, never for a sentence. */

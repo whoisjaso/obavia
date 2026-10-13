@@ -73,6 +73,14 @@ Rules, each with a test:
 9. **No reading to act.** At most three percent of a scanner surface is text that must be read; legal sentences sit where the statute puts them, in full, and nothing is added around them.
 10. **The stranger test, every hand-back.** Hand the screen to someone who has never seen it and give them no words. If they do the one thing in under ten seconds, it passes. If not, the screen is wrong, not the person.
 
+The owner, October 13, 2026, later the same day: "I still want it to be a lot simpler. Have this mindset that people are extremely stupid, and most people aren't even at a sixth grade reading level. We have to make things so simple and so native. We have to make the Lego pieces so close together that we suggest them doing something, and putting the pieces together is their idea. Page by page, one at a time. Lower the text. Way easier to use than Copart. Immediate dopamine rush from specific things that you're doing. You automatically know where things are. It's obvious."
+
+11. **Write for a ten-year-old, then cut half.** Every word on the glass is one a ten-year-old says; no word over two syllables unless it is the car's own name or the law's own word; no sentence where a number and a noun will do. Test: read the screen aloud to a child; they can say what to do next.
+12. **One thing per page, and the page is the thing.** When a screen holds two things, it is two screens. A choice is one tap among at most three pieces; a fact is one line; a field is one page with the keyboard already up. Test: count the things a stranger must look at before the verb; more than two is a split.
+13. **The next piece touches, so the step is their idea.** Nothing tells the person what to do next; the next piece sits touching the last one, lit, where the thumb already is, and the person reaches for it. No arrow, no hint, no "tap here". Test: cover every word; the eye still lands on the next piece.
+14. **Immediate reward, every time, on every good tap.** Within 100 ms of a good tap the body gets all three at once: the cloud moves, the sound breathes, the haptic ticks; the big moments (the bid landing, the win, the deposit back, the car started) get the rendered moment and the Bodoni number landing. Nothing good waits for a sentence; nothing bad gets a sound. Test: tap with the sound off and the eyes closed; the thumb still knows it worked.
+15. **Fewer words every pass, never more.** The walkthrough's reads per screen only go down; the ceiling is three words to act, the kept legal reads aside, and a screen over it is a screen to split. Test: `tools/walkthrough/run.sh --strict` passes.
+
 ## 5. The car objects, rendered
 
 The owner, October 13, 2026: "You may end up making Blender assets for what we're actually doing, which is car-related stuff, so we have a proper UI that makes sense relationally."
@@ -97,4 +105,5 @@ A hand-back without these lines is not finished.
 
 | Date | Change |
 | --- | --- |
+| 2026-10-13 | §4 rules 11 to 15 from the owner's second instruction of the day: sixth-grade words, one thing per page, the next piece touching, immediate reward, fewer words every pass; the walkthrough ceiling lowered from four words to three. |
 | 2026-10-13 | File created from the three dissections, the growth plan's thirty laws, lego.md, one-action.md, cloud-system.md, blender-pipeline.md, native-patterns.md, and the owner's legibility and car-objects instructions of the same day. |
