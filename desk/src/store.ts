@@ -24,6 +24,7 @@ import { applyPayment, paidTo, type Extra } from './lib/extras';
 import { asFiled, financingTerms } from './lib/filed';
 import { periodOf, taxEvents, taxOn, type Filed, type NoteTax, type TaxFiling } from './lib/tax';
 import type { Insurance } from './lib/insurance';
+import type { DealerSettings } from './lib/dealer-settings';
 
 type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: Vehicle[]; sales: Sale[]; consents?: Partial<Record<Consent['id'], Consent>>; loans?: Loan[]; receiptNo?: number; reachWanted?: string[]; posts?: Post[];
   money?: Money[]; matched?: Record<string, { loanId: string | null; receipt?: number }>; payers?: Payers; cashDays?: Record<string, CashDay>;
@@ -31,7 +32,8 @@ type State = { dealer: DealerConfig; onboarded: boolean; example: boolean; lot: 
   evening?: { on: boolean; hour: number };
   staff?: Staff[]; at?: string;
   taxFiling?: TaxFiling; taxFiled?: Filed;
-  creditReporting?: { on: boolean; since: string } };   // at: who is signed in at the desk
+  creditReporting?: { on: boolean; since: string };
+  laneSettings?: DealerSettings };   // at: who is signed in at the desk. laneSettings: the lane toggle, hours, pickup address, after-hours line (lib/dealer-settings.ts)
 export type AutoPosted = { moneyId: string; loanId: string; receipt: number; on: string; addedPayer?: string };
 const KEY = 'obavia.desk.v1';
 
@@ -144,6 +146,9 @@ export const getSale = (id: string) => state.sales.find(s => s.id === id);
 /** The dealer's legal facts, filled in later from the paperwork's Not Set marks. */
 export function setDealerFacts(f: Partial<DealerConfig>) { set({ ...state, dealer: { ...state.dealer, ...f } }); }
 export function finishOnboarding(dealer: DealerConfig, lot?: Vehicle[]) { set({ ...state, dealer, onboarded: true, lot: lot ?? state.lot }); }
+/** The dealer's lane settings, asked at onboarding and changed later from the same pages. Undefined until answered. */
+export const getLaneSettings = (): DealerSettings | undefined => state.laneSettings;
+export function setLaneSettings(laneSettings: DealerSettings) { set({ ...state, laneSettings }); }
 export function resetWorkspace() { set(fresh()); }
 
 const patchSale = (id: string, f: (s: Sale) => Sale) => set({ ...state, sales: state.sales.map(s => (s.id === id ? f(s) : s)) });

@@ -1,13 +1,21 @@
 /* Onboarding: the same pattern as the sale. One question per screen, the
    answer is the next tap. The state comes first, because it decides which
    licence list we search; the dealership is then found, not typed, and
-   verified with a code sent to the contact on its licence record. */
+   verified with a code sent to the contact on its licence record.
+
+   A dealer who arrived by Open The Desk already holds a key for one GDN (d:P123456.<sig>). The key is
+   minted only after the lane application verified a code against that GDN, or by the owner (POST
+   /dealers; deploy/site/lane/README.md "Key"), so onboarding opens on that dealer's TxDMV record and one
+   tap, That's Us, stands in for the state, the search and the code. A GDN the list does not carry falls
+   back to the state page without a word. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EXAMPLE_DEALER, type DealerConfig } from './lib/config';
 import { SAY, checkVerify, live, session, startVerify, type Profile } from './lib/api';
 import { SHAPES } from './lib/shapes';
 import { STATES, hasList as listFor, loadDealerIndex, searchDealers, type DealerIndex, type DealerRecord } from './lib/dealers';
-import { finishOnboarding } from './store';
+import { finishOnboarding, setLaneSettings, useStore } from './store';
+import { KEY_SHAPE, dealerKey } from './lib/auction';
+import { E164, HOURS, HOURS_ORDER, defaultSettings, gdnFromKey, hoursChoice, recordFor, toE164, type DealerSettings } from './lib/dealer-settings';
 import { Sheet } from './Sheet';
 import { exampleSales } from './data';
 import { COMMON, KIND_TITLE, SYSTEMS, searchSystems, systemById, type System, type SystemKind } from './lib/systems';
@@ -20,7 +28,7 @@ import { parseMoney } from './lib/money';
    paperwork prints is asked on its own page (and confirmed rather than asked
    when the licence record already has it): nothing on a bill of sale, a
    130-U or a Buyer's Guide comes from the example dealer. */
-const ORDER = ['state', 'name', 'you', 'code', 'address', 'phone', 'email', 'signer', 'title', 'docFee', 'lateFee', 'logo', 'colour', 'system', 'paper'] as const;
+const ORDER = ['key', 'state', 'name', 'you', 'code', 'address', 'phone', 'lane', 'hours', 'pickup', 'after', 'email', 'signer', 'title', 'docFee', 'lateFee', 'logo', 'colour', 'system', 'paper'] as const;
 type Page = (typeof ORDER)[number];
 const TITLES = ['Owner', 'General Manager', 'Manager', 'Finance Manager'];
 
@@ -43,8 +51,104 @@ function SystemTile({ s, on, onPick }: { s: System; on: boolean; onPick: () => v
   );
 }
 
+/* ---------- the lane settings (gap-table Wave 2-C; phases Phase 2, Onboarding (dealer)) ----------
+   Four pages, one question each: the lane toggle, the pickup hours, the pickup address, the after-hours
+   line. Onboarding asks them right after the Desk's phone, so the after-hours line starts as that phone
+   and the pickup address as the lot just confirmed; LaneSettings below runs the same pages from the Desk
+   later. While the draft is open the after-hours line is the text in the box; saved, it is E.164. */
+export const LANE_PAGES = ['lane', 'hours', 'pickup', 'after'] as const;
+export type LanePage = (typeof LANE_PAGES)[number];
+type Draft = DealerSettings;   // afterHours holds the box's text until saved
+const T17 = { font: '500 17px/1.45 var(--sans)', color: 'var(--muted)' } as const;
+const draftFrom = (s: DealerSettings): Draft => ({ ...s, afterHours: formatPhone(s.afterHours) });
+const saved = (d: Draft): DealerSettings => ({ ...d, afterHours: toE164(d.afterHours), address: d.address.trim() });
+/** A dealer key for one GDN is kept on this device (not the admin's d:*). */
+const laneKeyHeld = () => { const k = dealerKey.get(); return !!k && KEY_SHAPE.test(k) && !!gdnFromKey(k); };
+const splitAddress = (a: string) => { const at = a.indexOf(','); return at < 0 ? [a, ''] : [a.slice(0, at), a.slice(at + 1).trim()]; };
+
+/** onward(patch): the answer is the next tap; the owner applies the patch and decides the next page. */
+type LaneProps = { page: LanePage; d: Draft; put: (p: Partial<Draft>) => void; editAddr: boolean; setEditAddr: (b: boolean) => void; onward: (p?: Partial<Draft>) => void };
+
+function LaneQuestion({ page, d, put, editAddr, onward }: LaneProps) {
+  if (page === 'lane') return (
+    <section className="enter" key="lane">
+      <h1 className="q">Let Cars Go On The Lane?</h1>
+      <div className="choices">
+        <Choice label="Yes, Let Them Go" on={d.lane} onPick={() => onward({ lane: true })} />
+        <Choice label="Not Now" on={!d.lane} onPick={() => onward({ lane: false })} />
+      </div>
+      {/* The Whop connected account the dealer is paid into. POST /accounts arrives with the Worker wave;
+          until then this is a faint row with no action, and nothing here promises a date. */}
+      <div aria-disabled="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 560, margin: '14px auto 0', minHeight: 64, padding: '16px 20px', borderRadius: 20, border: '1.5px dashed rgba(28,36,54,.16)', color: 'var(--faint)', font: '600 17px/1.25 var(--sans)' }}>
+        <span>Payouts On Whop</span><span>Not Yet</span>
+      </div>
+    </section>);
+  if (page === 'hours') return (
+    <section className="enter" key="hours">
+      <h1 className="q">When Can Buyers Pick Up?</h1>
+      <div className="choices">{HOURS_ORDER.map(k => <Choice key={k} label={HOURS[k].label} on={hoursChoice(d.hours) === k} onPick={() => onward({ hours: [...HOURS[k].hours] })} />)}</div>
+    </section>);
+  if (page === 'pickup') {
+    const [street, rest] = splitAddress(d.address);
+    return (
+      <section className="enter" key="pickup">
+        <h1 className="q">{editAddr ? 'Where Do They Pick Up?' : 'Is This Where They Pick Up?'}</h1>
+        {editAddr
+          ? <label className="field"><input className="input" autoFocus value={d.address} onChange={e => put({ address: e.target.value })} placeholder="Street, city, ZIP" maxLength={120} autoComplete="street-address" /></label>
+          : <div className="idcard enter2"><b>{street}</b>{rest && <span style={{ ...T17, marginTop: 6 }}>{rest}</span>}</div>}
+      </section>);
+  }
+  return (
+    <section className="enter" key="after">
+      <h1 className="q">The After-Hours Line?</h1>
+      <p className="note" style={T17}>Someone answers it, 9 pm included.</p>
+      <label className="field"><input className="input big num" autoFocus value={d.afterHours} onChange={e => put({ afterHours: formatPhone(e.target.value) })} placeholder="(555) 000-0000" inputMode="tel" autoComplete="tel" maxLength={14} aria-label="After-hours line" /></label>
+    </section>);
+}
+
+function LaneDock({ page, d, editAddr, setEditAddr, onward }: LaneProps) {
+  if (page === 'pickup') return <>
+    <button className="btn primary block" disabled={!d.address.trim()} onClick={() => onward()}>That’s Right</button>
+    {!editAddr && <button className="textlink" style={{ fontSize: 17 }} onClick={() => { feel.tap(); setEditAddr(true); }}>Change It</button>}
+  </>;
+  if (page === 'after') return <button className="btn primary block" disabled={!E164.test(toE164(d.afterHours))} onClick={() => onward()}>That’s Right</button>;
+  return null;
+}
+
+/** The lane settings from the Desk, later: the same four pages, saved on the last answer (or at Not Now). */
+export function LaneSettings({ onDone }: { onDone: () => void }) {
+  const { dealer, laneSettings } = useStore();
+  const [d, setD] = useState<Draft>(() => draftFrom(laneSettings ?? defaultSettings(dealer, laneKeyHeld())));
+  const [k, setK] = useState(0);
+  const [editAddr, setEditAddr] = useState(false);
+  const page = LANE_PAGES[k];
+  const total = d.lane ? LANE_PAGES.length : 1;
+  const put = (p: Partial<Draft>) => setD(x => ({ ...x, ...p }));
+  const onward = (p: Partial<Draft> = {}) => {
+    const nd = { ...d, ...p }; setD(nd);
+    if (page === 'after' || !nd.lane) { setLaneSettings(saved(nd)); feel.done(); onDone(); return; }
+    feel.next(); transition(() => { setK(k + 1); scrollTo(0, 0); });
+  };
+  const back = () => { feel.tap(); if (k === 0) { onDone(); return; } transition(() => { setK(k - 1); scrollTo(0, 0); }, 'back'); };
+  const props: LaneProps = { page, d, put, editAddr, setEditAddr, onward };
+  return (
+    <main className="wrap ob center">
+      <div className="top">
+        <button className="back" style={{ fontSize: 17 }} onClick={back}><Ic n="chev" s={18} w={2.4} />Back</button>
+        <span className="progress" style={{ fontSize: 17 }}>{k + 1} of {total}</span>
+      </div>
+      <div className="bar"><i style={{ width: `${((k + 1) / total) * 100}%` }} /></div>
+      <LaneQuestion {...props} />
+      <div className="dock"><div className="in"><LaneDock {...props} /></div></div>
+    </main>
+  );
+}
+
 export function Onboarding() {
-  const [i, setI] = useState(0);
+  // A kept lane key opens on its own dealer (see the head of this file); otherwise the state comes first.
+  const keyGdn = useMemo(() => (laneKeyHeld() ? gdnFromKey(dealerKey.get()) : null), []);
+  const [i, setI] = useState(keyGdn ? 0 : 1);
+  const [trail, setTrail] = useState<number[]>([]);   // the pages behind this one, so Back retraces the path taken
   const page: Page = ORDER[i];
   // The facts the paper prints, asked one per page.
   const [street, setStreet] = useState<string | null>(null);
@@ -57,7 +161,7 @@ export function Onboarding() {
   const [title, setTitle] = useState<string | null>(null);
   const [docFee, setDocFee] = useState('');
   const [lateFee, setLateFee] = useState<string | null>(null);
-  const [state, setState] = useState<string | null>(null);
+  const [state, setState] = useState<string | null>(keyGdn ? 'TX' : null);
   const [stateQ, setStateQ] = useState('');
   const [q, setQ] = useState('');
   const [picked, setPicked] = useState<DealerRecord | null>(null);
@@ -75,12 +179,17 @@ export function Onboarding() {
   const [sysQ, setSysQ] = useState('');
   const [allSys, setAllSys] = useState(false);
   const codeRef = useRef<HTMLInputElement>(null);
+  const [laneDraft, setLaneDraft] = useState<Draft | null>(null);
+  const [editPickup, setEditPickup] = useState(false);
 
   const [idx, setIdx] = useState<DealerIndex | null | undefined>(undefined);
   useEffect(() => { if (!state || !listFor(state)) { setIdx(null); return; } setIdx(undefined); let live = true; loadDealerIndex(state).then(x => live && setIdx(x)); return () => { live = false; }; }, [state]);
   const name = picked ? picked.dba || picked.name : typedName ?? '';
   const legal = picked ? picked.name : typedName ?? '';
   const results = useMemo(() => (idx ? searchDealers(idx, q) : []), [idx, q]);
+  const keyRec = useMemo(() => recordFor(idx, keyGdn), [idx, keyGdn]);
+  // The list is open and does not carry the key's GDN: the state page, silently.
+  useEffect(() => { if (page === 'key' && idx !== undefined && !keyRec) { setState(null); setI(ORDER.indexOf('state')); } }, [page, idx, keyRec]);
   const hasList = !!idx;
   const webmail = /@(gmail|yahoo|hotmail|outlook|aol|icloud|live|msn|att|sbcglobal|comcast)\./i;
   const domain = site.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') || (picked?.emailHint && !webmail.test(picked.emailHint) ? picked.emailHint.split('@')[1] : '') || '';
@@ -120,9 +229,18 @@ export function Onboarding() {
   }
   // Typed when the licence record has no street, or when they chose to change it; confirmed otherwise.
   const askAddr = editAddr || !(profile.street || picked?.street);
-  const go = (to: Page | number) => { feel.next(); const n = typeof to === 'number' ? to : ORDER.indexOf(to); transition(() => { setI(n); scrollTo(0, 0); }); };
+  const go = (to: Page | number) => { feel.next(); const n = typeof to === 'number' ? to : ORDER.indexOf(to); transition(() => { setTrail(t => [...t, i]); setI(n); scrollTo(0, 0); }); };
+  const back = () => { feel.tap(); const prev = trail[trail.length - 1]; if (prev === undefined) return; transition(() => { setTrail(t => t.slice(0, -1)); setI(prev); scrollTo(0, 0); }, 'back'); };
   const next = () => go(i + 1);
-  const TOTAL = ORDER.length;
+  // The lane settings: the defaults follow the lot and the phone until the dealer answers the first lane page.
+  const lane: Draft = laneDraft ?? draftFrom(defaultSettings(dealer, !!keyGdn));
+  const laneOnward = (p: Partial<Draft> = {}) => { const nd = { ...lane, ...p }; setLaneDraft(nd); if (page === 'after' || !nd.lane) go('email'); else next(); };
+  const laneProps: LaneProps | null = (LANE_PAGES as readonly string[]).includes(page) ? { page: page as LanePage, d: lane, put: p => setLaneDraft({ ...lane, ...p }), editAddr: editPickup, setEditAddr: setEditPickup, onward: laneOnward } : null;
+  // Progress counts the pages this dealer walks: the key's path skips the search, Not Now skips the lane's three.
+  const viaKey = !!keyRec && (page === 'key' || picked === keyRec);
+  const steps = ORDER.filter(p => (viaKey ? !['state', 'name', 'you', 'code'].includes(p) : p !== 'key') && (lane.lane || !['hours', 'pickup', 'after'].includes(p)));
+  const at = Math.max(0, steps.indexOf(page));
+  const TOTAL = steps.length;
   const states = STATES.filter(([c, n]) => !stateQ || n.toLowerCase().startsWith(stateQ.toLowerCase()) || c.toLowerCase() === stateQ.toLowerCase());
   const found = searchSystems(sysQ);
   const sys = system ? systemById(system) : undefined;
@@ -132,10 +250,21 @@ export function Onboarding() {
   return (
     <main className="wrap ob center">
       <div className="top">
-        {i > 0 ? <button className="back" onClick={() => { feel.tap(); transition(() => { setI(page === 'code' && !picked ? ORDER.indexOf('name') : i - 1); scrollTo(0, 0); }, 'back'); }}><Ic n="chev" s={18} w={2.4} />Back</button> : <span />}
-        <span className="progress">{i + 1} of {TOTAL}</span>
+        {trail.length ? <button className="back" style={{ fontSize: 17 }} onClick={back}><Ic n="chev" s={18} w={2.4} />Back</button> : <span />}
+        {page !== 'key' || keyRec ? <span className="progress" style={{ fontSize: 17 }}>{at + 1} of {TOTAL}</span> : <span />}
       </div>
-      <div className="bar"><i style={{ width: `${((i + 1) / TOTAL) * 100}%` }} /></div>
+      <div className="bar"><i style={{ width: `${((at + 1) / TOTAL) * 100}%` }} /></div>
+
+      {/* The key's dealer: the name and the licence number touch, the city under them. Blank while the list opens. */}
+      {page === 'key' && keyRec && <section className="enter" key="key">
+        <h1 className="q">Is This You?</h1>
+        <div className="idcard enter2">
+          <span className="lg" style={{ background: accent }}>{monogram(keyRec.dba || keyRec.name)}</span>
+          <b>{keyRec.dba || keyRec.name}</b>
+          <span className="num" style={{ marginTop: 6, font: '700 19px/1.2 var(--sans)', letterSpacing: '.03em', color: 'var(--ink)' }}>{keyRec.licence}</span>
+          <span style={{ ...T17, marginTop: 4 }}>{keyRec.city}, Texas</span>
+        </div>
+      </section>}
 
       {page === 'state' && <section className="enter" key="s0">
         <img className="mark" src="./mark.svg" alt="" />
@@ -224,6 +353,8 @@ export function Onboarding() {
         <label className="field"><input className="input big num" autoFocus value={dealer.phone} onChange={e => setPhone(formatPhone(e.target.value))} placeholder="(555) 000-0000" inputMode="tel" autoComplete="tel" maxLength={14} /></label>
       </section>}
 
+      {laneProps && <LaneQuestion {...laneProps} />}
+
       {page === 'email' && <section className="enter" key="email">
         <h1 className="q">And The Email?</h1>
         <p className="note">The Buyer’s Guide asks for one.</p>
@@ -308,6 +439,8 @@ export function Onboarding() {
       </section>}
 
       <div className="dock"><div className="in">
+        {page === 'key' && keyRec && <button className="btn primary block" onClick={() => { setPicked(keyRec); setTypedName(null); setState('TX'); go('address'); }}>That’s Us</button>}
+        {laneProps && <LaneDock {...laneProps} />}
         {page === 'system' && <button className="btn primary block" disabled={!system} onClick={() => go('paper')}>{!system ? 'Pick One Above' : sys?.id === 'paper' ? 'Continue' : sys?.kind === 'books' ? `Upload My ${sys.name} File` : `Move My Cars From ${sys?.name ?? system}`}</button>}
         {page === 'system' && <button className="textlink" onClick={() => go('paper')}>Use Example Cars For Now</button>}
         {(page === 'logo' || page === 'colour') && <button className="btn primary block" onClick={next}>Continue</button>}
@@ -320,7 +453,7 @@ export function Onboarding() {
         {page === 'signer' && <button className="btn primary block" disabled={!isPersonName(signer)} onClick={next}>Continue</button>}
         {page === 'docFee' && <button className="btn primary block" disabled={parseMoney(docFee) === null} onClick={next}>Continue</button>}
         {page === 'lateFee' && lateFee !== null && lateFee !== '0' && <button className="btn primary block" disabled={parseMoney(lateFee) === null} onClick={next}>Continue</button>}
-        {page === 'paper' && <button className="btn primary block" onClick={() => { feel.done(); finishOnboarding(dealer); }}>Start Selling</button>}
+        {page === 'paper' && <button className="btn primary block" onClick={() => { feel.done(); setLaneSettings(saved(lane)); finishOnboarding(dealer); }}>Start Selling</button>}
       </div></div>
     </main>
   );
