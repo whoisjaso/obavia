@@ -68,16 +68,21 @@
      aggregate counts only: no name, no GDN, no lot id, no dollar amount per lot, no fee (43 TAC section 215.85).
      Nothing here is a claim about an outcome; a null from the Worker reads "Not read".
 
+     The date line reads "Checked <date>." (DOCTRINE section 4 rule 11: no five-syllable word where one will do).
+
      WORKER URL: the site does not yet know the auction Worker's origin (index.html and lane-apply.js reach only
      /api/waitlist on obavia.co). data-worker below is a PLACEHOLDER; set it to the Worker's https origin
      (wrangler.toml, name "obavia-auction") when it is deployed. Until then every number reads "Not read".
      obavia-co/_headers sends connect-src 'self'; that origin must be added there too, or the browser blocks the read. -->
-<section class="hero rs-hero" id="top" data-worker="PLACEHOLDER" data-path="/results">
+<section class="hero rs-hero" id="top" data-worker="PLACEHOLDER" data-path="/results" data-seeded="true">
   <div class="wrap">
     <div class="copy">
       <h1 data-r>The lane so far.</h1>
-      <p class="lead" data-r>Counted by the lane&rsquo;s own server, not by hand.</p>
     </div>
+    <!-- House law: a seeded number says so. data-seeded="true" above keeps this word on the glass while the figures behind
+         the page are the seeded fixture; it becomes "false" in the same edit that sets data-worker to the live origin, once
+         the lane's own numbers replace it (simplicity-audit.md section 3 row 5, 2026-10-13). -->
+    <p class="rs-seeded" id="rsSeeded" data-r>Seeded</p>
     <ol class="rs-rows slab" id="rsRows" data-r aria-busy="true">
       <li><b class="m rs-n" data-k="lotsOpened">&nbsp;</b><span>Cars listed</span></li>
       <li><b class="m rs-n" data-k="carsSold">&nbsp;</b><span>Cars sold</span></li>
@@ -114,6 +119,8 @@
 'use strict';
 const sec = document.getElementById('top'), rows = document.getElementById('rsRows'), when = document.getElementById('rsWhen');
 const cells = [...rows.querySelectorAll('.rs-n')];
+const seeded = document.getElementById('rsSeeded');
+if (seeded && sec.dataset.seeded !== 'true') seeded.hidden = true;
 const NOT = 'Not read';
 const origin = (sec.dataset.worker || '').replace(/\/$/, '');
 const url = /^https:\/\//.test(origin) ? origin + (sec.dataset.path || '/results') : null;
@@ -130,7 +137,7 @@ const show = (cell, v) => {
 const land = (data) => {
   cells.forEach(c => show(c, data ? data[c.dataset.k] : null));
   const at = data && typeof data.reconciledAt === 'number' ? data.reconciledAt : null;
-  when.textContent = at ? 'Last reconciliation ' + day(at) + '.' : data ? 'No reconciliation yet.' : 'Not read.';
+  when.textContent = at ? 'Checked ' + day(at) + '.' : data ? 'Not checked yet.' : 'Not read.';
   rows.setAttribute('aria-busy', 'false');
 };
 if (!url) { land(null); return; }

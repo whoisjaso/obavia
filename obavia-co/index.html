@@ -60,12 +60,11 @@
 <nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="#how">How it works</a><a href="#cost">What it costs</a><a href="#buyers">Buyers</a><a href="#worst">How bad it can get</a><a class="o-join cloud" href="#apply" data-cloud3d="compact">Get on the lane</a></nav>
 <script src="shell.js"></script>
 <main>
-<!-- The first viewport: the dealer hook (messaging-hooks.md, DV1), one line, the film slot, one action (CF6). -->
+<!-- The first viewport: the dealer hook (messaging-hooks.md, DV1), one line, the car on the lane, one action (CF6). No lead (simplicity-audit.md row 9, 2026-10-13). -->
 <section class="hero" id="top">
   <div class="wrap">
     <div class="copy">
       <h1 data-r>Name the least you’ll take on the car you’re losing money on, and <em>its bidding closes Thursday at 3.</em></h1>
-      <p class="lead" data-r>Obavia is the public lane behind your desk. Buyers across Texas bid from their phones, and the Desk runs the paperwork.</p>
       <div class="act" data-r><button class="btn cloud" type="button" data-go="apply" data-cloud3d>Get on the lane</button></div>
     </div>
     <!-- The Let It Go film is shot Fri Dec 4, 2026 (plan section 2.1). Until it lands the frame shows the rendered car on
@@ -194,7 +193,7 @@
 <!-- How it works, for the dealer, in four lines -->
 <section class="sec" id="how">
   <div class="wrap split">
-    <div><h2 data-r>How it works.</h2><p class="p" data-r>Four steps, from your lot to a signed sale.</p></div>
+    <div><h2 data-r>How it works.</h2></div>
     <ol class="lines slab" data-r>
       <li><b>Name your floor.</b><span>The least you’ll take. A car that doesn’t reach it doesn’t sell.</span></li>
       <li><b>Take the photos.</b><span>In the Desk, on your lot.</span></li>
@@ -204,13 +203,17 @@
   </div>
 </section>
 
-<!-- The collateral line (docs/plan/collateral.md sections 1 to 3) -->
+<!-- The collateral line (docs/plan/collateral.md sections 1 to 3): the title and the coin, one line each (simplicity-audit.md row 8) -->
 <section class="sec" id="held">
   <div class="wrap held">
     <h2 data-r>The car stays yours until the VIN scan.</h2>
     <div class="pair" data-r>
       <picture class="obj title"><source type="image/webp" srcset="assets/scene-3d/title-light.webp 1x, assets/scene-3d/title-light-2x.webp 2x"><img src="assets/scene-3d/title-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture>
-      <p class="p">It stays on your lot and on your insurance until the buyer scans the VIN and starts it at pickup. The buyer’s $250 deposit is their collateral. Your collateral is the title: in your hand, or at your lender with a release time you set before the first bid.</p>
+      <p class="p">Your title, in your hand or at your lender.</p>
+    </div>
+    <div class="pair" data-r>
+      <picture class="obj coin"><source type="image/webp" srcset="assets/scene-3d/coin-light.webp 1x, assets/scene-3d/coin-light-2x.webp 2x"><img src="assets/scene-3d/coin-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture>
+      <p class="p">$250, theirs.</p>
     </div>
   </div>
 </section>
@@ -220,7 +223,7 @@
   <div class="wrap split">
     <div>
       <h2 data-r>Nothing, until Obavia holds its own dealer license.</h2>
-      <p class="p" data-r>There is no fee of any kind before Obavia’s own GDN issues. No price is promised here for after.</p>
+      <p class="p" data-r>No fee of any kind before Obavia’s own GDN. No price is promised for after.</p>
     </div>
     <div data-r>
       <figure class="rule slab">
@@ -237,17 +240,20 @@
   <div class="wrap split">
     <div>
       <h2 data-r>For the buyer: a price, a time, a name.</h2>
-      <p class="p" data-r>Every car shows its live bid, the close time kept by our server, and the selling dealer’s legal name and GDN.</p>
       <div class="pair" data-r>
         <picture class="obj coin"><source type="image/webp" srcset="assets/scene-3d/coin-light.webp 1x, assets/scene-3d/coin-light-2x.webp 2x"><img src="assets/scene-3d/coin-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture>
-        <p class="p">To bid, a buyer puts down $250 once. It’s refunded if they lose. A Texas driver’s license is required.</p>
+        <p class="p">$250 to bid. Back if you lose.</p>
+      </div>
+      <div class="pair" data-r>
+        <picture class="obj licence"><source type="image/webp" srcset="assets/scene-3d/licence-light.webp 1x, assets/scene-3d/licence-light-2x.webp 2x"><img src="assets/scene-3d/licence-light.png" alt="" width="512" height="320" decoding="async" loading="lazy"></picture>
+        <p class="p">A Texas driver’s license.</p>
       </div>
       <a class="more" href="waitlist.html" data-r>Buying, not selling? Get early access to the app.<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l5.5 4.5L5 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
     </div>
     <figure class="fact slab" data-r>
       <blockquote>US dealers’ average used-vehicle listing price was <b>$27,239</b> in August 2026, 7% above a year ago.</blockquote>
       <figcaption>Cox Automotive, from vAuto Live Market View data. Published September 11, 2026; checked October 12, 2026 at <a href="https://www.coxautoinc.com/insights/used-vehicle-inventory-august-2026/" rel="noopener" target="_blank">coxautoinc.com</a>.</figcaption>
-      <p class="frame">That’s what lots are asking. On the lane, the price is whatever the bidders say, and they can see it live.</p>
+      <p class="frame">That’s what lots are asking. On the lane, bidders set the price.</p>
     </figure>
   </div>
 </section>
@@ -255,11 +261,11 @@
 <!-- How bad it can get (CP10; docs/plan/collateral.md section 2) -->
 <section class="sec" id="worst">
   <div class="wrap split">
-    <div><h2 data-r>How bad it can get.</h2><p class="p" data-r>The worst cases, from your side of the desk.</p></div>
+    <div><h2 data-r>How bad it can get.</h2></div>
     <ul class="worst" data-r>
-      <li><b>The car doesn’t start at pickup.</b><span>No sale. The buyer’s money goes back, and the car stays yours.</span></li>
-      <li><b>The winner walks away.</b><span>They lose their $250 deposit. It goes to you, less processing, and you relist from the Desk.</span></li>
-      <li><b>You can’t deliver.</b><span class="pair"><picture class="obj coin"><source type="image/webp" srcset="assets/scene-3d/coin-light.webp 1x, assets/scene-3d/coin-light-2x.webp 2x"><img src="assets/scene-3d/coin-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture><span>The buyer gets the $250 back in full, and the miss is recorded on your account.</span></span></li>
+      <li><b>The car doesn’t start at pickup.</b><span>No sale. The money goes back. The car stays yours.</span></li>
+      <li><b>The winner walks away.</b><span>Their $250 goes to you, less processing. You relist from the Desk.</span></li>
+      <li><b>You can’t deliver.</b><span class="pair"><picture class="obj coin"><source type="image/webp" srcset="assets/scene-3d/coin-light.webp 1x, assets/scene-3d/coin-light-2x.webp 2x"><img src="assets/scene-3d/coin-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture><span>The buyer gets the $250 back in full. The miss goes on your account.</span></span></li>
     </ul>
   </div>
 </section>
