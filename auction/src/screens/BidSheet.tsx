@@ -19,6 +19,9 @@ import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '../components/Cloud';
+import { Moment, useMoment } from '../components/Moment';
+import { MOMENT_3D } from '../components/scene3d';
+import { clock as momentClock } from '../components/hammer';
 import { CloudButton } from '../components/CloudButton';
 import { Sky } from '../components/Sky';
 import { driftLevel, useDriftSound } from '../components/Sheet';
@@ -41,6 +44,13 @@ import { IdScan } from './won/Scan';
 import { PhoneSignIn } from './won/Phone';
 
 const STEP_PT = 28;
+/** The coin moment, light on the sheet's sky (DOCTRINE §5: "the deposit coin coming back"); null when no render ships. */
+const COIN = MOMENT_3D.coin?.light ?? null;
+/** The coin's cell beside the 64 pt $250: the coin fills its middle 74 percent. */
+const COIN_H = 88;
+/** How long the glass holds on the captured deposit: the coin's turn (400 ms) and one landing's worth of rest
+    on its face, then the held line lands and the bid goes. No coin shipped: no hold. */
+const COIN_HOLD = COIN ? momentClock(COIN).totalMs + ms.land : 0;
 const TERMS_ROOM = 96;   // the four terms at 17 pt, read at arm's length (DOCTRINE §4.3): five lines on a 393 phone
 const AIR = 64;          // the 17 pt words, the held line and the air above the cloud's crowns: everything fits at rest, nothing touches
 type Phase = 'arming' | 'phone' | 'id' | 'deposit' | 'inflight' | 'landed' | 'rejected';
@@ -63,6 +73,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   const [ceilOpen, setCeilOpen] = useState(false); // Hick: the wheel is hidden until the buyer asks for it
   const [punch, setPunch] = useState<number>();
   const [landKey, setLand] = useState<number | undefined>(once.deposit ? 0 : undefined);   // the deposit line appears once it exists
+  const [captured, setCaptured] = useState(false);   // the deposit just captured: the coin turns beside the $250 before the line lands
   const [stamp, setStamp] = useState<string | null>(null);
   // too_many_bids: when the Worker's Retry-After lifts; the seconds left count down beside the stamp and Bid
   // stays off until they reach 0. one_open_bid: the car the buyer already holds, the stamp's tap
@@ -196,7 +207,10 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     const r = await takeDeposit();
     if (r === 'cancelled') { setPhase('arming'); return; }              // silence is the punishment
     if (r === 'failed') { setPhase('arming'); return; }                   // silent too: the button is still there
-    setLand(Date.now()); setPhase('arming'); later(place, ms.land);   // the line lands (feel.held on its first frame), then the bid goes
+    // the capture lands: the coin turns once beside the $250 (the Deposit's moment); then the line lands
+    // (feel.held on its first frame), then the bid goes
+    setCaptured(true);
+    later(() => { setLand(Date.now()); setPhase('arming'); later(place, ms.land); }, COIN_HOLD);
   };
 
   return (
@@ -208,7 +222,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
           <Sky radius={28} low drag={y} />
           <View style={s.grab} />
           {phase === 'deposit' ? (
-            <Deposit onConfirm={confirmDeposit} onCancel={() => setPhase('arming')} />
+            <Deposit captured={captured} onConfirm={confirmDeposit} onCancel={() => setPhase('arming')} />
           ) : (
             <>
               <View style={s.ringRow}>
@@ -295,15 +309,28 @@ function Tick() {
   return <Svg width={26} height={26} viewBox="0 0 26 26"><Path d="M5 13.5 L10.5 19 L21 7.5" stroke={theme.color.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 }
 
-/** The one slow moment, Apple's shape: $250 · refunded if you lose. Once, ever. */
-function Deposit({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+/** The one slow moment, Apple's shape: $250 · refunded if you lose. Once, ever. The coin is not on the glass
+    until the deposit exists (lego §4.7, absence); as the capture lands it comes back and settles face up touching
+    the $250 (§4.1), one turn of 400 ms, and rests there while the Pay verb leaves (its room kept, so the number
+    never moves). Reduced motion: the resting coin appears at once. No new sound: the held line's feel.held is
+    the moment's body proof, as before. */
+function Deposit({ captured, onConfirm, onCancel }: { captured: boolean; onConfirm: () => void; onCancel: () => void }) {
+  const reduce = useReducedMotion();
+  const { f, onReady, begin } = useMoment(COIN, reduce, 'hidden');   // not on the glass until the deposit exists
+  useEffect(() => { if (captured) return begin(); }, [captured]);
   return (
     <View style={s.deposit}>
       <Label>Deposit</Label>
-      <Text style={s.depositAmt}>${DEPOSIT}</Text>
+      <View style={s.depositRow}>
+        <Moment m={COIN} f={f} height={COIN_H} onReady={onReady} style={s.coin} testID="coin-sheet" />
+        <Text style={s.depositAmt}>${DEPOSIT}</Text>
+        <View style={{ width: COIN_H * 0.5 }} />
+      </View>
       <Text style={s.depositLine}>refunded if you lose</Text>
-      <CloudButton label="Pay" onPress={onConfirm} style={{ marginTop: theme.space.s }} accessibilityLabel={`Pay ${DEPOSIT} dollars with Apple Pay`} />
-      <Pressable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel="Not now"><Text style={s.cancel}>Not now</Text></Pressable>
+      <View style={captured ? s.gone : null} pointerEvents={captured ? 'none' : 'auto'} importantForAccessibility={captured ? 'no-hide-descendants' : 'auto'} accessibilityElementsHidden={captured}>
+        <CloudButton label="Pay" onPress={captured ? undefined : onConfirm} style={{ marginTop: theme.space.s }} accessibilityLabel={`Pay ${DEPOSIT} dollars with Apple Pay`} />
+        <Pressable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel="Not now" style={{ alignSelf: 'center' }}><Text style={s.cancel}>Not now</Text></Pressable>
+      </View>
     </View>
   );
 }
@@ -384,7 +411,10 @@ const s = StyleSheet.create({
   depositRoom: { height: 34, justifyContent: 'flex-end' },
   foot: { marginTop: 'auto', paddingTop: theme.space.m, alignSelf: 'stretch', alignItems: 'stretch' },   // the crowns rise into this, never into the words above
   deposit: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  depositRow: { flexDirection: 'row', alignItems: 'center' },   // the coin touching the $250; a spacer half its width keeps the number centred
+  coin: { marginRight: -6 },   // the cell's transparent edge overlaps the gap, so the coin's rim touches the figure
   depositAmt: { fontFamily: theme.font.price, fontSize: 64, color: theme.color.ink, marginTop: 4 },
+  gone: { opacity: 0 },   // the verb has been pressed and the money taken: it leaves, its room stays
   depositLine: { ...theme.type.sans, fontSize: 17, color: theme.color.muted, marginBottom: 14 },
   cancel: { ...theme.type.sans, fontSize: 17, color: theme.color.faint, marginTop: 8, paddingVertical: 6 },
   teach: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(8,14,30,0.35)' },

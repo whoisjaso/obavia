@@ -25,6 +25,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { EASE_OUT, spring } from '../motion';
 import { Ring } from '../components/Ring';
 import { Sheet } from '../components/Sheet';
+import { Object3D } from '../components/Object3D';
 import { Body, Button, Caps, Hairline, Label, Page, Pager, Serif } from '../components/Type';
 import type { Car } from '../data/cars';
 import { inLastTwoMinutes } from '../engine/auction';
@@ -39,6 +40,8 @@ import { AUCTION_URL, DEPOSIT, ME, WINS_PER_YEAR, backAfterADay, heldLot, localC
 import { theme } from '../theme';
 
 const WEB_FIELD = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null;
+/** The coin's canvas beside the 34 pt $250 (the coin fills 86 percent of it): the deposit at rest, face up. */
+const COIN = 44;
 
 /** The name, or its field. Bodoni either way: the name owns the top of Me. Save is the one verb and shows
     only once there is a name to save; Return saves too. A saved name taps open to correct it. */
@@ -189,7 +192,13 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
       ) : <Body ink={theme.color.inkSoft} style={{ marginTop: 4 }}>This phone lost its sign-in.</Body>)}
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Deposit</Label>
-      <Serif size={34}>${DEPOSIT}</Serif>
+      {/* the resting coin touching the number (lego §4.1; DOCTRINE §5): the same object that turned when the deposit
+          was taken, still now, because nothing happens on Me; a spacer half its width keeps the number centred */}
+      <View style={s.depositRow}>
+        <Object3D name="coin" height={COIN} appear={false} style={s.coin} />
+        <Serif size={34}>${DEPOSIT}</Serif>
+        <View style={{ width: COIN * 0.5 }} />
+      </View>
       {line.name === undefined ? (
         <Body ink={theme.color.faint} style={{ marginTop: 2 }}>{line.words}</Body>
       ) : openDeposit ? (
@@ -275,5 +284,7 @@ const s = StyleSheet.create({
   // the Bid sheet's stamp row: words and the car's name on one baseline; a long name drops under, still touching
   openRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'center', columnGap: 10, rowGap: 2, marginTop: 2, paddingHorizontal: theme.space.s },
   openName: { letterSpacing: 0, flexShrink: 1 },
+  depositRow: { flexDirection: 'row', alignItems: 'center' },
+  coin: { marginRight: 2 },
   passThumb: { width: 56, height: 70, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.color.well },
 });

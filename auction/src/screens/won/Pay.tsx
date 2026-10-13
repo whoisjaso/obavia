@@ -2,14 +2,33 @@
    day, Wire today, Cash at the lot. The words are the choices. The date is
    the server's pay-by (the lot's sale.deadlineAt, synced by the Lane), in
    Bodoni, in the buyer's own time zone, the same words the push says after
-   "Pay by" (DOCTRINE CP9). Until the server's date arrives the line waits. */
-import React from 'react';
-import { View } from 'react-native';
+   "Pay by" (DOCTRINE CP9). Until the server's date arrives the line waits.
+   The clock touches the date (lego §4.1; DOCTRINE §5: "the clock and ring
+   (the close, the pay deadline)"): its arc sweeps once from twelve to its
+   mark as the deadline lands on the glass (400 ms, the moment player) and
+   rests there. Reduced motion: the resting clock, no sweep. No sound: the
+   tap on a word is the page's feel, and that stays as it was. */
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
+import { Moment, useMoment } from '../../components/Moment';
+import { MOMENT_3D } from '../../components/scene3d';
 import { Choice, Hairline, Label, Page, Serif } from '../../components/Type';
 import { dollars } from '../../engine/money';
+import { cloud, ms } from '../../motion';
 import { payByWords, payDeadline, setSale, useSale } from '../../sale';
 import { DEPOSIT } from '../../store';
 import { theme } from '../../theme';
+
+/** The light set, the one Pay draws on the sky; null when no render ships. */
+export const CLOCK = MOMENT_3D.clock?.light ?? null;
+/** The clock's cell beside a 34 pt date: the ring fills its middle 74 percent, so it stands a hair taller than the
+    numerals, the way the key stands beside the six on the pass. */
+const CLOCK_H = 60;
+/** The page settles child by child (Type.tsx, Settle): the pay-by block is the third, so it is most of the way in
+    at two staggers and half the settle (about 85 percent opaque on the house out-curve). The sweep begins there,
+    on a date the eye can already read, not under a block still fading in. */
+const SETTLE_LEAD = 2 * cloud.stagger + ms.page / 2;
 
 const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function achClears(from: number) {
@@ -20,9 +39,21 @@ function achClears(from: number) {
 
 export function Pay({ onDone }: { onDone: () => void }) {
   const sale = useSale();
-  if (!sale) return null;
-  const due = payDeadline(sale);
+  const reduce = useReducedMotion();
+  const { f, onReady, begin } = useMoment(CLOCK, reduce);
+  const due = sale ? payDeadline(sale) : null;
   const by = due === null ? null : payByWords(due);
+  // the deadline lands (on mount when it is already known, after the block has settled in; the moment the
+  // server's date arrives otherwise): one sweep. Reduced motion: the still, at once.
+  const mounted = useRef(Date.now());
+  useEffect(() => {
+    if (by === null) return;
+    const lead = reduce ? 0 : Math.max(0, SETTLE_LEAD - (Date.now() - mounted.current));
+    let stop: (() => void) | undefined;
+    const t = setTimeout(() => { stop = begin(); }, lead);
+    return () => { clearTimeout(t); stop?.(); };
+  }, [by !== null]);
+  if (!sale) return null;
   const pick = (k: 'ach' | 'wire' | 'cash') => { setSale({ pay: k }); setTimeout(onDone, 260); };
   return (
     <Page>
@@ -31,7 +62,12 @@ export function Pay({ onDone }: { onDone: () => void }) {
       {by && (
         <View accessible accessibilityLabel={`Pay by ${by}`} style={{ marginTop: theme.space.m, alignItems: 'center' }}>
           <Label>Pay by</Label>
-          <Serif size={34}>{by}</Serif>
+          {/* the clock touching the date it measures; a spacer half its width on the other side keeps the date centred */}
+          <View style={s.byRow}>
+            <Moment m={CLOCK} f={f} height={CLOCK_H} onReady={onReady} style={s.clock} testID="clock-sheet" />
+            <Serif size={34}>{by}</Serif>
+            <View style={{ width: CLOCK_H * 0.5 }} />
+          </View>
         </View>
       )}
       <Hairline style={{ marginVertical: theme.space.l }} />
@@ -43,3 +79,8 @@ export function Pay({ onDone }: { onDone: () => void }) {
     </Page>
   );
 }
+
+const s = StyleSheet.create({
+  byRow: { flexDirection: 'row', alignItems: 'center' },
+  clock: { marginRight: -4 },   // the cell's transparent edge (13 percent) overlaps the gap, so the ring touches the date
+});

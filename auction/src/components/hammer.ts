@@ -1,9 +1,11 @@
-/* The hammer moment's arithmetic, kept free of the native runtime so it is tested (hammer.test.ts) and shared by
-   the player (Hammer.tsx) and by Won's clock. The sheet is the contract's: 24 frames at 60 fps, 0 to `contact`
-   the fall, `contact` the strike, `contact` to `rest` the puff opening and freezing; `rest` is the still. */
+/* The moments' arithmetic (the hammer, the clock, the coin), kept free of the native runtime so it is tested
+   (hammer.test.ts) and shared by the player (Moment.tsx) and by Won's clock. Every sheet is the contract's: 24
+   frames at 60 fps, 0 to `contact` the approach, `contact` the landing (the hammer's strike at 6; the clock's arc
+   at its mark and the coin lying still at 23), `contact` to `rest` the settling; `rest` is the still. */
 import type { Moment3D, MomentSheet } from './scene3d';
 
-/** A frame value below zero draws nothing: the hammer under reduced motion before the strike. */
+/** A frame value below zero draws nothing: the object under reduced motion before the contact; the coin before
+    the deposit exists (lego §4.7, absence). */
 export const HIDDEN = -1;
 /** The frame clock runs to just under the next whole frame past the last one, so the last frame holds its full 1000 / fps. */
 export const UNDER = 0.999;
@@ -14,7 +16,8 @@ export function frameOf(v: number, rest: number): number {
   return v < 0 ? HIDDEN : Math.min(rest, Math.floor(v));
 }
 
-/** The moment's timing in ms: the fall (frames 0 to contact) and the puff (contact to the still), from the fps. */
+/** The moment's timing in ms: the approach (frames 0 to contact) and the settling (contact to the still), from
+    the fps. A contact on the last frame leaves the settling one frame long; the total is always 24 frames. */
 export function clock(m: Pick<Moment3D, 'contact' | 'fps' | 'rest'>) {
   const frame = 1000 / m.fps;
   return { frameMs: frame, contactMs: m.contact * frame, puffMs: (m.rest - m.contact + 1) * frame, totalMs: (m.rest + 1) * frame };
