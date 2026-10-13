@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en" class="o-home" data-host="home">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Served for /lane/<lotId> (deploy/site/lane/lane-page.mjs; Pages: _redirects). The page sits one folder down, so
+     every path here is from the root: base makes the shell's own relative fetches (site.js audio/cloud, shell.css
+     sky/) resolve from the root too. No fragment links on this page: with base they would leave it. -->
+<base href="/">
+<title>Obavia: a car on the lane</title>
+<meta name="description" content="A car on the Obavia lane: the price now, the time left and the dealer's name. Open the app to bid.">
+<meta name="theme-color" content="#DCE6FA">
+<meta property="og:title" content="Obavia: a car on the lane">
+<meta property="og:description" content="The price now, the time left and the dealer's name. Open the app to bid.">
+<meta property="og:image" content="/apple-touch-icon.png">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="preload" href="/assets/bodoni-moda-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/shell.css">
+<link rel="stylesheet" href="/cloud.css">
+<link rel="stylesheet" href="/lane.css">
+<script>(function(){var h=document.documentElement;h.className+=' o-pre';try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
+</head>
+<body>
+<div class="o-sky" aria-hidden="true">
+  <i class="glow"></i>
+  <div class="cl-layer far"><i class="cl-cloud"></i></div>
+  <div class="cl-layer mid"><i class="cl-cloud"></i></div>
+  <div class="cl-layer near"><i class="cl-cloud"></i></div>
+  <i class="cl-grain"></i>
+</div>
+<div class="o-load" id="oLoad" aria-hidden="true"><div class="bg"></div>
+  <svg class="o-logo" id="oLogo" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9EFFE"/><stop offset=".55" stop-color="#B8C8F1"/><stop offset="1" stop-color="#869FD6"/></linearGradient>
+      <radialGradient id="ol" cx=".75" cy=".35" r=".4"><stop offset="0" stop-color="#5A73B0" stop-opacity=".32"/><stop offset="1" stop-color="#5A73B0" stop-opacity="0"/></radialGradient>
+      <radialGradient id="oh"><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+      <clipPath id="oc"><circle cx="32" cy="32" r="30"/></clipPath>
+    </defs>
+    <circle class="halo" cx="50" cy="50" r="50" fill="url(#oh)"/>
+    <circle class="track" cx="50" cy="50" r="46"/>
+    <circle class="ring" cx="50" cy="50" r="46" pathLength="1"/>
+    <g class="orb"><g transform="translate(18 18)">
+      <circle cx="32" cy="32" r="30" fill="url(#og)"/>
+      <g clip-path="url(#oc)"><rect width="64" height="64" fill="url(#ol)"/>
+        <g transform="translate(32 32) rotate(-35.5)" fill="none" stroke-linecap="round">
+          <path class="rib sh" pathLength="1" transform="translate(1.5 1.2)" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#4E66A0" stroke-opacity=".3" stroke-width="7.6"/>
+          <path class="rib" pathLength="1" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#FFFFFF" stroke-width="7"/>
+        </g></g>
+    </g></g>
+  </svg>
+</div>
+<!-- The nav: the mark alone. No link anywhere but the one action. shell.js expects #oMenu and #oSheet, so both exist, hidden. -->
+<header class="o-nav" id="oNav">
+  <div class="o-wrap">
+    <span class="o-brand"><img src="/favicon.svg" alt="Obavia" id="oMark"></span>
+    <button class="o-menu" id="oMenu" type="button" hidden aria-hidden="true" tabindex="-1" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
+  </div>
+</header>
+<nav class="o-sheet" id="oSheet" hidden aria-hidden="true"></nav>
+<script src="/shell.js"></script>
+<main>
+<!-- The lane link's page (DOCTRINE CF6: one object of attention; CP9: the same price, the same clock, the same name
+     as the phone and the Desk; lego.md section 4, touching): the car's name, the price in Bodoni touching its words,
+     the time left, the dealer's name and city, and one action. The lot comes from GET /lots/:id on the auction
+     Worker, the public lot: no ceiling, no dealer secret, no buyer's name (the high bidder's id rides in the lot and is never shown).
+     A null, a failed read or no Worker origin yet reads "Not read".
+
+     WORKER URL: data-worker is the same PLACEHOLDER results.html carries; set it to the Worker's https origin
+     (wrangler.toml, name "obavia-auction") when it is deployed, and add that origin to obavia-co/_headers
+     connect-src, or the browser blocks the read.
+     APP LINKS: data-ios and data-android are PLACEHOLDERS for the App Store and Google Play pages; the owner
+     fills them when the store listings exist. Until then the one action opens the app by its scheme
+     (obavia://lane/<lotId>, auction/app.config.ts scheme "obavia") and falls back to nothing.
+     REFERRAL (gap-table.md W4-E): a buyer's share link carries ?r=<code>. The code rides on the app link as its
+     param (obavia://lane/<lotId>?r=<code>) and on either store link as ?r=<code>; the phone claims it. Nothing
+     about it is on the glass: it waives nothing (phases.md Phase 5 Marketing). -->
+<section class="hero ln-hero" id="top" data-worker="PLACEHOLDER" data-path="/lots/" data-ios="PLACEHOLDER" data-android="PLACEHOLDER">
+  <div class="wrap">
+    <div class="copy">
+      <p class="ln-eyebrow" data-r>On the lane</p>
+      <h1 class="ln-car" id="lnCar" data-r>Reading</h1>
+    </div>
+    <ol class="ln-rows slab" id="lnRows" data-r aria-busy="true">
+      <li class="ln-price"><b class="ln-n" id="lnPrice">&nbsp;</b><span id="lnPriceWords">now</span></li>
+      <li><b class="ln-v" id="lnTime">&nbsp;</b></li>
+      <li><b class="ln-v" id="lnDealer">&nbsp;</b></li>
+    </ol>
+    <div class="act" data-r><a class="btn cloud ln-open" id="lnOpen" href="obavia://lane/">Open the app</a></div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <span class="brand"><img src="/favicon.svg" alt=""></span>
+    <small>&copy; 2026 Obavia</small>
+  </div>
+</footer>
+
+<script src="/assets/vendor/gsap/gsap.min.js"></script>
+<script src="/assets/vendor/gsap/ScrollTrigger.min.js"></script>
+<script src="/site.js"></script>
+<script src="/cloud-atmosphere.js"></script>
+<script>
+/* The one read. The lot id is the last segment of the address (the Worker's own id shape). GET
+   <data-worker>/lots/<id>, no credentials, eight seconds. The car's name, the price, the clock and the dealer
+   land as words; anything missing lands as "Not read". The clock counts down on the page from the Worker's
+   closesAt. The one action is the app's scheme link with the lot; on a phone, when the app does not take it
+   within a moment and the store link for that platform is a real https address, the store opens instead.
+   A ?r=<code> on this address (the buyer's share link) is carried onto the app link and the store link, unread. */
+(() => {
+'use strict';
+const sec = document.getElementById('top'), rows = document.getElementById('lnRows');
+const car = document.getElementById('lnCar'), price = document.getElementById('lnPrice'), words = document.getElementById('lnPriceWords');
+const time = document.getElementById('lnTime'), dealer = document.getElementById('lnDealer'), open = document.getElementById('lnOpen');
+const NOT = 'Not read';
+const m = location.pathname.match(/^\/(?:obavia\/)?lane\/([A-Za-z0-9_-]{1,64})\/?$/);
+const lotId = m ? m[1] : null;
+const rq = new URLSearchParams(location.search).get('r') || '';
+const ref = /^[A-Za-z0-9_-]{1,32}$/.test(rq) ? rq : '';           // the code's own shape, or nothing
+const withRef = (href) => ref ? href + (href.includes('?') ? '&' : '?') + 'r=' + encodeURIComponent(ref) : href;
+const origin = (sec.dataset.worker || '').replace(/\/$/, '');
+const url = lotId && /^https:\/\//.test(origin) ? origin + (sec.dataset.path || '/lots/') + encodeURIComponent(lotId) : null;
+const https = v => /^https:\/\//.test(v || '') ? v : null;
+const dollars = n => '$' + Math.round(n).toLocaleString('en-US');
+const left = (ms) => {   // "3d 2h left", "2h 14m left", "4m 12s left", "48s left"
+  const s = Math.max(0, Math.floor(ms / 1000)), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), mi = Math.floor(s % 3600 / 60), se = s % 60;
+  return (d ? d + 'd ' + h + 'h' : h ? h + 'h ' + mi + 'm' : mi ? mi + 'm ' + se + 's' : se + 's') + ' left';
+};
+let timer = null;
+const clock = (lot) => {
+  const now = Date.now();
+  if (lot.closed || lot.closesAt <= now) { time.textContent = lot.sale || (lot.closed && lot.closed.sold) ? 'Sold' : 'Closed'; if (timer) clearInterval(timer); timer = null; return; }
+  if (lot.opensAt > now) { time.textContent = 'Opens in ' + left(lot.opensAt - now).replace(' left', ''); return; }
+  time.textContent = left(lot.closesAt - now);
+};
+const land = (lot) => {
+  const c = lot && lot.car;
+  car.textContent = c && c.year && c.make && c.model ? c.year + ' ' + c.make + ' ' + c.model : NOT;
+  const n = lot && typeof lot.high === 'number' ? lot.high : null;
+  price.textContent = n === null ? NOT : dollars(n);
+  price.classList.toggle('not', n === null);
+  words.textContent = n === null ? '' : lot.sale || (lot.closed && lot.closed.sold) ? 'sold' : lot.closed ? 'closed' : lot.bids > 0 ? 'now' : 'to open';
+  if (lot && typeof lot.closesAt === 'number') { clock(lot); if (!timer) timer = setInterval(() => clock(lot), 1000); } else time.textContent = NOT;
+  dealer.textContent = c && c.dealer && c.dealer.name ? c.dealer.name + (c.dealer.city ? ' · ' + c.dealer.city : '') : NOT;
+  rows.setAttribute('aria-busy', 'false');
+};
+// the one action: the app's scheme link with the lot; the store as the fallback, only with a real address
+if (lotId) open.href = withRef('obavia://lane/' + encodeURIComponent(lotId));
+const ua = navigator.userAgent || '';
+const chosen = /iPhone|iPad|iPod/.test(ua) ? https(sec.dataset.ios) : /Android/.test(ua) ? https(sec.dataset.android) : null;
+const store = chosen ? withRef(chosen) : null;
+if (store) open.dataset.store = store;
+if (store) open.addEventListener('click', () => {
+  const at = Date.now();
+  setTimeout(() => { if (document.visibilityState === 'visible' && Date.now() - at < 2500) location.href = store; }, 1400);
+});
+if (!url) { land(null); return; }
+const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 8000);
+fetch(url, { credentials: 'omit', signal: ctl.signal })
+  .then(r => r.ok ? r.json() : null)
+  .then(d => land(d && typeof d === 'object' ? d : null))
+  .catch(() => land(null))
+  .finally(() => clearTimeout(t));
+})();
+</script>
+</body>
+</html>

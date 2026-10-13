@@ -1,10 +1,27 @@
-/* Shared atmosphere: photographic cloud texture, composited native-scroll depth.
-   Content stays above decoration; no pointer, layout, or scroll interception. */
+/* Shared atmosphere for the editorial pages: the three volumetric cloud layers
+   (assets/cloud-layers, served from sky/clouds) plus grain, drifting and moving
+   by depth through cloud-atmosphere.js. Content stays above decoration; no
+   pointer, layout, or scroll interception. The shell pages (index, waitlist)
+   carry the same layers inside .o-sky, styled in cloud.css. */
 html{scroll-behavior:smooth}
 body{isolation:isolate}
-.cloud-atmosphere{position:fixed;inset:-80px 0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
-.cloud-layer{position:absolute;inset:0;background:url('./assets/obavia-clouds.webp') center bottom/cover no-repeat;will-change:transform;opacity:.48;transform:translate3d(0,var(--cloud-near,0px),0)}
-.cloud-layer-far{inset:-10% -15%;background-position:65% 18%;transform:translate3d(0,var(--cloud-far,0px),0) rotate(180deg);opacity:.2}
+.cloud-atmosphere{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict;background:linear-gradient(180deg,#DCE6FA 0%,#F2F6FF 60%)}
+.cloud-atmosphere .cl-layer{position:absolute;left:-14%;right:-14%;will-change:transform}
+.cloud-atmosphere .far{top:2%;height:64%;opacity:.5}.cloud-atmosphere .mid{top:26%;height:72%;opacity:.6}.cloud-atmosphere .near{bottom:-20%;height:72%;opacity:.82}
+.cloud-atmosphere .cl-cloud{position:absolute;inset:0;display:block;background:center/cover no-repeat;will-change:transform}
+.cloud-atmosphere .far .cl-cloud{background-image:image-set(url(./sky/clouds/far@1x.webp) 1x,url(./sky/clouds/far@2x.webp) 2x)}
+.cloud-atmosphere .mid .cl-cloud{background-image:image-set(url(./sky/clouds/mid@1x.webp) 1x,url(./sky/clouds/mid@2x.webp) 2x)}
+.cloud-atmosphere .near .cl-cloud{background-position:center bottom;background-image:image-set(url(./sky/clouds/near@1x.webp) 1x,url(./sky/clouds/near@2x.webp) 2x)}
+/* the Blender sky (cloud-atmosphere.js, cloud3d-engine.js): three full-frame, tileable layers. The README's pure
+   stack is 0.72, 0.84, 0.94; behind copy the mid and near banks step back to 0.4 and 0.6 (the phone's Sky does
+   the same) so their blue-grey undersides never sit behind a line of text. The cloud-layers set stays hidden while
+   the probe runs. */
+html .c3d-sky-wait .cl-cloud{background-image:none!important}
+.cloud-atmosphere.c3d-sky-blender>.cl-layer{top:0;bottom:auto;height:100%}
+.cloud-atmosphere.c3d-sky-blender .cl-cloud{background-size:auto 100%;background-repeat:repeat-x}
+.cloud-atmosphere.c3d-sky-blender>.cl-layer.far{opacity:.72}.cloud-atmosphere.c3d-sky-blender>.cl-layer.mid{opacity:.4}.cloud-atmosphere.c3d-sky-blender>.cl-layer.near{opacity:.6}
+.cloud-atmosphere .cl-grain{position:absolute;inset:0;display:block;background:url(./sky/clouds/grain.webp) 0 0/256px repeat;mix-blend-mode:soft-light;opacity:.03}
+@media(max-width:719px){.cloud-atmosphere .far{top:4%;height:46%}.cloud-atmosphere .mid{top:30%;height:52%}.cloud-atmosphere .near{height:56%;bottom:-16%}}
 /* Keep the central reading column white while cloud forms remain at the edges. */
 .cloud-atmosphere:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.8) 25%,rgba(255,255,255,.86) 70%,transparent)}
 .hero{background:transparent}
@@ -22,9 +39,8 @@ body{isolation:isolate}
 ::view-transition-new(root){animation:cloud-page-in 280ms ease-out both}
 @keyframes cloud-page-out{to{opacity:0}}
 @keyframes cloud-page-in{from{opacity:0}to{opacity:1}}
-@media(max-width:700px){.cloud-layer{background-size:auto 105%;background-position:15% bottom;opacity:.46}.cloud-layer-far{background-position:85% bottom;opacity:.22}.cloud-atmosphere:after{background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.82) 32%,rgba(255,255,255,.85) 74%,rgba(255,255,255,.12))}.entrance:before,.entrance:after{background-size:auto 100%;background-position:48% bottom}}
-.motion-paused .cloud-layer{will-change:auto}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.cloud-layer{transform:none!important;will-change:auto}.cloud-layer-far{transform:rotate(180deg)!important}.entrance{display:none}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+@media(max-width:700px){.cloud-atmosphere:after{background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.82) 32%,rgba(255,255,255,.85) 74%,rgba(255,255,255,.12))}.entrance:before,.entrance:after{background-size:auto 100%;background-position:48% bottom}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.entrance{display:none}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 
 /* Verified Apohenia intro typography: Barlow Condensed 800, tabular count,
    0.04em tracking and raised 0.4em percentage. Palette follows Obavia. */
@@ -53,13 +69,11 @@ body{isolation:isolate}
 
 /* Continuous atmosphere uses independent translate, preserving scroll depth.
    Closed loops and overscan keep every edge covered without moving content. */
-.cloud-layer{inset:-32px;animation:atmosphere-near-drift 28s ease-in-out -7s infinite;will-change:transform,translate}
-.cloud-layer-far{inset:-10% -15%;animation:atmosphere-far-drift 36s ease-in-out -9s infinite}
 @keyframes atmosphere-near-drift{0%,100%{translate:-12px 5px}50%{translate:12px -5px}}
 @keyframes atmosphere-far-drift{0%,100%{translate:10px -4px}50%{translate:-10px 4px}}
 .entrance:before{animation:atmosphere-near-drift 28s ease-in-out -7s infinite}
 .entrance:after{animation:atmosphere-far-drift 36s ease-in-out -9s infinite}
 .entrance.loading:before{animation:arrival-cloud-in 680ms ease-out both,atmosphere-near-drift 28s ease-in-out -7s infinite}
 .entrance.loading:after{animation:arrival-cloud-far-in 820ms ease-out both,atmosphere-far-drift 36s ease-in-out -9s infinite}
-.motion-paused .cloud-layer,.motion-paused .entrance:before,.motion-paused .entrance:after{animation-play-state:paused;will-change:auto}
-@media(prefers-reduced-motion:reduce){.cloud-layer,.entrance:before,.entrance:after{animation:none!important;translate:none!important;will-change:auto}}
+.motion-paused .entrance:before,.motion-paused .entrance:after{animation-play-state:paused;will-change:auto}
+@media(prefers-reduced-motion:reduce){.entrance:before,.entrance:after{animation:none!important;translate:none!important;will-change:auto}}

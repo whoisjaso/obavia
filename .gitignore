@@ -6,3 +6,7 @@ dist/
 *.log
 *.tmp
 .claude/settings.local.json
+shots-review/
+obavia-co/assets/cloud-3d/
+desk/public/cloud-3d/
+auction/worker/assets/pdfjs/

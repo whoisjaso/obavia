@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en" class="o-home" data-host="home">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Obavia: the lane so far</title>
+<meta name="description" content="What the Obavia lane has done, counted by its own server: cars listed, cars sold, cars started at pickup, deposits returned, the reserve ratio and the disputes, dated.">
+<meta name="theme-color" content="#DCE6FA">
+<meta property="og:title" content="Obavia: the lane so far">
+<meta property="og:description" content="Cars listed, sold and started, deposits returned, the reserve ratio and the disputes, counted by the lane's own server and dated.">
+<meta property="og:image" content="apple-touch-icon.png">
+<link rel="canonical" href="https://obavia.co/results">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/bodoni-moda-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="cloud.css">
+<link rel="stylesheet" href="lane.css">
+<link rel="stylesheet" href="results.css">
+<script>(function(){var h=document.documentElement;h.className+=' o-pre';try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
+</head>
+<body>
+<div class="o-sky" aria-hidden="true">
+  <i class="glow"></i>
+  <div class="cl-layer far"><i class="cl-cloud"></i></div>
+  <div class="cl-layer mid"><i class="cl-cloud"></i></div>
+  <div class="cl-layer near"><i class="cl-cloud"></i></div>
+  <i class="cl-grain"></i>
+</div>
+<div class="o-load" id="oLoad" aria-hidden="true"><div class="bg"></div>
+  <svg class="o-logo" id="oLogo" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9EFFE"/><stop offset=".55" stop-color="#B8C8F1"/><stop offset="1" stop-color="#869FD6"/></linearGradient>
+      <radialGradient id="ol" cx=".75" cy=".35" r=".4"><stop offset="0" stop-color="#5A73B0" stop-opacity=".32"/><stop offset="1" stop-color="#5A73B0" stop-opacity="0"/></radialGradient>
+      <radialGradient id="oh"><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+      <clipPath id="oc"><circle cx="32" cy="32" r="30"/></clipPath>
+    </defs>
+    <circle class="halo" cx="50" cy="50" r="50" fill="url(#oh)"/>
+    <circle class="track" cx="50" cy="50" r="46"/>
+    <circle class="ring" cx="50" cy="50" r="46" pathLength="1"/>
+    <g class="orb"><g transform="translate(18 18)">
+      <circle cx="32" cy="32" r="30" fill="url(#og)"/>
+      <g clip-path="url(#oc)"><rect width="64" height="64" fill="url(#ol)"/>
+        <g transform="translate(32 32) rotate(-35.5)" fill="none" stroke-linecap="round">
+          <path class="rib sh" pathLength="1" transform="translate(1.5 1.2)" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#4E66A0" stroke-opacity=".3" stroke-width="7.6"/>
+          <path class="rib" pathLength="1" d="M8.82 -10.79 A9.0 9.0 0 1 0 0 0 A9.0 9.0 0 1 1 -7.28 3.71" stroke="#FFFFFF" stroke-width="7"/>
+        </g></g>
+    </g></g>
+  </svg>
+</div>
+<!-- The nav: the mark and one link back to the dealer page, as waitlist.html does. shell.js expects #oMenu and #oSheet, so both exist, hidden. -->
+<header class="o-nav" id="oNav">
+  <div class="o-wrap">
+    <a class="o-brand" href="#top" aria-label="Obavia, back to the top"><img src="favicon.svg" alt="" id="oMark"></a>
+    <ul class="o-links rs-links"><li><a href="index.html">For dealers</a></li></ul>
+    <button class="o-menu" id="oMenu" type="button" hidden aria-hidden="true" tabindex="-1" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
+  </div>
+</header>
+<nav class="o-sheet" id="oSheet" hidden aria-hidden="true"></nav>
+<script src="shell.js"></script>
+<main>
+<!-- The results page (DOCTRINE CP5, growth plan CP5 row; lego.md section 8, "aligned"): the numbers the lane's own
+     server keeps, each in Bodoni touching its words, the date of the last reconciliation as the provenance line, and
+     one action. Every value comes from GET /results on the auction Worker (auction/worker/README.md), which returns
+     aggregate counts only: no name, no GDN, no lot id, no dollar amount per lot, no fee (43 TAC section 215.85).
+     Nothing here is a claim about an outcome; a null from the Worker reads "Not read".
+
+     The date line reads "Checked <date>." (DOCTRINE section 4 rule 11: no five-syllable word where one will do).
+
+     WORKER URL: the site does not yet know the auction Worker's origin (index.html and lane-apply.js reach only
+     /api/waitlist on obavia.co). data-worker below is a PLACEHOLDER; set it to the Worker's https origin
+     (wrangler.toml, name "obavia-auction") when it is deployed. Until then every number reads "Not read".
+     obavia-co/_headers sends connect-src 'self'; that origin must be added there too, or the browser blocks the read. -->
+<section class="hero rs-hero" id="top" data-worker="PLACEHOLDER" data-path="/results" data-seeded="true">
+  <div class="wrap">
+    <div class="copy">
+      <h1 data-r>The lane so far.</h1>
+    </div>
+    <!-- House law: a seeded number says so. data-seeded="true" above keeps this word on the glass while the figures behind
+         the page are the seeded fixture; it becomes "false" in the same edit that sets data-worker to the live origin, once
+         the lane's own numbers replace it (simplicity-audit.md section 3 row 5, 2026-10-13). -->
+    <p class="rs-seeded" id="rsSeeded" data-r>Seeded</p>
+    <ol class="rs-rows slab" id="rsRows" data-r aria-busy="true">
+      <li><b class="m rs-n" data-k="lotsOpened">&nbsp;</b><span>Cars listed</span></li>
+      <li><b class="m rs-n" data-k="carsSold">&nbsp;</b><span>Cars sold</span></li>
+      <li><b class="m rs-n" data-k="carsStarted">&nbsp;</b><span>Started at pickup</span></li>
+      <li><b class="m rs-n" data-k="depositsRefunded">&nbsp;</b><span>Deposits back in full</span></li>
+      <li><b class="m rs-n" data-k="reserveRatio">&nbsp;</b><span>Reserve ratio</span></li>
+      <li><b class="m rs-n" data-k="disputes">&nbsp;</b><span>Disputes</span></li>
+      <li><b class="m rs-n" data-k="nightsEqual">&nbsp;</b><span>Nights the ledger matched</span></li>
+    </ol>
+    <p class="rs-when" id="rsWhen" data-r role="status" aria-live="polite">Reading.</p>
+    <div class="act" data-r><a class="btn cloud" href="index.html#apply">Get on the lane</a></div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Obavia, back to the top"><img src="favicon.svg" alt=""></a>
+    <nav aria-label="Footer"><a href="index.html">For dealers</a><a href="waitlist.html">Buyers</a></nav>
+    <small>&copy; 2026 Obavia</small>
+  </div>
+</footer>
+
+<script src="assets/vendor/gsap/gsap.min.js"></script>
+<script src="assets/vendor/gsap/ScrollTrigger.min.js"></script>
+<script src="site.js"></script>
+<script src="cloud-atmosphere.js"></script>
+<script>
+/* The one read. GET <data-worker><data-path>, no credentials, eight seconds. A number lands as a number; a null
+   lands as "Not read"; a failed read, or no Worker origin yet, lands every row as "Not read". The provenance
+   line is the date of the last reconciliation the Worker reports. No animation here beyond the CSS fade
+   (results.css), which reduced motion turns off; site.js owns the entrances. */
+(() => {
+'use strict';
+const sec = document.getElementById('top'), rows = document.getElementById('rsRows'), when = document.getElementById('rsWhen');
+const cells = [...rows.querySelectorAll('.rs-n')];
+const seeded = document.getElementById('rsSeeded');
+if (seeded && sec.dataset.seeded !== 'true') seeded.hidden = true;
+const NOT = 'Not read';
+const origin = (sec.dataset.worker || '').replace(/\/$/, '');
+const url = /^https:\/\//.test(origin) ? origin + (sec.dataset.path || '/results') : null;
+const day = ms => new Date(ms).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+const show = (cell, v) => {
+  const k = cell.dataset.k;
+  const text = v === null || v === undefined ? NOT
+    : k === 'reserveRatio' ? (typeof v === 'number' ? v.toFixed(2) : NOT)
+    : typeof v === 'number' ? Math.round(v).toLocaleString('en-US') : NOT;
+  cell.textContent = text;
+  cell.classList.toggle('not', text === NOT);
+  cell.classList.add('in');
+};
+const land = (data) => {
+  cells.forEach(c => show(c, data ? data[c.dataset.k] : null));
+  const at = data && typeof data.reconciledAt === 'number' ? data.reconciledAt : null;
+  when.textContent = at ? 'Checked ' + day(at) + '.' : data ? 'Not checked yet.' : 'Not read.';
+  rows.setAttribute('aria-busy', 'false');
+};
+if (!url) { land(null); return; }
+const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
+fetch(url, { credentials: 'omit', signal: ctl.signal })
+  .then(r => r.ok ? r.json() : null)
+  .then(d => land(d && typeof d === 'object' ? d : null))
+  .catch(() => land(null))
+  .finally(() => clearTimeout(timer));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+/* The production desk's paper: Tailwind v4 over the document components, then
+   the production stylesheet (src/app/globals.css) unchanged, with Geist and Cormorant Garamond served
+   locally where next/font served it. Loaded only inside the paper frame, so
+   none of it reaches the Desk's own screens. */
+@import "tailwindcss" source(none);
+@import "./production-globals.css";
+@source "../components/documents";
+
+:root { --font-geist-sans: "Geist"; --font-geist-mono: "Geist Mono"; }
+html, body { background: #fff; margin: 0; }

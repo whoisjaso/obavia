@@ -1,0 +1,43 @@
+name = "obavia-auction"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+DEV = "0"
+
+# Nightly: payouts left owed go out to dealers with a connected account (src/index.ts sendAllOwed), then the
+# reconciliation (src/reconcile.ts). 08:00 UTC is 03:00 Central in daylight time, 02:00 in standard time.
+[triggers]
+crons = ["0 8 * * *"]
+
+[[durable_objects.bindings]]
+name = "AUCTION"
+class_name = "Auction"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Auction"]
+
+# pdf.js for the document page (src/view.ts), served by this Worker at /pdfjs/*: the files are copied from the pinned
+# pdfjs-dist by `npm run vendor` (before dev, test and deploy), so one `wrangler deploy` ships them with the code.
+[assets]
+directory = "./assets"
+binding = "ASSETS"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "obavia-auction-files"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "obavia-auction"
+database_id = "8d5270dc-a2c4-41bc-8ca3-8bdbd8a01ef7"
+migrations_dir = "migrations"
+
+# Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, MINT_SECRET (POST /dealers/mint only), WHOP_API_KEY, WHOP_WEBHOOK_SECRET, TELNYX_API_KEY, META_CAPI_TOKEN,
+#   GOOGLE_WALLET_SERVICE_ACCOUNT (the service account's JSON; with GOOGLE_WALLET_ISSUER_ID, GET /lots/:id/pass signs the Google Wallet pass; without both it is 503 pass_unavailable)
+# Vars to set: WHOP_ACCOUNT_ID (biz_…), WHOP_API_BASE (sandbox in staging), TELNYX_VERIFY_PROFILE_ID, META_PIXEL_ID (the Meta dataset id; without it and META_CAPI_TOKEN no event leaves),
+#   META_TEST_EVENT_CODE (Events Manager's test code, set only while verifying the four events; remove before any spend), GOOGLE_WALLET_ISSUER_ID
+# Wave 4 flags, deliberately absent here (off): ARBITRATION=1 (the D13 clause on GET /terms, required before a bid), GUIDE_REQUIRED=1 (a public lot's open needs the Buyers Guide document). Set only by the owner, after counsel's Q14 for ARBITRATION.
+# Migrations: 0019 before this code (Wave 4: dealers.wholesale_gdn and referral, dealer_settings, referrals, referral_claims, buyers.clause_version and clause_at); 0017 before the earlier code (dealers.whop_account_verified_at, the alarm audit's two counts on reconciliations, recoveries); 0016 (W3-A: platform, invoices) before POST /admin/gdn answers; 0015 before the earlier code (marketing_events: the four standard Meta events, sent or only recorded); 0014 before this code (bid_attempts for the bids-per-buyer limit, reconciliations.differences); 0013 before the earlier code (dealer_payouts.method, reconciliations.payouts_owed, the one-phone-one-buyer index)

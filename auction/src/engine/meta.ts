@@ -1,0 +1,72 @@
+/* What a lot carries about its car, written by the Desk at Go and read by the
+   phone. Everything the glass shows that is not the price or the clock. */
+import type { Fees } from './money';
+export type RemotePhoto = { url: string; w: number; h: number };
+
+export type CarMeta = {
+  year: number; make: string; model: string;
+  miles: number;
+  vin: string;
+  photos: RemotePhoto[];                 // the first is the lane photo; the three mandatory angles are among them
+  grade: [number, number, number, number, number, number]; // paint, glass, tires, lights, A/C, drives: 0..1
+  title: 'in hand' | 'at lender';
+  dealer: { name: string; city: string; street: string; gdn: string; phone: string; afterHours: string; fees: Fees };
+  documents?: { guide?: string; bill?: string; title?: string };   // URLs on the Worker, as the Desk files them
+  hours?: string[];                      // pickup windows the dealer offers, e.g. "Sat 10 to 2"
+  collateral: Collateral;                // who holds what before the first bid; the lane refuses without it
+  listingUrl?: string | null;            // the dealer's own Marketplace listing, pasted on PostCar (W3-C), for Sold's "End your Marketplace listing"; null clears it
+  /** W4 (phases.md amendment of October 13, 2026): a closed lot (the wholesale lane) never appears on GET /lots, so
+      the Lane filters nothing; the local stand-in omits it the same way (server.ts). Absent means public. */
+  lane?: 'public' | 'closed';
+  /** The engine's idle the Desk recorded on Show It (hold), streamed from GET /lots/:id/audio; the walkaround the
+      Desk uploaded, from GET /lots/:id/video. Keys on the Worker; the phone never sees R2. */
+  audioKey?: string;
+  videoKey?: string;
+};
+
+/** The collateral the dealer puts behind the lot. docs/plan/collateral.md. */
+export type Collateral = {
+  title: { status: 'hand' | 'lender' | 'repo' | 'unknown'; lienholder?: string; payoff?: number; releaseDays?: number };
+  floor: number;                         // the dealer's net; the hammer the buyer sees opens here
+  payoffAcknowledged?: boolean;          // the dealer saw "you bring $X" and said OK
+  insured: boolean;                      // the car is on the dealer's lot policy until the engine starts
+};
+
+/** The lender's release must leave a week for the county: title reaches the buyer before day 21 on a lane sale
+    (Transp. Code §503.039(b), read 2026-10-13; decisions §9 D2), so the release lands inside 14 days. */
+export const RELEASE_MAX_DAYS = 14;
+
+/** The lane accepts a lot only on collateral it can see. Returns the refusal, or null. */
+export function collateralRefusal(c: Collateral | undefined): string | null {
+  if (!c) return 'collateral missing';
+  if (c.title.status === 'repo') return 'title in repossession';
+  if (c.title.status === 'unknown') return 'title location unknown';
+  if (c.title.status === 'lender' && !((c.title.releaseDays ?? 0) > 0)) return 'lender release time missing';
+  if (c.title.status === 'lender' && (c.title.releaseDays ?? 0) > RELEASE_MAX_DAYS) return 'release past day 14';
+  if ((c.title.payoff ?? 0) > c.floor && !c.payoffAcknowledged) return 'floor below payoff without acknowledgement';
+  if (!c.insured) return 'not insured';
+  return null;
+}
+
+/** The sale after the hammer, as the object keeps it. */
+export type SaleState = {
+  buyer: string; hammer: number; wonAt: number; deadlineAt: number;
+  paidAt?: number; startedAt?: number; forfeitedAt?: number; voidedAt?: number;
+  deposit?: 'held' | 'applied' | 'to_dealer' | 'released';   // where the buyer's $250 went; applied: counted toward the price at the engine start, the dealer's
+  payout?: Payout;   // the dealer's $250 on an applied or forfeited sale (worker/src/auction.ts)
+  plates?: Plates;   // the county's clock after the start, as the Desk marks it (worker/src/auction.ts POST /plates)
+  offer?: SaleOffer; // the second chance to the under-bidder at a no-pay forfeit (decisions §2 row 9; worker/src/auction.ts offer)
+};
+
+/** The second-chance offer: twelve hours at the under-bidder's max from `madeAt`; `acceptedAt` once taken (POST
+    /lots/:id/offer/accept), `expiredAt` once the alarm let it go. The "Second chance" push lands on screen `offer`. */
+export type SaleOffer = { buyer: string; amount: number; madeAt: number; expiresAt: number; acceptedAt?: number; expiredAt?: number };
+
+/** Where the buyer's plates stand (phases.md Phase 2 Paperwork: filed, approved, mailed, kickback). Written by the dealer's
+    Desk on a started sale; forward only, except a kickback, which follows filed and is followed by filed again. The phone's
+    ring reads `state` (src/sale.ts PLATES_WORDS: Filed, Approved, Mailed, Dealer fixing); `note` is the county's words on a kickback. */
+export type PlatesState = 'filed' | 'approved' | 'mailed' | 'kickback';
+export type Plates = { state: PlatesState; at: number; note?: string };
+
+/** Where the dealer's $250 stands: owed until a Whop transfer lands, then sent with the transfer id. */
+export type Payout = { state: 'owed' | 'sent' | 'paid'; transferId?: string; method?: 'wire' | 'check' | 'cash'; at?: number };   // paid: by hand outside Whop (worker/src/auction.ts LotPayout)

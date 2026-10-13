@@ -31,7 +31,7 @@ const SND = OS.snd = { ac: null, on: false };
 const wake = () => { if (SND.on) return; try { SND.ac = new (window.AudioContext || window.webkitAudioContext)(); SND.on = true; } catch (e) {} };
 addEventListener('pointerdown', wake, true); addEventListener('keydown', wake, true);
 OS.tone = (f, g = .03, dur = 1.3, at = 0) => {
-  if (!SND.on || REDUCED) return;
+  if (!SND.on) return;                      // reduced motion keeps sound (cloud-system §4)
   const a = SND.ac, t = a.currentTime + .01 + at, o = a.createOscillator(), o2 = a.createOscillator(), v = a.createGain(), v2 = a.createGain();
   o.type = o2.type = 'sine'; o.frequency.value = f; o2.frequency.value = f * 2.002; v2.gain.value = .16;
   o.connect(v); o2.connect(v2).connect(v); v.connect(a.destination);
@@ -45,6 +45,8 @@ OS.haptic = () => {
   l.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
   document.body.appendChild(l); l.click(); l.remove();
 };
+// a press on a <button class="btn"> ticks too (the hero and the application choices are buttons, not links)
+document.addEventListener('click', e => { const b = e.target.closest('button.btn'); if (b && !b.disabled) OS.haptic(); });
 
 /* ---------- nav ---------- */
 const nav = $('#oNav'), menu = $('#oMenu'), sheet = $('#oSheet');
@@ -61,7 +63,7 @@ const crossDoc = 'onpagereveal' in window;          // the browser cross-fades d
 if (!crossDoc && !REDUCED) html.classList.add('o-fade');
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href]');
-  if (a && (a.closest('.o-nav,.o-sheet') || a.classList.contains('btn') || a.classList.contains('more') || a.classList.contains('pill'))) { OS.haptic(); if (!window.OBV) OS.tone(1900, .012, .09); }
+  if (a && (a.closest('.o-nav,.o-sheet') || a.classList.contains('btn') || a.classList.contains('more') || a.classList.contains('pill'))) { OS.haptic(); if (!window.OBV || OBV.HOST) OS.tone(1900, .012, .09); }
   if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target) return;
   const url = new URL(a.href, location.href);
   if (url.origin !== location.origin) return;

@@ -1,0 +1,92 @@
+# Every push and pull request, any branch: the four suites in parallel.
+# No secrets, no deploy. The worker suite runs in the real Workers runtime
+# (@cloudflare/vitest-pool-workers); its bindings, DEV=1 included, come from
+# auction/worker/vitest.config.ts. The Blender venv and renders stay out: the
+# Desk's prebuild copies the committed assets/cloud-3d from the checkout.
+name: Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: auction
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: auction/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: auction/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            auction/package-lock.json
+            auction/worker/package-lock.json
+      # The worker imports auction/src/engine, whose tsconfig extends expo/tsconfig.base.
+      - run: npm ci --prefix ..
+      # auction/worker/.npmrc sets legacy-peer-deps, so npm ci resolves the wrangler peer set.
+      - run: npm ci
+      # The viewer serves pdf.js from the Worker's own assets; the copies are generated from the pinned package.
+      - run: npm run vendor
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+
+  desk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: desk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            auction/package-lock.json
+            desk/package-lock.json
+      # The Desk imports auction/src/engine (pay-by words, money), whose tsconfig extends expo/tsconfig.base.
+      - run: npm ci --prefix ../auction
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx vitest run
+      - run: npm run build
+
+  site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # node:sqlite needs Node 22.5+; the gitignored bundle is absent here, so its cases skip.
+      - run: node --test deploy/site/live-worker.test.mjs

@@ -1,0 +1,281 @@
+{
+ "written": "2026-10-13",
+ "from": "20261013-202654",
+ "ceiling": 3,
+ "screens": {
+  "lane": {
+   "title": "Lane",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "lane-watched": {
+   "title": "Lane, watched (double tap)",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "bid-first": {
+   "title": "Bid sheet, first bid",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Bid"
+   ]
+  },
+  "phone-number": {
+   "title": "Phone, your number",
+   "must": 2,
+   "verb": 0,
+   "read": 2,
+   "kept": 0,
+   "words": [
+    "Your number"
+   ]
+  },
+  "phone-code": {
+   "title": "Phone, the code",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "id-frame": {
+   "title": "ID frame (first bid)",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "id-facts": {
+   "title": "ID facts",
+   "must": 2,
+   "verb": 2,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "That's me"
+   ]
+  },
+  "deposit": {
+   "title": "Deposit",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 4,
+   "words": [
+    "Pay"
+   ]
+  },
+  "terms": {
+   "title": "Terms, the first bid",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 25,
+   "words": [
+    "Bid"
+   ]
+  },
+  "bid-landed": {
+   "title": "Bid landed, waiting for the hammer",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 5,
+   "words": []
+  },
+  "won-steps": {
+   "title": "Won, steps",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "ID"
+   ]
+  },
+  "id-prefilled": {
+   "title": "ID, prefilled",
+   "must": 2,
+   "verb": 2,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "That's me"
+   ]
+  },
+  "insure": {
+   "title": "Insure",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "buyers-guide": {
+   "title": "Buyers Guide, the end",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 15,
+   "words": [
+    "Sign"
+   ]
+  },
+  "buyers-signed": {
+   "title": "Buyers Guide, signed",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 14,
+   "words": [
+    "Sign"
+   ]
+  },
+  "bill-of-sale": {
+   "title": "Bill of Sale, the end",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 10,
+   "words": [
+    "Sign"
+   ]
+  },
+  "won-steps-2": {
+   "title": "Won, steps (the last one lit)",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Pay"
+   ]
+  },
+  "pay": {
+   "title": "Pay",
+   "must": 3,
+   "verb": 3,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Bank",
+    "Wire",
+    "Cash"
+   ]
+  },
+  "pickup-where": {
+   "title": "Pickup, where",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Directions"
+   ]
+  },
+  "pickup-when": {
+   "title": "Pickup, when",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Call"
+   ]
+  },
+  "pickup-pass": {
+   "title": "Pickup, the pass",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "000001"
+   ]
+  },
+  "pickup-started": {
+   "title": "Pickup, started",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Done"
+   ]
+  },
+  "plates": {
+   "title": "Plates",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "plates-mailed": {
+   "title": "Plates, mailed",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "won-done": {
+   "title": "Won, all four done",
+   "must": 3,
+   "verb": 3,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "To the lane"
+   ]
+  },
+  "me": {
+   "title": "Me",
+   "must": 1,
+   "verb": 0,
+   "read": 1,
+   "kept": 0,
+   "words": [
+    "Watching"
+   ]
+  },
+  "offer": {
+   "title": "Offer, the second chance",
+   "must": 2,
+   "verb": 2,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Take it"
+   ]
+  },
+  "clause-top": {
+   "title": "Clause, the top (Agree locked)",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 41,
+   "words": []
+  },
+  "clause": {
+   "title": "Clause, the end",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 41,
+   "words": [
+    "Agree"
+   ]
+  }
+ }
+}

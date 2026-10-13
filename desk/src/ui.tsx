@@ -1,0 +1,238 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
+import type { Receipt as R } from './lib/money';
+import { usd } from './lib/money';
+import { landed, pressedNow, skyDrift } from './motion';
+import { blenderSky, startSky } from './cloud3d';
+
+/* ---------- feel: soft tones after a tap, a haptic tick, never on scroll ---------- */
+let ac: AudioContext | null = null;
+const audio = () => { try { ac ??= new AudioContext(); if (ac.state === 'suspended') void ac.resume(); return ac; } catch { return null; } };
+/** A soft, rounded tone: slow attack, low pass, short tail. Never loud. */
+function chime(freqs: number[], gain = 0.012, gap = 0.1, tail = 0.7) {
+  const a = audio(); if (!a) return;
+  freqs.forEach((f, i) => {
+    const t0 = a.currentTime + 0.01 + i * gap, o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter();
+    o.type = 'sine'; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = 1800;
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(gain, t0 + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t0 + tail);
+    o.connect(lp).connect(g).connect(a.destination); o.start(t0); o.stop(t0 + tail + 0.05);
+  });
+}
+/* The cloud kit (docs/design/cloud-system.md §3, public/sfx/cloud/): filtered air, every file peaking at
+   -18 dBFS with the one room baked in. Decoded once, after the first gesture (no sound before a
+   gesture is allowed anyway). Gains only ever lower a file: the house tones stay the moment's voice,
+   the clouds are the texture under them. Never on scroll; negative paths are silent. Reduced motion
+   keeps every sound and haptic (cloud-system §4): it reduces motion, not feedback. */
+type Cloud = 'touch' | 'rise' | 'settle' | 'landed' | 'hover' | 'drift';
+const KIT: Record<Cloud, number> = { touch: 0.8, rise: 0.7, settle: 0.6, landed: 1, hover: 1, drift: 1 };
+const kit: Partial<Record<Cloud, AudioBuffer>> = {};
+let primed = false, lastGesture = -1e9;
+/** Fetch and decode the kit once, on the first pointer or key; every gesture after keeps the context awake. */
+export function primeClouds() {
+  lastGesture = performance.now();
+  const a = audio(); if (!a || primed) return;
+  primed = true;
+  (Object.keys(KIT) as Cloud[]).forEach(n => {
+    fetch(`./sfx/cloud/cloud-${n}.wav`).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+      .then(b => a.decodeAudioData(b)).then(d => { kit[n] = d; }).catch(() => { /* the kit is texture; the tones still play */ });
+  });
+}
+function puff(n: Cloud, delay = 0, gain = 1) {
+  const b = kit[n]; if (!b || !ac) return;
+  try {
+    const s = ac.createBufferSource(), g = ac.createGain();
+    s.buffer = b; g.gain.value = KIT[n] * gain; s.connect(g).connect(ac.destination); s.start(ac.currentTime + delay);
+  } catch { /* a closed context: silence */ }
+}
+const isCloud = (n: string): n is Cloud => n in KIT;
+/** The kit for the live clouds (cloud3d.ts): one-shots, and a held breath (cloud-drift looped, in over 180 ms, out over 300 ms). */
+export const cloudSound = {
+  play: (n: string, gain = 1) => { if (isCloud(n)) puff(n, 0, gain); },
+  loop: (n: string, gain = 0.15) => {
+    const b = isCloud(n) ? kit[n] : undefined, none = { stop() { /* silent */ } };
+    if (!b || !ac) return none;
+    try {
+      const s = ac.createBufferSource(), g = ac.createGain(), t = ac.currentTime, a = ac;
+      s.buffer = b; s.loop = true; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.18);
+      s.connect(g).connect(a.destination); s.start();
+      let done = false;
+      return { stop() { if (done) return; done = true; const n0 = a.currentTime; g.gain.cancelScheduledValues(n0); g.gain.setValueAtTime(g.gain.value, n0); g.gain.linearRampToValueAtTime(0, n0 + 0.3); s.stop(n0 + 0.32); } };
+    } catch { return none; }
+  },
+};
+/** A tap you can feel: the vibration API where it exists; on iPhone (Safari ignores vibrate) a native
+ *  iOS 18 switch toggled off-screen ticks the Taptic Engine, the same trick as obavia-co/shell.js. */
+export const haptic = () => {
+  try { if (navigator.vibrate) { navigator.vibrate(6); return; } } catch { /* fall through */ }
+  try {
+    const l = document.createElement('label'), i = document.createElement('input');
+    i.type = 'checkbox'; i.setAttribute('switch', ''); l.appendChild(i);
+    l.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
+    document.body.appendChild(l); l.click(); l.remove();
+  } catch { /* no haptics */ }
+};
+let lastKey = 0;
+export const feel = {
+  tap: () => { haptic(); chime([659.25], 0.009, 0, 0.45); },
+  next: () => { haptic(); chime([523.25, 783.99], 0.011, 0.08, 0.6); },
+  /** An action completed: the house chime, the cloud-landed swell of air, and the pressed control breathes once. */
+  done: () => { haptic(); chime([523.25, 659.25, 783.99, 1046.5], 0.012, 0.11, 0.9); puff('landed'); landed(pressedNow()); },
+  /** A bid landed on a lot the dealer is watching: the one-note house tone a step above tap's, and the tick. */
+  bid: () => { haptic(); chime([783.99], 0.011, 0, 0.5); },
+  /** The hammer, or the pass caught: the completed moment on a figure no thumb pressed. The chime is the
+   *  hammer's; a scan that only fills a field passes `chime = false` and keeps the air and the tick. */
+  landedOn: (el: HTMLElement | null | undefined, chimes = true) => { haptic(); if (chimes) chime([523.25, 659.25, 783.99, 1046.5], 0.012, 0.11, 0.9); puff('landed'); landed(el); },
+  /** A sheet rose because a thumb asked for it: the settle air, softer than a page's. */
+  sheet: () => { if (performance.now() - lastGesture < 1500) puff('settle', 0, 0.7); },
+  /** A barely-there tick on each keystroke. */
+  key: () => { const t = performance.now(); if (t - lastKey < 40) return; lastKey = t; chime([392 + Math.random() * 40], 0.006, 0, 0.12); },
+  /** A thumb lands on a cloud (cloudPress, after its scroll guard). */
+  touch: () => puff('touch'),
+  /** The thumb lifts on it and it re-inflates. */
+  rise: () => puff('rise'),
+  /** A page settles into place: only when a gesture caused it (a poll that re-renders stays silent). */
+  settle: () => { if (performance.now() - lastGesture < 1500) puff('settle', 0.06); },
+};
+
+/* ---------- the sky: three cloud banks, far to near, over a fine grain ----------
+   The layers are the Blender sky (public/cloud-3d/sky/light, through tools/cloud-3d/sync.mjs; cloud3d.ts
+   blenderSky) and, when it is not deployed, the shared volumetric set (assets/cloud-layers/light, as WebP
+   in src/sky; drawn by styles.css); src/motion.ts (skyDrift) drifts each on its own slow timeline and parts them by depth
+   on scroll. The sky never takes a tap and never moves on a page change. Where WebGL2 runs, a live
+   raymarched deck (cloud3d.ts) takes their place once it has a frame; the layers stay as its fallback. */
+export function Sky() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { const el = ref.current!; blenderSky(el); const a = skyDrift(el), b = startSky(el); return () => { a(); b(); }; }, []);
+  return (
+    <div className="sky" aria-hidden="true" ref={ref}>
+      <i className="glow" />
+      {['far', 'mid', 'near'].map(d => <div key={d} className={`layer ${d}`}><i className="drift" /></div>)}
+      <i className="grain" />
+    </div>
+  );
+}
+
+/* ---------- icons ---------- */
+const G: Record<string, ReactNode> = {
+  check: <path d="M5.5 12.5l4.2 4.2 8.8-9.4" />,
+  chev: <path d="M9.5 6l6 6-6 6" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  cash: <><rect x="3" y="6.5" width="18" height="11" rx="2.6" /><circle cx="12" cy="12" r="2.6" /></>,
+  house: <><path d="M4 11l8-6.5 8 6.5" /><path d="M6.5 9.5V19h11V9.5" /></>,
+  bank: <><path d="M3.5 9l8.5-5 8.5 5" /><path d="M5.5 10v7M9.8 10v7M14.2 10v7M18.5 10v7M3.5 19.5h17" /></>,
+  phone: <><rect x="7" y="3" width="10" height="18" rx="2.6" /><path d="M11 18h2" /></>,
+  upload: <><path d="M12 15.5V4.5M7.5 9l4.5-4.5L16.5 9" /><path d="M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3" /></>,
+  type: <><path d="M5 7V5h14v2M12 5v14M9 19h6" /></>,
+  doc: <><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20V4a.5.5 0 0 1 .5-.5z" /><path d="M14 3.5V8h4M9 12h6M9 15.5h6" /></>,
+  pen: <><path d="M4.5 19.5l1-4 10-10 3 3-10 10z" /><path d="M13.5 7.5l3 3" /></>,
+  print: <><path d="M7 9V4h10v5" /><rect x="4" y="9" width="16" height="7" rx="2" /><path d="M7 14h10v6H7z" /></>,
+  plate: <><rect x="3" y="7" width="18" height="10" rx="2.5" /><path d="M7 12h10" /></>,
+  globe: <><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.5 2.6 2.5 14.4 0 17M12 3.5c-2.5 2.6-2.5 14.4 0 17" /></>,
+  sheet: <><rect x="4.5" y="4.5" width="15" height="15" rx="3" /><path d="M4.5 10h15M10 10v9.5" /></>,
+  link: <><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2" /><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" /></>,
+  search: <><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5" /></>,
+  copy: <><rect x="8.5" y="8.5" width="11" height="11" rx="2.5" /><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5" /></>,
+  sparkle: <path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z" />,
+  /* the map pin every phone taught (Maps): the place a buyer drives to */
+  pin: <><path d="M12 21.5s-6.5-6.2-6.5-11.3a6.5 6.5 0 0 1 13 0c0 5.1-6.5 11.3-6.5 11.3z" /><circle cx="12" cy="10.2" r="2.4" /></>,
+};
+export function Ic({ n, s = 22, w = 1.9 }: { n: string; s?: number; w?: number }) {
+  return <svg viewBox="0 0 24 24" width={s} height={s} fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{G[n]}</svg>;
+}
+/** The ink ring and check the corridor's licence fields use (Corridor.tsx): a faint ring, then the accent fill with the check.
+ *  Ink only, no cloud body: the grain rides a cloud, never a 26 px mark (docs/design/cloud-system.md). */
+export const Tick = ({ on }: { on: boolean }) => <span aria-hidden style={{ width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff', flex: 'none', background: on ? 'var(--accent)' : 'transparent', boxShadow: on ? 'none' : 'inset 0 0 0 2px var(--line)', transition: 'background .2s, box-shadow .2s' }}>{on && <Ic n="check" s={15} w={3} />}</span>;
+export const Chev = () => <span className="chev"><Ic n="chev" s={16} w={2.2} /></span>;
+export const Back = ({ to, label = 'Back' }: { to: string; label?: string }) => <a className="back" href={to} onClick={() => { feel.tap(); backward(); }}><Ic n="chev" s={18} w={2.4} />{label}</a>;
+
+/* ---------- a car, drawn in its own colour (visual, not text) ---------- */
+export function CarArt({ color = '#9AA6BF', body = 'Sedan', w = 150 }: { color?: string; body?: string; w?: number }) {
+  const tall = body === 'SUV' || body === 'Crossover' || body === 'Van';
+  const truck = body === 'Truck';
+  const top = truck ? 'M40 44 L52 26 H92 L96 44' : tall ? 'M30 44 L44 22 H120 L134 44' : 'M38 44 L56 26 H108 L128 44';
+  const bodyPath = truck ? 'M14 60 V46 Q14 44 18 44 H96 V36 H150 Q156 36 156 42 V60 Z' : 'M12 60 V50 Q12 44 22 44 H146 Q158 44 158 52 V60 Z';
+  return (
+    <svg viewBox="0 0 170 78" width={w} height={w * 78 / 170} aria-hidden="true">
+      <ellipse cx="85" cy="70" rx="72" ry="4" fill="rgba(28,36,54,.08)" />
+      <path d={top} fill={color} opacity=".82" />
+      <path d={top} fill="#fff" opacity=".35" transform="translate(0 3) scale(1 .9)" />
+      <path d={bodyPath} fill={color} />
+      <circle cx="44" cy="61" r="10" fill="#28344F" /><circle cx="44" cy="61" r="4" fill="#C9D2E6" />
+      <circle cx="128" cy="61" r="10" fill="#28344F" /><circle cx="128" cy="61" r="4" fill="#C9D2E6" />
+    </svg>
+  );
+}
+
+/* ---------- a choice button: tapping it saves and advances ---------- */
+export function Choice({ label, gloss, icon, art, on, disabled, onPick }: { label: string; gloss?: string; icon?: string; art?: ReactNode; on?: boolean; disabled?: boolean; onPick: () => void }) {
+  return (
+    <button className="choice" aria-pressed={!!on} disabled={disabled} onClick={() => { feel.next(); onPick(); }}>
+      {art ? <span className="art">{art}</span> : icon && <span className="art"><Ic n={icon} s={24} /></span>}
+      <span className="t"><b>{label}</b>{gloss && <small>{gloss}</small>}</span>
+      <span className="tick">{on && <Ic n="check" s={15} w={3} />}</span>
+    </button>
+  );
+}
+
+/* ---------- the live receipt ---------- */
+export function Receipt({ r, show = 'all' }: { r: R; show?: 'all' | 'short' }) {
+  const rows: [string, number][] = [['Price', r.salePrice], ['Tax', r.tax], ['Title', r.title], ['Doc Fee', r.doc], ['Registration', r.registration]];
+  if (r.plate) rows.push(['Plate', r.plate]);
+  if (r.database) rows.push(['Database Fee', r.database]);
+  if (r.tradeIn) rows.push(['Trade-In', -r.tradeIn]);
+  return (
+    <div className="receipt num">
+      {show === 'all' && rows.map(([k, v]) => <div key={k}>{k}<b>{usd(v)}</b></div>)}
+      <div className="total">Total<b>{usd(r.total)}</b></div>
+      <div>Paid Today<b>{usd(r.paidToday)}</b></div>
+      <div className={r.balance > 0 ? 'owed' : ''}>Balance<b>{usd(r.balance)}</b></div>
+    </div>
+  );
+}
+
+/* ---------- signature pad: one stroke per document ---------- */
+export function Pad({ locked, onChange }: { locked?: boolean; onChange: (dataUrl: string | null) => void }) {
+  const c = useRef<HTMLCanvasElement>(null), drawing = useRef(false), inked = useRef(false);
+  useEffect(() => {
+    const el = c.current!; const r = el.getBoundingClientRect(), d = devicePixelRatio || 1;
+    el.width = r.width * d; el.height = r.height * d;
+    const x = el.getContext('2d')!; x.scale(d, d); x.lineWidth = 2.4; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#1C2436';
+  }, []);
+  const pt = (e: React.PointerEvent) => { const r = c.current!.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top] as const; };
+  const clear = () => { const el = c.current!; el.getContext('2d')!.clearRect(0, 0, el.width, el.height); inked.current = false; onChange(null); };
+  return (
+    <>
+      <div className={'pad' + (locked ? ' locked' : '')}>
+        <div className="hint"><span>Sign here</span></div>
+        <canvas ref={c} aria-label="Signature pad"
+          onPointerDown={e => { drawing.current = true; c.current!.setPointerCapture(e.pointerId); const [a, b] = pt(e); const x = c.current!.getContext('2d')!; x.beginPath(); x.moveTo(a, b); }}
+          onPointerMove={e => { if (!drawing.current) return; const [a, b] = pt(e); const x = c.current!.getContext('2d')!; x.lineTo(a, b); x.stroke(); inked.current = true; }}
+          onPointerUp={() => { drawing.current = false; if (inked.current) { const url = c.current!.toDataURL('image/png'); onChange(url.length >= 200 ? url : null); } }} />
+      </div>
+      <div className="padrow"><span>{locked ? 'Read to the end to sign' : 'Sign with a finger'}</span><button onClick={clear}>Clear</button></div>
+    </>
+  );
+}
+
+/* ---------- screen to screen: the old one dissolves up into the sky, the next one settles in ---------- */
+type VT = { finished: Promise<void> };
+let dir: 'fwd' | 'back' = 'fwd';
+/** Run a state change as a soft cross-screen transition. Falls back to an instant swap. */
+export function transition(update: () => void, d: 'fwd' | 'back' = 'fwd') {
+  const start = (document as Document & { startViewTransition?: (cb: () => void) => VT }).startViewTransition;
+  if (!start || matchMedia('(prefers-reduced-motion: reduce)').matches) { update(); return; }
+  document.documentElement.dataset.dir = d;
+  start.call(document, () => flushSync(update)).finished.finally(() => { delete document.documentElement.dataset.dir; });
+}
+/** Mark the next hash change as going back, so the screens move the other way. */
+export const backward = () => { dir = 'back'; };
+
+export function useHash() {
+  const [h, setH] = useState(location.hash.slice(1) || '/');
+  useEffect(() => {
+    const f = () => { const d = dir; dir = 'fwd'; transition(() => { setH(location.hash.slice(1) || '/'); scrollTo(0, 0); }, d); };
+    addEventListener('hashchange', f); return () => removeEventListener('hashchange', f);
+  }, []);
+  return h;
+}
+export const go = (to: string) => { location.hash = to; };

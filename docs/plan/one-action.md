@@ -1,0 +1,54 @@
+# One action. The mindset.
+
+Source: the owner's reference clip (31 s, October 2026). Transcribed and decoded here so it governs every screen in `auction/` and every Desk screen the auction adds.
+
+> If you're designing an app, stop giving users so many choices. Spotify wants you to press play, Netflix wants you to start the next episode, and Tinder wants you to keep swiping. This is called Hick's Law, which says that the more choices you give someone, the longer they take to decide. And that friction is what kills retention. So here are five rules.
+> 1. Give every screen one obvious primary action.
+> 2. Your main button should look more important than everything else around it.
+> 3. Hide advanced options until someone actually needs them.
+> 4. Never have two buttons that look equally important.
+> 5. If an option isn't relevant yet, don't show it.
+
+The clip's own numbers: 25 options on a home screen, 2.6 s to decide; one option, 0.4 s. Retention at 22 options: 66%. Hick's Law (W. E. Hick, 1952): decision time grows with the log of the number of choices.
+
+## What it means here
+
+The auction already had the doctrine "a price, a time, a name, one verb" (`obavia-auction-decisions.md` §3). This clip is the same law stated for buttons. `docs/design/lego.md` says how the one thing and its companion piece are placed, and its §8 ties both to the transcript laws. Together they are the house rule:
+
+**Every screen has one thing to do, it is obvious, it outranks everything, and nothing that is not yet relevant is on the glass.**
+
+The Lane's one thing is the drag. The Bid sheet's is Bid. Won's is the one lit step. Pay's is a word. Pickup's is the pass. Plates has nothing to do, so it has no button. Me's is nothing; it is the neutral screen.
+
+## The audit, screen by screen
+
+| Screen | Primary action | Secondary | Advanced, hidden until needed | Not yet relevant, hidden | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| Lane | drag the price | swipe, tap, double-tap, hold, the mark, Share (the platform's sheet, under the count) | the Car (behind a swipe or the count) | Bid sheet, Won | passes |
+| Bid sheet | **Bid** (ink bar) | swipe down | **the ceiling wheel: now behind one faint word** | "+ $250" until a deposit exists; the four terms never on the sheet (they are the Terms page, October 13, 2026) | fixed |
+| Deposit | **Pay** | "Not now" in faint text | none | none | passes |
+| Car | swipe between three pages | tap a photo, Buyers Guide | none | none | passes |
+| Terms (the last page of the first bid) | **Bid** (the one cloud, the irrevocable act) | "Not now" in faint text | none | none | passes (decisions §3.4, October 13, 2026 amendment) |
+| Won · steps | the one lit step (the tile reads what it opens, with its object) | "Someone else" in faint text while ID is the live step ("Me" assumed; the who page is gone, October 13, 2026) | none | the locked steps are faint, the done ones ticked | passes |
+| ID | **That's me** (live as the facts arrive; confirms all five at once) | tap a fact to correct it | the State wheel and each fact's field, until that fact is tapped | none | passes (legibility-audit D1, October 13, 2026) |
+| Insure | the shutter | none | none | none | passes |
+| Sign (no page: the step opens the Buyers Guide, signing it opens the Bill of Sale) | **Sign** on the one live document | "Later" in faint text | the signature pad until the end of the page | the stored signature sits on the pad; no reuse offer in words (October 13, 2026) | passes |
+| Pay | one of three words (Bank and Wire open the Whop invoice once the sale carries one; their detail says "invoice") | none | none | none | passes (three words are the decision, not options around it) |
+| Pickup · where | the pin | after hours | none | none | passes |
+| Pickup · when | one slot | none | none | none | passes |
+| Pickup · pass | hold the pass | "Add to Google Wallet" in the accent, under the car's name (Android and web; hidden on 503 and once started) | none | **Continue** appears only when the car has started | passes |
+| Plates | nothing | pull to refresh, Back | none | none | passes |
+| Me | nothing | Sign out in faint text | none | **"Sell it back here" only once a car was won** | fixed |
+| Watching | tap a ring | swipe to unwatch | none | none | passes |
+| Offer (the second chance) | **Take it** (the cloud) | "Not now" in faint text, last in the reading order | none | the Won steps until the offer is taken; the invoice until the Worker has one | passes (W3-D, October 13, 2026) |
+| Desk · Whop (the lane settings' last page) | **Connect Whop** (the cloud; "That's Right" once connected) | "Later" in faint text | none | the connected card until Whop answers; the page itself until a lane key is held | passes (W3-C, October 13, 2026) |
+| Desk · Payout (#/auction/:lot/payout) | nothing (a justification surface: one state word, one row per piece of the money) | Back | none | **Connect Whop** only when the $250 is owed and no account exists | passes (W3-C, October 13, 2026) |
+| Desk · Sold at expiry | **Let It Go Again** | the second chance row's clock (the under-bidder's twelve hours) | none | the offer rows until the Worker writes sale.offer; End your Marketplace listing until a listing link exists | passes (W3-C, October 13, 2026) |
+| Phone · the code, the number on another install | type the six; then **New phone** (the cloud, only after the 409) | "Send it again" in faint text | none | the "New phone" cloud until the code answers phone_in_use | passes (W3-D, October 13, 2026) |
+
+## The rule for new screens
+
+Before a screen ships, write its row in this table. If the primary cell has two entries, the screen is two screens. If the "not yet relevant" cell is empty, look again: there is almost always something that belongs to a later moment.
+
+## Measuring it
+
+Hick's Law is a time. The app will log, without identity, the milliseconds from a sheet opening to its one action (Bid sheet open → Bid; Won → first step; Pay open → a word). The target is the clip's: under a second on the Bid sheet after the first bid ever. A screen that drifts above two seconds has grown a choice.

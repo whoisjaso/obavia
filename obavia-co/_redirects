@@ -2,3 +2,6 @@
 /teams      /team     301
 /for-teams  /team     301
 /setup      /product  301
+
+# The lane link (the phone's Share, the Desk's Marketplace text): one page for every lot
+/lane/*     /lane/index.html   200

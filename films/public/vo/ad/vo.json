@@ -1,0 +1,100 @@
+[
+ {
+  "id": "buy",
+  "at": 6,
+  "text": "You buy the car.",
+  "sec": 0.848,
+  "sr": 24000
+ },
+ {
+  "id": "photos",
+  "at": 60,
+  "text": "Photos.",
+  "sec": 0.519,
+  "sr": 24000
+ },
+ {
+  "id": "listings",
+  "at": 90,
+  "text": "Listings.",
+  "sec": 0.54,
+  "sr": 24000
+ },
+ {
+  "id": "leads",
+  "at": 120,
+  "text": "Leads.",
+  "sec": 0.469,
+  "sr": 24000
+ },
+ {
+  "id": "paperwork",
+  "at": 150,
+  "text": "Paperwork.",
+  "sec": 0.523,
+  "sr": 24000
+ },
+ {
+  "id": "title",
+  "at": 180,
+  "text": "Title.",
+  "sec": 0.433,
+  "sr": 24000
+ },
+ {
+  "id": "payments",
+  "at": 210,
+  "text": "Payments.",
+  "sec": 0.479,
+  "sr": 24000
+ },
+ {
+  "id": "onecar",
+  "at": 242,
+  "text": "One car.",
+  "sec": 0.588,
+  "sr": 24000
+ },
+ {
+  "id": "every",
+  "at": 270,
+  "text": "Every channel.",
+  "sec": 0.752,
+  "sr": 24000
+ },
+ {
+  "id": "forms",
+  "at": 327,
+  "text": "Every form, filled and signed.",
+  "sec": 1.507,
+  "sr": 24000
+ },
+ {
+  "id": "close",
+  "at": 444,
+  "text": "You close the deal.",
+  "sec": 1.209,
+  "sr": 24000
+ },
+ {
+  "id": "else",
+  "at": 552,
+  "text": "Everything else?",
+  "sec": 0.944,
+  "sr": 24000
+ },
+ {
+  "id": "obavia",
+  "at": 632,
+  "text": "Obavia.",
+  "sec": 0.819,
+  "sr": 24000
+ },
+ {
+  "id": "handled",
+  "at": 738,
+  "text": "The work in between, handled.",
+  "sec": 1.674,
+  "sr": 24000
+ }
+]

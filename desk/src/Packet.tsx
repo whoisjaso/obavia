@@ -1,0 +1,119 @@
+/* The packet (everything filed) and the buyer's signing ceremony: one sheet
+   per screen, the pad unlocks only once the sheet is read to its end. */
+import { useEffect, useRef, useState } from 'react';
+import { DOC_MEANS, DOC_TITLE } from './lib/documents';
+import type { DocType } from './lib/plan';
+import { owedDocuments, signedCount } from './lib/sale';
+import { Sheet, saleReceipt } from './Sheet';
+import { completeSale, fileDocument, getSale, openNoteForSale, useStore } from './store';
+import { Back, Ic, Pad, feel, go, transition } from './ui';
+import { buyersGuidePdf } from './lib/official';
+
+export function Packet({ id }: { id: string }) {
+  const { dealer } = useStore();
+  const s = getSale(id)!;
+  const owed = owedDocuments(s), c = signedCount(s);
+  const [open, setOpen] = useState<DocType | null>(null);
+  const allFiled = c.filed === c.owed && c.owed > 0;
+  const signable = owed.filter(d => d !== 'powerOfAttorney' && s.documents[d]?.state === 'filed' && !s.documents[d]?.buyerSigned);
+
+  if (open) return (
+    <main className="wrap">
+      <div className="top noprint"><button className="back" onClick={() => transition(() => { setOpen(null); scrollTo(0, 0); }, 'back')}><Ic n="chev" s={18} w={2.4} />Packet</button><button className="link" onClick={() => print()}><Ic n="print" s={18} /> Print</button></div>
+      <div className="paper"><div className="scroll"><Sheet doc={open} sale={s} dealer={dealer} buyerSig={s.documents[open]?.signature} dealerSig /></div></div>
+    </main>
+  );
+
+  return (
+    <main className="wrap center">
+      <div className="top"><Back to={`#/sale/${id}`} label="The Sale" /></div>
+      <section className="enter" key="packet">
+      <h1 className="q">{c.signed === c.owed && c.owed ? 'All Signed.' : `${c.signed} Of ${c.owed} Signed.`}</h1>
+      <div className="choices">{owed.map(d => { const a = s.documents[d]; return (
+        <button key={d} className="choice" aria-pressed={!!a?.buyerSigned} onClick={() => { feel.tap(); a?.state === 'filed' ? transition(() => { setOpen(d); scrollTo(0, 0); }) : go(`/sale/${id}/paper/${d}`); }}>
+          <span className="art"><Ic n="doc" s={24} /></span>
+          <span className="t"><b>{DOC_TITLE[d]}</b><small>{a?.buyerSigned ? 'Signed' : a?.state === 'filed' ? (d === 'powerOfAttorney' ? 'Sign in ink' : 'Not signed yet') : 'Not filed'}</small></span>
+          <span className="tick">{a?.buyerSigned && <Ic n="check" s={15} w={3} />}</span>
+        </button>); })}</div>
+      </section>
+      {s.status === 'completed' && <p className="empty">Completed {s.completedAt ? new Date(s.completedAt).toLocaleString() : ''}.</p>}
+      <div className="dock"><div className="in">
+        {signable.length > 0 && allFiled
+          ? <button className="btn primary block" onClick={() => { feel.next(); go(`/sign/${id}`); }}><Ic n="pen" s={20} />Sign The Packet</button>
+          : s.status !== 'completed' && <button className="btn primary block" disabled={!allFiled} onClick={() => { feel.done(); openNoteForSale(id, saleReceipt(s, dealer).total, saleReceipt(s, dealer).tax); completeSale(id); go('/'); }}>Complete Sale</button>}
+        <button className="textlink" onClick={() => print()}>Print</button>
+        <span className="links">{(['en', 'es'] as const).map(l => <button key={l} className="textlink" onClick={async () => { feel.tap(); const pdf = await buyersGuidePdf(s, dealer, l); open1(pdf); }}>{l === 'en' ? 'Buyer’s Guide' : 'Guía Del Comprador'}</button>)}</span>
+      </div></div>
+    </main>
+  );
+}
+
+/** Opens a filled official PDF in a new tab, for printing as the agency published it. */
+const open1 = (pdf: Uint8Array) => { const url = URL.createObjectURL(new Blob([pdf.slice()], { type: 'application/pdf' })); window.open(url, '_blank'); setTimeout(() => URL.revokeObjectURL(url), 60_000); };
+
+/* ---------- /sign/:id : the buyer's ceremony. No chrome. ---------- */
+export function Ceremony({ id }: { id: string }) {
+  const { dealer } = useStore();
+  const s = getSale(id)!;
+  const [docs] = useState(() => owedDocuments(s).filter(d => d !== 'powerOfAttorney' && s.documents[d]?.state === 'filed' && !s.documents[d]?.buyerSigned));
+  const [i, setI] = useState(-1);
+  const [read, setRead] = useState(false);
+  const [sig, setSig] = useState<string | null>(null);
+  const [first, setFirst] = useState<string | null>(null);
+  const [reuse, setReuse] = useState(false);
+  const [times, setTimes] = useState<Record<string, string>>({});
+  const sc = useRef<HTMLDivElement>(null);
+  const spanish = s.language === 'es' && !dealer.spanishApproved;   // Spanish e-signing waits on counsel's approval
+  const [readAt, setReadAt] = useState<string | null>(null);
+  const [consentAt, setConsentAt] = useState<string | null>(null);
+  // The pad unlocks only once the real sheet is on screen and has been read to its end (or fits without scrolling).
+  const [ready, setReady] = useState<string | null>(null);
+  const markRead = () => { setRead(true); setReadAt(r => r ?? new Date().toISOString()); };
+  useEffect(() => { const el = sc.current; if (ready && el && el.scrollHeight <= el.clientHeight + 8) markRead(); }, [ready]);
+
+  if (i === -1) return (
+    <main className="wrap cere"><div className="cover enter">
+      <div>
+        <img src="./mark.svg" alt="" style={{ width: 56, height: 56 }} />
+        <h1 className="q" style={{ marginTop: 20 }}>{s.buyer.fullName}</h1>
+        <p className="note">{s.vehicle.year} {s.vehicle.make} {s.vehicle.model}</p>
+        <p className="big num">{docs.length}</p><p style={{ font: '700 17px/1 var(--sans)' }}>Documents To Sign</p>
+        {spanish && <p className="note">Las firmas en español se hacen en papel por ahora.</p>}
+      </div>
+    </div>
+    <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); transition(() => { setI(spanish ? docs.length : 0); scrollTo(0, 0); }); }}>{spanish ? 'Print For Ink' : 'Begin'}</button></div></div></main>
+  );
+
+  if (i >= docs.length) return (
+    <main className="wrap cere center"><section className="enter" key="done">
+      <span className="done-mark pop"><Ic n="check" s={38} w={3} /></span>
+      <h1 className="q">All Signed.</h1>
+      <p className="note">{docs.length} {docs.length === 1 ? 'document' : 'documents'} · {Object.values(times).length ? new Date(Object.values(times).pop()!).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}</p></section>
+      <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.done(); go(`/sale/${id}/packet`); }}>Hand Back To The Desk</button></div></div></main>
+  );
+
+  const d = docs[i];
+  const stroke = reuse && first ? first : sig;
+  const sign = () => {
+    const at = new Date().toISOString();
+    fileDocument(id, d, { buyerSigned: true, signature: stroke!, signedVia: 'ceremony', signedAt: at, state: 'filed', signedUserAgent: navigator.userAgent.slice(0, 240),
+      readToEndAt: readAt ?? at, signatureReused: !!(reuse && first), ...(reuse && first && consentAt ? { reuseConsentAt: consentAt } : {}) });
+    if (!first) setFirst(stroke);
+    feel.next(); transition(() => { setTimes({ ...times, [d]: at }); setSig(null); setRead(false); setReadAt(null); setI(i + 1); scrollTo(0, 0); });
+  };
+  return (
+    <main className="wrap cere">
+      <div className="top"><span className="progress num">{i + 1} Of {docs.length}</span><span /></div>
+      <div className="bar"><i style={{ width: `${((i + 1) / docs.length) * 100}%` }} /></div>
+      <h1 className="q" style={{ fontSize: 30 }}>{DOC_TITLE[d]}</h1>
+      <div className="paper"><div className="scroll" ref={sc} onScroll={e => { const el = e.currentTarget; if (ready === d && el.scrollTop + el.clientHeight >= el.scrollHeight - 8) markRead(); }}>
+        <Sheet doc={d} sale={s} dealer={dealer} buyerSig={first ? stroke : null} dealerSig onReady={() => setReady(d)} />
+      </div></div>
+      <p className="means">{DOC_MEANS[d]}</p>
+      {first && <label className="consent"><input type="checkbox" checked={reuse} onChange={e => { feel.tap(); setReuse(e.target.checked); setConsentAt(e.target.checked ? new Date().toISOString() : null); }} />Use my signature from the first document on this one.</label>}
+      {!(reuse && first) && <Pad key={d} locked={!read} onChange={setSig} />}
+      <div className="dock"><div className="in"><button className="btn primary block" disabled={!read || !stroke} onClick={sign}>Sign And Continue</button></div></div>
+    </main>
+  );
+}
+

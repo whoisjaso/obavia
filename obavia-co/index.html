@@ -1,367 +1,32 @@
 <!doctype html>
-<html lang="en" class="o-home">
+<html lang="en" class="o-home" data-host="home">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Obavia: know why deals are lost</title>
-<meta name="description" content="Obavia hears every sales call, finds the one step costing your agency the most, and gives each rep the fix. For agency owners doing $100K to $1M a month.">
-<meta name="theme-color" content="#D6E2FD">
-<meta property="og:title" content="Obavia">
-<meta property="og:description" content="Know why deals are lost. And fix it by Friday.">
+<title>Obavia: the lane for the car your lot is losing money on</title>
+<meta name="description" content="Name the least you’ll take on the car you’re losing money on, and its bidding closes Thursday at 3. Obavia is the public lane behind your desk, for licensed Texas dealers.">
+<meta name="theme-color" content="#DCE6FA">
+<meta property="og:title" content="Obavia: the lane for the car your lot is losing money on">
+<meta property="og:description" content="Name the least you’ll take, and its bidding closes Thursday at 3. The public lane behind your desk, for licensed Texas dealers.">
 <meta property="og:image" content="apple-touch-icon.png">
+<link rel="canonical" href="https://obavia.co/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="sky/w0.webp">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shell.css">
-<script>(function(){var h=document.documentElement;try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
-<style>
-:root{
-  --ink:#1C2436; --ink2:#737C8E; --body:#4B5468; --navy:#28344F; --tint:#4E6AA8;
-  --blue:#7D97C7; --peri:#C8D6FC; --mist:#EAF0FE; --line:rgba(28,36,54,.08);
-  --amber:#AE6420; --amber2:#F0B27A; --green:#2E8A60; --page:#F6F8FD;
-  --sans:'Manrope','Helvetica Neue',Arial,sans-serif;
-  --ease:cubic-bezier(.2,.7,.2,1); --out:cubic-bezier(.16,1,.3,1);
-  color-scheme:light;
-}
-*,*::before,*::after{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-a{color:inherit}
-button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
-img{display:block;max-width:100%}
-:focus-visible{outline:2px solid var(--tint);outline-offset:3px;border-radius:8px}
-.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.wrap{width:min(1080px,calc(100% - 40px));margin:0 auto}
-.ico{width:1em;height:1em;flex:none}
-
-/* ---------- buttons ---------- */
-.btn{display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 28px;border-radius:999px;background:var(--navy);color:#fff;font:700 16px/1 var(--sans);text-decoration:none;white-space:nowrap;box-shadow:0 16px 32px -18px rgba(28,36,54,.7);transition:transform .35s var(--ease),background .3s}
-.btn:hover{background:#1E2940}
-.btn:active{transform:scale(.97)}
-.more{display:inline-flex;align-items:center;gap:5px;font:650 16px/1 var(--sans);color:var(--tint);text-decoration:none}
-.more .ico{width:13px;height:13px;transition:transform .35s var(--ease)}
-.more:hover .ico{transform:translateX(3px)}
-
-/* ---------- tools: every tool they already run, gliding ---------- */
-.belts{margin-top:clamp(44px,6vw,72px);display:grid;gap:8px}
-.belt{overflow:hidden;padding-block:14px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
-.track{display:flex;align-items:center;gap:72px;width:max-content;list-style:none;margin:0;padding:0 36px;will-change:transform}
-.track li{display:flex;align-items:center;height:48px;flex:0 0 auto}
-.track img{display:block;user-select:none;-webkit-user-drag:none;transition:transform .5s var(--o-ease)}
-.track li:hover img{transform:scale(1.07)}
-@media (max-width:720px){.track{gap:52px}.track img{zoom:.86}}
-@media (prefers-reduced-motion:reduce){.track{flex-wrap:wrap;justify-content:center;width:auto;gap:28px 40px}.track [aria-hidden]{display:none}.belt{mask-image:none;-webkit-mask-image:none}}
-/* ---------- reveal ---------- */
-[data-r]{opacity:0;transform:translateY(26px);filter:blur(6px);transition:opacity 1.1s var(--out),transform 1.3s var(--out),filter 1.1s var(--out);transition-delay:var(--d,0s)}
-[data-r].in{opacity:1;transform:none;filter:none}
-
-/* ---------- 1. hero ---------- */
-.hero{position:relative;min-height:100vh;min-height:100svh;padding:clamp(118px,17vh,168px) 0 0}
-.hero .copy{position:relative;z-index:2;text-align:center}
-.hero h1{margin:0;font:800 clamp(44px,7.2vw,94px)/1.01 var(--sans);letter-spacing:-.05em}
-.hero h1 span{display:block;text-wrap:balance}
-.hero h1 .g{color:var(--ink2)}
-.lead{margin:26px auto 0;max-width:640px;font:500 clamp(18px,1.55vw,21px)/1.5 var(--sans);color:var(--body)}
-.cta{display:flex;align-items:center;justify-content:center;gap:26px;flex-wrap:wrap;margin-top:34px}
-
-.line{position:relative;z-index:2;width:min(1080px,calc(100% - 32px));height:330px;margin:clamp(40px,7vh,76px) auto 0}
-.line canvas{position:absolute;inset:0;width:100%;height:100%}
-.line .stg{position:absolute;transform:translateX(-50%);text-align:center;white-space:nowrap;opacity:0;transition:opacity .9s var(--ease)}
-.line .stg b{display:block;font:800 24px/1 var(--sans);letter-spacing:-.035em;font-variant-numeric:tabular-nums}
-.line .stg span{display:block;margin-top:6px;font:600 13.5px/1 var(--sans);color:var(--ink2)}
-.line .stg.on{opacity:1}
-.line .note{position:absolute;transform:translate(-50%,8px);text-align:center;white-space:nowrap;opacity:0;transition:opacity 1s var(--ease),transform 1.2s var(--out)}
-.line .note.on{opacity:1;transform:translate(-50%,0)}
-.line .note b{display:block;font:800 clamp(30px,3.2vw,42px)/1 var(--sans);letter-spacing:-.045em;color:var(--amber);font-variant-numeric:tabular-nums}
-.line .note span{display:block;margin-top:8px;font:600 15px/1.35 var(--sans);color:var(--body)}
-
-/* ---------- sections ---------- */
-.sec{position:relative;padding:clamp(110px,15vw,190px) 0}
-h2{margin:0;font:800 clamp(36px,5.2vw,66px)/1.04 var(--sans);letter-spacing:-.045em}
-h2 .g{display:block;color:var(--ink2)}
-h2,.say li,.p,.lead{text-wrap:balance}
-.p{margin:22px 0 0;max-width:500px;font:500 clamp(17px,1.35vw,19.5px)/1.55 var(--sans);color:var(--body)}
-.center{text-align:center}
-.center .p{margin-left:auto;margin-right:auto}
-.card{position:relative;background:#fff;border-radius:30px;box-shadow:0 1px 2px rgba(28,36,54,.04),0 40px 90px -50px rgba(40,52,79,.4)}
-
-/* 2. you already have the numbers */
-.say{padding-bottom:clamp(60px,8vw,110px)}
-.say ol{list-style:none;margin:clamp(34px,5vw,56px) auto 0;padding:0;max-width:920px}
-.say li{margin:0 0 .42em;font:750 clamp(25px,3.3vw,44px)/1.2 var(--sans);letter-spacing:-.032em;color:#C9D0DE;transition:color .9s var(--ease)}
-.say li.on{color:var(--ink)}
-.say li.pay{margin-top:.9em;color:#C9D0DE}
-.say li.pay.on{color:var(--tint)}
-
-/* zig-zag */
-.zz{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:clamp(40px,7vw,100px);align-items:center}
-.zz.rev .copy{order:2}
-.zz h2{font-size:clamp(34px,4.3vw,56px)}
-
-/* 3. the why, from the calls */
-.calls{padding:32px 32px 34px}
-.calls h3{margin:0 0 26px;font:750 17px/1.3 var(--sans);letter-spacing:-.01em;color:var(--ink2)}
-.calls h3 b{color:var(--ink)}
-.row+.row{margin-top:28px}
-.row p{margin:0;font:650 clamp(17px,1.5vw,19.5px)/1.45 var(--sans);letter-spacing:-.012em;opacity:0;transform:translateY(8px);transition:opacity .7s var(--ease),transform .9s var(--out)}
-.row mark{color:inherit;background:linear-gradient(#FFE2C4,#FFE2C4) no-repeat 0 62%/0% 84%;border-radius:4px;padding:0 3px;margin:0 -3px;transition:background-size .8s var(--ease) .35s}
-.row .r{display:flex;justify-content:space-between;gap:12px;margin-top:12px;font:700 15px/1.2 var(--sans);opacity:0;transition:opacity .7s var(--ease) .6s}
-.row .r span{color:var(--ink2);font-variant-numeric:tabular-nums}
-.row .bar{height:4px;margin-top:10px;border-radius:3px;background:#EEF2FA;overflow:hidden}
-.row .bar i{display:block;height:100%;width:var(--w);border-radius:3px;background:var(--peri);transform:scaleX(0);transform-origin:left;transition:transform 1.1s var(--out) .7s}
-.row:first-of-type .bar i{background:var(--amber2)}
-.row.on p{opacity:1;transform:none}
-.row.on mark{background-size:100% 84%}
-.row.on .r{opacity:1}
-.row.on .bar i{transform:none}
-
-/* 4. one fix */
-.fixc{padding:30px 30px 32px}
-.who{display:flex;align-items:center;gap:14px}
-.av{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--mist);font:750 14px/1 var(--sans);color:var(--navy)}
-.who b{display:block;font:750 17px/1.2 var(--sans)}
-.who small{display:block;margin-top:3px;font:600 14px/1.2 var(--sans);color:var(--ink2)}
-.fixc .fx{margin:22px 0 0;font:700 clamp(19px,1.7vw,22px)/1.4 var(--sans);letter-spacing:-.018em}
-.days{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:28px}
-.day span{display:block;font:650 13px/1 var(--sans);color:var(--ink2)}
-.dots{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
-.dots i{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #D5DDF0;transition:background .35s var(--ease),box-shadow .35s}
-.dots i.done{background:var(--blue);box-shadow:none}
-.dots i.miss{box-shadow:inset 0 0 0 1.5px #E7C3A0}
-.res{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-top:30px;padding-top:24px;border-top:1px solid var(--line);opacity:.25;transition:opacity .8s var(--ease)}
-.res.on{opacity:1}
-.res .lbl{display:block;font:650 14px/1 var(--sans);color:var(--ink2)}
-.res .big{display:flex;align-items:center;gap:10px;margin-top:10px;font:800 clamp(34px,3.6vw,46px)/1 var(--sans);letter-spacing:-.045em;font-variant-numeric:tabular-nums}
-.res .big s{color:#B7BFCE;text-decoration:none}
-.res .big .ico{width:.5em;height:.5em;color:var(--blue)}
-.res em{font-style:normal}
-.res .up{font:800 clamp(20px,2vw,24px)/1 var(--sans);letter-spacing:-.03em;color:var(--green);text-align:right}
-.res .up small{display:block;margin-top:6px;font:600 13.5px/1 var(--sans);color:var(--ink2)}
-
-/* 5. the person */
-.person .head{margin-bottom:clamp(20px,4vw,40px)}
-.scrolly{height:460vh}
-.sticky{position:sticky;top:0;height:100vh;height:100svh;display:flex;align-items:center;overflow:hidden}
-.lgrid{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:clamp(40px,6vw,88px);align-items:center}
-.stepsw{position:relative;padding-left:22px}
-.stepsw::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:2px;border-radius:2px;background:#E1E7F4}
-.stepsw .prog{position:absolute;left:0;top:14px;width:2px;border-radius:2px;background:var(--navy);height:calc((100% - 28px) * var(--p,0));transition:height .6s var(--out)}
-.steps{list-style:none;margin:0;padding:0}
-.steps li{padding:12px 0;opacity:.32;transition:opacity .6s var(--ease)}
-.steps li.on{opacity:1}
-.steps b{display:block;font:750 22px/1.2 var(--sans);letter-spacing:-.028em}
-.steps p{margin:5px 0 0;font:500 15.5px/1.45 var(--sans);color:var(--body)}
-.lcard{padding:30px 32px 32px}
-.lcard .who{margin-bottom:22px}
-.quote{margin:0;font:700 clamp(21px,2.1vw,28px)/1.4 var(--sans);letter-spacing:-.024em}
-.quote .self{background:linear-gradient(var(--navy),var(--navy)) no-repeat 0 100%/0% 3px;padding-bottom:1px;transition:background-size .7s var(--ease)}
-.quote mark{color:inherit;background:linear-gradient(var(--peri),var(--peri)) no-repeat 0 60%/0% 82%;border-radius:5px;padding:0 4px;margin:0 -4px;transition:background-size .8s var(--ease)}
-.lcard.m2 .quote .self{background-size:100% 3px}
-.lcard.m3 .quote mark{background-size:100% 82%}
-.slot{position:relative;height:182px;margin-top:28px}
-.lv{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:14px;opacity:0;transform:translateY(10px);transition:opacity .6s var(--ease),transform .8s var(--out);pointer-events:none}
-.s1 .lv1,.s2 .lv2,.s3 .lv3,.s4 .lv4,.s5 .lv5{opacity:1;transform:none;pointer-events:auto}
-.lv1{align-items:center}
-.wave{display:flex;align-items:center;justify-content:center;gap:5px;height:96px;width:100%}
-.wave i{flex:none;width:4px;height:var(--h);border-radius:4px;background:linear-gradient(180deg,#B9CAF4,var(--blue));transform:scaleY(.28);animation:talk var(--s) ease-in-out var(--dl) infinite alternate}
-@keyframes talk{to{transform:scaleY(1)}}
-.why{margin:0;font:600 15.5px/1.45 var(--sans);color:var(--body)}
-.swap{display:flex;align-items:center;gap:14px;font:750 20px/1 var(--sans);letter-spacing:-.02em}
-.swap .was{position:relative;color:#A9B1C2;font-weight:650}
-.swap .was::after{content:"";position:absolute;left:-3px;right:-3px;top:54%;height:1.6px;border-radius:2px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .6s var(--ease) .35s}
-.swap .ico{width:18px;height:18px;color:var(--blue);opacity:0;transition:opacity .4s .6s}
-.swap b{background:linear-gradient(var(--navy),var(--navy)) no-repeat 0 100%/100% 3px;padding-bottom:3px;opacity:0;transform:translateX(-6px);transition:opacity .5s .8s,transform .6s var(--out) .8s}
-.swap+.swap .was::after{transition-delay:.55s}.swap+.swap .ico{transition-delay:.8s}.swap+.swap b{transition-delay:1s}
-.s2 .swap .was::after{transform:none}.s2 .swap .ico{opacity:1}.s2 .swap b{opacity:1;transform:none}
-.names{position:relative;height:54px;width:100%}
-.names>*{position:absolute;left:0;top:0;font:750 34px/54px var(--sans);letter-spacing:-.035em;white-space:nowrap;color:#A9B1C2;opacity:0;transform:translateY(16px);filter:blur(4px);transition:opacity .28s,transform .38s var(--out),filter .3s}
-.names>.in{opacity:.9;transform:none;filter:none}
-.names>.out{opacity:0;transform:translateY(-16px);filter:blur(4px)}
-.names>b.land{opacity:1;transform:none;filter:none;color:var(--ink);padding:0 10px;margin-left:-10px;border-radius:12px;background:linear-gradient(var(--peri),var(--peri)) no-repeat 0 50%/100% 78%;transition:opacity .5s,transform .7s var(--out),filter .4s}
-.odds{display:grid;gap:11px;width:100%}
-.o{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr) 44px;align-items:center;gap:14px;font:650 14.5px/1.2 var(--sans);color:var(--ink2)}
-.o i{display:block;height:8px;border-radius:8px;background:#EEF2FA;overflow:hidden}
-.o u{display:block;height:100%;width:var(--w);border-radius:8px;background:var(--peri);transform:scaleX(0);transform-origin:left;transition:transform 1s var(--out) .2s}
-.o b{text-align:right;font-weight:750;font-variant-numeric:tabular-nums}
-.o.top{color:var(--ink)} .o.top u{background:linear-gradient(90deg,#AFC1EE,var(--blue))}
-.s4 .o u{transform:none}
-.o+.o u{transition-delay:.35s}.o+.o+.o u{transition-delay:.5s}
-.bubble{margin:0;padding:18px 22px;border-radius:22px 22px 22px 6px;background:var(--navy);color:#fff;font:650 18px/1.45 var(--sans);letter-spacing:-.012em}
-.lfree .scrolly{height:auto}
-.lfree .sticky{position:relative;height:auto;padding:30px 0}
-
-
-/* the game the whole team can see */
-.board{padding:10px 0 8px;overflow:hidden}
-.bh,.br{display:grid;grid-template-columns:6px 28px minmax(0,1.6fr) minmax(0,.8fr) minmax(0,.9fr) minmax(0,.8fr);align-items:center;gap:0 16px;padding:0 28px 0 0}
-.bh{height:48px;font:650 13.5px/1.2 var(--sans);color:var(--ink2)}
-.bh span:nth-child(n+4),.br>:nth-child(n+4){text-align:right}
-.rows{position:relative}
-.br{position:absolute;left:0;right:0;height:64px;border-top:1px solid var(--line);background:#fff;transition:transform 1s var(--out)}
-.br i.tier{height:34px;border-radius:0 4px 4px 0;background:var(--c)}
-.br .rk{font:700 14px/1 var(--sans);color:var(--ink2);text-align:center}
-.br .nm{display:flex;align-items:center;gap:12px;font:700 16px/1.2 var(--sans);letter-spacing:-.01em;min-width:0}
-.br .nm .av{width:36px;height:36px;font-size:12.5px}
-.br .nm small{display:block;font:600 12.5px/1.2 var(--sans);color:var(--green);opacity:0;transition:opacity .6s}
-.br.up .nm small{opacity:1}
-.br b{font:750 16px/1 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.01em;transition:color .6s}
-.br b.low{color:var(--amber)}
-.br b.big{font-size:17px}
-.bf{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0;padding:16px 28px 10px;border-top:1px solid var(--line);font:600 14px/1.4 var(--sans);color:var(--ink2)}
-.bf .tiers{display:flex;gap:14px;align-items:center}
-.bf .tiers i{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--c);margin-right:6px;vertical-align:-1px}
-/* closer math */
-.math{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;overflow:hidden}
-.math .in{padding:30px 32px;display:grid;gap:22px;border-right:1px solid var(--line)}
-.fld label{display:flex;justify-content:space-between;font:650 15px/1.2 var(--sans);color:var(--body)}
-.fld label b{font:800 17px/1 var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
-.fld input{width:100%;margin:12px 0 0;-webkit-appearance:none;appearance:none;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--blue) var(--f,50%),#E6ECF8 var(--f,50%));outline:none}
-.fld input::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(28,36,54,.25),0 0 0 .5px rgba(28,36,54,.1);cursor:grab}
-.fld input::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(28,36,54,.25)}
-.math .out{padding:30px 32px;display:grid;align-content:start;gap:0}
-.ol{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);font:600 15.5px/1.2 var(--sans);color:var(--body)}
-.ol b{font:800 22px/1 var(--sans);letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}
-.ol.k b{font-size:30px}
-.lever{margin-top:20px;padding:18px 20px;border-radius:18px;background:var(--mist);font:600 15.5px/1.5 var(--sans);color:var(--body)}
-.lever b{color:var(--ink)}
-@media (max-width:980px){ .math{grid-template-columns:minmax(0,1fr)} .math .in{border-right:0;border-bottom:1px solid var(--line)} }
-@media (max-width:640px){
-  .bh,.br{grid-template-columns:5px 20px minmax(0,1.5fr) minmax(0,.8fr) minmax(0,.9fr);gap:0 10px;padding-right:18px}
-  .bh span:nth-child(5),.br>:nth-child(5){display:none}
-  .br .nm{font-size:15px;gap:9px} .br .nm .av{display:none}
-  .math .in,.math .out{padding:24px 22px}
-  .bf{padding:14px 18px 8px}
-}
-
-/* 6. the team */
-.team .trio{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:clamp(30px,5vw,72px);align-items:center;margin-top:clamp(50px,7vw,84px)}
-.pts{display:grid;gap:44px}
-.pts b{display:block;font:750 19px/1.25 var(--sans);letter-spacing:-.02em}
-.pts p{margin:8px 0 0;font:500 16px/1.5 var(--sans);color:var(--body)}
-.pts.l{text-align:right}
-.phone{position:relative;width:min(356px,80vw);padding:10px;border-radius:56px;background:linear-gradient(150deg,#FFFFFF 0%,#E3E9F5 60%,#D5DDEC 100%);box-shadow:0 0 0 1px rgba(28,36,54,.07),inset 0 0 0 1px rgba(255,255,255,.9),0 60px 110px -50px rgba(40,52,79,.55)}
-.scr{position:relative;aspect-ratio:780/1688;border-radius:46px;overflow:hidden;background:#F2F5FB}
-.scr img{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .5s var(--ease)}
-.scr img.on{opacity:1}
-.hot{position:absolute;left:10.3%;width:79.5%;height:6%;border-radius:14px}
-.hot.a{top:36%}
-.hot.b{top:38.6%}
-.hot.a::after{content:"";position:absolute;inset:-2px;border-radius:16px;box-shadow:0 0 0 2px rgba(125,151,199,.9);animation:ring 2.2s var(--ease) infinite}
-.tapped .hot.a::after{display:none}
-@keyframes ring{0%{opacity:.9;transform:scale(1)}70%,100%{opacity:0;transform:scale(1.08,1.3)}}
-.phone+.try{margin-top:22px;text-align:center;font:600 14.5px/1 var(--sans);color:var(--ink2);transition:opacity .5s}
-
-/* 7. could you build it */
-.cmp{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);position:relative;margin-top:clamp(44px,6vw,70px)}
-.cmp::before{content:"";position:absolute;top:0;bottom:0;left:72.22%;right:0;border-radius:26px;background:linear-gradient(180deg,rgba(200,214,252,.42),rgba(200,214,252,.2));box-shadow:inset 0 0 0 1px rgba(125,151,199,.2)}
-.cmp>*{position:relative}
-.cmp .h{padding:24px 12px 18px;text-align:center;font:700 15px/1.3 var(--sans);color:var(--ink2)}
-.cmp .h.o{color:var(--ink);font-size:17px}
-.cmp .t{padding:17px 0;font:650 clamp(15.5px,1.4vw,18px)/1.35 var(--sans);letter-spacing:-.01em;border-top:1px solid var(--line)}
-.cmp .c{display:grid;place-items:center;padding:17px 8px;border-top:1px solid var(--line);color:#C3CAD8}
-.cmp .c .ico{width:22px;height:22px}
-.cmp .c.y{color:var(--ink2)}
-.cmp .c.o{color:var(--navy);border-top-color:rgba(125,151,199,.18)}
-.price{margin-top:clamp(70px,9vw,120px);text-align:center}
-.price .amt{font:800 clamp(56px,8vw,104px)/1 var(--sans);letter-spacing:-.055em}
-.price .amt small{font-size:.28em;letter-spacing:-.02em;color:var(--ink2);margin-left:8px;font-weight:700}
-.price .p{margin-top:18px}
-.price .fine{margin:10px auto 0;font:500 15.5px/1.5 var(--sans);color:var(--ink2)}
-
-/* 8. final */
-.final{padding-bottom:clamp(150px,20vw,240px)}
-.final .copy{position:relative;z-index:2}
-.foot{padding:34px 0 44px}
-.foot .brand{display:flex}
-.foot .brand img{width:28px;height:28px}
-.foot .wrap{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
-.foot nav{display:flex;gap:22px;flex-wrap:wrap;margin-left:auto}
-.foot a{font:600 14px/1 var(--sans);color:var(--body);text-decoration:none}
-.foot small{width:100%;font:500 13px/1 var(--sans);color:var(--ink2)}
-
-/* ---------- small screens ---------- */
-@media (max-width:980px){
-  .zz{grid-template-columns:minmax(0,1fr)}
-  .zz.rev .copy{order:0}
-  .team .trio{grid-template-columns:minmax(0,1fr)}
-  .team .phone{margin:0 auto}
-  .pts{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
-  .pts.l{text-align:left;order:2}
-  .pts.r{order:3}
-  .lgrid{grid-template-columns:minmax(0,1fr);gap:16px}
-  .stepsw{padding:0}
-  .steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
-  .stepsw::before,.stepsw .prog{display:none}
-  .steps li{padding:9px 2px;text-align:center;border-radius:12px;opacity:.4}
-  .steps li.on{background:#fff;box-shadow:0 1px 2px rgba(28,36,54,.06)}
-  .steps b{font-size:12.5px;letter-spacing:-.01em;white-space:nowrap}
-  .steps p{display:none}
-}
-@media (max-width:640px){
-  .hero{padding-top:92px}
-  .hero h1{font-size:40px;letter-spacing:-.045em}
-  .lead{margin-top:18px;font-size:17px}
-  .cta{margin-top:26px;gap:18px}
-  .line{height:280px;margin-top:30px}
-  .line .stg b{font-size:17px}
-  .line .stg span{font-size:11.5px;margin-top:4px}
-  .line .note span{font-size:13.5px}
-  .calls,.fixc{padding:24px 22px 26px}
-  .lcard{padding:22px 20px 24px}
-  .quote{font-size:20px}
-  .slot{height:200px;margin-top:20px}
-  .names>*{font-size:27px}
-  .o{grid-template-columns:minmax(0,1fr) auto;gap:5px 10px}
-  .o span{grid-column:1;grid-row:1}.o b{grid-column:2;grid-row:1}.o i{grid-column:1/-1;grid-row:2}
-  .swap{font-size:17px}
-  .wave{gap:3px;height:84px}
-  .wave i{width:3px}
-  .bubble{font-size:16px;padding:15px 17px}
-  .pts{grid-template-columns:minmax(0,1fr)}
-  .cmp{grid-template-columns:minmax(0,1.35fr) minmax(0,.8fr) minmax(0,.8fr)}
-  .cmp::before{left:72.88%;border-radius:20px}
-  .cmp .h{padding:18px 4px 14px;font-size:13px}
-  .cmp .h.o{font-size:14.5px}
-  .cmp .t{font-size:15px}
-  .dots i{width:11px;height:11px}
-  .dots{gap:5px}
-}
-@media (prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important}
-  [data-r]{opacity:1;transform:none;filter:none}
-}
-</style>
+<link rel="stylesheet" href="cloud.css">
+<link rel="stylesheet" href="lane.css">
+<script>(function(){var h=document.documentElement;h.className+=' o-pre';try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-check" viewBox="0 0 256 256"><path fill="currentColor" d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></symbol>
-  <symbol id="i-minus" viewBox="0 0 256 256"><path fill="currentColor" d="M228,128a12,12,0,0,1-12,12H40a12,12,0,0,1,0-24H216A12,12,0,0,1,228,128Z"/></symbol>
-  <symbol id="i-caret" viewBox="0 0 256 256"><path fill="currentColor" d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"/></symbol>
-</svg>
-
 <div class="o-sky" aria-hidden="true">
-  <i class="paper"></i>
-  <div class="c far" data-bx="0.0009" data-sp="5.10" style="--wf:0.3968;top:14.97%;opacity:0.604"><img src="sky/w0.webp" alt=""></div>
-  <div class="c far" data-bx="0.1753" data-sp="4.66" style="--wf:0.2936;top:34.38%;opacity:0.646"><img src="sky/w1.webp" alt=""></div>
-  <div class="c far" data-bx="0.3063" data-sp="4.56" style="--wf:0.3670;top:19.49%;opacity:0.539"><img src="sky/w2.webp" alt=""></div>
-  <div class="c far" data-bx="0.4580" data-sp="3.89" style="--wf:0.3349;top:26.08%;opacity:0.696"><img src="sky/w3.webp" alt=""></div>
-  <div class="c far" data-bx="0.5912" data-sp="3.43" style="--wf:0.2867;top:54.13%;opacity:0.531"><img src="sky/w4.webp" alt=""></div>
-  <div class="c far" data-bx="0.7376" data-sp="3.22" style="--wf:0.3667;top:38.30%;opacity:0.683"><img src="sky/w5.webp" alt=""></div>
-  <div class="c far" data-bx="0.9014" data-sp="5.90" style="--wf:0.3552;top:41.84%;opacity:0.625"><img src="sky/w6.webp" alt=""></div>
   <i class="glow"></i>
-  <div class="c mid" data-bx="0.0921" data-sp="7.70" style="--wf:0.3464;top:84.76%;opacity:0.756"><img src="sky/w3.webp" alt=""></div>
-  <div class="c mid" data-bx="0.2425" data-sp="10.07" style="--wf:0.3541;top:50.85%;opacity:0.757"><img src="sky/w4.webp" alt=""></div>
-  <div class="c mid" data-bx="0.4427" data-sp="9.81" style="--wf:0.4914;top:69.68%;opacity:0.789"><img src="sky/w5.webp" alt=""></div>
-  <div class="c mid" data-bx="0.6331" data-sp="7.53" style="--wf:0.3622;top:64.97%;opacity:0.811"><img src="sky/w6.webp" alt=""></div>
-  <div class="c mid" data-bx="0.8322" data-sp="8.35" style="--wf:0.4412;top:58.00%;opacity:0.724"><img src="sky/w7.webp" alt=""></div>
-  <div class="c near" data-bx="0.0821" data-sp="15.31" style="--wf:0.6096;top:106.45%;opacity:0.950"><img src="sky/w5.webp" alt=""></div>
-  <div class="c near" data-bx="0.3286" data-sp="14.12" style="--wf:0.5234;top:106.44%;opacity:0.950"><img src="sky/w6.webp" alt=""></div>
-  <div class="c near" data-bx="0.5779" data-sp="15.35" style="--wf:0.6921;top:106.24%;opacity:0.950"><img src="sky/w7.webp" alt=""></div>
-  <div class="c near" data-bx="0.8213" data-sp="14.19" style="--wf:0.6935;top:106.75%;opacity:0.950"><img src="sky/w0.webp" alt=""></div>
-  <i class="grain"></i>
+  <div class="cl-layer far"><i class="cl-cloud"></i></div>
+  <div class="cl-layer mid"><i class="cl-cloud"></i></div>
+  <div class="cl-layer near"><i class="cl-cloud"></i></div>
+  <i class="cl-grain"></i>
 </div>
 <div class="o-load" id="oLoad" aria-hidden="true"><div class="bg"></div>
   <svg class="o-logo" id="oLogo" viewBox="0 0 100 100">
@@ -386,566 +51,259 @@ h2,.say li,.p,.lead{text-wrap:balance}
 </div>
 <header class="o-nav" id="oNav">
   <div class="o-wrap">
-    <a class="o-brand" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt="" id="oMark"></a>
-    <ul class="o-links"><li><a href="product.html">Product</a></li><li><a href="owners.html">Owners</a></li><li><a href="team.html">Team</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="about.html">About</a></li></ul>
-    <a class="o-join" href="waitlist.html">Join the waitlist</a>
+    <a class="o-brand" href="#top" aria-label="Obavia, back to the top"><img src="favicon.svg" alt="" id="oMark"></a>
+    <ul class="o-links"><li><a href="#how">How it works</a></li><li><a href="#cost">What it costs</a></li><li><a href="#buyers">Buyers</a></li><li><a href="#worst">How bad it can get</a></li></ul>
+    <a class="o-join cloud" href="#apply" data-cloud3d="compact">Get on the lane</a>
     <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
   </div>
 </header>
-<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="index.html">Home</a><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a class="o-join" href="waitlist.html">Join the waitlist</a></nav>
+<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="#how">How it works</a><a href="#cost">What it costs</a><a href="#buyers">Buyers</a><a href="#worst">How bad it can get</a><a class="o-join cloud" href="#apply" data-cloud3d="compact">Get on the lane</a></nav>
 <script src="shell.js"></script>
-
 <main>
-<!-- 1. the promise, and the product in the first screen -->
+<!-- The first viewport: the dealer hook (messaging-hooks.md, DV1), one line, the car on the lane, one action (CF6). No lead (simplicity-audit.md row 9, 2026-10-13). -->
 <section class="hero" id="top">
-  <div class="wrap copy">
-    <h1 data-r><span>Know why deals are lost.</span><span class="g">And fix it by Friday.</span></h1>
-    <p class="lead" data-r style="--d:.12s">Obavia hears every sales call and hands each rep the fix. Nothing for your team to type.</p>
-    <div class="cta" data-r style="--d:.24s">
-      <a class="btn" href="waitlist.html">Join the waitlist</a>
-      <a class="more" href="#numbers">See how it works<svg class="ico"><use href="#i-caret"/></svg></a>
+  <div class="wrap">
+    <div class="copy">
+      <h1 data-r>Name the least you’ll take on the car you’re losing money on, and <em>its bidding closes Thursday at 3.</em></h1>
+      <div class="act" data-r><button class="btn cloud" type="button" data-go="apply" data-cloud3d>Get on the lane</button></div>
     </div>
+    <!-- The Let It Go film is shot Fri Dec 4, 2026 (plan section 2.1). Until it lands the frame shows the rendered car on
+         the lane, light, with no caption (growth plan changelog, 2026-10-13, legibility amendment); the film replaces it. -->
+    <figure class="film" id="film" data-r>
+      <picture class="obj car"><source type="image/webp" srcset="assets/scene-3d/car-light.webp 1x, assets/scene-3d/car-light-2x.webp 2x"><img src="assets/scene-3d/car-light.png" alt="A car on the lane" width="512" height="320" decoding="async"></picture>
+    </figure>
   </div>
-  <figure class="line" id="line" role="img" aria-label="One agency's month: 1,200 leads, 744 booked, 372 showed, 272 qualified, 78 won. Half of booked calls never showed, worth $234K a month.">
-    <canvas aria-hidden="true"></canvas>
-    <div class="stg"><b>1,200</b><span>Leads</span></div>
-    <div class="stg"><b>744</b><span>Booked</span></div>
-    <div class="stg"><b>372</b><span>Showed</span></div>
-    <div class="stg"><b>272</b><span>Qualified</span></div>
-    <div class="stg"><b>78</b><span>Won</span></div>
-    <div class="note"><b id="leakAmt">$234K</b><span>a month lost between booked and showed</span></div>
-  </figure>
 </section>
 
-<!-- 2. agree with them first -->
-<section class="sec say center" id="numbers" style="scroll-margin-top:40px">
+<!-- The application (docs/plan/growth/application.md): nine pages, one question each; the submit screen is the key screen (CF7).
+     BACKEND CHANGE NEEDED. It posts to the endpoint the waitlist already uses, POST /api/waitlist on obavia.co,
+     which today accepts only {fullName, email, website} and answers 422 to any other key. New body shapes:
+       {step:"lookup", gdn}                         -> {status:"match", name, city, phoneLast4} | {status:"no_match"}
+       {step:"code",   gdn}                         -> {status:"code_sent", phoneLast4}   (Telnyx Verify, desk/server)
+       {step:"verify", gdn, code}                   -> {status:"verified"} | {status:"wrong_code"}
+       {step:"apply", fullName, email, website, application:{v, gdnHeld, lotSize, agedOver60, floorplan, losingCar, gdn, dealerName, dealerCity, phoneVerified, referral?}}
+                                                    -> {status:"accepted", key?}   (key issued only after a TxDMV match and a verified code)
+     referral (Wave 4, gap-table.md W4-E) is the "Who sent you?" page's answer, a dealer's name or a buyer's code, and
+     is in the body only when it was filled; it waives nothing and earns nothing (phases.md Phase 5 Marketing).
+     Until the worker accepts them, the page checks the GDN's shape only, skips the code page, and on a 422 resends the
+     legacy {fullName, email, website} so the person still lands on the list. Logic: lane-apply.js. -->
+<section class="apply" id="apply" aria-label="Apply for the lane">
   <div class="wrap">
-    <h2 data-r>You already have the numbers.</h2>
-    <ol id="sayList">
-      <li>Your dashboard can tell you half of booked calls never show.</li>
-      <li>It can’t tell you why.</li>
-      <li>And it can’t make anyone fix it.</li>
-      <li class="pay">Obavia does both.</li>
+    <form class="ap" id="ap" novalidate data-r
+      data-endpoint="/api/waitlist"
+      data-desk="https://desk.obavia.co/"
+      data-backend="pending: worker must accept step, application{gdnHeld,lotSize,agedOver60,floorplan,losingCar,gdn,dealerName,dealerCity,phoneVerified,referral?}">
+      <div class="ap-top"><button class="ap-back" id="apBack" type="button" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 3.5L5 8l5.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</button></div>
+      <div class="ap-line" id="apLine" role="progressbar" aria-label="Application progress" aria-valuemin="1" aria-valuemax="10" aria-valuenow="1"><i></i></div>
+      <div class="ap-pages" id="apPages" aria-live="polite">
+
+        <div class="ap-p" data-p="1" data-key="gdnHeld">
+          <h2 class="ap-q" tabindex="-1">Do you hold a Texas dealer license (GDN)?</h2>
+          <div class="ap-ch"><button class="btn ap-choice" type="button" data-v="yes">Yes</button><button class="btn ap-choice" type="button" data-v="not_yet">Not yet</button></div>
+        </div>
+
+        <div class="ap-p" data-p="stop" hidden>
+          <h2 class="ap-q" tabindex="-1">The lane is for licensed Texas dealers.</h2>
+          <p class="ap-sub">When your GDN issues, this page will be here.</p>
+        </div>
+
+        <div class="ap-p" data-p="2" data-key="lotSize" hidden>
+          <h2 class="ap-q" tabindex="-1">How many cars are on your lot today?</h2>
+          <div class="ap-ch"><button class="btn ap-choice" type="button" data-v="1-10">1 to 10</button><button class="btn ap-choice" type="button" data-v="11-30">11 to 30</button><button class="btn ap-choice" type="button" data-v="31-75">31 to 75</button><button class="btn ap-choice" type="button" data-v="76+">76 or more</button></div>
+        </div>
+
+        <div class="ap-p" data-p="3" data-key="agedOver60" hidden>
+          <h2 class="ap-q" tabindex="-1">How many of them have been on the lot more than 60 days?</h2>
+          <div class="ap-ch"><button class="btn ap-choice" type="button" data-v="0">None</button><button class="btn ap-choice" type="button" data-v="1-2">1 to 2</button><button class="btn ap-choice" type="button" data-v="3-5">3 to 5</button><button class="btn ap-choice" type="button" data-v="6-10">6 to 10</button><button class="btn ap-choice" type="button" data-v="11+">11 or more</button></div>
+        </div>
+
+        <div class="ap-p" data-p="4" data-key="floorplan" hidden>
+          <h2 class="ap-q" tabindex="-1">Do you floor-plan any of your cars?</h2>
+          <div class="ap-ch"><button class="btn ap-choice" type="button" data-v="yes">Yes</button><button class="btn ap-choice" type="button" data-v="no">No</button></div>
+        </div>
+
+        <div class="ap-p" data-p="5" data-key="losingCar" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apCar">Which car are you losing money on this week?</label></h2>
+          <div class="ap-field">
+            <input id="apCar" type="text" maxlength="140" autocomplete="off" autocapitalize="sentences" enterkeyhint="next" placeholder="Year, make, model, days on the lot" aria-describedby="apCarErr">
+            <div class="ap-meta"><span class="ap-err" id="apCarErr" role="status"></span><span class="count" id="apCarCount" aria-hidden="true"></span></div>
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next>Continue</button>
+        </div>
+
+        <div class="ap-p" data-p="6" data-key="gdn" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apGdn">What’s your GDN number?</label></h2>
+          <div class="ap-field">
+            <input id="apGdn" type="text" maxlength="12" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="P123456" aria-describedby="apGdnMatch">
+            <p class="ap-match" id="apGdnMatch" role="status"></p>
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next disabled>That’s us</button>
+        </div>
+
+        <div class="ap-p" data-p="7" data-key="fullName" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apName">What’s your name?</label></h2>
+          <div class="ap-field">
+            <input id="apName" type="text" maxlength="160" autocomplete="name" autocapitalize="words" enterkeyhint="next" placeholder="First and last name" aria-describedby="apNameErr">
+            <p class="ap-err" id="apNameErr" role="status"></p>
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next>Continue</button>
+        </div>
+
+        <div class="ap-p" data-p="8" data-key="code" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apCode">We texted a code to the phone on your license, ending in <span id="apLast4">0000</span>. Enter it here.</label></h2>
+          <div class="ap-field">
+            <input id="apCode" class="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-describedby="apCodeErr">
+            <p class="ap-err" id="apCodeErr" role="status"></p>
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next disabled>Continue</button>
+          <button class="ap-again" id="apAgain" type="button" hidden>Send it again</button>
+        </div>
+
+        <!-- Who sent you (gap-table.md W4-E; phases.md Phase 5 Marketing: a referral waives nothing, so no reward word here).
+             One field, a dealer's name or a buyer's code; Nobody, faint, skips it; Continue with it empty skips it too. -->
+        <div class="ap-p" data-p="r" data-key="referral" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apRef">Who sent you?</label></h2>
+          <div class="ap-field">
+            <input id="apRef" type="text" maxlength="64" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="Name or code">
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next>Continue</button>
+          <button class="ap-again" id="apNobody" type="button">Nobody</button>
+        </div>
+
+        <div class="ap-p" data-p="9" data-key="email" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apEmail">Where should we send a copy of your key?</label></h2>
+          <div class="ap-field">
+            <input id="apEmail" type="email" maxlength="254" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="send" placeholder="you@yourdealership.com" aria-describedby="apEmailErr">
+            <p class="ap-err" id="apEmailErr" role="status"></p>
+          </div>
+          <div class="trap" aria-hidden="true"><label for="apSite">Website</label><input id="apSite" name="website" tabindex="-1" autocomplete="off"></div>
+          <button class="btn cloud ap-go" type="button" data-next>Apply</button>
+        </div>
+
+        <!-- The key screen (legibility audit D2, Oct 13): two pieces, the key and the one verb. The key shows its
+             first and last four; Open The Desk carries it in the fragment (#/auction/setup?key=...), which never
+             reaches a server log, and the Desk keeps it itself. Copy Key is for a dealer on another device. -->
+        <div class="ap-p" data-p="key" hidden>
+          <h2 class="ap-q" tabindex="-1">Here is your key.</h2>
+          <p class="ap-key" id="apKey" aria-label="Your key"><span id="apKeyHead"></span><span class="ap-key-mid" aria-hidden="true">&bull;&bull;&bull;&bull;</span><span id="apKeyTail"></span></p>
+          <a class="btn cloud ap-go" id="apOpen" data-cloud3d>Open The Desk</a>
+          <button class="ap-again ap-copy" id="apCopy" type="button">Copy Key</button>
+          <p class="ap-sub faint ap-one">One key, one device.</p>
+          <p class="ap-sub faint" id="apStart"></p>
+        </div>
+
+        <div class="ap-p" data-p="in" hidden>
+          <h2 class="ap-q" tabindex="-1">Your application is in.</h2>
+          <p class="ap-sub" id="apInText">Keys aren’t issued on this page yet. Until they are, each application is checked by hand against the TxDMV list, and the key goes to the email you gave.</p>
+        </div>
+
+      </div>
+      <p class="ap-note" id="apNote"></p>
+    </form>
+  </div>
+</section>
+
+<!-- How it works, for the dealer, in four lines -->
+<section class="sec" id="how">
+  <div class="wrap split">
+    <div><h2 data-r>How it works.</h2></div>
+    <ol class="lines slab" data-r>
+      <li><b>Name your floor.</b><span>The least you’ll take. A car that doesn’t reach it doesn’t sell.</span></li>
+      <li><b>Take the photos.</b><span>In the Desk, on your lot.</span></li>
+      <li><b>It goes on the lane.</b><span>Buyers bid from their phones until the close you set. List it Monday for three days, and bidding closes Thursday at 3.</span></li>
+      <li><b>The Desk runs the paper.</b><span>If it reaches your floor, the Desk fills the 130-U from the sale.</span></li>
     </ol>
   </div>
 </section>
 
-<!-- 3. the why lives in the calls -->
-<section class="sec" id="why">
-  <div class="wrap zz">
-    <div class="copy">
-      <h2 data-r>The why is in the calls. <span class="g">Obavia hears every one.</span></h2>
-      <p class="p" data-r style="--d:.1s">Every drop-off, tagged with the words that caused it. No recordings to sit through, and no more sales blaming marketing.</p>
+<!-- The collateral line (docs/plan/collateral.md sections 1 to 3): the title and the coin, one line each (simplicity-audit.md row 8) -->
+<section class="sec" id="held">
+  <div class="wrap held">
+    <h2 data-r>The car stays yours until the VIN scan.</h2>
+    <div class="pair" data-r>
+      <picture class="obj title"><source type="image/webp" srcset="assets/scene-3d/title-light.webp 1x, assets/scene-3d/title-light-2x.webp 2x"><img src="assets/scene-3d/title-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture>
+      <p class="p">Your title, in your hand or at your lender.</p>
     </div>
-    <div class="card calls" id="calls" data-r style="--d:.15s">
-      <h3><b>Why 372 booked calls didn’t show</b></h3>
-      <div class="row"><p>“Yeah, Thursday works. <mark>What was this about again?</mark>”</p><div class="r"><b>Agenda never confirmed</b><span data-n="138">138 calls</span></div><div class="bar"><i style="--w:100%"></i></div></div>
-      <div class="row"><p>“I’ll <mark>probably be traveling</mark>, but put me down.”</p><div class="r"><b>Soft yes on the booking</b><span data-n="94">94 calls</span></div><div class="bar"><i style="--w:68%"></i></div></div>
-      <div class="row"><p>“Sure, <mark>any time is fine</mark>.”</p><div class="r"><b>No timezone set</b><span data-n="61">61 calls</span></div><div class="bar"><i style="--w:44%"></i></div></div>
+    <div class="pair" data-r>
+      <picture class="obj coin"><source type="image/webp" srcset="assets/scene-3d/coin-light.webp 1x, assets/scene-3d/coin-light-2x.webp 2x"><img src="assets/scene-3d/coin-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture>
+      <p class="p">$250, theirs.</p>
     </div>
   </div>
 </section>
 
-<!-- 4. one fix, checked -->
-<section class="sec" id="fix">
-  <div class="wrap zz rev">
-    <div class="copy">
-      <h2 data-r>One fix. <span class="g">For the one rep who needs it.</span></h2>
-      <p class="p" data-r style="--d:.1s">One change for the rep who leaks most. Checked Friday against their own calls, in dollars.</p>
+<!-- What it costs (43 TAC 215.85, docs/plan/research/texas-rules.md row S01, read 2026-10-12) -->
+<section class="sec" id="cost">
+  <div class="wrap split">
+    <div>
+      <h2 data-r>Nothing, until Obavia holds its own dealer license.</h2>
+      <p class="p" data-r>No fee of any kind before Obavia’s own GDN. No price is promised for after.</p>
     </div>
-    <div class="card fixc" id="fixc" data-r style="--d:.15s">
-      <div class="who"><span class="av">JK</span><div><b>Jordan Kim</b><small>Booked to showed, 32% this month</small></div></div>
-      <p class="fx">“Before you hang up, confirm the agenda, their timezone and a way to reschedule.”</p>
-      <div class="days" id="days"></div>
-      <div class="res" id="res">
-        <div><span class="lbl">Jordan’s show rate</span><b class="big"><s>32%</s><svg class="ico"><use href="#i-caret"/></svg><em id="rate">32%</em></b></div>
-        <div class="up"><em id="gain">+$0K</em><small>a month, from one habit</small></div>
+    <div data-r>
+      <figure class="rule slab">
+        <blockquote>“Any other entity that accepts a fee for arranging a transaction involving the sale of a used motor vehicle is required to meet the requirements for and obtain a GDN.”</blockquote>
+        <figcaption>43 Tex. Admin. Code §215.85(b), as amended effective June 1, 2024. Read October 12, 2026 at <a href="https://www.law.cornell.edu/regulations/texas/43-Tex-Admin-Code-SS-215-85" rel="noopener" target="_blank">law.cornell.edu</a>.</figcaption>
+      </figure>
+      <p class="status">Today the lane is a pilot: one Houston dealership selling its own cars. Other dealers’ cars go on it only after Obavia’s own GDN issues.</p>
+    </div>
+  </div>
+</section>
+
+<!-- The buyer: a price, a time, a name (messaging-hooks.md section 1). The urgency fact is buyer-urgency.md, register S27: US, dated, never beside a lot's bid. -->
+<section class="sec buyer" id="buyers">
+  <div class="wrap split">
+    <div>
+      <h2 data-r>For the buyer: a price, a time, a name.</h2>
+      <div class="pair" data-r>
+        <picture class="obj coin"><source type="image/webp" srcset="assets/scene-3d/coin-light.webp 1x, assets/scene-3d/coin-light-2x.webp 2x"><img src="assets/scene-3d/coin-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture>
+        <p class="p">$250 to bid. Back if you lose.</p>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- the game the whole team can see -->
-<section class="sec" id="game">
-  <div class="wrap center">
-    <h2 data-r>One number the whole team plays by. <span class="g">Revenue per lead.</span></h2>
-    <p class="p" data-r style="--d:.1s">Close rate flatters. Revenue per lead doesn’t. Reps see where they stand, and earn better leads by it.</p>
-  </div>
-  <div class="wrap" style="margin-top:clamp(40px,6vw,64px)">
-    <div class="card board" id="board" data-r style="--d:.15s">
-      <div class="bh"><span></span><span></span><span>This month</span><span>Show rate</span><span>Each call is worth</span><span>Per lead</span></div>
-      <div class="rows" id="rows"></div>
-      <p class="bf"><span id="boardNote">Team show rate is 50%. Anything below it glows.</span><span class="tiers"><span><i style="--c:#7D97C7"></i>Best leads</span><span><i style="--c:#B9CAF4"></i>Middle</span><span><i style="--c:#E1E8F7"></i>Newer</span></span></p>
-    </div>
-  </div>
-</section>
-
-<!-- 5. the person on the other end -->
-<section class="sec person" id="person" style="padding-bottom:0">
-  <div class="wrap center head">
-    <h2 data-r>His words tell you <span class="g">how to sell him.</span></h2>
-    <p class="p" data-r style="--d:.1s">How a lead talks tells you what they need to hear.</p>
-  </div>
-  <div class="scrolly" id="scrolly">
-    <div class="sticky">
-      <div class="wrap lgrid">
-        <div class="stepsw"><ol class="steps" id="steps">
-          <li class="on"><b>Listen</b><p>Every word, exactly as he said it.</p></li>
-          <li><b>I, not we</b><p>He could have said we. He said I.</p></li>
-          <li><b>Babe Ruth</b><p>He could have named anyone. He chose him.</p></li>
-          <li><b>The read</b><p>Word by word, the most likely need.</p></li>
-          <li><b>Sell to it</b><p>Give him the significance he is reaching for.</p></li>
-        </ol><i class="prog" aria-hidden="true"></i></div>
-        <div class="card lcard s1" id="lcard">
-          <div class="who"><span class="av">MH</span><div><b>Marcus Hale</b><small>Owner, Hale Growth</small></div></div>
-          <p class="quote">“Some months <span class="self">I’m</span> fine. Other months, <span class="self">my</span> team is waiting for someone to pull a <mark>Babe Ruth</mark> and save the quarter.”</p>
-          <div class="slot">
-            <div class="lv lv1" aria-hidden="true"><span class="wave" id="wave"></span></div>
-            <div class="lv lv2">
-              <div class="swap"><span class="was">we’re</span><svg class="ico"><use href="#i-caret"/></svg><b>I’m</b></div>
-              <div class="swap"><span class="was">our team</span><svg class="ico"><use href="#i-caret"/></svg><b>my team</b></div>
-              <p class="why">He puts himself at the center of the story.</p>
-            </div>
-            <div class="lv lv3">
-              <div class="names" id="names" aria-label="Out of every name, he chose Babe Ruth"><span>Michael Jordan</span><span>Serena Williams</span><span>LeBron James</span><span>Tom Brady</span><span>Michael Jackson</span><b>Babe Ruth</b></div>
-              <p class="why">A baseball legend. The one who steps up and saves the game.</p>
-            </div>
-            <div class="lv lv4">
-              <div class="odds">
-                <div class="o top"><span>Needs to feel significant</span><i><u style="--w:74%"></u></i><b>74%</b></div>
-                <div class="o"><span>Needs to belong</span><i><u style="--w:15%"></u></i><b>15%</b></div>
-                <div class="o"><span>Needs approval</span><i><u style="--w:11%"></u></i><b>11%</b></div>
-              </div>
-              <p class="why">Probable, not certain. Every call sharpens it.</p>
-            </div>
-            <div class="lv lv5">
-              <p class="bubble">“You’ve built something most owners never reach. Let’s get every rep hitting like your Babe Ruth.”</p>
-              <p class="why">Give him the credit. Use his hero, in his words.</p>
-            </div>
-          </div>
-        </div>
+      <div class="pair" data-r>
+        <picture class="obj licence"><source type="image/webp" srcset="assets/scene-3d/licence-light.webp 1x, assets/scene-3d/licence-light-2x.webp 2x"><img src="assets/scene-3d/licence-light.png" alt="" width="512" height="320" decoding="async" loading="lazy"></picture>
+        <p class="p">A Texas driver’s license.</p>
       </div>
+      <a class="more" href="waitlist.html" data-r>Buying, not selling? Get early access to the app.<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l5.5 4.5L5 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
     </div>
+    <figure class="fact slab" data-r>
+      <blockquote>US dealers’ average used-vehicle listing price was <b>$27,239</b> in August 2026, 7% above a year ago.</blockquote>
+      <figcaption>Cox Automotive, from vAuto Live Market View data. Published September 11, 2026; checked October 12, 2026 at <a href="https://www.coxautoinc.com/insights/used-vehicle-inventory-august-2026/" rel="noopener" target="_blank">coxautoinc.com</a>.</figcaption>
+      <p class="frame">That’s what lots are asking. On the lane, bidders set the price.</p>
+    </figure>
   </div>
 </section>
 
-<!-- 6. the team will actually use it -->
-<section class="sec team" id="team">
-  <div class="wrap center">
-    <h2 data-r>Built so your reps <span class="g">actually use it.</span></h2>
-    <p class="p" data-r style="--d:.1s">One next action. One tap. On the record the moment the call ends.</p>
-  </div>
-  <div class="wrap trio">
-    <div class="pts l" data-r>
-      <div><b>One next action</b><p>Nothing else on the screen.</p></div>
-      <div><b>Nothing to type</b><p>Logged from the tools you already use.</p></div>
-    </div>
-    <div data-r style="--d:.1s">
-      <div class="phone" id="phone">
-        <div class="scr">
-          <img class="on" src="shots/today-0.webp" alt="The Obavia rep app: next action, call Lena Park, with a Call now button.">
-          <img src="shots/today-1.webp" alt="On the call with Lena Park.">
-          <img src="shots/today-2.webp" alt="Logged. Nothing to type.">
-          <button class="hot a" id="hotA" type="button" aria-label="Call now"></button>
-          <button class="hot b" id="hotB" type="button" aria-label="Next lead" hidden></button>
-        </div>
-      </div>
-      <p class="try" id="try">Tap Call now.</p>
-    </div>
-    <div class="pts r" data-r style="--d:.2s">
-      <div><b>It answers back</b><p>A soft sound, and a tap you can feel.</p></div>
-      <div><b>Their own number</b><p>What every call is worth to them.</p></div>
-    </div>
+<!-- How bad it can get (CP10; docs/plan/collateral.md section 2) -->
+<section class="sec" id="worst">
+  <div class="wrap split">
+    <div><h2 data-r>How bad it can get.</h2></div>
+    <ul class="worst" data-r>
+      <li><b>The car doesn’t start at pickup.</b><span>No sale. The money goes back. The car stays yours.</span></li>
+      <li><b>The winner walks away.</b><span>Their $250 goes to you, less processing. You relist from the Desk.</span></li>
+      <li><b>You can’t deliver.</b><span class="pair"><picture class="obj coin"><source type="image/webp" srcset="assets/scene-3d/coin-light.webp 1x, assets/scene-3d/coin-light-2x.webp 2x"><img src="assets/scene-3d/coin-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture><span>The buyer gets the $250 back in full. The miss goes on your account.</span></span></li>
+    </ul>
   </div>
 </section>
 
-<!-- every tool they already run -->
-<section class="sec tools" id="tools" aria-labelledby="toolsH">
-  <div class="wrap center">
-    <h2 id="toolsH" data-r>Your tools. <span class="g">One workflow.</span></h2>
-    <p class="p" data-r style="--d:.1s">Obavia reads the tools you already run. Nothing to switch, nothing to type.</p>
-  </div>
-  <div class="belts">
-  <div class="belt" data-r style="--d:0.1s"><ul class="track" id="beltA" aria-label="Tools Obavia connects with"><li><img src="logos/zoom.svg" alt="Zoom" width="123" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/google-meet.svg" alt="Google Meet" width="48" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/microsoft-teams.svg" alt="Microsoft Teams" width="41" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/calendly.svg" alt="Calendly" width="54" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/cal-com.svg" alt="Cal.com" width="129" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/google-calendar.svg" alt="Google Calendar" width="35" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/hubspot.svg" alt="HubSpot" width="96" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/salesforce.svg" alt="Salesforce" width="54" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/pipedrive.svg" alt="Pipedrive" width="123" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/zoho.svg" alt="Zoho" width="74" height="32" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/slack.svg" alt="Slack" width="110" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/discord.svg" alt="Discord" width="143" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/whatsapp.svg" alt="WhatsApp" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/telegram.svg" alt="Telegram" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/messenger.svg" alt="Messenger" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/gmail.svg" alt="Gmail" width="49" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/google-workspace.svg" alt="Google Workspace" width="160" height="21" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/microsoft.svg" alt="Microsoft" width="130" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/twilio.svg" alt="Twilio" width="92" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/aircall.svg" alt="Aircall" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/loom.svg" alt="Loom" width="92" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/vimeo.svg" alt="Vimeo" width="98" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/wistia.svg" alt="Wistia" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/intercom.svg" alt="Intercom" width="110" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/zendesk.svg" alt="Zendesk" width="145" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/zoom.svg" alt="" width="123" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/google-meet.svg" alt="" width="48" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/microsoft-teams.svg" alt="" width="41" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/calendly.svg" alt="" width="54" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/cal-com.svg" alt="" width="129" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/google-calendar.svg" alt="" width="35" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/hubspot.svg" alt="" width="96" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/salesforce.svg" alt="" width="54" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/pipedrive.svg" alt="" width="123" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/zoho.svg" alt="" width="74" height="32" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/slack.svg" alt="" width="110" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/discord.svg" alt="" width="143" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/whatsapp.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/telegram.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/messenger.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/gmail.svg" alt="" width="49" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/google-workspace.svg" alt="" width="160" height="21" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/microsoft.svg" alt="" width="130" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/twilio.svg" alt="" width="92" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/aircall.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/loom.svg" alt="" width="92" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/vimeo.svg" alt="" width="98" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/wistia.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/intercom.svg" alt="" width="110" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/zendesk.svg" alt="" width="145" height="28" loading="lazy" decoding="async" draggable="false"></li></ul></div>
-  <div class="belt" data-r style="--d:0.2s"><ul class="track" id="beltB" aria-label="Tools Obavia connects with"><li><img src="logos/zapier.svg" alt="Zapier" width="103" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/n8n.svg" alt="n8n" width="100" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/stripe.svg" alt="Stripe" width="77" height="32" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/paypal.svg" alt="PayPal" width="32" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/square.svg" alt="Square" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/quickbooks.svg" alt="QuickBooks" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/xero.svg" alt="Xero" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/chargebee.svg" alt="Chargebee" width="91" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/whop.svg" alt="Whop" width="62" height="32" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/google-sheets.svg" alt="Google Sheets" width="28" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/google-drive.svg" alt="Google Drive" width="41" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/dropbox.svg" alt="Dropbox" width="45" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/notion.svg" alt="Notion" width="92" height="32" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/airtable.svg" alt="Airtable" width="45" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/clickup.svg" alt="ClickUp" width="114" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/asana.svg" alt="Asana" width="141" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/monday-com.svg" alt="monday.com" width="151" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/trello.svg" alt="Trello" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/linear.svg" alt="Linear" width="112" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/jira.svg" alt="Jira" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/meta.svg" alt="Meta" width="138" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/facebook.svg" alt="Facebook" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/instagram.svg" alt="Instagram" width="98" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/linkedin.svg" alt="LinkedIn" width="112" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/youtube.svg" alt="YouTube" width="124" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/tiktok.svg" alt="TikTok" width="96" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/x.svg" alt="X" width="37" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/google-ads.svg" alt="Google Ads" width="42" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/google-analytics.svg" alt="Google Analytics" width="34" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/mailchimp.svg" alt="Mailchimp" width="105" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/apollo-io.svg" alt="Apollo.io" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/webflow.svg" alt="Webflow" width="111" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/wordpress.svg" alt="WordPress" width="123" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/shopify.svg" alt="Shopify" width="33" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/wix.svg" alt="Wix" width="81" height="32" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/squarespace.svg" alt="Squarespace" width="48" height="38" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/openai.svg" alt="OpenAI" width="114" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/claude.svg" alt="Claude" width="130" height="28" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/gemini.svg" alt="Gemini" width="87" height="32" loading="lazy" decoding="async" draggable="false"></li><li><img src="logos/perplexity.svg" alt="Perplexity" width="129" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/zapier.svg" alt="" width="103" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/n8n.svg" alt="" width="100" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/stripe.svg" alt="" width="77" height="32" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/paypal.svg" alt="" width="32" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/square.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/quickbooks.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/xero.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/chargebee.svg" alt="" width="91" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/whop.svg" alt="" width="62" height="32" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/google-sheets.svg" alt="" width="28" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/google-drive.svg" alt="" width="41" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/dropbox.svg" alt="" width="45" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/notion.svg" alt="" width="92" height="32" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/airtable.svg" alt="" width="45" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/clickup.svg" alt="" width="114" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/asana.svg" alt="" width="141" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/monday-com.svg" alt="" width="151" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/trello.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/linear.svg" alt="" width="112" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/jira.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/meta.svg" alt="" width="138" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/facebook.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/instagram.svg" alt="" width="98" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/linkedin.svg" alt="" width="112" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/youtube.svg" alt="" width="124" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/tiktok.svg" alt="" width="96" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/x.svg" alt="" width="37" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/google-ads.svg" alt="" width="42" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/google-analytics.svg" alt="" width="34" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/mailchimp.svg" alt="" width="105" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/apollo-io.svg" alt="" width="38" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/webflow.svg" alt="" width="111" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/wordpress.svg" alt="" width="123" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/shopify.svg" alt="" width="33" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/wix.svg" alt="" width="81" height="32" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/squarespace.svg" alt="" width="48" height="38" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/openai.svg" alt="" width="114" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/claude.svg" alt="" width="130" height="28" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/gemini.svg" alt="" width="87" height="32" loading="lazy" decoding="async" draggable="false"></li><li aria-hidden="true"><img src="logos/perplexity.svg" alt="" width="129" height="28" loading="lazy" decoding="async" draggable="false"></li></ul></div>
-  </div>
-</section>
-
-<!-- closer math: what a million a month takes -->
-<section class="sec" id="math">
-  <div class="wrap center">
-    <h2 data-r>Do the math <span class="g">on a million a month.</span></h2>
-    <p class="p" data-r style="--d:.1s">Drag your rates. See what it takes, and which rate leaks the most.</p>
-  </div>
-  <div class="wrap" style="margin-top:clamp(40px,6vw,64px)">
-    <div class="card math" data-r style="--d:.15s">
-      <div class="in">
-        <div class="fld"><label for="mGoal">Monthly goal <b id="vGoal"></b></label><input id="mGoal" type="range" min="100000" max="3000000" step="50000" value="1000000"></div>
-        <div class="fld"><label for="mAov">Cash collected per sale <b id="vAov"></b></label><input id="mAov" type="range" min="1000" max="30000" step="500" value="5000"></div>
-        <div class="fld"><label for="mShow">Show rate <b id="vShow"></b></label><input id="mShow" type="range" min="20" max="95" step="1" value="60"></div>
-        <div class="fld"><label for="mClose">Close rate on shown calls <b id="vClose"></b></label><input id="mClose" type="range" min="5" max="60" step="1" value="20"></div>
-        <div class="fld"><label for="mCpc">Cost per booked call <b id="vCpc"></b></label><input id="mCpc" type="range" min="25" max="1000" step="5" value="150"></div>
-      </div>
-      <div class="out" aria-live="polite">
-        <div class="ol"><span>Sales to close</span><b id="oClose"></b></div>
-        <div class="ol"><span>Calls that need to show</span><b id="oShow"></b></div>
-        <div class="ol"><span>Calls to book</span><b id="oBook"></b></div>
-        <div class="ol k"><span>Ad spend a month</span><b id="oSpend"></b></div>
-        <div class="ol"><span>A day</span><b id="oDay"></b></div>
-        <div class="ol"><span>Closers, at 8 calls a day</span><b id="oClosers"></b></div>
-        <p class="lever" id="lever"></p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 7. the honest comparison, then the price -->
-<section class="sec" id="build">
-  <div class="wrap center">
-    <h2 data-r>Could your team build this? <span class="g">The dashboard, yes.</span></h2>
-    <p class="p" data-r style="--d:.1s">Everything after the number is where the money is.</p>
-  </div>
+<section class="sec close" id="again">
   <div class="wrap">
-    <div class="cmp" role="table" aria-label="A dashboard you build, compared with Obavia" data-r style="--d:.15s">
-      <div class="h" role="columnheader"><span class="vh">What you get</span></div><div class="h" role="columnheader">A dashboard you build</div><div class="h o" role="columnheader">Obavia</div>
-      <div class="t" role="cell">Shows your numbers</div><div class="c y" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
-      <div class="t" role="cell">Numbers you can trust, with nothing typed by reps</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
-      <div class="t" role="cell">Hears every call</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
-      <div class="t" role="cell">Knows why each deal was lost</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
-      <div class="t" role="cell">Gives each rep the one fix</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
-      <div class="t" role="cell">Ranks and routes reps on revenue per lead</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
-      <div class="t" role="cell">Checks if the fix worked, in dollars</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
-      <div class="t" role="cell">Reads every lead before the call</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
-      <div class="t" role="cell">Kept working for you, as your tools change</div><div class="c" role="cell"><svg class="ico" aria-label="No"><use href="#i-minus"/></svg></div><div class="c o" role="cell"><svg class="ico" aria-label="Yes"><use href="#i-check"/></svg></div>
-    </div>
-    <div class="price" data-r>
-      <div class="amt">$3,000<small>a month</small></div>
-      <p class="p">If it saves one deal a month, it has paid for itself.</p>
-      <p class="fine">Setup is $5,000 once, scoped with you before anything starts.</p>
-      <div class="cta"><a class="btn" href="waitlist.html">Join the waitlist</a><a class="more" href="pricing.html">See pricing<svg class="ico"><use href="#i-caret"/></svg></a></div>
-    </div>
-  </div>
-</section>
-
-<!-- 8. the ask -->
-<section class="sec final center" id="final">
-  <div class="wrap copy">
-    <h2 data-r>Stop guessing <span class="g">where the money goes.</span></h2>
-    <p class="p" data-r style="--d:.1s">Waitlist agencies are onboarded first.</p>
-    <div class="cta" data-r style="--d:.2s"><a class="btn" href="waitlist.html">Join the waitlist</a></div>
+    <h2 data-r>Which car are you losing money on this week?</h2>
+    <div class="act" data-r><button class="btn cloud" type="button" data-go="apply">Get on the lane</button></div>
   </div>
 </section>
 </main>
 
 <footer class="foot">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Obavia home"><img src="favicon.svg" alt=""></a>
-    <nav aria-label="Footer"><a href="product.html">Product</a><a href="owners.html">Owners</a><a href="team.html">Team</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a href="ads.html">Films</a></nav>
+    <a class="brand" href="#top" aria-label="Obavia, back to the top"><img src="favicon.svg" alt=""></a>
+    <nav aria-label="Footer"><a href="#how">How it works</a><a href="#cost">What it costs</a><a href="#buyers">Buyers</a><a href="#worst">How bad it can get</a><a href="results.html">Results</a><a href="#apply">Get on the lane</a></nav>
     <small>© 2026 Obavia</small>
   </div>
 </footer>
 
-<script>
-(() => {
-'use strict';
-const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
-const eo = k => 1 - Math.pow(1 - k, 3);
-
-/* ---------- sound: soft sine chimes, only after the first tap ---------- */
-const SND = { ac: null, out: null, on: false };
-function wake() {
-  if (SND.on) return;
-  try {
-    SND.ac = new (window.AudioContext || window.webkitAudioContext)();
-    SND.out = SND.ac.createGain(); SND.out.gain.value = .8; SND.out.connect(SND.ac.destination);
-    SND.on = true;
-  } catch (e) {}
-}
-addEventListener('pointerdown', wake, true); addEventListener('keydown', wake, true);
-document.addEventListener('visibilitychange', () => { if (SND.ac) document.hidden ? SND.ac.suspend() : SND.ac.resume(); });
-function tone(f, g = .03, dur = 1.4, at = 0) {
-  if (!SND.on || REDUCED) return;
-  const a = SND.ac, t = a.currentTime + .01 + at, o = a.createOscillator(), o2 = a.createOscillator(), v = a.createGain(), v2 = a.createGain();
-  o.type = o2.type = 'sine'; o.frequency.value = f; o2.frequency.value = f * 2.002; v2.gain.value = .16;
-  o.connect(v); o2.connect(v2).connect(v); v.connect(SND.out);
-  v.gain.setValueAtTime(0, t); v.gain.linearRampToValueAtTime(g, t + .014); v.gain.exponentialRampToValueAtTime(.0001, t + dur);
-  o.start(t); o2.start(t); o.stop(t + dur + .05); o2.stop(t + dur + .05);
-}
-const chime = (fs, g = .03, gap = .09) => fs.forEach((f, i) => tone(f, g, 1.3, i * gap));
-const tick = (f = 2300, g = .012) => tone(f, g, .09);
-
-/* ---------- haptics: a tap you can feel, on taps only ---------- */
-function haptic() {
-  if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} return; }
-  // iOS 18+: toggling a native switch plays the system tick
-  const l = document.createElement('label'), i = document.createElement('input');
-  i.type = 'checkbox'; i.setAttribute('switch', ''); l.appendChild(i);
-  l.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
-  document.body.appendChild(l); l.click(); l.remove();
-}
-document.addEventListener('click', e => { if (e.target.closest('.steps li')) { haptic(); tick(1900, .014); } });
-
-/* ---------- reveal ---------- */
-const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -12% 0px' });
-$$('[data-r]').forEach(el => { if (el.closest('.hero')) return; io.observe(el); });
-let lineGo = false;
-const revealHero = () => $$('.hero [data-r]').forEach(el => el.classList.add('in'));
-const onReveal = () => { revealHero(); setTimeout(() => { lineGo = true; }, 380); };
-window.OSHELL && OSHELL.revealed ? onReveal() : addEventListener('o:reveal', onReveal, { once: true });
-const once = (el, fn, th = .35) => { const o = new IntersectionObserver(es => { if (es[0].isIntersecting) { o.disconnect(); fn(); } }, { threshold: th }); o.observe(el); };
-function count(el, to, fmt, dur = 1200) {
-  if (REDUCED) { el.textContent = fmt(to); return; }
-  const t0 = performance.now();
-  const step = n => { const k = clamp((n - t0) / dur); el.textContent = fmt(to * eo(k)); if (k < 1) requestAnimationFrame(step); };
-  requestAnimationFrame(step);
-}
-
-/* ---------- 1. the line: one month, and where it leaks ---------- */
-const line = $('#line'), cv = line.querySelector('canvas'), cx = cv.getContext('2d');
-const C = [1200, 744, 372, 272, 78], LEAK = 1;
-const stg = [...line.querySelectorAll('.stg')], note = line.querySelector('.note');
-let W = 0, H = 0, X = [], cy = 0, T = 0, th = [], parts = [], lineOn = true, born = 0, noteShown = false;
-function layoutLine() {
-  const r = line.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
-  W = r.width; H = r.height; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const m = W < 640, pad = m ? 34 : 70;
-  X = C.map((_, i) => pad + i * (W - 2 * pad) / 4);
-  T = m ? 64 : Math.min(112, W * .1); cy = m ? 116 : 132;
-  th = C.map(v => T * (.2 + .8 * Math.sqrt(v / C[0])));
-  stg.forEach((s, i) => { s.style.left = X[i] + 'px'; s.style.top = (cy - T / 2 - (m ? 50 : 64)) + 'px'; });
-  const nx = (X[LEAK] + X[LEAK + 1]) / 2, half = note.offsetWidth / 2 + 8;
-  note.style.left = clamp(nx, half, W - half) + 'px'; note.style.top = (cy + th[LEAK] / 2 + (m ? 44 : 52)) + 'px';
-}
-const thAt = x => {
-  if (x <= X[0]) return th[0]; if (x >= X[4]) return th[4];
-  let i = 0; while (i < 3 && x > X[i + 1]) i++;
-  const t = (x - X[i]) / (X[i + 1] - X[i]), e = t * t * (3 - 2 * t); return th[i] + (th[i + 1] - th[i]) * e;
-};
-function spawn() {
-  const r = Math.random(); let d = -1;
-  for (let i = 1; i < 5; i++) if (r > C[i] / C[0]) { d = i; break; }
-  const seg = d - 1;
-  return { x: X[0] - 16, off: (Math.random() - .5) * .8, v: 46 + Math.random() * 34, die: d < 0 ? Infinity : X[seg] + (X[seg + 1] - X[seg]) * (.25 + .5 * Math.random()), seg, dead: 0, vy: 0 };
-}
-function drawLine(now) {
-  if (!lineGo) return;
-  if (!born) born = now;
-  const age = (now - born) / 1000, g = REDUCED ? 1 : eo(clamp((age - .5) / 1.9)), reach = X[0] + (X[4] - X[0]) * g;
-  cx.clearRect(0, 0, W, H);
-  // warm glow under the leak
-  const lk = REDUCED ? 1 : clamp((age - 1.9) / 1.2), mx = (X[LEAK] + X[LEAK + 1]) / 2;
-  if (lk > 0) { const rg = cx.createRadialGradient(mx, cy + 10, 0, mx, cy + 10, (X[LEAK + 1] - X[LEAK]) * .9); rg.addColorStop(0, `rgba(244,180,120,${.32 * lk})`); rg.addColorStop(1, 'rgba(244,180,120,0)'); cx.fillStyle = rg; cx.fillRect(0, 0, W, H); }
-  // the ribbon
-  const top = [], bot = [], N = 90;
-  for (let k = 0; k <= N; k++) { const x = X[0] - 6 + (reach + 6 - X[0]) * k / N, h = thAt(x) / 2; top.push([x, cy - h]); bot.push([x, cy + h]); }
-  cx.beginPath(); top.forEach(([x, y], i) => i ? cx.lineTo(x, y) : cx.moveTo(x, y)); for (let i = bot.length - 1; i >= 0; i--) cx.lineTo(bot[i][0], bot[i][1]); cx.closePath();
-  const lg = cx.createLinearGradient(X[0] - 6, 0, X[4] + 6, 0); lg.addColorStop(0, 'rgba(214,225,253,0)'); lg.addColorStop(.05, 'rgba(214,225,253,.96)'); lg.addColorStop(.55, 'rgba(175,193,238,.96)'); lg.addColorStop(.95, 'rgba(128,152,206,.96)'); lg.addColorStop(1, 'rgba(128,152,206,0)');
-  cx.fillStyle = lg; cx.fill();
-  cx.save(); cx.clip();
-  if (lk > 0) { const a = X[LEAK], b = X[LEAK + 1], tg = cx.createLinearGradient(a, 0, b, 0); tg.addColorStop(0, 'rgba(244,178,114,0)'); tg.addColorStop(.5, `rgba(244,178,114,${.78 * lk})`); tg.addColorStop(1, 'rgba(244,178,114,0)'); cx.fillStyle = tg; cx.fillRect(a, 0, b - a, H); }
-  cx.restore();
-  cx.strokeStyle = 'rgba(255,255,255,.9)'; cx.lineWidth = 1.2; cx.beginPath(); top.forEach(([x, y], i) => i ? cx.lineTo(x, y) : cx.moveTo(x, y)); cx.stroke();
-  X.forEach((x, i) => { if (i === 0 || i === 4 || x > reach + .5) return; const h = thAt(x) / 2; cx.strokeStyle = 'rgba(255,255,255,.7)'; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(x, cy - h - 2); cx.lineTo(x, cy + h + 2); cx.stroke(); });
-  stg.forEach((s, i) => { if (X[i] <= reach + 2 && !s.classList.contains('on')) s.classList.add('on'); });
-  // a hairline from the leak down to what it costs
-  if (lk > 0) { const y0 = cy + th[LEAK] / 2 + 8, y1 = parseFloat(note.style.top) - 10, nxp = parseFloat(note.style.left);
-    cx.strokeStyle = `rgba(174,100,32,${.5 * lk})`; cx.lineWidth = 1.2; cx.beginPath(); cx.moveTo(mx, y0); cx.lineTo(mx + (nxp - mx) * .0, y0 + (y1 - y0) * lk); cx.stroke();
-    if (!noteShown && lk > .5) { noteShown = true; note.classList.add('on'); count($('#leakAmt'), 234, v => '$' + Math.round(v) + 'K', 1400); chime([659.25, 987.77], .026); } }
-  // people moving through; at the leak, half of them fall away
-  if (!REDUCED) {
-    const dt = Math.min(.05, (now - (drawLine.last || now)) / 1000); drawLine.last = now;
-    for (const p of parts) {
-      if (!p.dead) { p.x += p.v * dt; if (p.x >= p.die) p.dead = .0001; } else { p.dead += dt; p.vy += (p.seg === LEAK ? 70 : 30) * dt; }
-      if (p.dead > 1.3 || p.x > X[4] + 4) { Object.assign(p, spawn()); continue; }
-      if (p.x > reach || p.x < X[0]) continue;
-      let y = cy + thAt(p.x) / 2 * p.off, a = .55;
-      if (p.dead) { y += p.vy * p.dead * 1.2; a *= 1 - p.dead / 1.3; cx.fillStyle = p.seg === LEAK ? `rgba(214,130,60,${a})` : `rgba(125,151,199,${a})`; }
-      else cx.fillStyle = `rgba(40,52,79,${a})`;
-      cx.beginPath(); cx.arc(p.x, y, 2, 0, Math.PI * 2); cx.fill();
-    }
-  }
-}
-function loopLine(now) { if (lineOn) drawLine(now); requestAnimationFrame(loopLine); }
-layoutLine();
-parts = Array.from({ length: W < 640 ? 42 : 76 }, () => { const p = spawn(); p.x = X[0] + Math.random() * (X[4] - X[0]); if (p.x > p.die) { p.x = p.die - 1; } return p; });
-new IntersectionObserver(es => { lineOn = es[0].isIntersecting; }).observe(line);
-requestAnimationFrame(loopLine);
-
-/* ---------- 2. lines light as you read them ---------- */
-const sayLis = $$('#sayList li');
-function sayScroll() {
-  const vh = innerHeight;
-  sayLis.forEach((li, i) => {
-    const on = li.getBoundingClientRect().top < vh * .64;
-    if (on !== li.classList.contains('on')) { li.classList.toggle('on', on); if (on) li.classList.contains('pay') ? chime([987.77, 1318.5], .026) : tick(1500 + i * 180, .01); }
-  });
-}
-
-/* ---------- 3. why, from the calls ---------- */
-once($('#calls'), () => {
-  $$('#calls .row').forEach((r, i) => setTimeout(() => {
-    r.classList.add('on'); tick(2000 + i * 200, .012);
-    const n = r.querySelector('[data-n]'); setTimeout(() => count(n, +n.dataset.n, v => Math.round(v) + ' calls', 900), 600);
-    if (i === 2) setTimeout(() => chime([783.99, 1174.66], .022), 900);
-  }, 250 + i * 850));
-});
-
-/* ---------- 4. one fix, through the week ---------- */
-const days = $('#days'), CALLS = [5, 4, 4, 5, 3], MISS = new Set([6, 14, 19]);
-let di = 0; const dots = [];
-['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].forEach((d, i) => {
-  const col = document.createElement('div'); col.className = 'day'; col.innerHTML = `<span>${d}</span><div class="dots"></div>`;
-  for (let k = 0; k < CALLS[i]; k++) { const dot = document.createElement('i'); dot.dataset.miss = MISS.has(di) ? 1 : ''; col.lastChild.appendChild(dot); dots.push(dot); di++; }
-  days.appendChild(col);
-});
-once($('#fixc'), () => {
-  dots.forEach((d, i) => setTimeout(() => { d.className = d.dataset.miss ? 'miss' : 'done'; if (i % 3 === 0) tick(2400, .008); }, REDUCED ? 0 : 300 + i * 90));
-  setTimeout(() => {
-    $('#res').classList.add('on'); chime([659.25, 987.77, 1318.5], .026);
-    count($('#rate'), 47, v => Math.round(32 + (v / 47) * 15) + '%', 1300);
-    count($('#gain'), 21, v => '+$' + Math.round(v) + 'K', 1300);
-  }, REDUCED ? 0 : 300 + dots.length * 90 + 250);
-});
-
-/* ---------- 5. the read, step by step ---------- */
-$('#wave').innerHTML = Array.from({ length: 38 }, (_, i) => {
-  const env = Math.pow(Math.sin(Math.PI * (i + .5) / 38), .9), h = 18 + 78 * env * (.72 + .28 * Math.abs(Math.sin(i * 1.7)));
-  return `<i style="--h:${h.toFixed(0)}%;--s:${(.55 + (i * 37 % 11) / 22).toFixed(2)}s;--dl:${(-(i * 53 % 17) / 20).toFixed(2)}s"></i>`;
-}).join('');
-const scr = $('#scrolly'), lcard = $('#lcard'), steps = $$('#steps li'), prog = $('.stepsw .prog'), names = [...$('#names').children], person = $('#person');
-let lStep = 0, lFree = false, nameT = [];
-function fitPerson() {
-  const need = $('.stepsw').offsetHeight + lcard.offsetHeight + (innerWidth < 980 ? 90 : 0);
-  lFree = Math.max(innerWidth < 980 ? need : lcard.offsetHeight + 60, 0) > innerHeight; person.classList.toggle('lfree', lFree);
-}
-function runNames() {
-  nameT.forEach(clearTimeout); nameT = []; names.forEach(n => n.className = '');
-  if (REDUCED) { names[names.length - 1].className = 'land'; return; }
-  names.forEach((n, i) => nameT.push(setTimeout(() => {
-    const last = i === names.length - 1; if (i > 0) names[i - 1].className = 'out';
-    n.className = last ? 'land' : 'in';
-    last ? (chime([1174.66, 1567.98], .03), 0) : tick(2100 + i * 140, .011);
-  }, 260 + i * 330)));
-}
-function setStep(k) {
-  if (k === lStep) return; lStep = k;
-  lcard.className = 'card lcard s' + k + (k >= 2 ? ' m2' : '') + (k >= 3 ? ' m3' : '');
-  steps.forEach((li, i) => li.classList.toggle('on', i === k - 1));
-  prog.style.setProperty('--p', (k - 1) / 4);
-  if (k === 3) runNames();
-  tone([659.25, 987.77, 1174.66, 1318.5, 1567.98][k - 1], .026);
-}
-steps.forEach((li, i) => li.addEventListener('click', () => {
-  if (lFree) { setStep(i + 1); return; }
-  const top = scr.getBoundingClientRect().top + scrollY, span = scr.offsetHeight - innerHeight;
-  scrollTo({ top: top + span * (i / 5 + .1), behavior: REDUCED ? 'auto' : 'smooth' });
-}));
-setStep(1);
-function personScroll() {
-  let p;
-  if (lFree) { const r = lcard.getBoundingClientRect(); p = clamp((innerHeight * .85 - r.top) / (r.height * 1.1)); }
-  else { const r = scr.getBoundingClientRect(), span = r.height - innerHeight; p = span > 0 ? clamp(-r.top / span) : 0; }
-  setStep(Math.min(5, 1 + Math.floor(p * 5)));
-}
-
-
-/* ---------- the board: revenue per lead, tiers, and a rep moving up ---------- */
-const REPS = [
-  { n: 'Dana Ruiz', i: 'DR', t: 0, show: 84, call: 171, lead: 943 },
-  { n: 'Maya Chen', i: 'MC', t: 0, show: 71, call: 110, lead: 500 },
-  { n: 'Reza Amini', i: 'RA', t: 1, show: 42, call: 132, lead: 325 },
-  { n: 'Jordan Kim', i: 'JK', t: 1, show: 32, call: 154, lead: 300 },
-  { n: 'Andre Nunes', i: 'AN', t: 2, show: 52, call: 58, lead: 191 },
-];
-const TIER = ['#7D97C7', '#B9CAF4', '#E1E8F7'], TEAM_SHOW = 50, RH = 64, rowsEl = $('#rows');
-rowsEl.style.height = REPS.length * RH + 'px';
-const rowEls = REPS.map(r => {
-  const el = document.createElement('div'); el.className = 'br';
-  el.innerHTML = `<i class="tier" style="--c:${TIER[r.t]}"></i><span class="rk"></span><span class="nm"><span class="av">${r.i}</span><span>${r.n}<small>Up a place</small></span></span><b class="sh"></b><b class="cl">$${r.call}</b><b class="big ld"></b>`;
-  rowsEl.appendChild(el); return el;
-});
-function drawBoard() {
-  const order = REPS.map((r, k) => k).sort((a, b) => REPS[b].lead - REPS[a].lead);
-  order.forEach((k, pos) => {
-    const r = REPS[k], el = rowEls[k];
-    el.style.transform = `translateY(${pos * RH}px)`; el.style.zIndex = 5 - pos;
-    el.querySelector('.rk').textContent = pos + 1;
-    const sh = el.querySelector('.sh'); sh.textContent = Math.round(r.show) + '%'; sh.classList.toggle('low', r.show < TEAM_SHOW);
-    el.querySelector('.ld').textContent = '$' + Math.round(r.lead);
-  });
-}
-drawBoard();
-once($('#board'), () => setTimeout(() => {
-  const j = REPS[3], s0 = j.show, l0 = j.lead, t0 = performance.now();
-  $('#boardNote').textContent = 'Jordan’s fix lands mid-month. Watch him move.';
-  const step = now => { const k = eo(clamp((now - t0) / 1400)); j.show = s0 + (47 - s0) * k; j.lead = l0 + (439 - l0) * k; drawBoard(); if (k < 1) requestAnimationFrame(step); else { rowEls[3].classList.add('up'); chime([783.99, 1046.5, 1318.5], .026); } };
-  REDUCED ? (j.show = 47, j.lead = 439, drawBoard(), rowEls[3].classList.add('up')) : requestAnimationFrame(step);
-}, 900), .4);
-
-/* ---------- closer math ---------- */
-const M = id => $('#' + id), fmt$ = v => '$' + Math.round(v).toLocaleString('en-US'), fmtN = v => Math.round(v).toLocaleString('en-US');
-function mathRun(which) {
-  const g = +M('mGoal').value, aov = +M('mAov').value, sh = +M('mShow').value / 100, cl = +M('mClose').value / 100, cpc = +M('mCpc').value;
-  [['mGoal', g, v => v >= 1e6 ? '$' + (v / 1e6).toFixed(v % 1e6 ? 2 : 0).replace(/0$/, '') + 'M' : '$' + v / 1000 + 'K'], ['mAov', aov, fmt$], ['mShow', sh * 100, v => v + '%'], ['mClose', cl * 100, v => v + '%'], ['mCpc', cpc, fmt$]].forEach(([id, v, f]) => {
-    const el = M(id); el.style.setProperty('--f', ((el.value - el.min) / (el.max - el.min) * 100) + '%'); M('v' + id.slice(1)).textContent = f(v);
-  });
-  const closes = g / aov, shows = closes / cl, booked = shows / sh, spend = booked * cpc, closers = Math.ceil(booked / 20 / 8);
-  M('oClose').textContent = fmtN(closes); M('oShow').textContent = fmtN(shows); M('oBook').textContent = fmtN(booked);
-  M('oSpend').textContent = fmt$(spend); M('oDay').textContent = fmt$(spend / 30); M('oClosers').textContent = fmtN(closers);
-  // which single rate, lifted a little, saves the most
-  const withShow = spend - (closes / cl / Math.min(.95, sh + .1)) * cpc, withClose = spend - (closes / Math.min(.6, cl + .05) / sh) * cpc;
-  M('lever').innerHTML = withShow >= withClose
-    ? `Lift your show rate 10 points and the same month costs <b>${fmt$(withShow)} less</b> in ads. That is the leak Obavia goes after first.`
-    : `Lift your close rate 5 points and the same month costs <b>${fmt$(withClose)} less</b> in ads. That is the leak Obavia goes after first.`;
-  if (which) tick(1700 + (+M(which).value % 7) * 60, .006);
-}
-['mGoal', 'mAov', 'mShow', 'mClose', 'mCpc'].forEach(id => M(id).addEventListener('input', () => mathRun(id)));
-mathRun();
-
-/* ---------- 6. the phone: tap, talk, logged ---------- */
-const phone = $('#phone'), shots = [...phone.querySelectorAll('.scr img')], hotA = $('#hotA'), hotB = $('#hotB'), tryEl = $('#try');
-let ph = 0, phT = 0;
-function show(k) { ph = k; shots.forEach((s, i) => s.classList.toggle('on', i === k)); hotA.hidden = k === 2; hotB.hidden = k !== 2; }
-hotA.addEventListener('click', () => {
-  haptic(); phone.classList.add('tapped'); tryEl.style.opacity = 0; clearTimeout(phT);
-  if (ph === 0) { show(1); chime([880, 1318.5], .03); phT = setTimeout(() => { show(2); chime([987.77, 1318.5, 1760], .03); }, 2600); }
-  else if (ph === 1) { show(2); chime([987.77, 1318.5, 1760], .03); }
-});
-hotB.addEventListener('click', () => { haptic(); tick(1800, .014); clearTimeout(phT); show(0); });
-
-/* ---------- scroll: lines and the read ---------- */
-let ticking = false;
-function onScroll() {
-  ticking = false;
-  sayScroll(); personScroll();
-}
-addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
-let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { layoutLine(); fitPerson(); onScroll(); }, 120); });
-fitPerson(); onScroll();
-if (document.fonts) document.fonts.ready.then(() => { layoutLine(); fitPerson(); });
-})();
-
-/* ---------- tools: two belts, opposite ways; a flick of the scroll nudges them, a hover rests them ---------- */
-(() => {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const belts = ['beltA', 'beltB'].map((id, i) => { const el = document.getElementById(id), b = { el, dir: i ? 1 : -1, x: 0, v: 0, w: 0, hover: false };
-    el.parentElement.addEventListener('pointerenter', () => b.hover = true); el.parentElement.addEventListener('pointerleave', () => b.hover = false); return b; });
-  const measure = () => belts.forEach((b, i) => { b.w = b.el.scrollWidth / 2; b.x = i ? -b.w * .5 : 0; });
-  let on = false, vel = 0, lastY = scrollY, lastT = performance.now(), prev = lastT;
-  new IntersectionObserver(e => { on = e[0].isIntersecting; }, { rootMargin: '200px' }).observe(document.getElementById('tools'));
-  addEventListener('scroll', () => { const t = performance.now(); vel = (scrollY - lastY) / Math.max(16, t - lastT) * 1000; lastY = scrollY; lastT = t; }, { passive: true });
-  (function run(t) {
-    const dt = Math.min(.05, (t - prev) / 1000); prev = t; vel *= .92;
-    if (on) for (const b of belts) { if (!b.w) continue;
-      b.v += ((b.hover ? 0 : 30) + Math.min(120, Math.abs(vel) * .08) - b.v) * .05; b.x += b.dir * b.v * dt;
-      if (b.x <= -b.w) b.x += b.w; if (b.x > 0) b.x -= b.w;
-      b.el.style.transform = `translate3d(${Math.round(b.x * 2) / 2}px,0,0)`; }
-    requestAnimationFrame(run);
-  })(prev);
-  addEventListener('resize', measure); addEventListener('load', measure); measure();
-})();
-</script>
+<script src="assets/vendor/gsap/gsap.min.js"></script>
+<script src="assets/vendor/gsap/ScrollTrigger.min.js"></script>
+<script src="site.js"></script>
+<script src="cloud-atmosphere.js"></script>
+<script src="lane-apply.js"></script>
+<script type="module" src="cloud3d.js"></script>
 </body>
 </html>

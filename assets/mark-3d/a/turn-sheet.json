@@ -1,0 +1,17 @@
+{
+  "image": "turn-sheet.png",
+  "image_256": "turn-sheet@256.png",
+  "frames": 60,
+  "fps": 30,
+  "duration_ms": 2000,
+  "cell": [
+    512,
+    512
+  ],
+  "columns": 10,
+  "rows": 6,
+  "order": "row-major",
+  "loop": true,
+  "reduced_motion_frame": 0,
+  "motion": "camera orbits 6 degrees about the vertical axis and back on sine in-out, the mark and its lights still; one light sweep, left to right, zero at both ends"
+}

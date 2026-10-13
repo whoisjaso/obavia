@@ -1,0 +1,13 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "src/engine/**/*.test.ts",
+    "vitest.config.ts",
+    "worker"
+  ]
+}
