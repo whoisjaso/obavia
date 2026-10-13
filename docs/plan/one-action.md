@@ -13,7 +13,7 @@ The clip's own numbers: 25 options on a home screen, 2.6 s to decide; one option
 
 ## What it means here
 
-The auction already had the doctrine "a price, a time, a name, one verb" (`obavia-auction-decisions.md` §3). This clip is the same law stated for buttons. Together they are the house rule:
+The auction already had the doctrine "a price, a time, a name, one verb" (`obavia-auction-decisions.md` §3). This clip is the same law stated for buttons. `docs/design/lego.md` says how the one thing and its companion piece are placed, and its §8 ties both to the transcript laws. Together they are the house rule:
 
 **Every screen has one thing to do, it is obvious, it outranks everything, and nothing that is not yet relevant is on the glass.**
 
