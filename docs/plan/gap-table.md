@@ -181,7 +181,17 @@ Deviations and definition gaps named here, not resolved; one line each for the o
 9. The fee numbers ($199 per sold car, $299 per month at six cars, phases.md:76) are ASSUMPTIONS (growth plan line 5) and are typed by the owner into the platform row, never written in code; Whop's own fee schedule is confirmed by researcher-architect before the first fee invoice (phases.md:133).
 10. Google Wallet (Phase 2 Frontend) and Apple Wallet and Live Activity (Phase 5 Frontend) each need an account the owner opens (Google Wallet issuer id and service account; Apple pass type id certificate; APNs). These are KEYS rows for §5, with no date in the growth plan. Owner's date: ________
 
-Wave 4 and later (not scheduled; phases.md:3): the Phase 4 rows (an intake record, the Selling page, seller payouts, the closed lane) after Phase 3's exit and the GDN; the Phase 5 rows (engine audio, the walkaround, Live Activity, Wallet, referral, roles and exports, the Desk checklist, the arbitration clause, the out-of-state gate) after Phase 4's exit. Their tables above are the brief for those waves.
+### Wave 4: Phase 4 and 5 code behind flags (October 13, 2026, phases.md amendment of the same date; no deploy, no money, no keys)
+
+| Agent | Owns | Builds |
+| --- | --- | --- |
+| W4-A systems | auction/worker/** | The closed lane: a lot flag `lane: 'public' or 'closed'`, a closed lot admits dealer keys to bid and refuses buyer tokens, Go skips the Guide, the sale carries both GDNs; audio and video on the car (PUT /lots/:id/audio and /video to R2, GET streams, keys on CarMeta); dealer keys with a role (owner, manager, lot) and what each may call; per-dealer settings on the Worker (GET and PUT /dealers/settings); GET /admin/export.csv for sales, money and lots; referrals (a buyer code, a claim on first sign-in, the dealer application's referral field, counts on GET /me); the arbitration clause behind ARBITRATION=1 on GET /terms, draft text from D13, acceptance recorded once |
+| W4-B frontend | auction/src/** | Hold to hear on the Lane when the lot carries audio; the walkaround video on the Car; closed lots never on the public Lane; the referral code on Share and the claim from a ?r link; "N referred" on Me; the clause page shown once, scroll to end, behind the flag |
+| W4-C dealers | desk/src/Auction.tsx, Onboarding.tsx, lib/auction.ts, lib/dealer-settings.ts, a Checklist page | Show It records the engine (hold) and uploads the walkaround; the closed-lane choice on Let It Go for a dealer with the wholesale flag (Guide skipped); the lane settings saved to the Worker; the runbook as the Desk's own checklist page |
+| W4-D admin | desk/src/AuctionAdmin.tsx, lib/admin-api.ts | Keys minted with a role; per-dealer settings read; the three CSV exports |
+| W4-E marketing | obavia-co/**, deploy/site/lane/** | The application's referral field; the lane link page carrying ?r to the store links |
+
+Wave 4 and later, the rest (not scheduled; phases.md:3): the Phase 4 rows (an intake record, the Selling page, seller payouts, the closed lane) after Phase 3's exit and the GDN; the Phase 5 rows (engine audio, the walkaround, Live Activity, Wallet, referral, roles and exports, the Desk checklist, the arbitration clause, the out-of-state gate) after Phase 4's exit. Their tables above are the brief for those waves.
 
 ## 5. The owner's list (KEYS, OWNER, DEVICE)
 

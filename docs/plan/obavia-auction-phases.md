@@ -2,6 +2,8 @@
 
 Every workstream, phased end to end: Onboarding, Marketing, Payments (Whop), Admin, Customers (buyers), Dealers, Individuals (the public seller), Paperwork, Logistics, Frontend, Server, Legal, Ops. A phase ends when its exit test passes, not when its list is done. Nothing in a later phase starts until the earlier phase's exit test is green, except research, which runs ahead.
 
+> Amended 2026-10-13 (the owner's standing goal, verbatim: "completely go through all the phases till we get a real application that works and doesn't leave us under leveraged, and is fully functional"): the ordering rule above gates a phase's *exit*, not its *code*. Phase 4 and Phase 5 code rows that need no key, no device, no counsel answer and no conflict with a decision are built behind flags that ship off (Wave 4 in `gap-table.md` §4), so the day a gate opens the code is already there. Still not built until their own line: Phase 4 Individuals and every row that depends on an individual seller (gap table deviation 1, decisions §9 D1); the Wallet, Live Activity and push rows (KEYS, DEVICE); the arbitration clause's words (counsel, D13: the mechanism is built, the text is marked draft). The growth plan (`growth/obavia-growth-plan.md`) carries no gate on this code; its Phase 5 gates (AD4, AD8, the second city) are untouched.
+
 Decisions already made and not reopened here: `obavia-auction-decisions.md` (no success fee without a GDN under 43 TAC §215.85; pilot on Triple J's GDN; zero buyer premium; as-is plus "starts at pickup or no sale"; $250 standing captured deposit; the hammer is the sale). Copart's processes and the SOPs drawn from them: `copart-decoded.md`.
 
 What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, Won through Plates, Watching, Me, the sensory layer, the type system; the Worker with one Durable Object per lot, signed buyer tokens, the deposit gate, Whop as the payment rail (deposit checkout, verification, signed webhooks), D1 copies; the Desk's Handle A Sale, 130-U, Buyers Guide and every dealer document. Marked ✔ below.
@@ -25,7 +27,7 @@ What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, W
 
 ---
 
-## Phase 1 · Pilot wiring (weeks 1–3)
+## Phase 1 · Pilot wiring (weeks 1 to 3)
 
 > Collateral gate (added 2026-10-12): the Worker refuses `/open` on collateral it cannot see; the Desk refuses earlier. The rules and the loss table are in `docs/plan/collateral.md`. Phase 1b (the Desk's Let It Go, Live, Sold, pickup) is built; 1c (the phone over the Worker) is next.
 
@@ -49,7 +51,7 @@ What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, W
 
 ---
 
-## Phase 2 · Onboarding and the first fifty buyers (weeks 3–6)
+## Phase 2 · Onboarding and the first fifty buyers (weeks 3 to 6)
 
 | Workstream | Scope | Exit |
 | --- | --- | --- |
@@ -66,7 +68,7 @@ What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, W
 
 ---
 
-## Phase 3 · Obavia's own licence and the money model (weeks 6–14)
+## Phase 3 · Obavia's own licence and the money model (weeks 6 to 14)
 
 > Shared-GDN hold (decisions §8.1, 2026-10-12; amended 2026-10-13 from `research/public-auction-model.md`, decisions §9 D1 to D4). The step where other dealers list under Obavia's GDN stays on hold for counsel question 11. New fact: consignment is off. Title must pass to the selling dealer before the buyer (Transp. Code §503.039(a)); a GDN holder may not sell another GDN holder's car at a public auction (43 TAC §215.144(i)(3)); a consignment location needs its own GDN (43 TAC §215.133(a)). Another dealer's car can reach an Obavia-GDN lane only as a title-assigned purchase (D1). On an Obavia-GDN lane the title clock is 21 days: title to the buyer "before the 21st day after the date of the sale" (§503.039(b)). Counsel question 12 (the licensed-auctioneer path, §503.024(d)) decides whether Phase 3 files for a GDN or for a TDLR auctioneer licence; the Legal row below stands as written until that answer is in and this doc is amended.
 
@@ -83,7 +85,7 @@ What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, W
 
 ---
 
-## Phase 4 · Individuals and the second lane (weeks 14–22)
+## Phase 4 · Individuals and the second lane (weeks 14 to 22)
 
 | Workstream | Scope | Exit |
 | --- | --- | --- |
@@ -97,7 +99,7 @@ What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, W
 
 ---
 
-## Phase 5 · Scale and polish (weeks 22–34)
+## Phase 5 · Scale and polish (weeks 22 to 34)
 
 | Workstream | Scope | Exit |
 | --- | --- | --- |
@@ -123,7 +125,7 @@ Obavia's own Wholesale GDN; dealer-to-dealer at scale; financing partners at Pay
 | --- | --- | --- | --- |
 | First bid | the deposit | `POST /checkout_configurations` (mode `payment`, our metadata) → hosted checkout → `GET /payments/{id}` | `payment.succeeded` |
 | Lost the auction | the deposit back | `POST /payments/{id}/refund` | `refund.created` |
-| No-pay at 48 h | the deposit kept | nothing moves; status `forfeited` in `buyers` | — |
+| No-pay at 48 h | the deposit kept | nothing moves; status `forfeited` in `buyers` | none |
 | Won | the balance | `POST /invoices` (send_invoice; ACH, card; cash at the lot → `mark_paid`) | `invoice.paid` |
 | Pickup done, funds cleared | the dealer's money | `POST /transfers` to the dealer's `biz_` account with an idempotence key; lender first by a second transfer | `transfer.completed` |
 | Dealer onboarding | the dealer | `POST /accounts` (connected account, Whop runs identity) | `account.updated` |
