@@ -110,6 +110,15 @@ describe('the plates row: one verb at a time, in the Worker\'s order (worker/src
     expect(said('not_started')).toBe('Not started yet.');
     expect(said('plates_order')).toBe('Out of order.');
   });
+  it('every reason the Worker gives POST /lots/:id/plates (README, the routes table) is said in a person\'s words, four or fewer', () => {
+    for (const r of ['no sale', 'sale_voided', 'sale_forfeited', 'not_started', 'bad_state', 'bad_mark', 'plates_order', 'not_your_lot']) {
+      expect(SAID[r], r).toBeDefined();
+      expect(said(r)).not.toBe(r);   // never the raw code on Sold's stamp
+      expect(said(r).split(/\s+/).length).toBeLessThanOrEqual(4);
+      expect(said(r)).not.toMatch(/[\u2013\u2014]/);
+    }
+    expect(said('bad_mark')).toBe('Mark not whole.');
+  });
 });
 
 describe('Live: the socket first, polling at 15 s only after it fails', () => {
@@ -217,7 +226,7 @@ describe('Sold keeps the winner\'s number across socket frames (the socket never
     for (const r of ['guide pdf failed', 'bill pdf failed', 'guide fields failed', 'bill fields failed']) {
       expect(SAID[r], r).toBeDefined();
       expect(said(r).split(/\s+/).length).toBeLessThanOrEqual(4);
-      expect(said(r)).not.toMatch(/[–—]/);
+      expect(said(r)).not.toMatch(/[\u2013\u2014]/);
     }
   });
 });

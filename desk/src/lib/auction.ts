@@ -111,7 +111,7 @@ export const SAID: Record<string, string> = {
   already_started: 'Already picked up.', vin_required: 'Type the six.', not_paid: 'Mark it paid first.', vin_unknown: 'No VIN on file.', 'wrong car': 'Not this car.',
   before_deadline: 'Wait for the deadline.', already_forfeited: 'Already forfeited.', sale_started: 'Already picked up.', sale_paid: 'Already paid.',
   /* /plates */
-  not_started: 'Not started yet.', plates_order: 'Out of order.', bad_state: 'Not a plates word.',
+  not_started: 'Not started yet.', plates_order: 'Out of order.', bad_state: 'Not a plates word.', bad_mark: 'Mark not whole.',
   /* the payout and the account */
   no_payout: 'No payout on this.', wrong_payout: 'Not this payout.', payout_settled: 'Payout already settled.', already_paid: 'Already paid.', not_held: 'No deposit was held.',
   account_exists: 'Already connected.', bad_email: 'Check the email.', whop_refused: 'Whop said no.', whop_bad_account: 'Whop gave no account.', whop_unavailable: 'Whop is not connected.', account_from_whop_only: 'Whop sets the account.',
@@ -254,9 +254,9 @@ export const voidSale = (lot: string, reason: string) => call<Lot>('POST', `/lot
 /** The plates clock on a started sale: `{ state, note? }`; the note (the county's words, 240 characters) rides a kickback only. */
 export const markPlates = (lot: string, state: PlatesState, note?: string, form130U?: FiledMark['form130U']) =>
   call<Lot>('POST', `/lots/${lot}/plates`, { state, ...(note?.trim() ? { note: note.trim().slice(0, 240) } : {}), ...(state === 'filed' && form130U ? { form130U } : {}) });
-/** The Filed tap's mark (W3-F filed.ts filedMark: the filed 130-U's sha256, the business date, the agent) rides beside `state: 'filed'`.
-    The Worker ignores the extra field today (README, the plates route); a follow-up on the Worker adds it to sale.plates. Sent now so
-    the day it reads it, the Desk already says which 130-U went to the county. */
+/** The Filed tap's mark (filed.ts filedMark: the filed 130-U's sha256, the calendar day as YYYY-MM-DD, the agent) rides beside
+    `state: 'filed'`; the Worker checks it and writes it to sale.plates.form130U (README, the plates route), so the Desk says which
+    130-U went to the county. */
 export type { FiledMark };
 /* ---------- the owner's routes (admin key only) ---------- */
 /** The master key is minted for GDN "*": `d:*.<sig>`. Every other key is one dealer's. */

@@ -1,7 +1,7 @@
 /* The corridor: one question per screen, the answer is the submit, back
    works, and a step that does not apply does not exist. Every screen reads
    done-ness from buildGuideSteps; nothing here stores "done". */
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { LENDERS } from './data';
 import { DOC_TITLE } from './lib/documents';
 import { usd } from './lib/money';
@@ -135,6 +135,15 @@ export function Step({ id, stepKey }: { id: string; stepKey: string }) {
   );
 }
 
+/* The tick beside each licence field: the same mark as .choice .tick on the sale's step list (styles.css), drawn plain.
+   It is not a .choice: the cloud material's grain (::after, soft-light) on a 44 px control with no body of its own
+   blends into nothing and prints as grey noise at 393 wide (docs/design/cloud-system.md: the grain rides a cloud,
+   never stands alone). Ink only: a faint ring, then the accent fill with the check. */
+const TICK_BUTTON: CSSProperties = { flex: 'none', minWidth: 44, minHeight: 44, padding: '0 9px', background: 'none', border: 0, boxShadow: 'none', display: 'grid', placeItems: 'center', cursor: 'pointer' };
+function Tick({ on }: { on: boolean }) {
+  return <span aria-hidden style={{ width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff', background: on ? 'var(--accent)' : 'transparent', boxShadow: on ? 'none' : 'inset 0 0 0 2px var(--line)', transition: 'background .2s, box-shadow .2s' }}>{on && <Ic n="check" s={15} w={3} />}</span>;
+}
+
 function BuyerId({ s }: { s: Sale }) {
   const id = s.step.buyerId;
   const labels: Record<IdKey, string> = { name: 'Name', idNumber: 'ID number', dob: 'Date of birth', expiry: 'Expires', address: 'Address on the card' };
@@ -164,7 +173,7 @@ function BuyerId({ s }: { s: Sale }) {
     <div className="group">{ID_FIELDS.map(k => (
       <div key={k} className="row">
         <span className="t"><small>{labels[k]}</small><input className="input" style={{ height: 44, marginTop: 6, fontSize: 16 }} value={vals[k]} placeholder={id.image ? 'Not read. Type it.' : 'Type it'} onChange={e => { setVals({ ...vals, [k]: e.target.value }); setOk({ ...ok, [k]: false }); }} /></span>
-        <button className="choice" aria-pressed={ok[k]} style={{ width: 'auto', minHeight: 44, padding: '0 14px', boxShadow: 'none', background: 'none' }} aria-label={`Confirm ${labels[k]}`} onClick={() => { feel.tap(); setOk({ ...ok, [k]: !ok[k] }); }}><span className="tick">{ok[k] && <Ic n="check" s={15} w={3} />}</span></button>
+        <button type="button" aria-pressed={ok[k]} style={TICK_BUTTON} aria-label={`Confirm ${labels[k]}`} onClick={() => { feel.tap(); setOk({ ...ok, [k]: !ok[k] }); }}><Tick on={ok[k]} /></button>
       </div>))}</div>
     <div className="dock"><div className="in"><button className="btn primary block" disabled={!all} onClick={() => { feel.next(); transition(() => { setStage('plates'); scrollTo(0, 0); }); }}>Every Field Matches</button></div></div>
   </>);

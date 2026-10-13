@@ -5,7 +5,7 @@ import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { EXAMPLE_DEALER } from './config';
 import type { Vehicle } from './sale';
 import { BILL_FIELDS, CONSENT_VERSION, FIELDS, GUIDE_BOX, GUIDE_FIELDS, LANE_TERMS, LANE_TERMS_VERSION, UPLOAD_STEPS, laneDocuments, uploadLaneDocuments, type Rect } from './sign';
-import { TITLE_STEP, filedMark, freeze, laneBillAgreement, laneBuyer, laneTitleLine, laneTitleStep, openLanePapers, type LanePapers } from './filed';
+import { TITLE_STEP, calendarDay, filedMark, freeze, laneBillAgreement, laneBuyer, laneTitleLine, laneTitleStep, openLanePapers, type LanePapers } from './filed';
 import { readFileSync } from 'node:fs';
 // the Worker's own stamper and checks, run on the Desk's real bytes: the same code that signs in production
 import { CONSENT_VERSION as WORKER_CONSENT, assemblePack, packCover, parseFields, parseSignature, stampPdf, type PackFacts } from '../../../auction/worker/src/sign';
@@ -222,9 +222,23 @@ describe('the Filed mark names the 130-U by its hash', () => {
     const frozen = freeze(s, EXAMPLE_DEALER, new Date(Date.UTC(2026, 9, 13, 17)), 'Jordan Rivera');
     const bytes = new TextEncoder().encode('%PDF-1.7 the filed bytes');
     const sha = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), x => x.toString(16).padStart(2, '0')).join('');
-    expect(await filedMark({ ...s, documents: { form130U: { state: 'filed', frozen } } }, bytes)).toEqual({ state: 'filed', form130U: { sha256: sha, filedOn: frozen.date, agent: 'Jordan Rivera' } });
+    expect(frozen.date).toBe('10/13/2026');   // the paper keeps the Texas form's own format
+    const mark = await filedMark({ ...s, documents: { form130U: { state: 'filed', frozen } } }, bytes);
+    expect(mark).toEqual({ state: 'filed', form130U: { sha256: sha, filedOn: '2026-10-13', agent: 'Jordan Rivera' } });
     expect(await filedMark({ ...s, documents: { form130U: { state: 'draft' } } }, bytes)).toBeNull();
     expect(await filedMark(s, bytes)).toBeNull();
+  });
+
+  it('filedOn is the calendar day the Worker takes (YYYY-MM-DD; worker README, the plates route), never the paper\'s MM/DD/YYYY', async () => {
+    const s = { vehicle: CAR, buyer: laneBuyer({ buyerName: 'Ana' }), step: {}, language: 'en', documents: {} } as never as import('./sale').Sale;
+    const frozen = freeze(s, EXAMPLE_DEALER, new Date(Date.UTC(2026, 9, 13, 17)));
+    const mark = await filedMark({ ...s, documents: { form130U: { state: 'filed', frozen } } }, new Uint8Array([37, 80, 68, 70]));
+    expect(mark!.form130U.filedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(mark!.form130U.filedOn).toBe('2026-10-13');
+    expect(mark!.form130U.agent).toBeUndefined();   // no agent: the field is dropped, not sent empty
+    expect(calendarDay('10/13/2026')).toBe('2026-10-13');
+    expect(calendarDay('01/02/2027')).toBe('2027-01-02');
+    expect(calendarDay('2026-10-13')).toBe('2026-10-13');   // already a day: unchanged
   });
 });
 

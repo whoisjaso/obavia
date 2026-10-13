@@ -112,12 +112,20 @@ export function laneBillAgreement(doc: LaneOpenedDoc, frozen: Frozen): Agreement
    line. W3-B's plates route takes the mark beside the state; until it does, the Desk keeps it on the sale. */
 export type FiledMark = { state: 'filed'; form130U: { sha256: string; filedOn: string; agent?: string } };
 
+/** The frozen business date (MM/DD/YYYY, the Texas form's own format, which stays on the paper) as the calendar day
+    the Worker takes for filedOn (YYYY-MM-DD; auction/worker/src/auction.ts form130UFrom, README "The Filed mark").
+    Anything that is not MM/DD/YYYY comes back unchanged, so the Worker's own check still names it. */
+export function calendarDay(frozenDate: string): string {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(frozenDate.trim());
+  return m ? `${m[3]}-${m[1]}-${m[2]}` : frozenDate;
+}
+
 /** The mark for a sale whose 130-U is filed, from the bytes the Desk printed (official.ts filed130U). Null while the
     130-U is a draft: a draft has no fixed bytes to name. */
 export async function filedMark(sale: Sale, pdf: Uint8Array): Promise<FiledMark | null> {
   const f = sale.documents.form130U;
   if (f?.state !== 'filed' || !f.frozen) return null;
-  return { state: 'filed', form130U: { sha256: await sha256Hex(pdf), filedOn: f.frozen.date, ...(f.frozen.agent ? { agent: f.frozen.agent } : {}) } };
+  return { state: 'filed', form130U: { sha256: await sha256Hex(pdf), filedOn: calendarDay(f.frozen.date), ...(f.frozen.agent ? { agent: f.frozen.agent } : {}) } };
 }
 
 /* ---------- the title step after the engine start (decisions §9 D8 and D9) ----------

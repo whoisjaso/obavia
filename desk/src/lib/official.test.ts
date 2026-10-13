@@ -92,7 +92,7 @@ describe('the filed 130-U is the same bytes on every print, so its Filed mark ca
     expect(f['Seller  Name']).toBe('Example Motors LLC (Jordan Rivera)');   // the stable save touched no field
     const m = await filed130U(filed, EXAMPLE_DEALER);
     expect(m).not.toBeNull();
-    expect(m!.mark).toEqual({ state: 'filed', form130U: { sha256: await sha(a.pdf), filedOn: '10/01/2026', agent: 'Jordan Rivera' } });
+    expect(m!.mark).toEqual({ state: 'filed', form130U: { sha256: await sha(a.pdf), filedOn: '2026-10-01', agent: 'Jordan Rivera' } });   // the Worker's day, not the paper's 10/01/2026
     expect(m!.mark.form130U.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(await filed130U({ ...s, documents: {} }, EXAMPLE_DEALER)).toBeNull();
     expect(await filed130U({ ...s, documents: { form130U: { state: 'draft' } } }, EXAMPLE_DEALER)).toBeNull();
