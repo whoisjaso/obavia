@@ -6,7 +6,8 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 DEV = "0"
 
-# The nightly reconciliation (src/reconcile.ts): 08:00 UTC is 03:00 Central in daylight time, 02:00 in standard time.
+# Nightly: payouts left owed go out to dealers with a connected account (src/index.ts sendAllOwed), then the
+# reconciliation (src/reconcile.ts). 08:00 UTC is 03:00 Central in daylight time, 02:00 in standard time.
 [triggers]
 crons = ["0 8 * * *"]
 
@@ -28,5 +29,6 @@ database_name = "obavia-auction"
 database_id = "replace-with-the-id-wrangler-prints"
 migrations_dir = "migrations"
 
-# Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, MINT_SECRET (POST /dealers/mint only), WHOP_API_KEY, WHOP_WEBHOOK_SECRET
-# Vars to set: WHOP_ACCOUNT_ID (biz_…), WHOP_API_BASE (sandbox in staging)
+# Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, MINT_SECRET (POST /dealers/mint only), WHOP_API_KEY, WHOP_WEBHOOK_SECRET, TELNYX_API_KEY
+# Vars to set: WHOP_ACCOUNT_ID (biz_…), WHOP_API_BASE (sandbox in staging), TELNYX_VERIFY_PROFILE_ID
+# Migrations: 0013 before this code (dealer_payouts.method, reconciliations.payouts_owed, the one-phone-one-buyer index)

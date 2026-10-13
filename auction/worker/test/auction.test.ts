@@ -237,7 +237,7 @@ describe('collateral', () => {
     const x = await (await SELF.fetch(`${base}/admin/exposure`, { headers: DEALER })).json<any>();
     expect(x.incidentsByDealer['P000000']).toBeGreaterThanOrEqual(1);
     expect(x.sales.find((s: any) => s.lotId === 'c2')?.state).toBe('voided');
-    expect(x.deposits.reserveRatio).toBe(1); expect(x.obaviaFeesOwed).toBe(0);
+    expect(x.deposits.reserveRatio).toBeNull(); expect(x.obaviaFeesOwed).toBe(0);   // never reconciled with a Whop balance: not read, never 1 (Wave 1-B)
     expect((await SELF.fetch(`${base}/admin/exposure`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(403);
   });
   it('the floor only lowers, only before a bid, and moves the opening price with it', async () => {

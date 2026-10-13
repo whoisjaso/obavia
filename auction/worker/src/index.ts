@@ -7,7 +7,7 @@ import { bearerOf, buyerClaim, buyerFrom, claimOf, dealerFrom, mintBuyerToken, m
 import type { Env } from './env';
 import type { BidRequest } from '../../src/engine/server';
 import { viewerHtml } from './view';
-import { lastReconciliations, reconcile } from './reconcile';
+import { lastReconciliations, reconcile, reserveRatio } from './reconcile';
 import { Whop } from './whop';
 import { COUNT_SQL, TERMS_VERSION, WINS_PER_YEAR, committed, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
 import type { BidIn } from './auction';
@@ -22,6 +22,14 @@ const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const MINT_IDEMPOTENT_MS = 30 * 60_000;   // the same GDN twice inside this window: 409, no key
 const MINT_WINDOW_MS = 3_600_000, MINT_PER_WINDOW = 20;   // every lane mint together
 const fail = (error: string, status: number, extra: Record<string, string> = {}) => new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json', ...extra, ...CORS } });
+const PUSH_TOKEN = /^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]{8,64}\]$/;
+const PAY_METHODS: unknown[] = ['wire', 'check', 'cash'];   // a payout paid by hand (desk/src/lib/admin-api.ts PayMethod)
+/** Every deposit state, so the admin's byStatus shows a zero rather than leaving a state out. */
+const DEPOSIT_STATES = { none: 0, captured: 0, applied: 0, forfeited: 0, refunded: 0, disputed: 0 };
+/** An admin's reason: one plain line, 1 to 200 characters (admin-api.ts reasonOf). */
+const reasonOf = (v: unknown) => typeof v === 'string' ? plain(v, 200) : null;
+/** A JSON object body, or {} for none or anything else. */
+const body = async (req: Request): Promise<Record<string, unknown>> => { try { const raw = await req.text(); const b = raw ? JSON.parse(raw) : {}; return b && typeof b === 'object' && !Array.isArray(b) ? b : {}; } catch { return {}; } };
 const plain = (v: unknown, max: number) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= max && !/[\u0000-\u001f\u007f]/.test(v) ? v.trim().replace(/\s+/g, ' ') : null;
 
 /** Every response leaves with the CORS headers, the Durable Object's included (a WebSocket upgrade is passed through untouched). */
@@ -33,12 +41,15 @@ function withCors(r: Response): Response {
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> { return withCors(await handle(req, env)); },
-  async scheduled(_c: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> { ctx.waitUntil(reconcile(env).then(() => {})); },
+  // nightly: payouts left owed go out first (a dealer connected since), then the reconciliation reads the result
+  async scheduled(_c: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> { ctx.waitUntil(sendAllOwed(env).catch(() => {}).then(() => reconcile(env)).then(() => {})); },
 } satisfies ExportedHandler<Env>;
 
 async function handle(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+    // signing on the lane (src/sign.ts, Wave 2-A): /sales/:lot/... ; withCors wraps it like every route
+    if (url.pathname.startsWith('/sales/')) return (await import('./sign')).sales(req, env);
     const whop = new Whop(env);
 
     // the lane: every open lot, from the copy
@@ -70,8 +81,8 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const stub = env.AUCTION.get(env.AUCTION.idFromName(id));
       const toObject = (init: RequestInit & { dealer?: string }) => stub.fetch(new Request(req.url, { ...init, headers: { 'content-type': 'application/json', ...(init.dealer ? { 'x-dealer': init.dealer } : {}) } }));
 
-      // dealer: open, close, paid, pickup, car, photos, documents
-      if (['/open', '/close', '/paid', '/pickup', '/car', '/void'].includes(rest) || rest.startsWith('/photos/') || rest.startsWith('/documents/')) {
+      // dealer: open, close, paid, pickup, car, void, forfeit, photos, documents
+      if (['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit'].includes(rest) || rest.startsWith('/photos/') || rest.startsWith('/documents/')) {
         const dealer = await dealerFrom(req, env.DEALER_SECRET);
         if (!dealer) return text('dealer only', 403);
         if (req.method === 'PUT' && (rest.startsWith('/photos/') || rest.startsWith('/documents/'))) {
@@ -93,6 +104,17 @@ async function handle(req: Request, env: Env): Promise<Response> {
         }
         const body = await req.text();
         return withContact(await toObject({ method: 'POST', body, dealer: dealer === '*' ? (rest === '/open' ? (JSON.parse(body || '{}').dealer ?? '*') : '') : dealer }), env, id, dealer);
+      }
+      // the Desk's Live: the lot's own dealer key, or the admin key, opens the same socket a buyer does (the token in ?token=)
+      if (rest === '/live' && req.method === 'GET') {
+        const desk = await dealerFrom(req, env.DEALER_SECRET);
+        if (desk) {
+          if (desk !== '*') {
+            const own = await env.DB.prepare('SELECT dealer FROM lots WHERE id = ?1').bind(id).first<{ dealer: string }>();
+            if (own?.dealer !== desk) return text('not_your_lot', 403);
+          }
+          return stub.fetch(req);
+        }
       }
       // buyer: bid, watch, live
       if (rest === '/bids' || rest === '/watch' || rest === '/live') {
@@ -159,10 +181,24 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const recentTokenRefusals = await env.DB.prepare('SELECT claimed, reason, presented, known, at FROM token_refusals ORDER BY at DESC, id DESC LIMIT 50').all();
       const winners = new Map((await env.DB.prepare(`SELECT id, name, phone, phone_verified_at, phone_verified_via FROM buyers WHERE id IN (SELECT json_extract(lot, '$.sale.buyer') FROM lots WHERE json_extract(lot, '$.sale.buyer') IS NOT NULL)`)
         .all<ContactRow & { id: string }>()).results.map(b => [b.id, contactOf(env, b)]));
-      const sales = lots.filter(l => l.sale).map(l => ({ lotId: l.id, dealer: l.dealer, state: l.sale.startedAt ? 'started' : l.sale.voidedAt ? 'voided' : l.sale.forfeitedAt ? 'forfeited' : l.sale.paidAt ? 'paid' : 'owed', deposit: l.sale.deposit, hammer: l.sale.hammer, deadlineAt: l.sale.deadlineAt,
+      const payoutRows = (await env.DB.prepare('SELECT * FROM dealer_payouts').all<PayoutRow>()).results;
+      const payoutOfLot = new Map(payoutRows.map(p => [p.lot_id, payoutOut(p).state]));
+      const sales = lots.filter(l => l.sale).map(l => ({ lotId: l.id, dealer: l.dealer, state: saleState(l.sale), deposit: l.sale.deposit, hammer: l.sale.hammer, deadlineAt: l.sale.deadlineAt,
+        payout: payoutOfLot.get(l.id) ?? null,   // dealer_payouts, the record: the object's sale.payout does not see a payout paid by hand or retried
         buyer: winners.get(l.sale.buyer) ?? { name: null, phone: null } }));   // the desk person's one call (CF9); admin only
+      const recs = await lastReconciliations(env, 7);
+      const pickupRefusals = await env.DB.prepare('SELECT lot_id AS lotId, dealer, reason, presented, at FROM pickup_refusals ORDER BY at DESC, id DESC LIMIT 20').all();
+      // B on the scorecard: distinct buyers whose bid was placed (it led, or a standing ceiling beat it), per closed lot
+      const bidders = (await env.DB.prepare(`SELECT l.id AS lotId, l.dealer AS dealer, json_extract(l.lot, '$.closed.at') AS closedAt, json_extract(l.lot, '$.closed.sold') AS sold,
+          (SELECT COUNT(DISTINCT b.bidder) FROM bids b WHERE b.lot_id = l.id AND (b.ok = 1 OR b.reason = 'outbid')) AS bidders
+        FROM lots l WHERE json_extract(l.lot, '$.closed') IS NOT NULL ORDER BY closedAt DESC LIMIT 500`).all<{ lotId: string; dealer: string; closedAt: number; sold: number; bidders: number }>()).results
+        .map(b => ({ ...b, sold: !!b.sold }));
       return json({
-        deposits: { heldCount: held, heldUsd: held * DEPOSIT_USD, byStatus: Object.fromEntries(dep.results.map(d => [d.s, d.n])), reserveRatio: 1 },   // every held deposit sits in the Whop balance; nothing is spent
+        // the reserve ratio is the last reconciliation's: Whop's settled balance over the deposits held plus the payouts owed; null when never read
+        deposits: { heldCount: held, heldUsd: held * DEPOSIT_USD, byStatus: { ...DEPOSIT_STATES, ...Object.fromEntries(dep.results.map(d => [d.s, d.n])) }, reserveRatio: reserveRatio(recs[0]), reserveReadAt: recs[0]?.whop_balance_cents == null ? null : recs[0].ran_at },
+        payouts: payoutSums(payoutRows),
+        pickupRefusals: pickupRefusals.results,
+        bidders,
         lots: { open: lots.filter(l => !l.closed).length, atLender: lots.filter(l => !l.closed && l.car?.collateral?.title?.status === 'lender').length, floorBelowPayoff: lots.filter(l => !l.closed && (l.car?.collateral?.title?.payoff ?? 0) > (l.car?.collateral?.floor ?? Infinity)).length },
         sales,
         incidentsByDealer: Object.fromEntries(incidents.results.map(i => [i.dealer, i.n])),
@@ -170,13 +206,86 @@ async function handle(req: Request, env: Env): Promise<Response> {
         tokenRefusals: { byPresented: Object.fromEntries(tokenRefusals.results.map(r => [r.presented, r.n])), recent: recentTokenRefusals.results },   // POST /me not_yours
         dealers: await dealerRows(),
         obaviaFeesOwed: 0,   // none until the GDN issues (43 TAC §215.85)
-        reconciliations: await lastReconciliations(env, 7),   // the nightly D1 vs object and Whop vs deposits report
+        reconciliations: recs,   // the nightly D1 vs object and Whop vs deposits and payouts report
       });
     }
     // run the nightly reconciliation now (admin); the cron runs it at 03:00 Central
     if (req.method === 'POST' && url.pathname === '/admin/reconcile') {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
       return json(await reconcile(env));
+    }
+
+    // the admin's money page (desk/src/lib/admin-api.ts): every event newest first, every payout, every sale with its buyer
+    if (req.method === 'GET' && url.pathname === '/admin/money') {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const events = (await env.DB.prepare('SELECT id, type, body, received_at FROM money_events ORDER BY received_at DESC, id DESC LIMIT 500').all<EventRow>()).results.map(moneyEvent);
+      const payouts = (await env.DB.prepare('SELECT * FROM dealer_payouts ORDER BY created_at DESC LIMIT 500').all<PayoutRow>()).results.map(payoutOut);
+      const lots = (await env.DB.prepare(`SELECT lot FROM lots WHERE json_extract(lot, '$.sale') IS NOT NULL ORDER BY updated_at DESC LIMIT 500`).all<{ lot: string }>()).results.map(r => JSON.parse(r.lot));
+      const names = new Map((await env.DB.prepare(`SELECT id, name FROM buyers WHERE id IN (SELECT json_extract(lot, '$.sale.buyer') FROM lots WHERE json_extract(lot, '$.sale.buyer') IS NOT NULL)`).all<{ id: string; name: string | null }>()).results.map(b => [b.id, b.name]));
+      const sales = lots.map(l => ({ lotId: l.id, dealer: l.dealer ?? null, buyer: l.sale.buyer ?? null, buyerName: names.get(l.sale.buyer) ?? null, state: saleState(l.sale), hammer: l.sale.hammer, deadlineAt: l.sale.deadlineAt, deposit: l.sale.deposit ?? null }));
+      return json({ events, payouts, sales });
+    }
+    // a payout settled outside Whop (wire, check, cash): the row is paid, the ledger says who and how. Only an owed row with the deposit held
+    const paidBy = url.pathname.match(/^\/admin\/payouts\/([^/]{1,200})\/paid$/);
+    if (req.method === 'POST' && paidBy) {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      let pid = '';
+      try { pid = decodeURIComponent(paidBy[1]); } catch { return fail('no_such_payout', 404); }
+      if (!/^(applied|forfeit):[A-Za-z0-9_-]{1,64}$/.test(pid)) return fail('no_such_payout', 404);
+      const b = await body(req);
+      const method = typeof b.method === 'string' && PAY_METHODS.includes(b.method) ? b.method : null;
+      if (!method) return fail('bad_method', 400);
+      const note = b.note == null || b.note === '' ? null : plain(b.note, 200);
+      if (b.note != null && b.note !== '' && !note) return fail('bad_note', 400);
+      const p = await env.DB.prepare('SELECT * FROM dealer_payouts WHERE id = ?1').bind(pid).first<PayoutRow>();
+      if (!p) return fail('no_such_payout', 404);
+      if (p.state !== 'owed') return fail('already_paid', 409);
+      if (!p.held) return fail('not_held', 409);   // the deposit was never captured: Obavia holds nothing to pay it from
+      const now = Date.now();
+      const ev = { lotId: p.lot_id, dealer: p.dealer, buyer: p.buyer, amount: p.amount, payout: p.reason, method, reason: note ?? `paid by ${method}`, actor: 'admin' };
+      // the ledger row and the state move together, or neither: one id per payout (payout:<key>), shared with a Whop transfer's
+      const [, moved] = await env.DB.batch([
+        env.DB.prepare(`INSERT INTO money_events (id, type, body, received_at) SELECT ?1, 'payout.by_hand', ?2, ?3 WHERE EXISTS (SELECT 1 FROM dealer_payouts WHERE id = ?4 AND state = 'owed' AND held = 1) ON CONFLICT(id) DO NOTHING`)
+          .bind(`payout:${pid}`, JSON.stringify(ev), now, pid),
+        env.DB.prepare(`UPDATE dealer_payouts SET state = 'paid', method = ?2, paid_note = ?3, sent_at = ?4, error = NULL WHERE id = ?1 AND state = 'owed' AND held = 1`).bind(pid, method, note, now),
+      ]);
+      if (!moved.meta.changes) return fail('already_paid', 409);
+      return json(payoutOut((await env.DB.prepare('SELECT * FROM dealer_payouts WHERE id = ?1').bind(pid).first<PayoutRow>())!));
+    }
+    // the admin gives a buyer's deposit back, with a reason: refused when it is applied to a car, forfeited, or backs a bid or a sale
+    const adminRelease = url.pathname.match(/^\/admin\/buyers\/([A-Za-z0-9_-]{1,64})\/release$/);
+    if (req.method === 'POST' && adminRelease) {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const buyer = adminRelease[1];
+      const b = await body(req);
+      const reason = reasonOf(b.reason);
+      if (!reason) return fail('no_reason', 400);
+      const lotId = b.lotId == null ? null : typeof b.lotId === 'string' && ID.test(b.lotId) ? b.lotId : undefined;
+      if (lotId === undefined) return fail('bad_lot', 400);
+      const row = await env.DB.prepare('SELECT deposit_status, deposit_ref FROM buyers WHERE id = ?1').bind(buyer).first<{ deposit_status: string; deposit_ref: string | null }>();
+      if (!row) return fail('no_such_buyer', 404);
+      if (row.deposit_status === 'applied') return fail('deposit_applied', 409);
+      if (row.deposit_status === 'forfeited') return fail('deposit_forfeited', 409);
+      if (row.deposit_status !== 'captured') return fail('nothing_held', 409);
+      const busy = await busyOf(env, buyer);   // a sale's deposit leaves by its void (POST /lots/:id/void), never around it
+      if (busy) return fail(busy, 409);
+      const refused = await releaseDeposit(env, whop, buyer, row.deposit_ref, { via: 'admin', actor: 'admin', reason, lotId });
+      if (refused) return refused;
+      return json({ id: buyer, deposit: 'refunded' });
+    }
+    // the admin forfeits a sale's deposit to the dealer, any time before payment or start, with a reason; the lot's object decides
+    const adminForfeit = url.pathname.match(/^\/admin\/lots\/([A-Za-z0-9_-]{1,64})\/forfeit$/);
+    if (req.method === 'POST' && adminForfeit) {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const lotId = adminForfeit[1];
+      const reason = reasonOf((await body(req)).reason);
+      if (!reason) return fail('no_reason', 400);
+      const r = await env.AUCTION.get(env.AUCTION.idFromName(lotId)).fetch(new Request(`https://auction/lots/${lotId}/forfeit`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ reason }) }));   // no x-dealer: the admin
+      const out = await r.text();
+      if (r.status !== 200) return fail(out.trim() || 'refused', r.status);
+      await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+        .bind(`admin:forfeit:${lotId}`, 'admin.forfeit', JSON.stringify({ lotId, actor: 'admin', reason }), Date.now()).run();
+      return new Response(out, { status: 200, headers: { 'content-type': 'application/json', ...CORS } });
     }
 
     // a buyer's tokens cut off: the epoch moves, every token minted before stops working. With no proof but the token
@@ -206,6 +315,30 @@ async function handle(req: Request, env: Env): Promise<Response> {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
       return json(await dealerRows());
     }
+    // the Desk's push token, so a forfeit reaches the dealer (src/push.ts pushDealer). The dealer's own key only
+    if (req.method === 'POST' && url.pathname === '/dealers/push') {
+      const gdn = await dealerFrom(req, env.DEALER_SECRET);
+      if (!gdn || gdn === '*') return text('dealer only', 403);
+      const b = await body(req);
+      if (typeof b.token !== 'string' || !PUSH_TOKEN.test(b.token)) return text('bad token', 400);
+      const r = await env.DB.prepare('UPDATE dealers SET push_token = ?2 WHERE gdn = ?1').bind(gdn, b.token).run();
+      if (!r.meta.changes) return fail('no_such_dealer', 404);
+      return json({ ok: true });
+    }
+    // the dealer's Whop connected account (biz_…), set by the admin; every payout left owed for him goes out now, each with its own key.
+    // Admin only: a dealer key that could point the $250 at any account would let a leaked key take the money.
+    if (req.method === 'POST' && url.pathname === '/dealers/account') {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const b = await body(req);
+      const gdn = typeof b.gdn === 'string' && /^[A-Z0-9]{5,12}$/.test(b.gdn) ? b.gdn : null;
+      const account = typeof b.account === 'string' && /^biz_[A-Za-z0-9]{4,60}$/.test(b.account) ? b.account : null;
+      if (!gdn || !account) return fail('bad_account', 400);
+      const r = await env.DB.prepare('UPDATE dealers SET whop_account = ?2 WHERE gdn = ?1').bind(gdn, account).run();
+      if (!r.meta.changes) return fail('no_such_dealer', 404);
+      await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+        .bind(`account:${gdn}:${Date.now()}`, 'dealer.account', JSON.stringify({ dealer: gdn, account, actor: 'admin' }), Date.now()).run();
+      return json({ gdn, account, payouts: await sendOwed(env, gdn) });
+    }
     // standing: the owner suspends or restores a dealer; a suspended dealer cannot open a lot
     const standing = url.pathname.match(/^\/dealers\/([A-Z0-9]{5,12})\/(suspend|restore)$/);
     if (req.method === 'POST' && standing) {
@@ -230,13 +363,17 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (req.method === 'POST' && (url.pathname === '/me/phone' || url.pathname === '/me/phone/verify')) {
       const buyer = await buyerFrom(req, env);
       if (!buyer) return text('sign in', 401);
-      return url.pathname === '/me/phone' ? sendCode(req, env, buyer, CORS) : verifyCode(req, env, buyer, CORS);
+      if (url.pathname === '/me/phone') return sendCode(req, env, buyer, CORS);
+      // a number proved by Telnyx proves one buyer (migration 0013's unique index): the second buyer to prove it is refused
+      // after the code is accepted, so the answer says nothing about a number the caller has not proved
+      try { return await verifyCode(req, env, buyer, CORS); }
+      catch (e) { if (/UNIQUE constraint failed: buyers\.phone/.test(String((e as Error)?.message ?? e))) return fail('phone_in_use', 409); throw e; }
     }
     if (req.method === 'POST' && url.pathname === '/me/push') {
       const buyer = await buyerFrom(req, env);
       if (!buyer) return text('sign in', 401);
       const b = await req.json<{ token?: string }>();
-      if (!/^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]{8,64}\]$/.test(b.token ?? '')) return text('bad token', 400);
+      if (!PUSH_TOKEN.test(b.token ?? '')) return text('bad token', 400);
       await env.DB.prepare('UPDATE buyers SET push_token = ?2 WHERE id = ?1').bind(buyer, b.token).run();
       return json({ ok: true });
     }
@@ -272,7 +409,9 @@ async function handle(req: Request, env: Env): Promise<Response> {
         ref = 'dev';   // wrangler dev and tests only
       }
       if (!ref) return text('not captured', 402);
-      await env.DB.prepare('UPDATE buyers SET deposit_status = ?2, deposit_ref = ?3 WHERE id = ?1').bind(buyer, 'captured', ref).run();
+      const got = await capture(env, buyer, ref, 'verify');
+      if (got === 'used') return fail('payment_used', 409);   // this payment was a deposit before (applied, forfeited, refunded): it captures once
+      if (got === 'duplicate') return fail('already_held', 409);   // a second payment while one is held: kept in the ledger for the admin to refund
       return json({ deposit: 'captured' });
     }
     // the deposit back: only while the buyer leads nothing and owes nothing
@@ -280,28 +419,46 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const buyer = await buyerFrom(req, env);
       if (!buyer) return text('sign in', 401);
       const row = await env.DB.prepare('SELECT deposit_status, deposit_ref FROM buyers WHERE id = ?1').bind(buyer).first<{ deposit_status: string; deposit_ref: string | null }>();
-      if (row?.deposit_status !== 'captured') return text('nothing held', 409);
-      const open = await env.DB.prepare('SELECT lot FROM lots').all<{ lot: string }>();
-      const busy = open.results.some(r => { const l = JSON.parse(r.lot); return (!l.closed && l.leader === buyer) || (l.sale && l.sale.buyer === buyer && !l.sale.startedAt && !l.sale.forfeitedAt && !l.sale.voidedAt); });   // a voided sale owes nothing: the dealer could not deliver
-      if (busy) return text('you lead a car or owe one', 409);
-      if (whop.ready && row.deposit_ref && row.deposit_ref !== 'dev') await whop.refund(row.deposit_ref);
-      await env.DB.prepare('UPDATE buyers SET deposit_status = ?2 WHERE id = ?1').bind(buyer, 'refunded').run();
+      if (row?.deposit_status !== 'captured') return text('nothing held', 409);   // applied to a car, forfeited, refunded, disputed or never paid
+      if (await busyOf(env, buyer)) return text('you lead a car or owe one', 409);   // a voided sale owes nothing: the dealer could not deliver
+      const refused = await releaseDeposit(env, whop, buyer, row.deposit_ref, { via: 'buyer', actor: 'buyer' });
+      if (refused) return refused;
       return json({ deposit: 'refunded' });
     }
     // Whop tells us when money moved; the signature is the only admission
     if (req.method === 'POST' && url.pathname === '/webhooks/whop') {
       const raw = await req.text();
       if (!(await whop.verifyWebhook(req, raw))) return text('bad signature', 401);
-      const e = JSON.parse(raw) as { type?: string; action?: string; data?: { id?: string; metadata?: Record<string, string>; status?: string } };
-      const type = e.type ?? e.action ?? '';
-      const d = e.data ?? {};
-      if (type === 'payment.succeeded' && d.metadata?.kind === 'deposit' && d.metadata.buyer && d.id) {
-        await env.DB.prepare('UPDATE buyers SET deposit_status = ?2, deposit_ref = ?3 WHERE id = ?1 AND deposit_status != ?2').bind(d.metadata.buyer, 'captured', d.id).run();
-      }
-      if (type.startsWith('refund.') && d.metadata?.kind === 'deposit' && d.metadata.buyer) {
-        await env.DB.prepare('UPDATE buyers SET deposit_status = ?2 WHERE id = ?1').bind(d.metadata.buyer, 'refunded').run();
-      }
+      let e: { type?: string; action?: string; data?: WhopData };
+      try { e = JSON.parse(raw); } catch { return text('bad body', 400); }
+      const type = String(e?.type ?? e?.action ?? '');
+      const d: WhopData = e?.data && typeof e.data === 'object' ? e.data : {};
+      // every event kept as received, by its type (payment.failed and dispute.created included), before anything moves; a replay is a no-op on the id
       await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)').bind(req.headers.get('webhook-id') ?? crypto.randomUUID(), type, raw, Date.now()).run();
+      if (type === 'payment.succeeded' && d.metadata?.kind === 'deposit' && typeof d.metadata.buyer === 'string' && typeof d.id === 'string') {
+        await capture(env, d.metadata.buyer, d.id, 'webhook');
+      }
+      // refunds and disputes name the payment; the deposit is found by its payment id (buyers.deposit_ref), never by metadata
+      const ref = typeof d.payment_id === 'string' ? d.payment_id : typeof d.payment?.id === 'string' ? d.payment.id : null;
+      if (ref && (type.startsWith('refund.') || type === 'dispute.created')) {
+        const status = String(d.status ?? '').toLowerCase();
+        const owner = await env.DB.prepare('SELECT id, deposit_status FROM buyers WHERE deposit_ref = ?1').bind(ref).first<{ id: string; deposit_status: string }>();
+        const money = (id: string, t: string, b: Record<string, unknown>) => env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)').bind(id, t, JSON.stringify(b), Date.now()).run();
+        if (owner && type.startsWith('refund.') && !['failed', 'canceled', 'cancelled'].includes(status)) {
+          if (owner.deposit_status === 'captured') {
+            await money(`refund:${ref}`, 'deposit.released', { buyer: owner.id, amount: DEPOSIT_USD, ref, to: 'buyer', via: 'webhook', actor: 'whop' });
+            await env.DB.prepare("UPDATE buyers SET deposit_status = 'refunded' WHERE id = ?1 AND deposit_status = 'captured' AND deposit_ref = ?2").bind(owner.id, ref).run();
+          } else if (owner.deposit_status === 'applied' || owner.deposit_status === 'forfeited') {
+            // the deposit is the dealer's (applied to the car, or forfeited): the status stays, the admin sees the money that left
+            await money(`refund_conflict:${ref}`, 'deposit.refund_conflict', { buyer: owner.id, amount: DEPOSIT_USD, ref, status: owner.deposit_status, actor: 'whop' });
+          }
+        }
+        if (owner && type === 'dispute.created' && owner.deposit_status === 'captured') {
+          // a disputed deposit backs no bid: the status leaves captured, so the bid path refuses (402) and release is refused
+          await money(`dispute:${ref}`, 'deposit.disputed', { buyer: owner.id, amount: DEPOSIT_USD, ref, actor: 'whop' });
+          await env.DB.prepare("UPDATE buyers SET deposit_status = 'disputed' WHERE id = ?1 AND deposit_status = 'captured' AND deposit_ref = ?2").bind(owner.id, ref).run();
+        }
+      }
       return json({ ok: true });
     }
 
@@ -416,4 +573,132 @@ async function mint(req: Request, env: Env): Promise<Response> {
     return fail('rate_limited', 429, { 'retry-after': String(wait) });
   }
   return json({ token: await mintDealerToken(env.DEALER_SECRET, gdn) });
+}
+
+/* ---------------------------------------------------------------- money */
+
+type WhopData = { id?: unknown; status?: unknown; payment_id?: unknown; payment?: { id?: unknown } | null; metadata?: Record<string, unknown> | null; usd_total?: unknown; total?: unknown; amount?: unknown };
+type EventRow = { id: string; type: string; body: string; received_at: number };
+type PayoutRow = { id: string; lot_id: string; dealer: string; buyer: string; amount: number; reason: string; note: string | null; held: number; state: string; transfer_id: string | null; error: string | null; created_at: number; sent_at: number | null; method: string | null; paid_note: string | null };
+type SaleLike = { startedAt?: number; voidedAt?: number; forfeitedAt?: number; paidAt?: number };
+
+const saleState = (s: SaleLike) => s.startedAt ? 'started' : s.voidedAt ? 'voided' : s.forfeitedAt ? 'forfeited' : s.paidAt ? 'paid' : 'owed';
+const str = (v: unknown): string | null => typeof v === 'string' && v ? v : null;
+const num = (v: unknown): number | null => typeof v === 'number' && Number.isFinite(v) ? v : null;
+
+/** One money_events row as the admin's money page reads it (admin-api.ts MoneyEvent), plus who acted and why. */
+function moneyEvent(r: EventRow) {
+  let b: Record<string, any> = {};
+  try { const x = JSON.parse(r.body); if (x && typeof x === 'object') b = x; } catch { /* kept as received */ }
+  if (b.data && typeof b.data === 'object') {   // a Whop webhook, as received
+    const d = b.data as WhopData, md = (d.metadata ?? {}) as Record<string, unknown>;
+    return { id: r.id, type: r.type, kind: str(md.kind), amountUsd: num(d.usd_total) ?? num(d.total) ?? num(d.amount), lotId: str(md.lot), buyer: str(md.buyer), at: r.received_at, actor: 'whop', reason: null };
+  }
+  const kind = r.type.startsWith('deposit.') ? 'deposit' : r.type.startsWith('payout.') ? 'payout' : r.type.startsWith('balance.') ? 'balance' : null;
+  const reason = str(b.reason) ?? (r.type === 'deposit.released' ? str(b.kind) : null);   // a void's release names no_start or non_delivery as its kind
+  return { id: r.id, type: r.type, kind, amountUsd: num(b.amount) ?? num(b.balance), lotId: str(b.lotId), buyer: str(b.buyer), at: r.received_at, actor: str(b.actor) ?? 'lane', reason };
+}
+
+/** A dealer_payouts row as the admin reads it (admin-api.ts Payout): sent on Whop or paid by hand are both 'paid'; `via` says which. */
+function payoutOut(p: PayoutRow) {
+  const out = p.state !== 'owed';
+  return { id: p.id, lotId: p.lot_id, dealer: p.dealer, buyer: p.buyer, amountUsd: p.amount, state: out ? 'paid' as const : 'owed' as const, via: p.state === 'sent' ? 'whop' : p.state === 'paid' ? 'hand' : null,
+    paidAt: out ? p.sent_at : null, method: p.method, note: p.state === 'paid' ? p.paid_note : p.note, reason: p.reason, held: !!p.held, transferId: p.transfer_id, error: p.error, createdAt: p.created_at };
+}
+
+/** Owed and sent, in dollars, in all and by dealer. Rows with held = 0 are counted apart: nothing came in, nothing goes out. */
+function payoutSums(rows: PayoutRow[]) {
+  const byDealer: Record<string, { owedUsd: number; sentUsd: number; owed: number; sent: number }> = {};
+  let owedUsd = 0, sentUsd = 0, notHeld = 0;
+  for (const p of rows) {
+    if (!p.held) { notHeld += 1; continue; }
+    const d = byDealer[p.dealer] ??= { owedUsd: 0, sentUsd: 0, owed: 0, sent: 0 };
+    if (p.state === 'owed') { d.owedUsd += p.amount; d.owed += 1; owedUsd += p.amount; }
+    else { d.sentUsd += p.amount; d.sent += 1; sentUsd += p.amount; }
+  }
+  return { owedUsd, sentUsd, notHeld, byDealer };
+}
+
+/** Whether a buyer's deposit backs something now: a lot they lead, or a sale they won and have not finished. */
+async function busyOf(env: Env, buyer: string): Promise<'leads_a_lot' | 'owes_a_sale' | null> {
+  const r = await env.DB.prepare(`SELECT
+      (SELECT COUNT(*) FROM lots WHERE json_extract(lot, '$.closed') IS NULL AND json_extract(lot, '$.leader') = ?1) AS leads,
+      (SELECT COUNT(*) FROM lots WHERE json_extract(lot, '$.sale.buyer') = ?1 AND json_extract(lot, '$.sale.startedAt') IS NULL
+         AND json_extract(lot, '$.sale.voidedAt') IS NULL AND json_extract(lot, '$.sale.forfeitedAt') IS NULL) AS owes`).bind(buyer).first<{ leads: number; owes: number }>();
+  return r?.leads ? 'leads_a_lot' : r?.owes ? 'owes_a_sale' : null;
+}
+
+/** A deposit captured, by the verify path or the webhook: the ledger row (deposit.captured, id capture:<payment>) and the
+    buyer's state move together in one batch, and only when this request wrote the row. A payment id captures once, ever:
+    a replayed webhook or a reused payment after the deposit was applied, forfeited or refunded is 'used' and moves nothing.
+    A second payment while one is held is kept as deposit.duplicate for the admin to refund. */
+async function capture(env: Env, buyer: string, ref: string, via: 'verify' | 'webhook'): Promise<'captured' | 'used' | 'duplicate' | 'unknown'> {
+  const row = await env.DB.prepare('SELECT deposit_status, deposit_ref FROM buyers WHERE id = ?1').bind(buyer).first<{ deposit_status: string; deposit_ref: string | null }>();
+  if (!row) return 'unknown';
+  if (row.deposit_status === 'captured' && row.deposit_ref === ref) return 'captured';   // the verify path and the webhook for the same payment
+  const now = Date.now(), nonce = crypto.randomUUID();
+  const id = ref === 'dev' ? `capture:dev:${buyer}:${now}` : `capture:${ref}`;
+  const type = row.deposit_status === 'captured' ? 'deposit.duplicate' : 'deposit.captured';
+  const [, moved] = await env.DB.batch([
+    env.DB.prepare('INSERT INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(id) DO NOTHING')
+      .bind(id, type, JSON.stringify({ buyer, amount: DEPOSIT_USD, ref, via, actor: via === 'webhook' ? 'whop' : 'buyer', nonce }), now),
+    env.DB.prepare(`UPDATE buyers SET deposit_status = 'captured', deposit_ref = ?2 WHERE id = ?1 AND deposit_status != 'captured'
+      AND EXISTS (SELECT 1 FROM money_events WHERE id = ?3 AND json_extract(body, '$.nonce') = ?4)`).bind(buyer, ref, id, nonce),
+  ]);
+  if (moved.meta.changes) return 'captured';
+  const mine = await env.DB.prepare(`SELECT 1 AS x FROM money_events WHERE id = ?1 AND json_extract(body, '$.nonce') = ?2`).bind(id, nonce).first();
+  return mine ? 'duplicate' : 'used';
+}
+
+/** A deposit given back (the buyer, or the admin with a reason): the ledger row first (deposit.released, id refund:<payment>, the
+    same id the refund webhook writes), then the Whop refund, then the state. A refund Whop refuses takes its row back out: 502. */
+async function releaseDeposit(env: Env, whop: Whop, buyer: string, ref: string | null, extra: Record<string, unknown>): Promise<Response | null> {
+  const now = Date.now(), nonce = crypto.randomUUID();
+  const real = !!ref && ref !== 'dev';
+  const id = real ? `refund:${ref}` : `refund:dev:${buyer}:${now}`;
+  await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+    .bind(id, 'deposit.released', JSON.stringify({ buyer, amount: DEPOSIT_USD, ref, to: 'buyer', ...extra, nonce }), now).run();
+  if (whop.ready && real) {
+    try { await whop.refund(ref!); }
+    catch {
+      await env.DB.prepare(`DELETE FROM money_events WHERE id = ?1 AND json_extract(body, '$.nonce') = ?2`).bind(id, nonce).run().catch(() => {});
+      return fail('refund_failed', 502);
+    }
+  }
+  await env.DB.prepare(`UPDATE buyers SET deposit_status = 'refunded' WHERE id = ?1 AND deposit_status = 'captured'`).bind(buyer).run();
+  return null;
+}
+
+/** Every payout left owed for a dealer, sent now when the dealer has a connected account and Whop is configured. Each transfer
+    carries the payout's own id as its idempotency key (applied:<lot> or forfeit:<lot>, as the lot's object sent it), so a payout
+    the object already sent is never sent twice. A refusal stays owed with its error. The lot's sale.payout is the object's and is
+    not moved here: dealer_payouts is the record. */
+export async function sendOwed(env: Env, gdn: string): Promise<{ sent: number; owed: number }> {
+  const rows = (await env.DB.prepare(`SELECT * FROM dealer_payouts WHERE dealer = ?1 AND state = 'owed' AND held = 1 ORDER BY created_at`).bind(gdn).all<PayoutRow>()).results;
+  const whop = new Whop(env);
+  const acct = whop.ready ? (await env.DB.prepare('SELECT whop_account FROM dealers WHERE gdn = ?1').bind(gdn).first<{ whop_account: string | null }>())?.whop_account : null;
+  if (!acct) return { sent: 0, owed: rows.length };
+  let sent = 0;
+  for (const p of rows) {
+    try {
+      const t = await whop.transferToDealer(acct, p.amount, p.id, `${p.reason} ${p.lot_id}`);
+      const now = Date.now();
+      await env.DB.batch([
+        env.DB.prepare('UPDATE dealer_payouts SET state = ?2, transfer_id = ?3, sent_at = ?4, error = NULL WHERE id = ?1 AND state = ?5').bind(p.id, 'sent', t.id, now, 'owed'),
+        env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+          .bind(`payout:${p.id}`, 'payout.sent', JSON.stringify({ lotId: p.lot_id, dealer: gdn, amount: p.amount, reason: p.reason, transferId: t.id, via: 'retry', actor: 'lane' }), now),
+      ]);
+      sent += 1;
+    } catch (e) {
+      await env.DB.prepare('UPDATE dealer_payouts SET error = ?2 WHERE id = ?1').bind(p.id, String((e as Error)?.message ?? e).slice(0, 240)).run().catch(() => {});
+    }
+  }
+  return { sent, owed: rows.length - sent };
+}
+
+/** The nightly pass: every dealer with a connected account and a payout owed. */
+export async function sendAllOwed(env: Env): Promise<void> {
+  if (!new Whop(env).ready) return;
+  const dealers = (await env.DB.prepare(`SELECT DISTINCT p.dealer FROM dealer_payouts p JOIN dealers d ON d.gdn = p.dealer WHERE p.state = 'owed' AND p.held = 1 AND d.whop_account IS NOT NULL`).all<{ dealer: string }>()).results;
+  for (const d of dealers) await sendOwed(env, d.dealer);
 }

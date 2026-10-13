@@ -2,9 +2,11 @@
    report says equal seven nights running"). Two comparisons:
    1. Every lot's D1 copy against its Durable Object, the authority. A copy
       that differs is rewritten by the object itself, and the id is recorded.
-   2. The Whop balance against the deposits held (reserve ratio must be 1):
-      GET /ledger_accounts/{biz_…} → balances[].balance in USD. Only the
-      settled `balance` is counted; pending and reserve are noted, not added.
+   2. The Whop balance against what Obavia holds for others (reserve ratio
+      must be 1): the deposits held plus the payouts owed to dealers (held,
+      not yet sent or paid). GET /ledger_accounts/{biz_…} → balances[].balance
+      in USD. Only the settled `balance` is counted; pending and reserve are
+      noted, not added.
    One row per run in `reconciliations`; the admin reads the last seven. */
 import type { Env } from './env';
 import { Whop } from './whop';
@@ -14,6 +16,7 @@ export const DEPOSIT_CENTS = 25_000;
 export type Row = {
   id: string; ran_at: number; lots_checked: number; lots_differing: number; differing: string[];
   deposits_held: number; whop_balance_cents: number | null; equal: 0 | 1; note: string;
+  payouts_owed: number; payouts_owed_cents: number;
 };
 
 type LotLike = { high?: number; bids?: number; closesAt?: number; leader?: string; closed?: unknown; sale?: unknown };
@@ -58,6 +61,11 @@ export async function reconcile(env: Env): Promise<Row> {
   if (unrepaired.length) notes.push(`not repaired (no object or the rewrite did not land): ${unrepaired.join(', ')}`);
 
   const held = (await env.DB.prepare("SELECT COUNT(*) AS n FROM buyers WHERE deposit_status = 'captured'").first<{ n: number }>())?.n ?? 0;
+  // a payout owed is the dealer's money sitting in the balance: a liability like a deposit. A row with held = 0 is not
+  // counted: the deposit was never captured at that moment, so nothing came in and nothing is sent (auction.ts payDealer)
+  const owed = await env.DB.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(amount), 0) AS usd FROM dealer_payouts WHERE state = 'owed' AND held = 1").first<{ n: number; usd: number }>();
+  const owedN = owed?.n ?? 0, owedCents = Math.round((owed?.usd ?? 0) * 100);
+  const liabilities = held * DEPOSIT_CENTS + owedCents;
 
   let balanceCents: number | null = null;
   const whop = new Whop(env);
@@ -67,20 +75,21 @@ export async function reconcile(env: Env): Promise<Row> {
     try {
       const b = await whopUsdBalance(env);
       balanceCents = b.balanceCents;
-      notes.push(`Whop USD balance ${cents(b.balanceCents)} (pending ${cents(b.pendingCents)}, reserve ${cents(b.reserveCents)} not counted); deposits held ${held} × $250 = ${cents(held * DEPOSIT_CENTS)}`);
+      notes.push(`Whop USD balance ${cents(b.balanceCents)} (pending ${cents(b.pendingCents)}, reserve ${cents(b.reserveCents)} not counted); deposits held ${held} × $250 = ${cents(held * DEPOSIT_CENTS)}; payouts owed ${owedN} = ${cents(owedCents)}; liabilities ${cents(liabilities)}`);
     } catch (e) {
       notes.push(`Whop balance read failed: ${String((e as Error).message ?? e).slice(0, 200)}`);
     }
   }
-  const covered = balanceCents === null || balanceCents >= held * DEPOSIT_CENTS;
-  if (!covered) notes.push('balance below deposits held: reserve ratio under 1');
+  const covered = balanceCents === null || balanceCents >= liabilities;
+  if (!covered) notes.push('balance below deposits held and payouts owed: reserve ratio under 1');
 
   const out: Row = {
     id: `rec_${ranAt}_${crypto.randomUUID().slice(0, 8)}`, ran_at: ranAt, lots_checked: rows.length, lots_differing: differing.length, differing,
     deposits_held: held, whop_balance_cents: balanceCents, equal: differing.length === 0 && covered ? 1 : 0, note: notes.join('; ') || 'equal',
+    payouts_owed: owedN, payouts_owed_cents: owedCents,
   };
-  await env.DB.prepare('INSERT INTO reconciliations (id, ran_at, lots_checked, lots_differing, differing, deposits_held, whop_balance_cents, equal, note) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)')
-    .bind(out.id, out.ran_at, out.lots_checked, out.lots_differing, JSON.stringify(out.differing), out.deposits_held, out.whop_balance_cents, out.equal, out.note).run();
+  await env.DB.prepare('INSERT INTO reconciliations (id, ran_at, lots_checked, lots_differing, differing, deposits_held, whop_balance_cents, equal, note, payouts_owed, payouts_owed_cents) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)')
+    .bind(out.id, out.ran_at, out.lots_checked, out.lots_differing, JSON.stringify(out.differing), out.deposits_held, out.whop_balance_cents, out.equal, out.note, out.payouts_owed, out.payouts_owed_cents).run();
   return out;
 }
 
@@ -102,3 +111,13 @@ async function whopUsdBalance(env: Env) {
 }
 
 const cents = (c: number) => `$${(c / 100).toFixed(2)}`;
+
+/** The reserve ratio from a reconciliation: the settled Whop balance over the deposits held plus the payouts owed.
+    Null when no reconciliation ran or the balance was not read (the admin page says "Not read", never 1.00).
+    With nothing held or owed: 1 when the balance read is not negative, else 0. Rounded down to two places: 0.996 shows 0.99, never 1.00. */
+export function reserveRatio(r: Pick<Row, 'whop_balance_cents' | 'deposits_held'> & { payouts_owed_cents?: number | null } | undefined): number | null {
+  if (!r || r.whop_balance_cents == null) return null;
+  const liabilities = r.deposits_held * DEPOSIT_CENTS + (r.payouts_owed_cents ?? 0);
+  if (liabilities <= 0) return r.whop_balance_cents >= 0 ? 1 : 0;
+  return Math.floor((r.whop_balance_cents / liabilities) * 100) / 100;
+}
