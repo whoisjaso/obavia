@@ -19,6 +19,12 @@ class_name = "Auction"
 tag = "v1"
 new_sqlite_classes = ["Auction"]
 
+# pdf.js for the document page (src/view.ts), served by this Worker at /pdfjs/*: the files are copied from the pinned
+# pdfjs-dist by `npm run vendor` (before dev, test and deploy), so one `wrangler deploy` ships them with the code.
+[assets]
+directory = "./assets"
+binding = "ASSETS"
+
 [[r2_buckets]]
 binding = "FILES"
 bucket_name = "obavia-auction-files"

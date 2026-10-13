@@ -2,6 +2,7 @@ export type Env = {
   AUCTION: DurableObjectNamespace;
   DB: D1Database;
   FILES: R2Bucket;              // photos/<lot>/<n>.jpg, documents/<lot>/<name>.pdf
+  ASSETS: Fetcher;              // wrangler assets (./assets): pdf.js for the document page at /pdfjs/*, copied from pdfjs-dist by `npm run vendor`
   BUYER_SECRET: string;
   DEALER_SECRET: string;
   MINT_SECRET?: string;         // POST /dealers/mint only (the public-site lane); at least 32 characters, never equal to DEALER_SECRET

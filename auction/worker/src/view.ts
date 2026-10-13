@@ -1,17 +1,24 @@
 /* The document page the phone opens inside a WebView: pdf.js renders the PDF
    the Worker serves; reaching the end posts "end" to the app, which unlocks
    the pad. One file, no build. `at`: a page index to bring into view once
-   drawn (the signed copy opens on the page the stamp is on, sign.ts). */
+   drawn (the signed copy opens on the page the stamp is on, sign.ts).
+   pdf.js comes from this Worker (/pdfjs/*, wrangler assets copied from the
+   pinned pdfjs-dist by `npm run vendor`), never from a third-party origin:
+   nothing but Obavia runs on the page at the moment of signature, and a
+   network that allows the Worker allows the viewer. */
+export const PDFJS_PATH = '/pdfjs';
 export function viewerHtml(pdfUrl: string, opts: { at?: number } = {}): string {
   const u = JSON.stringify(pdfUrl);
+  const origin = new URL(pdfUrl).origin;   // the Worker's own origin: the PDF and pdf.js come from the same place
+  const lib = JSON.stringify(`${origin}${PDFJS_PATH}/pdf.min.mjs`), worker = JSON.stringify(`${origin}${PDFJS_PATH}/pdf.worker.min.mjs`);
   const at = Number.isInteger(opts.at) && (opts.at as number) > 0 ? (opts.at as number) : 0;
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <style>html,body{margin:0;background:#F2F6FF}#pages{padding:12px 12px 48px}canvas{display:block;width:100%;height:auto;background:#fff;border-radius:6px;margin:0 0 10px;box-shadow:0 1px 2px rgba(28,36,54,.08)}</style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module"></script></head>
+<link rel="modulepreload" href=${lib}></head>
 <body><div id="pages"></div>
 <script type="module">
-import * as pdfjs from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
-pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+const pdfjs = await import(${lib});
+pdfjs.GlobalWorkerOptions.workerSrc = ${worker};
 const post = m => { try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(m); } catch {} try { window.parent !== window && window.parent.postMessage(m, '*'); } catch {} };
 const doc = await pdfjs.getDocument(${u}).promise;
 const host = document.getElementById('pages'); const scale = (window.devicePixelRatio || 1) * 1.5;

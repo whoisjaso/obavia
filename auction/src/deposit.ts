@@ -2,7 +2,11 @@
    hosted checkout; the buyer pays in an in-app browser; Whop returns to
    obavia://deposit. Either the redirect carries a payment id we hand to the
    Worker, or the signed webhook marks the deposit captured on its own; we
-   read GET /me until it says so. Locally (no AUCTION_URL) it is a flag. */
+   read GET /me until it says so. Locally (no AUCTION_URL) it is a flag.
+   Against a DEV=1 Worker with no Whop key, POST /me/deposit/checkout captures
+   the deposit itself and answers { deposit: 'captured', dev: true } with no
+   URL (worker/README.md): no browser opens, and the same GET /me read that
+   follows a Whop return says captured. A deployed Worker never answers that. */
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { RemoteAuctionServer } from './engine/client';
@@ -28,6 +32,28 @@ function paymentIdFrom(url: string): string | undefined {
   return undefined;
 }
 
+/** What POST /me/deposit/checkout answered: a Whop checkout to open, the DEV capture (no browser), or nothing usable. */
+export type CheckoutAnswer = { kind: 'checkout'; checkoutId: string; url: string } | { kind: 'captured'; dev: true };
+
+/** The pure read of the checkout body. A DEV capture is only `{ deposit: 'captured', dev: true }` exactly: a body with a
+    URL is always a checkout, and a 'captured' without `dev: true` is not a thing the Worker says, so it is null (failed). */
+export function readCheckout(body: unknown): CheckoutAnswer | null {
+  if (!body || typeof body !== 'object') return null;
+  const b = body as { checkoutId?: unknown; url?: unknown; deposit?: unknown; dev?: unknown };
+  if (typeof b.checkoutId === 'string' && b.checkoutId && typeof b.url === 'string' && /^https?:\/\//.test(b.url)) return { kind: 'checkout', checkoutId: b.checkoutId, url: b.url };
+  if (b.deposit === 'captured' && b.dev === true && b.url === undefined) return { kind: 'captured', dev: true };
+  return null;
+}
+
+/** POST /me/deposit/checkout. Null on a refusal (503 payments not configured, 401) or the network. */
+async function postCheckout(base: string, token: string): Promise<CheckoutAnswer | null> {
+  try {
+    const r = await fetch(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ redirectUrl: RETURN_URL }) });
+    if (!r.ok) return null;
+    return readCheckout(await r.json());
+  } catch { return null; }
+}
+
 /** True once the Worker reports the deposit captured, read every 1.5 s for up to 12 s. */
 async function pollCaptured(base: string, token: string): Promise<boolean> {
   const until = Date.now() + POLL_FOR_MS;
@@ -44,11 +70,13 @@ export async function takeDeposit(): Promise<DepositOutcome> {
   if (!AUCTION_URL) { once.deposit = true; return 'local'; }
   const token = buyerToken();
   if (!token) return 'failed';
-  const checkout = await RemoteAuctionServer.depositCheckout(AUCTION_URL, token, RETURN_URL);
+  const checkout = await postCheckout(AUCTION_URL, token);
   if (!checkout) return 'failed';
 
   let resultType: string;
-  try {
+  if (checkout.kind === 'captured') {
+    resultType = 'dev';   // the DEV Worker captured it on the checkout call: no browser; the Worker's word below decides, as after a Whop return
+  } else try {
     const result = await WebBrowser.openAuthSessionAsync(checkout.url, RETURN_URL);
     resultType = result.type;
     if (result.type === 'success') {

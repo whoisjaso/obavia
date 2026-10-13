@@ -57,7 +57,7 @@ export class Auction extends DurableObject<Env> {
     if (lot && !admin && DEALER_ROUTES.includes(path) && lot.dealer !== dealer) return text('not_your_lot', 403);
     const now = Date.now();
     switch (`${req.method} ${path}`) {
-      case 'GET /': return lot ? json(this.publicLot(lot)) : text('no lot', 404);
+      case 'GET /': { if (!lot) return text('no lot', 404); await this.hammer(lot, now); return json(this.publicLot(lot)); }   // the read-time close writes the sale too
       case 'POST /open': return this.open(await req.json<OpenRequest>(), dealer);
       case 'POST /car': {   // the Desk updates photos, documents, hours after Go
         if (!lot) return text('no lot', 404);
@@ -144,15 +144,7 @@ export class Auction extends DurableObject<Env> {
     const now = Date.now();
     if (!lot.closed) {
       if (now < lot.closesAt) { await this.ctx.storage.setAlarm(lot.closesAt); return; }   // a refill moved it
-      lot.closed = { at: lot.closesAt, sold: lot.bids > 0 && !!lot.leader };
-      if (lot.closed.sold && lot.leader) {
-        lot.sale = { buyer: lot.leader, hammer: lot.high, wonAt: lot.closesAt, deadlineAt: lot.closesAt + PAY_WINDOW_MS, deposit: 'held' };
-        // the same deadline words as the pay-by pushes, the Won screen and the Desk (CP9)
-        this.ctx.waitUntil(push(this.env, lot.leader, 'Yours', `$${dollars(lot.high)} · ${carName(lot) || lot.id} · Pay by ${payBy(lot.sale.deadlineAt)}`, { lotId: lot.id, screen: 'won' }));
-      }
-      await this.save(lot);
-      if (lot.sale) await this.scheduleSale(lot, now);
-      this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'close' });
+      await this.hammer(lot, now);   // a read since the close already did this: then the alarm is a no-op here
       return;
     }
     const s = lot.sale;
@@ -165,6 +157,25 @@ export class Auction extends DurableObject<Env> {
       this.ctx.waitUntil(push(this.env, s.buyer, `Pay by ${payBy(s.deadlineAt)}`, `${balance == null ? '' : `$${dollars(balance)} · `}${h} h left`, { lotId: lot.id, screen: 'won' }));
     }
     await this.scheduleSale(lot, now);
+  }
+
+  /** The hammer, once: the lot closes and, with a leader, the sale is written with its deadline, in the same write. Run by the
+      alarm and by every read past the close (GET, the socket's first frame, a late bid), so no phone or Desk ever sees a lot
+      closed and sold without its sale: the alarm on a loaded box can run tens of seconds after closesAt (the Phase 1 walk saw
+      about 90 s), and in that window the Desk showed Done with no Sold and the phone opened Won with no deadline. Idempotent:
+      lot.closed is set in memory before the first await, so a second entrant (the alarm after a read, or the reverse) finds it
+      set and does nothing. Nothing happens before closesAt. */
+  private async hammer(lot: Stored, now: number): Promise<void> {
+    if (lot.closed || now < lot.closesAt) return;
+    lot.closed = { at: lot.closesAt, sold: lot.bids > 0 && !!lot.leader };
+    if (lot.closed.sold && lot.leader) {
+      lot.sale = { buyer: lot.leader, hammer: lot.high, wonAt: lot.closesAt, deadlineAt: lot.closesAt + PAY_WINDOW_MS, deposit: 'held' };
+      // the same deadline words as the pay-by pushes, the Won screen and the Desk (CP9)
+      this.ctx.waitUntil(push(this.env, lot.leader, 'Yours', `$${dollars(lot.high)} · ${carName(lot) || lot.id} · Pay by ${payBy(lot.sale.deadlineAt)}`, { lotId: lot.id, screen: 'won' }));
+    }
+    await this.save(lot);
+    if (lot.sale) await this.scheduleSale(lot, now);
+    this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'close' });
   }
 
   /** The next sale alarm: the earliest pay-by push not yet sent, else the deadline. */
@@ -278,7 +289,7 @@ export class Auction extends DurableObject<Env> {
     if (prior) return json(prior);
     let ack: Ack; let outbid: string | undefined;
     if (lot.closed || now >= lot.closesAt) {
-      if (!lot.closed) lot.closed = { at: lot.closesAt, sold: lot.bids > 0 };
+      await this.hammer(lot, now);   // a late bid finds the lot closed and sold with its sale, as a read does
       ack = { ok: false, reason: 'closed', lot: this.publicLot(lot), lateByMs: now - lot.closesAt, stampedAt: now };
     } else {
       const before: Proxy = { high: lot.high, leader: lot.leader, max: lot.max };
@@ -321,6 +332,7 @@ export class Auction extends DurableObject<Env> {
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1]);
     const lot = await this.load();
+    if (lot) await this.hammer(lot, Date.now());   // the first frame never shows a closed, sold lot without its sale
     if (lot) pair[1].send(JSON.stringify({ lotId: lot.id, lot: this.publicLot(lot), kind: 'bid' } satisfies Event));
     return new Response(null, { status: 101, webSocket: pair[0] });
   }

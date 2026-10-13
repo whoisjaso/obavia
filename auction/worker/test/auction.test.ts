@@ -132,12 +132,35 @@ describe('the object', () => {
 });
 
 describe('whop', () => {
-  it('the deposit checkout says so plainly when Whop is not configured', async () => {
+  it('the deposit checkout says so plainly when Whop is not configured on a deployed Worker (DEV unset)', async () => {
     expect(env.WHOP_API_KEY).toBeUndefined();   // the test env carries no key; the shape { checkoutId, url } is typed in whop.ts
-    expect((await SELF.fetch(`${base}/me/deposit/checkout`, { method: 'POST', body: '{}' })).status).toBe(401);
-    const r = await SELF.fetch(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ redirectUrl: 'obavia://deposit' }) });
+    const prod = { ...env, DEV: '0' } as WorkerEnv;
+    expect((await worker.fetch(new Request(`${base}/me/deposit/checkout`, { method: 'POST', body: '{}' }), prod)).status).toBe(401);
+    const r = await worker.fetch(new Request(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ redirectUrl: 'obavia://deposit' }) }), prod);
     expect(r.status).toBe(503);
     expect(await r.text()).toBe('payments not configured');
+    const row = await env.DB.prepare('SELECT deposit_status FROM buyers WHERE id = ?1').bind('buyer-a').first<{ deposit_status: string }>();
+    expect(row?.deposit_status).not.toBe('none');   // buyer-a already holds one from the setup; the point: 503 wrote nothing new
+    expect((await env.DB.prepare(`SELECT COUNT(*) AS n FROM money_events WHERE type = 'deposit.duplicate' AND json_extract(body, '$.buyer') = 'buyer-a'`).first<{ n: number }>())?.n).toBe(0);
+  });
+  it('under DEV=1 with no Whop key the checkout captures the deposit itself and answers { deposit: captured, dev: true }, never a URL', async () => {
+    expect(env.DEV).toBe('1'); expect(env.WHOP_API_KEY).toBeUndefined();
+    expect((await SELF.fetch(`${base}/me/deposit/checkout`, { method: 'POST', body: '{}' })).status).toBe(401);
+    const t = await signIn('buyer-devco');
+    const r = await SELF.fetch(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${t}`, 'content-type': 'application/json' }, body: JSON.stringify({ redirectUrl: 'obavia://deposit' }) });
+    expect(r.status).toBe(200);
+    const b = await r.json<any>();
+    expect(b).toEqual({ deposit: 'captured', dev: true });
+    expect(b.url).toBeUndefined(); expect(b.checkoutId).toBeUndefined();
+    const me = await (await SELF.fetch(`${base}/me`, { headers: { authorization: `Bearer ${t}` } })).json<any>();
+    expect(me.deposit_status).toBe('captured');   // what the phone polls for after a Whop return: the same state, reached here
+    const ev = await env.DB.prepare(`SELECT id, body FROM money_events WHERE type = 'deposit.captured' AND json_extract(body, '$.buyer') = 'buyer-devco'`).first<{ id: string; body: string }>();
+    expect(ev?.id).toMatch(/^capture:dev:buyer-devco:\d+$/);   // the same ledger row POST /me/deposit writes under DEV
+    expect(JSON.parse(ev!.body)).toMatchObject({ ref: 'dev', via: 'verify', actor: 'buyer' });
+    // a second DEV checkout answers the same (the same dev ref on a captured deposit) and writes no second ledger row, as POST /me/deposit under DEV
+    const again = await SELF.fetch(`${base}/me/deposit/checkout`, { method: 'POST', headers: { authorization: `Bearer ${t}`, 'content-type': 'application/json' }, body: '{}' });
+    expect(again.status).toBe(200); expect(await again.json()).toEqual({ deposit: 'captured', dev: true });
+    expect((await env.DB.prepare(`SELECT COUNT(*) AS n FROM money_events WHERE json_extract(body, '$.buyer') = 'buyer-devco'`).first<{ n: number }>())?.n).toBe(1);
   });
   it('a webhook without a valid signature is refused', async () => {
     const r = await SELF.fetch(`${base}/webhooks/whop`, { method: 'POST', headers: { 'webhook-id': 'msg_1', 'webhook-timestamp': String(Math.floor(Date.now() / 1000)), 'webhook-signature': 'v1,bad' }, body: '{}' });
@@ -361,6 +384,24 @@ describe('the viewer', () => {
     const html = await r.text();
     expect(html).toContain('parent.postMessage');
     expect(html).toContain(`${base}/documents/x/guide.pdf?token=${encodeURIComponent(token)}`);
+  });
+  it('carries no third-party origin: pdf.js comes from the Worker itself, pinned to the version the Desk pins', async () => {
+    const html = await (await SELF.fetch(`${base}/view?u=${encodeURIComponent('/documents/x/guide.pdf')}&token=${encodeURIComponent(token)}`)).text();
+    const origins = [...html.matchAll(/https?:\/\/[^/'"\s)]+/g)].map(m => m[0]);
+    expect(origins.length).toBeGreaterThan(0);
+    expect(new Set(origins)).toEqual(new Set([base]));   // every absolute URL on the signing page is the Worker's own
+    expect(html).not.toMatch(/cdnjs|unpkg|jsdelivr|cloudflare\.com/);
+    expect(html).toContain(`${base}/pdfjs/pdf.min.mjs`); expect(html).toContain(`${base}/pdfjs/pdf.worker.min.mjs`);
+    // the files are served from here (wrangler assets), the version pinned by package.json and matched by the Desk's pdfjs-dist
+    const pinned = (await import('../package.json')).devDependencies['pdfjs-dist'];
+    expect(pinned).toBe('4.10.38');
+    for (const f of ['pdf.min.mjs', 'pdf.worker.min.mjs']) {
+      const a = await SELF.fetch(`${base}/pdfjs/${f}`);
+      expect(a.status).toBe(200);
+      expect(a.headers.get('content-type')).toMatch(/javascript/);
+      expect(await a.text()).toContain(pinned);   // pdf.js stamps its version into the build
+    }
+    expect((await SELF.fetch(`${base}/pdfjs/nope.mjs`)).status).toBe(404);
   });
 });
 

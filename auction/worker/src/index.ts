@@ -71,6 +71,8 @@ async function handle(req: Request, env: Env): Promise<Response> {
       if (!obj) return text('not found', 404);
       return new Response(obj.body, { headers: { 'content-type': obj.httpMetadata?.contentType ?? 'application/octet-stream', 'cache-control': kind === 'photos' ? 'public, max-age=31536000, immutable' : 'private, max-age=60', ...CORS } });
     }
+    // pdf.js for the document page, served from here (wrangler assets, pinned by package.json): no third-party script at the moment of signature
+    if (req.method === 'GET' && url.pathname.startsWith('/pdfjs/')) return env.ASSETS.fetch(req);
     // the document page the phone shows inside a WebView
     if (req.method === 'GET' && url.pathname === '/view') {
       const u = url.searchParams.get('u') ?? '';
@@ -476,7 +478,13 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (req.method === 'POST' && url.pathname === '/me/deposit/checkout') {
       const buyer = await buyerFrom(req, env);
       if (!buyer) return text('sign in', 401);
-      if (!whop.ready) return text('payments not configured', 503);
+      if (!whop.ready && env.DEV === '1') {   // wrangler dev and tests: no Whop, so the glass gets the DEV capture here, the same row POST /me/deposit writes
+        const got = await capture(env, buyer, 'dev', 'verify', clientOf(req));
+        if (got === 'used') return fail('payment_used', 409);
+        if (got === 'duplicate') return fail('already_held', 409);
+        return json({ deposit: 'captured', dev: true });   // no checkoutId, no url: the phone tells it from a checkout and opens no browser
+      }
+      if (!whop.ready) return text('payments not configured', 503);   // deployed (DEV unset): never a deposit without Whop
       const b = await req.json<{ redirectUrl?: string }>();
       const c = await whop.createDepositCheckout(buyer, DEPOSIT_USD, b.redirectUrl ?? 'obavia://deposit');
       return json({ checkoutId: c.id, url: c.purchase_url });
