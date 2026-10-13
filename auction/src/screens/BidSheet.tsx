@@ -24,7 +24,7 @@ import { Sky } from '../components/Sky';
 import { driftLevel, useDriftSound } from '../components/Sheet';
 import { Price } from '../components/Price';
 import { Ring } from '../components/Ring';
-import { Label } from '../components/Type';
+import { Label, Serif } from '../components/Type';
 import type { Car } from '../data/cars';
 import { inLastTwoMinutes, increment, needsHold, nextBid, roll } from '../engine/auction';
 import { dollars, outTheDoor } from '../engine/money';
@@ -32,8 +32,9 @@ import type { Ack, Lot } from '../engine/server';
 import { feel } from '../feel';
 import { takeDeposit } from '../deposit';
 import { registerPush } from '../push';
-import { AUCTION_URL, DEPOSIT, ME, getServer, once, peekBuyer, setBuyer } from '../store';
-import { Refused, TERMS, TERMS_VERSION } from '../engine/client';
+import { AUCTION_URL, DEPOSIT, ME, getServer, heldLot, lotName, once, peekBuyer, setBuyer } from '../store';
+import { Refused, SAID, TERMS, TERMS_VERSION, retryUntil, said, secondsLeft } from '../engine/client';
+import { go } from '../nav';
 import { EASE_OUT, EASE_SHEET, cloud, ms, spring } from '../motion';
 import { theme } from '../theme';
 import { IdScan } from './won/Scan';
@@ -63,6 +64,11 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   const [punch, setPunch] = useState<number>();
   const [landKey, setLand] = useState<number | undefined>(once.deposit ? 0 : undefined);   // the deposit line appears once it exists
   const [stamp, setStamp] = useState<string | null>(null);
+  // too_many_bids: when the Worker's Retry-After lifts; the seconds left count down beside the stamp and Bid
+  // stays off until they reach 0. one_open_bid: the car the buyer already holds, the stamp's tap
+  const [retryAt, setRetryAt] = useState<number | null>(null);
+  const [left, setLeft] = useState(0);
+  const [held, setHeld] = useState<{ lotId: string; screen: 'lane' | 'won'; name?: string } | null>(null);
   const [teach, setTeach] = useState(false);
   const [lead, setLead] = useState(false);          // the leading mark, on the frame the lead chime plays
   const opened = lot.bids > 0;
@@ -83,6 +89,19 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const later = (f: () => void, t: number) => { timers.current.push(setTimeout(f, t)); };
   const done = () => onClose();
+  // the countdown: whole seconds, read off the clock four times a second so the number never skips; at 0 the
+  // stamp leaves and Bid comes back on its own (no sentence, the verb is the proof)
+  useEffect(() => {
+    if (retryAt === null) return;
+    const tick = () => {
+      const n = secondsLeft(retryAt, Date.now());
+      setLeft(n);
+      if (n === 0) { setRetryAt(null); setStamp(null); setPhase('arming'); }
+    };
+    tick();
+    const t = setInterval(tick, 250);
+    return () => clearInterval(t);
+  }, [retryAt]);
   // no finger: the iOS sheet curve, 200 ms (never ease-in: it delays the moment the eye is on)
   const close = () => {
     if (reduce) { fade.value = withTiming(0, { duration: ms.exit, easing: EASE_OUT }, f => { if (f) scheduleOnRN(done); }); return; }
@@ -128,9 +147,24 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
       const code = e instanceof Refused ? e.code : '';
       if (code === 'phone_required') { setBuyer({ phoneVerified: false }); setPhase('phone'); return; }   // the number again, nothing else
       if (code === 'terms_required') { setBuyer({ termsCurrent: false }); setTerms(Date.now()); setPhase('arming'); return; }   // the read again, nothing else
-      if (code === 'win_cap') { setBuyer({ winsLeft: 0 }); setPhase('rejected'); setStamp('Four wins a year. Next January.'); return; }
+      if (code === 'win_cap') { setBuyer({ winsLeft: 0 }); setPhase('rejected'); setStamp(SAID.win_cap); return; }
+      if (code === 'too_many_bids') {
+        // the Worker's 429: the words, the seconds beside them counting down, Bid off until they pass
+        const r = e as Refused;
+        setPhase('rejected'); feel.rejected(); setStamp(said(code)); setRetryAt(retryUntil(r.retryAfter, Date.now()));
+        return;
+      }
+      if (code === 'one_open_bid') {
+        // sim 03: one car until the first is paid. The car already held sits beside the words and is the tap
+        const r = e as Refused;
+        if (typeof r.open === 'number') setBuyer({ openBids: r.open });
+        const h = heldLot(getServer().all(), ME, car.id);
+        setHeld(h ? { lotId: h.lot.id, screen: h.screen, name: lotName(h.lot) } : null);
+        setPhase('rejected'); feel.rejected(); setStamp(said(code));
+        return;
+      }
       if (code === 'deposit') { once.deposit = false; setPhase('deposit'); return; }
-      setPhase('arming'); setStamp('Not sent'); return;
+      setPhase('arming'); setStamp(SAID.not_sent); return;
     }
     setBuyer({ termsCurrent: true });   // the lot answered: the Worker stamped the terms with this bid
     if (ack.ok) {
@@ -185,7 +219,10 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
                   <Price hammer={amount} total={total} ink={theme.color.ink} size={60} punchKey={punch} lift={lift} leading={lead} centered />
                 </Animated.View>
               </GestureDetector>
-              {stamp ? <Stamp key={stamp} text={stamp} /> : <Label style={{ marginTop: 6 }}>{`+ $${dollars(increment(amount))}`}</Label>}
+              {stamp ? (
+                <Stamp key={stamp} text={stamp} number={retryAt !== null ? `${left} s` : undefined} name={held?.name}
+                  onPress={held ? () => { go({ screen: held.screen, lotId: held.lotId }); close(); } : undefined} />
+              ) : <Label style={{ marginTop: 6 }}>{`+ $${dollars(increment(amount))}`}</Label>}
 
               {/* the first bid ever: the four terms in the ceiling's place (the ceiling is not relevant yet) */}
               {terms !== undefined ? (
@@ -281,13 +318,28 @@ function Terms() {
 }
 
 /** The server's sentence lands like a stamp: pressed down from 1.08× in 160 ms. Silent; the warning
-    haptic is the caller's, and only for a bid after close. Reduced motion: it fades in, no scale. */
-function Stamp({ text }: { text: string }) {
+    haptic is the caller's. Reduced motion: it fades in, no scale. Two pieces may touch the words (Lego §4.1):
+    `number`, the seconds left on a 429, counting down in the same ink; `name`, the car already held on a
+    one_open_bid, in Bodoni (a name), and then the whole row is the tap that goes to that car. */
+function Stamp({ text, number, name, onPress }: { text: string; number?: string; name?: string; onPress?: () => void }) {
   const reduce = useReducedMotion();
   const k = useSharedValue(0);
   useEffect(() => { k.value = withTiming(1, { duration: ms.stamp, easing: EASE_OUT }); }, []);
   const st = useAnimatedStyle(() => ({ opacity: k.value, transform: [{ scale: reduce ? 1 : 1.08 - 0.08 * k.value }] }));
-  return <Animated.View style={[{ marginTop: 6 }, st]} accessibilityLiveRegion="polite"><Label ink={theme.color.warn}>{text}</Label></Animated.View>;
+  const row = (
+    <View style={s.stampRow}>
+      <Label ink={theme.color.warn}>{text}</Label>
+      {number !== undefined && <Label ink={theme.color.warn} style={s.stampNumber}>{number}</Label>}
+      {name !== undefined && <Serif size={22} ink={theme.color.ink} style={s.stampName}>{name}</Serif>}
+    </View>
+  );
+  return (
+    <Animated.View style={[{ marginTop: 6 }, st]} accessibilityLiveRegion="polite">
+      {onPress ? (
+        <Pressable onPress={() => { feel.select(); onPress(); }} hitSlop={12} accessibilityRole="button" accessibilityLabel={name ? `${text}. Open the ${name}` : text}>{row}</Pressable>
+      ) : row}
+    </Animated.View>
+  );
 }
 
 /** A line that arrives because something just happened (the deposit, held): up 6 pt and in, 200 ms.
@@ -324,6 +376,9 @@ const s = StyleSheet.create({
   ceilText: { ...theme.type.sans, fontSize: 17, color: theme.color.faint, fontVariant: ['tabular-nums'] },
   ceilTextOn: { color: theme.color.ink, ...theme.type.sansBold },
   ceilMark: { width: 16, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 5 },
+  stampRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'center', columnGap: 10, rowGap: 2, minHeight: 28, paddingHorizontal: theme.space.s },   // a long name drops under the words, still touching
+  stampNumber: { ...theme.type.sansBold, fontVariant: ['tabular-nums'], minWidth: 40, textAlign: 'left' },   // the digits hold their place as they fall
+  stampName: { letterSpacing: 0, flexShrink: 1 },
   terms: { alignItems: 'center', gap: 4, paddingTop: theme.space.xs },
   termsLine: { ...theme.type.sans, fontSize: 17, lineHeight: 22, color: theme.color.inkSoft, textAlign: 'center' },   // arm's length: 17 pt, 8.6:1
   depositRoom: { height: 34, justifyContent: 'flex-end' },

@@ -175,3 +175,47 @@ describe('lastOpened', () => {
     expect(store.lastOpened()).toBeNull();
   });
 });
+
+describe('one car until the first is paid (sim 03)', () => {
+  const lot = (id: string, more: Record<string, unknown> = {}) => ({ id, start: 1000, retail: 9000, opensAt: 0, closesAt: 9e12, high: 5000, bids: 1, watching: 0, ...more });
+
+  it('GET /me puts openBids and paidCars on the buyer, and leaves them off when the Worker says nothing', async () => {
+    ls.setItem('obavia.buyer', JSON.stringify({ id: 'b-1', token: 't-0' }));
+    const { store } = await launch(true);
+    const server = store.getServer() as unknown as { stop(): void };
+    stop = () => server.stop();
+    await settle(); await settle();
+    expect(store.peekBuyer().openBids).toBeUndefined();
+    expect(store.peekBuyer().paidCars).toBeUndefined();
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ id: 'b-1', winsLeft: 3, openBids: 1, paidCars: 0 }), { status: 200 })) as typeof fetch;
+    await store.refreshMe();
+    expect(store.peekBuyer()).toMatchObject({ winsLeft: 3, openBids: 1, paidCars: 0 });
+  });
+
+  it('heldLot: the open lot I lead first, else the sale I owe, never the lot being bid on, null when unknown', async () => {
+    const { store } = await launch(false);
+    const me = store.ME;
+    const open = lot('altima', { leader: me });
+    const owed = lot('fusion', { closed: { at: 1, sold: true }, sale: { buyer: me, hammer: 3500, wonAt: 1, deadlineAt: 2 } });
+    const paid = lot('sonata', { closed: { at: 1, sold: true }, sale: { buyer: me, hammer: 3500, wonAt: 1, deadlineAt: 2, paidAt: 3 } });
+    expect(store.heldLot([paid, owed, open], me)).toMatchObject({ lot: { id: 'altima' }, screen: 'lane' });
+    expect(store.heldLot([paid, owed, open], me, 'altima')).toMatchObject({ lot: { id: 'fusion' }, screen: 'won' });
+    expect(store.heldLot([paid, open], me, 'altima')).toBeNull();
+    expect(store.heldLot([lot('altima', { leader: 'r3' })], me)).toBeNull();
+    expect(store.heldLot([lot('altima', { leader: me, closed: { at: 1, sold: true } })], me)).toBeNull();   // closed, no sale yet: nothing to open
+  });
+
+  it('lotName: the model the Desk wrote, else the seeded car, else nothing', async () => {
+    const { store } = await launch(false);
+    expect(store.lotName(lot('x', { car: { model: 'Tacoma' } }))).toBe('Tacoma');
+    expect(store.lotName(lot('x'))).toBeUndefined();   // the seeded cars are stubbed out here
+  });
+
+  it('localOpen counts the open lots I lead other than the one bid on', async () => {
+    const { store } = await launch(false);
+    const me = store.ME;
+    const lots = [lot('altima', { leader: me }), lot('fusion', { leader: 'r5' }), lot('sonata', { leader: me, closed: { at: 1, sold: true } })];
+    expect(store.localOpen(lots)).toBe(1);
+    expect(store.localOpen(lots, 'altima')).toBe(0);
+  });
+});

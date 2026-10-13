@@ -35,7 +35,12 @@ export const WINS_PER_YEAR = 4;
     `phone`: the verified number as its last four, the only form the phone ever holds; `phoneVerified` false or
     unknown: the next Bid opens the Phone page first. `name`: the licence read's name or the one the buyer typed
     on Me; absent until one of the two, and then the Worker holds none and the Desk shows "Buyer". */
-export type Buyer = { lost: boolean; winsLeft?: number; winsPerYear: number; termsCurrent?: boolean; phone?: string | null; phoneVerified?: boolean; name?: string };
+export type Buyer = {
+  lost: boolean; winsLeft?: number; winsPerYear: number; termsCurrent?: boolean; phone?: string | null; phoneVerified?: boolean; name?: string;
+  /** sim 03 (worker/README.md, Who may bid): `openBids` is the lots led plus the sales owed, what the one-open-bid
+      gate counts; `paidCars` lifts that gate for good. From GET /me, and the gate's own 409 updates `openBids`. */
+  openBids?: number; paidCars?: number;
+};
 
 /* The local stand-in's buyer (no Worker) wears a fixture name so the demo reads; `?name=none` previews the
    empty field, `?data=worst` the longest name break-ui uses. Never on the Worker's sign-in path. */
@@ -80,7 +85,10 @@ export async function refreshMe(): Promise<void> {
   const m = await RemoteAuctionServer.me(AUCTION_URL, token);
   if (!m) return;
   once.deposit = m.deposit_status === 'captured';
-  setBuyer({ winsLeft: m.winsLeft, winsPerYear: m.winsPerYear ?? WINS_PER_YEAR, termsCurrent: m.termsCurrent, phone: m.phone ?? null, phoneVerified: m.phoneVerified === true, name: m.name?.trim() || savedName() });
+  setBuyer({
+    winsLeft: m.winsLeft, winsPerYear: m.winsPerYear ?? WINS_PER_YEAR, termsCurrent: m.termsCurrent, phone: m.phone ?? null, phoneVerified: m.phoneVerified === true, name: m.name?.trim() || savedName(),
+    ...(typeof m.openBids === 'number' ? { openBids: m.openBids } : {}), ...(typeof m.paidCars === 'number' ? { paidCars: m.paidCars } : {}),
+  });
 }
 
 /** The number as the phone shows it once proved: the last four. The Worker's mask, made here for the stand-in. */
@@ -153,6 +161,24 @@ export function localCommitted(lots: Lot[], except?: string): number {
   return previewWins() + lots.filter(l => l.leader === ME && l.id !== except && (l.closed ? l.closed.sold : true)).length;
 }
 
+/** The one car the buyer already holds (sim 03), other than `except`: an open lot they lead, else a sale won and not
+    yet paid, voided or forfeited. The one_open_bid stamp's tap goes here. Null when the lane does not know it. */
+export function heldLot(lots: Lot[], me: string, except?: string): { lot: Lot; screen: 'lane' | 'won' } | null {
+  const open = lots.find(l => l.id !== except && !l.closed && l.leader === me);
+  if (open) return { lot: open, screen: 'lane' };
+  const owed = lots.find(l => l.id !== except && l.closed && l.sale?.buyer === me && !l.sale.paidAt && !l.sale.startedAt && !l.sale.voidedAt && !l.sale.forfeitedAt);
+  return owed ? { lot: owed, screen: 'won' } : null;
+}
+/** The car's name as the stamp sets it: the model the Desk wrote on the lot, or the seeded car's. */
+export function lotName(lot: Lot): string | undefined {
+  return lot.car?.model ?? seeded.find(c => c.id === lot.id)?.model;
+}
+/** Local stand-in for sim 03: the open lots I lead other than `except`. A won lot never reaches `sale` locally
+    (the local server writes none), so the owed half of the Worker's count is the Worker's alone. */
+export function localOpen(lots: Lot[], except?: string): number {
+  return lots.filter(l => l.leader === ME && l.id !== except && !l.closed).length;
+}
+
 let server: AuctionServer | undefined;
 export function getServer(): AuctionServer {
   if (!server && AUCTION_URL) {
@@ -189,6 +215,10 @@ export function getServer(): AuctionServer {
         if (!buyer.phoneVerified) throw new Refused('phone_required', 409);
         if (!buyer.termsCurrent && req.terms !== TERMS_VERSION) throw new Refused('terms_required', 409);
         if (localCommitted(local.all(), req.lotId) >= WINS_PER_YEAR) throw new Refused('win_cap', 403);
+        const retry = Number(search.match(/[?&]retry=(\d+)/)?.[1]);   // preview only: the Worker's 429, Retry-After as given
+        if (retry > 0) { throw new Refused('too_many_bids', 429, { retryAfter: retry }); }
+        const open = localOpen(local.all(), req.lotId);
+        if (open >= 1) { setBuyer({ openBids: open }); throw new Refused('one_open_bid', 409, { open }); }
         const ack = await local.bid(req);
         setBuyer({ termsCurrent: true });
         return ack;

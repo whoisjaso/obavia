@@ -20,6 +20,8 @@ export type Profile = { name?: string; state?: string; phone?: string; address?:
 export type MeRead = {
   id: string; name?: string; state?: string; deposit_status?: string;
   wins?: number; winsLeft?: number; winsPerYear?: number; termsVersion?: string | null; termsCurrent?: boolean;
+  /** sim 03: `openBids` is what the one-open-bid gate counts (lots led plus sales owed); `paidCars` lifts it for good */
+  openBids?: number; paidCars?: number;
   /** the verified number as its last four ("(•••) •••-0142"), null until a code proved it */
   phone?: string | null; phoneVerified?: boolean;
 };
@@ -27,19 +29,69 @@ export type MeRead = {
 export type PhoneAnswer = { ok: true; phone: string | null } | { ok: false; code: string; retryAfter?: number };
 
 /** A request the Worker refused, by its code: `not_yours` (sign-in with a dead token), `sign_in` (401 elsewhere),
-    `phone_required` (409, no number proved by a code), `deposit` (402), `terms_required` (409), `win_cap`, `seller_cannot_bid`, `not_a_buyer` (403), or `http_<status>`. */
+    `phone_required` (409, no number proved by a code), `deposit` (402), `terms_required` (409), `win_cap`, `seller_cannot_bid`, `not_a_buyer` (403),
+    `too_many_bids` (429, with `retryAfter`), `one_open_bid` (409, with `open`), or `http_<status>`. */
+export interface Refused {
+  /** `too_many_bids` (429): the Worker's Retry-After, whole seconds; absent on every other refusal. */
+  readonly retryAfter?: number;
+  /** `one_open_bid` (409): the body's `open`, the lots led plus the sales owed, other than this lot. */
+  readonly open?: number;
+}
+// the two fields above are declared on the interface, not the class, so Babel emits no own property for them
+// and every other refusal keeps its old shape (code and status, nothing more)
 export class Refused extends Error {
   readonly code: string; readonly status: number;
-  constructor(code: string, status: number) { super(code); this.code = code; this.status = status; }
+  constructor(code: string, status: number, more: { retryAfter?: number; open?: number } = {}) {
+    super(code); this.code = code; this.status = status;
+    // set only when present, so every other refusal keeps its old shape (code and status, nothing more)
+    if (more.retryAfter !== undefined) Object.defineProperty(this, 'retryAfter', { value: more.retryAfter, enumerable: true });
+    if (more.open !== undefined) Object.defineProperty(this, 'open', { value: more.open, enumerable: true });
+  }
 }
 
-/** The refusal in a response: the JSON `error` when there is one, else a code from the status. */
+/** The refusal in a response: the JSON `error` when there is one, else a code from the status. A 429 keeps
+    its Retry-After (seconds; an HTTP date is read as seconds from now); a one_open_bid keeps its `open`. */
 async function refusal(r: Response): Promise<Refused> {
-  let code = '';
-  try { const b = await r.clone().json() as { error?: unknown }; if (typeof b?.error === 'string') code = b.error; } catch { /* text body */ }
+  let code = '', open: number | undefined;
+  try {
+    const b = await r.clone().json() as { error?: unknown; open?: unknown };
+    if (typeof b?.error === 'string') code = b.error;
+    if (typeof b?.open === 'number' && Number.isFinite(b.open)) open = b.open;
+  } catch { /* text body */ }
   if (!code) code = r.status === 401 ? 'sign_in' : r.status === 402 ? 'deposit' : `http_${r.status}`;
-  return new Refused(code, r.status);
+  const retryAfter = r.status === 429 ? retryAfterSeconds(r.headers.get('retry-after')) : undefined;
+  return new Refused(code, r.status, { ...(retryAfter !== undefined ? { retryAfter } : {}), ...(open !== undefined ? { open } : {}) });
 }
+
+/** Retry-After as whole seconds: a number as it is (never below 1), an HTTP date as the seconds until it,
+    anything else undefined. */
+export function retryAfterSeconds(header: string | null, now = Date.now()): number | undefined {
+  if (!header) return undefined;
+  const h = header.trim();
+  if (/^\d+$/.test(h)) return Math.max(1, Number(h));
+  const at = Date.parse(h);
+  return Number.isNaN(at) ? undefined : Math.max(1, Math.ceil((at - now) / 1000));
+}
+
+/** What the Bid sheet's stamp says for a refusal that keeps the sheet open (DOCTRINE §4.7: why, in four
+    words or fewer). Codes that open a page instead (phone, terms, deposit) are not here. `win_cap` is the
+    one older sentence the sheet already carried. `too_many_bids`: the seconds left count down beside the
+    words. `one_open_bid`: the car the buyer already leads sits beside the words and is the tap. */
+export const SAID = {
+  win_cap: 'Four wins a year. Next January.',
+  too_many_bids: 'Too fast',
+  one_open_bid: 'One at a time',
+  not_sent: 'Not sent',
+} as const;
+export type Said = keyof typeof SAID;
+export const said = (code: string): string | null => (code in SAID ? SAID[code as Said] : null);
+
+/** A rolling minute is the longest the Worker can ask; the countdown's fallback when no Retry-After came. */
+export const RETRY_MAX_S = 60;
+/** When a too_many_bids refusal lifts: Retry-After counted from the refusal (the Worker's whole seconds). */
+export const retryUntil = (retryAfter: number | undefined, refusedAt: number): number => refusedAt + Math.min(RETRY_MAX_S, Math.max(1, retryAfter ?? RETRY_MAX_S)) * 1000;
+/** Whole seconds left before `until`, never below 0: the number the stamp shows, and 0 is when Bid returns. */
+export const secondsLeft = (until: number, now: number): number => Math.max(0, Math.ceil((until - now) / 1000));
 
 /** The profile without empty fields, so an unknown phone or address is omitted, never sent blank. */
 function present(p: Record<string, string | undefined>): Record<string, string> {
