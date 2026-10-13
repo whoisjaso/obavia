@@ -1,7 +1,7 @@
 /* The money model. Two answers (how much, and whether tax and fees are inside
    it) produce every figure on every document. Ported from the Handle A Sale
    SOP; the test vectors in money.test.ts must hold exactly. */
-import { totalFees, type Fees } from './config';
+import { databaseFee, plateFee, totalFees, type Fees } from './config';
 
 export type FundingType = 'cash' | 'inHouse' | 'lender';
 export type PriceBasis = 'outTheDoor' | 'vehicleOnly';
@@ -20,7 +20,7 @@ export function parseMoney(v: string | number | null | undefined): number | null
 }
 
 export type Receipt = {
-  salePrice: number; tax: number; title: number; doc: number; registration: number; fees: number;
+  salePrice: number; tax: number; title: number; doc: number; registration: number; plate: number; database: number; fees: number;
   tradeIn: number; registrationCost: number; total: number; paidToday: number; balance: number;
 };
 
@@ -53,7 +53,7 @@ export function computeMoney(opts: { money?: MoneyAnswers; funding?: FundingType
   const paidToday = override !== null ? Math.min(Math.max(override, 0), total) : implied;
   const balance = funding === 'lender' ? 0 : Math.max(0, cents(total - paidToday));
 
-  return { salePrice, tax, title: fees.title, doc: fees.doc, registration: fees.registration, fees: FEES, tradeIn, registrationCost, total, paidToday: cents(paidToday), balance };
+  return { salePrice, tax, title: fees.title, doc: fees.doc, registration: fees.registration, plate: plateFee(fees), database: databaseFee(fees), fees: FEES, tradeIn, registrationCost, total, paidToday: cents(paidToday), balance };
 }
 
 export const usd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });

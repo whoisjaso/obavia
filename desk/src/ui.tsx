@@ -137,6 +137,8 @@ export function Choice({ label, gloss, icon, on, disabled, onPick }: { label: st
 /* ---------- the live receipt ---------- */
 export function Receipt({ r, show = 'all' }: { r: R; show?: 'all' | 'short' }) {
   const rows: [string, number][] = [['Price', r.salePrice], ['Tax', r.tax], ['Title', r.title], ['Doc Fee', r.doc], ['Registration', r.registration]];
+  if (r.plate) rows.push(['Plate', r.plate]);
+  if (r.database) rows.push(['Database Fee', r.database]);
   if (r.tradeIn) rows.push(['Trade-In', -r.tradeIn]);
   return (
     <div className="receipt num">

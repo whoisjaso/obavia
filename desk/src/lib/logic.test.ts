@@ -1,14 +1,37 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { EXAMPLE_DEALER } from './config';
+import { EXAMPLE_DEALER, totalFees } from './config';
 import { requiredDocumentTypes } from './documents';
 import { computeMoney, parseMoney } from './money';
 import { applyPlanAnswer, isPlanComplete, isPlanQuestionAnswered, planQuestions, poaInstrument, type SalePlan } from './plan';
 import { buildGuideSteps, nextOpenStep, type Sale } from './sale';
 import { checkDigitOk, isValidVin, normaliseDecode } from './vin';
 
-const fees = EXAMPLE_DEALER.fees;
+/* The SOP's vectors were written before HB 718's $10 plate (7/1/2025); they run on the SOP's $400 of fees.
+   The plate vectors below run on the workspace's fees, plate included. */
+const fees = { ...EXAMPLE_DEALER.fees, plate: 0 };
+
+describe('money with the $10 plate (decisions §9 D6)', () => {
+  const live = EXAMPLE_DEALER.fees;
+  it('the workspace carries the plate and no database fee', () => { expect([live.plate, live.database, totalFees(live)]).toEqual([10, undefined, 410]); });
+  it('$4,000 out the door, cash: the plate comes out of the price, not on top', () => {
+    const r = computeMoney({ money: { amount: '4000', priceBasis: 'outTheDoor' }, funding: 'cash', fees: live });
+    expect([r.salePrice, r.tax, r.plate, r.fees, r.total, r.balance]).toEqual([3378.82, 211.18, 10, 410, 4000, 0]);
+  });
+  it('$3,500 vehicle only, cash: $10 more to bring', () => {
+    const r = computeMoney({ money: { amount: '3500', priceBasis: 'vehicleOnly' }, funding: 'cash', fees: live });
+    expect([r.tax, r.total, r.paidToday, r.balance]).toEqual([218.75, 4128.75, 3500, 628.75]);
+  });
+  it('the database fee only when the dealer charges it, and never above $20', () => {
+    expect(computeMoney({ money: { amount: '4000', priceBasis: 'vehicleOnly' }, funding: 'cash', fees: { ...live, database: 20 } }).total).toBe(4680);
+    expect(computeMoney({ money: { amount: '4000', priceBasis: 'vehicleOnly' }, funding: 'cash', fees: { ...live, database: 50 } }).database).toBe(20);
+  });
+  it('a document filed before the plate keeps its total', () => {
+    const { plate: _drop, ...frozen } = live;
+    expect(totalFees(frozen as typeof live)).toBe(400);
+  });
+});
 
 describe('money (SOP test vectors)', () => {
   it('$4,000 out the door, cash', () => {

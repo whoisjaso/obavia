@@ -126,3 +126,32 @@ export function suggestFiling(loans: Loan[], asOf: string): TaxFiling {
   for (const l of loans) for (const e of taxEvents(l, asOf)) { const k = periodOf(e.on, 'quarterly').key; q.set(k, (q.get(k) ?? 0) + e.cents); }
   return [...q.values()].some(c => c >= QUARTERLY_UNDER) ? 'monthly' : 'quarterly';
 }
+
+/* ---------- a lane sale: title before day 21, the tax by the earlier of two dates ----------
+   Distinct from the 45-day clock above, which is the in-house note's. A lane sale is a sale with a lot id.
+   Both clocks run from the hammer's date: delivery (the engine start) is later, so the hammer errs early. */
+/** Transp. Code §503.039(b), read 2026-10-13: title to the buyer "before the 21st day after the date of the sale"
+    (decisions §8.7 and §9 D2). Day 20 is the last day; the Desk flags it from day 15. */
+export const LANE_TITLE_DAYS = 21, LANE_TITLE_FLAG = 15;
+/** Tax Code §152.041(c): due on the 20th working day after delivery; Comptroller 96-254 (dealers page, 3/2026):
+    "within 30 calendar days". The Desk uses the earlier, flagged from day 15 (decisions §8 item 9, §9 D7). */
+export const TAX_REMIT_WORKING_DAYS = 20, TAX_REMIT_CALENDAR_DAYS = 30, TAX_REMIT_FLAG = 15;
+
+/** Monday to Friday. No holiday table: a state holiday only moves the statute's date later, so leaving them out errs early. */
+export function addWorkingDays(d: string, n: number): string {
+  let x = d;
+  for (let k = 0; k < n;) { x = addDays(x, 1); const w = new Date(`${x}T12:00:00Z`).getUTCDay(); if (w !== 0 && w !== 6) k++; }
+  return x;
+}
+export const taxRemitDue = (soldOn: string) => [addWorkingDays(soldOn, TAX_REMIT_WORKING_DAYS), addDays(soldOn, TAX_REMIT_CALENDAR_DAYS)].sort()[0];
+
+export type LaneWatch = { state: 'done' | 'open' | 'soon' | 'overdue'; day: number; due: string; left: number };
+function laneWatch(soldOn: string, asOf: string, due: string, flag: number, doneOn?: string): LaneWatch {
+  const day = daysBetween(soldOn, asOf), left = daysBetween(asOf, due);
+  const state: LaneWatch['state'] = doneOn && doneOn <= asOf ? 'done' : asOf > due ? 'overdue' : day >= flag ? 'soon' : 'open';
+  return { state, day, due, left };
+}
+/** The lane title clock: the last day is day 20 after the hammer. */
+export const laneTitleWatch = (soldOn: string, asOf: string, titleTo?: string) => laneWatch(soldOn, asOf, addDays(soldOn, LANE_TITLE_DAYS - 1), LANE_TITLE_FLAG, titleTo);
+/** The tax remittance clock on a lane sale. */
+export const taxRemitWatch = (soldOn: string, asOf: string, sentOn?: string) => laneWatch(soldOn, asOf, taxRemitDue(soldOn), TAX_REMIT_FLAG, sentOn);

@@ -75,7 +75,7 @@ What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, W
 | Legal | File for Obavia's Independent GDN (bond, premises, compliance); until it issues, no fee of any kind | GDN issued |
 | Payments (Whop) | The flat seller-side fee (~$199 per sold car, then $299 per month at six cars) as a Whop invoice to the dealer; the balance as a Whop invoice to the buyer (ACH, card, cash at the lot marked paid); payout to the dealer by transfer on cleared funds, lender first; remittance PDF | money moves without a human after the hammer |
 | Dealers | Payout screen in the Desk: cleared, pending, lender split; relist, forfeit, second-chance offer on expiry; Marketplace retraction on sale | a dealer runs a week without calling |
-| Paperwork | The 130-U filed from the Desk at pickup; the plates ring driven by webDEALER events (filed, approved, mailed, kickback); out-of-state packet (Form 14-312, buyer's tag) | a Texas buyer's plates ring reaches Mailed with no manual step |
+| Paperwork | The 130-U filed from the Desk at pickup; the plates ring driven by webDEALER events (filed, approved, mailed, kickback); out-of-state packet (Form 14-312, ~~buyer's tag~~ (struck 2026-10-13, Transp. Code §503.063 as amended by HB 718: paper tags ended 7/1/2025; the dealer issues the metal plate at sale, and the green 60-day plate for an out-of-state buyer; decisions §9 D9)) | a Texas buyer's plates ring reaches Mailed with no manual step |
 | Admin | Refunds, forfeitures, disputes (Whop `dispute.*`), evidence upload; audit log per lot | every dispute answered from the log |
 | Marketing | The dealer film for Let It Go; the "your car drives home" line; one more zip code | second zip code hits the first's cost per bid |
 

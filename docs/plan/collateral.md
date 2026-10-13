@@ -26,7 +26,7 @@ Written from the owner's chair. A billion-dollar marketplace is a machine that n
 | Paid, before pickup | Car damaged on the lot | Dealer (insured) | repair or refund | Sale completes only at the engine start; `startedAt` is the moment of sale |
 | Pickup | Car does not start | Nobody: no sale | 0 | The pass stays amber; the dealer voids; balance refunded by the dealer through Whop |
 | After pickup | Buyer disputes the deposit charge with the card issuer | Obavia (merchant of record for the deposit) | $250 + dispute fee | Whop `dispute.created`: evidence pack auto-assembled (deposit terms line, signed Buyers Guide, bill of sale, the pass scan with VIN and time); Phase 1 admin page |
-| After pickup | Title does not transfer (lender slow, county kickback) | Buyer waits; dealer owes the 130-U within 30 days | 0 money, statutory exposure on the dealer | Plates ring amber on kickback; the Desk's title watch (already built) |
+| After pickup | Title does not transfer (lender slow, county kickback) | Buyer waits; dealer owes the 130-U before day 21 on a lane sale (§503.039(b)); 30 days off the lane | 0 money, statutory exposure on the dealer | Plates ring amber on kickback; the Desk's lane title watch (`desk/src/lib/tax.ts` `laneTitleWatch`, flagged at day 15, on the Sold page and in Sales Tax And Titles), with the lender's release held inside 14 days at Go (`collateralRefusal`) |
 | Any | Obavia insolvent while holding deposits | Buyers | up to $250 each | Deposits never fund operations: Whop balance held, released on request when the buyer leads nothing (`/me/deposit/release`); reserve ratio reported |
 
 ## 3. The dealer's position

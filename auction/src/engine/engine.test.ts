@@ -6,11 +6,22 @@ import { pack } from './grid';
 import { collateralRefusal } from './meta';
 
 describe('money', () => {
-  it('total is hammer + 6.25% + title + registration + doc, no premium', () => {
+  it('total is hammer + 6.25% + title + registration + $10 plate + doc, no premium', () => {
     const t = outTheDoor(5150, { ...TEXAS, doc: 292 });
     expect(t.tax).toBe(321.88);
-    expect(t.fees).toBe(400);
-    expect(t.total).toBe(5871.88);
+    expect(t.fees).toBe(410);
+    expect(t.total).toBe(5881.88);
+  });
+  it('the plate is $10 (HB 718) and a lot opened before it still carries it', () => {
+    expect(TEXAS.plate).toBe(10);
+    const { plate: _drop, ...old } = { ...TEXAS, doc: 292 };
+    expect(outTheDoor(5150, old).fees).toBe(410);
+  });
+  it('the database fee is off unless the dealer charges it, and never above $20', () => {
+    expect(outTheDoor(5000, { ...TEXAS, doc: 150 }).fees).toBe(268);
+    expect(outTheDoor(5000, { ...TEXAS, doc: 150, database: 20 }).fees).toBe(288);
+    expect(outTheDoor(5000, { ...TEXAS, doc: 150, database: 35 }).fees).toBe(288);
+    expect(outTheDoor(5000, { ...TEXAS, doc: 150, database: 15 }).total).toBe(5595.5);
   });
 });
 
@@ -136,6 +147,10 @@ describe('collateral', () => {
   it('at lender needs a release time', () => {
     expect(collateralRefusal({ ...ok, title: { status: 'lender', payoff: 2000 } })).toMatch(/release/);
     expect(collateralRefusal({ ...ok, title: { status: 'lender', payoff: 2000, releaseDays: 5 } })).toBeNull();
+  });
+  it('the release lands inside 14 days so title reaches the buyer before day 21', () => {
+    expect(collateralRefusal({ ...ok, title: { status: 'lender', payoff: 2000, releaseDays: 14 } })).toBeNull();
+    expect(collateralRefusal({ ...ok, title: { status: 'lender', payoff: 2000, releaseDays: 15 } })).toBe('release past day 14');
   });
   it('a floor under the payoff needs the dealer\'s OK', () => {
     expect(collateralRefusal({ ...ok, title: { status: 'lender', payoff: 4000, releaseDays: 5 } })).toMatch(/payoff/);

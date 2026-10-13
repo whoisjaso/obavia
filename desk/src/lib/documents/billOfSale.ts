@@ -5,7 +5,10 @@ import { TEXAS } from "@/lib/config";
 // Texas Tax & Fee Constants
 //
 // The jurisdiction seam. Everything below this comment is Texas: the 6.25%
-// rate, the $33 title fee, and the forms these numbers feed (130-U, VTR-271).
+// rate, the $33 title fee, the $10 metal plate fee (Transp. Code §503.063 as
+// amended by HB 718; TxDMV: "You cannot charge more than $10"), printed with
+// the dealer's database fee, if charged (§503.0631(f), not above $20), on the
+// other-fees line, and the forms these numbers feed (130-U, VTR-271).
 // A dealership in another state needs this block and its form set replaced,
 // not edited. Deliberately left as Texas-only for now, but named so it is
 // findable rather than discovered.

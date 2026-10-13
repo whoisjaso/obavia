@@ -3,7 +3,7 @@
    screens only call these functions. Writers merge ONE key of step_data. */
 import type { Post } from './lib/post';
 import { useSyncExternalStore } from 'react';
-import { EXAMPLE_DEALER, type DealerConfig } from './lib/config';
+import { EXAMPLE_DEALER, TEXAS, type DealerConfig } from './lib/config';
 import type { DocType } from './lib/plan';
 import type { AgreementState, Buyer, Sale, StepData, Vehicle } from './lib/sale';
 import { EXAMPLE_LOT, exampleSales } from './data';
@@ -107,7 +107,7 @@ export function exampleCashDays(loans: Loan[], tz: string): Record<string, CashD
 function load(): State {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const s: State = JSON.parse(raw); if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); if (!s.cashDays && s.example) s.cashDays = exampleCashDays(s.loans ?? [], s.dealer.timeZone); if (s.example && !s.taxFiled) { s.taxFiling = 'quarterly'; s.taxFiled = exampleTaxFiled(s.loans ?? [], s.dealer.timeZone); } if (s.example && s.autoPost === undefined) { s.autoPost = true; s.evening = { on: true, hour: 19 }; } return s; }
+    if (raw) { const s: State = JSON.parse(raw); if (s.dealer?.fees && s.dealer.fees.plate === undefined) s.dealer = { ...s.dealer, fees: { ...s.dealer.fees, plate: TEXAS.plate } }; if (!s.loans && s.example) s.loans = exampleLoans(s.dealer.timeZone); if (!s.money && s.example) s.money = exampleMoney(s.loans ?? [], s.dealer.timeZone); if (!s.cashDays && s.example) s.cashDays = exampleCashDays(s.loans ?? [], s.dealer.timeZone); if (s.example && !s.taxFiled) { s.taxFiling = 'quarterly'; s.taxFiled = exampleTaxFiled(s.loans ?? [], s.dealer.timeZone); } if (s.example && s.autoPost === undefined) { s.autoPost = true; s.evening = { on: true, hour: 19 }; } return s; }
   } catch { /* private mode */ }
   return fresh();
 }

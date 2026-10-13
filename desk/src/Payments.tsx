@@ -14,7 +14,7 @@ import { brokenPromises, openPromise } from './lib/promise';
 import { askTotal, extrasLine, repairLeft, repairsLeft } from './lib/extras';
 import { activePause } from './lib/pause';
 import { taxSent, titleWatch } from './lib/tax';
-import { titleLine, useTaxReport, useTitles } from './Tax';
+import { laneLine, laneTone, titleLine, useLaneClocks, useTaxReport, useTitles } from './Tax';
 import { FindButton, insuranceLine, useInsuranceNeeds } from './Care';
 import { readyForNext } from './lib/nextcar';
 import { insuranceState } from './lib/insurance';
@@ -56,6 +56,8 @@ export function useNeeds(): Need[] {
   const n: Need[] = [];
   const titles = useTitles(), { r: tax } = useTaxReport();
   if (titles.some(x => x.w.state !== 'open')) { const hot = titles.filter(x => x.w.state !== 'open'); n.push({ to: '/payments/tax/titles', label: 'Titles To File', tone: hot.some(x => x.w.state === 'overdue' || x.w.state === 'accelerated') ? 'late' : 'warn', gloss: `${first(hot[0].l.buyer.name)}: ${titleLine(hot[0].w).toLowerCase()}${hot.length > 1 ? ` · and ${hot.length - 1} more` : ''}` }); }
+  const lane = useLaneClocks().filter(x => laneTone(x));
+  if (lane.length) n.push({ to: `/auction/${lane[0].link.lotId}`, label: 'Title to the buyer before day 21.', tone: lane.some(x => laneTone(x) === 'late') ? 'late' : 'warn', gloss: `${lane[0].name}: ${laneLine(lane[0])}${lane.length > 1 ? ` · and ${lane.length - 1} more` : ''}` });
   if (tax?.ended && tax.cents > 0 && t >= addDaysLocal(tax.due, -10)) n.push({ to: '/payments/tax', label: 'Sales Tax Due', tone: tax.late ? 'late' : 'warn', gloss: `${money(tax.cents)} by ${nice(tax.due, { weekday: 'long', month: 'short', day: 'numeric' })}` });
   const broke = loans.filter(l => brokenPromises(l, t, 7).length);
   if (broke.length) n.push({ to: '/payments/list/promises', label: 'Missed A Promise', tone: 'late', gloss: broke.map(l => first(l.buyer.name)).join(', ') });

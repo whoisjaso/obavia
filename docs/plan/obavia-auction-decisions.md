@@ -139,7 +139,7 @@ This is the part the owner cares about. The doctrine holds: a price, a time, a n
 6. The Used Car Rule online: who the "auction company" is, display before bidding, the Spanish Guide when the interface is Spanish.
 7. Advertising under 43 TAC Subchapter F: dealer identification on lot screens and posts; the Retail bar as a price representation; "No dealer licence" as a claim.
 8. Sales tax base if any buyer-side fee ever exists (none planned).
-9. Out-of-state buyers: Form 14-312, the buyer's tag, title hand-over.
+9. Out-of-state buyers: Form 14-312, ~~the buyer's tag~~ (struck 2026-10-13, Transp. Code §503.063 as amended by HB 718: the dealer issues the metal plate at sale, and the green 60-day plate for an out-of-state buyer; D9), title hand-over.
 10. Apple App Review: merchant of record; guideline 3.1.3(e) for a captured deposit.
 11. (raised in §8.1; restated 2026-10-13) Is the lane a "public motor vehicle auction"; does a title-assigned purchase (b') satisfy 43 TAC §215.144(i)(3) and Transp. Code §503.039(a); is the 21-day clock in §503.039(b) the one that binds, for Obavia's GDN and for Triple J selling its own cars on the lane. (`research/public-auction-model.md` §1, §7.)
 12. The licensed-auctioneer path: §503.024(d) for an online lane whose car is at the dealer's GDN location; the internet exemption in Occ. Code §1802.002(a)(14) versus "licensed auctioneer"; whether §215.85 reaches a TDLR auctioneer's commission; §503.024(b)(1)(B) for the individuals' lane; which Obavia person would hold the licence. The answer decides whether Phase 3 files for a GDN or a TDLR licence.

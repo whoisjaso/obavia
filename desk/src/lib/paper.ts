@@ -60,6 +60,10 @@ export function stillToDo(s: Sale) {
 
 const odometerStatus = (m: unknown): 'actual' | 'exceeds' | 'not_actual' => m === 'exceeds' ? 'exceeds' : m === 'notActual' ? 'not_actual' : 'actual';
 
+/** The plate and, if the dealer charges it, the database fee: one line on the bill of sale and the contract (decisions §9 D6). */
+const otherFeesLine = (r: { plate: number; database: number }, lang: 'en' | 'es') =>
+  [r.plate > 0 && (lang === 'es' ? 'Placa metálica' : 'Metal license plate'), r.database > 0 && (lang === 'es' ? 'cargo de base de datos' : 'database fee')].filter(Boolean).join(lang === 'es' ? ' y ' : ' and ');
+
 /** The payload one Desk document prints from: production's keys for that section. */
 export function paperData(doc: DocType, s: Sale, dealer: DealerConfig, opts: { date: string }): { section: Section; data: Record<string, unknown> } | null {
   const facts = baseFacts(s), date = isoDate(opts.date), r = saleMoney(s, dealer);
@@ -86,7 +90,7 @@ export function paperData(doc: DocType, s: Sale, dealer: DealerConfig, opts: { d
         coBuyerName: '', coBuyerAddress: '', coBuyerCity: '', coBuyerState: '', coBuyerZip: '', coBuyerPhone: '', coBuyerEmail: '', coBuyerLicense: '', coBuyerLicenseState: '',
         odometerReading: facts.vehicleMileage, odometerStatus: odometerStatus(bos.mileage),
         salePrice: r.salePrice, tradeInAllowance: r.tradeIn, tradeInDescription: bos.tradeDesc ? fieldCase(String(bos.tradeDesc)) : '', tradeInVin: '', tradeInPayoff: 0,
-        tax: r.tax, titleFee: r.title, docFee: r.doc, registrationFee: r.registration, otherFees: 0, otherFeesDescription: '',
+        tax: r.tax, titleFee: r.title, docFee: r.doc, registrationFee: r.registration, otherFees: r.plate + r.database, otherFeesDescription: otherFeesLine(r, language),
         paymentMethod: funding === 'lender' || funding === 'inHouse' ? 'Financing' : PAY[method] ?? 'Other',
         paymentMethodOther: funding === 'lender' && lender ? lender : funding === 'cash' && !PAY[method] ? method : '',
         conditionType: bos.asIs === 'warranty' ? 'warranty' : 'as_is', warrantyDuration: String(bos.warrantyLength ?? ''), warrantyDescription: '',
@@ -101,7 +105,7 @@ export function paperData(doc: DocType, s: Sale, dealer: DealerConfig, opts: { d
         contractDate: date, stockNumber: s.vehicle.stock ?? '', buyerName: facts.buyerName, buyerAddress: addressLine, buyerPhone: facts.buyerPhone, buyerEmail: facts.buyerEmail,
         coBuyerName: '', coBuyerAddress: '', coBuyerPhone: '', coBuyerEmail: '',
         vehicleYear: facts.vehicleYear, vehicleMake: facts.vehicleMake, vehicleModel: facts.vehicleModel, vehicleVin: facts.vehicleVin, vehiclePlate: facts.vehiclePlate, vehicleMileage: facts.vehicleMileage,
-        cashPrice: r.salePrice - r.tradeIn, downPayment: t.down, tax: r.tax, titleFee: r.title, registrationFee: r.registration, docFee: r.doc,
+        cashPrice: r.salePrice - r.tradeIn, downPayment: t.down, tax: r.tax, titleFee: r.title, registrationFee: r.registration, docFee: r.doc, otherFees: r.plate + r.database, otherFeesDescription: otherFeesLine(r, language),
         apr: t.rate, numberOfPayments: Number.isFinite(t.count) ? t.count : 0, paymentFrequency: FREQ[String(p.frequency)] ?? 'Monthly',
         firstPaymentDate: p.firstDue ? isoDate(String(p.firstDue)) : '', dueAtSigning: t.down,
         ...(t.payment > 0 ? { paymentAmount: t.payment } : {}),

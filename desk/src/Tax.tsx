@@ -3,7 +3,8 @@
    left to file a title. Everything else is a tap away. */
 import { useState } from 'react';
 import { money, today } from './lib/loans';
-import { nextReport, suggestFiling, taxEvents, taxSent, titleWatch, type TaxEvent, type TitleWatch } from './lib/tax';
+import { laneTitleWatch, nextReport, suggestFiling, taxEvents, taxRemitWatch, taxSent, titleWatch, type LaneWatch, type TaxEvent, type TitleWatch } from './lib/tax';
+import { lotLinks } from './lib/auction';
 import { can } from './lib/staff';
 import { fileTaxReport, me, setTaxDeferred, setTaxFiling, setTitleFiled, setTransfer, useStore } from './store';
 import { Go, first, nice, plural } from './Payments';
@@ -26,6 +27,22 @@ export function useTitles() {
   return loans.map(l => ({ l, w: titleWatch(l, t)! })).filter(x => x.w && x.w.state !== 'filed')
     .sort((a, b) => (a.w.state === 'accelerated' ? -1 : 0) - (b.w.state === 'accelerated' ? -1 : 0) || a.w.left - b.w.left);
 }
+/** Lane sales only (a sale with a lot id): the 21-day title clock and the tax remittance clock, beside the notes' 45-day one.
+    docs/plan/obavia-auction-decisions.md §9 D2 and D7. Sorted by the nearer of the two days. */
+export function useLaneClocks() {
+  const { dealer, lot } = useStore();
+  const t = today(dealer.timeZone);
+  return lotLinks().filter(l => l.soldOn && !l.unwound).map(l => {
+    const v = lot.find(x => x.id === l.vehicleId);
+    return { link: l, name: v ? `${v.year} ${v.make} ${v.model}` : l.lotId, title: laneTitleWatch(l.soldOn!, t, l.titleTo), tax: taxRemitWatch(l.soldOn!, t, l.taxSent) };
+  }).filter(x => x.title.state !== 'done' || x.tax.state !== 'done')
+    .sort((a, b) => Math.min(a.title.left, a.tax.left) - Math.min(b.title.left, b.tax.left));
+}
+const worst = (ws: LaneWatch[]) => (ws.some(w => w.state === 'overdue') ? 'late' : ws.some(w => w.state === 'soon') ? 'warn' : undefined);
+/** One line for a lane sale's two clocks. */
+export const laneLine = (x: ReturnType<typeof useLaneClocks>[number]) => [x.title.state !== 'done' && `title by ${nice(x.title.due)}`, x.tax.state !== 'done' && `tax by ${nice(x.tax.due)}`].filter(Boolean).join(' · ');
+export const laneTone = (x: ReturnType<typeof useLaneClocks>[number]) => worst([x.title, x.tax].filter(w => w.state !== 'done'));
+
 export function useTaxReport() {
   const { dealer, loans = [], taxFiling, taxFiled } = useStore();
   const t = today(dealer.timeZone), f = taxFiling ?? suggestFiling(loans, t);
@@ -34,7 +51,7 @@ export function useTaxReport() {
 
 export function TaxHome() {
   const { r, f, t } = useTaxReport();
-  const titles = useTitles();
+  const titles = useTitles(), lane = useLaneClocks();
   const [done, setDone] = useState(false);
   const owner = can(me(), 'settings');
   return (
@@ -50,6 +67,7 @@ export function TaxHome() {
         </> : <><p className="cap">Sales tax</p><h1 className="q">Nothing <em>to send.</em></h1></>}
         <div className="choices">
           {titles.length > 0 && <Go to="/payments/tax/titles" tone={titles.some(x => x.w.state === 'overdue' || x.w.state === 'accelerated') ? 'late' : 'warn'} label="Titles To File" gloss={`${first(titles[0].l.buyer.name)}: ${titleLine(titles[0].w).toLowerCase()}${titles.length > 1 ? ` · and ${titles.length - 1} more` : ''}`} />}
+          {lane.length > 0 && <Go to={`/auction/${lane[0].link.lotId}`} tone={laneTone(lane[0]) ?? 'good'} label="Title to the buyer before day 21." gloss={`${lane[0].name}: ${laneLine(lane[0])}${lane.length > 1 ? ` · and ${lane.length - 1} more` : ''}`} />}
           {r && r.lines.length > 0 && <Go to="/payments/tax/lines" icon="sheet" label="Where It Comes From" gloss={`${plural(r.notes, 'note')}${r.adjust ? ` · ${money(Math.abs(r.adjust))} ${r.adjust > 0 ? 'added for' : 'taken off'} earlier reports` : ''}`} />}
         </div>
         {owner && <p className="links"><button className="textlink" onClick={() => { feel.tap(); setTaxFiling(f === 'monthly' ? 'quarterly' : 'monthly'); }}>We File {f === 'monthly' ? 'Monthly' : 'Quarterly'} · Change</button></p>}

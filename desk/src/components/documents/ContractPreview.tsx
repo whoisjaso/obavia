@@ -21,7 +21,7 @@ export default function ContractPreview({ data, signatures, copyLabel, strings: 
   const s = t.shared;
   const c = t.contract;
   const totalCashPrice =
-    data.cashPrice + data.tax + data.titleFee + data.registrationFee + data.docFee;
+    data.cashPrice + data.tax + data.titleFee + data.registrationFee + data.docFee + (data.otherFees ?? 0);
   const amountFinanced = Math.max(0, totalCashPrice - data.downPayment);
   // The payment as agreed when the desk agreed the payment; otherwise the
   // equal one the rate and count produce. The last payment is the remainder.
@@ -236,6 +236,12 @@ export default function ContractPreview({ data, signatures, copyLabel, strings: 
                 <span>&nbsp;&nbsp;&nbsp;{c.regFeeLine}</span>
                 <span>{formatCurrency(data.registrationFee)}</span>
               </div>
+              {(data.otherFees ?? 0) > 0 && (
+                <div className="flex justify-between text-[color:var(--tj-ink)]">
+                  <span>&nbsp;&nbsp;&nbsp;{data.otherFeesDescription || s.otherFees}</span>
+                  <span>{formatCurrency(data.otherFees ?? 0)}</span>
+                </div>
+              )}
               <div className="flex justify-between font-semibold border-t border-[#1a1a1a]/10 pt-2">
                 <span>{c.totalCashPrice}</span>
                 <span>{formatCurrency(totalCashPrice)}</span>

@@ -100,7 +100,7 @@ const worstCars: Car[] = [
   {
     id: 'altima', year: 2011, make: 'Mercedes-Benz', model: 'Sprinter 2500 High Roof', miles: 214_700, vin: 'WD3PE8CC5B5000004',
     photos: Array.from({ length: 12 }, (_, i) => (i % 2 ? P.lotWide : P.auctionWide)),
-    dealer: { ...TRIPLE_J, name: 'Gulf Coast Commercial Vehicles', fees: { ...TEXAS, doc: 511 } },   // 12,500 + tax + fees = 13,900
+    dealer: { ...TRIPLE_J, name: 'Gulf Coast Commercial Vehicles', fees: { ...TEXAS, doc: 511 } },   // 12,500 + tax + fees (plate included) = 13,910
     grade: [0.5, 1, 0.5, 1, 0, 1], title: 'in hand',
   },
   { ...seededCars[1], photos: [] },

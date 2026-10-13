@@ -33,7 +33,7 @@ describe('the official 130-U, filled from the sale', () => {
     expect(f['State of ID/DL']).toBe('TX');
     expect(f['U.S. Driver License/ID Card']).toBe(true);
     expect(f['Title  Registration']).toBe(true);
-    expect(f['Sales Price Minus Rebate Amount']).toBe('3388.24');
+    expect(f['Sales Price Minus Rebate Amount']).toBe('3378.82');   // $4,000 out the door less $410 of fees (the $10 plate included, decisions §9 D6), less 6.25%
     expect(f['Date']).toBe('10/01/2026');
   });
   it('falls back to the dealer’s authorised signer when the agent is not a full name', () => {

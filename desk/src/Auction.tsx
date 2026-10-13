@@ -4,9 +4,11 @@
    buyer's clock, the money, the VIN at pickup, and the way out (void).
    The lane refuses collateral it cannot see; so does this screen, earlier. */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AUCTION_API, auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
+import { AUCTION_API, auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, releaseRefusal, said, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
 import { buyersGuidePdf } from './lib/official';
 import { usd } from './lib/money';
+import { today } from './lib/loans';
+import { laneTitleWatch, taxRemitWatch, type LaneWatch } from './lib/tax';
 import type { Sale, Vehicle } from './lib/sale';
 import { shrink } from './Paper';
 import { startSale, useStore } from './store';
@@ -134,6 +136,7 @@ export function LetItGo() {
 
   const collateral: Collateral | null = status ? { title: { status, ...(status === 'lender' ? { lienholder: lienholder.trim(), payoff: payoffN, releaseDays: Number(release) || 0 } : {}) }, floor: floorN, payoffAcknowledged: ack, insured } : null;
   const refusal = collateralRefusal(collateral ?? undefined);
+  const releaseLate = releaseRefusal(Number(release) || 0);
   const band = car ? wholesaleBand(car.price, grade.map(g => g ?? 0.6)) : null;
 
   const add = async (files: FileList | null) => {
@@ -208,7 +211,8 @@ export function LetItGo() {
       {page === 'release' && <section className="enter" key="release">
         <h1 className="q">Days to <em>release.</em></h1>
         <p className="note">How long {lienholder.trim() || 'the lender'} takes to send the title after payoff. The buyer sees this number.</p>
-        <div className="choices">{[2, 5, 10].map(d => <Choice key={d} label={`${d} days`} on={Number(release) === d} onPick={() => { setRelease(String(d)); next(); }} />)}</div>
+        <label className="field"><input className="input big num" inputMode="numeric" autoFocus value={release} onChange={e => setRelease(digits(e.target.value).slice(0, 3))} placeholder="5" aria-label="Days to release" /></label>
+        {releaseLate && <p className="note" role="alert">{said(releaseLate)}</p>}
       </section>}
 
       {page === 'photos' && car && <section className="enter" key="photos">
@@ -261,13 +265,14 @@ export function LetItGo() {
           <div className="row"><span className="t"><b>Closes</b></span><span className="v">{new Date(Date.now() + days * 86_400_000).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span></div>
           <div className="row"><span className="t"><b>Photos</b></span><span className="v num">{photos.length}</span></div>
         </div>
-        {refusal && <p className="note">The lane will refuse this: {refusal}.</p>}
+        {refusal && <p className="note">{refusal === said(refusal) ? `The lane will refuse this: ${refusal}.` : said(refusal)}</p>}
         {failed && <p className="note">{failed}</p>}
       </section>}
 
       <div className="dock"><div className="in">
         {page === 'lienholder' && <button className="btn primary block" disabled={!lienholder.trim()} onClick={next}>Next</button>}
         {page === 'payoff' && <button className="btn primary block" disabled={!payoffN} onClick={next}>Next</button>}
+        {page === 'release' && <button className="btn primary block" disabled={!Number(release) || !!releaseLate} onClick={next}>Next</button>}
         {page === 'photos' && <button className="btn primary block" disabled={photos.length < 3 || adding} onClick={next}>{photos.length < 3 ? `${3 - photos.length} more to go` : 'Next'}</button>}
         {page === 'floor' && <button className="btn primary block" disabled={floorN < 100} onClick={next}>Next</button>}
         {page === 'go' && <button ref={goBtn} className="btn primary block" disabled={!!refusal || !!sending || photos.length < 3} onClick={landed ? undefined : send}>{landed ? <><Ic n="check" s={18} w={2.6} />On The Lane</> : sending ? `${sending}…` : 'Go'}</button>}
@@ -340,8 +345,15 @@ function Live({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
 }
 
 const WHY = ['The car sold on the lot first', 'The title will not release in time', 'The car was damaged', 'Something else'];
+/** A lane clock's dot: amber from day 15, red past the day. */
+const tone = (w: LaneWatch) => (w.state === 'overdue' ? 'late' : w.state === 'soon' ? 'warn' : w.state === 'done' ? 'good' : '');
+const DOT = { display: 'inline-block', width: 8, height: 8, marginLeft: 8, verticalAlign: 1, boxShadow: 'none' } as const;
+const shortDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
+
 function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
   const s = lot.sale!;
+  const { dealer } = useStore();
+  const [marks, setMarks] = useState({ titleTo: link?.titleTo, taxSent: link?.taxSent });
   const [mode, setMode] = useState<'sale' | 'vin' | 'void'>('sale');
   const [vin, setVin] = useState('');
   const [busy, setBusy] = useState(false);
@@ -351,6 +363,12 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
   const left = s.deadlineAt - Date.now();
   const total = Math.max(1, s.deadlineAt - s.wonAt);
   const h = (ms: number) => `${Math.max(0, Math.floor(ms / 3_600_000))}h ${Math.max(0, Math.floor((ms % 3_600_000) / 60_000))}m`;
+  /* A lane sale's two clocks run from the hammer's date in the dealer's zone (docs/plan/obavia-auction-decisions.md §9 D2, D7). */
+  const soldOn = today(dealer.timeZone, new Date(s.wonAt)), asOf = today(dealer.timeZone);
+  const live = state !== 'voided' && state !== 'forfeited';
+  const titleW = laneTitleWatch(soldOn, asOf, marks.titleTo), taxW = taxRemitWatch(soldOn, asOf, marks.taxSent);
+  useEffect(() => { if (link && (link.soldOn !== soldOn || !!link.unwound !== !live)) rememberLot({ ...link, soldOn, unwound: !live || undefined }); }, [link?.lotId, soldOn, live]);
+  const mark = (k: 'titleTo' | 'taxSent') => { feel.done(); setMarks(m => ({ ...m, [k]: asOf })); if (link) rememberLot({ ...(lotLinks().find(l => l.lotId === link.lotId) ?? link), soldOn, [k]: asOf }); };
   const SAID: Record<string, string> = { 'wrong car': 'That VIN is not this car.', 'no sale': 'There is no sale to mark.', 'no sale to void': 'This sale cannot be voided now.', offline: 'The lane is out of reach.', 'no key': 'Paste your lane key first.' };
   const act = async (f: () => Promise<{ ok: boolean; reason?: string }>) => { setBusy(true); setErr(null); const r = await f(); setBusy(false); if (r.ok) { feel.done(); setMode('sale'); } else setErr(SAID[r.reason ?? ''] ?? `The lane said no: ${r.reason}.`); };
   return (
@@ -370,6 +388,8 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
           <div className="row"><span className="t"><b>Pay by</b></span><span className="v">{new Date(s.deadlineAt).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}</span></div>
           <div className="row"><span className="t"><b>Deposit</b><small>{s.deposit === 'to_dealer' ? 'Forfeited to you' : s.deposit === 'released' ? 'Released to the buyer' : 'Held by Obavia for the buyer'}</small></span><span className="v num">{usd(250)}</span></div>
           {link && <div className="row"><span className="t"><b>Floor</b></span><span className="v num">{usd(link.floor)}</span></div>}
+          {live && <div className="row"><span className="t"><b>Title to the buyer before day 21.</b></span><span className="v" style={{ whiteSpace: 'nowrap' }}>{titleW.state === 'done' ? 'Done' : shortDay(titleW.due)} <i className={`dot ${tone(titleW)}`} style={DOT} aria-label={titleW.state} /></span></div>}
+          {live && <div className="row"><span className="t"><b>Tax to the county.</b></span><span className="v" style={{ whiteSpace: 'nowrap' }}>{taxW.state === 'done' ? 'Done' : shortDay(taxW.due)} <i className={`dot ${tone(taxW)}`} style={DOT} aria-label={taxW.state} /></span></div>}
         </div>}
         {mode === 'vin' && <>
           <p className="note" style={{ marginTop: 28 }}>The last six of the VIN, read off the door jamb with the buyer standing there. Then the key.</p>
@@ -389,6 +409,8 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
         {mode === 'sale' && (state === 'forfeited' || state === 'voided') && <button className="btn primary block" onClick={() => { feel.next(); go('/auction/go'); }}>Let It Go Again</button>}
         {mode === 'vin' && <button className="btn primary block" disabled={busy || vin.length < 6} onClick={() => act(() => pickup(lot.id, vin))}>It Started</button>}
         {mode === 'sale' && (state === 'owed' || state === 'paid') && <button className="textlink" onClick={() => { feel.tap(); setMode('void'); }}>I can’t deliver this car</button>}
+        {mode === 'sale' && state === 'started' && titleW.state !== 'done' && <button className="textlink" onClick={() => mark('titleTo')}>The Buyer Has The Title</button>}
+        {mode === 'sale' && state === 'started' && titleW.state === 'done' && taxW.state !== 'done' && <button className="textlink" onClick={() => mark('taxSent')}>The Tax Went To The County</button>}
         {mode !== 'sale' && <button className="textlink" onClick={() => { feel.tap(); setMode('sale'); }}>Back</button>}
       </div></div>
     </main>

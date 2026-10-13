@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addDays, openLoan, standing, takePayment, type Loan } from './loans';
-import { nextReport, periodOf, suggestFiling, taxEvents, taxOn, taxSent, titleWatch } from './tax';
+import { LANE_TITLE_DAYS, TITLE_DAYS, addWorkingDays, laneTitleWatch, nextReport, periodOf, suggestFiling, taxEvents, taxOn, taxRemitDue, taxRemitWatch, taxSent, titleWatch } from './tax';
+import { daysBetween } from './loans';
 
 // The Comptroller's example: a $5,000 car, $312.50 of tax, 36 monthly payments, so $8.68 a payment.
 const note = (x: Partial<Loan['tax']> = {}): Loan => ({ ...openLoan({ id: 'L1', buyer: { name: 'Maria Example', phone: '(555) 010-7788' }, vehicle: '2016 Honda Accord · Stock 104',
@@ -66,5 +67,39 @@ describe('Texas tax as payments come in', () => {
   it('does nothing for a note whose tax went to the county with the title', () => {
     expect(taxEvents(pay(note({ deferred: false }), '2026-02-01', 1), '2026-12-31')).toEqual([]);
     expect(addDays('2026-01-02', 45)).toBe('2026-02-16');
+  });
+});
+
+describe('a lane sale: title before day 21, distinct from the 45-day note clock', () => {
+  const sold = '2026-10-13';   // a Tuesday
+  it('is 21 days, not 45', () => { expect(LANE_TITLE_DAYS).toBe(21); expect(TITLE_DAYS).toBe(45); });
+  it('day 20 is the last day; flagged from day 15; overdue on day 21', () => {
+    expect(laneTitleWatch(sold, '2026-10-27')).toMatchObject({ state: 'open', day: 14, due: '2026-11-02', left: 6 });
+    expect(laneTitleWatch(sold, '2026-10-28')).toMatchObject({ state: 'soon', day: 15, left: 5 });
+    expect(laneTitleWatch(sold, '2026-11-02')).toMatchObject({ state: 'soon', day: 20, left: 0 });
+    expect(laneTitleWatch(sold, '2026-11-03')).toMatchObject({ state: 'overdue', day: 21 });
+  });
+  it('stops when the title reaches the buyer', () => {
+    expect(laneTitleWatch(sold, '2026-10-30', '2026-10-29').state).toBe('done');
+    expect(laneTitleWatch(sold, '2026-10-28', '2026-10-29').state).toBe('soon');
+  });
+});
+
+describe('tax remittance on a lane sale: the earlier of 20 working days and 30 calendar days', () => {
+  it('counts Monday to Friday, no holidays', () => {
+    expect(addWorkingDays('2026-10-13', 1)).toBe('2026-10-14');
+    expect(addWorkingDays('2026-10-16', 1)).toBe('2026-10-19');   // Friday to Monday
+    expect(addWorkingDays('2026-10-13', 20)).toBe('2026-11-10');
+    expect(addWorkingDays('2026-10-17', 20)).toBe('2026-11-13');   // a Saturday sale
+  });
+  it('takes the earlier date, never past day 30', () => {
+    expect(taxRemitDue('2026-10-13')).toBe('2026-11-10');
+    for (let d = 0; d < 7; d++) { const on = `2026-10-${String(12 + d).padStart(2, '0')}`; expect(daysBetween(on, taxRemitDue(on))).toBeLessThanOrEqual(30); }
+  });
+  it('flags from day 15 and stops when sent', () => {
+    expect(taxRemitWatch('2026-10-13', '2026-10-27').state).toBe('open');
+    expect(taxRemitWatch('2026-10-13', '2026-10-28').state).toBe('soon');
+    expect(taxRemitWatch('2026-10-13', '2026-11-11').state).toBe('overdue');
+    expect(taxRemitWatch('2026-10-13', '2026-11-11', '2026-11-09').state).toBe('done');
   });
 });

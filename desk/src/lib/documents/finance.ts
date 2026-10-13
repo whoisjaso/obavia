@@ -28,6 +28,9 @@ export interface ContractData {
   titleFee: number;
   registrationFee: number;
   docFee: number;
+  /** The $10 metal plate and the dealer's database fee if charged (decisions §9 D6). Absent on contracts filed before. */
+  otherFees?: number;
+  otherFeesDescription?: string;
   apr: number;
   numberOfPayments: number;
   paymentFrequency: 'Weekly' | 'Bi-weekly' | 'Monthly';

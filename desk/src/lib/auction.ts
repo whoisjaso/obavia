@@ -1,7 +1,7 @@
 /* The Desk's side of the auction: the Worker's dealer routes, the dealer's
    key, which cars are on the lane, and the arithmetic the Floor screen shows.
    With no VITE_AUCTION_API the module is inert and every call says so. */
-import type { DealerConfig } from './config';
+import type { DealerConfig, Fees } from './config';
 import type { Vehicle } from './sale';
 
 export const AUCTION_API = (import.meta.env.VITE_AUCTION_API ?? '').replace(/\/$/, '');
@@ -15,7 +15,12 @@ export const dealerKey = {
 };
 
 /** The lane as the Desk remembers it: one lot per car it let go. */
-export type LotLink = { lotId: string; vehicleId: string; openedAt: string; closesAt: number; floor: number; days: number };
+export type LotLink = { lotId: string; vehicleId: string; openedAt: string; closesAt: number; floor: number; days: number;
+  soldOn?: string;      // the hammer's date in the dealer's zone: the lane title and tax clocks run from it
+  unwound?: boolean;    // voided or forfeited: no sale, no clock
+  titleTo?: string;     // the day title reached the buyer
+  taxSent?: string;     // the day the tax went to the county
+};
 export function lotLinks(): LotLink[] { try { return JSON.parse(localStorage.getItem(LOTS) ?? '[]'); } catch { return []; } }
 export function rememberLot(l: LotLink) { const all = lotLinks().filter(x => x.lotId !== l.lotId); try { localStorage.setItem(LOTS, JSON.stringify([l, ...all])); } catch { /* ignore */ } }
 
@@ -26,7 +31,7 @@ export type CarMeta = {
   photos: RemotePhoto[];
   grade: [number, number, number, number, number, number];
   title: 'in hand' | 'at lender';
-  dealer: { name: string; city: string; street: string; gdn: string; phone: string; afterHours: string; fees: { taxRate: number; title: number; registration: number; doc: number } };
+  dealer: { name: string; city: string; street: string; gdn: string; phone: string; afterHours: string; fees: Pick<Fees, 'taxRate' | 'title' | 'registration' | 'doc' | 'plate' | 'database'> };
   documents?: { guide?: string; bill?: string; title?: string };
   hours?: string[];
   collateral: Collateral;
@@ -38,12 +43,21 @@ export type Collateral = {
   payoffAcknowledged?: boolean;
   insured: boolean;
 };
+/** The lender's release leaves a week for the county: title reaches the buyer before day 21 on a lane sale
+    (Transp. Code §503.039(b), read 2026-10-13; decisions §9 D2). The engine's meta.ts holds the same line. */
+export const RELEASE_MAX_DAYS = 14;
+/** The refusals in the dealer's words. Anything not here prints as the lane's own reason. */
+export const SAID: Record<string, string> = { 'release past day 14': 'Release must land inside 14 days so title reaches the buyer before day 21.' };
+export const said = (reason: string) => SAID[reason] ?? reason;
+/** The release days alone, for the page that asks them. */
+export const releaseRefusal = (days: number) => (days > RELEASE_MAX_DAYS ? 'release past day 14' : null);
 /** The same refusals the Worker gives at /open, so the Desk never sends a lot the lane will bounce. */
 export function collateralRefusal(c: Collateral | undefined): string | null {
   if (!c) return 'collateral missing';
   if (c.title.status === 'repo') return 'title in repossession';
   if (c.title.status === 'unknown') return 'title location unknown';
   if (c.title.status === 'lender' && !((c.title.releaseDays ?? 0) > 0)) return 'lender release time missing';
+  if (c.title.status === 'lender') { const r = releaseRefusal(c.title.releaseDays ?? 0); if (r) return r; }
   if ((c.title.payoff ?? 0) > c.floor && !c.payoffAcknowledged) return 'floor below payoff without acknowledgement';
   if (!c.insured) return 'not insured';
   return null;
