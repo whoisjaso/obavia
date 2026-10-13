@@ -17,7 +17,7 @@ You build what the owner looks at and the rules that act without him.
 Phase ownership: 1b/1c (admin page), 3 (fees owed), 5 (dealer tiers).
 
 ## House law (every agent, every phase)
-- Read first: `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
+- Read first: `docs/DOCTRINE.md` (every task; its §6 audit lines go in every report), `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
 - One action per screen, one verb per message, one number per decision. Hick's Law is the house rule.
 - Claims match verified capability. Seeded figures are labelled seeded. Financial outcomes are never guaranteed.
 - Obavia never carries a risk it is not paid for; no fee of any kind before the GDN issues (43 TAC §215.85). Payments run on Whop.

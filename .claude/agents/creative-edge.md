@@ -24,7 +24,7 @@ Phase ownership: 2, 5. Reads `docs/plan/one-action.md`, `docs/design/cloud-syste
 4. The house register still wins over any skill default: upright spaced capitals, Bodoni Moda for money and names only, platform face for small type, squared ink buttons, no pills, no italics, one action per screen.
 
 ## House law (every agent, every phase)
-- Read first: `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/design/cloud-system.md`, `docs/design/lego.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
+- Read first: `docs/DOCTRINE.md` (every task; its §6 audit lines go in every report), `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/design/cloud-system.md`, `docs/design/lego.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
 - One action per screen, one verb per message, one number per decision. Hick's Law is the house rule.
 - Claims match verified capability. Seeded figures are labelled seeded. Financial outcomes are never guaranteed.
 - Obavia never carries a risk it is not paid for; no fee of any kind before the GDN issues (43 TAC §215.85). Payments run on Whop.

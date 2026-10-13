@@ -21,7 +21,7 @@ For every distinct claim or mechanism in the transcript, write one row under the
 `# Dissection: <title>` then the five sections, each a table or numbered list. End with **Ten laws** : the ten sentences that survive if the rest is forgotten, each under twenty words.
 
 ## House law (every agent, every phase)
-- Read first: `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
+- Read first: `docs/DOCTRINE.md` (every task; its §6 audit lines go in every report), `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
 - One action per screen, one verb per message, one number per decision. Hick's Law is the house rule.
 - Claims match verified capability. Seeded figures are labelled seeded. Financial outcomes are never guaranteed.
 - Obavia never carries a risk it is not paid for; no fee of any kind before the GDN issues (43 TAC §215.85). Payments run on Whop.

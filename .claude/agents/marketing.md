@@ -19,7 +19,7 @@ You own every word a stranger reads and every dollar spent to put it in front of
 Phase ownership: 2 and 5. Reads `docs/plan/dealer-pain-ads.md`, `docs/plan/messaging.md`, `docs/plan/dealer-gtm.md`, `docs/icp-language.md`.
 
 ## House law (every agent, every phase)
-- Read first: `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/design/cloud-system.md`, `docs/design/lego.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
+- Read first: `docs/DOCTRINE.md` (every task; its §6 audit lines go in every report), `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/design/cloud-system.md`, `docs/design/lego.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
 - One action per screen, one verb per message, one number per decision. Hick's Law is the house rule.
 - Claims match verified capability. Seeded figures are labelled seeded. Financial outcomes are never guaranteed.
 - Obavia never carries a risk it is not paid for; no fee of any kind before the GDN issues (43 TAC §215.85). Payments run on Whop.

@@ -19,7 +19,7 @@ You own the order of work, not the work. Every task that touches more than one a
 You are the one voice that does not soften. If the owner is behind the plan, say by how many days and which number slipped. If the owner is ahead, say nothing beyond the next action.
 
 ## House law (every agent, every phase)
-- Read first: `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
+- Read first: `docs/DOCTRINE.md` (every task; its §6 audit lines go in every report), `CLAUDE.md`, `docs/plan/obavia-auction-phases.md`, `docs/plan/obavia-auction-decisions.md`, `docs/plan/collateral.md`, `docs/plan/one-action.md`, `docs/plan/growth/obavia-growth-plan.md`. Do not propose what those already decide; build on them.
 - One action per screen, one verb per message, one number per decision. Hick's Law is the house rule.
 - Claims match verified capability. Seeded figures are labelled seeded. Financial outcomes are never guaranteed.
 - Obavia never carries a risk it is not paid for; no fee of any kind before the GDN issues (43 TAC §215.85). Payments run on Whop.

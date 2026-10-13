@@ -1,5 +1,7 @@
 # Obavia project context
 
+Read docs/DOCTRINE.md first, on every task; it is the house doctrine (the three master classes' thirty laws, Lego, one action, clouds, legibility for non-technical dealers and buyers, the car objects) and every hand-back carries its §6 audit lines.
+
 Obavia is the phone-first public auction lane: a Texas dealer lets a car the lot is losing money on go to an individual on every phone in the state, with the Desk running the paperwork behind it. The buyer sees a price, a time and a name and does one thing; the dealer sets a floor and the lane finds the price. Payments run on Whop; no fee of any kind before Obavia's own GDN (43 TAC §215.85); financial outcomes are not guaranteed. Read docs/plan/obavia-auction-decisions.md, docs/plan/obavia-auction-phases.md, docs/plan/collateral.md, docs/plan/one-action.md and docs/plan/growth/obavia-growth-plan.md before product work.
 
 Legacy, not to be expanded: the agency-owner sales product in app/ (app.obavia.co, "sales software for agency owners") and the agency pages on obavia.co (product, owners, pricing, about, team, ads). They stay in the tree until the owner says delete; no new work lands there. The public site's index.html and waitlist.html are the dealer and buyer pages and are live product.
