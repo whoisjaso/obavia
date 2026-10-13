@@ -146,10 +146,16 @@ def build(m):
             r, c = divmod(i, cols)
             sheet[r * T:(r + 1) * T, c * T:(c + 1) * T] = fr
         save(sheet, f'{out}/turn-sheet.png')
-        json.dump({'image': 'turn-sheet.png', 'frames': 60, 'fps': 30, 'duration_ms': 2000,
+        # the 512 cell sheet is heavy for the web; a 256 cell sheet (1x on a 128 px hero) sits beside it
+        half_sheet = np.zeros((rows * T // 2, cols * T // 2, 4))
+        for i, fr in enumerate(frames):
+            r, c = divmod(i, cols)
+            half_sheet[r * T // 2:(r + 1) * T // 2, c * T // 2:(c + 1) * T // 2] = resize(fr, T // 2)
+        save(half_sheet, f'{out}/turn-sheet@256.png')
+        json.dump({'image': 'turn-sheet.png', 'image_256': 'turn-sheet@256.png', 'frames': 60, 'fps': 30, 'duration_ms': 2000,
                    'cell': [T, T], 'columns': cols, 'rows': rows, 'order': 'row-major',
                    'loop': True, 'reduced_motion_frame': 0,
-                   'motion': 'turns 12 degrees about the vertical axis and back on sine in-out; one light sweep, left to right, zero at both ends'},
+                   'motion': 'camera orbits 6 degrees about the vertical axis and back on sine in-out, the mark and its lights still; one light sweep, left to right, zero at both ends'},
                   open(f'{out}/turn-sheet.json', 'w'), indent=2)
         ims = [pil(fr) for fr in frames]
         ims[0].save(f'{out}/turn.webp', save_all=True, append_images=ims[1:], duration=33, loop=0,

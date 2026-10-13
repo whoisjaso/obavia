@@ -25,10 +25,12 @@ ap.add_argument('--look', default='day', choices=['day', 'ink', 'flat'])
 ap.add_argument('--res', type=int, default=256)
 ap.add_argument('--samples', type=int, default=32)
 ap.add_argument('--fit', type=float, default=0.74, help='mark diameter as a fraction of the frame')
-ap.add_argument('--turn', action='store_true')
+ap.add_argument('--turn', action='store_true', help='60 frames: camera orbit 6 degrees and back, light sweep')
 ap.add_argument('--frames', default='0-59')
 ap.add_argument('--out', required=True)
 ap.add_argument('--blend', default='')
+ap.add_argument('--stack', default='behind', choices=['behind', 'interlock'],
+                help='behind: the blue sits 5 percent of the width behind the ice (review, Oct 13); interlock: the earlier under-over')
 ap.add_argument('--clay', action='store_true', help='debug: grey diffuse override')
 ap.add_argument('--hide', default='', help='debug: object name to hide')
 args = ap.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:])
@@ -201,7 +203,12 @@ def build_a():
     xs = [p.x for p in pts]; ys = [p.y for p in pts]
     cx, cy_ = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
     k = 2.0 / (max(xs) - min(xs))
-    H, BEV = 0.13, 0.058  # body depth and bevel radius, disc radius = 1
+    if args.stack == 'behind':
+        # review, Oct 13: total depth about 8 percent of the width, a 1.5 mm bevel at a 100 mm mark,
+        # the blue body 5 percent of the width behind the ice so the crossing shows blue through ice
+        H, BEV = 0.07, 0.03
+    else:
+        H, BEV = 0.13, 0.058  # body depth and bevel radius, disc radius = 1
     GAP = 0.03
     polys = {}
     for o, name in ((blue_c, 'blue'), (ice_c, 'ice')):
@@ -216,6 +223,9 @@ def build_a():
         polys[name] = np.array(poly)
     field, fmin = depth_field(polys['ice'], polys['blue'])
     A = (H + GAP) / (2 * fmin)  # every overlapping pixel keeps H + GAP of daylight between the bodies
+    if args.stack == 'behind':
+        field = np.ones_like(field)
+        A = 0.05  # ice at +0.05, blue at -0.05: centres 0.10 apart, 5 percent of the width 2.0
     print(f'FIELD min |f| on overlap {fmin:.3f}, swing A {A:.3f}')
     out = {}
     for o, name in ((blue_c, 'blue'), (ice_c, 'ice')):
@@ -255,15 +265,15 @@ def build_a():
         co[:, 2] += sign * A * f
         # a breath of volume: each face domes a little toward the middle of the disc (cloud volume)
         r = np.sqrt(co[:, 0] ** 2 + co[:, 1] ** 2)
-        co[:, 2] += side * 0.010 * np.clip(1 - r, 0, 1)
+        co[:, 2] += side * (0.004 if args.stack == 'behind' else 0.010) * np.clip(1 - r, 0, 1)
         me.vertices.foreach_set('co', co.ravel())
         me.update()
         shade_smooth(o)
         o.parent = rig
         out[name] = o
     ice_m, nt, p = principled('ice', **{
-        'Roughness': 0.07, 'IOR': 1.45, 'Transmission Weight': 0.95,
-        'Subsurface Weight': 0.04, 'Subsurface Scale': 0.05,
+        'Roughness': 0.08, 'IOR': 1.45, 'Transmission Weight': 0.85,
+        'Subsurface Weight': 0.08, 'Subsurface Scale': 0.04,
         'Coat Weight': 0.0, 'Specular IOR Level': 0.5})
     p.inputs['Subsurface Radius'].default_value = (0.6, 0.8, 1.0)
     ramp = gradient_color(nt, p, svgpt(20, 22), svgpt(84, 102), [(0, '#F4F7FF'), (0.15, '#E7EEFE'), (1, '#A9BFF0')])
@@ -292,6 +302,10 @@ def build_a():
         blue_m.node_tree.nodes['Principled BSDF'].inputs['Transmission Weight'].default_value = 0.08
         ice_m.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.3
         blue_m.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.4
+        # the ice keeps its full SVG gradient here, or at 16 px it turns white and melts into a light tab
+        for nd in ice_m.node_tree.nodes:
+            if nd.bl_idname == 'ShaderNodeMix' and nd.data_type == 'RGBA':
+                nd.inputs['Factor'].default_value = 0.0
     out['ice'].data.materials.clear(); out['ice'].data.materials.append(ice_m)
     out['blue'].data.materials.clear(); out['blue'].data.materials.append(blue_m)
     return H / 2 + A + 0.012  # half depth of the stack, for placing the ground
@@ -482,12 +496,12 @@ def area(name, loc, size, energy, color, shape='DISK', target=R, size_y=None):
 
 if look == 'day':
     # softboxes, not points: glass is read by the shapes it reflects
-    area('key', (-4.0, 4.6, 6.5), 3.0, 750, '#FFFFFF', shape='RECTANGLE', size_y=7.0)
-    area('rim', (6.0, -0.6, 1.2), 0.5, 380, '#BFD2FF', shape='RECTANGLE', size_y=6.0)
+    area('key', (-4.0, 4.6, 6.5), 7.0, 750, '#FFFFFF', shape='RECTANGLE', size_y=9.0)  # soft: no chrome glints
+    area('rim', (6.0, -0.6, 1.2), 1.2, 340, '#BFD2FF', shape='RECTANGLE', size_y=6.0)
     area('fill', (1.5, -5, 4), 6.0, 90, '#E8EEFF')
     area('top', (0.0, 6.5, 3.5), 7.0, 160, '#F2F6FF', shape='RECTANGLE', size_y=0.6)
 elif look == 'flat':
-    area('key', (-1.2, 1.8, 8.0), 9.0, 700, '#FFFFFF')
+    area('key', (-1.2, 1.8, 8.0), 9.0, 520, '#FFFFFF')
     area('rim', (5.0, -1.0, 2.0), 3.0, 150, '#BFD2FF')
 else:  # ink: ice lit from behind
     kb = 1.0 if args.mark == 'a' else 0.0  # the orb is one thick lens: a back light floods it white; rims carry it
@@ -520,18 +534,23 @@ if not args.turn:
     bpy.ops.render.render(write_still=True)
     print(f'RENDER {args.out} {time.time() - t0:.1f}s')
 else:
-    # 60 frames, 2 s at 30 fps: turn 12 degrees and back on sine in-out, one light sweep
+    # 60 frames, 2 s at 30 fps (coordinator's fix, Oct 13): the mark and its lights stay still and the
+    # camera orbits 6 degrees about the vertical axis and back on sine in-out, toward the frontal axis,
+    # so the side wall never shows more than in the hero; the light sweep carries the breath.
+    cam_home = cam.location.copy()
     sweep = area('sweep', (-6, 3, 3), 0.6, 0.0, '#FFFFFF', shape='RECTANGLE', size_y=8.0)
     f0, f1 = (int(v) for v in args.frames.split('-'))
     os.makedirs(args.out, exist_ok=True)
     for f in range(f0, f1 + 1):
         u = f / 60.0
-        ang = 6.0 * (1 - math.cos(2 * math.pi * u))       # 0 -> 12 -> 0 degrees
-        rig.rotation_euler = (0, math.radians(ang), 0)
+        ang = 3.0 * (1 - math.cos(2 * math.pi * u))       # 0 -> 6 -> 0 degrees, sine in-out
+        orbit = Matrix.Rotation(math.radians(-ang), 3, 'Y')  # negative: toward frontal, away from the side wall
+        cam.location = orbit @ cam_home
+        cam.rotation_euler = look_at(-cam.location)
         x = -6 + 12 * u                                    # the strip crosses left to right once
         sweep.location = (x, 3.0, 3.0)
         sweep.rotation_euler = look_at(-sweep.location)
-        sweep.data.energy = 220.0 * math.sin(math.pi * u) ** 2  # zero at both ends: seamless loop
+        sweep.data.energy = 90.0 * math.sin(math.pi * u) ** 2  # zero at both ends: seamless loop
         sc.render.filepath = os.path.join(args.out, f'{f:03d}.png')
         if os.path.exists(sc.render.filepath):
             continue  # resumable: a frame already on disk is never rendered twice
