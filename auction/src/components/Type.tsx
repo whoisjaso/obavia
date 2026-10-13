@@ -8,7 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feel } from '../feel';
 import { CLOUD_OUT, cloud, ms } from '../motion';
 import { theme } from '../theme';
-import { InkBody, PressCloud } from './Cloud';
+import { PressCloud } from './Cloud';
+import { CloudButton } from './CloudButton';
 
 export function Label({ children, style, ink }: { children: React.ReactNode; style?: TextStyle; ink?: string }) {
   return <Text style={[s.label, ink ? { color: ink } : null, style]}>{children}</Text>;
@@ -57,15 +58,16 @@ export function Choice({ label, detail, selected, dim, onPress, size = 22, acces
   );
 }
 
-/** The one verb on a page: an ink cloud. It sinks 2.5 pt into the page on touch-down (on the UI thread,
-    before any logic), its shade shortening; it rises on the 0.65 spring when the press completes; and if
-    the press completes something (feel.done), it breathes once on that same call. */
+/** The one verb on a page: the 3D cloud (CloudButton). It sinks under the thumb on the UI thread, rises on
+    the 0.65 spring shedding its wisps, and breathes once when the press completes something (feel.done).
+    `ghost` is a secondary action (Back, Later, Sign out): a flatter cloud, its words only, never the sprite,
+    so a page never shows two clouds of equal rank (one-action.md; cloud-system §8, secondary surfaces). */
 export function Button({ label, onPress, disabled, ghost }: { label: string; onPress: () => void; disabled?: boolean; ghost?: boolean }) {
+  if (!ghost) return <CloudButton label={label} onPress={onPress} disabled={disabled} />;
   return (
-    <PressCloud onPress={onPress} disabled={disabled} shade={!ghost} style={{ alignSelf: 'stretch' }}
-      bodyStyle={[s.btn, ghost && s.btnGhost, disabled && s.btnOff]} accessibilityLabel={label}>
-      {!ghost && <InkBody />}
-      <Text style={[s.btnText, ghost && { color: theme.color.accent }]}>{label}</Text>
+    <PressCloud onPress={onPress} disabled={disabled} style={{ alignSelf: 'stretch' }}
+      bodyStyle={[s.btn, s.btnGhost, disabled && s.btnOff]} accessibilityLabel={label}>
+      <Text style={[s.btnText, { color: theme.color.accent }]}>{label}</Text>
     </PressCloud>
   );
 }

@@ -9,13 +9,14 @@
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { interpolate, useAnimatedReaction, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { interpolate, useAnimatedReaction, useAnimatedStyle, useDerivedValue, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feel } from '../feel';
 import { EASE_OUT, EASE_SHEET, ms, spring } from '../motion';
 import { theme } from '../theme';
-import { Feather, Sky } from './Cloud';
+import { Feather } from './Cloud';
+import { Sky } from './Sky';
 
 /** The drift loop's gain while a finger moves a sheet: velocity in 400 pt/s steps (0 to 6), so the RN
     runtime hears about a step change, never a frame. -1 = released. */
@@ -71,6 +72,7 @@ export function Sheet({ detents = [0.3, 0.6, 1], initial = 1, onClose, header, c
       h.value = withSpring(best, { ...spring.sheet, velocity: -e.velocityY });
     });
   const style = useAnimatedStyle(() => ({ opacity: fade.value, transform: [{ translateY: full - Math.min(h.value, full + 40) }] }));
+  const drag = useDerivedValue(() => heights[initial] - h.value);   // the sky's parallax: pt below rest, down positive
   const scrim = useAnimatedStyle(() => ({ opacity: fade.value * interpolate(h.value, [0, heights[initial]], [0, 1], 'clamp') }));
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -82,7 +84,7 @@ export function Sheet({ detents = [0.3, 0.6, 1], initial = 1, onClose, header, c
       <Animated.View style={[s.sheet, { height: full + 40, bottom: -40 }, style]}>
         <Feather />
         <View style={s.body}>
-          <Sky radius={28} />
+          <Sky radius={28} drag={drag} />
           <GestureDetector gesture={pan}>
             <View style={s.gripZone} accessibilityRole="adjustable" accessibilityLabel="Sheet grip, swipe down to close">
               <View style={s.grab} />

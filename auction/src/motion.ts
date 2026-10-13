@@ -60,7 +60,23 @@ export const ms = {
 
 /** Cloud drift (cloud-system §1, §4): never still, never jumping. Far layers are slower. */
 export const drift = {
-  far: { period: 120_000, px: 8 },
-  mid: { period: 90_000, px: 10 },
-  near: { period: 64_000, px: 12 },
+  far: { period: 120_000, px: 6 },
+  mid: { period: 80_000, px: 10 },
+  near: { period: 50_000, px: 14 },
+} as const;
+
+/** Sky parallax by depth (cloud-system §4): the share of a sheet's drag each layer follows. */
+export const parallax = { far: 0.2, mid: 0.5, near: 1.0, clamp: 40 } as const;
+
+/** The 3D cloud button (cloud-system §2, §8, the owner's after-press). Frame counts follow the Blender
+    contract: 24 frames, 0 to 5 the press (100 ms), 6 to 23 the release (on spring.rise). */
+export const press3d = {
+  frames: 24, downLast: 5, upFirst: 6,
+  holdAfter: 400,      // a press held this long is a hold: it breathes
+  breath: 1200,        // one full breath, ms
+  breathAmp: 0.01,     // 1 %
+  holdGain: 0.18,      // the drift loop under a held cloud
+  wisps: 7, wispMs: 600, wispOpacity: 0.3, wispPeakAt: 120,
+  ringMs: 600, ringPeak: 0.18, ringPeakAt: 120, ringScale: 1.4,
+  shadowLong: 0.08,    // the contact shadow lengthens this much as the cloud lifts off it, then settles
 } as const;

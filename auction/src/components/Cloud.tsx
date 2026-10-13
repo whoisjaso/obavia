@@ -19,16 +19,11 @@ import { BREATH, EASE_OUT, cloud, drift, ms, spring } from '../motion';
 import { theme } from '../theme';
 
 const GRAIN = require('../../assets/clouds/grain.png');
-const LIGHT = {
-  far: require('../../assets/clouds/light-far.png'),
-  mid: require('../../assets/clouds/light-mid.png'),
-  near: require('../../assets/clouds/light-near.png'),
-};
 const DARK = {
   far: require('../../assets/clouds/dark-far.png'),   // masses in its top third: behind the ring and the mark
   mid: require('../../assets/clouds/dark-mid.png'),   // a band across its middle: behind the price
 };
-const LIGHT_RATIO = 1200 / 700, DARK_RATIO = 960 / 540;
+const DARK_RATIO = 960 / 540;  // the sky's light layers live in ./Sky
 
 /** The material's tokens (cloud-system §5). */
 export const cloudInk = {
@@ -77,38 +72,6 @@ export function Glow({ color = cloudInk.shade, opacity, style }: { color?: strin
 /** The grain: a 512 px noise tile, repeated, at 3 %. */
 export function Grain({ opacity = 0.03 }: { opacity?: number }) {
   return <View pointerEvents="none" style={StyleSheet.absoluteFill}><RNImage source={GRAIN} resizeMode="repeat" style={{ opacity, width: "100%", height: "100%" }} /></View>;
-}
-
-/** One drifting layer: a static image at its own aspect, translated by its clock (transform only). */
-function Layer({ source, t, px, opacity, ratio, style, dir = 1, mirror }: { source: number; t: SharedValue<number>; px: number; opacity: number; ratio: number; style?: StyleProp<ViewStyle>; dir?: 1 | -1; mirror?: boolean }) {
-  const st = useAnimatedStyle(() => ({ transform: [{ translateX: dir * (t.value - 0.5) * px }, { translateY: (0.5 - t.value) * px * 0.2 }] }));
-  return (
-    <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: -16, right: -16, aspectRatio: ratio }, style, st]}>
-      <Image source={source} style={{ width: '100%', height: '100%', opacity, transform: mirror ? [{ scaleX: -1 }] : undefined }} contentFit="fill" cachePolicy="memory" />
-    </Animated.View>
-  );
-}
-
-/** The sky behind a sheet's content: body, three light layers drifting at their depths, grain, and the
-    feathered top light. Absolute, behind everything, never touched. `low`: a short sheet (the Bid sheet)
-    keeps only the bank along its bottom, so no cloud ever sits behind the money. */
-export function Sky({ radius = 0, layers = true, low = false }: { radius?: number; layers?: boolean; low?: boolean }) {
-  const far = useDrift(drift.far.period), mid = useDrift(drift.mid.period), near = useDrift(drift.near.period);
-  return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderTopLeftRadius: radius, borderTopRightRadius: radius, overflow: 'hidden' }]}>
-      <LinearGradient colors={cloudInk.body} style={StyleSheet.absoluteFill} />
-      {layers && (
-        <>
-          {/* far rides high, mid crosses the lower middle, near banks along the bottom: three depths */}
-          {!low && <Layer source={LIGHT.far} t={far} px={drift.far.px} opacity={0.38} ratio={LIGHT_RATIO} style={{ top: -12 }} />}
-          {!low && <Layer source={LIGHT.mid} t={mid} px={drift.mid.px} opacity={0.26} ratio={LIGHT_RATIO} style={{ top: '46%' }} dir={-1} mirror />}
-          <Layer source={LIGHT.near} t={near} px={drift.near.px} opacity={low ? 0.5 : 0.6} ratio={LIGHT_RATIO} style={{ bottom: low ? -40 : -6 }} />
-        </>
-      )}
-      <Grain />
-      <LinearGradient colors={[cloudInk.top, cloudInk.topClear]} style={s.topLight} />
-    </View>
-  );
 }
 
 /** The mist above a sheet's top edge: where the density falls to zero instead of a line. Sits outside

@@ -10,7 +10,9 @@ import Animated, { Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, 
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather, InkBody, PressCloud, Sky, Underside } from '../components/Cloud';
+import { Feather } from '../components/Cloud';
+import { CloudButton } from '../components/CloudButton';
+import { Sky } from '../components/Sky';
 import { driftLevel, useDriftSound } from '../components/Sheet';
 import { Price } from '../components/Price';
 import { Ring } from '../components/Ring';
@@ -136,7 +138,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
       <GestureDetector gesture={dismiss}>
         <Animated.View style={[s.sheet, { height: open + 40, bottom: -40, paddingBottom: insets.bottom + 12 + 40 }, sheetStyle]}>
           <Feather />
-          <Sky radius={28} low />
+          <Sky radius={28} low drag={y} />
           <View style={s.grab} />
           {phase === 'deposit' ? (
             <Deposit onConfirm={confirmDeposit} onCancel={() => setPhase('arming')} />
@@ -173,7 +175,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
               )}
 
               <View style={s.foot}>
-                <BidButton phase={phase} hold={hold} disabled={closed || phase === 'rejected'} onBid={place} />
+                <BidButton phase={phase} hold={hold} disabled={closed || phase === 'rejected'} onBid={place} landedKey={punch} />
                 {/* the line's room is always kept, so the button never moves under the thumb when it lands */}
                 <View style={s.depositRoom}>
                   {landKey !== undefined && <Landing animate={landKey > 0}><Label style={{ alignSelf: 'center' }}>${DEPOSIT} held · back if you lose</Label></Landing>}
@@ -188,42 +190,18 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   );
 }
 
-/** One button. Tap bids; over 2× it needs a 600 ms hold that fills it; in flight it is a ring. An ink cloud:
-    it sinks 2.5 pt into the sheet on touch-down (UI thread), its shade shortening, and rises on the 0.65
-    spring when the press completes, without overshoot when the thumb slides off. The puff on touch-down,
-    the breath on release; the thud, the lead and the mark stay the ack's, untouched. Disabled: no sink. */
-function BidButton({ phase, hold, disabled, onBid }: { phase: Phase; hold: boolean; disabled: boolean; onBid: () => void }) {
-  const reduce = useReducedMotion();
-  const fill = useSharedValue(0), k = useSharedValue(0);
-  const fire = () => { feel.holdDone(); onBid(); };
-  const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
-  const sinkStyle = useAnimatedStyle(() => reduce
-    ? { opacity: 1 - 0.18 * Math.max(0, k.value) }
-    : { transform: [{ translateY: cloud.sinkY * k.value }, { scale: 1 - (1 - cloud.sinkScale) * k.value }] });
+/** One button: the 3D cloud (components/CloudButton). Tap bids; over 2x it needs a 600 ms hold that fills a
+    quiet rule under the word; in flight the word becomes a ring, on the ack a tick. The ack's thud and heavy
+    impact are the bid's own (feel.landed); the cloud adds the swell, the air ring and the air (cloud-landed)
+    on that same frame. Disabled: no sink. */
+function BidButton({ phase, hold, disabled, onBid, landedKey }: { phase: Phase; hold: boolean; disabled: boolean; onBid: () => void; landedKey?: number }) {
   const busy = phase === 'inflight';
   const landed = phase === 'landed';
   const live = !disabled && !busy && !landed;
-  const sink = () => { 'worklet'; k.value = withTiming(1, { duration: ms.sink, easing: EASE_OUT }); scheduleOnRN(feel.puff); };
-  const rise = (ok: boolean) => { 'worklet'; k.value = withSpring(0, ok ? spring.rise : spring.cancel); if (ok) scheduleOnRN(feel.rise); };
-  const g = hold
-    // the hold fills on the UI thread from touch-down (linear: it is a progress); letting go drains it fast
-    ? Gesture.LongPress().minDuration(theme.ms.hold + 50)
-      .onBegin(() => { sink(); fill.value = withTiming(1, { duration: theme.ms.hold, easing: Easing.linear }, f => { if (f) scheduleOnRN(fire); }); })
-      .onFinalize((_e, ok) => { rise(ok); cancelAnimation(fill); fill.value = withTiming(0, { duration: ms.press, easing: EASE_OUT }); })
-    // feedback on press-in, commit on release
-    : Gesture.Tap().maxDuration(60_000).maxDistance(24).onBegin(() => { sink(); }).onFinalize((_e, ok) => { rise(ok); }).onEnd(() => { scheduleOnRN(onBid); });
   return (
-    <View>
-      {live && <Underside k={k} reduce={reduce} />}
-      <GestureDetector gesture={g.enabled(live)}>
-        <Animated.View style={[s.btn, (disabled || landed) && s.btnOff, sinkStyle]} accessible accessibilityRole="button" accessibilityLabel={hold ? 'Bid, double tap and hold' : 'Bid'} accessibilityState={{ disabled: disabled || busy }}
-          accessibilityActions={live ? [{ name: 'activate' }] : undefined} onAccessibilityAction={e => { if (e.nativeEvent.actionName === 'activate') onBid(); }}>
-          <InkBody />
-          {hold && <Animated.View style={[s.btnFill, fillStyle]} />}
-          {busy ? <Spinner /> : landed ? <Tick /> : <Text style={s.btnText}>Bid</Text>}
-        </Animated.View>
-      </GestureDetector>
-    </View>
+    <CloudButton label="Bid" onPress={live ? onBid : undefined} disabled={disabled} holdMs={hold ? theme.ms.hold : undefined}
+      content={busy ? <Spinner /> : landed ? <Tick /> : undefined} landedKey={landedKey} landedFeel="sound" swellOnDone={false}
+      accessibilityLabel={hold ? 'Bid, double tap and hold' : 'Bid'} />
   );
 }
 
@@ -233,12 +211,12 @@ function Spinner() {
   const st = useAnimatedStyle(() => ({ transform: [{ rotate: `${r.value}deg` }] }));
   return (
     <Animated.View style={st}>
-      <Svg width={26} height={26}><Circle cx={13} cy={13} r={10} stroke={theme.color.cloud} strokeWidth={3} fill="none" strokeDasharray="44 20" strokeLinecap="round" /></Svg>
+      <Svg width={26} height={26}><Circle cx={13} cy={13} r={10} stroke={theme.color.ink} strokeWidth={2.5} fill="none" strokeDasharray="44 20" strokeLinecap="round" /></Svg>
     </Animated.View>
   );
 }
 function Tick() {
-  return <Svg width={26} height={26} viewBox="0 0 26 26"><Path d="M5 13.5 L10.5 19 L21 7.5" stroke={theme.color.cloud} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>;
+  return <Svg width={26} height={26} viewBox="0 0 26 26"><Path d="M5 13.5 L10.5 19 L21 7.5" stroke={theme.color.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 }
 
 /** The one slow moment, Apple's shape: $250 · refunded if you lose. Once, ever. */
@@ -248,10 +226,7 @@ function Deposit({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () 
       <Label>Deposit</Label>
       <Text style={s.depositAmt}>${DEPOSIT}</Text>
       <Text style={s.depositLine}>refunded if you lose</Text>
-      <PressCloud onPress={onConfirm} shade style={{ alignSelf: 'stretch', marginTop: theme.space.s }} bodyStyle={s.pay} accessibilityLabel={`Pay ${DEPOSIT} dollars with Apple Pay`}>
-        <InkBody />
-        <Text style={s.payText}>Pay</Text>
-      </PressCloud>
+      <CloudButton label="Pay" onPress={onConfirm} style={{ marginTop: theme.space.s }} accessibilityLabel={`Pay ${DEPOSIT} dollars with Apple Pay`} />
       <Pressable onPress={onCancel} hitSlop={12}><Text style={s.cancel}>Not now</Text></Pressable>
     </View>
   );
@@ -302,15 +277,9 @@ const s = StyleSheet.create({
   ceilMark: { width: 16, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 5 },
   depositRoom: { height: 30, justifyContent: 'flex-end' },
   foot: { marginTop: 'auto', alignSelf: 'stretch', alignItems: 'stretch' },
-  btn: { alignSelf: 'stretch', height: 56, borderRadius: 4, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  btnOff: { opacity: 0.4 },
-  btnFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: theme.color.cloud, opacity: 0.18 },
-  btnText: { ...theme.type.sansBold, fontSize: 13, color: theme.color.cloud, letterSpacing: 2.4, textTransform: 'uppercase' },
   deposit: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 6 },
   depositAmt: { fontFamily: theme.font.price, fontSize: 64, color: theme.color.ink, marginTop: 4 },
   depositLine: { ...theme.type.sans, fontSize: 15, color: theme.color.muted, marginBottom: 14 },
-  pay: { alignSelf: 'stretch', height: 54, borderRadius: 4, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  payText: { ...theme.type.sansBold, fontSize: 13, color: theme.color.cloud, letterSpacing: 2.4, textTransform: 'uppercase' },
   cancel: { ...theme.type.sans, fontSize: 14, color: theme.color.faint, marginTop: 8 },
   teach: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(8,14,30,0.35)' },
   teachRing: { width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(8,14,30,0.75)', alignItems: 'center', justifyContent: 'center' },

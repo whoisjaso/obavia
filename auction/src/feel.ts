@@ -111,6 +111,11 @@ export const feel = {
   onDone(f: () => void) { doneListeners.add(f); return () => { doneListeners.delete(f); }; },
   /** A cloud surface touched down: the puff. Sound only; a press is not worth a haptic. */
   puff() { play('puff'); },
+  /** The 3D cloud button touched down: the puff and the light impact, one call, one frame. */
+  press() { play('puff'); impact(Haptics.ImpactFeedbackStyle.Light); },
+  /** A cloud button's action landed: the air swell (cloud-landed) and, unless the caller's moment already
+      carries one (the bid's thud), the heavy impact. */
+  swell(haptic: boolean = true) { play('swell'); if (haptic) impact(Haptics.ImpactFeedbackStyle.Heavy); },
   /** The surface rose back after a completed press: the breath in. A cancelled press rises silently. */
   rise() { lastRise = Date.now(); play('rise'); },
   /** A sheet or a page settled into place: the air leaving. Once per 300 ms, and never inside the
