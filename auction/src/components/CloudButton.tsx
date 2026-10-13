@@ -19,7 +19,12 @@
      landed   the one swell (1, 1.03, 1 over 420 ms) and a soft air ring behind it (1 to 1.4, peak 0.22 at
               120 ms), with cloud-landed and the heavy impact.
    Disabled never sinks. Reduced motion: no transform, no wisps, no ring, no breath; the press is an opacity
-   and the frames jump rest, pressed, rest; sounds and haptics stay. */
+   and the frames jump rest, pressed, rest; sounds and haptics stay.
+
+   The label is pressed into the cloud, not printed on it (the owner: "make the text as well etched into the
+   clouds, make it feel real and clean blended properly"). Three copies of the same glyphs: the wall of the cut
+   that faces away from the sun (a blue-grey shade, soft), the wall that catches it (ice), and the floor of the
+   letter (ink with the cloud's blue in it, not quite opaque, so the material shows through). See ETCH. */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PixelRatio, Platform, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
@@ -103,6 +108,30 @@ const WISPS = [
   { x: 0.74, size: 28, up: 15, out: 8 },
   { x: 0.85, size: 20, up: 12, out: 11 },
 ].slice(0, press3d.wisps);
+
+/* The etch, per material. The recipe follows what the label sits on, measured from the sprites' own pixels
+   (scripts in the report): the light cloud's label zone is luminance 0.43 to 0.88, and the dark lane's cloud is
+   also a pale blue mass there (0.34 to 0.58; ice letters on it would read 1.4:1), so both sprites take the
+   pressed-ink recipe. Only the ink bar is dark under the label; there the floor is ice. The sun stays above
+   left on every material: a cut reads as a cut only when its dark wall is on the lit side (swapped, the
+   letters read raised, measured in the first captures).
+     floor    the letter's body; under the press it darkens by `press` (opacity), the cut deepening as it squashes
+     shade    the wall in its own shadow: offset `d` toward the sun, blurred `blur`; under the press `d` shrinks
+              to `dIn`, the cloud closing over the cut
+     light    the wall that catches the sun: offset `d` away from it, barely soft (`soft`); on landed it brightens
+              by `land` with the swell
+   Offsets are device pixels, not points: 0.7 pt is 1.4 px at 2x but 2.1 at 3x, where the lit wall came loose
+   from the letter as a second outline. */
+export const ETCH = {
+  // ink #1C2436 turned toward the cloud's shade blue and a step deeper, at 88 %: the cloud shows through, and
+  // the floor still holds 4.5:1 on the darkest pixel under the label (a lighter blue mix at 84 % measured 3.3:1)
+  pressed: { floor: '#1A2540', floorO: 0.88, press: 0.08, shade: '#24304C', shadeO: 0.4, light: '#F8FAFF', lightO: 0.6, land: 0.3, d: 1.2, dIn: 0.6, blur: 1.2, soft: 0.4 },
+  // the ink bar: an ice floor, a deeper ink wall in shadow above left, a faint ice wall below right
+  ice: { floor: '#E9EFFE', floorO: 0.9, press: -0.08, shade: '#0A0E18', shadeO: 0.6, light: '#B8C8F1', lightO: 0.35, land: 0.35, d: 1.2, dIn: 0.6, blur: 1, soft: 0.6 },
+} as const;
+export type EtchRecipe = keyof typeof ETCH;
+/** The recipe for what the label sits on: the ink bar is the only dark floor (see ETCH). */
+export const etchFor = (tier: Tier): EtchRecipe => (tier === 'ink' ? 'ice' : 'pressed');
 
 const frameOf = (v: number) => { 'worklet'; return Math.max(0, Math.min(press3d.frames - 1, v >= press3d.frames - 1.5 ? press3d.frames - 1 : Math.round(v))); };
 /** How pressed a frame looks, 0 to 1: up over the press frames, down over the release frames. */
@@ -286,13 +315,39 @@ export function CloudButton({
             ? <Stack sp={sp} sc={sc} f={f} onError={failed} />
             : <SheetPlayer sp={sp} sc={sc} f={f} onError={failed} />)}
           <Animated.View pointerEvents="none" style={[s.safe, safe, labelSt]}>
-            {content ?? <Text style={[s.label, { color: ink }]} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>}
+            {content ?? <Etch label={label} recipe={etchFor(tier)} k={k} sw={sw} still={reduce} />}
             {holdMs != null && <Animated.View style={[s.fill, { backgroundColor: ink }, fillSt]} />}
           </Animated.View>
         </Animated.View>
       </GestureDetector>
       {/* in front: the wisps the release sheds from the top edge */}
       {tier !== 'ink' && !reduce && WISPS.map((p, i) => <Wisp key={i} p={p} w={w} h={h} t={wp} />)}
+    </View>
+  );
+}
+
+/** The label, pressed into the material: the shade wall, the lit wall, then the floor over both, three copies of
+    the same glyphs so only the edges of the walls show. The floor sits in the flow and sizes the box; the walls
+    are laid over it. Reduced motion: all three stay where they are. */
+function Etch({ label, recipe, k, sw, still }: { label: string; recipe: EtchRecipe; k: SharedValue<number>; sw: SharedValue<number>; still: boolean }) {
+  const e = ETCH[recipe];
+  const pr = PixelRatio.get(), d = e.d / pr, dIn = e.dIn / pr;   // device pixels to points
+  const lightSt = useAnimatedStyle(() => ({
+    opacity: still ? e.lightO : Math.min(1, e.lightO + e.land * Math.max(0, (sw.value - 1) / (cloud.swell - 1))),
+  }));
+  const shadeSt = useAnimatedStyle(() => {
+    const o = still ? d : d - (d - dIn) * k.value;
+    return { transform: [{ translateX: -o }, { translateY: -o }] };
+  });
+  const floorSt = useAnimatedStyle(() => ({ opacity: still ? e.floorO : e.floorO + e.press * k.value }));
+  const glyphs = { numberOfLines: 1, adjustsFontSizeToFit: true, selectable: false } as const;
+  return (
+    <View style={s.etch} accessible={false} importantForAccessibility="no-hide-descendants" aria-hidden>
+      <Animated.Text {...glyphs} style={[s.label, s.wall, { color: e.light, textShadowColor: e.light, textShadowRadius: e.soft, textShadowOffset: { width: 0, height: 0 }, transform: [{ translateX: d }, { translateY: d }] }, lightSt]}>{label}</Animated.Text>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: e.shadeO }, shadeSt]}>
+        <Text {...glyphs} style={[s.label, s.wall, { color: e.shade, textShadowColor: e.shade, textShadowRadius: e.blur, textShadowOffset: { width: 0, height: 0 } }]}>{label}</Text>
+      </Animated.View>
+      <Animated.Text {...glyphs} style={[s.label, { color: e.floor }, floorSt]}>{label}</Animated.Text>
     </View>
   );
 }
@@ -357,5 +412,7 @@ const s = StyleSheet.create({
   off: { opacity: 0.4 },
   safe: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   label: { ...theme.type.sansBold, fontSize: 13, letterSpacing: 3.1, textTransform: 'uppercase', textAlign: 'center' },
+  etch: { alignSelf: 'center' },
+  wall: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
   fill: { position: 'absolute', left: '22%', right: '22%', bottom: 4, height: 2, opacity: 0.5, transformOrigin: 'left' },
 });
