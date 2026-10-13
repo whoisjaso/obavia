@@ -9,6 +9,8 @@ import type { BidRequest } from '../../src/engine/server';
 import { viewerHtml } from './view';
 import { lastReconciliations, reconcile } from './reconcile';
 import { Whop } from './whop';
+import { COUNT_SQL, TERMS_VERSION, WINS_PER_YEAR, committed, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
+import type { BidIn } from './auction';
 export { Auction } from './auction';
 
 const DEPOSIT_USD = 250;
@@ -93,15 +95,35 @@ async function handle(req: Request, env: Env): Promise<Response> {
       }
       // buyer: bid, watch, live
       if (rest === '/bids' || rest === '/watch' || rest === '/live') {
+        if (rest === '/bids' && req.method === 'POST') {   // a Desk or admin key never bids, on any lot (D11)
+          const desk = await dealerFrom(req, env.DEALER_SECRET);
+          if (desk) {
+            await refuse(env, id, desk === '*' ? 'admin' : `dealer:${desk}`, 'not_a_buyer', null);
+            return fail('not_a_buyer', 403);
+          }
+        }
         const buyer = await buyerFrom(req, env.BUYER_SECRET);
         if (!buyer) return text('sign in', 401);
         if (rest === '/bids') {
-          const body = await req.json<Omit<BidRequest, 'bidder' | 'lotId'>>();
+          const body = await req.json<Omit<BidRequest, 'bidder' | 'lotId'> & { terms?: string }>();
           if (!(body.amount > 0) || !(body.max >= body.amount) || !body.key || body.key.length > 128) return text('bad bid', 400);
-          const admitted = await env.DB.prepare('SELECT deposit_status FROM buyers WHERE id = ?1').bind(buyer).first<{ deposit_status: string }>();
-          if (admitted?.deposit_status !== 'captured') return text('deposit first', 402);
-          const fwd: BidRequest = { lotId: id, bidder: buyer, amount: Math.round(body.amount), max: Math.round(body.max), key: `${buyer}:${body.key}` };
-          return toObject({ method: 'POST', body: JSON.stringify(fwd) });
+          // one read of the copy admits the buyer: deposit, terms, the year's count, and what the shill check compares
+          const row = await env.DB.prepare(`SELECT b.deposit_status, b.terms_at, b.name, b.phone, b.address, c.wins, c.owed, c.leading FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
+            .bind(buyer, yearStart(Date.now()), id).first<{ deposit_status: string; terms_at: number | null; name: string | null; phone: string | null; address: string | null } & Counts>();
+          if (row?.deposit_status !== 'captured') return text('deposit first', 402);
+          const firstBid = row.terms_at == null;
+          if (firstBid && body.terms !== TERMS_VERSION) return json({ error: 'terms_required', version: TERMS_VERSION }, 409);
+          const count = committed(row);
+          if (count >= WINS_PER_YEAR) {   // D15: a bid that could become a fifth win this year is refused
+            await refuse(env, id, buyer, 'win_cap', String(count));
+            return json({ error: 'win_cap', count, cap: WINS_PER_YEAR }, 403);
+          }
+          const fwd: BidIn = { lotId: id, bidder: buyer, amount: Math.round(body.amount), max: Math.round(body.max), key: `${buyer}:${body.key}`, who: { phone: row.phone, address: row.address, name: row.name } };
+          const res = await toObject({ method: 'POST', body: JSON.stringify(fwd) });
+          if (firstBid && res.status === 200) {   // D10: the first bid placed carries the terms; stamped once
+            await env.DB.prepare('UPDATE buyers SET terms_version = ?2, terms_at = ?3 WHERE id = ?1 AND terms_at IS NULL').bind(buyer, TERMS_VERSION, Date.now()).run();
+          }
+          return res;
         }
         return stub.fetch(req);   // watch; or the WebSocket upgrade for /live
       }
@@ -120,12 +142,15 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const lots = (await env.DB.prepare('SELECT lot FROM lots').all<{ lot: string }>()).results.map(r => JSON.parse(r.lot));
       const incidents = await env.DB.prepare('SELECT dealer, COUNT(*) AS n FROM incidents GROUP BY dealer').all<{ dealer: string; n: number }>();
       const held = dep.results.find(d => d.s === 'captured')?.n ?? 0;
+      const refusals = await env.DB.prepare('SELECT reason, COUNT(*) AS n FROM bid_refusals GROUP BY reason').all<{ reason: string; n: number }>();
+      const recentRefusals = await env.DB.prepare('SELECT lot_id AS lotId, who, reason, matched, at FROM bid_refusals ORDER BY at DESC, id DESC LIMIT 50').all();
       const sales = lots.filter(l => l.sale).map(l => ({ lotId: l.id, dealer: l.dealer, state: l.sale.startedAt ? 'started' : l.sale.voidedAt ? 'voided' : l.sale.forfeitedAt ? 'forfeited' : l.sale.paidAt ? 'paid' : 'owed', deposit: l.sale.deposit, hammer: l.sale.hammer, deadlineAt: l.sale.deadlineAt }));
       return json({
         deposits: { heldCount: held, heldUsd: held * DEPOSIT_USD, byStatus: Object.fromEntries(dep.results.map(d => [d.s, d.n])), reserveRatio: 1 },   // every held deposit sits in the Whop balance; nothing is spent
         lots: { open: lots.filter(l => !l.closed).length, atLender: lots.filter(l => !l.closed && l.car?.collateral?.title?.status === 'lender').length, floorBelowPayoff: lots.filter(l => !l.closed && (l.car?.collateral?.title?.payoff ?? 0) > (l.car?.collateral?.floor ?? Infinity)).length },
         sales,
         incidentsByDealer: Object.fromEntries(incidents.results.map(i => [i.dealer, i.n])),
+        bidRefusals: { byReason: Object.fromEntries(refusals.results.map(r => [r.reason, r.n])), recent: recentRefusals.results },   // D11 and D15
         dealers: await dealerRows(),
         obaviaFeesOwed: 0,   // none until the GDN issues (43 TAC §215.85)
         reconciliations: await lastReconciliations(env, 7),   // the nightly D1 vs object and Whop vs deposits report
@@ -166,10 +191,12 @@ async function handle(req: Request, env: Env): Promise<Response> {
 
     // the buyer: a token once the licence is read; the deposit; the push token
     if (req.method === 'POST' && url.pathname === '/me') {
-      const b = await req.json<{ id: string; name?: string; state?: string }>();
+      const b = await req.json<{ id: string; name?: string; state?: string; phone?: string; address?: string }>();
       if (!/^[A-Za-z0-9_-]{4,64}$/.test(b.id ?? '')) return text('bad id', 400);
-      await env.DB.prepare('INSERT INTO buyers (id, name, state, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(id) DO UPDATE SET name = COALESCE(?2, name), state = COALESCE(?3, state)')
-        .bind(b.id, b.name ?? null, b.state ?? null, Date.now()).run();
+      const phone = b.phone == null ? null : phoneDigits(b.phone), address = b.address == null ? null : plain(b.address, 160);
+      if ((b.phone != null && !phone) || (b.address != null && !address)) return text('bad contact', 400);
+      await env.DB.prepare('INSERT INTO buyers (id, name, state, phone, address, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(id) DO UPDATE SET name = COALESCE(?2, name), state = COALESCE(?3, state), phone = COALESCE(?4, phone), address = COALESCE(?5, address)')
+        .bind(b.id, b.name ?? null, b.state ?? null, phone, address, Date.now()).run();
       return json({ token: await mintBuyerToken(env.BUYER_SECRET, b.id) });
     }
     if (req.method === 'POST' && url.pathname === '/me/push') {
@@ -183,8 +210,12 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (req.method === 'GET' && url.pathname === '/me') {
       const buyer = await buyerFrom(req, env.BUYER_SECRET);
       if (!buyer) return text('sign in', 401);
-      const row = await env.DB.prepare('SELECT name, state, deposit_status FROM buyers WHERE id = ?1').bind(buyer).first();
-      return json({ id: buyer, ...row });
+      const row = await env.DB.prepare(`SELECT b.name, b.state, b.deposit_status, b.terms_version, b.terms_at, c.wins, c.owed, c.leading FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
+        .bind(buyer, yearStart(Date.now()), '').first<{ name: string | null; state: string | null; deposit_status: string; terms_version: string | null; terms_at: number | null } & Counts>();
+      if (!row) return json({ id: buyer });
+      const { wins, owed, leading, terms_version, terms_at, ...rest } = row;
+      // D15: winsLeft is the one number the Me screen shows; wins are cars started this calendar year
+      return json({ id: buyer, ...rest, wins, winsLeft: winsLeft({ wins, owed, leading }), winsPerYear: WINS_PER_YEAR, termsVersion: terms_version, termsAt: terms_at, termsCurrent: TERMS_VERSION });
     }
     if (req.method === 'POST' && url.pathname === '/me/deposit/checkout') {
       const buyer = await buyerFrom(req, env.BUYER_SECRET);
@@ -240,6 +271,11 @@ async function handle(req: Request, env: Env): Promise<Response> {
     }
 
     return text('not found', 404);
+}
+
+/** A bid refused for who the bidder is (D11, D15): one row for the admin's exposure view. */
+async function refuse(env: Env, lotId: string, who: string, reason: 'seller_cannot_bid' | 'not_a_buyer' | 'win_cap', matched: string | null) {
+  await env.DB.prepare('INSERT INTO bid_refusals (lot_id, who, reason, matched, at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(lotId, who.slice(0, 80), reason, matched, Date.now()).run().catch(() => {});
 }
 
 /* POST /dealers/mint. Bearer MINT_SECRET, never DEALER_SECRET. One key for one

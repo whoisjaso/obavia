@@ -11,9 +11,12 @@ import { collateralRefusal, type CarMeta } from '../../src/engine/meta';
 import type { Ack, BidRequest, Event, Lot } from '../../src/engine/server';
 import type { Env } from './env';
 import { push } from './push';
+import { shillMatch, type Who } from './bidders';
 
 export type OpenRequest = { id: string; dealer: string; start: number; retail: number; opensAt?: number; closesAt: number; car?: CarMeta };
 type Stored = Lot & { dealer: string };
+/** The bid as the Worker forwards it: the engine's request plus what the Worker knows of the bidder (D11). */
+export type BidIn = BidRequest & { who?: Who };
 
 export const PAY_WINDOW_MS = 48 * 3_600_000;
 
@@ -46,7 +49,7 @@ export class Auction extends DurableObject<Env> {
         if (!lot) return text('no lot', 404);
         await this.copy(lot); return json(this.publicLot(lot));
       }
-      case 'POST /bids': return this.bid(await req.json<BidRequest>(), Date.now());
+      case 'POST /bids': return this.bid(await req.json<BidIn>(), Date.now());
       case 'POST /watch': return this.watch(Number(url.searchParams.get('delta') ?? 1));
       case 'POST /close': {   // the dealer ends it now; never earlier than a live bid's refill
         if (!lot || lot.closed) return text('closed', 409);
@@ -117,11 +120,18 @@ export class Auction extends DurableObject<Env> {
   }
 
   /** The transaction. Idempotent on the key: the same ack comes back for a retried request. */
-  private async bid(req: BidRequest, now: number): Promise<Response> {
-    const prior = await this.ctx.storage.get<Ack>(`ack:${req.key}`);
-    if (prior) return json(prior);
+  private async bid(req: BidIn, now: number): Promise<Response> {
     const lot = await this.load();
     if (!lot) return text('no lot', 404);
+    // D11 (Bus. & Com. Code §2.328(d)): the seller does not bid on his own car. Checked on every bid, retries included.
+    const shill = shillMatch(req.who, lot.car?.dealer);
+    if (shill.matched) {
+      this.ctx.waitUntil(this.env.DB.prepare('INSERT INTO bid_refusals (lot_id, who, reason, matched, at) VALUES (?1, ?2, ?3, ?4, ?5)')
+        .bind(lot.id, req.bidder, 'seller_cannot_bid', shill.matched, now).run().catch(() => {}));
+      return json({ error: 'seller_cannot_bid' }, 403);
+    }
+    const prior = await this.ctx.storage.get<Ack>(`ack:${req.key}`);
+    if (prior) return json(prior);
     let ack: Ack; let outbid: string | undefined;
     if (lot.closed || now >= lot.closesAt) {
       if (!lot.closed) lot.closed = { at: lot.closesAt, sold: lot.bids > 0 };
@@ -144,7 +154,7 @@ export class Auction extends DurableObject<Env> {
     // price, close time and ack in one write; the copy and the bid log after
     await this.ctx.storage.put({ lot, [`ack:${req.key}`]: ack });
     this.lot = lot;
-    this.ctx.waitUntil(this.copy(lot, req, ack));
+    this.ctx.waitUntil(this.copy(lot, req, ack, shill.checked));
     if (ack.ok || ack.reason === 'outbid') this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'bid' });
     if (outbid) {   // the push carries the words and the time left; the app stays silent
       const left = Math.max(0, lot.closesAt - now), m = Math.floor(left / 60000), sec = Math.floor((left % 60000) / 1000);
@@ -187,13 +197,13 @@ export class Auction extends DurableObject<Env> {
   private publicLot(lot: Stored): Lot { const { dealer: _d, max: _m, ...pub } = lot; return { ...pub, max: undefined }; }
 
   /** D1: the copy, compared nightly; never read on the bid path. */
-  private async copy(lot: Stored, req?: BidRequest, ack?: Ack) {
+  private async copy(lot: Stored, req?: BidRequest, ack?: Ack, shillCheck = '') {
     try {
       await this.env.DB.prepare('INSERT INTO lots (id, dealer, lot, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(id) DO UPDATE SET lot = ?3, updated_at = ?4')
         .bind(lot.id, lot.dealer, JSON.stringify(lot), Date.now()).run();
       if (req && ack) {
-        await this.env.DB.prepare('INSERT OR IGNORE INTO bids (key, lot_id, bidder, amount, max, ok, reason, stamped_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
-          .bind(req.key, lot.id, req.bidder, req.amount, req.max, ack.ok ? 1 : 0, ack.ok ? null : ack.reason, ack.stampedAt).run();
+        await this.env.DB.prepare('INSERT OR IGNORE INTO bids (key, lot_id, bidder, amount, max, ok, reason, stamped_at, shill_check) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)')
+          .bind(req.key, lot.id, req.bidder, req.amount, req.max, ack.ok ? 1 : 0, ack.ok ? null : ack.reason, ack.stampedAt, shillCheck).run();
       }
     } catch { /* the object is the truth; the copy catches up */ }
   }

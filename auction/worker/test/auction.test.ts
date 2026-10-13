@@ -20,8 +20,9 @@ async function signIn(id: string) {
 }
 const open = (id: string, closesIn: number, start = 4900, headers: Record<string, string> = DEALER) =>
   SELF.fetch(`${base}/lots/${id}/open`, { method: 'POST', headers, body: JSON.stringify({ id, dealer: 'P000000', start, retail: 7995, closesAt: Date.now() + closesIn, car: CAR }) });
-const bid = (id: string, tok: string, amount: number, max = amount, key = crypto.randomUUID()) =>
-  SELF.fetch(`${base}/lots/${id}/bids`, { method: 'POST', headers: { authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: JSON.stringify({ amount, max, key }) });
+const TERMS = '2026-10-13';   // decisions §9 D10; the app sends it with the first bid
+const bid = (id: string, tok: string, amount: number, max = amount, key = crypto.randomUUID(), extra: Record<string, unknown> = { terms: TERMS }) =>
+  SELF.fetch(`${base}/lots/${id}/bids`, { method: 'POST', headers: { authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: JSON.stringify({ amount, max, key, ...extra }) });
 
 beforeAll(async () => {
   await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
@@ -75,7 +76,8 @@ describe('the object', () => {
   });
   it('the alarm drops the hammer and a late bid is stamped', async () => {
     await open('l5', 5_000);
-    await bid('l5', token, 5000);                 // refills to 2:00, so the hammer waits
+    const t = await signIn('buyer-l5');   // one buyer per lot from here: a buyer leading four lots is at the win cap (D15)
+    await bid('l5', t, 5000);                 // refills to 2:00, so the hammer waits
     const ids = await listDurableObjectIds(env.AUCTION);
     expect(ids.length).toBeGreaterThan(0);
     // bring the close forward as the dealer, then fire the alarm
@@ -85,20 +87,20 @@ describe('the object', () => {
     await new Promise(r => setTimeout(r, 60));
     const lot = await (await SELF.fetch(`${base}/lots/l5`)).json<any>();
     expect(lot.closed?.sold).toBe(true);
-    const late = await (await bid('l5', token, 6000)).json<any>();
+    const late = await (await bid('l5', t, 6000)).json<any>();
     expect(late.ok).toBe(false); expect(late.reason).toBe('closed'); expect(late.lateByMs).toBeGreaterThanOrEqual(0);
   });
   it('a standing ceiling beats a lower challenger and says outbid', async () => {
     await open('l6', 10 * 60_000);
-    const b = await signIn('buyer-b');
-    await bid('l6', token, 4900, 6000);
+    const b = await signIn('buyer-b'), a = await signIn('buyer-l6');
+    await bid('l6', a, 4900, 6000);
     const r = await (await bid('l6', b, 5000, 5200)).json<any>();
     expect(r.ok).toBe(false); expect(r.reason).toBe('outbid');
-    expect(r.lot.leader).toBe('buyer-a'); expect(r.lot.high).toBe(5450);
+    expect(r.lot.leader).toBe('buyer-l6'); expect(r.lot.high).toBe(5450);
   });
   it('the copy in D1 follows the object', async () => {
     await open('l7', 10 * 60_000);
-    await bid('l7', token, 5000);
+    await bid('l7', await signIn('buyer-l7'), 5000);
     await new Promise(r => setTimeout(r, 50));
     const row = await env.DB.prepare('SELECT lot FROM lots WHERE id = ?1').bind('l7').first<{ lot: string }>();
     expect(JSON.parse(row!.lot).high).toBe(5000);
@@ -164,12 +166,12 @@ describe('the pilot', () => {
   });
   it('the hammer opens a sale with a 48 h deadline; pickup with the wrong VIN is refused; the right one starts the car', async () => {
     await open('p3', 5_000);
-    await bid('p3', token, 5000);
+    await bid('p3', await signIn('buyer-p3'), 5000);
     await SELF.fetch(`${base}/lots/p3/close`, { method: 'POST', headers: DEALER });
     const stub = env.AUCTION.get(env.AUCTION.idFromName('p3'));
     await runDurableObjectAlarm(stub); await new Promise(r => setTimeout(r, 60));
     const lot = await (await SELF.fetch(`${base}/lots/p3`)).json<any>();
-    expect(lot.sale?.buyer).toBe('buyer-a'); expect(lot.sale.deadlineAt - lot.sale.wonAt).toBe(48 * 3_600_000);
+    expect(lot.sale?.buyer).toBe('buyer-p3'); expect(lot.sale.deadlineAt - lot.sale.wonAt).toBe(48 * 3_600_000);
     const wrong = await SELF.fetch(`${base}/lots/p3/pickup`, { method: 'POST', headers: DEALER, body: JSON.stringify({ vin: '999999' }) });
     expect(wrong.status).toBe(409);
     const right = await SELF.fetch(`${base}/lots/p3/pickup`, { method: 'POST', headers: DEALER, body: JSON.stringify({ vin: '000001' }) });
@@ -204,7 +206,7 @@ describe('collateral', () => {
   });
   it('a void releases the deposit and counts against the dealer; the owner sees it in the exposure', async () => {
     await open('c2', 5_000);
-    await bid('c2', token, 5000);
+    await bid('c2', await signIn('buyer-c2'), 5000);
     await SELF.fetch(`${base}/lots/c2/close`, { method: 'POST', headers: DEALER });
     await runDurableObjectAlarm(env.AUCTION.get(env.AUCTION.idFromName('c2'))); await new Promise(r => setTimeout(r, 60));
     const v = await SELF.fetch(`${base}/lots/c2/void`, { method: 'POST', headers: DEALER, body: JSON.stringify({ reason: 'sold on the lot' }) });
@@ -223,7 +225,7 @@ describe('collateral', () => {
     const down = await SELF.fetch(`${base}/lots/c3/car`, { method: 'POST', headers: DEALER, body: JSON.stringify({ collateral: { title: { status: 'hand' }, floor: 4500, insured: true } }) });
     expect(down.status).toBe(200);
     const lot = await down.json<any>(); expect(lot.start).toBe(4500); expect(lot.high).toBe(4500); expect(lot.car.collateral.floor).toBe(4500);
-    await bid('c3', token, 4500);
+    await bid('c3', await signIn('buyer-c3'), 4500);
     const after = await SELF.fetch(`${base}/lots/c3/car`, { method: 'POST', headers: DEALER, body: JSON.stringify({ collateral: { title: { status: 'hand' }, floor: 4000, insured: true } }) });
     expect(after.status).toBe(409);
   });
@@ -339,10 +341,113 @@ describe('the viewer', () => {
   });
 });
 
+describe('who may bid (decisions §9 D10, D11, D15)', () => {
+  const asBuyer = async (id: string, extra: Record<string, string> = {}) => {
+    const r = await SELF.fetch(`${base}/me`, { method: 'POST', body: JSON.stringify({ id, name: 'Test', state: 'TX', ...extra }) });
+    expect(r.status).toBe(200);
+    const t = (await r.json<{ token: string }>()).token;
+    expect((await SELF.fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${t}` }, body: '{}' })).status).toBe(200);
+    return t;
+  };
+  const me = async (t: string) => (await SELF.fetch(`${base}/me`, { headers: { authorization: `Bearer ${t}` } })).json<any>();
+  const SELLER = { ...CAR, dealer: { ...CAR.dealer, phone: '(713) 555-0100', afterHours: '713.555.0199' } };
+  const openSeller = (id: string) => SELF.fetch(`${base}/lots/${id}/open`, { method: 'POST', headers: DEALER, body: JSON.stringify({ id, dealer: 'P000000', start: 4900, retail: 7995, closesAt: Date.now() + 10 * 60_000, car: SELLER }) });
+
+  it('D10: the first bid ever needs the terms (409 terms_required); it stamps the buyer; later bids need nothing', async () => {
+    const t = await asBuyer('buyer-terms');
+    await open('w1', 10 * 60_000);
+    const none = await bid('w1', t, 5000, 5000, undefined, {});
+    expect(none.status).toBe(409); expect(await none.json()).toEqual({ error: 'terms_required', version: TERMS });
+    const old = await bid('w1', t, 5000, 5000, undefined, { terms: '2026-01-01' });
+    expect(old.status).toBe(409);
+    expect(await env.DB.prepare('SELECT terms_at FROM buyers WHERE id = ?1').bind('buyer-terms').first()).toEqual({ terms_at: null });
+    const before = Date.now();
+    const first = await bid('w1', t, 5000);
+    expect(first.status).toBe(200); expect((await first.json<any>()).ok).toBe(true);
+    const row = await env.DB.prepare('SELECT terms_version, terms_at FROM buyers WHERE id = ?1').bind('buyer-terms').first<{ terms_version: string; terms_at: number }>();
+    expect(row?.terms_version).toBe(TERMS); expect(row!.terms_at).toBeGreaterThanOrEqual(before);
+    const later = await bid('w1', t, 5250, 5250, undefined, {});
+    expect(later.status).toBe(200); expect((await later.json<any>()).ok).toBe(true);
+    const m = await me(t);
+    expect(m.termsVersion).toBe(TERMS); expect(m.termsAt).toBe(row!.terms_at); expect(m.termsCurrent).toBe(TERMS);
+  });
+
+  it('D11: a Desk key or the admin secret never bids, on any lot (403 not_a_buyer), and the attempt is logged', async () => {
+    const d = (await (await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn: 'P000000', name: 'Triple J Auto' }) })).json<{ token: string }>()).token;
+    await open('w2', 10 * 60_000);
+    const asDealer = await bid('w2', d, 5000);
+    expect(asDealer.status).toBe(403); expect(await asDealer.json()).toEqual({ error: 'not_a_buyer' });
+    const other = (await (await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn: 'P555555', name: 'Elsewhere Motors' }) })).json<{ token: string }>()).token;
+    expect((await bid('w2', other, 5000)).status).toBe(403);   // not his lot either: still no
+    expect((await bid('w2', 'test-dealer-secret', 5000)).status).toBe(403);
+    expect((await (await SELF.fetch(`${base}/lots/w2`)).json<any>()).bids).toBe(0);
+    const rows = (await env.DB.prepare(`SELECT who, reason FROM bid_refusals WHERE lot_id = 'w2' ORDER BY id`).all()).results;
+    expect(rows).toEqual([{ who: 'dealer:P000000', reason: 'not_a_buyer' }, { who: 'dealer:P555555', reason: 'not_a_buyer' }, { who: 'admin', reason: 'not_a_buyer' }]);
+  });
+
+  it('D11: a buyer sharing the seller\'s phone, address or name is refused (403 seller_cannot_bid); the check is logged with every bid', async () => {
+    expect((await SELF.fetch(`${base}/me`, { method: 'POST', body: JSON.stringify({ id: 'buyer-badphone', phone: '555-01' }) })).status).toBe(400);
+    const byPhone = await asBuyer('buyer-shill-phone', { phone: '+1 713 555 0100' });
+    const byAfterHours = await asBuyer('buyer-shill-after', { phone: '7135550199' });
+    const byAddress = await asBuyer('buyer-shill-street', { address: '100 Example St.' });
+    const byName = await asBuyer('buyer-shill-name', { name: 'TRIPLE J AUTO' });
+    const clean = await asBuyer('buyer-clean', { phone: '214-555-0123', address: '9 Other Rd' });
+    await openSeller('w3');
+    for (const [t, field] of [[byPhone, 'phone'], [byAfterHours, 'phone'], [byAddress, 'address'], [byName, 'name']] as const) {
+      const r = await bid('w3', t, 5000);
+      expect(r.status).toBe(403); expect(await r.json()).toEqual({ error: 'seller_cannot_bid' });
+      await new Promise(r => setTimeout(r, 20));
+      const last = await env.DB.prepare(`SELECT who, reason, matched FROM bid_refusals WHERE lot_id = 'w3' ORDER BY id DESC LIMIT 1`).first<{ who: string; reason: string; matched: string }>();
+      expect(last?.reason).toBe('seller_cannot_bid'); expect(last?.matched).toBe(field);
+    }
+    expect((await SELF.fetch(`${base}/me`, { headers: { authorization: `Bearer ${byPhone}` } }).then(r => r.json<any>())).termsAt).toBeNull();   // a refused bid stamps nothing
+    const ok = await bid('w3', clean, 5000);
+    expect(ok.status).toBe(200); expect((await ok.json<any>()).ok).toBe(true);
+    await new Promise(r => setTimeout(r, 60));
+    const logged = await env.DB.prepare(`SELECT shill_check FROM bids WHERE lot_id = 'w3' AND bidder = 'buyer-clean'`).first<{ shill_check: string }>();
+    expect(logged?.shill_check).toBe('phone,address,name');
+    expect((await (await SELF.fetch(`${base}/lots/w3`)).json<any>()).bids).toBe(1);
+    const x = await (await SELF.fetch(`${base}/admin/exposure`, { headers: DEALER })).json<any>();
+    expect(x.bidRefusals.byReason.seller_cannot_bid).toBe(4);
+    expect(x.bidRefusals.byReason.not_a_buyer).toBe(3);
+    expect(x.bidRefusals.recent.find((r: any) => r.who === 'buyer-shill-street')).toMatchObject({ lotId: 'w3', reason: 'seller_cannot_bid', matched: 'address' });
+  });
+
+  it('D15: four wins a calendar year; a bid that could make a fifth is refused (403 win_cap) and /me says how many are left', async () => {
+    const t = await asBuyer('buyer-cap');
+    expect(await me(t)).toMatchObject({ wins: 0, winsLeft: 4, winsPerYear: 4 });
+    const now = Date.now(), lastYear = Date.UTC(new Date(now).getUTCFullYear() - 1, 5, 1);
+    const seed = (id: string, sale: Record<string, unknown>) => env.DB.prepare('INSERT INTO lots (id, dealer, lot, updated_at) VALUES (?1, ?2, ?3, ?4)')
+      .bind(id, 'P000000', JSON.stringify({ id, high: 5000, bids: 1, closesAt: now - 1, leader: 'buyer-cap', closed: { at: now - 1, sold: true }, sale: { buyer: 'buyer-cap', hammer: 5000, wonAt: now - 1, deadlineAt: now, deposit: 'held', ...sale } }), now).run();
+    await seed('cap1', { startedAt: now - 3000 }); await seed('cap2', { startedAt: now - 2000 }); await seed('cap3', { startedAt: now - 1000 });
+    await seed('capOld', { startedAt: lastYear });                       // last calendar year: does not count
+    await seed('capVoid', { voidedAt: now - 500 });                      // voided: not a win
+    await seed('capOwed', {});                                           // won, not started: counts, it becomes a win
+    expect(await me(t)).toMatchObject({ wins: 3, winsLeft: 0 });
+    await open('w4', 10 * 60_000);
+    const capped = await bid('w4', t, 5000);
+    expect(capped.status).toBe(403); expect(await capped.json()).toEqual({ error: 'win_cap', count: 4, cap: 4 });
+    expect((await env.DB.prepare(`SELECT reason, matched FROM bid_refusals WHERE who = 'buyer-cap'`).first())).toEqual({ reason: 'win_cap', matched: '4' });
+
+    await env.DB.prepare(`UPDATE lots SET lot = json_set(lot, '$.sale.forfeitedAt', ?1) WHERE id = 'capOwed'`).bind(now).run();   // forfeited: no longer a win
+    expect(await me(t)).toMatchObject({ wins: 3, winsLeft: 1 });
+    const fourth = await bid('w4', t, 5000);
+    expect(fourth.status).toBe(200); expect((await fourth.json<any>()).youLead).toBe(true);
+    await new Promise(r => setTimeout(r, 60));
+    expect(await me(t)).toMatchObject({ wins: 3, winsLeft: 0 });           // leading w4 can become the fourth
+    expect((await bid('w4', t, 5200, 5600)).status).toBe(200);             // raising on the lot it leads is not a fifth
+    await open('w5', 10 * 60_000);
+    const fifth = await bid('w5', t, 5000);
+    expect(fifth.status).toBe(403); expect((await fifth.json<any>()).count).toBe(4);
+
+    await env.DB.prepare(`DELETE FROM lots WHERE id IN ('cap1', 'cap2', 'cap3', 'capOld', 'capVoid', 'capOwed')`).run();   // no objects behind them: keep the reconciliation honest
+  });
+});
+
 describe('the nightly reconciliation', () => {
   it('finds a copy that differs from the object, repairs it from the object, and says equal the next night', async () => {
     await open('r1', 10 * 60_000);
-    await bid('r1', token, 5200, 5800);
+    await bid('r1', await signIn('buyer-r1'), 5200, 5800);
     await new Promise(r => setTimeout(r, 60));
     const row = await env.DB.prepare('SELECT lot FROM lots WHERE id = ?1').bind('r1').first<{ lot: string }>();
     const good = JSON.parse(row!.lot);
