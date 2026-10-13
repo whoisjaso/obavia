@@ -14,12 +14,13 @@ import { SAY, checkVerify, live, session, startVerify, type Profile } from './li
 import { SHAPES } from './lib/shapes';
 import { STATES, hasList as listFor, loadDealerIndex, searchDealers, type DealerIndex, type DealerRecord } from './lib/dealers';
 import { finishOnboarding, setLaneSettings, useStore } from './store';
-import { KEY_SHAPE, dealerKey } from './lib/auction';
+import { KEY_SHAPE, accountStart, accountWords, dealerKey, emailOk, getMe, said } from './lib/auction';
 import { E164, HOURS, HOURS_ORDER, defaultSettings, gdnFromKey, hoursChoice, recordFor, toE164, type DealerSettings } from './lib/dealer-settings';
 import { Sheet } from './Sheet';
 import { exampleSales } from './data';
 import { COMMON, KIND_TITLE, SYSTEMS, searchSystems, systemById, type System, type SystemKind } from './lib/systems';
 import { Choice, Ic, feel, transition } from './ui';
+import { Obj } from './Auction';
 import { formatPhone, isCompletePhone } from './lib/forms/phone';
 import { isPersonName } from './lib/fill-130u/seller-name';
 import { parseMoney } from './lib/money';
@@ -28,7 +29,7 @@ import { parseMoney } from './lib/money';
    paperwork prints is asked on its own page (and confirmed rather than asked
    when the licence record already has it): nothing on a bill of sale, a
    130-U or a Buyer's Guide comes from the example dealer. */
-const ORDER = ['key', 'state', 'name', 'you', 'code', 'address', 'phone', 'lane', 'hours', 'pickup', 'after', 'email', 'signer', 'title', 'docFee', 'lateFee', 'logo', 'colour', 'system', 'paper'] as const;
+const ORDER = ['key', 'state', 'name', 'you', 'code', 'address', 'phone', 'lane', 'hours', 'pickup', 'after', 'whop', 'email', 'signer', 'title', 'docFee', 'lateFee', 'logo', 'colour', 'system', 'paper'] as const;
 type Page = (typeof ORDER)[number];
 const TITLES = ['Owner', 'General Manager', 'Manager', 'Finance Manager'];
 
@@ -51,25 +52,32 @@ function SystemTile({ s, on, onPick }: { s: System; on: boolean; onPick: () => v
   );
 }
 
-/* ---------- the lane settings (gap-table Wave 2-C; phases Phase 2, Onboarding (dealer)) ----------
-   Four pages, one question each: the lane toggle, the pickup hours, the pickup address, the after-hours
-   line. Onboarding asks them right after the Desk's phone, so the after-hours line starts as that phone
-   and the pickup address as the lot just confirmed; LaneSettings below runs the same pages from the Desk
-   later. While the draft is open the after-hours line is the text in the box; saved, it is E.164. */
-export const LANE_PAGES = ['lane', 'hours', 'pickup', 'after'] as const;
+/* ---------- the lane settings (gap-table Wave 2-C and W3-C; phases Phase 2, Onboarding (dealer)) ----------
+   Five pages, one question each: the lane toggle, the pickup hours, the pickup address, the after-hours
+   line, then Whop (the connected account the $250 is paid into: the email, POST /dealers/account/start,
+   "Connected · biz_••••"; Whop runs its own identity checks, README). Onboarding asks them right after the
+   Desk's phone, so the after-hours line starts as that phone and the pickup address as the lot just
+   confirmed; LaneSettings below runs the same pages from the Desk later. The Whop page needs the dealer's
+   key (the call carries it), so it is skipped while none is held. While the draft is open the after-hours
+   line is the text in the box; saved, it is E.164. */
+export const LANE_PAGES = ['lane', 'hours', 'pickup', 'after', 'whop'] as const;
 export type LanePage = (typeof LANE_PAGES)[number];
-type Draft = DealerSettings;   // afterHours holds the box's text until saved
+type Draft = DealerSettings & { whopEmail?: string };   // afterHours holds the box's text until saved; whopEmail is the box on the Whop page, never saved
 const T17 = { font: '500 17px/1.45 var(--sans)', color: 'var(--muted)' } as const;
 const draftFrom = (s: DealerSettings): Draft => ({ ...s, afterHours: formatPhone(s.afterHours) });
-const saved = (d: Draft): DealerSettings => ({ ...d, afterHours: toE164(d.afterHours), address: d.address.trim() });
+const saved = ({ whopEmail: _e, ...d }: Draft): DealerSettings => ({ ...d, afterHours: toE164(d.afterHours), address: d.address.trim() });
 /** A dealer key for one GDN is kept on this device (not the admin's d:*). */
 const laneKeyHeld = () => { const k = dealerKey.get(); return !!k && KEY_SHAPE.test(k) && !!gdnFromKey(k); };
 const splitAddress = (a: string) => { const at = a.indexOf(','); return at < 0 ? [a, ''] : [a.slice(0, at), a.slice(at + 1).trim()]; };
 
 /** onward(patch): the answer is the next tap; the owner applies the patch and decides the next page. */
-type LaneProps = { page: LanePage; d: Draft; put: (p: Partial<Draft>) => void; editAddr: boolean; setEditAddr: (b: boolean) => void; onward: (p?: Partial<Draft>) => void };
+type LaneProps = { page: LanePage; d: Draft; put: (p: Partial<Draft>) => void; editAddr: boolean; setEditAddr: (b: boolean) => void; onward: (p?: Partial<Draft>) => void; dealerEmail: string; whopBusy: boolean; whopErr: string | null };
+/** The pages this dealer walks: the Whop page only with a key on this device (the call carries it). */
+export const lanePages = (keyHeld = laneKeyHeld()): LanePage[] => LANE_PAGES.filter(p => p !== 'whop' || keyHeld);
 
-function LaneQuestion({ page, d, put, editAddr, onward }: LaneProps) {
+function LaneQuestion({ page, d, put, editAddr, onward, dealerEmail }: LaneProps) {
+  /* The Whop page opens on what the lane already holds: a connected account shows itself, so the page is a confirmation, not a question. */
+  useEffect(() => { if (page !== 'whop' || d.whopAccount) return; let on = true; getMe().then(r => { if (on && r.ok && r.value.whopAccount) put({ whopAccount: r.value.whopAccount }); }); return () => { on = false; }; }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
   if (page === 'lane') return (
     <section className="enter" key="lane">
       <h1 className="q">Let Cars Go On The Lane?</h1>
@@ -77,12 +85,21 @@ function LaneQuestion({ page, d, put, editAddr, onward }: LaneProps) {
         <Choice label="Yes, Let Them Go" on={d.lane} onPick={() => onward({ lane: true })} />
         <Choice label="Not Now" on={!d.lane} onPick={() => onward({ lane: false })} />
       </div>
-      {/* The Whop connected account the dealer is paid into. POST /accounts arrives with the Worker wave;
-          until then this is a faint row with no action, and nothing here promises a date. */}
-      <div aria-disabled="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 560, margin: '14px auto 0', minHeight: 64, padding: '16px 20px', borderRadius: 20, border: '1.5px dashed rgba(28,36,54,.16)', color: 'var(--faint)', font: '600 17px/1.25 var(--sans)' }}>
-        <span>Payouts On Whop</span><span>Not Yet</span>
-      </div>
     </section>);
+  if (page === 'whop') {
+    const words = accountWords({ whopAccount: d.whopAccount });
+    return (
+      <section className="enter" key="whop">
+        <Obj name="coin" h={72} style={{ display: 'block', margin: '0 auto 8px' }} />
+        <h1 className="q">{d.whopAccount ? 'Paid Into Whop.' : 'Where Does The Money Go?'}</h1>
+        {d.whopAccount
+          ? <div className="idcard enter2"><b>{words.line}</b><span style={{ ...T17, marginTop: 6 }}>Whop checks who you are once.</span></div>
+          : <>
+              <p className="note" style={T17}>Whop pays you. Your email opens the account; Whop checks who you are once.</p>
+              <label className="field"><input className="input" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="done" autoFocus value={d.whopEmail ?? dealerEmail} onChange={e => put({ whopEmail: e.target.value })} placeholder="you@yourlot.com" maxLength={254} aria-label="Your email, for Whop" /></label>
+            </>}
+      </section>);
+  }
   if (page === 'hours') return (
     <section className="enter" key="hours">
       <h1 className="q">When Can Buyers Pick Up?</h1>
@@ -106,7 +123,17 @@ function LaneQuestion({ page, d, put, editAddr, onward }: LaneProps) {
     </section>);
 }
 
-function LaneDock({ page, d, editAddr, setEditAddr, onward }: LaneProps) {
+function LaneDock({ page, d, editAddr, setEditAddr, onward, dealerEmail, whopBusy, whopErr }: LaneProps) {
+  if (page === 'whop') {
+    const email = (d.whopEmail ?? dealerEmail).trim();
+    return <>
+      {d.whopAccount
+        ? <button className="btn primary block" onClick={() => onward()}>That’s Right</button>
+        : <button className="btn primary block" disabled={whopBusy || !emailOk(email)} onClick={() => onward({ whopEmail: email })}>{whopBusy ? 'Opening…' : 'Connect Whop'}</button>}
+      {whopErr && <p className="note" role="alert" style={{ ...T17, margin: '2px 0 0', textAlign: 'center' }}>{whopErr}</p>}
+      {!d.whopAccount && !whopBusy && <button className="textlink" style={{ fontSize: 17 }} onClick={() => onward({ whopAccount: null })}>Later</button>}
+    </>;
+  }
   if (page === 'pickup') return <>
     <button className="btn primary block" disabled={!d.address.trim()} onClick={() => onward()}>That’s Right</button>
     {!editAddr && <button className="textlink" style={{ fontSize: 17 }} onClick={() => { feel.tap(); setEditAddr(true); }}>Change It</button>}
@@ -115,22 +142,44 @@ function LaneDock({ page, d, editAddr, setEditAddr, onward }: LaneProps) {
   return null;
 }
 
-/** The lane settings from the Desk, later: the same four pages, saved on the last answer (or at Not Now). */
-export function LaneSettings({ onDone }: { onDone: () => void }) {
+/* The Whop page's one call: POST /dealers/account/start with the email; the masked biz_ id comes back and is kept on the draft
+   (the Worker's row is the record). A refusal is said in four words under the cloud (auction.ts SAID: account_exists, bad_email,
+   whop_refused, whop_bad_account, whop_unavailable). Shared by LaneSettings and Onboarding. */
+function useWhopConnect(put: (p: Partial<Draft>) => void) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const connect = async (email: string): Promise<boolean> => {
+    setBusy(true); setErr(null);
+    const r = await accountStart(email);
+    setBusy(false);
+    if (r.ok) { put({ whopAccount: r.value.whopAccount }); feel.done(); return true; }
+    if (r.reason === 'account_exists') { const me = await getMe(); if (me.ok && me.value.whopAccount) { put({ whopAccount: me.value.whopAccount }); feel.done(); return true; } }
+    setErr(said(r.reason)); return false;
+  };
+  return { busy, err, connect };
+}
+
+/** The lane settings from the Desk, later: the same pages, saved on the last answer (or at Not Now). `start` opens on one page
+    (the payout page's Connect Whop lands on the Whop page). */
+export function LaneSettings({ onDone, start }: { onDone: () => void; start?: LanePage }) {
   const { dealer, laneSettings } = useStore();
   const [d, setD] = useState<Draft>(() => draftFrom(laneSettings ?? defaultSettings(dealer, laneKeyHeld())));
-  const [k, setK] = useState(0);
+  const pages = useMemo(() => lanePages(), []);
+  const [k, setK] = useState(() => Math.max(0, pages.indexOf(start ?? 'lane')));
   const [editAddr, setEditAddr] = useState(false);
-  const page = LANE_PAGES[k];
-  const total = d.lane ? LANE_PAGES.length : 1;
+  const page = pages[k];
+  const total = d.lane ? pages.length : 1;
   const put = (p: Partial<Draft>) => setD(x => ({ ...x, ...p }));
-  const onward = (p: Partial<Draft> = {}) => {
+  const whop = useWhopConnect(put);
+  const onward = async (p: Partial<Draft> = {}) => {
+    /* the Whop page's Connect: the call first; the page stays (now a confirmation) until That's Right */
+    if (page === 'whop' && !d.whopAccount && p.whopEmail !== undefined && !('whopAccount' in p)) { await whop.connect(p.whopEmail); return; }
     const nd = { ...d, ...p }; setD(nd);
-    if (page === 'after' || !nd.lane) { setLaneSettings(saved(nd)); feel.done(); onDone(); return; }
+    if (k === pages.length - 1 || !nd.lane) { setLaneSettings(saved(nd)); feel.done(); onDone(); return; }
     feel.next(); transition(() => { setK(k + 1); scrollTo(0, 0); });
   };
   const back = () => { feel.tap(); if (k === 0) { onDone(); return; } transition(() => { setK(k - 1); scrollTo(0, 0); }, 'back'); };
-  const props: LaneProps = { page, d, put, editAddr, setEditAddr, onward };
+  const props: LaneProps = { page, d, put, editAddr, setEditAddr, onward, dealerEmail: dealer.email ?? '', whopBusy: whop.busy, whopErr: whop.err };
   return (
     <main className="wrap ob center">
       <div className="top">
@@ -234,11 +283,16 @@ export function Onboarding() {
   const next = () => go(i + 1);
   // The lane settings: the defaults follow the lot and the phone until the dealer answers the first lane page.
   const lane: Draft = laneDraft ?? draftFrom(defaultSettings(dealer, !!keyGdn));
-  const laneOnward = (p: Partial<Draft> = {}) => { const nd = { ...lane, ...p }; setLaneDraft(nd); if (page === 'after' || !nd.lane) go('email'); else next(); };
-  const laneProps: LaneProps | null = (LANE_PAGES as readonly string[]).includes(page) ? { page: page as LanePage, d: lane, put: p => setLaneDraft({ ...lane, ...p }), editAddr: editPickup, setEditAddr: setEditPickup, onward: laneOnward } : null;
-  // Progress counts the pages this dealer walks: the key's path skips the search, Not Now skips the lane's three.
+  const whop = useWhopConnect(p => setLaneDraft(x => ({ ...(x ?? lane), ...p })));
+  const laneOnward = async (p: Partial<Draft> = {}) => {
+    if (page === 'whop' && !lane.whopAccount && p.whopEmail !== undefined && !('whopAccount' in p)) { await whop.connect(p.whopEmail); return; }
+    const nd = { ...lane, ...p }; setLaneDraft(nd);
+    if (!nd.lane || page === 'whop' || (page === 'after' && !keyGdn)) go('email'); else next();   // the Whop page needs the key: without one, straight on
+  };
+  const laneProps: LaneProps | null = (LANE_PAGES as readonly string[]).includes(page) ? { page: page as LanePage, d: lane, put: p => setLaneDraft({ ...lane, ...p }), editAddr: editPickup, setEditAddr: setEditPickup, onward: laneOnward, dealerEmail: dealer.email ?? '', whopBusy: whop.busy, whopErr: whop.err } : null;
+  // Progress counts the pages this dealer walks: the key's path skips the search, Not Now skips the lane's four; the Whop page needs the key.
   const viaKey = !!keyRec && (page === 'key' || picked === keyRec);
-  const steps = ORDER.filter(p => (viaKey ? !['state', 'name', 'you', 'code'].includes(p) : p !== 'key') && (lane.lane || !['hours', 'pickup', 'after'].includes(p)));
+  const steps = ORDER.filter(p => (viaKey ? !['state', 'name', 'you', 'code'].includes(p) : p !== 'key') && (lane.lane || !['hours', 'pickup', 'after', 'whop'].includes(p)) && (p !== 'whop' || !!keyGdn));
   const at = Math.max(0, steps.indexOf(page));
   const TOTAL = steps.length;
   const states = STATES.filter(([c, n]) => !stateQ || n.toLowerCase().startsWith(stateQ.toLowerCase()) || c.toLowerCase() === stateQ.toLowerCase());

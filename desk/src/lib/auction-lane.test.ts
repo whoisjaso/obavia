@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PLATES_WORDS, RELEASE_MAX_DAYS, SAID, collateralRefusal, collect, depositWords, dial, keepContact, onLane, payBy, platesKickback, platesVerb, relistable, releaseRefusal, said, type Collateral, type Lot, type LotLink, type PlatesState } from './auction';
+import { DEPOSIT_USD, INVOICE_WORDS, LISTING_URL_MAX, OFFER_WORDS, PAYOUT_PAGE_WORDS, PLATES_WORDS, RELEASE_MAX_DAYS, SAID, accountWords, collateralRefusal, collect, depositWords, dial, emailOk, keepContact, listingUrlOk, offerLeft, offerState, onLane, payBy, payoutPageState, payoutSplit, platesKickback, platesVerb, relistable, releaseRefusal, said, type Collateral, type Lot, type LotLink, type Offer, type PlatesState } from './auction';
+import { laneTitleStep } from './filed';
 import { payByWords } from '../../../auction/src/engine/time';
 import { outTheDoor } from '../../../auction/src/engine/money';
 import { HOURS, defaultSettings, laneReady, lotFields } from './dealer-settings';
@@ -27,7 +28,9 @@ describe('every refusal the Worker gives a dealer route is said in four words or
     'no sale', 'sale_voided', 'sale_forfeited', 'no sale to void', 'already_started', 'vin_required', 'not_paid', 'vin_unknown', 'wrong car',
     'before_deadline', 'already_forfeited', 'sale_started', 'sale_paid', 'not_started', 'plates_order', 'bad_state', 'no_payout', 'wrong_payout', 'payout_settled', 'already_paid', 'not_held',
     'account_exists', 'bad_email', 'whop_refused', 'whop_bad_account', 'whop_unavailable', 'account_from_whop_only', 'no_such_dealer',
-    'too_many_bids', 'one_open_bid', 'seller_cannot_bid', 'low', 'outbid'];
+    'too_many_bids', 'one_open_bid', 'seller_cannot_bid', 'low', 'outbid',
+    /* Wave 3: /car's listing link (auction.ts listingUrlOf), /invoices (invoice.ts), the offer (auction.ts POST /offer/accept) */
+    'bad_listing', 'fees_unknown', 'not_yours', 'no_offer', 'offer_expired', 'buyer not read'];
   it.each(WORKER)('%s', reason => {
     expect(SAID[reason], `${reason} is not in SAID`).toBeDefined();
     expect(SAID[reason].split(/\s+/).length).toBeLessThanOrEqual(4);
@@ -167,6 +170,12 @@ describe('Live: the socket first, polling at 15 s only after it fails', () => {
     expect(JSON.parse(f.mock.calls[2][1].body).note).toHaveLength(240);
     await markPlates('l', 'approved', '   ');
     expect(JSON.parse(f.mock.calls[3][1].body)).toEqual({ state: 'approved' });
+    /* W3-F's Filed mark rides beside state: 'filed' only (filed.ts filedMark; the Worker ignores it today, README) */
+    const mark = { sha256: 'ab'.repeat(32), filedOn: '2026-10-13', agent: 'Sam' };
+    await markPlates('l', 'filed', undefined, mark);
+    expect(JSON.parse(f.mock.calls[4][1].body)).toEqual({ state: 'filed', form130U: mark });
+    await markPlates('l', 'approved', undefined, mark);
+    expect(JSON.parse(f.mock.calls[5][1].body)).toEqual({ state: 'approved' });
   });
   it('a socket closed by the lane starts the poll; one the watcher closed does not', async () => {
     const { watchLot, POLL_MS } = await import('./auction');
@@ -224,4 +233,130 @@ describe('the lane home\'s line for a started car (desk/src/Auction.tsx startedL
     expect(line({ state, at }, 'America/Chicago')).toBe(want);
   });
   it('the date is the dealer\'s day, not UTC\'s', () => { expect(line({ state: 'filed', at }, 'UTC')).toBe('Filed Oct 14'); });
+});
+
+/* ---------- Wave 3-C: the Whop page, the payout page, the second chance, the listing link, the acknowledgment row ---------- */
+describe('the second-chance offer on Sold and the lane home (decisions §2 row 9; worker/src/auction.ts Offer)', () => {
+  const made = Date.UTC(2026, 9, 14, 12, 0);
+  const o: Offer = { buyer: 'b2', amount: 4800, madeAt: made, expiresAt: made + 12 * 3_600_000 };
+  it('is open until the Worker marks it or the clock passes; accepted and expired are the Worker\'s marks', () => {
+    expect(offerState(undefined)).toBeNull();
+    expect(offerState(o, made + 1)).toBe('open');
+    expect(offerState(o, made + 12 * 3_600_000)).toBe('expired');
+    expect(offerState({ ...o, expiredAt: made + 5 }, made + 6)).toBe('expired');
+    expect(offerState({ ...o, acceptedAt: made + 5 }, made + 6)).toBe('accepted');
+  });
+  it('the clock beside it: what is left of the twelve hours, never below zero', () => {
+    expect(offerLeft(o, made)).toBe('12h 00m');
+    expect(offerLeft(o, made + 18 * 60_000)).toBe('11h 42m');
+    expect(offerLeft(o, made + 13 * 3_600_000)).toBe('0h 00m');
+  });
+  it('the words are the push\'s pair (CP9: "Second chance · <car> · $X · 12 h"), four words or fewer a line, no dashes', () => {
+    expect(OFFER_WORDS.open).toBe('Second chance');
+    for (const w of Object.values(OFFER_WORDS)) { expect(w.split(/\s+/).length).toBeLessThanOrEqual(4); expect(w).not.toMatch(/[\u2013\u2014]/); }
+  });
+});
+
+describe('the payout page (#/auction/:lot/payout): one state word, one row per piece of the money', () => {
+  it('pending until the engine starts; owed once the $250 is applied or forfeited; cleared when Whop sent it or the owner paid it', () => {
+    expect(payoutPageState(undefined)).toBe('pending');
+    expect(payoutPageState({ deposit: 'held' })).toBe('pending');
+    expect(payoutPageState({ deposit: 'applied' })).toBe('owed');
+    expect(payoutPageState({ deposit: 'to_dealer', payout: { state: 'owed' } })).toBe('owed');
+    expect(payoutPageState({ deposit: 'applied', payout: { state: 'sent', transferId: 'tr_1', at: 1 } })).toBe('cleared');
+    expect(payoutPageState({ deposit: 'applied', payout: { state: 'paid', method: 'wire', at: 1 } })).toBe('cleared');
+    expect(payoutPageState({ deposit: 'released' })).toBe('pending');
+  });
+  it('the lender-first split is W3-A\'s arithmetic (invoice.ts splitFor): the payoff first, capped at the hammer; the net less the $250', () => {
+    const lender = (payoff: number): Collateral => ({ title: { status: 'lender', lienholder: 'NextGear', payoff, releaseDays: 5 }, floor: 4000, insured: true });
+    expect(payoutSplit(5100, lender(2000))).toEqual({ lender: { name: 'NextGear', amount: 2000 }, net: 5100 - 2000 - DEPOSIT_USD });
+    expect(payoutSplit(5100, lender(6000))).toEqual({ lender: { name: 'NextGear', amount: 5100 }, net: 0 });
+    expect(payoutSplit(5100, { title: { status: 'hand' }, floor: 4000, insured: true })).toEqual({ lender: null, net: 4850 });
+    expect(payoutSplit(5100, undefined).lender).toBeNull();
+    expect(payoutSplit(5100, { ...lender(2000), title: { status: 'lender', payoff: 2000 } }).lender?.name).toBe('The lender');
+  });
+  it('the words on the glass are four or fewer a line and carry no dash', () => {
+    for (const w of [...Object.values(PAYOUT_PAGE_WORDS), ...Object.values(INVOICE_WORDS)]) { expect(w.split(/\s+/).length).toBeLessThanOrEqual(4); expect(w).not.toMatch(/[\u2013\u2014]/); }
+  });
+});
+
+describe('the Whop page and the settings row (POST /dealers/account/start; GET /dealers/me)', () => {
+  it('Not yet; Connected with the masked id; then Whop\'s checks only once the Worker sends the field (dealers.whop_account_verified_at, 0017)', () => {
+    expect(accountWords(null)).toEqual({ line: 'Not yet', checks: null });
+    expect(accountWords({ whopAccount: null })).toEqual({ line: 'Not yet', checks: null });
+    expect(accountWords({ whopAccount: 'biz_••••ab12' })).toEqual({ line: 'Connected · biz_••••ab12', checks: null });
+    expect(accountWords({ whopAccount: 'biz_••••ab12', whopAccountVerifiedAt: null })).toEqual({ line: 'Connected · biz_••••ab12', checks: 'Whop checking' });
+    expect(accountWords({ whopAccount: 'biz_••••ab12', whopAccountVerifiedAt: 1 })).toEqual({ line: 'Connected · biz_••••ab12', checks: 'Verified by Whop' });
+  });
+  it('an email the Worker takes (README: 400 bad_email otherwise)', () => {
+    for (const e of ['sam@triplej.com', ' sam@triplej.com ', 'a.b+c@lot.co']) expect(emailOk(e)).toBe(true);
+    for (const e of ['', 'sam', 'sam@', '@lot.com', 'sam@lot', 'sam lot@x.com']) expect(emailOk(e)).toBe(false);
+  });
+});
+
+describe('the Marketplace listing link on the lot (deviation 6; worker/src/auction.ts listingUrlOf)', () => {
+  it('https only, 300 characters at most, no spaces or control characters', () => {
+    expect(LISTING_URL_MAX).toBe(300);
+    expect(listingUrlOk('https://www.facebook.com/marketplace/item/123456789')).toBe(true);
+    expect(listingUrlOk('  https://www.facebook.com/marketplace/item/1  ')).toBe(true);
+    expect(listingUrlOk('http://www.facebook.com/marketplace/item/1')).toBe(false);
+    expect(listingUrlOk('https://x.com/a b')).toBe(false);
+    expect(listingUrlOk('https://x.com/' + 'a'.repeat(300))).toBe(false);
+    expect(listingUrlOk('')).toBe(false);
+  });
+});
+
+describe('the Buyer Acknowledgment row on Sold reads W3-F\'s words (filed.ts laneTitleStep; decisions §9 D8, D9)', () => {
+  /* The row is placed by W3-C and worded by W3-F. The words expected here are the fallback the Desk is coded to; a change in
+     filed.ts shows up here first. */
+  it('a Texas licence, or none yet, is the Buyer Acknowledgment in webDEALER; four words or fewer a line', () => {
+    const tx = laneTitleStep('TX');
+    expect(tx.kind).toBe('acknowledgment');
+    expect(tx.lines[0]).toBe('Buyer Acknowledgment in webDEALER');
+    expect(laneTitleStep(undefined).kind).toBe('acknowledgment');
+    expect(laneTitleStep(null).kind).toBe('acknowledgment');
+    for (const l of [tx.title, ...tx.lines]) { expect(l.split(/\s+/).length).toBeLessThanOrEqual(4); expect(l).not.toMatch(/[\u2013\u2014]/); }
+  });
+  it('any other licence is the paper packet with the green 60-day plate', () => {
+    const la = laneTitleStep('LA');
+    expect(la.kind).toBe('packet');
+    expect(la.lines.join(' ')).toMatch(/14-312/);
+    expect(la.lines.join(' ')).toMatch(/60-day/);
+  });
+});
+
+describe('the Desk\'s calls for Wave 3 carry the dealer key to the Worker\'s routes', () => {
+  beforeEach(() => {
+    vi.resetModules(); vi.stubEnv('VITE_AUCTION_API', 'http://lane.test');
+    vi.stubGlobal('localStorage', { getItem: (k: string) => (k === 'obavia.desk.auction.key' ? 'd:P000000.test' : null), setItem: () => {} });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ gdn: 'P000000', whopAccount: 'biz_••••ab12', payouts: { sent: 0, owed: 1 } }), { status: 200, headers: { 'content-type': 'application/json' } })));
+  });
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.resetModules(); });
+  it('accountStart posts { email } only to /dealers/account/start (README: a body naming an account is 400)', async () => {
+    const { accountStart } = await import('./auction');
+    const r = await accountStart('  sam@triplej.com ');
+    const f = fetch as unknown as ReturnType<typeof vi.fn>;
+    expect(f.mock.calls[0][0]).toBe('http://lane.test/dealers/account/start');
+    expect(f.mock.calls[0][1].method).toBe('POST');
+    expect(f.mock.calls[0][1].headers.Authorization).toBe('Bearer d:P000000.test');
+    expect(JSON.parse(f.mock.calls[0][1].body)).toEqual({ email: 'sam@triplej.com' });
+    expect(r.ok && r.value.whopAccount).toBe('biz_••••ab12');
+  });
+  it('setListingUrl posts { listingUrl } to /lots/:id/car, trimmed; null clears it', async () => {
+    const { setListingUrl } = await import('./auction');
+    await setListingUrl('l', ' https://www.facebook.com/marketplace/item/1 ');
+    await setListingUrl('l', null);
+    const f = fetch as unknown as ReturnType<typeof vi.fn>;
+    expect(f.mock.calls[0][0]).toBe('http://lane.test/lots/l/car');
+    expect(JSON.parse(f.mock.calls[0][1].body)).toEqual({ listingUrl: 'https://www.facebook.com/marketplace/item/1' });
+    expect(JSON.parse(f.mock.calls[1][1].body)).toEqual({ listingUrl: null });
+  });
+  it('getInvoices reads /invoices/:lot (W3-A) with the key', async () => {
+    const { getInvoices } = await import('./auction');
+    await getInvoices('lot 1');
+    const f = fetch as unknown as ReturnType<typeof vi.fn>;
+    expect(f.mock.calls[0][0]).toBe('http://lane.test/invoices/lot%201');
+    expect(f.mock.calls[0][1].method).toBe('GET');
+    expect(f.mock.calls[0][1].headers.Authorization).toBe('Bearer d:P000000.test');
+  });
 });

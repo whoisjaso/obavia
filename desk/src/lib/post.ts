@@ -56,7 +56,13 @@ export type Post = {
   caption: string;             // the dealer's words, edited from the written draft
   channels: string[];
   deliveries: Delivery[];
+  lane?: string;               // the lot's lane link when the car is on the lane: the Marketplace text ends with it (gap table W3-C)
 };
+
+/** The lot's lane link, the one link every surface shares: the phone's share sheet (auction/src/store.ts laneLink) and the
+    Marketplace text here say the same address (CP9). post.test.ts reads that file and holds the two equal. */
+export const LANE_SITE = 'https://obavia.co';
+export const laneLink = (lotId: string) => `${LANE_SITE}/lane/${encodeURIComponent(lotId)}`;
 export type Delivery = {
   channel: string; route: Route;
   state: 'queued' | 'sent' | 'ready' | 'posted' | 'failed';   // ready = handed off, waiting on the dealer's tap
@@ -99,20 +105,25 @@ export function capHashtags(text: string, max: number | null): string {
 
 export type Rendition = { channel: string; route: Route; title?: string; caption: string; photos: string[]; notes: string[] };
 
+/** The lane link as the Marketplace text carries it: its own last line, the address alone (a scanner joins the car above it
+    and the link; nothing explains the join, lego.md §1). Only on Marketplace (the plan's line); the other channels post the
+    caption as written. */
+export const withLane = (caption: string, lane: string | undefined) => (lane ? `${caption.replace(/\s+$/, '')}\n\n${lane}` : caption);
+
 /** What one channel receives: the caption and photos in the form it takes. */
-export function renditionFor(channel: string, p: Pick<Post, 'photos' | 'caption'>, v: Vehicle): Rendition | null {
+export function renditionFor(channel: string, p: Pick<Post, 'photos' | 'caption' | 'lane'>, v: Vehicle): Rendition | null {
   const s = postSpec(channel); if (!s) return null;
   const notes: string[] = [];
   const photos = s.photos != null ? p.photos.slice(0, s.photos) : p.photos;
   if (s.photos != null && p.photos.length > s.photos) notes.push(`${s.name} takes ${s.photos} photos; the first ${s.photos} go.`);
-  let caption = capHashtags(p.caption, s.hashtags);
+  let caption = capHashtags(channel === 'marketplace' ? withLane(p.caption, p.lane) : p.caption, s.hashtags);
   if (s.caption != null && [...caption].length > s.caption) { caption = fit(caption, s.caption); notes.push(`Shortened to ${commas(s.caption)} characters.`); }
   const title = s.title != null ? fit(titleFor(v), s.title) : undefined;
   if (s.route === 'handoff') notes.push('Ready on your phone. You tap Post.');
   return { channel, route: s.route, title, caption, photos, notes };
 }
 
-export function renditions(p: Pick<Post, 'photos' | 'caption' | 'channels'>, v: Vehicle): Rendition[] {
+export function renditions(p: Pick<Post, 'photos' | 'caption' | 'channels' | 'lane'>, v: Vehicle): Rendition[] {
   return p.channels.map(c => renditionFor(c, p, v)).filter((r): r is Rendition => !!r);
 }
 

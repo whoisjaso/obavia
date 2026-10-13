@@ -1,6 +1,6 @@
 /* The plates clock on a started sale (phases.md Phase 2 Paperwork: filed, approved, mailed, kickback): who may mark it,
-   the order it moves in, the socket frame, the D1 copy and the event row, the public shape, and the one push (mailed).
-   Every rule is in src/auction.ts POST /plates. */
+   the order it moves in, the socket frame, the D1 copy and the event row, the public shape, the Desk's Filed mark
+   (form130U: the filed 130-U's hash, day and agent), and the one push (mailed). Every rule is in src/auction.ts POST /plates. */
 import { env, SELF, applyD1Migrations, runDurableObjectAlarm, runInDurableObject as runIn } from 'cloudflare:test';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { D1Migration } from '@cloudflare/vitest-pool-workers';
@@ -236,6 +236,79 @@ describe('what leaves the object', () => {
     const money = await (await SELF.fetch(`${base}/admin/money`, { headers: ADMIN })).json<any>();
     const ev = money.events.find((e: any) => e.id === rows[0].id);
     expect(ev).toMatchObject({ type: 'sale.plates', amountUsd: null, lotId: 'pl9', buyer: 'plates-b9', actor: 'dealer' });
+  });
+});
+
+describe('the Filed mark (the 130-U that went to the county)', () => {
+  const SHA = 'a'.repeat(64);
+  const mark = (id: string, tok: string, form130U: unknown, state = 'filed') => post(`/lots/${id}/plates`, as(tok), { state, form130U });
+  it('filed with a mark keeps it on sale.plates.form130U, in the event row, on the public lot, the lane and the copy', async () => {
+    const own = await dealer('P900011');
+    await started('pl11', own, 'P900011', 'plates-b11');
+    const r = await mark('pl11', own, { sha256: 'AbCdEf'.padEnd(64, '0'), filedOn: '2026-10-13', agent: '  Rosa Delgado  ' });
+    expect(r.status).toBe(200);
+    const want = { sha256: 'abcdef'.padEnd(64, '0'), filedOn: '2026-10-13', agent: 'Rosa Delgado' };   // hex lower-cased, the agent trimmed
+    expect((await r.json<any>()).sale.plates).toMatchObject({ state: 'filed', form130U: want });
+    await settle();
+    const pub = await lotOf('pl11');   // no key at all
+    expect(pub.sale.plates.form130U).toEqual(want);
+    const lane = await (await SELF.fetch(`${base}/lots`)).json<any[]>();
+    expect(lane.find(l => l.id === 'pl11')?.sale?.plates?.form130U).toEqual(want);
+    expect((await copyOf('pl11')).sale.plates.form130U).toEqual(want);
+    const rows = await events('pl11');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ state: 'filed', from: null, form130U: want });
+    // the mark rides on to the later states; a kickback keeps it on the row's from side only
+    expect((await plates('pl11', own, 'approved')).status).toBe(200);
+    expect((await lotOf('pl11')).sale.plates).toMatchObject({ state: 'approved' });
+    expect((await lotOf('pl11')).sale.plates.form130U).toBeUndefined();
+    expect((await events('pl11'))[1]).toMatchObject({ state: 'approved', form130U: null });
+  });
+  it('filed without a mark is still accepted; the agent is optional; a mark on the refiling after a kickback is kept', async () => {
+    const own = await dealer('P900012');
+    await started('pl12', own, 'P900012', 'plates-b12');
+    let r = await plates('pl12', own, 'filed'); expect(r.status).toBe(200);
+    expect((await r.json<any>()).sale.plates.form130U).toBeUndefined();
+    expect((await events('pl12'))[0].form130U).toBeNull();
+    expect((await plates('pl12', own, 'kickback', 'wrong county')).status).toBe(200);
+    r = await mark('pl12', own, { sha256: SHA, filedOn: '2026-10-14' }); expect(r.status).toBe(200);
+    expect((await r.json<any>()).sale.plates).toEqual({ state: 'filed', at: expect.any(Number), form130U: { sha256: SHA, filedOn: '2026-10-14' } });
+    expect((await events('pl12')).map(e => [e.state, e.form130U])).toEqual([['filed', null], ['kickback', null], ['filed', { sha256: SHA, filedOn: '2026-10-14' }]]);
+  });
+  it('a malformed mark is 400 bad_mark and writes nothing; a mark beside any state but filed is bad_mark too', async () => {
+    const own = await dealer('P900013');
+    await started('pl13', own, 'P900013', 'plates-b13');
+    const bad: [string, unknown][] = [
+      ['not an object', 'abc'], ['null', null], ['empty', {}],
+      ['sha too short', { sha256: 'a'.repeat(63), filedOn: '2026-10-13' }],
+      ['sha too long', { sha256: 'a'.repeat(65), filedOn: '2026-10-13' }],
+      ['sha not hex', { sha256: 'g'.repeat(64), filedOn: '2026-10-13' }],
+      ['sha not a string', { sha256: 42, filedOn: '2026-10-13' }],
+      ['no filedOn', { sha256: SHA }],
+      ['filedOn not a day', { sha256: SHA, filedOn: '13 Oct 2026' }],
+      ['filedOn a time', { sha256: SHA, filedOn: '2026-10-13T00:00:00Z' }],
+      ['filedOn not on the calendar', { sha256: SHA, filedOn: '2026-02-30' }],
+      ['agent 61 chars', { sha256: SHA, filedOn: '2026-10-13', agent: 'x'.repeat(61) }],
+      ['agent not a string', { sha256: SHA, filedOn: '2026-10-13', agent: 7 }],
+    ];
+    for (const [why, form130U] of bad) {
+      const r = await mark('pl13', own, form130U);
+      expect(r.status, why).toBe(400); expect(await r.text(), why).toBe('bad_mark');
+    }
+    expect((await lotOf('pl13')).sale.plates).toBeUndefined();
+    expect(await events('pl13')).toEqual([]);
+    expect((await mark('pl13', own, { sha256: SHA, filedOn: '2026-10-13', agent: 'x'.repeat(60) })).status).toBe(200);   // 60 is the edge
+    for (const state of ['approved', 'kickback', 'mailed']) {   // the mark names a filing; it rides no other word
+      const r = await mark('pl13', own, { sha256: SHA, filedOn: '2026-10-13' }, state);
+      expect(r.status, state).toBe(400); expect(await r.text(), state).toBe('bad_mark');
+    }
+    expect((await lotOf('pl13')).sale.plates.state).toBe('filed');
+    // a retried filed with another mark changes nothing: the mark is the first tap's
+    const r = await mark('pl13', own, { sha256: 'b'.repeat(64), filedOn: '2026-10-12' });
+    expect(r.status).toBe(200);
+    expect((await lotOf('pl13')).sale.plates.form130U).toEqual({ sha256: SHA, filedOn: '2026-10-13', agent: 'x'.repeat(60) });
+    expect(await events('pl13')).toHaveLength(1);
+    expect(pushes()).toEqual([]);   // filed pushes nothing, mark or not
   });
 });
 

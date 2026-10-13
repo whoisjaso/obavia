@@ -25,9 +25,10 @@ export type DealerSettings = {
   hours: string[];        // the lot's `hours`, as the buyer's Pickup reads them
   address: string;        // the pickup address, one line: street, city, state zip
   afterHours: string;     // E.164, +1 and ten digits
-  /* The Whop connected account the dealer is paid into (dealers.whop_account). POST /accounts arrives
-     with the Worker wave; until then it is always null and the glass says "Not yet", with no action. */
-  whopAccount: null;
+  /* The Whop connected account the dealer is paid into (dealers.whop_account), as the Worker masks it
+     ("biz_••••ab12"): kept here once the Whop page connected it or GET /dealers/me said so, so the
+     settings row has a word before the lane answers. Null is "Not yet". The Worker's row is the record. */
+  whopAccount: string | null;
 };
 
 /** Which of the three choices a stored list is, or null for a list the Desk did not write. */

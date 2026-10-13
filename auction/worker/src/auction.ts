@@ -19,7 +19,7 @@ import { shillMatch, type Who } from './bidders';
 import { Whop } from './whop';
 
 export type OpenRequest = { id: string; dealer: string; start: number; retail: number; opensAt?: number; closesAt: number; car?: CarMeta };
-export type { Payout, Plates, PlatesState, SaleState };
+export type { Payout, Plates, PlatesState, SaleState };   // LotPlates and Form130U below: the plates with the Desk's Filed mark
 /** The dealer's $250 as the lot keeps it: owed, sent by a Whop transfer, or paid by hand (wire, check, cash). Wider than the
     engine's Payout (src/engine/meta.ts, 'owed' | 'sent'), which does not yet carry 'paid', the method or the time. */
 export type LotPayout = { state: 'owed' | 'sent' | 'paid'; transferId?: string; method?: PayMethod; at?: number };
@@ -62,6 +62,27 @@ export const PLATES_NEXT: Record<'none' | PlatesState, readonly PlatesState[]> =
   none: ['filed'], filed: ['approved', 'kickback'], kickback: ['filed'], approved: ['mailed'], mailed: [],
 };
 const PLATES_STATES: readonly PlatesState[] = ['filed', 'approved', 'mailed', 'kickback'];
+/** The filed 130-U the Desk's Filed mark names (desk/src/lib/filed.ts FiledMark; gap table W3-F "the Desk's Filed mark carries the
+    filed 130-U's hash"): the SHA-256 of the bytes that went to the county, the business date it was filed on (YYYY-MM-DD) and the
+    agent on its seller line. Kept on sale.plates.form130U from the filed tap that carried it; wider than the engine's Plates
+    (src/engine/meta.ts), as LotPayout is wider than Payout. */
+export type Form130U = { sha256: string; filedOn: string; agent?: string };
+export type LotPlates = Plates & { form130U?: Form130U };
+const SHA256_HEX = /^[0-9a-f]{64}$/i, DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** The mark as sent: undefined when absent, null when malformed (400 bad_mark), else the three fields trimmed. */
+function form130UFrom(x: unknown): Form130U | null | undefined {
+  if (x === undefined) return undefined;
+  if (!x || typeof x !== 'object') return null;
+  const m = x as Record<string, unknown>;
+  if (typeof m.sha256 !== 'string' || !SHA256_HEX.test(m.sha256)) return null;
+  if (typeof m.filedOn !== 'string' || !DAY.test(m.filedOn)) return null;
+  const [y, mo, d] = m.filedOn.split('-').map(Number), t = new Date(Date.UTC(y, mo - 1, d));
+  if (t.getUTCFullYear() !== y || t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d) return null;   // 2026-02-30 is not a day
+  if (m.agent !== undefined && typeof m.agent !== 'string') return null;
+  const agent = typeof m.agent === 'string' ? m.agent.trim() : '';
+  if (agent.length > 60) return null;
+  return agent ? { sha256: m.sha256.toLowerCase(), filedOn: m.filedOn, agent } : { sha256: m.sha256.toLowerCase(), filedOn: m.filedOn };
+}
 
 export class Auction extends DurableObject<Env> {
   private lot: Stored | null = null;
@@ -166,15 +187,17 @@ export class Auction extends DurableObject<Env> {
         const s = lot?.sale;
         const why = !s ? 'no sale' : s.voidedAt ? 'sale_voided' : s.forfeitedAt ? 'sale_forfeited' : !s.startedAt ? 'not_started' : null;
         if (why || !lot || !s) return text(why ?? 'no sale', 409);
-        const b = await req.json<{ state?: unknown; note?: unknown }>().catch(() => ({} as { state?: unknown; note?: unknown }));
+        const b = await req.json<{ state?: unknown; note?: unknown; form130U?: unknown }>().catch(() => ({} as { state?: unknown; note?: unknown; form130U?: unknown }));
         const state = PLATES_STATES.find(x => x === b.state);
         if (!state) return text('bad_state', 400);
-        if (s.plates?.state === state) return json(this.publicLot(lot));   // the same word again (a retried tap) changes nothing
+        const form130U = form130UFrom(b.form130U);   // the Desk's Filed mark: only beside filed, and whole or not at all
+        if (form130U === null || (form130U && state !== 'filed')) return text('bad_mark', 400);
+        if (s.plates?.state === state) return json(this.publicLot(lot));   // the same word again (a retried tap) changes nothing, the mark included
         if (!PLATES_NEXT[s.plates?.state ?? 'none'].includes(state)) return text('plates_order', 409);
         const note = typeof b.note === 'string' ? b.note.trim().slice(0, 240) : '';
-        const plates: Plates = note ? { state, at: now, note } : { state, at: now };
+        const plates: LotPlates = { state, at: now, ...(note ? { note } : {}), ...(form130U ? { form130U } : {}) };
         // the record first, like every sale event; no money moves, so no amount
-        await this.money(`plates:${lot.id}:${now}`, 'sale.plates', { lotId: lot.id, buyer: s.buyer, dealer: lot.dealer, state, from: s.plates?.state ?? null, note: note || null, actor: 'dealer' }, now);
+        await this.money(`plates:${lot.id}:${now}`, 'sale.plates', { lotId: lot.id, buyer: s.buyer, dealer: lot.dealer, state, from: s.plates?.state ?? null, note: note || null, form130U: form130U ?? null, actor: 'dealer' }, now);
         s.plates = plates; await this.save(lot);
         this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'sale' });
         if (state === 'mailed') this.ctx.waitUntil(push(this.env, s.buyer, 'Plates mailed', carName(lot) || lot.id, { lotId: lot.id, screen: 'won' }));   // the one push: the ring's last tick

@@ -29,7 +29,8 @@ export const TITLE_STEP = {
   acknowledgment: { title: 'Title at pickup', lines: ['Buyer Acknowledgment in webDEALER', 'Texas DL or ID', 'Last four, audit number', 'No drawn signature'] },
   packet: { title: 'Paper packet at pickup', lines: ['Form 14-312, signed', 'Assigned title handed over', 'Or filed, 30 days', 'Green 60-day plate'] },
 } as const;
-const titleLine = (k: keyof typeof TITLE_STEP) => [TITLE_STEP[k].title, ...TITLE_STEP[k].lines].join(' · ');
+/* On the glass only the title, three or four words: the lines are the Desk's step at the lot, not a read here (doctrine §4; the growth plan's reads added = 0). */
+const titleLine = (k: keyof typeof TITLE_STEP) => TITLE_STEP[k].title;
 
 /** The first drawing of this sale, for the second document's one-tap reuse. Memory only. */
 let drawn: { lotId: string; sig: Signature } | null = null;

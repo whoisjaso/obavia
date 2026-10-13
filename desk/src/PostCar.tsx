@@ -5,7 +5,8 @@
    phone, ready, for them to post in two taps. */
 import { useMemo, useState } from 'react';
 import { MARKETPLACE_TERMS, consentIsCurrent } from './lib/consent';
-import { POST_SPECS, draftCaption, postSpec, postable, renditions, type Delivery, type Post } from './lib/post';
+import { POST_SPECS, draftCaption, laneLink, postSpec, postable, renditions, type Delivery, type Post } from './lib/post';
+import { listingUrlOk, lotLinks, relistable, said, setListingUrl } from './lib/auction';
 import { channelById } from './lib/reach';
 import { postCar } from './lib/api';
 import type { Vehicle } from './lib/sale';
@@ -22,6 +23,9 @@ const OPEN: Record<string, string> = {
   offerup: 'https://offerup.com/post',
 };
 const carName = (v: Vehicle) => `${v.year} ${v.make} ${v.model}`;
+/** The car's lot on the lane now (a remembered lot the car has not left and that has not sold): its id, or null. The Marketplace
+    text ends with its lane link (post.ts withLane), and the listing the dealer pastes after posting goes on it (deviation 6). */
+export const laneLotFor = (vehicleId: string, links = lotLinks()) => links.find(l => l.vehicleId === vehicleId && !relistable(l) && !l.soldOn)?.lotId ?? null;
 const Logo = ({ id }: { id: string }) => { const c = channelById(id); return <span className={`clogo sm${c?.wide ? ' wide' : ''}`}>{c?.logo ? <img src={c.logo} alt="" /> : <Ic n="globe" s={22} />}</span>; };
 
 export function PostCar() {
@@ -47,7 +51,8 @@ export function PostCar() {
 
   async function send() {
     if (!car) return;
-    const post: Post = { id: `post-${Date.now().toString(36)}`, vehicleId: car.id, createdAt: new Date().toISOString(), photos, caption, channels: where, deliveries: [] };
+    const onLane = laneLotFor(car.id);
+    const post: Post = { id: `post-${Date.now().toString(36)}`, vehicleId: car.id, createdAt: new Date().toISOString(), photos, caption, channels: where, deliveries: [], ...(onLane ? { lane: laneLink(onLane) } : {}) };
     feel.done();
     const r = await postCar(post, car);
     // Offline (no API yet): nothing is published. API channels wait for their accounts; hand-offs are ready on this phone.
@@ -174,8 +179,15 @@ export function PostHandoff({ id, channel }: { id: string; channel: string }) {
   const car = p && lot.find(v => v.id === p.vehicleId);
   const r = p && car ? renditions({ ...p, channels: [channel] }, car)[0] : undefined;
   const [copied, setCopied] = useState(false);
+  /* Marketplace, with the car on the lane: after I Posted It, the listing's own link is asked once and sent to the lot
+     (POST /lots/:id/car { listingUrl }), so Sold can open it to end the listing (deviation 6). "Later" posts without it. */
+  const [asking, setAsking] = useState(false);
+  const [link, setLink] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   if (!p || !car || !r) return <PostStatus id={id} />;
   const name = postSpec(channel)?.name ?? channel;
+  const lotOnLane = channel === 'marketplace' ? laneLotFor(car.id) : null;
   const text = [r.title, r.caption].filter(Boolean).join('\n\n');
   const savePhotos = async () => {
     feel.tap();
@@ -184,7 +196,28 @@ export function PostHandoff({ id, channel }: { id: string; channel: string }) {
     if (nav.canShare?.({ files })) { await nav.share({ files }).catch(() => undefined); return; }
     files.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; a.click(); });
   };
-  const posted = () => { feel.done(); savePost({ ...p, deliveries: p.deliveries.map(d => d.channel === channel ? { ...d, state: 'posted', at: new Date().toISOString() } : d) }); go(`/reach/post/${id}`); };
+  const posted = (url?: string) => { feel.done(); savePost({ ...p, deliveries: p.deliveries.map(d => d.channel === channel ? { ...d, state: 'posted', at: new Date().toISOString(), ...(url ? { url } : {}) } : d) }); go(`/reach/post/${id}`); };
+  const keep = async () => {
+    if (!lotOnLane) return;
+    feel.next(); setBusy(true); setErr(null);
+    const r2 = await setListingUrl(lotOnLane, link);
+    setBusy(false);
+    if (r2.ok) posted(link.trim()); else setErr(said(r2.reason));
+  };
+  if (asking) return (
+    <main className="wrap center"><div className="top"><button className="back" onClick={() => { feel.tap(); setAsking(false); }}><Ic n="chev" s={18} w={2.4} />Back</button></div>
+      <section className="enter" key="link">
+        <h1 className="q">The Listing’s Link.</h1>
+        <p className="note">Copy it from your listing. Sold ends it from here.</p>
+        <label className="field"><input className="input" type="url" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="done" autoFocus value={link} onChange={e => setLink(e.target.value)} placeholder="https://www.facebook.com/marketplace/item/…" maxLength={300} aria-label="Your Marketplace listing’s link" /></label>
+        {err && <p className="note" role="alert">{err}</p>}
+      </section>
+      <div className="dock"><div className="in">
+        <button className="btn primary block" disabled={busy || !listingUrlOk(link)} onClick={keep}>{busy ? 'Keeping…' : 'Keep It'}</button>
+        <button className="textlink" onClick={() => posted()}>Later</button>
+      </div></div>
+    </main>
+  );
   return (
     <main className="wrap center"><div className="top"><Back to={`#/reach/post/${id}`} label="Post" /></div>
       <section className="enter" key={channel}>
@@ -197,7 +230,7 @@ export function PostHandoff({ id, channel }: { id: string; channel: string }) {
           {OPEN[channel] && <a className="choice" href={OPEN[channel]} target="_blank" rel="noreferrer" onClick={feel.tap}><span className="art"><Ic n="link" s={24} /></span><span className="t"><b>Open {name}</b><small>Paste the text, add the photos, post</small></span></a>}
         </div>
       </section>
-      <div className="dock"><div className="in"><button className="btn primary block" onClick={posted}>I Posted It</button></div></div>
+      <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { if (lotOnLane) { feel.next(); setAsking(true); } else posted(); }}>I Posted It</button></div></div>
     </main>
   );
 }

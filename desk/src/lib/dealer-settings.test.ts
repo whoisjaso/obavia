@@ -40,6 +40,12 @@ describe('defaults', () => {
     expect(oneLine({ street: '', city: 'Pasadena', state: 'TX', zip: '77504' })).toBe('Pasadena, TX 77504');
     expect(oneLine({ street: '', city: '', state: '', zip: '' })).toBe('');
   });
+  it('keep the masked Whop account the page connected, or null for Not yet (the Worker\'s row is the record)', () => {
+    const s: DealerSettings = { ...good, whopAccount: 'biz_••••ab12' };
+    expect(problems(s)).toEqual([]);
+    expect(laneReady(s)).toBe(true);
+    expect(lotFields(s)).not.toHaveProperty('whopAccount');   // the account never rides on a lot
+  });
   it('do not share the hours array with the constant', () => {
     const s = defaultSettings(dealer, true); s.hours.push('x');
     expect(HOURS.weekdays.hours).toHaveLength(1);
