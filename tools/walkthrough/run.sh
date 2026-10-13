@@ -10,7 +10,9 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 APP="$REPO/auction"
-DIST="$HERE/dist"
+DIST="$HERE/dist"                      # a symlink to the last export, the cache between runs
+STAMP="$(date -u +%Y%m%d-%H%M%S)-$$"
+RUN="$HERE/.runs/$STAMP"               # this run's own export: two walks at once never share a dist
 export NODE_PATH="${NODE_PATH:-$APP/node_modules}"
 export CHROME="${CHROME:-/opt/pw-browsers/chromium}"
 
@@ -30,23 +32,27 @@ if [ "$REBUILD" = 0 ] && [ -f "$DIST/index.html" ]; then
     -newer "$DIST/index.html" -type f 2>/dev/null | head -1)"
   [ -z "$newer" ] && stale=0
 fi
+mkdir -p "$RUN"
 if [ "$stale" = 1 ]; then
-  echo "export: building $DIST"
+  echo "export: building $RUN/dist"
   # no Worker: the EXPO_PUBLIC_ values are unset, and --clear drops Metro's shared cache, which can hold a
   # bundle another shoot inlined with a Worker URL (seen: http://lane.test, an empty lane, "Failed to fetch")
-  ( cd "$APP" && env -u EXPO_PUBLIC_AUCTION_URL -u EXPO_PUBLIC_SUPPORT_PHONE npx expo export -p web --clear --output-dir "$DIST" ) > "$HERE/.export.log" 2>&1 \
-    || { echo "export failed; see $HERE/.export.log" >&2; tail -20 "$HERE/.export.log" >&2; exit 1; }
+  ( cd "$APP" && env -u EXPO_PUBLIC_AUCTION_URL -u EXPO_PUBLIC_SUPPORT_PHONE npx expo export -p web --clear --output-dir "$RUN/dist" ) > "$RUN/export.log" 2>&1 \
+    || { echo "export failed; see $RUN/export.log" >&2; tail -20 "$RUN/export.log" >&2; exit 1; }
+  ln -sfn "$RUN/dist" "$DIST"
 else
-  echo "export: $DIST is newer than the source, kept"
+  echo "export: $DIST is newer than the source, copied into $RUN/dist"
+  cp -a "$(readlink -f "$DIST")" "$RUN/dist"
 fi
+# keep the last three runs' exports
+ls -1dt "$HERE"/.runs/*/ 2>/dev/null | tail -n +4 | while read -r d; do [ "$d" != "$RUN/" ] && rm -rf "$d"; done
 
-# 2. the walk
-STAMP="$(date -u +%Y%m%d-%H%M%S)"
-OUT="$REPO/shots-review/walkthrough/$STAMP"
+# 2. the walk, on this run's own export
+OUT="$REPO/shots-review/walkthrough/${STAMP%-*}"
 mkdir -p "$OUT"
 PORT="${PORT:-$(( 41000 + RANDOM % 9000 ))}"
 echo "walk: $OUT (port $PORT)"
-node "$HERE/walk.mjs" "$DIST" "$OUT" "$PORT"
+node "$HERE/walk.mjs" "$RUN/dist" "$OUT" "$PORT"
 walk=$?
 
 # 3. the reads, the table and report.md (runs even when the walk failed, on the screens it reached)
