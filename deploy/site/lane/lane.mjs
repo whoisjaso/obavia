@@ -51,6 +51,10 @@ export function laneApplication(raw) {
   out.dealerNameTyped = laneText(raw.dealerName, 160);
   out.dealerCityTyped = laneText(raw.dealerCity, 80);
   out.phoneVerifiedClaimed = raw.phoneVerified === true;
+  // Who sent you (gap-table.md W4-E): a dealer's name or a buyer's code, kept only when filled.
+  // It waives nothing (phases.md Phase 5 Marketing); nothing here reads it as a discount.
+  const referral = laneText(raw.referral, 64);
+  if (referral) out.referral = referral;
   return out;
 }
 
@@ -167,8 +171,10 @@ export function laneKeyIssuer(env, fetchImpl) {
     return null;
   }
   if (base.protocol !== "https:" || base.username || base.password) return null;
-  return async (gdn, name, city) => {
-    const res = await fetchImpl(new URL("/dealers/mint", base).href, { method: "POST", redirect: "error", signal: AbortSignal.timeout(1e4), headers: { Authorization: `Bearer ${env.MINT_SECRET}`, "Content-Type": "application/json" }, body: JSON.stringify({ gdn, name, city }) });
+  // referral rides along only when the application carried one; the body is {gdn, name, city} otherwise.
+  return async (gdn, name, city, referral = "") => {
+    const body = referral ? { gdn, name, city, referral } : { gdn, name, city };
+    const res = await fetchImpl(new URL("/dealers/mint", base).href, { method: "POST", redirect: "error", signal: AbortSignal.timeout(1e4), headers: { Authorization: `Bearer ${env.MINT_SECRET}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (!res.ok) return null;
     const data = await res.json().catch(() => null);
     return typeof data?.token === "string" && data.token.startsWith(`d:${gdn}.`) && /^d:[A-Z0-9]{5,12}\.[A-Za-z0-9_-]{20,128}$/.test(data.token) ? data.token : null;
@@ -295,7 +301,7 @@ export function createLane({ db, dealers, provider, clientKey, join, issueKey = 
       if (issueKey && d && verified?.via === "telnyx") {
         let key = null;
         try {
-          key = await issueKey(gdn, d.name, d.city);
+          key = await issueKey(gdn, d.name, d.city, record.referral ?? "");
         } catch {
           key = null;
         }

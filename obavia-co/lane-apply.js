@@ -15,7 +15,7 @@ if (!form) return;
 const $ = id => document.getElementById(id);
 const pages = [...form.querySelectorAll('.ap-p')];
 const P = k => pages.find(p => p.dataset.p === String(k));
-const ORDER = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+const ORDER = ['1', '2', '3', '4', '5', '6', '7', '8', 'r', '9'];
 const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const G = window.gsap;
 const LIVE = ['https://obavia.co', 'https://www.obavia.co'].includes(location.origin) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
@@ -151,14 +151,14 @@ nmBtn.addEventListener('click', async () => {
   if (!/^\S+\s+\S+/u.test(v) || [...v].length > 160) { say(nmErr, 'Please enter your first and last name.'); nm.focus(); return; }
   A.fullName = v;
   // the code page needs a TxDMV match and a worker that can text the license phone
-  if (!ENDPOINT || !caps.lookup || !match) { A.phoneVerified = false; go('9'); return; }
+  if (!ENDPOINT || !caps.lookup || !match) { A.phoneVerified = false; go('r'); return; }
   busy(nmBtn, true, 'One moment');
   const r = await post({ step: 'code', gdn: A.gdn });
   busy(nmBtn, false, 'Continue');
   if (r.ok && r.data.status === 'code_sent') {
     $('apLast4').textContent = r.data.phoneLast4 || match.phoneLast4;
     armAgain(); go('8');
-  } else { A.phoneVerified = false; go('9'); }
+  } else { A.phoneVerified = false; go('r'); }
 });
 
 /* ---------- page 8: the code, texted to the phone on the license ---------- */
@@ -177,7 +177,7 @@ codeBtn.addEventListener('click', async () => {
   codeBtn.dataset.busy = '1'; busy(codeBtn, true, 'Checking');
   const r = await post({ step: 'verify', gdn: A.gdn, code: code.value });
   delete codeBtn.dataset.busy; busy(codeBtn, false, 'Continue');
-  if (r.ok && r.data.status === 'verified') { A.phoneVerified = true; go('9'); }
+  if (r.ok && r.data.status === 'verified') { A.phoneVerified = true; go('r'); }
   else if (r.ok && r.data.status === 'wrong_code') { say(codeErr, 'That code doesn’t match. Check the text and try again.'); code.select(); }
   else say(codeErr, 'We couldn’t check that code. Please try again.');
 });
@@ -186,6 +186,18 @@ again.addEventListener('click', async () => {
   const r = await post({ step: 'code', gdn: A.gdn });
   if (!(r.ok && r.data.status === 'code_sent')) say(codeErr, 'We couldn’t send it again. Please try again in a minute.');
 });
+
+/* ---------- page r: who sent you (gap-table.md W4-E) ----------
+   A dealer's name or a buyer's code, cleaned like the car line; empty is nobody. It waives nothing,
+   so nothing here says what it does. Continue with the field empty and Nobody both move on. */
+const ref = $('apRef');
+const refGo = () => {
+  const v = ref.value.normalize('NFC').trim().replace(/\s+/gu, ' ').slice(0, 64);
+  if (v) A.referral = v; else delete A.referral;
+  go('9');
+};
+nextBtn('r').addEventListener('click', refGo);
+$('apNobody').addEventListener('click', () => { ref.value = ''; refGo(); });
 
 /* ---------- page 9: the email, then submit ---------- */
 const em = $('apEmail'), emErr = $('apEmailErr'), emBtn = nextBtn(9);
@@ -206,6 +218,7 @@ emBtn.addEventListener('click', async () => {
   const website = $('apSite').value;
   const application = { v: 1, gdnHeld: A.gdnHeld, lotSize: A.lotSize, agedOver60: A.agedOver60, floorplan: A.floorplan,
     losingCar: A.losingCar, gdn: A.gdn, dealerName: A.dealerName, dealerCity: A.dealerCity, phoneVerified: !!A.phoneVerified };
+  if (A.referral) application.referral = A.referral;     // only when filled: an empty page sends no key at all
   let r = await post({ step: 'apply', fullName: A.fullName, email: v, website, application });
   // today's worker refuses unknown keys with 422 invalid_email; resend the waitlist body so the person still lands on the list
   if (r.status === 422 && r.data.error === 'invalid_email') r = await post({ fullName: A.fullName, email: v, website });

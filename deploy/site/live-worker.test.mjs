@@ -721,3 +721,69 @@ btest('the bundle serves /lane/<lotId> from the one page before the pages set, a
   assert.equal((await get('/lane.css')).status, 200, 'the stylesheet rides the existing top-level asset branch');
   assert.equal((await get('/results')).status, 200, 'the pages set is unchanged');
 });
+
+/* ---------- Who sent you (gap-table.md W4-E; phases.md Phase 5 Marketing: a referral waives nothing) ---------- */
+const NO_REWARD = ['free', 'bonus', 'reward', 'discount', 'waive', 'earn', 'credit', '% off', 'dollars off', 'gift'];
+both('apply: a filled referral is kept on the record and rides on POST /dealers/mint; an empty or missing one is absent from both', async make => {
+  const h = make({ env: { ...AUCTION_ENV, ISSUE_KEYS: '1' }, telnyx: telnyxOk(), auction: auctionOk });
+  const r = await verifiedApply(h, { application: application({ referral: '  Lone Star  Cars ' }) });
+  assert.equal(r.body.status, 'accepted'); assert.match(r.body.key, /^d:P000678X\./);
+  assert.equal(h.lastApplication('ana@lot.com').referral, 'Lone Star Cars', 'cleaned like the other typed lines');
+  const call = h.calls.find(c => c.url === 'https://auction.example/dealers/mint');
+  assert.deepEqual(JSON.parse(call.init.body), { gdn: 'P000678X', name: 'Impac Manufacturing, Inc.', city: 'Los Fresnos', referral: 'Lone Star Cars' });
+  const h2 = make({ env: { ...AUCTION_ENV, ISSUE_KEYS: '1' }, telnyx: telnyxOk(), auction: auctionOk });
+  const r2 = await verifiedApply(h2, { fullName: 'Eve Smith', email: 'eve@x.com', application: application({ referral: '   ' }) });
+  assert.equal(r2.body.status, 'accepted');
+  assert.equal('referral' in h2.lastApplication('eve@x.com'), false, 'blank is nobody');
+  assert.deepEqual(JSON.parse(h2.calls.find(c => c.url === 'https://auction.example/dealers/mint').init.body), { gdn: 'P000678X', name: 'Impac Manufacturing, Inc.', city: 'Los Fresnos' }, 'no referral key at all');
+  const h3 = make({ env: { ...AUCTION_ENV, ISSUE_KEYS: '1' }, telnyx: telnyxOk(), auction: auctionOk });
+  await verifiedApply(h3, { fullName: 'Bo Lee', email: 'bo@x.com' });
+  assert.equal('referral' in h3.lastApplication('bo@x.com'), false, 'missing is nobody');
+  assert.equal('referral' in JSON.parse(h3.calls.find(c => c.url === 'https://auction.example/dealers/mint').init.body), false);
+  const h4 = make();
+  await h4.post(applyBody({ application: application({ referral: 'x'.repeat(200) }) }));
+  assert.equal(h4.lastApplication('ana@lot.com').referral.length, 64, 'sixty-four characters at most, the Worker cap');
+  await h4.post(applyBody({ fullName: 'Cy Ng', email: 'cy@x.com', application: application({ referral: 42 }) }));
+  assert.equal('referral' in h4.lastApplication('cy@x.com'), false, 'a non-string is nobody');
+});
+test('the application page: Who sent you sits after the code and before the email, one field, Nobody faint, no reward word; the script sends referral only when filled', () => {
+  const page = readFileSync(new URL('../../obavia-co/index.html', import.meta.url), 'utf8');
+  const order = ['data-p="8"', 'data-p="r"', 'data-p="9"'].map(s => page.indexOf(s));
+  assert.ok(order[0] > 0 && order[0] < order[1] && order[1] < order[2], 'after the phone, before the email and its Apply');
+  const block = page.slice(page.indexOf('<div class="ap-p" data-p="r"'), page.indexOf('<div class="ap-p" data-p="9"')).replace(/<!--[\s\S]*?-->/g, '');
+  assert.ok(block.includes('Who sent you?'), 'the one question');
+  assert.equal((block.match(/<input /g) ?? []).length, 1, 'one field');
+  assert.equal((block.match(/class="btn cloud[^"]*"/g) ?? []).length, 1, 'one action');
+  assert.ok(block.includes('id="apNobody"') && block.includes('>Nobody<') && block.includes('class="ap-again"'), 'Nobody, faint');
+  for (const w of NO_REWARD) assert.ok(!block.toLowerCase().includes(w), w);
+  assert.ok(!/[\u2013\u2014]/.test(block), 'no em or en dashes');
+  const words = block.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+  assert.ok(words.length <= 8, 'under nine words on the glass: ' + words.join(' '));
+  assert.ok(page.includes('aria-valuemax="10"'), 'the line counts the tenth page');
+  const js = readFileSync(new URL('../../obavia-co/lane-apply.js', import.meta.url), 'utf8');
+  assert.ok(js.includes("if (A.referral) application.referral = A.referral;"), 'referral only when filled');
+  assert.ok(/ORDER = \['1', '2', '3', '4', '5', '6', '7', '8', 'r', '9'\]/.test(js), 'r is between 8 and 9');
+  assert.ok(!js.includes("go('9'); return; }") || !js.includes("A.phoneVerified = false; go('9')"), 'every path into 9 goes through r');
+  assert.equal((js.match(/go\('r'\)/g) ?? []).length, 3, 'the three paths into r: no match, code not sent, verified');
+  const code = js.slice(js.indexOf('/* ---------- page r:'), js.indexOf('/* ---------- page 9:')).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  for (const w of NO_REWARD) assert.ok(!code.toLowerCase().includes(w), w);
+});
+test('lane page: ?r=<code> is served like any lot link and carried by the page onto the app link and the store link, unread on the glass', async () => {
+  for (const path of ['/lane/lot-1?r=AB12cd', '/obavia/lane/lot-1?r=AB12cd', '/lane/lot-1?r=']) {
+    const ASSETS = fakeAssets();
+    const r = await serveLanePage(new Request(ORIGIN + path), { ASSETS });
+    assert.equal(r.status, 200, path); assert.deepEqual(ASSETS.seen, ['/lane/index.html'], 'the one page, the query untouched');
+    assert.equal(r.headers.get('Referrer-Policy'), 'no-referrer', 'the code never leaks in a referrer');
+  }
+  assert.equal((await serveLanePage(new Request(ORIGIN + '/lane/?r=AB12cd'), { ASSETS: fakeAssets() })).status, 404, 'no lot, no page');
+  const page = readFileSync(new URL('../../obavia-co/lane/index.html', import.meta.url), 'utf8');
+  assert.ok(page.includes("new URLSearchParams(location.search).get('r')"), 'reads r from the address');
+  assert.ok(/\^\[A-Za-z0-9_-\]\{1,32\}\$/.test(page), 'the code shape, or nothing');
+  assert.ok(page.includes("open.href = withRef('obavia://lane/'"), 'the app link carries it');
+  assert.ok(page.includes('const store = chosen ? withRef(chosen) : null;'), 'the store link carries it');
+  assert.equal((page.match(/class="btn cloud[^"]*"/g) ?? []).length, 1, 'still one action');
+  const glass = page.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<!--[\s\S]*?-->/g, '').replace(/<[^>]+>/g, ' ');
+  assert.ok(!/referr|code|sent you/i.test(glass), 'nothing about it on the glass');
+  for (const w of NO_REWARD) assert.ok(!glass.toLowerCase().includes(w), w);
+  assert.ok(!/[\u2013\u2014]/.test(page), 'no em or en dashes');
+});

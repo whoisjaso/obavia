@@ -119,6 +119,15 @@ Reading of CF5. The plan says "The dealer application asks for the GDN number fi
 | Desk uses it for | Verification, using the Telnyx Verify path already built in `desk/server/` (`messaging.md`, build order 1–2). If the dealer no longer has that phone, admin fixes the record by hand. That fix is logged, and it counts against "without a call". |
 | Held to | No per-page floor in the plan. The drop is recorded. |
 
+**Page r. Who sent you?** (added October 13, 2026, Phase 5 Marketing row, phases.md:107, Wave 4)
+
+| | |
+| --- | --- |
+| Copy | **Who sent you?** One field, "Name or code". "Nobody" faint skips it. |
+| Signals | A dealer referral or a buyer's code. It waives nothing and is never promised anything; the body carries `referral` only when filled. |
+| Desk uses it for | The dealer row's `referral` column and the `dealer.referral` ledger row; the referral count on the referrer's Me. |
+| Held to | No floor. The drop is recorded. |
+
 **Page 9. Email.**
 
 | | |

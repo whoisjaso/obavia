@@ -81,8 +81,10 @@
        {step:"lookup", gdn}                         -> {status:"match", name, city, phoneLast4} | {status:"no_match"}
        {step:"code",   gdn}                         -> {status:"code_sent", phoneLast4}   (Telnyx Verify, desk/server)
        {step:"verify", gdn, code}                   -> {status:"verified"} | {status:"wrong_code"}
-       {step:"apply", fullName, email, website, application:{v, gdnHeld, lotSize, agedOver60, floorplan, losingCar, gdn, dealerName, dealerCity, phoneVerified}}
+       {step:"apply", fullName, email, website, application:{v, gdnHeld, lotSize, agedOver60, floorplan, losingCar, gdn, dealerName, dealerCity, phoneVerified, referral?}}
                                                     -> {status:"accepted", key?}   (key issued only after a TxDMV match and a verified code)
+     referral (Wave 4, gap-table.md W4-E) is the "Who sent you?" page's answer, a dealer's name or a buyer's code, and
+     is in the body only when it was filled; it waives nothing and earns nothing (phases.md Phase 5 Marketing).
      Until the worker accepts them, the page checks the GDN's shape only, skips the code page, and on a 422 resends the
      legacy {fullName, email, website} so the person still lands on the list. Logic: lane-apply.js. -->
 <section class="apply" id="apply" aria-label="Apply for the lane">
@@ -90,9 +92,9 @@
     <form class="ap" id="ap" novalidate data-r
       data-endpoint="/api/waitlist"
       data-desk="https://desk.obavia.co/"
-      data-backend="pending: worker must accept step, application{gdnHeld,lotSize,agedOver60,floorplan,losingCar,gdn,dealerName,dealerCity,phoneVerified}">
+      data-backend="pending: worker must accept step, application{gdnHeld,lotSize,agedOver60,floorplan,losingCar,gdn,dealerName,dealerCity,phoneVerified,referral?}">
       <div class="ap-top"><button class="ap-back" id="apBack" type="button" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 3.5L5 8l5.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</button></div>
-      <div class="ap-line" id="apLine" role="progressbar" aria-label="Application progress" aria-valuemin="1" aria-valuemax="9" aria-valuenow="1"><i></i></div>
+      <div class="ap-line" id="apLine" role="progressbar" aria-label="Application progress" aria-valuemin="1" aria-valuemax="10" aria-valuenow="1"><i></i></div>
       <div class="ap-pages" id="apPages" aria-live="polite">
 
         <div class="ap-p" data-p="1" data-key="gdnHeld">
@@ -155,6 +157,17 @@
           </div>
           <button class="btn cloud ap-go" type="button" data-next disabled>Continue</button>
           <button class="ap-again" id="apAgain" type="button" hidden>Send it again</button>
+        </div>
+
+        <!-- Who sent you (gap-table.md W4-E; phases.md Phase 5 Marketing: a referral waives nothing, so no reward word here).
+             One field, a dealer's name or a buyer's code; Nobody, faint, skips it; Continue with it empty skips it too. -->
+        <div class="ap-p" data-p="r" data-key="referral" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apRef">Who sent you?</label></h2>
+          <div class="ap-field">
+            <input id="apRef" type="text" maxlength="64" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="Name or code">
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next>Continue</button>
+          <button class="ap-again" id="apNobody" type="button">Nobody</button>
         </div>
 
         <div class="ap-p" data-p="9" data-key="email" hidden>

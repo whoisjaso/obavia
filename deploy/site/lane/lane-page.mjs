@@ -8,7 +8,9 @@
 //
 // The lot id is the auction Worker's own shape ([A-Za-z0-9_-]{1,64}). The path
 // may sit under /obavia/ as the pages do. Only GET and HEAD; /lane, /lane/,
-// anything deeper, a dot in the id or a query of any kind is 404. Headers
+// anything deeper or a dot in the id is 404. The query is left alone: a buyer's
+// share link carries ?r=<code> (gap-table.md W4-E) and the page itself passes it
+// to the app and store links; nothing here reads it or logs it. Headers
 // follow the pages branch: the ASSETS response's own, plus nosniff and
 // no-referrer, with the Content-Type set to HTML on a 200. A path outside
 // /lane/ answers null, so the caller's other branches run unchanged.

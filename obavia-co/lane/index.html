@@ -74,7 +74,10 @@
      connect-src, or the browser blocks the read.
      APP LINKS: data-ios and data-android are PLACEHOLDERS for the App Store and Google Play pages; the owner
      fills them when the store listings exist. Until then the one action opens the app by its scheme
-     (obavia://lane/<lotId>, auction/app.config.ts scheme "obavia") and falls back to nothing. -->
+     (obavia://lane/<lotId>, auction/app.config.ts scheme "obavia") and falls back to nothing.
+     REFERRAL (gap-table.md W4-E): a buyer's share link carries ?r=<code>. The code rides on the app link as its
+     param (obavia://lane/<lotId>?r=<code>) and on either store link as ?r=<code>; the phone claims it. Nothing
+     about it is on the glass: it waives nothing (phases.md Phase 5 Marketing). -->
 <section class="hero ln-hero" id="top" data-worker="PLACEHOLDER" data-path="/lots/" data-ios="PLACEHOLDER" data-android="PLACEHOLDER">
   <div class="wrap">
     <div class="copy">
@@ -107,7 +110,8 @@
    <data-worker>/lots/<id>, no credentials, eight seconds. The car's name, the price, the clock and the dealer
    land as words; anything missing lands as "Not read". The clock counts down on the page from the Worker's
    closesAt. The one action is the app's scheme link with the lot; on a phone, when the app does not take it
-   within a moment and the store link for that platform is a real https address, the store opens instead. */
+   within a moment and the store link for that platform is a real https address, the store opens instead.
+   A ?r=<code> on this address (the buyer's share link) is carried onto the app link and the store link, unread. */
 (() => {
 'use strict';
 const sec = document.getElementById('top'), rows = document.getElementById('lnRows');
@@ -116,6 +120,9 @@ const time = document.getElementById('lnTime'), dealer = document.getElementById
 const NOT = 'Not read';
 const m = location.pathname.match(/^\/(?:obavia\/)?lane\/([A-Za-z0-9_-]{1,64})\/?$/);
 const lotId = m ? m[1] : null;
+const rq = new URLSearchParams(location.search).get('r') || '';
+const ref = /^[A-Za-z0-9_-]{1,32}$/.test(rq) ? rq : '';           // the code's own shape, or nothing
+const withRef = (href) => ref ? href + (href.includes('?') ? '&' : '?') + 'r=' + encodeURIComponent(ref) : href;
 const origin = (sec.dataset.worker || '').replace(/\/$/, '');
 const url = lotId && /^https:\/\//.test(origin) ? origin + (sec.dataset.path || '/lots/') + encodeURIComponent(lotId) : null;
 const https = v => /^https:\/\//.test(v || '') ? v : null;
@@ -143,9 +150,11 @@ const land = (lot) => {
   rows.setAttribute('aria-busy', 'false');
 };
 // the one action: the app's scheme link with the lot; the store as the fallback, only with a real address
-if (lotId) open.href = 'obavia://lane/' + encodeURIComponent(lotId);
+if (lotId) open.href = withRef('obavia://lane/' + encodeURIComponent(lotId));
 const ua = navigator.userAgent || '';
-const store = /iPhone|iPad|iPod/.test(ua) ? https(sec.dataset.ios) : /Android/.test(ua) ? https(sec.dataset.android) : null;
+const chosen = /iPhone|iPad|iPod/.test(ua) ? https(sec.dataset.ios) : /Android/.test(ua) ? https(sec.dataset.android) : null;
+const store = chosen ? withRef(chosen) : null;
+if (store) open.dataset.store = store;
 if (store) open.addEventListener('click', () => {
   const at = Date.now();
   setTimeout(() => { if (document.visibilityState === 'visible' && Date.now() - at < 2500) location.href = store; }, 1400);
