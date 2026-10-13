@@ -11,7 +11,11 @@
    Under the name, faint, the number the buyer proved with a code: last four only.
    Under wins left, until the first car is paid (sim 03): the one bid open, with the
    car's name in Bodoni touching it as on the Bid sheet's stamp; the row is the tap
-   and goes to that car through the nav bus. Hidden at zero open or once a car is paid. */
+   and goes to that car through the nav bus. Hidden at zero open or once a car is paid.
+   Under the $250, where it stands in the Worker's word (depositLine.ts): held, or it went to the car once the
+   engine started (the car's name in Bodoni touching the words, the row opens that car's Won to read), sent
+   back, forfeited with the car, disputed. "Get it back" only while held. A won car's row under Cars opens
+   its Won the same way (Lane's onOpenCar reads a won lot). */
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Linking, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
@@ -29,6 +33,7 @@ import type { Lot } from '../engine/server';
 import { feel } from '../feel';
 import { go } from '../nav';
 import { releaseDeposit } from '../deposit';
+import { depositLine, type DepositStanding } from '../depositLine';
 import { useSale } from '../sale';
 import { AUCTION_URL, DEPOSIT, ME, WINS_PER_YEAR, backAfterADay, heldLot, localCommitted, localOpen, lotName, markOpened, once, refreshMe, saveName, supportPhone, toggleWatch, useBuyer, useCars, useWatched } from '../store';
 import { theme } from '../theme';
@@ -142,7 +147,18 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
   const all = Object.values(lots);
   const leads = all.some(l => !l.closed && l.leader === ME);
   const owes = (!!sale && !sale.pickedUp) || all.some(l => l.sale?.buyer === ME && !l.sale.voidedAt && !l.sale.forfeitedAt && !l.sale.startedAt);
-  const canRelease = once.deposit && !leads && !owes;
+  // where the $250 stands: the Worker's word when it has said one; the local stand-in (and the moment before the
+  // first GET /me) reads the phone: applied once the car started here, held once the deposit was taken, none before
+  const standing: DepositStanding = released ? 'released'
+    : buyer.deposit && buyer.deposit !== 'none' ? buyer.deposit
+    : sale?.pickedUp ? 'applied' : once.deposit ? 'held' : 'none';
+  // the car the $250 went to (or with): the lot whose sale says so, else the sale this phone holds
+  const depositLot = standing === 'applied' ? (all.find(l => l.sale?.buyer === ME && (l.sale.deposit === 'applied' || !!l.sale.startedAt)) ?? (sale ? lots[sale.lotId] : undefined))
+    : standing === 'forfeited' ? all.find(l => l.sale?.buyer === ME && (l.sale.deposit === 'to_dealer' || !!l.sale.forfeitedAt)) : undefined;
+  const line = depositLine(standing, depositLot ? lotName(depositLot) : undefined);
+  const canRelease = line.back && !leads && !owes;
+  // applied: the row is the tap and opens that car's Won to read, as the Cars row does
+  const openDeposit = standing === 'applied' && depositLot ? () => { feel.select(); onOpenCar(depositLot.id); } : undefined;
   // the one bid open (sim 03): the Worker's count from GET /me, the local stand-in's from the lots I lead;
   // the car it is on comes from the lane when the lane knows it. Gone for good once a car is paid.
   const openBids = AUCTION_URL ? buyer.openBids : localOpen(all);
@@ -174,7 +190,19 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Deposit</Label>
       <Serif size={34}>${DEPOSIT}</Serif>
-      <Body ink={theme.color.faint} style={{ marginTop: 2 }}>{released && !once.deposit ? 'back to your card' : once.deposit ? 'held · back if you lose' : 'held at your first bid'}</Body>
+      {line.name === undefined ? (
+        <Body ink={theme.color.faint} style={{ marginTop: 2 }}>{line.words}</Body>
+      ) : openDeposit ? (
+        <Pressable onPress={openDeposit} hitSlop={12} style={s.openRow} accessibilityRole="button" accessibilityLabel={`${DEPOSIT} dollars ${line.words} ${line.name}. Open the ${line.name}`}>
+          <Body ink={theme.color.faint}>{line.words}</Body>
+          <Serif size={22} style={s.openName}>{line.name}</Serif>
+        </Pressable>
+      ) : (
+        <View style={s.openRow} accessible accessibilityLabel={`${DEPOSIT} dollars ${line.words} ${line.name}`}>
+          <Body ink={theme.color.faint}>{line.words}</Body>
+          <Serif size={22} style={s.openName}>{line.name}</Serif>
+        </View>
+      )}
       {winsLeft !== undefined && (
         <Body ink={winsInk(winsLeft)} style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}>{`Wins left this year: ${winsLeft}`}</Body>
       )}
@@ -199,13 +227,14 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
         const car = cars.find(c => c.id === w.lotId);
         if (!car) return null;
         return (
-          <View key={w.lotId} style={s.pass} accessible accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${dollars(w.hammer)} dollars`}>
+          <Pressable key={w.lotId} onPress={() => { feel.select(); onOpenCar(w.lotId); }} hitSlop={8} style={s.pass}
+            accessibilityRole="button" accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${dollars(w.hammer)} dollars`} accessibilityHint="Open the car">
             <View style={s.passThumb}>{car.photos[0] && <Image source={car.photos[0].src} style={StyleSheet.absoluteFill} contentFit="cover" />}</View>
             <View style={{ flexShrink: 1 }}>
               <Serif size={24}>${dollars(w.hammer)}</Serif>
               <Label style={{ textAlign: 'left' }}>{car.year} {car.make} {car.model}</Label>
             </View>
-          </View>
+          </Pressable>
         );
       })}
     </Page>

@@ -163,6 +163,66 @@ describe('the name, saved on Me or from the licence read', () => {
   });
 });
 
+describe('where the $250 stands (Me, the deposit line)', () => {
+  it('the Worker\'s deposit_status becomes the phone\'s word', async () => {
+    const { depositStanding } = await import('./depositLine');
+    expect(depositStanding('captured')).toBe('held');
+    expect(depositStanding('applied')).toBe('applied');
+    expect(depositStanding('refunded')).toBe('released');
+    expect(depositStanding('forfeited')).toBe('forfeited');
+    expect(depositStanding('disputed')).toBe('disputed');
+    expect(depositStanding('none')).toBe('none');
+    expect(depositStanding(undefined)).toBe('none');
+    expect(depositStanding('something_new')).toBe('none');
+  });
+
+  it('the words per standing: four or fewer, the car apart in its own slot, Get it back only while held', async () => {
+    const { depositLine } = await import('./depositLine');
+    expect(depositLine('none')).toEqual({ words: 'held at your first bid', back: false });
+    expect(depositLine('held')).toEqual({ words: 'held · back if you lose', back: true });
+    expect(depositLine('applied', 'Accord LX')).toEqual({ words: 'went to your', name: 'Accord LX', back: false });
+    expect(depositLine('applied')).toEqual({ words: 'went to your car', back: false });
+    expect(depositLine('released')).toEqual({ words: 'sent back', back: false });
+    expect(depositLine('forfeited', 'Altima')).toEqual({ words: 'forfeited', name: 'Altima', back: false });
+    expect(depositLine('forfeited')).toEqual({ words: 'forfeited', back: false });
+    expect(depositLine('disputed')).toEqual({ words: 'disputed', back: false });
+    // the new lines hold the four-word ceiling (DOCTRINE §4 rule 7); held is the kept deposit line the Bid sheet
+    // already says (tools/walkthrough/reads.mjs DEPOSIT_LINE), left as it was
+    for (const s of ['applied', 'released', 'forfeited', 'disputed'] as const) {
+      const l = depositLine(s, 'Accord LX');
+      expect(l.words.split(/\s+/).filter(w => /\p{L}/u.test(w)).length).toBeLessThanOrEqual(4);
+    }
+    for (const s of ['none', 'held', 'applied', 'released', 'forfeited', 'disputed'] as const) expect(depositLine(s, 'Accord LX').words).not.toMatch(/[\u2013\u2014]/);
+  });
+
+  it('GET /me puts the standing on the buyer and keeps once.deposit as the bid path\'s flag', async () => {
+    ls.setItem('obavia.buyer', JSON.stringify({ id: 'b-1', token: 't-0' }));
+    const { store } = await launch(true);
+    const server = store.getServer() as unknown as { stop(): void };
+    stop = () => server.stop();
+    await settle(); await settle();
+    expect(store.peekBuyer().deposit).toBe('none');   // the fake Worker's GET /me carries no deposit_status
+    const answer = (deposit_status: string) => { globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ id: 'b-1', deposit_status }), { status: 200 })) as typeof fetch; };
+    answer('captured'); await store.refreshMe();
+    expect(store.peekBuyer().deposit).toBe('held'); expect(store.once.deposit).toBe(true);
+    answer('applied'); await store.refreshMe();
+    expect(store.peekBuyer().deposit).toBe('applied'); expect(store.once.deposit).toBe(false);
+    answer('refunded'); await store.refreshMe();
+    expect(store.peekBuyer().deposit).toBe('released'); expect(store.once.deposit).toBe(false);
+    answer('forfeited'); await store.refreshMe();
+    expect(store.peekBuyer().deposit).toBe('forfeited'); expect(store.once.deposit).toBe(false);
+    answer('disputed'); await store.refreshMe();
+    expect(store.peekBuyer().deposit).toBe('disputed'); expect(store.once.deposit).toBe(false);
+  });
+
+  it('the local stand-in never sets it: Me reads once.deposit and its own sale', async () => {
+    const { store } = await launch(false);
+    expect(store.peekBuyer().deposit).toBeUndefined();
+    await store.refreshMe();
+    expect(store.peekBuyer().deposit).toBeUndefined();
+  });
+});
+
 describe('lastOpened', () => {
   it('a push intent is kept in kv with its screen and lot', async () => {
     const { store, nav } = await launch(false);

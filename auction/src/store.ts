@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { carFromLot, cars as seeded, seedLots, type Car } from './data/cars';
 import { RemoteAuctionServer, Refused, TERMS_VERSION, type PhoneAnswer, type Profile, type Session } from './engine/client';
 import { LocalAuctionServer, type Ack, type BidRequest, type Event, type Lot } from './engine/server';
+import { depositStanding, type DepositStanding } from './depositLine';
 import { kv } from './kv';
 import { go, isScreen, peekIntent, subscribeIntent, type Intent, type Screen } from './nav';
 import type { Licence } from './sale';
@@ -40,6 +41,10 @@ export type Buyer = {
   /** sim 03 (worker/README.md, Who may bid): `openBids` is the lots led plus the sales owed, what the one-open-bid
       gate counts; `paidCars` lifts that gate for good. From GET /me, and the gate's own 409 updates `openBids`. */
   openBids?: number; paidCars?: number;
+  /** Where the $250 stands, in the Worker's word (GET /me `deposit_status`, through depositStanding): held, applied
+      (it went to the car at the engine start), released, forfeited, disputed, none. Absent on the local stand-in and
+      until the first GET /me; Me then reads `once.deposit` and its own sale. `once.deposit` stays the bid path's flag. */
+  deposit?: DepositStanding;
 };
 
 /* The local stand-in's buyer (no Worker) wears a fixture name so the demo reads; `?name=none` previews the
@@ -87,6 +92,7 @@ export async function refreshMe(): Promise<void> {
   once.deposit = m.deposit_status === 'captured';
   setBuyer({
     winsLeft: m.winsLeft, winsPerYear: m.winsPerYear ?? WINS_PER_YEAR, termsCurrent: m.termsCurrent, phone: m.phone ?? null, phoneVerified: m.phoneVerified === true, name: m.name?.trim() || savedName(),
+    deposit: depositStanding(m.deposit_status),
     ...(typeof m.openBids === 'number' ? { openBids: m.openBids } : {}), ...(typeof m.paidCars === 'number' ? { paidCars: m.paidCars } : {}),
   });
 }
