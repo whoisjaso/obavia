@@ -63,7 +63,7 @@ describe('Connect Facebook', () => {
     let t = new Date('2026-10-02T12:00:00Z');
     const m = new MetaConnect(app, SECRET, c, f, () => t);
     const state = new URL(await m.startUrl('P123456')).searchParams.get('state')!;
-    expect(await m.finish(new URLSearchParams({ code: 'x', state: state.replace(/.$/, 'A') }))).toMatchObject({ ok: false, reason: 'bad_state' });
+    expect(await m.finish(new URLSearchParams({ code: 'x', state: state.replace(/.$/, (c) => (c === 'A' ? 'B' : 'A')) }))).toMatchObject({ ok: false, reason: 'bad_state' });
     expect(await m.finish(new URLSearchParams({ error: 'access_denied', state }))).toMatchObject({ ok: false, reason: 'denied' });
     t = new Date('2026-10-02T12:20:00Z');
     expect(await m.finish(new URLSearchParams({ code: 'x', state }))).toMatchObject({ ok: false, reason: 'expired' });
