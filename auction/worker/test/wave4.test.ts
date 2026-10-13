@@ -136,6 +136,21 @@ describe('4. per-dealer settings on the Worker (GET and PUT /dealers/settings)',
   });
 });
 
+describe('4b. the admin reads one dealer\'s settings (GET /admin/dealers/:gdn/settings)', () => {
+  it('the admin key reads what the owner wrote; defaults before any write; a dealer key and an unknown GDN are refused', async () => {
+    const d = await dealer('P940011');
+    const empty = await get('/admin/dealers/P940011/settings', ADMIN);
+    expect(empty.status).toBe(200);
+    expect(await empty.json()).toEqual({ gdn: 'P940011', hours: [], pickupAddress: null, afterHoursPhone: null, laneOn: true, updatedAt: null });
+    const body = { hours: ['Mon-Fri 9 am-6 pm'], pickupAddress: '1 Lot Rd, Houston, TX 77002', afterHoursPhone: '+12815550199', laneOn: true };
+    expect((await put('/dealers/settings', as(d), body)).status).toBe(200);
+    const read = await (await get('/admin/dealers/P940011/settings', ADMIN)).json<any>();
+    expect(read).toMatchObject({ gdn: 'P940011', ...body });
+    expect((await get('/admin/dealers/P940011/settings', as(d))).status).toBe(403);
+    expect((await get('/admin/dealers/P999999/settings', ADMIN)).status).toBe(404);
+  });
+});
+
 describe('5. exports (GET /admin/export.csv?what=sales|money|lots)', () => {
   const parse = (t: string) => {   // RFC 4180 reader for the test: quoted fields, doubled quotes, CRLF rows
     const rows: string[][] = []; let row: string[] = [], f = '', q = false;

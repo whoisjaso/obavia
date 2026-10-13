@@ -443,6 +443,17 @@ async function handle(req: Request, env: Env): Promise<Response> {
         .bind(`wholesale:${wholesale[1]}:${now}`, 'dealer.wholesale', JSON.stringify({ dealer: wholesale[1], wholesaleGdn: w, actor: 'admin' }), now).run();
       return json({ gdn: wholesale[1], wholesaleGdn: w });
     }
+    // Wave 4: the admin reads one dealer's settings (the Desk admin's dealer row), read-only; the same shape as GET /dealers/settings
+    const adminSettings = url.pathname.match(/^\/admin\/dealers\/([A-Z0-9]{5,12})\/settings$/);
+    if (req.method === 'GET' && adminSettings) {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const gdn = adminSettings[1];
+      if (!(await env.DB.prepare('SELECT 1 AS x FROM dealers WHERE gdn = ?1').bind(gdn).first())) return fail('no_such_dealer', 404);
+      const r = await env.DB.prepare('SELECT hours_json, pickup_address_json, after_hours_phone, lane_on, updated_at FROM dealer_settings WHERE gdn = ?1').bind(gdn)
+        .first<{ hours_json: string; pickup_address_json: string | null; after_hours_phone: string | null; lane_on: number; updated_at: number }>();
+      const parse = (t: string | null) => { if (t == null) return null; try { return JSON.parse(t); } catch { return null; } };
+      return json({ gdn, hours: (parse(r?.hours_json ?? null) as unknown[] | null) ?? [], pickupAddress: parse(r?.pickup_address_json ?? null), afterHoursPhone: r?.after_hours_phone ?? null, laneOn: r ? r.lane_on === 1 : true, updatedAt: r?.updated_at ?? null });
+    }
     // exports (Wave 4, phases.md Phase 5 Admin): one CSV per what, RFC 4180, the buyer's id only (no name, no phone, no address in any export)
     if (req.method === 'GET' && url.pathname === '/admin/export.csv') {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
