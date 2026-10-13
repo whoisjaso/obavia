@@ -98,6 +98,8 @@ export const SAID: Record<string, string> = {
   'no sale': 'There is no sale.', sale_voided: 'This sale was voided.', sale_forfeited: 'The buyer walked.', 'no sale to void': 'Nothing to void now.',
   already_started: 'Already picked up.', vin_required: 'Type the six.', not_paid: 'Mark it paid first.', vin_unknown: 'No VIN on file.', 'wrong car': 'Not this car.',
   before_deadline: 'Wait for the deadline.', already_forfeited: 'Already forfeited.', sale_started: 'Already picked up.', sale_paid: 'Already paid.',
+  /* /plates */
+  not_started: 'Not started yet.', plates_order: 'Out of order.', bad_state: 'Not a plates word.',
   /* the payout and the account */
   no_payout: 'No payout on this.', wrong_payout: 'Not this payout.', payout_settled: 'Payout already settled.', already_paid: 'Already paid.', not_held: 'No deposit was held.',
   account_exists: 'Already connected.', bad_email: 'Check the email.', whop_refused: 'Whop said no.', whop_bad_account: 'Whop gave no account.', whop_unavailable: 'Whop is not connected.', account_from_whop_only: 'Whop sets the account.',
@@ -126,8 +128,21 @@ export type Lot = {
   car?: CarMeta;
   sale?: { buyer: string; hammer: number; wonAt: number; deadlineAt: number; paidAt?: number; startedAt?: number; forfeitedAt?: number; voidedAt?: number; deposit?: 'held' | 'applied' | 'to_dealer' | 'released';
     payout?: Payout;      // the dealer's $250 on an applied or forfeited sale (worker/src/auction.ts LotPayout)
+    plates?: Plates;      // the county's clock after the start, as this Desk marks it (worker/src/auction.ts POST /plates)
     contact?: Contact };  // the winner, only on what this lot's dealer key reads (index.ts withContact)
 };
+/* ---------- the plates (worker README "The plates (sale.plates)"; phases.md Phase 2 Paperwork) ----------
+   Written only on a started sale, only forward: none → filed → approved → mailed; filed → kickback → filed. The Worker's
+   PLATES_NEXT is the table; this is the Desk's reading of it, so the row offers one verb at a time and never one the
+   lane would bounce (409 plates_order). The words are the phone's (auction/src/sale.ts PLATES_WORDS): CP9, the same
+   word on the Desk's row and the buyer's ring. */
+export type PlatesState = 'filed' | 'approved' | 'mailed' | 'kickback';
+export type Plates = { state: PlatesState; at: number; note?: string };
+export const PLATES_WORDS: Record<PlatesState, string> = { filed: 'Filed', approved: 'Approved', mailed: 'Mailed', kickback: 'Dealer fixing' };
+/** The one verb the row offers from this state: Filed, then Approved, then Mailed; after a kickback, Filed again; after mailed, nothing. */
+export const platesVerb = (state?: PlatesState): PlatesState | null => (!state || state === 'kickback' ? 'filed' : state === 'filed' ? 'approved' : state === 'approved' ? 'mailed' : null);
+/** The faint second word: a kickback is possible only while the 130-U is filed and not yet approved. */
+export const platesKickback = (state?: PlatesState) => state === 'filed';
 /** The dealer's $250: owed until Whop sends it or the owner pays it by hand. */
 export type Payout = { state: 'owed' | 'sent' | 'paid'; transferId?: string; method?: 'wire' | 'check' | 'cash'; at?: number };
 /** The winner for the desk person's one call within the hour (CF9). Null name: the Worker has none; the glass says "Buyer". */
@@ -172,6 +187,8 @@ export const closeLot = (lot: string) => call<Lot>('POST', `/lots/${lot}/close`,
 export const markPaid = (lot: string) => call<Lot>('POST', `/lots/${lot}/paid`, {});
 export const pickup = (lot: string, vin: string) => call<Lot>('POST', `/lots/${lot}/pickup`, { vin });
 export const voidSale = (lot: string, reason: string) => call<Lot>('POST', `/lots/${lot}/void`, { reason });
+/** The plates clock on a started sale: `{ state, note? }`; the note (the county's words, 240 characters) rides a kickback only. */
+export const markPlates = (lot: string, state: PlatesState, note?: string) => call<Lot>('POST', `/lots/${lot}/plates`, note?.trim() ? { state, note: note.trim().slice(0, 240) } : { state });
 /* ---------- the owner's routes (admin key only) ---------- */
 /** The master key is minted for GDN "*": `d:*.<sig>`. Every other key is one dealer's. */
 export const isAdminKey = (k: string | null = dealerKey.get()) => !!k && k.trim().startsWith('d:*.');

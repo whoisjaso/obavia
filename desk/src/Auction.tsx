@@ -4,7 +4,7 @@
    buyer's clock, the money, the VIN at pickup, and the way out (void).
    The lane refuses collateral it cannot see; so does this screen, earlier. */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { DEPOSIT_USD, KEY_SHAPE, auctionLive, carMeta, closeLot, collateralRefusal, collect, dealerKey, depositWords, dial, getMe, releaseRefusal, said, getLot, holdingCost, isAdminKey, keepContact, lotId, lotLinks, markPaid, onLane, openLot, payBy, photoBlob, pickup, putPhoto, relistable, rememberLot, takeArrival, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
+import { DEPOSIT_USD, KEY_SHAPE, PLATES_WORDS, auctionLive, carMeta, closeLot, collateralRefusal, collect, dealerKey, depositWords, dial, getMe, releaseRefusal, said, getLot, holdingCost, isAdminKey, keepContact, lotId, lotLinks, markPaid, markPlates, onLane, openLot, payBy, photoBlob, pickup, platesKickback, platesVerb, putPhoto, relistable, rememberLot, takeArrival, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type PlatesState, type RemotePhoto } from './lib/auction';
 import { HOURS, HOURS_ORDER, defaultSettings, hoursChoice, laneReady, lotFields, toE164, E164, type HoursChoice } from './lib/dealer-settings';
 import { formatPhone } from './lib/forms/phone';
 import { laneDocuments, uploadLaneDocuments, type LaneUpload } from './lib/sign';
@@ -16,7 +16,7 @@ import { shrink } from './Paper';
 import { setLaneSettings, startSale, useStore } from './store';
 import { LaneSettings } from './Onboarding';
 import { Back, CarArt, Choice, Ic, feel, go, transition } from './ui';
-import { Count, Ring, bidPulse, land } from './motion';
+import { Count, Ring, bidPulse, land, playSheet, pulse, type Sheet } from './motion';
 import { ActionSheet, PhotoSheet } from './BottomSheet';
 import { canScan, passSix, startScan } from './lib/scan';
 
@@ -51,6 +51,24 @@ function Obj({ name, h = 28, style }: { name: ObjName; h?: number; style?: CSSPr
 }
 /** A number with its object touching it, inside a row's value. */
 const V = ({ obj, children }: { obj: ObjName; children: ReactNode }) => <span className="v num" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Obj name={obj} h={36} />{children}</span>;
+/* The bleed ring (DOCTRINE §5: the floorplan clock bleeding, the Floor screen's holding cost). The 24-frame sheet from
+   assets/scene-3d/bleed/light (commit 54073d5), copied to public/scene-3d as bleed-light-sheet.*; the 1x sheet's 256 px cell is
+   more than the 36 px ring needs at any phone's density, so the 2x copy stays on disk. It plays once as the holding figure
+   lands (after the row's own settle, motion.ts enter) and rests on frame 23, the still, touching the figure (lego.md §4.1).
+   Reduced motion: the still alone. No sound: a cost is not an action. */
+let bleedSheet: Promise<Sheet> | undefined;
+function Bleed({ h = 36 }: { h?: number }) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const base = `${import.meta.env.BASE_URL}scene-3d/bleed-light-sheet`;
+    bleedSheet ??= fetch(`${base}.json`).then(r => r.json() as Promise<Sheet>);
+    let on = true, stop: (() => void) | undefined;
+    bleedSheet.then(sheet => { if (!on || !el.isConnected) return; el.style.backgroundImage = `url(${base}.png)`; stop = playSheet(el, sheet, h, 0.4); }).catch(() => { bleedSheet = undefined; });
+    return () => { on = false; stop?.(); };
+  }, [h]);
+  return <i ref={ref} aria-hidden="true" style={{ display: 'inline-block', flex: 'none', width: h, height: h, backgroundRepeat: 'no-repeat' }} />;
+}
 /** Let It Go Again: the car that just left the lane is the car that goes. Kept for the next Let It Go only (the router
     reads #/auction/go as it is; a query there would be read as a lot id). */
 const AGAIN = 'obavia.desk.auction.again';
@@ -333,7 +351,7 @@ export function LetItGo() {
         <div className="money"><input className="input num" inputMode="numeric" autoFocus value={grouped(floor)} onChange={e => setFloor(digits(e.target.value))} placeholder={n(band.low)} /></div>
         <div className="group" style={{ marginTop: 22 }}>
           <div className="row"><span className="t"><b>The lane usually pays</b><small>For a {carName(car)} in this condition</small></span><span className="v num" style={{ lineHeight: 1.35 }}>{usd(band.low)}<br />to {usd(band.high)}</span></div>
-          <div className="row"><span className="t"><b>Holding it {days} more days</b><small>Floorplan interest and the value it loses</small></span><span className="v num">{usd(holdingCost(days, floorN || band.low))}</span></div>
+          <div className="row"><span className="t"><b>Holding it {days} more days</b><small>Floorplan interest and the value it loses</small></span><span className="v num" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Bleed />{usd(holdingCost(days, floorN || band.low))}</span></div>
           {payoffN > 0 && <div className="row"><span className="t"><b>{bring.bring > 0 ? 'You bring' : 'You keep'}</b><small>After the {usd(payoffN)} payoff</small></span><span className="v num">{usd(bring.bring > 0 ? bring.bring : bring.get)}</span></div>}
         </div>
       </section>}
@@ -414,7 +432,7 @@ function LotPageOf({ id }: { id: string }) {
   if (!lot) return <main className="wrap center"><div className="top"><Back to="#/auction" label="Lane" /></div><p className="empty">Reaching the lane…</p></main>;
   /* the frame the sale arrives on is already the hammer's (the effect above has not run yet) */
   const landing = hammer || (!!lot.sale && sawLive.current);
-  if (lot.sale && !landing) return <Sold lot={lot} v={v} link={link} />;
+  if (lot.sale && !landing) return <Sold lot={lot} v={v} link={link} onLot={l => setLot(prev => keepContact(prev, l))} />;
   return <Live lot={lot} v={v} link={link} hammer={landing} onLot={l => setLot(prev => keepContact(prev, l))} />;
 }
 
@@ -478,13 +496,20 @@ const WHY = ['The car sold on the lot first', 'The title will not release in tim
 const tone = (w: LaneWatch) => (w.state === 'overdue' ? 'late' : w.state === 'soon' ? 'warn' : w.state === 'done' ? 'good' : '');
 const DOT = { display: 'inline-block', width: 8, height: 8, marginLeft: 8, verticalAlign: 1, boxShadow: 'none' } as const;
 const shortDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
+/** The plates word's date, month and day only ("Dealer fixing Oct 13"): the row's value stays narrow enough on 393 for the title line beside it. */
+const monthDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
 
-function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
+/* The plates verb in the title row: a .textlink laid into the row's value column, touching the date (no margin, no pad). */
+const VERB: CSSProperties = { display: 'inline-block', margin: 0, padding: '4px 0 0' };
+const FAINT: CSSProperties = { ...VERB, color: 'var(--faint)', fontWeight: 600, padding: '2px 0 0' };
+
+function Sold({ lot, v, link, onLot }: { lot: Lot; v?: Vehicle; link?: LotLink; onLot: (l: Lot) => void }) {
   const s = lot.sale!;
   const { dealer } = useStore();
   const [marks, setMarks] = useState({ titleTo: link?.titleTo, taxSent: link?.taxSent });
-  const [mode, setMode] = useState<'sale' | 'vin' | 'void'>('sale');
+  const [mode, setMode] = useState<'sale' | 'vin' | 'void' | 'kickback'>('sale');
   const [vin, setVin] = useState('');
+  const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [why, setWhy] = useState<string | null>(null);
@@ -523,6 +548,21 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
   const who = s.contact?.name?.trim() || 'Buyer';
   const phone = s.contact?.phone ?? null;
   const fees = lot.car?.dealer?.fees ?? dealer.fees;
+  /* The plates (worker README "The plates (sale.plates)"): once the car has started, the day-21 row carries one verb at a
+     time from the Worker's own order (Filed, Approved, Mailed; Filed again after a kickback) and, while filed, the faint
+     word Kickback. Each tap posts the word; the word on the glass after is sale.plates.state from the lot that comes
+     back, with its date, never the tap's. A refusal (409 not_started, plates_order) is said in four words. */
+  const plates = s.plates;
+  const verb = state === 'started' ? platesVerb(plates?.state) : null;
+  const platesWord = useRef<HTMLSpanElement>(null), platesSeen = useRef(plates?.state);
+  useEffect(() => { if (platesSeen.current !== plates?.state && platesWord.current) pulse(platesWord.current); platesSeen.current = plates?.state; }, [plates?.state]);
+  const file = async (next: PlatesState, words?: string) => {
+    feel.next(); setBusy(true); setErr(null);
+    const r = await markPlates(lot.id, next, words); setBusy(false);
+    if (r.ok) { onLot(r.value); if (mode !== 'sale') { setMode('sale'); setNote(''); } } else setErr(said(r.reason));
+  };
+  const platesLine = plates ? `${PLATES_WORDS[plates.state]} ${monthDay(today(dealer.timeZone, new Date(plates.at)))}` : titleW.state === 'done' ? 'Done' : shortDay(titleW.due);
+  const platesTone = plates?.state === 'mailed' ? 'good' : tone(titleW);
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/auction" label="Lane" /></div>
@@ -547,7 +587,16 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
           {state === 'owed' && <div className="row"><span className="t"><b>Collect at the lot</b><small>The total less the {usd(DEPOSIT_USD)} deposit</small></span><span className="v num">{usd(collect(s.hammer, fees))}</span></div>}
           <div className="row"><span className="t"><b>{s.payout || s.deposit === 'applied' || s.deposit === 'to_dealer' ? depositWords(s) : 'Deposit'}</b><small>{s.payout || s.deposit === 'applied' || s.deposit === 'to_dealer' ? (s.payout?.state === 'owed' || !s.payout ? 'Until Whop sends it' : s.payout.at ? new Date(s.payout.at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '') : depositWords(s)}</small></span><V obj="coin">{usd(DEPOSIT_USD)}</V></div>
           {link && <div className="row"><span className="t"><b>Floor</b></span><span className="v num">{usd(link.floor)}</span></div>}
-          {live && <div className="row"><span className="t"><b>Title to the buyer before day 21.</b></span><V obj="title"><span style={{ whiteSpace: 'nowrap' }}>{titleW.state === 'done' ? 'Done' : shortDay(titleW.due)} <i className={`dot ${tone(titleW)}`} style={DOT} aria-label={titleW.state} /></span></V></div>}
+          {live && <div className="row" style={plates?.state === 'kickback' && plates.note ? { flexWrap: 'wrap', rowGap: 2 } : undefined}>
+            <span className="t"><b>Title to the buyer before day 21.</b></span>
+            <V obj="title"><span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span ref={platesWord} style={{ whiteSpace: 'nowrap' }}>{platesLine} <i className={`dot ${platesTone}`} style={DOT} aria-label={plates ? PLATES_WORDS[plates.state] : titleW.state} /></span>
+              {verb && <button className="textlink" style={VERB} disabled={busy} onClick={() => file(verb)}>{PLATES_WORDS[verb]}</button>}
+              {verb && platesKickback(plates?.state) && <button className="textlink" style={FAINT} disabled={busy} onClick={() => { feel.tap(); setNote(''); setMode('kickback'); }}>Kickback</button>}
+            </span></V>
+            {/* the county's words sit on the row they explain, a full line under it, so the title line beside the value keeps its width on 393 */}
+            {plates?.state === 'kickback' && plates.note && <small style={{ flexBasis: '100%', marginTop: 0 }}>{plates.note}</small>}
+          </div>}
           {live && <div className="row"><span className="t"><b>Tax to the county.</b></span><span className="v" style={{ whiteSpace: 'nowrap' }}>{taxW.state === 'done' ? 'Done' : shortDay(taxW.due)} <i className={`dot ${tone(taxW)}`} style={DOT} aria-label={taxW.state} /></span></div>}
         </div>}
         {mode === 'vin' && cam && <div className="scan"><video ref={video} muted playsInline autoPlay aria-label="The buyer’s pass, through the camera" /><i aria-hidden="true" /></div>}
@@ -559,6 +608,10 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
           <p className="note" style={{ marginTop: 28 }}>Ending a sale you cannot deliver returns the buyer’s deposit in full and counts against your lane standing. A second one closes the lane to you.</p>
           <div className="choices">{WHY.map(w => <Choice key={w} label={w} disabled={busy} onPick={() => setWhy(w)} />)}</div>
         </>}
+        {mode === 'kickback' && <>
+          <p className="note" style={{ marginTop: 28 }}>The county’s words.</p>
+          <label className="field"><textarea className="input" autoFocus rows={3} maxLength={240} value={note} onChange={e => setNote(e.target.value.slice(0, 240))} placeholder="What came back with the 130-U" aria-label="The county’s words" style={{ height: 'auto', padding: '16px 18px', lineHeight: 1.4, resize: 'none' }} /></label>
+        </>}
         {err && <p className="note">{err}</p>}
       </section>
       {why && <ActionSheet line={<>The buyer’s <b className="num">{usd(250)}</b> deposit goes back in full. This counts against your lane standing.</>} verb="End The Sale" onAct={() => act(() => voidSale(lot.id, why))} onClose={() => setWhy(null)} />}
@@ -568,6 +621,7 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
         {mode === 'sale' && state === 'started' && v && <button className="btn primary block" onClick={() => { feel.done(); const id = startSale(v, { fullName: '', phone: '', address: '', city: '', state: 'TX', zip: '', county: '', idType: 'dl', idNumber: '' }, 'en', v.mileage ?? 0, v.titleStatus); go(`/sale/${id}/guide`); }}>Open The Paperwork</button>}
         {mode === 'sale' && (state === 'forfeited' || state === 'voided') && <button className="btn primary block" onClick={() => { feel.next(); goAgain(link?.vehicleId); }}>Let It Go Again</button>}
         {mode === 'vin' && <button className="btn primary block" disabled={busy || vin.length < 6} onClick={() => act(() => pickup(lot.id, vin))}>It Started</button>}
+        {mode === 'kickback' && <button className="btn primary block" disabled={busy || !note.trim()} onClick={() => file('kickback', note)}>Kickback</button>}
         {mode === 'sale' && (state === 'owed' || state === 'paid') && <button className="textlink" onClick={() => { feel.tap(); setMode('void'); }}>I can’t deliver this car</button>}
         {mode === 'sale' && state === 'started' && titleW.state !== 'done' && <button className="textlink" onClick={() => mark('titleTo')}>The Buyer Has The Title</button>}
         {mode === 'sale' && state === 'started' && titleW.state === 'done' && taxW.state !== 'done' && <button className="textlink" onClick={() => mark('taxSent')}>The Tax Went To The County</button>}

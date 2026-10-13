@@ -176,6 +176,27 @@ export function bidPulse(el: HTMLElement | null | undefined) {
     .to(el, { scale: 1, duration: 0.24, ease: EASE });
 }
 
+/* ---------- a rendered moment: a frame sheet plays once and rests on its last frame ---------- */
+/** The JSON beside each sheet under assets/scene-3d/<object>/<set>/ (tools/scene-3d): 24 cells, 60 fps, 400 ms, `rest` the still. */
+export type Sheet = { fps: number; duration_ms: number; rest: number; frames: { i: number; x: number; y: number; w: number; h: number }[] };
+/** Frame i of the sheet on el, drawn h px tall: the whole sheet scaled by h over the cell, the cell's corner at the origin. */
+export function sheetFrame(el: HTMLElement, sheet: Sheet, i: number, h: number) {
+  const f = sheet.frames[Math.max(0, Math.min(sheet.frames.length - 1, Math.round(i)))];
+  const k = h / f.h, w = Math.max(...sheet.frames.map(x => x.x + x.w)), hh = Math.max(...sheet.frames.map(x => x.y + x.h));
+  el.style.backgroundSize = `${w * k}px ${hh * k}px`;
+  el.style.backgroundPosition = `${-f.x * k}px ${-f.y * k}px`;
+}
+/** Play the sheet once, frame by frame at its own fps (linear: a sprite steps, it does not ease), after `delay` s, and hold
+ *  the rest frame. Reduced motion: the rest frame alone, at once. Returns a stop that leaves the rest frame on the glass. */
+export function playSheet(el: HTMLElement, sheet: Sheet, h: number, delay = 0) {
+  const last = sheet.frames.length - 1;
+  if (reduced) { sheetFrame(el, sheet, sheet.rest, h); return () => {}; }
+  sheetFrame(el, sheet, 0, h);
+  const o = { f: 0 };
+  const t = gsap.to(o, { f: last, duration: sheet.duration_ms / 1000, delay, ease: 'none', snap: 'f', onUpdate: () => sheetFrame(el, sheet, o.f, h), onComplete: () => sheetFrame(el, sheet, sheet.rest, h) });
+  return () => { t.kill(); sheetFrame(el, sheet, sheet.rest, h); };
+}
+
 /* ---------- the bottom sheet: rises on the §4 spring, leaves faster on the iOS sheet curve ---------- */
 /** Spec §4: from its own height on a spring at damping 0.75 with the scrim fading in. Reduced motion: a fade. */
 export function sheetIn(panel: HTMLElement, scrim: HTMLElement) {

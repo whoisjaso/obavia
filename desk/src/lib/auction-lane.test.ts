@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RELEASE_MAX_DAYS, SAID, collateralRefusal, collect, depositWords, dial, keepContact, onLane, payBy, relistable, releaseRefusal, said, type Collateral, type Lot, type LotLink } from './auction';
+import { PLATES_WORDS, RELEASE_MAX_DAYS, SAID, collateralRefusal, collect, depositWords, dial, keepContact, onLane, payBy, platesKickback, platesVerb, relistable, releaseRefusal, said, type Collateral, type Lot, type LotLink, type PlatesState } from './auction';
 import { payByWords } from '../../../auction/src/engine/time';
 import { outTheDoor } from '../../../auction/src/engine/money';
 import { HOURS, defaultSettings, laneReady, lotFields } from './dealer-settings';
@@ -24,7 +24,7 @@ describe('every refusal the Worker gives a dealer route is said in four words or
   /* auction/worker/README.md, the routes table, read 2026-10-13; plus the two bid refusals of commit 4ff3183 */
   const WORKER = ['already open', 'sale_exists', 'dealer suspended', 'not_your_lot', 'bids placed', 'floor only lowers', 'no lot', 'closed', 'soft_close',
     'no sale', 'sale_voided', 'sale_forfeited', 'no sale to void', 'already_started', 'vin_required', 'not_paid', 'vin_unknown', 'wrong car',
-    'before_deadline', 'already_forfeited', 'sale_started', 'sale_paid', 'no_payout', 'wrong_payout', 'payout_settled', 'already_paid', 'not_held',
+    'before_deadline', 'already_forfeited', 'sale_started', 'sale_paid', 'not_started', 'plates_order', 'bad_state', 'no_payout', 'wrong_payout', 'payout_settled', 'already_paid', 'not_held',
     'account_exists', 'bad_email', 'whop_refused', 'whop_bad_account', 'whop_unavailable', 'account_from_whop_only', 'no_such_dealer',
     'too_many_bids', 'one_open_bid', 'seller_cannot_bid', 'low', 'outbid'];
   it.each(WORKER)('%s', reason => {
@@ -88,6 +88,26 @@ describe('Go sends the dealer\'s lane settings with the lot', () => {
   });
 });
 
+describe('the plates row: one verb at a time, in the Worker\'s order (worker/src/auction.ts PLATES_NEXT)', () => {
+  it('Filed, then Approved, then Mailed, then nothing; Filed again after a kickback', () => {
+    expect(platesVerb(undefined)).toBe('filed');
+    expect(platesVerb('filed')).toBe('approved');
+    expect(platesVerb('approved')).toBe('mailed');
+    expect(platesVerb('mailed')).toBeNull();
+    expect(platesVerb('kickback')).toBe('filed');
+  });
+  it('the faint word Kickback only while filed', () => {
+    for (const st of [undefined, 'approved', 'mailed', 'kickback'] as (PlatesState | undefined)[]) expect(platesKickback(st)).toBe(false);
+    expect(platesKickback('filed')).toBe(true);
+  });
+  it('the Desk says the phone\'s words (auction/src/sale.ts PLATES_WORDS, CP9), the verbs in one word each', () => {
+    expect(PLATES_WORDS).toEqual({ filed: 'Filed', approved: 'Approved', mailed: 'Mailed', kickback: 'Dealer fixing' });
+    for (const v of ['filed', 'approved', 'mailed'] as const) expect(PLATES_WORDS[v].split(/\s+/).length).toBe(1);
+    expect(said('not_started')).toBe('Not started yet.');
+    expect(said('plates_order')).toBe('Out of order.');
+  });
+});
+
 describe('Live: the socket first, polling at 15 s only after it fails', () => {
   type Sock = { url: string; onmessage: ((m: { data: string }) => void) | null; onerror: (() => void) | null; onclose: (() => void) | null; close: () => void };
   let socks: Sock[];
@@ -131,6 +151,21 @@ describe('Live: the socket first, polling at 15 s only after it fails', () => {
     stop();
     await vi.advanceTimersByTimeAsync(POLL_MS * 2);
     expect(fetch).toHaveBeenCalledTimes(3);
+  });
+  it('markPlates posts { state } with the dealer key, and the trimmed note (240 at most) on a kickback only', async () => {
+    const { markPlates } = await import('./auction');
+    const f = fetch as unknown as ReturnType<typeof vi.fn>;
+    await markPlates('l', 'filed');
+    expect(f.mock.calls[0][0]).toBe('http://lane.test/lots/l/plates');
+    expect(f.mock.calls[0][1].method).toBe('POST');
+    expect(f.mock.calls[0][1].headers.Authorization).toBe('Bearer d:P000000.test');
+    expect(JSON.parse(f.mock.calls[0][1].body)).toEqual({ state: 'filed' });
+    await markPlates('l', 'kickback', '  Wrong county code on the 130-U.  ');
+    expect(JSON.parse(f.mock.calls[1][1].body)).toEqual({ state: 'kickback', note: 'Wrong county code on the 130-U.' });
+    await markPlates('l', 'kickback', 'x'.repeat(300));
+    expect(JSON.parse(f.mock.calls[2][1].body).note).toHaveLength(240);
+    await markPlates('l', 'approved', '   ');
+    expect(JSON.parse(f.mock.calls[3][1].body)).toEqual({ state: 'approved' });
   });
   it('a socket closed by the lane starts the poll; one the watcher closed does not', async () => {
     const { watchLot, POLL_MS } = await import('./auction');
