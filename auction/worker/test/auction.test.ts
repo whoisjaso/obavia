@@ -479,3 +479,108 @@ describe('the nightly reconciliation', () => {
     expect(x.reconciliations[1].differing).toEqual(['r1']);
   });
 });
+
+describe('buyer tokens (migration 0009)', () => {
+  const prod = { ...env, DEV: '0' } as WorkerEnv;   // the deployed Worker: no DEV path
+  const call = (path: string, init: { method?: string; token?: string; body?: unknown } = {}, e: WorkerEnv = prod) =>
+    worker.fetch(new Request(`${base}${path}`, { method: init.method ?? 'POST', headers: { 'content-type': 'application/json', ...(init.token ? { authorization: `Bearer ${init.token}` } : {}) }, body: init.body === undefined ? undefined : JSON.stringify(init.body) }), e);
+  const first = async (body: unknown = { name: 'Test', state: 'TX' }) => {
+    const r = await call('/me', { body });
+    expect(r.status).toBe(200);
+    return r.json<{ id: string; token: string }>();
+  };
+  const refusals = async (claimed: string) => (await env.DB.prepare('SELECT reason, presented, known FROM token_refusals WHERE claimed = ?1 ORDER BY id').bind(claimed).all<{ reason: string; presented: string; known: number }>()).results;
+  const meStatus = async (t: string) => (await call('/me', { method: 'GET', token: t })).status;
+
+  it('the first POST /me with no id makes a random id, returns it once with its token, and the token reads /me', async () => {
+    const a = await first(), b = await first();
+    expect(a.id).toMatch(/^b_[A-Za-z0-9_-]{22}$/);
+    expect(b.id).not.toBe(a.id);
+    expect(a.token.startsWith(`${a.id}.`)).toBe(true);
+    const me = await (await call('/me', { method: 'GET', token: a.token })).json<any>();
+    expect(me.id).toBe(a.id); expect(me.name).toBe('Test');
+  });
+
+  it('a later POST /me with the id and its token re-mints the same token and updates the profile; the token alone works too', async () => {
+    const a = await first();
+    const again = await call('/me', { token: a.token, body: { id: a.id, name: 'Renamed', phone: '(713) 555-0199' } });
+    expect(again.status).toBe(200);
+    expect(await again.json()).toEqual({ id: a.id, token: a.token });
+    const noId = await call('/me', { token: a.token, body: {} });
+    expect(await noId.json()).toEqual({ id: a.id, token: a.token });
+    expect((await env.DB.prepare('SELECT name, phone FROM buyers WHERE id = ?1').bind(a.id).first())).toEqual({ name: 'Renamed', phone: '7135550199' });
+  });
+
+  it('an id without its token is 401 not_yours, logged, and nothing about the buyer changes', async () => {
+    const a = await first(), other = await first();
+    const none = await call('/me', { body: { id: a.id, name: 'Dealer In Disguise' } });
+    expect(none.status).toBe(401);
+    expect(await none.json()).toEqual({ error: 'not_yours' });
+    expect((await call('/me', { token: other.token, body: { id: a.id } })).status).toBe(401);
+    expect((await call('/me', { token: `${a.id}.forged`, body: { id: a.id } })).status).toBe(401);
+    expect((await call('/me', { body: { id: 'never-made-by-worker' } })).status).toBe(401);
+    expect(await refusals(a.id)).toEqual([
+      { reason: 'not_yours', presented: 'none', known: 1 },
+      { reason: 'not_yours', presented: 'other', known: 1 },
+      { reason: 'not_yours', presented: 'forged', known: 1 },
+    ]);
+    expect(await refusals('never-made-by-worker')).toEqual([{ reason: 'not_yours', presented: 'none', known: 0 }]);
+    expect((await env.DB.prepare('SELECT name FROM buyers WHERE id = ?1').bind(a.id).first<{ name: string }>())!.name).toBe('Test');
+    const x = await (await SELF.fetch(`${base}/admin/exposure`, { headers: DEALER })).json<any>();
+    expect(x.tokenRefusals.byPresented.none).toBeGreaterThanOrEqual(2);
+    expect(x.tokenRefusals.recent[0]).toMatchObject({ claimed: 'never-made-by-worker', reason: 'not_yours', presented: 'none', known: 0 });
+  });
+
+  it('POST /me/rotate with the old token returns a new one; the old one stops working everywhere, re-mint included', async () => {
+    const a = await first();
+    expect((await call('/me/rotate')).status).toBe(401);
+    const r = await call('/me/rotate', { token: a.token });
+    expect(r.status).toBe(200);
+    const n = await r.json<{ id: string; token: string }>();
+    expect(n.id).toBe(a.id); expect(n.token).not.toBe(a.token);
+    expect(n.token.startsWith(`${a.id}.1.`)).toBe(true);
+    expect(await meStatus(a.token)).toBe(401);
+    expect(await meStatus(n.token)).toBe(200);
+    expect((await call('/me/rotate', { token: a.token })).status).toBe(401);   // the old token cannot rotate again
+    expect((await call('/me', { token: a.token, body: { id: a.id } })).status).toBe(401);
+    expect(await refusals(a.id)).toEqual([{ reason: 'not_yours', presented: 'stale', known: 1 }]);
+    expect((await call('/me', { token: n.token, body: { id: a.id } })).status).toBe(200);
+    // the bid path folds the epoch into its admission read
+    await open('tok1', 10 * 60_000);
+    expect((await call('/me/deposit', { token: n.token, body: {} }, env as WorkerEnv)).status).toBe(200);
+    expect((await bid('tok1', a.token, 5000)).status).toBe(401);
+    expect((await bid('tok1', n.token, 5000)).status).toBe(200);
+  });
+
+  it('the admin bumps a buyer\'s epoch: every token stops, the buyer cannot re-mint, a dealer key cannot bump', async () => {
+    const a = await first();
+    const desk = await (await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn: 'P400001', name: 'Bump Motors' }) })).json<{ token: string }>();
+    expect((await call(`/admin/buyers/${a.id}/bump`, { token: desk.token })).status).toBe(403);
+    expect((await call(`/admin/buyers/${a.id}/bump`, { token: a.token })).status).toBe(403);
+    expect((await call('/admin/buyers/no-such-buyer/bump', { token: 'test-dealer-secret' })).status).toBe(404);
+    const r = await call(`/admin/buyers/${a.id}/bump`, { token: 'test-dealer-secret' });
+    expect(await r.json()).toEqual({ id: a.id, epoch: 1 });
+    expect(await meStatus(a.token)).toBe(401);
+    expect((await call('/me/rotate', { token: a.token })).status).toBe(401);
+    expect((await call('/me', { token: a.token, body: {} })).status).toBe(401);
+    expect(await refusals(a.id)).toEqual([{ reason: 'not_yours', presented: 'stale', known: 1 }]);
+  });
+
+  it('DEV=1 keeps the old path: any id, no credential, at the current epoch', async () => {
+    const dev = env as WorkerEnv;
+    expect(dev.DEV).toBe('1');
+    const r = await call('/me', { body: { id: 'fixture-buyer', name: 'Test' } }, dev);
+    expect(r.status).toBe(200);
+    const { id, token: t } = await r.json<{ id: string; token: string }>();
+    expect(id).toBe('fixture-buyer');
+    expect(await meStatus(t)).toBe(200);
+    const again = await (await call('/me', { body: { id: 'fixture-buyer' } }, dev)).json<{ token: string }>();
+    expect(again.token).toBe(t);                       // a stranger in DEV gets it too: that is why DEV never ships
+    await call('/admin/buyers/fixture-buyer/bump', { token: 'test-dealer-secret' }, dev);
+    expect(await meStatus(t)).toBe(401);               // the epoch still cuts off in DEV
+    const after = await (await call('/me', { body: { id: 'fixture-buyer' } }, dev)).json<{ token: string }>();
+    expect(after.token.startsWith('fixture-buyer.1.')).toBe(true);
+    expect(await meStatus(after.token)).toBe(200);
+    expect(await refusals('fixture-buyer')).toEqual([]);
+  });
+});
