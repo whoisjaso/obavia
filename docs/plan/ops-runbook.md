@@ -128,7 +128,7 @@ The six simulations are in `docs/plan/sim/` (01 dealer, 02 buyer, 03 fraud, 04 c
 | 16 | "you took my ten grand and nobody answers" | "This is Triple J. I'm here. Your payment is recorded against the [year make model]. The owner will call you by [callback time]." Then tell the owner tonight. |
 | 17 | "I was never told" (outbid at the close, no push) | Go to §14. |
 | 18 | "where are my plates" from a buyer with an out-of-state licence | Go to §17. |
-| 19 | "This phone lost its sign-in. Write to us." (the app's line in Me) | Go to §10a. |
+| 19 | "This phone lost its sign-in. This phone lost its sign-in. Call (the Desk number)." (the app's line in Me) | Go to §10a. |
 
 ---
 
@@ -252,7 +252,7 @@ The Desk tells the dealer "A second one closes the lane to you." That does not h
 
 ## 10a. A lost phone sign-in (the admin bump and re-mint)
 
-**Who notices:** the buyer. The app says "This phone lost its sign-in. Write to us." in Me (`auction/src/screens/Me.tsx`), or the buyer calls to say the phone is lost or stolen.
+**Who notices:** the buyer. The app says "This phone lost its sign-in. This phone lost its sign-in. Call (the Desk number)." in Me (`auction/src/screens/Me.tsx`), or the buyer calls to say the phone is lost or stolen.
 **The one number:** Rule 1. (The app's "write to us" names no address: To build, item 12.)
 **What the Desk shows:** nothing. Refused sign-ins are rows in `token_refusals` (`presented`: `none`, `forged`, `other`, `stale`), readable by the owner in `GET /admin/exposure` under `tokenRefusals`; the admin page does not show them (To build, item 13).
 **The one action, if the phone is lost or stolen:** the owner bumps the buyer, so whoever holds the phone can no longer bid or sign in as them.
