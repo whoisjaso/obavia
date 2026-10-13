@@ -1,4 +1,5 @@
 import { env, SELF, applyD1Migrations, runDurableObjectAlarm, listDurableObjectIds } from 'cloudflare:test';
+import worker from '../src/index';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { D1Migration } from '@cloudflare/vitest-pool-workers';
 import type { Env as WorkerEnv } from '../src/env';
@@ -245,6 +246,85 @@ describe('dealer standing', () => {
     expect(x.dealers.find((d: any) => d.gdn === 'P222222')).toMatchObject({ suspended: false, suspended_at: null });
     expect((await SELF.fetch(`${base}/dealers/P999999/suspend`, { method: 'POST', headers: DEALER })).status).toBe(404);
     expect((await SELF.fetch(`${base}/dealers`, { headers: h })).status).toBe(403);
+  });
+});
+
+describe('the lane mint', () => {
+  const MINT = 'test-mint-secret-0123456789abcdefghij';
+  const mint = (body: unknown, secret = MINT) =>
+    SELF.fetch(`${base}/dealers/mint`, { method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const laneMints = async () => (await env.DB.prepare(`SELECT COUNT(*) AS n FROM dealer_mints WHERE source = 'lane' AND minted_at > ?1`).bind(Date.now() - 3_600_000).first<{ n: number }>())!.n;
+  const direct = async (over: Partial<WorkerEnv>) => {
+    return worker.fetch(new Request(`${base}/dealers/mint`, { method: 'POST', headers: { authorization: `Bearer ${MINT}`, 'content-type': 'application/json' }, body: JSON.stringify({ gdn: 'P300009', name: 'Unset Motors LLC', city: 'Waco' }) }), { ...env, ...over } as WorkerEnv);
+  };
+
+  it('mints one Desk key for a GDN, records the lane as the source, and the key opens a lot', async () => {
+    const r = await mint({ gdn: 'P300001', name: 'Lane Motors LLC', city: 'Houston' });
+    expect(r.status).toBe(200);
+    const body = await r.json<Record<string, unknown>>();
+    expect(Object.keys(body)).toEqual(['token']);
+    expect(body.token).toMatch(/^d:P300001\.[A-Za-z0-9_-]{20,}$/);
+    const row = await env.DB.prepare('SELECT gdn, name, city, source FROM dealer_mints WHERE gdn = ?1').bind('P300001').first();
+    expect(row).toEqual({ gdn: 'P300001', name: 'Lane Motors LLC', city: 'Houston', source: 'lane' });
+    expect(await env.DB.prepare('SELECT name FROM dealers WHERE gdn = ?1').bind('P300001').first()).toEqual({ name: 'Lane Motors LLC' });
+    const h = { authorization: `Bearer ${body.token}`, 'content-type': 'application/json' };
+    expect((await open('m1', 10 * 60_000, 4900, h)).status).toBe(200);
+  });
+  it('the same GDN again within 30 minutes is 409 already_minted with no key; after 30 minutes it mints again', async () => {
+    const r = await mint({ gdn: 'P300001', name: 'Lane Motors LLC', city: 'Houston' });
+    expect(r.status).toBe(409);
+    const body = await r.text();
+    expect(JSON.parse(body)).toEqual({ error: 'already_minted' });
+    expect(body).not.toContain('d:P300001');
+    await env.DB.prepare(`UPDATE dealer_mints SET minted_at = minted_at - 1800001 WHERE gdn = 'P300001'`).run();
+    expect((await mint({ gdn: 'P300001', name: 'Lane Motors LLC', city: 'Houston' })).status).toBe(200);
+  });
+  it('leaves an existing dealer as the admin made him: name and standing', async () => {
+    await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn: 'P300002', name: 'Admin Name' }) });
+    await SELF.fetch(`${base}/dealers/P300002/suspend`, { method: 'POST', headers: DEALER });
+    expect((await mint({ gdn: 'P300002', name: 'Other Name LLC', city: 'Dallas' })).status).toBe(200);
+    expect(await env.DB.prepare('SELECT name, suspended_at IS NOT NULL AS s FROM dealers WHERE gdn = ?1').bind('P300002').first()).toEqual({ name: 'Admin Name', s: 1 });
+  });
+  it('refuses a wrong secret, the admin secret, a dealer key, a query-string secret and a bad body; the mint secret is not admin', async () => {
+    const before = await laneMints();
+    expect((await mint({ gdn: 'P300003', name: 'X LLC', city: 'Y' }, 'wrong-secret-wrong-secret-wrong-secret')).status).toBe(403);
+    expect((await mint({ gdn: 'P300003', name: 'X LLC', city: 'Y' }, 'test-dealer-secret')).status).toBe(403);
+    expect((await mint({ gdn: 'P300003', name: 'X LLC', city: 'Y' }, MINT.slice(0, -1))).status).toBe(403);
+    const q = await SELF.fetch(`${base}/dealers/mint?token=${MINT}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ gdn: 'P300003', name: 'X LLC', city: 'Y' }) });
+    expect(q.status).toBe(403);
+    expect((await mint({ gdn: 'p300003', name: 'X LLC', city: 'Y' })).status).toBe(400);
+    expect((await mint({ gdn: 'P300003', name: '', city: 'Y' })).status).toBe(400);
+    expect((await mint({ gdn: 'P300003', name: 'X LLC' })).status).toBe(400);
+    expect((await mint({ gdn: 'P300003', name: 'X\nLLC', city: 'Y' })).status).toBe(400);
+    expect(await laneMints()).toBe(before);
+    const asAdmin = { authorization: `Bearer ${MINT}`, 'content-type': 'application/json' };
+    expect((await SELF.fetch(`${base}/dealers`, { headers: asAdmin })).status).toBe(403);
+    expect((await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: asAdmin, body: JSON.stringify({ gdn: 'P300003', name: 'X' }) })).status).toBe(403);
+    expect((await SELF.fetch(`${base}/dealers/P300001/suspend`, { method: 'POST', headers: asAdmin })).status).toBe(403);
+    expect((await SELF.fetch(`${base}/admin/exposure`, { headers: asAdmin })).status).toBe(403);
+    expect((await SELF.fetch(`${base}/dealers/mint`, { headers: asAdmin })).status).toBe(404);
+  });
+  it('answers 503 when MINT_SECRET is unset, short, or the same as DEALER_SECRET', async () => {
+    for (const over of [{ MINT_SECRET: undefined }, { MINT_SECRET: 'short' }, { MINT_SECRET: 'test-mint-secret-0123456789abcdefghij', DEALER_SECRET: 'test-mint-secret-0123456789abcdefghij' }]) {
+      const r = await direct(over);
+      expect(r.status).toBe(503);
+      expect(await r.json()).toEqual({ error: 'mint_unavailable' });
+    }
+    expect(await env.DB.prepare(`SELECT 1 FROM dealer_mints WHERE gdn = 'P300009'`).first()).toBeNull();
+  });
+  it('stops at 20 lane mints an hour with a Retry-After, and opens again as the hour rolls', async () => {
+    let n = 0, refused: Response | null = null;
+    while (!refused && n < 40) {
+      const r = await mint({ gdn: `P4${String(n).padStart(5, '0')}`, name: 'Rate Motors LLC', city: 'Austin' });
+      if (r.status === 429) refused = r; else expect(r.status).toBe(200);
+      n++;
+    }
+    expect(refused).not.toBeNull();
+    expect(await refused!.json()).toEqual({ error: 'rate_limited' });
+    expect(Number(refused!.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect(await laneMints()).toBe(20);
+    await env.DB.prepare(`UPDATE dealer_mints SET minted_at = minted_at - 3600001`).run();
+    expect((await mint({ gdn: 'P499999', name: 'Rate Motors LLC', city: 'Austin' })).status).toBe(200);
   });
 });
 

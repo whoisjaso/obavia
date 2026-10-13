@@ -34,6 +34,15 @@ async function verify(token: string, secret: string): Promise<string | null> {
 export const mintBuyerToken = async (secret: string, buyerId: string) => `${buyerId}.${await hmac(secret, buyerId)}`;
 export const mintDealerToken = async (secret: string, gdn: string) => `d:${gdn}.${await hmac(secret, `d:${gdn}`)}`;
 
+/** A presented secret against the configured one, in constant time: both are hashed to 32 bytes first, so neither length nor content leaks. */
+export async function secretMatches(presented: string, secret: string): Promise<boolean> {
+  const [a, b] = await Promise.all([presented, secret].map(s => crypto.subtle.digest('SHA-256', enc.encode(s))));
+  return crypto.subtle.timingSafeEqual(a, b);
+}
+
+/** The bearer secret on a request, for the mint route. */
+export const bearerOf = (req: Request): string => { const h = req.headers.get('authorization') ?? ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; };
+
 /** The buyer id, or null. */
 export async function buyerFrom(req: Request, secret: string): Promise<string | null> {
   const id = await verify(bearer(req), secret);

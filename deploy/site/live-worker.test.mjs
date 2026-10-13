@@ -57,10 +57,10 @@ function d1(withLane = true) {
 
 /* ---------- the TxDMV files the nightly job writes to R2 ---------- */
 const PHONE = '9565551234';   // a test number; must never appear in a response
-const INDEX = { v: 1, state: 'TX', asOf: '2026-10-12', count: 3, fields: ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'phoneLast4', 'emailHint', 'street'],
-  rows: [['P000678X', 'Impac Manufacturing, Inc.', '', 'Los Fresnos', 'Cameron', '78566', 0, 'TR', '1234', '', ''],
-    ['P171632', 'Lone Star Motors LLC', 'Lone Star Cars', 'Houston', 'Harris', '77001', 0, 'MV', '', '', ''],
-    ['P200001', 'No Phone Autos', '', 'Austin', 'Travis', '78701', 0, 'MV', '', '', '']] };
+const INDEX = { v: 1, state: 'TX', asOf: '2026-10-12', count: 3, fields: ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'hasPhone', 'emailHint', 'street'],
+  rows: [['P000678X', 'Impac Manufacturing, Inc.', '', 'Los Fresnos', 'Cameron', '78566', 0, 'TR', 1, '', ''],
+    ['P171632', 'Lone Star Motors LLC', 'Lone Star Cars', 'Houston', 'Harris', '77001', 0, 'MV', 1, '', ''],
+    ['P200001', 'No Phone Autos', '', 'Austin', 'Travis', '78701', 0, 'MV', 0, '', '']] };
 const CONTACTS = { v: 1, state: 'TX', asOf: '2026-10-12', contacts: { P000678X: { phone: PHONE, name: 'Impac', city: 'Los Fresnos' }, P171632: { phone: '7134883602', name: 'Lone Star Cars', city: 'Houston' }, P999999: { phone: '2145550000', name: 'Gone', city: 'Dallas' } } };
 const r2 = (files = { 'tx/index.json': INDEX, 'tx/contacts.json': CONTACTS }) => ({ async get(k) { return k in files ? { json: async () => structuredClone(files[k]) } : null; } });
 
@@ -115,7 +115,8 @@ const telnyxOk = (code = '482913') => async (url, body) => {
   return Response.json({ data: { response_code: body.code === code ? 'accepted' : 'rejected' } });
 };
 const application = (over = {}) => ({ v: 1, gdnHeld: 'yes', lotSize: '11-30', agedOver60: '3-5', floorplan: 'no', losingCar: '2014 Nissan Altima, 90 days', gdn: 'P000678X', dealerName: 'Impac Manufacturing, Inc.', dealerCity: 'Los Fresnos', phoneVerified: true, ...over });
-const AUCTION_ENV = { TELNYX_API_KEY: 'KEY', TELNYX_VERIFY_PROFILE_ID: 'VP', AUCTION_API_URL: 'https://auction.example', DEALER_SECRET: 's'.repeat(40) };
+const MINT = 'm'.repeat(40);
+const AUCTION_ENV = { TELNYX_API_KEY: 'KEY', TELNYX_VERIFY_PROFILE_ID: 'VP', AUCTION_API_URL: 'https://auction.example', MINT_SECRET: MINT };
 const auctionOk = async (url, init) => Response.json({ token: `d:${JSON.parse(init.body).gdn}.${'x'.repeat(43)}` });
 const applyBody = (over = {}) => ({ step: 'apply', fullName: 'Ana Ruiz', email: 'ana@lot.com', website: '', application: application(), ...over });
 async function verifiedApply(h, over, ip) {
@@ -238,12 +239,14 @@ both('no key while ISSUE_KEYS is off, even matched and verified', async make => 
   assert.equal(h.lastApplication('ana@lot.com').phoneVerified, true);
   assert.ok(!h.calls.some(c => c.url.startsWith('https://auction.example/')));
 });
-both('with ISSUE_KEYS=1 a matched, Telnyx-verified applicant gets the Desk key from POST /dealers', async make => {
+both('with ISSUE_KEYS=1 a matched, Telnyx-verified applicant gets the Desk key from POST /dealers/mint with MINT_SECRET', async make => {
   const h = make({ env: { ...AUCTION_ENV, ISSUE_KEYS: '1' }, telnyx: telnyxOk(), auction: auctionOk });
   const r = await verifiedApply(h);
   assert.equal(r.body.status, 'accepted'); assert.match(r.body.key, /^d:P000678X\./);
-  const call = h.calls.find(c => c.url === 'https://auction.example/dealers');
-  assert.deepEqual(JSON.parse(call.init.body), { gdn: 'P000678X', name: 'Impac Manufacturing, Inc.' });
+  const call = h.calls.find(c => c.url === 'https://auction.example/dealers/mint');
+  assert.deepEqual(JSON.parse(call.init.body), { gdn: 'P000678X', name: 'Impac Manufacturing, Inc.', city: 'Los Fresnos' });
+  assert.equal(call.init.headers.Authorization, `Bearer ${MINT}`);
+  assert.ok(!h.calls.some(c => c.url === 'https://auction.example/dealers'), 'never the admin route');
   assert.deepEqual((await h.post(applyBody())).body, { status: 'accepted' }, 'one verification, one key');
 });
 both('with ISSUE_KEYS=1: no key without a verified code, from another client, after 30 minutes, from the fake provider, or on a failed mint', async make => {
@@ -260,6 +263,15 @@ both('with ISSUE_KEYS=1: no key without a verified code, from another client, af
   assert.deepEqual((await h3.post(applyBody())).body, { status: 'accepted' });
   const h4 = make({ env: { ...AUCTION_ENV, ISSUE_KEYS: '1' }, telnyx: telnyxOk(), auction: async () => new Response('admin only', { status: 403 }) });
   assert.deepEqual((await verifiedApply(h4)).body, { status: 'accepted' }, 'a failed mint still accepts the application');
+  const h5 = make({ env: { ...AUCTION_ENV, ISSUE_KEYS: '1' }, telnyx: telnyxOk(), auction: async () => Response.json({ error: 'already_minted' }, { status: 409 }) });
+  assert.deepEqual((await verifiedApply(h5)).body, { status: 'accepted' }, 'already_minted gives no key');
+});
+test('the key issuer needs MINT_SECRET of 32 or more characters; DEALER_SECRET alone issues nothing', () => {
+  const f = async () => Response.json({});
+  assert.equal(lane.laneKeyIssuer({ ISSUE_KEYS: '1', AUCTION_API_URL: 'https://auction.example', DEALER_SECRET: 's'.repeat(40) }, f), null);
+  assert.equal(lane.laneKeyIssuer({ ISSUE_KEYS: '1', AUCTION_API_URL: 'https://auction.example', MINT_SECRET: 'm'.repeat(31) }, f), null);
+  assert.equal(lane.laneKeyIssuer({ ISSUE_KEYS: '1', AUCTION_API_URL: 'http://auction.example', MINT_SECRET: MINT }, f), null);
+  assert.equal(typeof lane.laneKeyIssuer({ ISSUE_KEYS: '1', AUCTION_API_URL: 'https://auction.example', MINT_SECRET: MINT }, f), 'function');
 });
 both('the whole flow writes nothing to the console', async make => {
   const seen = [], keep = {};

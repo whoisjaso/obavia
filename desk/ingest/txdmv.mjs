@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Nightly: download the TxDMV Independent (GDN) dealer list and write
-     out/tx.index.json     public search index (no full phone numbers or emails)
+     out/tx.index.json     public search index (no phone digits, only hasPhone; no full emails)
      out/tx.contacts.json  private: phone and email per licence, for sending codes
      out/tx.diff.json      licences added and removed since the last index
      out/meta.json         counts, the source's "current as of" date, timings

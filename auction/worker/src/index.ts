@@ -3,7 +3,7 @@
    carries a dealer token and opens, closes, marks paid and scans pickup.
    Photos and documents live in R2. Reads of the lane come from D1, the copy;
    everything live comes from the object. */
-import { buyerFrom, dealerFrom, mintBuyerToken, mintDealerToken } from './auth';
+import { bearerOf, buyerFrom, dealerFrom, mintBuyerToken, mintDealerToken, secretMatches } from './auth';
 import type { Env } from './env';
 import type { BidRequest } from '../../src/engine/server';
 import { viewerHtml } from './view';
@@ -16,6 +16,10 @@ const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers
 const json = (x: unknown, status = 200) => new Response(JSON.stringify(x), { status, headers: { 'content-type': 'application/json', ...CORS } });
 const text = (t: string, status: number) => new Response(t, { status, headers: CORS });
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
+const MINT_IDEMPOTENT_MS = 30 * 60_000;   // the same GDN twice inside this window: 409, no key
+const MINT_WINDOW_MS = 3_600_000, MINT_PER_WINDOW = 20;   // every lane mint together
+const fail = (error: string, status: number, extra: Record<string, string> = {}) => new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json', ...extra, ...CORS } });
+const plain = (v: unknown, max: number) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= max && !/[\u0000-\u001f\u007f]/.test(v) ? v.trim().replace(/\s+/g, ' ') : null;
 
 /** Every response leaves with the CORS headers, the Durable Object's included (a WebSocket upgrade is passed through untouched). */
 function withCors(r: Response): Response {
@@ -133,6 +137,11 @@ async function handle(req: Request, env: Env): Promise<Response> {
       return json(await reconcile(env));
     }
 
+    // dealers: the lane on obavia.co mints one Desk key for a verified GDN, and can do nothing else
+    if (url.pathname === '/dealers/mint') {
+      if (req.method !== 'POST') return text('not found', 404);
+      return mint(req, env);
+    }
     // dealers: an admin with the secret mints a Desk's token once
     if (req.method === 'POST' && url.pathname === '/dealers') {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
@@ -231,4 +240,42 @@ async function handle(req: Request, env: Env): Promise<Response> {
     }
 
     return text('not found', 404);
+}
+
+/* POST /dealers/mint. Bearer MINT_SECRET, never DEALER_SECRET. One key for one
+   GDN with the dealer's legal name and city; the same GDN again within 30
+   minutes is 409 already_minted with no key; at most 20 lane mints an hour in
+   all. It lists nothing, suspends nothing and returns nothing but the key.
+   An existing dealer row is left as it is (name and standing). Nothing here
+   logs the secret or the key. */
+async function mint(req: Request, env: Env): Promise<Response> {
+  const secret = env.MINT_SECRET ?? '';
+  if (secret.length < 32 || !env.DEALER_SECRET || secret === env.DEALER_SECRET) return fail('mint_unavailable', 503);
+  if (!(await secretMatches(bearerOf(req), secret))) return fail('forbidden', 403);
+  const raw = await req.text();
+  if (raw.length > 2048) return fail('too_big', 413);
+  let b: { gdn?: unknown; name?: unknown; city?: unknown };
+  try { b = JSON.parse(raw); } catch { return fail('bad_dealer', 400); }
+  const gdn = typeof b?.gdn === 'string' && /^[A-Z0-9]{5,12}$/.test(b.gdn) ? b.gdn : null;
+  const name = plain(b?.name, 160), city = plain(b?.city, 80);
+  if (!gdn || !name || !city) return fail('bad_dealer', 400);
+  const now = Date.now();
+  // One statement decides: no lane mint for this GDN in 30 minutes and fewer than 20 lane mints in the hour.
+  const [minted] = await env.DB.batch<{ id: number }>([
+    env.DB.prepare(`INSERT INTO dealer_mints (gdn, name, city, source, minted_at)
+      SELECT ?1, ?2, ?3, 'lane', ?4
+      WHERE NOT EXISTS (SELECT 1 FROM dealer_mints WHERE gdn = ?1 AND source = 'lane' AND minted_at > ?4 - ?5)
+        AND (SELECT COUNT(*) FROM dealer_mints WHERE source = 'lane' AND minted_at > ?4 - ?6) < ?7
+      RETURNING id`).bind(gdn, name, city, now, MINT_IDEMPOTENT_MS, MINT_WINDOW_MS, MINT_PER_WINDOW),
+    env.DB.prepare(`INSERT OR IGNORE INTO dealers (gdn, name, created_at)
+      SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM dealer_mints WHERE gdn = ?1 AND source = 'lane' AND minted_at = ?3)`).bind(gdn, name, now),
+  ]);
+  if (minted.results.length !== 1) {
+    const again = await env.DB.prepare(`SELECT 1 AS x FROM dealer_mints WHERE gdn = ?1 AND source = 'lane' AND minted_at > ?2`).bind(gdn, now - MINT_IDEMPOTENT_MS).first();
+    if (again) return fail('already_minted', 409);
+    const oldest = await env.DB.prepare(`SELECT MIN(minted_at) AS at FROM (SELECT minted_at FROM dealer_mints WHERE source = 'lane' AND minted_at > ?1 ORDER BY minted_at DESC LIMIT ?2)`).bind(now - MINT_WINDOW_MS, MINT_PER_WINDOW).first<{ at: number | null }>();
+    const wait = Math.max(1, Math.ceil(((oldest?.at ?? now) + MINT_WINDOW_MS - now) / 1000));
+    return fail('rate_limited', 429, { 'retry-after': String(wait) });
+  }
+  return json({ token: await mintDealerToken(env.DEALER_SECRET, gdn) });
 }

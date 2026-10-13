@@ -20,6 +20,7 @@ Cloudflare Worker + one Durable Object per lot. The object runs the same rules a
 | GET | `/admin/exposure` | admin | deposits held, reserve ratio, sales by state, incidents by dealer, fees owed (0 until GDN), the last seven reconciliations |
 | POST | `/admin/reconcile` | admin | run the nightly reconciliation now → the row (`lots_differing`, `differing`, `deposits_held`, `whop_balance_cents`, `equal`, `note`) |
 | POST | `/dealers` | admin | `{ gdn, name }` → the dealer's key for the Desk |
+| POST | `/dealers/mint` | the lane (`MINT_SECRET`) | `{ gdn, name, city }` (legal name and city from the TxDMV list) → `{ token }`, the dealer's Desk key. The same GDN again within 30 minutes: 409 `already_minted`, no key. At most 20 an hour in all: 429 `rate_limited` with `Retry-After`. 403 `forbidden` on any other credential (the admin secret included); 503 `mint_unavailable` while `MINT_SECRET` is unset, shorter than 32 characters or equal to `DEALER_SECRET`. Every mint is a row in `dealer_mints` with `source = 'lane'`; an existing dealer's name and standing are left alone. It lists, suspends and reads nothing |
 | GET | `/dealers` | admin | every dealer: gdn, name, created_at, suspended_at, incidents |
 | POST | `/dealers/:gdn/suspend` | admin | the dealer opens no new lot (403 `dealer suspended`); open lots keep running |
 | POST | `/dealers/:gdn/restore` | admin | clears the suspension |
@@ -42,6 +43,7 @@ npx wrangler d1 create obavia-auction   # once; paste the id into wrangler.toml
 npx wrangler d1 migrations apply obavia-auction
 npx wrangler secret put BUYER_SECRET
 npx wrangler secret put DEALER_SECRET
+npx wrangler secret put MINT_SECRET          # 32+ characters, not DEALER_SECRET; the same value goes on the obavia-waitlist worker
 npx wrangler secret put WHOP_API_KEY
 npx wrangler secret put WHOP_WEBHOOK_SECRET   # from POST /webhooks { url: .../webhooks/whop, events: [...] }
 npm run deploy

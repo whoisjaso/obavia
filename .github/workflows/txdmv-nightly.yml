@@ -1,7 +1,8 @@
 # Every night: pull the TxDMV Independent (GDN) dealer list so a dealer
 # licensed yesterday can find themselves at onboarding today.
 #
-# Public output (search index, no full phone numbers or emails) goes to the
+# Public output (search index: no phone digits at all, only hasPhone 1 or 0;
+# emails as masked hints) goes to the
 # `data-txdmv` branch as a single commit and is served by jsDelivr:
 #   https://cdn.jsdelivr.net/gh/whoisjaso/obavia@data-txdmv/tx.index.json
 # Private output (phone and email per licence, used only to send a

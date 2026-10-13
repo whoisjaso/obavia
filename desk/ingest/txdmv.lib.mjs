@@ -144,21 +144,22 @@ export function normaliseAll(rows) {
 
 /* ---------- publishing ---------- */
 
-/** Enough of a contact to recognise it, never enough to use it. */
-export const phoneHint = p => (p ? p.slice(-4) : '');
+/** Enough of an email to recognise it, never enough to use it. The phone gets
+    no hint at all: the public index says only whether one is on the licence,
+    and the number (and every digit of it) stays in the private contacts file. */
 export function emailHint(e) {
   if (!e) return '';
   const [u, d] = e.split('@');
   return `${u[0]}${'•'.repeat(Math.min(6, Math.max(2, u.length - 1)))}@${d}`;
 }
 
-export const INDEX_FIELDS = ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'phoneLast4', 'emailHint', 'street'];
+export const INDEX_FIELDS = ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'hasPhone', 'emailHint', 'street'];
 
-/** The public search index: no full phone numbers or emails. */
+/** The public search index: no phone digits at all, no full emails. hasPhone is 1 when the licence lists a phone. */
 export function buildIndex(dealers, asOf) {
   return {
     v: 1, state: 'TX', source: SOURCE_PAGE, asOf, count: dealers.length, fields: INDEX_FIELDS,
-    rows: dealers.map(d => [d.licence, d.name, d.dba, d.city, d.county, d.zip, d.franchise ? 1 : 0, d.types.join(' '), phoneHint(d.phone), emailHint(d.email), d.street || '']),
+    rows: dealers.map(d => [d.licence, d.name, d.dba, d.city, d.county, d.zip, d.franchise ? 1 : 0, d.types.join(' '), d.phone ? 1 : 0, emailHint(d.email), d.street || '']),
   };
 }
 

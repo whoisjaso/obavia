@@ -4,9 +4,10 @@
    licence number, city, county, contact). desk/ingest rebuilds the index
    nightly; the app searches it in the browser. */
 
-/** One licensed dealer from a state list. Contacts arrive as hints only: the
-    full phone and email stay on the server that sends the code. */
-export type DealerRecord = { licence: string; name: string; dba: string; city: string; county: string; zip: string; state: string; franchise: boolean; types: string[]; phoneLast4: string; emailHint: string; street: string };
+/** One licensed dealer from a state list. The phone arrives as a yes or no
+    only (no digits); the email as a masked hint. The full phone and email stay
+    on the server that sends the code, which names where it sent it. */
+export type DealerRecord = { licence: string; name: string; dba: string; city: string; county: string; zip: string; state: string; franchise: boolean; types: string[]; hasPhone: boolean; emailHint: string; street: string };
 
 export const STATES: [string, string][] = [
   ['TX', 'Texas'], ['AL', 'Alabama'], ['AK', 'Alaska'], ['AZ', 'Arizona'], ['AR', 'Arkansas'], ['CA', 'California'], ['CO', 'Colorado'], ['CT', 'Connecticut'],
@@ -31,11 +32,12 @@ const norm = (s: string) => s.toLowerCase().replace(/['’]/g, '').replace(/[^a-
 
 export function parseIndex(raw: RawIndex): DealerIndex {
   const at = (f: string) => raw.fields.indexOf(f);
-  const [L, N, D, C, K, Z, F, T, P, E, S] = ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'phoneLast4', 'emailHint', 'street'].map(at);
+  const [L, N, D, C, K, Z, F, T, P, E, S] = ['licence', 'name', 'dba', 'city', 'county', 'zip', 'franchise', 'types', 'hasPhone', 'emailHint', 'street'].map(at);
+  const old = at('phoneLast4');   // an index published before hasPhone: read it as a yes or no, keep no digit
   const list: DealerRecord[] = raw.rows.map(r => ({
     licence: String(r[L]), name: String(r[N] ?? ''), dba: String(r[D] ?? '').split(',')[0].trim(), city: String(r[C] ?? ''), county: String(r[K] ?? ''),
     zip: String(r[Z] ?? ''), state: raw.state, franchise: r[F] === 1, types: T < 0 ? [] : String(r[T] ?? '').split(' ').filter(Boolean),
-    phoneLast4: P < 0 ? '' : String(r[P] ?? ''), emailHint: E < 0 ? '' : String(r[E] ?? ''), street: S < 0 ? '' : String(r[S] ?? ''),
+    hasPhone: P >= 0 ? r[P] === 1 : old >= 0 && String(r[old] ?? '') !== '', emailHint: E < 0 ? '' : String(r[E] ?? ''), street: S < 0 ? '' : String(r[S] ?? ''),
   }));
   // Every DBA on the licence is searchable, not only the first one shown.
   const hay = raw.rows.map(r => norm(`${r[N]} ${r[D]} ${r[L]}`).split(' '));
@@ -72,7 +74,5 @@ export function searchDealers(idx: DealerIndex, q: string, max = 6): DealerRecor
   hits.sort((a, b) => a[0] - b[0] || idx.list[a[1]].name.localeCompare(idx.list[b[1]].name));
   return hits.slice(0, max).map(([, i]) => idx.list[i]);
 }
-
-export const maskPhone = (last4: string) => `(•••) •••-${last4}`;
 
 export const titleCase = (s: string) => s.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/\b(Llc|Inc)\b/g, m => m.toUpperCase());

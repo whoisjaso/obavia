@@ -24,6 +24,18 @@ describe('Texas dealer index', () => {
     expect(raw).not.toMatch(/\b\d{10}\b/);                       // no full phone numbers
     expect(raw).not.toMatch(/"[a-z0-9._%+-]{2,}@[a-z0-9.-]+\.[a-z]{2,}"/i); // no full emails
   });
+  it('carries whether the licence lists a phone, never a digit of it', () => {
+    const raw = JSON.parse(readFileSync('public/dealers/tx.index.json', 'utf8'));
+    expect(raw.fields).not.toContain('phoneLast4');
+    const d = searchDealers(idx, 'P171632')[0];
+    expect(typeof d.hasPhone).toBe('boolean');
+    expect(Object.keys(d)).not.toContain('phoneLast4');
+    expect(idx.list.some(x => x.hasPhone)).toBe(true);
+    // an index published before the change: read as yes or no, the digits dropped
+    const old = parseIndex({ state: 'TX', asOf: '2026-09-30', count: 2, fields: ['licence', 'name', 'phoneLast4'], rows: [['P1', 'A', '3294'], ['P2', 'B', '']] });
+    expect(old.list.map(x => x.hasPhone)).toEqual([true, false]);
+    expect(JSON.stringify(old.list)).not.toContain('3294');
+  });
   it('finds a dealer by name, DBA or licence', () => {
     expect(searchDealers(idx, 'triple j auto investment')[0].licence).toBe('P171632');
     expect(searchDealers(idx, 'P171632')[0].name).toMatch(/Triple J Auto Investment/);

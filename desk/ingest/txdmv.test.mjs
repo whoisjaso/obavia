@@ -20,12 +20,27 @@ describe('TxDMV list', () => {
     expect(d[1].types).toEqual(['TR']);
   });
 
-  it('never puts a full phone number or email in the public index', () => {
-    const d = normaliseAll(ROWS), idx = JSON.stringify(buildIndex(d, '2026-09-30'));
+  it('puts no phone digits at all and no full email in the public index; the phone lives only in the contacts file', () => {
+    const d = normaliseAll(ROWS), index = buildIndex(d, '2026-09-30'), idx = JSON.stringify(index);
+    expect(index.fields).not.toContain('phoneLast4');
+    expect(index.fields.filter(f => /phone|last4/i.test(f))).toEqual(['hasPhone']);
     expect(idx).not.toContain('7135550101');
+    expect(idx).not.toContain('0101');
     expect(idx).not.toContain('office@example.com');
-    expect(idx).toContain('0101');
+    const at = index.fields.indexOf('hasPhone');
+    expect(index.rows.map(r => r[at])).toEqual([1, 0]);
+    expect(Object.keys(index.rows[0])).toHaveLength(index.fields.length);
     expect(buildContacts(d, '2026-09-30').contacts.P100001).toMatchObject({ phone: '7135550101', email: 'office@example.com' });
+  });
+
+  it('the bundled public index carries no phone field and no four-digit phone fragment', async () => {
+    const { readFileSync } = await import('node:fs');
+    const raw = JSON.parse(readFileSync(new URL('../public/dealers/tx.index.json', import.meta.url), 'utf8'));
+    expect(raw.fields).not.toContain('phoneLast4');
+    expect(raw.fields.filter(f => /phone|last4/i.test(f))).toEqual(['hasPhone']);
+    const at = raw.fields.indexOf('hasPhone');
+    expect(raw.rows.every(r => r[at] === 0 || r[at] === 1)).toBe(true);
+    expect(raw.rows.every(r => r.length === raw.fields.length)).toBe(true);
   });
 
   it('reads the same rows from an HTML table and from CSV', () => {

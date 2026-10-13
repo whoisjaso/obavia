@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { EXAMPLE_DEALER, type DealerConfig } from './lib/config';
 import { SAY, checkVerify, live, session, startVerify, type Profile } from './lib/api';
 import { SHAPES } from './lib/shapes';
-import { STATES, hasList as listFor, loadDealerIndex, maskPhone, searchDealers, type DealerIndex, type DealerRecord } from './lib/dealers';
+import { STATES, hasList as listFor, loadDealerIndex, searchDealers, type DealerIndex, type DealerRecord } from './lib/dealers';
 import { finishOnboarding } from './store';
 import { Sheet } from './Sheet';
 import { exampleSales } from './data';
@@ -179,7 +179,7 @@ export function Onboarding() {
         </div>
         <p className="hint" style={{ marginTop: 26 }}>{say || 'We’ll send a code to the contact on your licence.'}</p>
         <div className="choices" style={{ marginTop: 12 }}>
-          {picked.phoneLast4 && <Choice icon="phone" label={busy && via === 'sms' ? 'Sending…' : `Text ${maskPhone(picked.phoneLast4)}`} gloss="The phone on your licence" onPick={() => send('sms')} />}
+          {picked.hasPhone && <Choice icon="phone" label={busy && via === 'sms' ? 'Sending…' : 'Text Me A Code'} gloss="To the phone on your licence" onPick={() => send('sms')} />}
           {picked.emailHint && <Choice icon="link" label={busy && via === 'email' ? 'Sending…' : `Email ${picked.emailHint}`} gloss="The email on your licence" onPick={() => send('email')} />}
           <Choice icon="upload" label="Show My Dealer Licence Instead" gloss="A photo of the licence and your ID" onPick={() => { setVia('licence'); go('code'); }} />
         </div>
@@ -196,7 +196,7 @@ export function Onboarding() {
           </div>
         </> : <>
           <h1 className="q">Enter The Code.</h1>
-          <p className="note">{say || <>Sent to {sentTo || (via === 'sms' ? maskPhone(picked?.phoneLast4 ?? '') : picked?.emailHint)}.</>}</p>
+          <p className="note">{say || <>Sent to {sentTo || (via === 'sms' ? 'the phone on your licence' : picked?.emailHint)}.</>}</p>
           <div className="code" onClick={() => codeRef.current?.focus()}>
             {Array.from({ length: 6 }, (_, k) => <span key={k} className={k === code.length ? 'cur' : ''}>{code[k] ?? ''}</span>)}
             <input ref={codeRef} autoFocus inputMode="numeric" autoComplete="one-time-code" value={code} aria-label="Code"

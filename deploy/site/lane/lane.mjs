@@ -155,10 +155,11 @@ export function laneProvider(env, fetchImpl) {
 }
 
 // Keys are admin-only until the plan's gate (application.md section 1, due Mon Nov 16, 2026).
-// With ISSUE_KEYS=1 the worker asks auction/worker POST /dealers for the Desk key.
-// DEALER_SECRET is auction/worker's master admin secret: see README.md, open items.
+// With ISSUE_KEYS=1 the worker asks auction/worker POST /dealers/mint for the Desk key,
+// with MINT_SECRET: a secret that can mint one key for one GDN and do nothing else.
+// The same GDN twice within 30 minutes answers 409 already_minted and no key.
 export function laneKeyIssuer(env, fetchImpl) {
-  if (env.ISSUE_KEYS !== "1" || typeof env.DEALER_SECRET !== "string" || env.DEALER_SECRET.length < 32 || typeof env.AUCTION_API_URL !== "string" || typeof fetchImpl !== "function") return null;
+  if (env.ISSUE_KEYS !== "1" || typeof env.MINT_SECRET !== "string" || env.MINT_SECRET.length < 32 || typeof env.AUCTION_API_URL !== "string" || typeof fetchImpl !== "function") return null;
   let base;
   try {
     base = new URL(env.AUCTION_API_URL);
@@ -166,8 +167,8 @@ export function laneKeyIssuer(env, fetchImpl) {
     return null;
   }
   if (base.protocol !== "https:" || base.username || base.password) return null;
-  return async (gdn, name) => {
-    const res = await fetchImpl(new URL("/dealers", base).href, { method: "POST", redirect: "error", signal: AbortSignal.timeout(1e4), headers: { Authorization: `Bearer ${env.DEALER_SECRET}`, "Content-Type": "application/json" }, body: JSON.stringify({ gdn, name }) });
+  return async (gdn, name, city) => {
+    const res = await fetchImpl(new URL("/dealers/mint", base).href, { method: "POST", redirect: "error", signal: AbortSignal.timeout(1e4), headers: { Authorization: `Bearer ${env.MINT_SECRET}`, "Content-Type": "application/json" }, body: JSON.stringify({ gdn, name, city }) });
     if (!res.ok) return null;
     const data = await res.json().catch(() => null);
     return typeof data?.token === "string" && data.token.startsWith(`d:${gdn}.`) && /^d:[A-Z0-9]{5,12}\.[A-Za-z0-9_-]{20,128}$/.test(data.token) ? data.token : null;
@@ -291,7 +292,7 @@ export function createLane({ db, dealers, provider, clientKey, join, issueKey = 
       if (issueKey && d && verified?.via === "telnyx") {
         let key = null;
         try {
-          key = await issueKey(gdn, d.name);
+          key = await issueKey(gdn, d.name, d.city);
         } catch {
           key = null;
         }
