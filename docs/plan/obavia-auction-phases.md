@@ -68,6 +68,8 @@ What is already built (as of this plan): the buyer app's Lane, Bid sheet, Car, W
 
 ## Phase 3 · Obavia's own licence and the money model (weeks 6–14)
 
+> Shared-GDN hold (decisions §8.1, 2026-10-12; amended 2026-10-13 from `research/public-auction-model.md`, decisions §9 D1 to D4). The step where other dealers list under Obavia's GDN stays on hold for counsel question 11. New fact: consignment is off. Title must pass to the selling dealer before the buyer (Transp. Code §503.039(a)); a GDN holder may not sell another GDN holder's car at a public auction (43 TAC §215.144(i)(3)); a consignment location needs its own GDN (43 TAC §215.133(a)). Another dealer's car can reach an Obavia-GDN lane only as a title-assigned purchase (D1). On an Obavia-GDN lane the title clock is 21 days: title to the buyer "before the 21st day after the date of the sale" (§503.039(b)). Counsel question 12 (the licensed-auctioneer path, §503.024(d)) decides whether Phase 3 files for a GDN or for a TDLR auctioneer licence; the Legal row below stands as written until that answer is in and this doc is amended.
+
 | Workstream | Scope | Exit |
 | --- | --- | --- |
 | Legal | File for Obavia's Independent GDN (bond, premises, compliance); until it issues, no fee of any kind | GDN issued |
