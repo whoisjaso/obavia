@@ -3,6 +3,7 @@ import { PLATES_WORDS, RELEASE_MAX_DAYS, SAID, collateralRefusal, collect, depos
 import { payByWords } from '../../../auction/src/engine/time';
 import { outTheDoor } from '../../../auction/src/engine/money';
 import { HOURS, defaultSettings, laneReady, lotFields } from './dealer-settings';
+import { today } from './loans';
 
 describe('the lender\'s release fits the 21-day title clock', () => {
   const at = (releaseDays: number): Collateral => ({ title: { status: 'lender', lienholder: 'NextGear', payoff: 2000, releaseDays }, floor: 4000, insured: true });
@@ -210,4 +211,17 @@ describe('Sold keeps the winner\'s number across socket frames (the socket never
       expect(said(r)).not.toMatch(/[–—]/);
     }
   });
+});
+
+describe('the lane home\'s line for a started car (desk/src/Auction.tsx startedLine): "Picked up" until the first filing, then the plates word with its date', () => {
+  /* Auction.tsx cannot load under vitest (its module graph times out), so this mirrors its one line: PLATES_WORDS[state], a space, the
+     month and day in the dealer's zone, the same words the Sold row stacks (CP9: one piece, the same everywhere). */
+  const monthDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+  const line = (plates: { state: PlatesState; at: number } | undefined, tz: string) => (plates ? `${PLATES_WORDS[plates.state]} ${monthDay(today(tz, new Date(plates.at)))}` : 'Picked up');
+  const at = Date.UTC(2026, 9, 14, 3, 0);   // 10 PM Oct 13 in Chicago, already Oct 14 in UTC
+  it('says Picked up with no plates', () => { expect(line(undefined, 'America/Chicago')).toBe('Picked up'); });
+  it.each([['filed', 'Filed Oct 13'], ['approved', 'Approved Oct 13'], ['mailed', 'Mailed Oct 13'], ['kickback', 'Dealer fixing Oct 13']] as [PlatesState, string][])('%s reads "%s" in the dealer\'s zone', (state, want) => {
+    expect(line({ state, at }, 'America/Chicago')).toBe(want);
+  });
+  it('the date is the dealer\'s day, not UTC\'s', () => { expect(line({ state: 'filed', at }, 'UTC')).toBe('Filed Oct 14'); });
 });

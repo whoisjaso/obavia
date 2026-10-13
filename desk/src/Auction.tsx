@@ -78,7 +78,7 @@ const GRADES: { label: string; gloss: string; v: number }[] = [{ label: 'Good', 
 
 /* ---------- /auction : what is on the lane, one primary action ---------- */
 export function Lane() {
-  const { lot } = useStore();
+  const { lot, dealer } = useStore();
   const [links, setLinks] = useState<LotLink[]>(lotLinks);
   const [lots, setLots] = useState<Record<string, Lot>>({});
   useEffect(() => { setLinks(lotLinks()); }, []);
@@ -98,8 +98,8 @@ export function Lane() {
         {!open.length && <Obj name="car" h={96} style={{ display: 'block', margin: '0 auto 10px' }} />}
         <h1 className="q">{open.length ? <>On the <em>lane.</em></> : <>Let a car <em>go.</em></>}</h1>
         {!open.length && <p className="note">A car the lot is losing money on, on every phone in Texas by tonight. You set the floor; the lane finds the price.</p>}
-        <div className="choices">{open.map(l => <LotRow key={l.lotId} link={l} lot={lots[l.lotId]} v={byId(l.vehicleId)} />)}</div>
-        {!!done.length && <><p className="note" style={{ marginTop: 28 }}>Sold or closed</p><div className="choices">{done.map(l => <LotRow key={l.lotId} link={l} lot={lots[l.lotId]} v={byId(l.vehicleId)} />)}</div></>}
+        <div className="choices">{open.map(l => <LotRow key={l.lotId} link={l} lot={lots[l.lotId]} v={byId(l.vehicleId)} tz={dealer.timeZone} />)}</div>
+        {!!done.length && <><p className="note" style={{ marginTop: 28 }}>Sold or closed</p><div className="choices">{done.map(l => <LotRow key={l.lotId} link={l} lot={lots[l.lotId]} v={byId(l.vehicleId)} tz={dealer.timeZone} />)}</div></>}
         <LaneSettingsRow />
       </section>
       <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); go('/auction/go'); }}>Let A Car Go</button></div></div>
@@ -127,10 +127,15 @@ function LaneSettingsRow() {
   );
 }
 
-function LotRow({ link, lot, v }: { link: LotLink; lot?: Lot; v?: Vehicle }) {
+/** The plates word's date, month and day only ("Dealer fixing Oct 13"): one piece, the same words on the lane home and the Sold row (CP9). */
+const monthDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+/** The lane home's line for a started car: "Picked up" until the first filing, then the county's clock as the Sold row says it. */
+export const startedLine = (plates: NonNullable<Lot['sale']>['plates'], tz: string) => plates ? `${PLATES_WORDS[plates.state]} ${monthDay(today(tz, new Date(plates.at)))}` : 'Picked up';
+
+function LotRow({ link, lot, v, tz }: { link: LotLink; lot?: Lot; v?: Vehicle; tz: string }) {
   const s = lot?.sale;
   const line = !lot ? 'Reaching the lane…'
-    : s?.startedAt ? 'Picked up' : s?.voidedAt ? 'Voided' : s?.forfeitedAt ? 'Buyer walked · $250 owed to you'
+    : s?.startedAt ? startedLine(s.plates, tz) : s?.voidedAt ? 'Voided' : s?.forfeitedAt ? 'Buyer walked · $250 owed to you'
     : s ? (s.paidAt ? 'Paid · waiting on pickup' : `Sold · ${timeLeft(s.deadlineAt)} for the buyer`)
     : lot.closed ? 'Closed, no bids'
     : `${usd(lot.high)} · ${n(lot.bids)} ${lot.bids === 1 ? 'bid' : 'bids'} · ${timeLeft(lot.closesAt)}`;
@@ -496,12 +501,13 @@ const WHY = ['The car sold on the lot first', 'The title will not release in tim
 const tone = (w: LaneWatch) => (w.state === 'overdue' ? 'late' : w.state === 'soon' ? 'warn' : w.state === 'done' ? 'good' : '');
 const DOT = { display: 'inline-block', width: 8, height: 8, marginLeft: 8, verticalAlign: 1, boxShadow: 'none' } as const;
 const shortDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
-/** The plates word's date, month and day only ("Dealer fixing Oct 13"): the row's value stays narrow enough on 393 for the title line beside it. */
-const monthDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
 
 /* The plates verb in the title row: a .textlink laid into the row's value column, touching the date (no margin, no pad). */
 const VERB: CSSProperties = { display: 'inline-block', margin: 0, padding: '4px 0 0' };
 const FAINT: CSSProperties = { ...VERB, color: 'var(--faint)', fontWeight: 600, padding: '2px 0 0' };
+/* The plates date, faint, stacked under its word (its right edge under the word's, clear of the dot): the value column stays one
+   word wide, so the title line beside it keeps two lines on 393. */
+const WHEN: CSSProperties = { display: 'block', marginTop: 2, paddingRight: DOT.width + DOT.marginLeft, color: 'var(--faint)', fontWeight: 600, lineHeight: 1.2 };
 
 function Sold({ lot, v, link, onLot }: { lot: Lot; v?: Vehicle; link?: LotLink; onLot: (l: Lot) => void }) {
   const s = lot.sale!;
@@ -561,7 +567,8 @@ function Sold({ lot, v, link, onLot }: { lot: Lot; v?: Vehicle; link?: LotLink; 
     const r = await markPlates(lot.id, next, words); setBusy(false);
     if (r.ok) { onLot(r.value); if (mode !== 'sale') { setMode('sale'); setNote(''); } } else setErr(said(r.reason));
   };
-  const platesLine = plates ? `${PLATES_WORDS[plates.state]} ${monthDay(today(dealer.timeZone, new Date(plates.at)))}` : titleW.state === 'done' ? 'Done' : shortDay(titleW.due);
+  const platesLine = plates ? PLATES_WORDS[plates.state] : titleW.state === 'done' ? 'Done' : shortDay(titleW.due);
+  const platesWhen = plates ? monthDay(today(dealer.timeZone, new Date(plates.at))) : null;
   const platesTone = plates?.state === 'mailed' ? 'good' : tone(titleW);
   return (
     <main className="wrap center">
@@ -591,6 +598,7 @@ function Sold({ lot, v, link, onLot }: { lot: Lot; v?: Vehicle; link?: LotLink; 
             <span className="t"><b>Title to the buyer before day 21.</b></span>
             <V obj="title"><span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
               <span ref={platesWord} style={{ whiteSpace: 'nowrap' }}>{platesLine} <i className={`dot ${platesTone}`} style={DOT} aria-label={plates ? PLATES_WORDS[plates.state] : titleW.state} /></span>
+              {platesWhen && <span style={WHEN}>{platesWhen}</span>}
               {verb && <button className="textlink" style={VERB} disabled={busy} onClick={() => file(verb)}>{PLATES_WORDS[verb]}</button>}
               {verb && platesKickback(plates?.state) && <button className="textlink" style={FAINT} disabled={busy} onClick={() => { feel.tap(); setNote(''); setMode('kickback'); }}>Kickback</button>}
             </span></V>
