@@ -10,7 +10,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import bodoniUrl from '../../obavia-co/assets/bodoni-moda-500.woff2?url';
 import { auctionLive, isAdminKey, type DealerRow, type Lot, type SaleState } from './lib/auction';
-import { admin, PAY_METHODS, reconLine, refusals, scorecard, typeWord, when, NOT_YET, type AdminExposure, type Money, type MoneySale, type Payout, type PayMethod } from './lib/admin-api';
+import { admin, disputedDeposits, PAY_METHODS, pickupRefusals, reconLine, refusals, reserveLine, scorecard, typeWord, when, NOT_YET, type AdminExposure, type Money, type MoneySale, type Payout, type PayMethod } from './lib/admin-api';
 import { Back, Ic, feel, transition, useHash } from './ui';
 import { Count } from './motion';
 import { ActionSheet } from './BottomSheet';
@@ -113,7 +113,7 @@ function Home({ d }: { d: Data }) {
 
         <Label>Reserve</Label>
         <div className="group">
-          <div className="row"><span className="t"><b>Reserve ratio</b><small>Whop balance over deposits held</small></span>
+          <div className="row"><span className="t"><b>Reserve ratio</b><small>Whop balance over deposits held and payouts owed</small><small>{reserveLine(x)}</small></span>
             {x && r != null ? <span style={{ ...MONEY, fontSize: 24, color: ratioOk ? 'var(--ink)' : 'var(--red)' }}><Count pulse value={r} format={ratio} /></span> : <span className="v" style={{ color: 'var(--faint)' }}>Not read</span>}</div>
           <div className="row"><span className="t"><b>Last reconciled</b><small>{x ? reconLine(x.reconciliations) : 'Not read'}</small></span></div>
         </div>
@@ -149,6 +149,7 @@ function MoneyPage({ d, reload }: { d: Data; reload: () => void }) {
   const sales: MoneySale[] = (m?.sales.length ? m.sales : (d.x?.sales ?? []).map(s => ({ lotId: s.lotId, dealer: s.dealer ?? null, buyer: null, state: s.state, hammer: s.hammer, deadlineAt: s.deadlineAt, deposit: s.deposit ?? null })))
     .filter(s => s.state === 'owed' || s.state === 'paid').sort((a, b) => (a.state === b.state ? a.deadlineAt - b.deadlineAt : a.state === 'owed' ? -1 : 1));
   const types = [...new Set((m?.events ?? []).map(typeWord))];
+  const dispute = disputedDeposits(d.x, m);
   const events = (m?.events ?? []).filter(e => !only || typeWord(e) === only).slice(0, 100);
 
   const open = (a: Ask) => { feel.tap(); setErr(null); setMethod(null); setNote(''); setAsk(a); };
@@ -209,6 +210,12 @@ function MoneyPage({ d, reload }: { d: Data; reload: () => void }) {
                 </button>
               : <div className="row" key={s.lotId}><span className="t">{line}</span><span className="v" style={{ display: 'grid', justifyItems: 'end', gap: 6 }}><M>{dollars(s.hammer)}</M><span style={{ color: 'var(--faint)' }}>Buyer not read</span></span></div>;
           })}
+        </div>
+
+        <Label>Disputed</Label>
+        <div className="group">
+          <div className="row"><span className="t"><b>Deposits disputed</b><small>{dispute.n == null ? 'Not read' : dispute.buyers.length ? dispute.buyers.join(' · ') : 'No bid and no release until Whop rules'}</small></span>
+            <span className="v" style={{ ...MONEY, fontSize: 24, color: dispute.n ? 'var(--red)' : 'var(--ink)' }}>{dispute.n == null ? '' : whole(dispute.n)}</span></div>
         </div>
 
         <Label>Events</Label>
@@ -278,6 +285,8 @@ function Refusals({ d }: { d: Data }) {
 function LanePage({ d }: { d: Data }) {
   const { x } = d;
   const count = (s: SaleState) => x?.sales.filter(v => v.state === s).length ?? 0;
+  const pick = pickupRefusals(x);
+  const names = new Map((x?.dealers ?? []).map(r => [r.gdn, r.name]));
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/auction/admin" label="Admin" /></div>
@@ -299,6 +308,12 @@ function LanePage({ d }: { d: Data }) {
           <Label>Sales</Label>
           <div className="group">
             {STATES.map(s => <div className="row" key={s.s}><span className="t"><b>{s.label}</b><small>{s.gloss}</small></span><Count pulse className="v num" value={count(s.s)} format={whole} /></div>)}
+          </div>
+          <Label>Pickup refused</Label>
+          <div className="group">
+            {!pick.read && <div className="row"><span className="t"><b>Not yet</b><small>The lane does not list pickup refusals yet</small></span></div>}
+            {pick.read && !pick.rows.length && <div className="row"><span className="t"><b>No pickup refused</b></span></div>}
+            {pick.rows.map((r, i) => <div className="row" key={i}><span className="t"><b>{r.label}</b><small>Lot {r.lotId} · {names.get(r.dealer) ?? r.dealer} · {r.six} · {when(r.at)}</small></span></div>)}
           </div>
           <Label>Fees</Label>
           <div className="group">

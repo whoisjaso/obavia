@@ -26,9 +26,18 @@ export type Reconciliation = {
 export type BidRefusal = { lotId: string; who: string; reason: string; matched: string | null; at: number };
 export type TokenRefusal = { claimed: string; reason: string; presented: string; known: number; at: number };
 export type ExposureSale = { lotId: string; dealer?: string; state: SaleState; deposit?: string; hammer: number; deadlineAt: number };
+/** One closed lot and the distinct buyers whose bid was placed on it (led, or beaten by a standing ceiling). */
+export type ClosedLotBidders = { lotId: string; dealer: string; closedAt: number; sold: boolean; bidders: number };
+/** A VIN scan the lane refused at pickup: `presented` is the last six scanned, null when nothing was. */
+export type PickupRefusal = { lotId: string; dealer: string; reason: string; presented: string | null; at: number };
 export type AdminExposure = {
-  /** reserveRatio is null when the Whop balance was not read: the page says "Not read", never 1.00. */
-  deposits: { heldCount: number; heldUsd: number; byStatus: Record<string, number>; reserveRatio: number | null };
+  /** reserveRatio is null when the Whop balance was not read: the page says "Not read", never 1.00.
+   *  reserveReadAt is when the last reconciliation read that balance, null when none did. */
+  deposits: { heldCount: number; heldUsd: number; byStatus: Record<string, number>; reserveRatio: number | null; reserveReadAt?: number | null };
+  /** Every closed lot, newest first (the Worker keeps 500). Absent on a Worker before migration 0013. */
+  bidders?: ClosedLotBidders[];
+  /** The last 20 pickup refusals, newest first. */
+  pickupRefusals?: PickupRefusal[];
   lots: { open: number; atLender: number; floorBelowPayoff: number };
   sales: ExposureSale[];
   incidentsByDealer: Record<string, number>;
@@ -183,6 +192,8 @@ export type Number5 = {
 export type Scorecard = { week: number; start: number; end: number; numbers: Number5[]; bottleneck: string };
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
+/** One decimal place, rounded down (CF1: the shown average never flatters the week). 2.67 is 2.6, 3 is 3. */
+const oneDown = (x: number) => { const v = Math.floor(x * 10 + 1e-9) / 10; return Number.isInteger(v) ? String(v) : v.toFixed(1); };
 const LANE_KEEPS = 3 * DAY;   // GET /lots keeps a closed lot three days
 
 /** The scorecard's five numbers for the week holding `now`, from what the Desk can read. A number the
@@ -199,16 +210,24 @@ export function scorecard(now: number, x: AdminExposure | null, lane: Lot[] | nu
     L = { k: 'L', label: 'Lots opened', value: n, shown: laneCovers ? String(n) : `${n} or more`, floor: f?.L ?? null, floorShown: '', from: laneCovers ? 'This week, from the lane' : 'Lots closed 3 days ago drop off the lane' };
   }
 
+  // D counts the ledger's deposit.captured: the verify path and the webhook both write it, once per payment
+  // (README, the deposit ledger). payment.succeeded is Whop's news and also fires for balances and duplicates.
   let D: Number5;
-  const deposits = money?.events.filter(e => e.type === 'payment.succeeded' && e.kind === 'deposit') ?? null;
+  const deposits = money?.events.filter(e => e.type === 'deposit.captured') ?? null;
   if (!deposits) D = { k: 'D', label: 'Deposits captured', value: null, shown: 'Not yet', floor: f?.D ?? null, floorShown: '', from: 'Needs the money list' };
   else {
     const n = deposits.filter(e => inWeek(e.at)).length, cum = deposits.filter(e => e.at < w.end).length;
     D = { k: 'D', label: 'Deposits captured', value: n, shown: `${n} (${cum})`, floor: f?.D ?? null, floorShown: f ? `${f.D} (${f.Dcum})` : '', from: 'This week, from money events' };
   }
 
-  // B needs distinct bidders per closed lot (D1 bids); no route gives the Desk that read yet.
-  const B: Number5 = { k: 'B', label: 'Bidders per closed lot', value: null, shown: 'Not yet', floor: f?.B ?? null, floorShown: '', from: 'No route reads bidders yet' };
+  // B: distinct bidders per lot closed this week, averaged (exposure.bidders, from the D1 bids).
+  let B: Number5;
+  const closedB = x?.bidders?.filter(b => inWeek(b.closedAt)) ?? null;
+  if (!closedB || !closedB.length) B = { k: 'B', label: 'Bidders per closed lot', value: null, shown: 'Not yet', floor: f?.B ?? null, floorShown: '', from: !x ? 'The exposure did not answer' : !x.bidders ? 'The lane does not count bidders yet' : 'No lot closed this week' };
+  else {
+    const v = closedB.reduce((a, b) => a + b.bidders, 0) / closedB.length;
+    B = { k: 'B', label: 'Bidders per closed lot', value: v, shown: oneDown(v), floor: f?.B ?? null, floorShown: '', from: `${closedB.length} closed this week` };
+  }
 
   let S: Number5;
   const closed = lane?.filter(l => l.closed && inWeek(l.closed.at)) ?? null;
@@ -277,17 +296,55 @@ export function refusals(x: AdminExposure | null): { counts: RefusalRow[]; recen
   return { counts, recent, read: true };
 }
 
+/* ---------- the reserve's read time ---------- */
+/** The line under the reserve ratio: when the Whop balance behind it was read. */
+export function reserveLine(x: AdminExposure | null): string {
+  if (!x) return 'Not read';
+  const at = x.deposits.reserveReadAt;
+  return at == null ? 'Never read' : `Read ${when(at)}`;
+}
+
+/* ---------- disputed deposits ---------- */
+/** Deposits a buyer disputed with the card issuer: the count from the exposure, the buyers from the money events. */
+export function disputedDeposits(x: AdminExposure | null, money: Money | null): { n: number | null; buyers: string[] } {
+  const n = x ? x.deposits.byStatus.disputed ?? 0 : null;
+  const buyers = [...new Set((money?.events ?? []).filter(e => e.type === 'deposit.disputed' && e.buyer).map(e => e.buyer!))];
+  return { n, buyers };
+}
+
+/* ---------- pickup refusals ---------- */
+/** The Worker's pickup refusal reasons (auction/worker/src/auction.ts POST /pickup), as the desk says them. */
+export const PICKUP_REASON: Record<string, string> = {
+  'wrong car': 'Wrong car', vin_required: 'VIN not read', not_paid: 'Not paid yet', vin_unknown: 'No VIN on the lot',
+  already_started: 'Already picked up', sale_voided: 'Sale voided', sale_forfeited: 'Sale forfeited', 'no sale': 'No sale',
+};
+export type PickupRow = { label: string; lotId: string; dealer: string; six: string; at: number };
+export function pickupRefusals(x: AdminExposure | null): { rows: PickupRow[]; read: boolean } {
+  if (!x?.pickupRefusals) return { rows: [], read: false };
+  const rows = [...x.pickupRefusals].sort((a, b) => b.at - a.at).slice(0, 20)
+    .map(r => ({ label: PICKUP_REASON[r.reason] ?? r.reason, lotId: r.lotId, dealer: r.dealer, six: r.presented ? `scanned ${r.presented}` : 'nothing scanned', at: r.at }));
+  return { rows, read: true };
+}
+
 /* ---------- the money list's words ---------- */
+/** Every type the Worker writes to money_events (README, the deposit ledger and the sale), one desk word each. */
+export const EVENT_WORD: Record<string, string> = {
+  'deposit.captured': 'Deposit held', 'deposit.released': 'Deposit back', 'deposit.applied': 'Deposit to the dealer',
+  'deposit.duplicate': 'Second deposit refused', 'deposit.disputed': 'Deposit disputed', 'deposit.refund_conflict': 'Refund conflict',
+  'deposit.forfeited': 'Forfeited',
+  'payout.sent': 'Payout sent', 'payout.by_hand': 'Paid by hand', 'payout.paid': 'Paid by hand', 'balance.paid_at_lot': 'Paid at the lot',
+  'admin.forfeit': 'Forfeited by admin', 'admin.release': 'Released by admin', 'admin.paid': 'Paid by hand', 'dealer.account': 'Dealer account',
+};
 /** A money event's type as a word the owner already uses. */
 export function typeWord(e: Pick<MoneyEvent, 'type' | 'kind'>): string {
   const t = e.type;
+  if (EVENT_WORD[t]) return EVENT_WORD[t];
   if (t === 'payment.succeeded') return e.kind === 'deposit' ? 'Deposit in' : e.kind === 'balance' ? 'Balance in' : 'Paid in';
   if (t === 'payment.failed') return 'Payment failed';
   if (t.startsWith('refund.')) return 'Refunded';
   if (t.startsWith('dispute.')) return 'Disputed';
   if (t.startsWith('transfer.')) return 'Sent to dealer';
-  if (t === 'payout.paid' || t === 'payout.by_hand') return 'Paid by hand';
-  if (t === 'deposit.forfeited' || t === 'forfeit') return 'Forfeited';
-  if (t === 'deposit.released' || t === 'release') return 'Released';
+  if (t === 'forfeit') return 'Forfeited';
+  if (t === 'release') return 'Released';
   return t || 'Unknown';
 }

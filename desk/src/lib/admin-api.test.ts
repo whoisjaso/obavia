@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NOT_YET, adminApi, bottleneck, readMoney, reconLine, refusals, scorecard, typeWord, weekOf, WEEK1, type AdminExposure, type Money, type Reconciliation } from './admin-api';
+import { NOT_YET, adminApi, bottleneck, disputedDeposits, pickupRefusals, readMoney, reconLine, refusals, reserveLine, scorecard, typeWord, weekOf, WEEK1, type AdminExposure, type Money, type MoneyEvent, type Reconciliation } from './admin-api';
 import type { Lot } from './auction';
 
 const BASE = 'http://lane.test';
@@ -126,13 +126,15 @@ describe('the week', () => {
 });
 
 describe('scorecard', () => {
-  it('reads L and S from the lane, D from money events, T from the exposure; B is Not yet', () => {
+  it('reads L and S from the lane, D from deposit.captured, T from the exposure; B is Not yet without bidders', () => {
     const now = w3 + 2 * D;
     const lane = [lot({ id: 'a', opensAt: w3 + H, closed: { at: w3 + D, sold: true } }), lot({ id: 'b', opensAt: w3 + 2 * H, closed: { at: w3 + D, sold: false } }), lot({ id: 'c', opensAt: w3 - D })];
     const money: Money = { payouts: [], sales: [], events: [
-      { id: '1', type: 'payment.succeeded', kind: 'deposit', amountUsd: 250, lotId: null, buyer: 'b1', at: w3 + H },
-      { id: '2', type: 'payment.succeeded', kind: 'deposit', amountUsd: 250, lotId: null, buyer: 'b2', at: w3 - D },
+      { id: '1', type: 'deposit.captured', kind: null, amountUsd: 250, lotId: null, buyer: 'b1', at: w3 + H },
+      { id: '2', type: 'deposit.captured', kind: null, amountUsd: 250, lotId: null, buyer: 'b2', at: w3 - D },
       { id: '3', type: 'payment.succeeded', kind: 'balance', amountUsd: 5000, lotId: 'a', buyer: 'b1', at: w3 + H },
+      { id: '4', type: 'payment.succeeded', kind: 'deposit', amountUsd: 250, lotId: null, buyer: 'b1', at: w3 + H },
+      { id: '5', type: 'deposit.duplicate', kind: null, amountUsd: 250, lotId: null, buyer: 'b1', at: w3 + 2 * H },
     ] };
     const s = scorecard(now, ex([{ lotId: 'a', state: 'started', hammer: 1, deadlineAt: 0 }, { lotId: 'z', state: 'forfeited', hammer: 1, deadlineAt: 0 }, { lotId: 'y', state: 'owed', hammer: 1, deadlineAt: 0 }]), lane, money);
     expect(s.week).toBe(3);
@@ -153,6 +155,28 @@ describe('scorecard', () => {
     expect(by.D.shown).toBe('Not yet');
     expect(by.T.shown).toBe('Not yet');
     expect(scorecard(w3, null, null, null).bottleneck).toBe('Nothing to judge yet. The week stands on its gate.');
+  });
+  it('D counts deposit.captured only: Whop news, a duplicate and a refund move nothing', () => {
+    const ev = (id: string, type: string, at: number, kind: string | null = null): MoneyEvent => ({ id, type, kind, amountUsd: 250, lotId: null, buyer: 'b', at });
+    const money: Money = { payouts: [], sales: [], events: [ev('a', 'payment.succeeded', w3 + H, 'deposit'), ev('b', 'deposit.duplicate', w3 + H), ev('c', 'deposit.released', w3 + H)] };
+    const D3 = scorecard(w3 + D, null, null, money).numbers.find(n => n.k === 'D')!;
+    expect(D3).toMatchObject({ value: 0, shown: '0 (0)' });
+    money.events.push(ev('d', 'deposit.captured', w3 + 2 * H), ev('e', 'deposit.captured', w3 + 3 * H));
+    expect(scorecard(w3 + D, null, null, money).numbers.find(n => n.k === 'D')).toMatchObject({ value: 2, shown: '2 (2)' });
+  });
+  it('B averages exposure.bidders over the lots closed this week, shown rounded down', () => {
+    const b = (lotId: string, closedAt: number, bidders: number) => ({ lotId, dealer: 'P1', closedAt, sold: true, bidders });
+    const x = { ...ex([]), bidders: [b('a', w3 + H, 3), b('b', w3 + 2 * H, 2), b('c', w3 + 3 * H, 3), b('old', w3 - D, 40)] };
+    const B = scorecard(w3 + D, x, null, null).numbers.find(n => n.k === 'B')!;
+    expect(B.value).toBeCloseTo(8 / 3);
+    expect(B).toMatchObject({ shown: '2.6', floor: 2, floorShown: '2', from: '3 closed this week' });
+    expect(scorecard(w3 + D, { ...ex([]), bidders: [b('x', w3 + H, 2), b('y', w3 + H, 2)] }, null, null).numbers.find(n => n.k === 'B')!.shown).toBe('2');
+    // a week with lots closed but none bid on is a real 0, judged under the floor
+    const zero = scorecard(w3 + D, { ...ex([]), bidders: [b('z', w3 + H, 0)] }, null, null);
+    expect(zero.numbers.find(n => n.k === 'B')).toMatchObject({ value: 0, shown: '0' });
+    expect(zero.bottleneck).toBe('B is the bottleneck: 0 against 2. Fix the lane’s reach: Marketplace posts and the share sheet.');
+    expect(scorecard(w3 + D, { ...ex([]), bidders: [b('old', w3 - D, 4)] }, null, null).numbers.find(n => n.k === 'B')).toMatchObject({ value: null, from: 'No lot closed this week' });
+    expect(scorecard(w3 + D, ex([]), null, null).numbers.find(n => n.k === 'B')!.from).toBe('The lane does not count bidders yet');
   });
   it('the bottleneck rule: nothing under the floor', () => {
     const n = (k: 'L' | 'S', value: number, floor: number) => ({ k, label: '', value, shown: String(value), floor, floorShown: String(floor), from: '' });
@@ -187,5 +211,43 @@ describe('refusals and words', () => {
     expect(typeWord({ type: 'payment.succeeded', kind: 'deposit' })).toBe('Deposit in');
     expect(typeWord({ type: 'refund.created', kind: null })).toBe('Refunded');
     expect(typeWord({ type: 'dispute.created', kind: null })).toBe('Disputed');
+  });
+  it('every money event the Worker writes has its own desk word', () => {
+    const words: Record<string, string> = {
+      'deposit.captured': 'Deposit held', 'deposit.released': 'Deposit back', 'deposit.applied': 'Deposit to the dealer',
+      'deposit.duplicate': 'Second deposit refused', 'deposit.disputed': 'Deposit disputed', 'deposit.refund_conflict': 'Refund conflict',
+      'payout.sent': 'Payout sent', 'balance.paid_at_lot': 'Paid at the lot', 'admin.forfeit': 'Forfeited by admin',
+      'admin.release': 'Released by admin', 'admin.paid': 'Paid by hand', 'payout.by_hand': 'Paid by hand', 'dealer.account': 'Dealer account',
+    };
+    for (const [type, w] of Object.entries(words)) expect(typeWord({ type, kind: null })).toBe(w);
+    expect(typeWord({ type: '', kind: null })).toBe('Unknown');
+  });
+});
+
+describe('disputed deposits, pickup refusals, the reserve read', () => {
+  it('disputed: the count from byStatus, the buyers from deposit.disputed events, once each', () => {
+    const x = { ...ex([]), deposits: { heldCount: 0, heldUsd: 0, byStatus: { captured: 3, disputed: 2 }, reserveRatio: 1 } };
+    const ev = (id: string, type: string, buyer: string): MoneyEvent => ({ id, type, kind: null, amountUsd: 250, lotId: null, buyer, at: 1 });
+    const money: Money = { payouts: [], sales: [], events: [ev('1', 'deposit.disputed', 'b_1'), ev('2', 'deposit.disputed', 'b_2'), ev('3', 'deposit.disputed', 'b_1'), ev('4', 'deposit.captured', 'b_3')] };
+    expect(disputedDeposits(x, money)).toEqual({ n: 2, buyers: ['b_1', 'b_2'] });
+    expect(disputedDeposits(ex([]), null)).toEqual({ n: 0, buyers: [] });
+    expect(disputedDeposits(null, null)).toEqual({ n: null, buyers: [] });
+  });
+  it('pickup refusals: newest first, at most 20, the six scanned and the reason word', () => {
+    const rows = Array.from({ length: 25 }, (_, i) => ({ lotId: `l${i}`, dealer: 'P1', reason: i === 24 ? 'wrong car' : i === 23 ? 'vin_required' : 'odd_reason', presented: i === 23 ? null : `ABC${100 + i}`, at: i }));
+    const r = pickupRefusals({ ...ex([]), pickupRefusals: rows });
+    expect(r.read).toBe(true);
+    expect(r.rows).toHaveLength(20);
+    expect(r.rows[0]).toEqual({ label: 'Wrong car', lotId: 'l24', dealer: 'P1', six: 'scanned ABC124', at: 24 });
+    expect(r.rows[1]).toMatchObject({ label: 'VIN not read', six: 'nothing scanned' });
+    expect(r.rows[2].label).toBe('odd_reason');
+    expect(pickupRefusals(ex([]))).toEqual({ rows: [], read: false });
+    expect(pickupRefusals(null).read).toBe(false);
+  });
+  it('the reserve line says when the Whop balance was read, or that it never was', () => {
+    const at = Date.parse('2026-10-13T08:00:00Z');
+    expect(reserveLine({ ...ex([]), deposits: { heldCount: 0, heldUsd: 0, byStatus: {}, reserveRatio: 1, reserveReadAt: at } })).toBe('Read Tue, Oct 13, 3:00 AM');
+    expect(reserveLine({ ...ex([]), deposits: { heldCount: 0, heldUsd: 0, byStatus: {}, reserveRatio: null, reserveReadAt: null } })).toBe('Never read');
+    expect(reserveLine(null)).toBe('Not read');
   });
 });
