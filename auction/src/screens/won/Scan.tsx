@@ -159,8 +159,11 @@ export function IdScan({ initial, onDone, onCancel }: { initial?: Licence; onDon
     close();
     const { facts: f, state: st } = live.current;
     const done: Licence = { name: f.Name, dob: f.Born, address: f.Address, licence: f.License, state: st, confirmed: true };
-    // the street line, as the Worker compares it (D11): the card's read or the buyer's own correction; never the fixture's
-    if (done.address && (WORKER || done.address !== FIXTURE.address)) saveProfile({ address: done.address.split(',')[0] });
+    // the name (for the paperwork, the Desk and the top of Me) and the street line as the Worker compares it (D11):
+    // the card's read or the buyer's own correction, in one save; never the fixture's
+    const real = (v: string, fixture: string) => !!v && (WORKER || v !== fixture);
+    const give = { ...(real(done.name, FIXTURE.name) ? { name: done.name } : {}), ...(real(done.address, FIXTURE.address) ? { address: done.address.split(',')[0] } : {}) };
+    if (give.name || give.address) saveProfile(give);
     feel.step(); onDone(done);
   };
   const rows: [Fact, string][] = [...KEYS.map(k => [k, facts[k]] as [Fact, string]), ['State', state]];

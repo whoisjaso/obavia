@@ -8,7 +8,10 @@
    Under the deposit, the wins left this year (D15), a number that darkens as
    it runs out. A phone whose sign-in was refused says so in one quiet line
    that is also the one phone number (ops-runbook.md Rule 1); a tap calls it.
-   Under the name, faint, the number the buyer proved with a code: last four only. */
+   Under the name, faint, the number the buyer proved with a code: last four only.
+   Under wins left, until the first car is paid (sim 03): the one bid open, with the
+   car's name in Bodoni touching it as on the Bid sheet's stamp; the row is the tap
+   and goes to that car through the nav bus. Hidden at zero open or once a car is paid. */
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Linking, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
@@ -24,9 +27,10 @@ import { inLastTwoMinutes } from '../engine/auction';
 import { dollars } from '../engine/money';
 import type { Lot } from '../engine/server';
 import { feel } from '../feel';
+import { go } from '../nav';
 import { releaseDeposit } from '../deposit';
 import { useSale } from '../sale';
-import { AUCTION_URL, DEPOSIT, ME, WINS_PER_YEAR, backAfterADay, localCommitted, markOpened, once, refreshMe, saveName, supportPhone, toggleWatch, useBuyer, useCars, useWatched } from '../store';
+import { AUCTION_URL, DEPOSIT, ME, WINS_PER_YEAR, backAfterADay, heldLot, localCommitted, localOpen, lotName, markOpened, once, refreshMe, saveName, supportPhone, toggleWatch, useBuyer, useCars, useWatched } from '../store';
 import { theme } from '../theme';
 
 const WEB_FIELD = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null;
@@ -139,6 +143,11 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
   const leads = all.some(l => !l.closed && l.leader === ME);
   const owes = (!!sale && !sale.pickedUp) || all.some(l => l.sale?.buyer === ME && !l.sale.voidedAt && !l.sale.forfeitedAt && !l.sale.startedAt);
   const canRelease = once.deposit && !leads && !owes;
+  // the one bid open (sim 03): the Worker's count from GET /me, the local stand-in's from the lots I lead;
+  // the car it is on comes from the lane when the lane knows it. Gone for good once a car is paid.
+  const openBids = AUCTION_URL ? buyer.openBids : localOpen(all);
+  const held = openBids === 1 && (buyer.paidCars ?? 0) < 1 ? heldLot(all, ME) : null;
+  const heldName = held ? lotName(held.lot) : undefined;
   const release = async () => {
     if (busy.current) return;
     busy.current = true; setRefused(null);
@@ -168,6 +177,13 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
       <Body ink={theme.color.faint} style={{ marginTop: 2 }}>{released && !once.deposit ? 'back to your card' : once.deposit ? 'held · back if you lose' : 'held at your first bid'}</Body>
       {winsLeft !== undefined && (
         <Body ink={winsInk(winsLeft)} style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}>{`Wins left this year: ${winsLeft}`}</Body>
+      )}
+      {held && (
+        <Pressable onPress={() => { feel.select(); go({ screen: held.screen, lotId: held.lot.id }); }} hitSlop={12} style={s.openRow}
+          accessibilityRole="button" accessibilityLabel={heldName ? `One bid open. Open the ${heldName}` : 'One bid open'}>
+          <Body ink={theme.color.faint}>One bid open</Body>
+          {heldName !== undefined && <Serif size={22} style={s.openName}>{heldName}</Serif>}
+        </Pressable>
       )}
       {canRelease && (
         <Pressable onPress={release} style={{ marginTop: theme.space.m, alignItems: 'center' }} accessibilityRole="button" accessibilityLabel={`Get the ${DEPOSIT} dollar deposit back`}>
@@ -227,5 +243,8 @@ const s = StyleSheet.create({
   mark: { width: 18, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 2 },
   markOn: { backgroundColor: theme.color.good },
   saveRoom: { height: 40, justifyContent: 'center' },
+  // the Bid sheet's stamp row: words and the car's name on one baseline; a long name drops under, still touching
+  openRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'center', columnGap: 10, rowGap: 2, marginTop: 2, paddingHorizontal: theme.space.s },
+  openName: { letterSpacing: 0, flexShrink: 1 },
   passThumb: { width: 56, height: 70, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.color.well },
 });

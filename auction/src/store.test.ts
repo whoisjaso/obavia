@@ -132,6 +132,35 @@ describe('the name, saved on Me or from the licence read', () => {
     expect(store.peekBuyer().name).toBe('Ana Ruiz');
     expect(store.signInProfile()).toEqual({ state: 'TX', name: 'Ana Ruiz', address: '2210 Elm St' });
   });
+
+  it("That's me, signed in: the licence's name and street go to the Worker in one sign-in, and a later name alone keeps the street", async () => {
+    ls.setItem('obavia.buyer', JSON.stringify({ id: 'b-1', token: 't-0' }));
+    const { store } = await launch(true);
+    const server = store.getServer() as unknown as { stop(): void };
+    stop = () => server.stop();
+    await settle(); await settle();
+    calls.length = 0;
+    store.saveProfile({ name: 'Ana Ruiz', address: '2210 Elm St' });   // Scan.tsx thatsMe: one save, both facts
+    await settle();
+    expect(signIns()).toHaveLength(1);
+    expect(signIns()[0].body).toEqual({ id: 'b-1', name: 'Ana Ruiz', address: '2210 Elm St' });
+    expect(store.peekBuyer().name).toBe('Ana Ruiz');
+    // the buyer corrects the name on Me: the street already given is not lost
+    store.saveName('Ana Ruiz Pérez');
+    await settle();
+    expect(signIns()).toHaveLength(2);
+    expect(signIns()[1].body).toEqual({ id: 'b-1', name: 'Ana Ruiz Pérez', address: '2210 Elm St' });
+  });
+
+  it('nothing real to give saves nothing: the local fixture name never reaches the profile', async () => {
+    // Scan.tsx thatsMe gives saveProfile only a name or street that is the card's or the buyer's own; with
+    // neither it does not call it. Here: the call it would make with an empty name and no street.
+    const { store } = await launch(false);
+    store.saveProfile({ name: '', address: '' });
+    expect(ls.getItem('obavia.profile')).toBe('{}');
+    expect(store.signInProfile()).toEqual({ state: 'TX' });
+    expect(store.peekBuyer().name).toBe('Marisol Treviño');   // the stand-in's demo name on the glass, not in kv
+  });
 });
 
 describe('lastOpened', () => {
