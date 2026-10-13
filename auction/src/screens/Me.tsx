@@ -2,7 +2,9 @@
    won as passes, "Sell it back here", sign out. Watching: a column of rings
    with the price under each; tap to go to the car; swipe left to unwatch.
    Returning after a day, the first ring spins in with the heartbeat before
-   anything else loads. The neutral screen: nothing fires here but that. */
+   anything else loads. The neutral screen: nothing fires here but that.
+   Under the deposit, the wins left this year (D15), a number that darkens as
+   it runs out. A phone whose sign-in was refused says so in one quiet line. */
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
@@ -20,8 +22,11 @@ import type { Lot } from '../engine/server';
 import { feel } from '../feel';
 import { releaseDeposit } from '../deposit';
 import { useSale } from '../sale';
-import { DEPOSIT, ME, me, once, toggleWatch, useCars, useWatched } from '../store';
+import { AUCTION_URL, DEPOSIT, ME, WINS_PER_YEAR, localCommitted, me, once, refreshMe, toggleWatch, useBuyer, useCars, useWatched } from '../store';
 import { theme } from '../theme';
+
+/** The wins-left number's ink: faint at four, ink at one (and none); between, the steps of the theme's greys. */
+const winsInk = (n: number) => (n >= 4 ? theme.color.faint : n === 3 ? theme.color.muted : n === 2 ? theme.color.inkSoft : theme.color.ink);
 
 function remaining(lot: Lot, now: number) {
   const left = Math.max(0, lot.closesAt - now);
@@ -80,7 +85,9 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
   const sale = useSale();
   const cars = useCars(lots);
   const back = useRef(Date.now() - me.lastOpened > 24 * 3_600_000).current;
-  useEffect(() => { me.lastOpened = Date.now(); }, []);
+  useEffect(() => { me.lastOpened = Date.now(); void refreshMe(); }, []);
+  const buyer = useBuyer();
+  const winsLeft = AUCTION_URL ? buyer.winsLeft : Math.max(0, WINS_PER_YEAR - localCommitted(Object.values(lots)));
   const won = sale ? [sale] : [];
   // the deposit comes back only when the buyer leads nothing and owes nothing
   const [released, setReleased] = useState(false);
@@ -102,10 +109,14 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
     <Page foot={<Button label="Sign out" onPress={() => { feel.silence(); onClose(); }} ghost />}>
       <Label>Me</Label>
       <Serif size={36} style={{ paddingHorizontal: theme.space.s }}>{me.name}</Serif>
+      {buyer.lost && <Body ink={theme.color.faint} style={{ fontSize: 13, marginTop: 4 }}>This phone lost its sign-in. Write to us.</Body>}
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Deposit</Label>
       <Serif size={34}>${DEPOSIT}</Serif>
       <Body ink={theme.color.faint} style={{ fontSize: 13, marginTop: 2 }}>{released && !once.deposit ? 'back to your card' : once.deposit ? 'held · back if you lose' : 'held at your first bid'}</Body>
+      {winsLeft !== undefined && (
+        <Body ink={winsInk(winsLeft)} style={{ fontSize: 13, marginTop: 2, fontVariant: ['tabular-nums'] }}>{`Wins left this year: ${winsLeft}`}</Body>
+      )}
       {canRelease && (
         <Pressable onPress={release} style={{ marginTop: theme.space.m, alignItems: 'center' }} accessibilityRole="button" accessibilityLabel={`Release the ${DEPOSIT} dollar deposit`}>
           <Label>Deposit</Label>

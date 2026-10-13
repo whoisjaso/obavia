@@ -6,7 +6,9 @@ import { useSyncExternalStore } from 'react';
 import type { Signature } from './screens/Paper';
 import { feel } from './feel';
 
-export type Doc = 'guide' | 'bill' | 'title';
+/** The documents the buyer draws a signature on: the Buyers Guide acknowledgement and the bill of sale. The title
+    is never drawn (D8, D9): a Texas licence signs it through webDEALER at pickup, any other licence gets paper. */
+export type Doc = 'guide' | 'bill';
 export type Plates = 'none' | 'filed' | 'approved' | 'mailed' | 'kickback';
 export type Sale = {
   lotId: string; hammer: number; total: number; wonAt: number;
@@ -40,12 +42,15 @@ export function openSale(init: Pick<Sale, 'lotId' | 'hammer' | 'total'> & { wonA
 /** Out-of-state licence: the plates come from the buyer's state; the tile relabels to Title. */
 export const outOfState = (s: Sale | null) => !!s?.id?.confirmed && s.id.state !== 'TX';
 
+/** Sign is done when both drawn documents carry a signature. */
+export const signedAll = (s: Sale) => !!(s.signed.guide && s.signed.bill);
+
 /** Which tile is next. The next one lifts; the ones before are ticked. */
 export type Tile = 'id' | 'insure' | 'sign' | 'plates';
 export function nextTile(s: Sale): Tile | null {
   if (!s.id?.confirmed) return 'id';
   if (!s.insured) return 'insure';
-  if (!(s.signed.guide && s.signed.bill && s.signed.title)) return 'sign';
+  if (!signedAll(s)) return 'sign';
   if (!s.pickedUp || (s.plates !== 'mailed' && !outOfState(s))) return 'plates';
   return null;
 }

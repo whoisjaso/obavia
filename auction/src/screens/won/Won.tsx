@@ -15,7 +15,7 @@ import { Button, Caps, Choice, Label, Page, Serif } from '../../components/Type'
 import type { Car } from '../../data/cars';
 import { dollars } from '../../engine/money';
 import { feel } from '../../feel';
-import { nextTile, outOfState, setSale, useSale, type Tile } from '../../sale';
+import { nextTile, outOfState, setSale, signedAll, useSale, type Tile } from '../../sale';
 import { EASE_OUT, ms } from '../../motion';
 import { theme } from '../../theme';
 import { IdScan, InsureScan } from './Scan';
@@ -53,7 +53,7 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
   const steps: { key: Tile; label: string; done: boolean }[] = [
     { key: 'id', label: 'ID', done: !!sale.id?.confirmed },
     { key: 'insure', label: 'Insure', done: !!sale.insured },
-    { key: 'sign', label: 'Sign', done: !!(sale.signed.guide && sale.signed.bill && sale.signed.title) },
+    { key: 'sign', label: 'Sign', done: signedAll(sale) },
     { key: 'plates', label: outOfState(sale) ? 'Title' : 'Plates', done: next === null },
   ];
   const open = (t: Tile) => {

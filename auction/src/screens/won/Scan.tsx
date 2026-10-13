@@ -15,9 +15,14 @@ import { Feather } from '../../components/Cloud';
 import { Sky } from '../../components/Sky';
 import { feel } from '../../feel';
 import { setSale, useSale } from '../../sale';
+import { saveProfile } from '../../store';
 import { theme } from '../../theme';
 
 const STATES = ['TX', 'OK', 'LA', 'NM'];
+
+/* The licence read (ML Kit / Vision) is a later phase: until it lands every scan shows these facts. They are
+   never sent to the Worker as the buyer's address; only a real read's street line feeds the shill check (D11). */
+const FIXTURE = { name: 'Marisol Treviño', dob: '04/12/1991', address: '2210 Example Ave, San Antonio', licence: '•••• 4821' };
 
 const NATIVE = Platform.OS !== 'web';
 
@@ -67,13 +72,17 @@ export function IdScan({ onDone }: { onDone: () => void }) {
   const [read, setRead] = useState(!!sale?.id);
   const [ok, setOk] = useState<Record<string, boolean>>({});
   const [state, setState] = useState(sale?.id?.state ?? 'TX');
-  const id = sale?.id ?? { name: 'Marisol Treviño', dob: '04/12/1991', address: '2210 Example Ave, San Antonio', licence: '•••• 4821', state, confirmed: false };
+  const id = sale?.id ?? { ...FIXTURE, state, confirmed: false };
   const fields: [string, string][] = [['Name', id.name], ['Born', id.dob], ['Address', id.address], ['Licence', id.licence], ['State', state]];
   const all = fields.every(([k]) => ok[k]);
   const shutter = () => { feel.touch(); setTimeout(() => { setRead(true); feel.select(); setSale({ id: { ...id, state, confirmed: false } }); }, 500); };
   const confirm = (k: string) => { setOk(o => ({ ...o, [k]: true })); feel.touch(); };
   const cycle = () => { const n = STATES[(STATES.indexOf(state) + 1) % STATES.length]; setState(n); setOk(o => ({ ...o, State: false })); feel.select(); };
-  const thatsMe = () => { setSale({ id: { ...id, state, confirmed: true } }); feel.done(); onDone(); };
+  const thatsMe = () => {
+    setSale({ id: { ...id, state, confirmed: true } });
+    if (id.address !== FIXTURE.address) saveProfile({ address: id.address.split(',')[0] });   // the street line, as the Worker compares it
+    feel.done(); onDone();
+  };
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.ink, paddingTop: insets.top }]}>
       <Frame kind="licence" read={read} onShutter={shutter} />

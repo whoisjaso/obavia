@@ -6,7 +6,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { RemoteAuctionServer } from './engine/client';
-import { AUCTION_URL, buyerToken, once } from './store';
+import { AUCTION_URL, buyerToken, once, rotateToken } from './store';
 
 const RETURN_URL = 'obavia://deposit';
 const POLL_EVERY_MS = 1500;
@@ -60,7 +60,8 @@ export async function takeDeposit(): Promise<DepositOutcome> {
   }
 
   // the webhook may land before or after the redirect; the Worker's word decides
-  if (await pollCaptured(AUCTION_URL, token)) { once.deposit = true; return 'captured'; }
+  // a captured deposit rotates the token once (worker/README.md, Buyer tokens), before the bid that follows uses it
+  if (await pollCaptured(AUCTION_URL, token)) { once.deposit = true; await rotateToken(); return 'captured'; }
   return resultType === 'cancel' || resultType === 'dismiss' ? 'cancelled' : 'failed';
 }
 

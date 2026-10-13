@@ -2,7 +2,9 @@
    a second wheel labelled by its value ("up to $5,600"), one button: Bid.
    The drag only arms; the button bids; over 2× asks a 600 ms hold. The thump
    fires on the server's ack, never before. A bid that lands after close is
-   the one place a sentence is allowed, and it is the server's sentence. */
+   the one place a sentence is allowed, and it is the server's sentence.
+   The first bid ever states the auction terms once (decisions §9 D10): four
+   short lines under the price, and that Bid carries the terms version. */
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -24,17 +26,23 @@ import type { Ack, Lot } from '../engine/server';
 import { feel } from '../feel';
 import { takeDeposit } from '../deposit';
 import { registerPush } from '../push';
-import { AUCTION_URL, DEPOSIT, ME, getServer, once } from '../store';
+import { AUCTION_URL, DEPOSIT, ME, getServer, once, peekBuyer, setBuyer } from '../store';
+import { Refused, TERMS, TERMS_VERSION } from '../engine/client';
 import { EASE_OUT, EASE_SHEET, cloud, ms, spring } from '../motion';
 import { theme } from '../theme';
 
 const STEP_PT = 28;
+const TERMS_ROOM = 40;
 type Phase = 'arming' | 'deposit' | 'inflight' | 'landed' | 'rejected';
 
 export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot; now: number; steps: number; onClose: () => void }) {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const open = height * 0.46 + insets.bottom;
+  // the terms read: shown when the Worker has not stamped the terms on this buyer (or has not said yet), and
+  // again on a 409. Read once at open so the lines do not leave while the bid lands. Its Bid sends the version.
+  const [terms, setTerms] = useState<number | undefined>(() => (peekBuyer().termsCurrent === true ? undefined : 0));
+  // the four lines take more room than the ceiling word they replace: the sheet stands 40 pt taller while they show
+  const open = height * 0.46 + insets.bottom + (terms !== undefined ? TERMS_ROOM : 0);
   const reduce = useReducedMotion();
   const y = useSharedValue(reduce ? 0 : open);
   const fade = useSharedValue(reduce ? 0 : 1);   // reduced motion: the sheet fades where it rests
@@ -104,8 +112,16 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     setPhase('inflight'); setStamp(null);
     const key = `${ME}-${car.id}-${Date.now()}`;
     let ack: Ack;
-    try { ack = await getServer().bid({ lotId: car.id, bidder: ME, amount, max: ceiling, key }); }
-    catch { setPhase('arming'); setStamp('Not sent'); return; }   // negative path: silent; the line says what happened
+    try { ack = await getServer().bid({ lotId: car.id, bidder: ME, amount, max: ceiling, key, ...(terms !== undefined ? { terms: TERMS_VERSION } : {}) }); }
+    catch (e) {
+      // negative paths: silent; at most one line says what happened
+      const code = e instanceof Refused ? e.code : '';
+      if (code === 'terms_required') { setBuyer({ termsCurrent: false }); setTerms(Date.now()); setPhase('arming'); return; }   // the read again, nothing else
+      if (code === 'win_cap') { setBuyer({ winsLeft: 0 }); setPhase('rejected'); setStamp('Four wins a year. Next January.'); return; }
+      if (code === 'deposit') { once.deposit = false; setPhase('deposit'); return; }
+      setPhase('arming'); setStamp('Not sent'); return;
+    }
+    setBuyer({ termsCurrent: true });   // the lot answered: the Worker stamped the terms with this bid
     if (ack.ok) {
       // the high-bidder moment, all inside 100 ms: the thud, the heavy impact and the punch on the ack;
       // 90 ms later the lead chime, the success haptic and the leading mark on one frame
@@ -154,8 +170,10 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
               </GestureDetector>
               {stamp ? <Stamp key={stamp} text={stamp} /> : <Label style={{ marginTop: 6 }}>{`+ $${dollars(increment(amount))}`}</Label>}
 
-              {/* the second wheel: an advanced option, one faint word until it is wanted */}
-              {!ceilOpen ? (
+              {/* the first bid ever: the four terms in the ceiling's place (the ceiling is not relevant yet) */}
+              {terms !== undefined ? (
+                <Landing key={terms} animate={terms > 0}><Terms /></Landing>
+              ) : /* the second wheel: an advanced option, one faint word until it is wanted */ !ceilOpen ? (
                 <Pressable onPress={() => { setCeilOpen(true); feel.select(); }} hitSlop={10} style={{ paddingVertical: theme.space.s }} accessibilityRole="button" accessibilityLabel={ceilSteps ? `Ceiling up to ${dollars(ceiling)} dollars` : 'Set a ceiling'}>
                   <Label ink={ceilSteps ? theme.color.ink : theme.color.faint}>{ceilSteps ? `up to $${dollars(ceiling)}` : 'ceiling'}</Label>
                 </Pressable>
@@ -232,6 +250,15 @@ function Deposit({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () 
   );
 }
 
+/** D10's four terms, once: four short lines, sans (no money in them, so no Bodoni), no explanation. */
+function Terms() {
+  return (
+    <View style={s.terms} accessible accessibilityLabel={`Terms. ${TERMS.join('. ')}.`}>
+      {TERMS.map(t => <Text key={t} style={s.termsLine}>{t}</Text>)}
+    </View>
+  );
+}
+
 /** The server's sentence lands like a stamp: pressed down from 1.08× in 160 ms. Silent; the warning
     haptic is the caller's, and only for a bid after close. Reduced motion: it fades in, no scale. */
 function Stamp({ text }: { text: string }) {
@@ -275,6 +302,8 @@ const s = StyleSheet.create({
   ceilText: { ...theme.type.sans, fontSize: 15, color: theme.color.faint, fontVariant: ['tabular-nums'] },
   ceilTextOn: { color: theme.color.ink, ...theme.type.sansBold },
   ceilMark: { width: 16, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 5 },
+  terms: { alignItems: 'center', gap: 2, paddingTop: theme.space.xs },
+  termsLine: { ...theme.type.sans, fontSize: 13, lineHeight: 17, color: theme.color.muted, textAlign: 'center' },
   depositRoom: { height: 30, justifyContent: 'flex-end' },
   foot: { marginTop: 'auto', alignSelf: 'stretch', alignItems: 'stretch' },
   deposit: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 6 },

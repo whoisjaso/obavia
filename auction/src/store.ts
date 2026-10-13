@@ -3,7 +3,7 @@
    stand-in with the same surface, so the screens never know which. */
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { carFromLot, cars as seeded, seedLots, type Car } from './data/cars';
-import { RemoteAuctionServer } from './engine/client';
+import { RemoteAuctionServer, Refused, TERMS_VERSION, type Profile, type Session } from './engine/client';
 import { LocalAuctionServer, type Ack, type BidRequest, type Event, type Lot } from './engine/server';
 
 export const DEPOSIT = 250;
@@ -20,18 +20,94 @@ export type AuctionServer = {
   bid(req: BidRequest): Promise<Ack>;
 };
 
+/* Where the buyer's id and token live. expo-secure-store is not in node_modules, so they sit where the app
+   already keeps things: localStorage, which the web build has and iOS and Android do not. On a phone build
+   nothing persists yet: every launch is a first launch and makes a new buyer, until secure storage lands. */
+const SESSION_KEY = 'obavia.buyer', PROFILE_KEY = 'obavia.profile';
+const kv = {
+  get(k: string): string | null { try { return (globalThis as { localStorage?: Storage }).localStorage?.getItem(k) ?? null; } catch { return null; } },
+  set(k: string, v: string) { try { (globalThis as { localStorage?: Storage }).localStorage?.setItem(k, v); } catch { /* nowhere to keep it */ } },
+};
+function readJSON<T>(k: string): T | null { try { const v = kv.get(k); return v ? JSON.parse(v) as T : null; } catch { return null; } }
+
+/** D15 (decisions §9): four wins a calendar year. The Worker's number decides; this is the local stand-in's. */
+export const WINS_PER_YEAR = 4;
+
+/** The buyer as the Worker last read them. `lost`: the stored token was refused (rotated or bumped away);
+    nothing here makes a new buyer to replace it. `termsCurrent` false: the next bid is the first under the terms. */
+export type Buyer = { lost: boolean; winsLeft?: number; winsPerYear: number; termsCurrent?: boolean };
+let buyer: Buyer = { lost: false, winsPerYear: WINS_PER_YEAR, termsCurrent: AUCTION_URL ? undefined : false };
+const buyerSubs = new Set<() => void>();
+export const peekBuyer = () => buyer;
+export function setBuyer(patch: Partial<Buyer>) { buyer = { ...buyer, ...patch }; for (const f of buyerSubs) f(); }
+export function useBuyer(): Buyer {
+  return useSyncExternalStore(f => { buyerSubs.add(f); return () => { buyerSubs.delete(f); }; }, () => buyer, () => buyer);
+}
+
+function adopt(s: Session) { ME = s.id; token = s.token; kv.set(SESSION_KEY, JSON.stringify(s)); }
+
+/** Sign-in at launch (worker/README.md, Buyer tokens): nothing stored, the profile alone and the Worker makes
+    the buyer; stored, the token with the id. A refused token marks the buyer lost and stops there. */
+async function signIn() {
+  const stored = readJSON<Session>(SESSION_KEY);
+  const profile: Profile = { name: me.name, state: 'TX', ...readJSON<Profile>(PROFILE_KEY) };
+  try {
+    adopt(await RemoteAuctionServer.signIn(AUCTION_URL, stored, profile));
+  } catch (e) {
+    if (e instanceof Refused && e.code === 'not_yours') { token = null; setBuyer({ lost: true }); return; }
+    if (!stored) return;          // no answer and nothing stored: no buyer yet; the next launch tries again
+    adopt(stored);                // no answer: the stored token is still the one the Worker knows
+  }
+  await refreshMe();
+}
+
+/** GET /me into the store: the deposit, the wins left this year, whether the terms were accepted. */
+export async function refreshMe(): Promise<void> {
+  if (!AUCTION_URL || !token) return;
+  const m = await RemoteAuctionServer.me(AUCTION_URL, token);
+  if (!m) return;
+  once.deposit = m.deposit_status === 'captured';
+  setBuyer({ winsLeft: m.winsLeft, winsPerYear: m.winsPerYear ?? WINS_PER_YEAR, termsCurrent: m.termsCurrent });
+}
+
+/** POST /me/rotate: a fresh token, the old one dead. Called once after a deposit capture. */
+export async function rotateToken(): Promise<boolean> {
+  if (!AUCTION_URL || !token) return false;
+  const s = await RemoteAuctionServer.rotate(AUCTION_URL, token);
+  if (!s || s.id !== ME) return false;
+  adopt(s);
+  return true;
+}
+
+/** Contact the buyer gave (the licence's street line, a phone) for the Worker's shill check (D11): kept on the
+    phone for every later sign-in, and sent now when signed in. Empty fields are dropped, never sent blank. */
+export function saveProfile(p: Pick<Profile, 'phone' | 'address'>) {
+  const keep: Profile = { ...readJSON<Profile>(PROFILE_KEY) };
+  if (p.phone?.trim()) keep.phone = p.phone.trim();
+  if (p.address?.trim()) keep.address = p.address.trim();
+  kv.set(PROFILE_KEY, JSON.stringify(keep));
+  if (!AUCTION_URL || !token || buyer.lost) return;
+  RemoteAuctionServer.signIn(AUCTION_URL, { id: ME, token }, keep).then(adopt, e => {
+    if (e instanceof Refused && e.code === 'not_yours') { token = null; setBuyer({ lost: true }); }
+  });
+}
+
+/** Local stand-in for D15: wins taken this year (`?wins=N`, preview only) plus closed lots I won plus open lots I
+    lead, other than `except`. The Worker counts the same three things. */
+const previewWins = () => Number((globalThis as { location?: { search?: string } }).location?.search?.match(/[?&]wins=(\d)/)?.[1] ?? 0);
+export function localCommitted(lots: Lot[], except?: string): number {
+  return previewWins() + lots.filter(l => l.leader === ME && l.id !== except && (l.closed ? l.closed.sold : true)).length;
+}
+
 let server: AuctionServer | undefined;
 export function getServer(): AuctionServer {
   if (!server && AUCTION_URL) {
-    // the real thing: sign in with a device-stable id, then the lane and a socket per lot
-    ME = `b-${deviceId()}`;
+    // the real thing: sign in (the stored buyer, or a new one the first time), then the lane and a socket per lot
+    const stored = readJSON<Session>(SESSION_KEY);
+    if (stored) ME = stored.id;
     const remote = new RemoteAuctionServer(AUCTION_URL, buyerToken);
     server = remote;
-    RemoteAuctionServer.signIn(AUCTION_URL, ME, me.name, 'TX').then(t => {
-      token = t; remote.start();
-      // the deposit as the Worker holds it; imported here, not at load, to keep ./deposit's import of this file one-way
-      import('./deposit').then(d => d.refreshDeposit()).catch(() => {});
-    }).catch(() => { remote.start(); });
+    signIn().catch(() => {}).finally(() => { remote.start(); });
     return server;
   }
   if (!server) {
@@ -50,7 +126,17 @@ export function getServer(): AuctionServer {
       local.scheduleRival('altima', 55_000, 5700, 'r4');
       local.scheduleRival('fusion', 40_000, 3500, 'r5');
     }
-    server = local;
+    // the Worker's admission rules, played locally so the screens meet the same refusals (D10, D15)
+    server = {
+      subscribe: f => local.subscribe(f), get: id => local.get(id), all: () => local.all(),
+      async bid(req) {
+        if (!buyer.termsCurrent && req.terms !== TERMS_VERSION) throw new Refused('terms_required', 409);
+        if (localCommitted(local.all(), req.lotId) >= WINS_PER_YEAR) throw new Refused('win_cap', 403);
+        const ack = await local.bid(req);
+        setBuyer({ termsCurrent: true });
+        return ack;
+      },
+    };
   }
   return server!;
 }
@@ -60,17 +146,6 @@ export async function captureDeposit(): Promise<boolean> {
   const { takeDeposit } = await import('./deposit');
   const r = await takeDeposit();
   return r === 'captured' || r === 'local';
-}
-
-/** A stable id for this install until sign-in exists. */
-function deviceId(): string {
-  const g = globalThis as { localStorage?: Storage };
-  try {
-    const k = 'obavia.device';
-    let v = g.localStorage?.getItem(k);
-    if (!v) { v = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10); g.localStorage?.setItem(k, v); }
-    return v;
-  } catch { return Math.random().toString(36).slice(2, 18); }
 }
 
 /** Live lots and a 4 Hz clock, from the server's own events. */

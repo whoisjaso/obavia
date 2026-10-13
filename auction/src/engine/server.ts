@@ -17,7 +17,8 @@ export type Lot = {
   sale?: SaleState;              // after the hammer
 };
 
-export type BidRequest = { lotId: string; bidder: string; amount: number; max: number; key: string };
+/** `terms` is the auction terms version, sent with the buyer's first bid ever only (decisions §9 D10). */
+export type BidRequest = { lotId: string; bidder: string; amount: number; max: number; key: string; terms?: string };
 
 export type Ack =
   | { ok: true; lot: Lot; youLead: boolean; stampedAt: number }
