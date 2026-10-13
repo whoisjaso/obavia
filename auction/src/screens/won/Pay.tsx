@@ -7,8 +7,13 @@
    (the close, the pay deadline)"): its arc sweeps once from twelve to its
    mark as the deadline lands on the glass (400 ms, the moment player) and
    rests there. Reduced motion: the resting clock, no sweep. No sound: the
-   tap on a word is the page's feel, and that stays as it was. */
+   tap on a word is the page's feel, and that stays as it was.
+   The balance invoice (W3-A, on Whop; the lot's sale.invoiceUrl, synced by the Lane): once the sale carries it,
+   Bank and Wire say "invoice" in their detail and the tap opens it in the in-app browser, Whop's page, not
+   ours; Cash stays the lot's. Without one (the Worker has not made it, or the local stand-in, which has no
+   Whop) the word records the choice as before. A URL that is not https is never opened. */
 import React, { useEffect, useRef } from 'react';
+import * as WebBrowser from 'expo-web-browser';
 import { StyleSheet, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { Moment, useMoment } from '../../components/Moment';
@@ -54,7 +59,13 @@ export function Pay({ onDone }: { onDone: () => void }) {
     return () => { clearTimeout(t); stop?.(); };
   }, [by !== null]);
   if (!sale) return null;
-  const pick = (k: 'ach' | 'wire' | 'cash') => { setSale({ pay: k }); setTimeout(onDone, 260); };
+  const invoice = sale.invoiceUrl && /^https:\/\//.test(sale.invoiceUrl) ? sale.invoiceUrl : null;
+  const pick = (k: 'ach' | 'wire' | 'cash') => {
+    setSale({ pay: k });
+    if (k !== 'cash' && invoice) void WebBrowser.openBrowserAsync(invoice).catch(() => {});   // Whop's page; a refusal is silent
+    setTimeout(onDone, 260);
+  };
+  const onInvoice = !!sale.invoiceUrl;
   return (
     <Page>
       <Label>Balance</Label>
@@ -72,8 +83,8 @@ export function Pay({ onDone }: { onDone: () => void }) {
       )}
       <Hairline style={{ marginVertical: theme.space.l }} />
       <View>
-        <Choice label="Bank" detail={`transfer, clears ${achClears(sale.wonAt)}`} accessibilityLabel={`Bank transfer, clears ${achClears(sale.wonAt)}`} selected={sale.pay === 'ach'} onPress={() => pick('ach')} />
-        <Choice label="Wire" detail="today" selected={sale.pay === 'wire'} onPress={() => pick('wire')} />
+        <Choice label="Bank" detail={`${onInvoice ? 'invoice' : 'transfer'}, clears ${achClears(sale.wonAt)}`} accessibilityLabel={`Bank ${onInvoice ? 'invoice' : 'transfer'}, clears ${achClears(sale.wonAt)}`} selected={sale.pay === 'ach'} onPress={() => pick('ach')} />
+        <Choice label="Wire" detail={onInvoice ? 'invoice, today' : 'today'} accessibilityLabel={onInvoice ? 'Wire invoice, today' : 'Wire, today'} selected={sale.pay === 'wire'} onPress={() => pick('wire')} />
         <Choice label="Cash" detail="at the lot" selected={sale.pay === 'cash'} onPress={() => pick('cash')} />
       </View>
     </Page>

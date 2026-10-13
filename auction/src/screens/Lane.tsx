@@ -2,14 +2,14 @@
    engine. Drag the price up: arms a bid and hands off to the Bid sheet. Long-
    press the ring: the time, spoken once. No reading: two bars are the copy. */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
+import { AccessibilityInfo, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { BREATH, EASE_OUT, cloud, drift, ms, spring } from '../motion';
-import { LaneClouds, useDrift } from '../components/Cloud';
+import { LaneClouds, PressCloud, useDrift } from '../components/Cloud';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bars } from '../components/Bars';
 import { LanePhoto } from '../components/LanePhoto';
@@ -24,7 +24,8 @@ import { theme } from '../theme';
 import { BidSheet } from './BidSheet';
 import { CarSheet } from './CarSheet';
 import { Won } from './won/Won';
-import { AUCTION_URL, ME, isWatched, toggleWatch, useCars, useLots, useWatched } from '../store';
+import { AUCTION_URL, ME, isWatched, laneLink, toggleWatch, useCars, useLots, useWatched } from '../store';
+import { Offer } from './won/Offer';
 import { Me } from './Me';
 import { Label } from '../components/Type';
 import { Object3D } from '../components/Object3D';
@@ -47,10 +48,33 @@ function spoken(ms: number) {
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, onOpen, onMe, onWon, refillKey }: {
+/** A screen reader is on (VoiceOver, TalkBack): the lane then speaks each car as it arrives and the price takes its
+    adjustable actions (decisions §3.5 item 4). Read once and followed. */
+function useScreenReader(): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    let live = true;
+    AccessibilityInfo.isScreenReaderEnabled().then(v => { if (live) setOn(v); }).catch(() => {});
+    const sub = AccessibilityInfo.addEventListener('screenReaderChanged', setOn);
+    return () => { live = false; sub.remove(); };
+  }, []);
+  return on;
+}
+
+/** The share sheet (phases.md Phase 2 Marketing: "the Lane's share sheet"): the platform's own sheet with the lot's
+    lane link, the car's name as the words. Nothing of ours in it; a browser with no sheet does nothing, silently. */
+function share(car: Car) {
+  const name = `${car.year} ${car.make} ${car.model}`, url = laneLink(car.id);
+  feel.select();
+  // Android's sheet carries the message only, so the link rides in it there; iOS takes both pieces
+  void Share.share(Platform.OS === 'android' ? { message: `${name} ${url}` } : { message: name, url }, { dialogTitle: name, subject: name }).catch(() => {});
+}
+
+function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, onOpen, onMe, onWon, refillKey, spoken: reader }: {
   car: Car; lot: Lot; now: number; width: number; height: number; active: boolean; near: boolean;
   clouds: { far: SharedValue<number>; mid: SharedValue<number> };
   onArm: (steps: number) => void; onOpen: () => void; onMe: () => void; onWon?: () => void; refillKey: number;
+  spoken: boolean;   // a screen reader is on: the page announces itself when it becomes the one on the glass
 }) {
   const watched = useWatched();
   const watching = watched.includes(car.id);
@@ -118,6 +142,11 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
       if (n > 0) scheduleOnRN(onArm, n - 1);
     });
 
+  // a screen reader: the car arriving under three fingers is announced once, as the page it is; the price's swipe
+  // up arms one increment and hands off to the Bid sheet, the same roll the drag makes (down: nothing, the ask is the floor)
+  const pageLabel = `${car.year} ${car.make} ${car.model}, ${preview.toLocaleString()} dollars, ${spoken(lot.closesAt - now)} left, retail ${lot.retail.toLocaleString()}`;
+  useEffect(() => { if (reader && active) AccessibilityInfo.announceForAccessibility(pageLabel); }, [reader, active]);
+  const adjust = closed ? undefined : (d: 1 | -1) => { if (d === 1) { feel.tick(); onArm(0); } };
   // Long-press the ring: the time, spoken.
   const say = () => { const t = spoken(lot.closesAt - now); setToast(t); AccessibilityInfo.announceForAccessibility(`${t} left`); };
   const hush = () => setToast(null);
@@ -125,15 +154,16 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
 
   return (
     <View style={{ height, width: '100%', backgroundColor: theme.color.ink, overflow: 'hidden' }}
-      accessible accessibilityLabel={`${car.year} ${car.make} ${car.model}, ${preview.toLocaleString()} dollars, ${spoken(lot.closesAt - now)} left, retail ${lot.retail.toLocaleString()}`}>
+      accessible accessibilityLabel={pageLabel} accessibilityHint={reader ? 'Three fingers up for the next car' : undefined}>
       <GestureDetector gesture={Gesture.Race(open, Gesture.Exclusive(hold, doubleTap, tap))}>
         <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
           {photo ? <LanePhoto photo={photo} width={width} height={height} transition={active ? 180 : 0} /> : <View style={s.nophoto} />}
         </Animated.View>
       </GestureDetector>
       <LinearGradient pointerEvents="none" colors={['rgba(8,14,30,0)', 'rgba(8,14,30,0.15)', theme.color.scrim]} locations={[0.3, 0.55, 0.82]} style={StyleSheet.absoluteFill} />
-      {/* a breath of ink under the top row, so the white count reads on a pale sky (DOCTRINE §4.3, measured) */}
-      <LinearGradient pointerEvents="none" colors={['rgba(8,14,30,0.72)', 'rgba(8,14,30,0.45)', 'rgba(8,14,30,0)']} locations={[0, 0.5, 1]} style={[s.topShade, { height: insets.top + 120 }]} />
+      {/* a breath of ink under the top row, so the white count and the Share word under it read on a pale sky
+          (DOCTRINE §4.3, measured: Share at 2.8:1 past the shade's end on October 13, so the shade now runs under both rows) */}
+      <LinearGradient pointerEvents="none" colors={['rgba(8,14,30,0.72)', 'rgba(8,14,30,0.55)', 'rgba(8,14,30,0)']} locations={[0, 0.55, 1]} style={[s.topShade, { height: insets.top + 180 }]} />
       {/* the cloud scrim: ice behind the ring and behind the price, never across the car (only on this page
           and its neighbours: the pages further down the list draw nothing) */}
       {near && <LaneClouds width={width} height={height} far={clouds.far} mid={clouds.mid} />}
@@ -155,6 +185,12 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
           <View style={s.eye} accessibilityLabel={`${lot.watching + (watching ? 1 : 0)} watching${watching ? ', you too' : ''}`}>
             <Text style={[s.eyeText, watching && s.eyeOn]}>{(lot.watching + (watching ? 1 : 0)).toLocaleString('en-US')} watching</Text>
           </View>
+          {/* the share verb under the count, the same plain word, the same column: a secondary (one-action.md, Lane row) */}
+          {!closed && (
+            <PressCloud onPress={() => share(car)} hitSlop={12} sound={false} accessibilityLabel="Share" accessibilityHint="The lane link, in the share sheet">
+              <Text style={s.eyeText}>Share</Text>
+            </PressCloud>
+          )}
         </View>
       </View>
 
@@ -168,7 +204,7 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
         ) : (
           <GestureDetector gesture={drag}>
             <Animated.View style={s.priceHit}>
-              <Price hammer={preview} total={total} lift={lift} struck={closed} leading={lot.leader === ME && armed === 0} />
+              <Price hammer={preview} total={total} lift={lift} struck={closed} leading={lot.leader === ME && armed === 0} onAdjust={adjust} />
             </Animated.View>
           </GestureDetector>
         )}
@@ -232,6 +268,8 @@ export function Lane() {
   const [won, setWon] = useState<Car | null>(null);
   const [wonAt, setWonInitial] = useState<'pickup' | 'steps' | undefined>(undefined);
   const [meOpen, setMe] = useState(false);
+  const [offer, setOffer] = useState<Car | null>(null);   // the second chance, opened by its push
+  const reader = useScreenReader();
   const listRef = useRef<FlatList<Car>>(null);
   const cloudFar = useDrift(drift.far.period), cloudMid = useDrift(drift.mid.period);   // one clock per lane: a swipe never restarts the drift
   const clouds = useMemo(() => ({ far: cloudFar, mid: cloudMid }), []);
@@ -298,9 +336,16 @@ export function Lane() {
       }
       clearIntent(); return;
     }
-    // 'won' | 'pickup'
     const lot = intent.lotId ? lots[intent.lotId] : undefined;
     if (intent.lotId && !lot) return;    // the lot has not arrived yet; the intent waits
+    if (intent.screen === 'offer') {
+      // the second chance: mine and still open, else the push was late and the lane is the glass
+      const o = lot?.sale?.offer;
+      const car = lot && o && o.buyer === ME && o.expiresAt > Date.now() ? carFor(lot) : undefined;
+      if (car) { setMe(false); setOpen(null); setSheet(null); setOffer(car); }
+      clearIntent(); return;
+    }
+    // 'won' | 'pickup'
     if (lot && live(lot)) {
       const car = carFor(lot);
       if (car) { ensureSale(lot, car); setMe(false); setOpen(null); setSheet(null); setWonInitial(intent.screen === 'pickup' ? 'pickup' : undefined); setWon(car); }
@@ -320,7 +365,7 @@ export function Lane() {
         data={cars}
         keyExtractor={c => c.id}
         renderItem={({ item, index: i }) => lots[item.id] ? (
-          <CarPage car={item} lot={lots[item.id]} now={now} width={width} height={height} active={i === index} near={Math.abs(i - index) <= 1} clouds={clouds}
+          <CarPage car={item} lot={lots[item.id]} now={now} width={width} height={height} active={i === index} near={Math.abs(i - index) <= 1} clouds={clouds} spoken={reader}
             refillKey={refills.current[item.id] ?? 0}
             onOpen={() => { feel.select(); setOpen(item); }}
             onMe={() => setMe(true)}
@@ -336,11 +381,16 @@ export function Lane() {
         onViewableItemsChanged={onViewable}
         viewabilityConfig={cfg}
         getItemLayout={(_, i) => ({ length: height, offset: height * i, index: i })}
-        scrollEnabled={!sheet && !open && !meOpen}
+        scrollEnabled={!sheet && !open && !meOpen && !offer}
       />
       {meOpen && <Me lots={lots} now={now} onClose={() => setMe(false)} onOpenCar={id => { const l = lots[id]; if (l?.closed && live(l) && readWon(l)) return; setMe(false); const i = cars.findIndex(c => c.id === id); if (i >= 0) listRef.current?.scrollToIndex({ index: i, animated: true }); }} />}
       {sheet && <BidSheet key={sheet.key} car={sheet.car} lot={lots[sheet.car.id]} now={now} steps={sheet.steps} onClose={() => setSheet(null)} />}
       {open && <CarSheet car={open} onClose={() => setOpen(null)} />}
+      {/* the second chance: Take it writes the new sale, and Won opens on it with the hammer, the body proof */}
+      {offer && lots[offer.id] && (
+        <Offer car={offer} lot={lots[offer.id]} now={now} onClose={() => setOffer(null)}
+          onTaken={l => { const car = carFor(l) ?? offer; if (l.sale) { const cur = peekSale(); if (cur && cur.lotId !== l.id) clearSale(); ensureSale(l, car); } setOffer(null); setWonInitial(undefined); setWon(car); }} />
+      )}
       {won && sale && <Won key={`${won.id}-${wonAt ?? 'won'}`} car={won} initial={wonAt} onDone={() => { setWon(null); setWonInitial(undefined); }} />}
     </View>
   );

@@ -4,6 +4,10 @@
                    "Text me a code". The cloud is faint until ten digits make a US number.
      The code      the number it went to (a tap goes back to change it), and six boxes under it. The keyboard is the action: the boxes fill
                    and the sixth digit checks itself. "Send it again" comes back, faint, after 30 s.
+   A number proved on another install (the Worker's 409 phone_in_use on the code, W3-B recovery by phone): the
+   stamp says "On another phone" and one cloud appears at the foot, "New phone"; its tap sends a new code to
+   the number (POST /me/recover), the six boxes fill again, and the sixth digit proves it (/me/recover/verify):
+   the buyer that number belongs to moves to this phone under a fresh token, and the chain goes on.
    Silence on the negative paths: a wrong code clears the boxes and the stamp says "Not that code", nothing
    else. The body says it worked: the Light impact on the send; on the proof the Success haptic and the air
    swell (feel.held, cloud-landed) on the frame the six turn green and breathe once. Reduced motion: no
@@ -19,7 +23,7 @@ import { Label } from '../../components/Type';
 import { feel } from '../../feel';
 import { BREATH, CLOUD_OUT, EASE_OUT, cloud, ms } from '../../motion';
 import { formatUS, usDigits, validUS } from '../../engine/phone';
-import { sendPhoneCode, verifyPhoneCode } from '../../store';
+import { recoverByPhone, sendPhoneCode, verifyPhoneCode, verifyRecovery } from '../../store';
 import { theme } from '../../theme';
 
 const RESEND_MS = 30_000;   // the Worker's gap between sends (worker/src/phone.ts CODE_GAP_MS)
@@ -33,6 +37,9 @@ function stampFor(code: string, retryAfter?: number): string {
   if (code === 'code_expired') return 'That code ran out';
   if (code === 'too_many_attempts') return 'Too many tries';
   if (code === 'bad_phone') return 'Not a US number';
+  if (code === 'phone_in_use') return 'On another phone';
+  if (code === 'no_such_phone') return 'Number unknown';      // the Worker found no buyer behind the number just proved
+  if (code === 'try_again') return 'Try again';
   if (code === 'rate_limited' && retryAfter) return `Again in ${retryAfter} s`;
   return 'Not sent';
 }
@@ -46,6 +53,8 @@ export function PhoneSignIn({ onDone, onCancel }: { onDone: () => void; onCancel
   const [busy, setBusy] = useState(false);
   const [proved, setProved] = useState(0);              // the frame the six land
   const [resend, setResend] = useState(false);          // "Send it again", faint, after 30 s
+  const [newPhone, setNewPhone] = useState(false);      // the number is another install's: the "New phone" cloud is up
+  const [recovering, setRecovering] = useState(false);  // the code in the boxes is the recovery's
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const later = (f: () => void, t: number) => { timers.current.push(setTimeout(f, t)); };
@@ -63,10 +72,19 @@ export function PhoneSignIn({ onDone, onCancel }: { onDone: () => void; onCancel
     if (r.code === 'rate_limited' && page === 'number' && r.retryAfter && r.retryAfter <= 30) { setCode(''); setPage('code'); armResend(r.retryAfter * 1000); return; }
     setStamp({ text: stampFor(r.code, r.retryAfter), at: Date.now() });
   };
+  // "New phone": a recovery code to the same number; the boxes empty for it
+  const recover = async () => {
+    if (busy) return;
+    setBusy(true); setStamp(null);
+    const r = await recoverByPhone(`+1${digits}`);
+    setBusy(false);
+    if (r.ok) { feel.touch(); setNewPhone(false); setRecovering(true); setCode(''); armResend(); codeField.current?.focus(); return; }
+    setStamp({ text: stampFor(r.code, r.retryAfter), at: Date.now() });
+  };
   const again = async () => {
     if (busy) return;
     setResend(false); setBusy(true);
-    const r = await sendPhoneCode(`+1${digits}`);
+    const r = await (recovering ? recoverByPhone(`+1${digits}`) : sendPhoneCode(`+1${digits}`));
     setBusy(false);
     if (r.ok) { feel.touch(); setCode(''); setStamp(null); armResend(); codeField.current?.focus(); return; }
     setStamp({ text: stampFor(r.code, r.retryAfter), at: Date.now() });
@@ -75,7 +93,7 @@ export function PhoneSignIn({ onDone, onCancel }: { onDone: () => void; onCancel
 
   const check = async (full: string) => {
     setBusy(true);
-    const r = await verifyPhoneCode(full);
+    const r = await (recovering ? verifyRecovery(full) : verifyPhoneCode(full));
     setBusy(false);
     if (r.ok) {
       setProved(Date.now()); feel.held();   // the Success haptic and cloud-landed, on the frame the six turn green
@@ -83,6 +101,7 @@ export function PhoneSignIn({ onDone, onCancel }: { onDone: () => void; onCancel
       return;
     }
     setCode('');                             // silence: the boxes empty, one stamp says why
+    if (r.code === 'phone_in_use') setNewPhone(true);   // the number is another install's: the one way on is the cloud
     setStamp({ text: stampFor(r.code, r.retryAfter), at: Date.now() });
   };
   const type = (t: string) => {
@@ -125,7 +144,11 @@ export function PhoneSignIn({ onDone, onCancel }: { onDone: () => void; onCancel
               </Six>
               <View style={s.stampRoom}>{stamp && <Stamp key={stamp.at} text={stamp.text} />}</View>
             </View>
-            {/* the room is always kept, so nothing moves when the line comes back */}
+            {/* the number is another install's: the one cloud, "New phone", in the resend's place */}
+            {newPhone && !proved ? (
+              <CloudButton label="New phone" onPress={busy ? undefined : recover} accessibilityLabel="This is a new phone" accessibilityHint="A new code to this number moves your account here" />
+            ) : (
+            /* the room is always kept, so nothing moves when the line comes back */
             <View style={s.resendRoom}>
               {resend && !proved && (
                 <Animated.View entering={FadeIn.duration(ms.land)}>
@@ -135,6 +158,7 @@ export function PhoneSignIn({ onDone, onCancel }: { onDone: () => void; onCancel
                 </Animated.View>
               )}
             </View>
+            )}
           </Settle>
         )}
         {/* "Not now" sits top left on the glass but comes last in the reading order: after the field and the

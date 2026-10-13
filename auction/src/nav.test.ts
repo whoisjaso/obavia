@@ -34,9 +34,14 @@ describe('nav intent bus', () => {
     off();
   });
 
-  it('ignores a screen outside the four', () => {
+  it('ignores a screen outside the five', () => {
     go({ screen: 'settings' } as unknown as Intent);
     expect(peekIntent()).toBeNull();
+  });
+
+  it('offer is a screen: the "Second chance" push lands on it with its lot', () => {
+    go({ screen: 'offer', lotId: 'altima' });
+    expect(peekIntent()).toEqual({ screen: 'offer', lotId: 'altima' });
   });
 
   it('unsubscribe stops notifications', () => {

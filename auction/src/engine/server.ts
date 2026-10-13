@@ -3,7 +3,16 @@
    bidders are simulated so the glass behaves like the real thing, including
    the one failure that must never be silent: a bid that lands after close. */
 import { closeAfterBid, nextBid, proxy, type Proxy } from './auction';
-import type { CarMeta, SaleState } from './meta';
+import type { CarMeta, SaleOffer, SaleState } from './meta';
+
+export type { SaleOffer };
+/** The 12 hours the offer stands (decisions §2 row 9), and the pay window the stand-in gives a new sale. */
+export const OFFER_MS = 12 * 3_600_000;
+export const PAY_WINDOW_MS = 48 * 3_600_000;
+/** What the lane carries beyond meta.ts's SaleState (`offer` and `car.listingUrl` live there): `sale.invoiceUrl`, the
+    balance invoice on Whop (W3-A invoice.ts), which Pay's Bank and Wire open. */
+export type LaneSale = SaleState & { invoiceUrl?: string };
+export type LaneCar = CarMeta;
 
 export type Lot = {
   id: string;
@@ -13,8 +22,8 @@ export type Lot = {
   high: number; leader?: string; max?: number;
   bids: number; watching: number;
   closed?: { at: number; sold: boolean };
-  car?: CarMeta;                 // from the Desk at Go; absent on the local stand-in's seeded lots
-  sale?: SaleState;              // after the hammer
+  car?: LaneCar;                 // from the Desk at Go; absent on the local stand-in's seeded lots
+  sale?: LaneSale;               // after the hammer
 };
 
 /** `terms` is the auction terms version, sent with the buyer's first bid ever only (decisions §9 D10). */
@@ -46,7 +55,15 @@ export class LocalAuctionServer {
       for (const l of this.lots.values()) {
         if (!l.closed && now >= l.closesAt) {
           l.closed = { at: l.closesAt, sold: l.bids > 0 };
+          // the hammer: the Worker's object writes the sale at the close (worker/src/auction.ts); the stand-in
+          // writes the same shape, with the invoice the Worker's Whop invoice would carry (W3-A), as a stand-in URL
+          if (l.closed.sold && l.leader && !l.sale) l.sale = saleFor(l.id, l.leader, l.high, l.closesAt);
           this.emit({ lotId: l.id, lot: { ...l }, kind: 'close' });
+        }
+        // the offer's alarm: at expiresAt it is gone, silently (the push said 12 h; the glass says nothing more)
+        if (l.sale?.offer && now >= l.sale.offer.expiresAt) {
+          delete l.sale.offer;
+          this.emit({ lotId: l.id, lot: { ...l }, kind: 'sale' });
         }
       }
       for (const r of [...this.rivals]) {
@@ -66,6 +83,35 @@ export class LocalAuctionServer {
 
   get(id: string): Lot { const l = this.lots.get(id); if (!l) throw new Error(`no lot ${id}`); return { ...l }; }
   all(): Lot[] { return [...this.lots.values()].map(l => ({ ...l })); }
+
+  /** POST /lots/:id/offer/accept (W3-B): the under-bidder takes the second chance; the new sale, with its own
+      deadline and invoice, replaces the forfeited one; the offer is spent. Refused (null) when there is no
+      offer, it is not this buyer's, or it has expired. */
+  acceptOffer(lotId: string, buyer: string): Lot | null {
+    const l = this.lots.get(lotId);
+    const o = l?.sale?.offer;
+    if (!l || !o || o.buyer !== buyer || this.clock() >= o.expiresAt) return null;
+    l.sale = saleFor(l.id, buyer, o.amount, this.clock());
+    this.emit({ lotId: l.id, lot: { ...l }, kind: 'sale' });
+    return { ...l };
+  }
+
+  /** GET /lots/:id/pass (W3-B): the Google Wallet pass's save link for the buyer's sale; null is the Worker's
+      503 pass_unavailable (no issuer id or service account). The stand-in has none to sign, so it answers the
+      app's own scheme, which opens nothing: the verb shows, the pass does not. */
+  walletPass(lotId: string, buyer: string): string | null {
+    const l = this.lots.get(lotId);
+    if (!l?.sale || l.sale.buyer !== buyer) return null;
+    return `obavia://wallet/${lotId}`;
+  }
+
+  /** Preview only: the lot closed to a rival who never paid, forfeited, and the second chance is mine. */
+  playOffer(lotId: string, buyer: string, amount: number) {
+    const l = this.lots.get(lotId); if (!l) return;
+    const now = this.clock();
+    l.closesAt = now - PAY_WINDOW_MS - 60_000; l.closed = { at: l.closesAt, sold: true };
+    l.sale = { ...saleFor(l.id, l.leader ?? 'r1', l.high, l.closesAt), forfeitedAt: now - 60_000, deposit: 'to_dealer', offer: { buyer, amount, madeAt: now - 60_000, expiresAt: now - 60_000 + OFFER_MS } };
+  }
 
   /** Preview only: bring a lot's close forward so the hammer can be watched. */
   closeSoon(lotId: string, inMs: number) { const l = this.lots.get(lotId); if (l && !l.closed) l.closesAt = Math.min(l.closesAt, this.clock() + inMs); }
@@ -116,4 +162,11 @@ export class LocalAuctionServer {
     this.seen.set(req.key, ack);
     return ack;
   }
+}
+
+/** The sale the stand-in writes at a hammer or an accepted offer: the Worker's shape (meta.ts SaleState) plus the
+    balance invoice W3-A creates at the hammer. The stand-in has no Whop, so its invoice URL is the app's own
+    scheme: Pay's Bank and Wire show the invoice and open nothing here; on the Worker they open Whop's page. */
+function saleFor(lotId: string, buyer: string, hammer: number, wonAt: number): LaneSale {
+  return { buyer, hammer, wonAt, deadlineAt: wonAt + PAY_WINDOW_MS, deposit: 'held', invoiceUrl: `obavia://invoice/${lotId}` };
 }

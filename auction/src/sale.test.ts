@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // the sensory layer loads native modules; the sale only needs to know it was called
 vi.mock('./feel', () => ({ feel: { heartbeat: vi.fn(), done: vi.fn(), tick: vi.fn() } }));
 
-import { arriveAtLot, clearSale, followServer, nextTile, openSale, payByWords, payDeadline, peekSale, pickupWhen, platesWords, runPlates, titleDueAt, wonOpensItself, PAY_WINDOW_MS, type Sale } from './sale';
+import { arriveAtLot, clearSale, followServer, nextTile, offerLeft, openSale, payByWords, payDeadline, peekSale, pickupWhen, platesWords, runPlates, titleDueAt, wonOpensItself, PAY_WINDOW_MS, type Sale } from './sale';
 
 const HOUR = 3_600_000;
 // Tue Oct 13 2026 21:37 UTC = 4:37 pm in Houston (CDT, UTC-5)
@@ -41,6 +41,34 @@ describe('the pay-by', () => {
     expect(peekSale()?.pickedUp).toBeUndefined();
     followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE, startedAt: HAMMER + 30 * HOUR });
     expect(peekSale()?.pickedUp).toBe(true);
+  });
+
+  it('carries the balance invoice once the Worker has it, and keeps it when a later read omits it', () => {
+    openSale({ lotId: 'L1', hammer: 5200, total: 5900, wonAt: HAMMER });
+    expect(peekSale()?.invoiceUrl).toBeUndefined();
+    followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE });
+    expect(peekSale()?.invoiceUrl).toBeUndefined();   // Pay records the word as before
+    followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE, invoiceUrl: 'https://whop.com/invoice/inv_1' });
+    expect(peekSale()?.invoiceUrl).toBe('https://whop.com/invoice/inv_1');
+    followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE });
+    expect(peekSale()?.invoiceUrl).toBe('https://whop.com/invoice/inv_1');
+  });
+});
+
+describe('the second chance, what is left of its twelve hours', () => {
+  it('reads as hours and minutes, four words at most, no dash, 0 m at the end', () => {
+    const at = HAMMER;
+    expect(offerLeft(at + 12 * HOUR, at)).toBe('12 h');
+    expect(offerLeft(at + 11 * HOUR + 40 * 60_000, at)).toBe('11 h 40 m');
+    expect(offerLeft(at + 40 * 60_000, at)).toBe('40 m');
+    expect(offerLeft(at + 30_000, at)).toBe('1 m');   // rounded up: a minute is left until it is not
+    expect(offerLeft(at, at)).toBe('0 m');
+    expect(offerLeft(at - HOUR, at)).toBe('0 m');
+    for (const left of [12 * HOUR, 7 * HOUR + 5 * 60_000, 59 * 60_000, 0]) {
+      const w = offerLeft(at + left, at);
+      expect(w.split(' ').length).toBeLessThanOrEqual(4);
+      expect(w).not.toMatch(/[\u2013\u2014]/);
+    }
   });
 });
 

@@ -27,6 +27,9 @@ export type MeRead = {
 };
 /** What the phone routes answer: the masked number on success, the Worker's code and its Retry-After otherwise. */
 export type PhoneAnswer = { ok: true; phone: string | null } | { ok: false; code: string; retryAfter?: number };
+/** What POST /me/recover/verify answers (W3-B, recovery by phone): the proved number's buyer, moved to this phone
+    under a fresh token (the old install's epoch bumped), or the Worker's code. */
+export type RecoverAnswer = { ok: true; session: Session; phone: string | null } | { ok: false; code: string; retryAfter?: number };
 
 /** A request the Worker refused, by its code: `not_yours` (sign-in with a dead token), `sign_in` (401 elsewhere),
     `phone_required` (409, no number proved by a code), `deposit` (402), `terms_required` (409), `win_cap`, `seller_cannot_bid`, `not_a_buyer` (403),
@@ -85,6 +88,10 @@ export const SAID = {
 } as const;
 export type Said = keyof typeof SAID;
 export const said = (code: string): string | null => (code in SAID ? SAID[code as Said] : null);
+
+/** Google Wallet's save link: the signed generic-pass JWT after it (Google Wallet API, "Add to Google Wallet"
+    link, read 2026-10-13). */
+export const WALLET_SAVE = 'https://pay.google.com/gp/v/save/';
 
 /** A rolling minute is the longest the Worker can ask; the countdown's fallback when no Retry-After came. */
 export const RETRY_MAX_S = 60;
@@ -153,6 +160,33 @@ export class RemoteAuctionServer {
     return ack;
   }
 
+  /** POST /lots/:id/offer/accept (W3-B): the second chance taken; the lot with its new sale. Refused: the code
+      (`offer_expired`, `not_yours`, `sign_in`), as the Bid sheet's refusals are. */
+  async acceptOffer(id: string): Promise<Lot> {
+    const t = this.token(); if (!t) throw new Refused('sign_in', 401);
+    const r = await fetch(`${this.base}/lots/${id}/offer/accept`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
+    if (!r.ok) throw await refusal(r);
+    const lot = await r.json() as Lot;
+    this.lots.set(lot.id, lot);
+    this.emit({ lotId: lot.id, lot, kind: 'sale' });
+    return lot;
+  }
+
+  /** GET /lots/:id/pass (W3-B): the Google Wallet save link for the buyer's sale, built from the signed JWT the
+      Worker answers (`{ jwt }`, or a ready `{ url }`). Null on 503 pass_unavailable (no issuer id or service
+      account), on any refusal, or on the network: the Wallet verb is then not on the glass. */
+  async walletPass(id: string): Promise<string | null> {
+    const t = this.token(); if (!t) return null;
+    try {
+      const r = await fetch(`${this.base}/lots/${id}/pass`, { headers: { authorization: `Bearer ${t}` } });
+      if (!r.ok) return null;
+      const b = await r.json() as { url?: unknown; jwt?: unknown };
+      if (typeof b.url === 'string' && /^https:\/\//.test(b.url)) return b.url;
+      if (typeof b.jwt === 'string' && b.jwt) return `${WALLET_SAVE}${b.jwt}`;
+      return null;
+    } catch { return null; }
+  }
+
   async watch(id: string, on: boolean) {
     const t = this.token(); if (!t) return;
     await fetch(`${this.base}/lots/${id}/watch?delta=${on ? 1 : -1}`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
@@ -186,6 +220,28 @@ export class RemoteAuctionServer {
   static async deposit(base: string, token: string, paymentId?: string): Promise<boolean> {
     const r = await fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ paymentId }) });
     return r.ok;
+  }
+
+  /** Recovery by phone (W3-B, worker/src/phone.ts sendRecoveryCode and verifyRecovery): the number was proved on
+      another install (409 phone_in_use on the code), so a new code goes to it (POST /me/recover `{ phone }`) and its
+      proof (POST /me/recover/verify `{ phone, code }`) moves that buyer to this phone under a fresh token. No
+      Bearer: the number is the claim. The number and the code go in the body and nowhere else. */
+  static async recover(base: string, phone: string): Promise<PhoneAnswer> {
+    try {
+      const r = await fetch(`${base}/me/recover`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone }) });
+      if (!r.ok) { const e = await refusal(r); const after = Number(r.headers.get('retry-after')); return { ok: false, code: e.code, ...(after > 0 ? { retryAfter: after } : {}) }; }
+      const b = await r.json() as { phone?: string | null };
+      return { ok: true, phone: typeof b.phone === 'string' ? b.phone : null };
+    } catch { return { ok: false, code: 'network' }; }
+  }
+  static async recoverVerify(base: string, phone: string, code: string): Promise<RecoverAnswer> {
+    try {
+      const r = await fetch(`${base}/me/recover/verify`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone, code }) });
+      if (!r.ok) { const e = await refusal(r); const after = Number(r.headers.get('retry-after')); return { ok: false, code: e.code, ...(after > 0 ? { retryAfter: after } : {}) }; }
+      const b = await r.json() as { id?: unknown; token?: unknown; phone?: unknown };
+      if (typeof b.id !== 'string' || typeof b.token !== 'string' || !b.id || !b.token) return { ok: false, code: 'not_verified' };
+      return { ok: true, session: { id: b.id, token: b.token }, phone: typeof b.phone === 'string' ? b.phone : null };
+    } catch { return { ok: false, code: 'network' }; }
   }
 
   /** Sign-in by phone, the first page of the first bid (worker/README.md, Sign-in by phone). `phone` in E.164.

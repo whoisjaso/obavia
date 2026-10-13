@@ -8,6 +8,7 @@ import { useSyncExternalStore } from 'react';
 import type { Signature } from './screens/Paper';
 import { feel } from './feel';
 import { PILOT_TZ } from './engine/time';
+import { PAY_WINDOW_MS } from './engine/server';
 
 /** The documents the buyer draws a signature on: the Buyers Guide acknowledgement and the bill of sale. The title
     is never drawn (D8, D9): a Texas licence signs it through webDEALER at pickup, any other licence gets paper. */
@@ -23,6 +24,7 @@ export type Sale = {
   insured?: boolean;
   signed: Partial<Record<Doc, Signature>>;
   pay?: 'ach' | 'wire' | 'cash';
+  invoiceUrl?: string;          // the balance invoice on Whop (the lot's sale.invoiceUrl, W3-A); Bank and Wire open it
   slot?: string;
   arrived?: boolean;            // geofence at the lot
   pickedUp?: boolean;           // VIN scanned, engine started, QR green
@@ -96,7 +98,7 @@ export function platesWords(s: Pick<Sale, 'plates' | 'wonAt'>, timeZone: string 
 export const WORKER = !!(process.env.EXPO_PUBLIC_AUCTION_URL ?? '').trim();
 
 /** The pay window the Worker sets (worker/src/auction.ts PAY_WINDOW_MS). Used only by the local fixtures. */
-export const PAY_WINDOW_MS = 48 * 3_600_000;
+export { PAY_WINDOW_MS };
 
 /** The pay-by instant. With a Worker, the server's deadlineAt or nothing yet (the line waits for it);
     without one, the local fixtures' hammer plus the same 48 hours. */
@@ -111,13 +113,14 @@ export { payByWords } from './engine/time';
 
 /** The server's sale as the glass follows it: the pay-by, the hammer time, the dealer's scan and, once the
     Worker carries them, the plates states. The Lane calls this on every lot change for the sale I hold. */
-export type ServerSale = { wonAt: number; deadlineAt: number; startedAt?: number; plates?: Plates | { state: Plates } };   // the Worker sends { state, at, note? } (engine/meta.ts Plates); the ring reads state
+export type ServerSale = { wonAt: number; deadlineAt: number; startedAt?: number; invoiceUrl?: string; plates?: Plates | { state: Plates } };   // the Worker sends { state, at, note? } (engine/meta.ts Plates); the ring reads state
 export function followServer(server: ServerSale) {
   const cur = sale; if (!cur) return;
   const patch: Partial<Sale> = {};
   const platesIn = server.plates && typeof server.plates === 'object' ? server.plates.state : server.plates;
   if (cur.wonAt !== server.wonAt) patch.wonAt = server.wonAt;   // the server's hammer time, so the pass matches the Desk's
   if (cur.deadlineAt !== server.deadlineAt) patch.deadlineAt = server.deadlineAt;
+  if (server.invoiceUrl && server.invoiceUrl !== cur.invoiceUrl) patch.invoiceUrl = server.invoiceUrl;   // the balance invoice, once Whop has it
   if (server.startedAt && !cur.pickedUp) patch.pickedUp = true;   // the dealer's VIN scan
   if (platesIn && platesIn !== cur.plates) patch.plates = platesIn;
   if (Object.keys(patch).length) setSale(patch);
@@ -157,4 +160,14 @@ export function runPlates(worker = WORKER) {
     if (p === 'mailed') { feel.heartbeat(); setTimeout(feel.heartbeat, 1000); } else feel.tick();
   }, after);
   step('filed', 4000); step('approved', 9000); step('mailed', 14000);
+}
+
+/** What is left of the second chance, as the Offer page says it beside the clock: whole hours and minutes, never
+    more than four words ("11 h 40 m", "12 h", "40 m", "0 m" at the end), the push's own "12 h" shape (W3-B). */
+export function offerLeft(expiresAt: number, now: number): string {
+  const m = Math.max(0, Math.ceil((expiresAt - now) / 60_000));
+  const h = Math.floor(m / 60), mm = m % 60;
+  if (h > 0 && mm > 0) return `${h} h ${mm} m`;
+  if (h > 0) return `${h} h`;
+  return `${mm} m`;
 }

@@ -85,3 +85,76 @@ describe('bids and the terms', () => {
     expect(TERMS_VERSION).toBe(WORKER_VERSION);
   });
 });
+
+describe('the second chance and the Wallet pass (W3-B routes)', () => {
+  const server = () => new RemoteAuctionServer(BASE, () => 'b_abc.sig');
+
+  it('accepts the offer at POST /lots/:id/offer/accept with the Bearer, and keeps the new sale', async () => {
+    const sale = { buyer: 'b_abc', hammer: 5000, wonAt: 10, deadlineAt: 10 + 48 * 3_600_000, invoiceUrl: 'https://whop.com/invoice/inv_2' };
+    const calls = fake(200, { ...lot, closed: { at: 1, sold: true }, sale });
+    const got = await server().acceptOffer('altima');
+    expect(calls[0].url).toBe(`${BASE}/lots/altima/offer/accept`);
+    expect(calls[0].init.method).toBe('POST');
+    expect(headers(calls[0]).authorization).toBe('Bearer b_abc.sig');
+    expect(got.sale).toEqual(sale);
+    expect(server().get).toBeDefined();
+  });
+
+  it('a spent or expired offer is a code, never a sale', async () => {
+    fake(409, { error: 'offer_expired' });
+    await expect(server().acceptOffer('altima')).rejects.toMatchObject({ code: 'offer_expired', status: 409 });
+    fake(403, { error: 'not_yours' });
+    await expect(server().acceptOffer('altima')).rejects.toMatchObject({ code: 'not_yours' });
+  });
+
+  it('the Wallet pass: the save link from the JWT, a ready https URL as it is, null on 503 and on anything odd', async () => {
+    let calls = fake(200, { jwt: 'eyJ.abc.def' });
+    expect(await server().walletPass('altima')).toBe('https://pay.google.com/gp/v/save/eyJ.abc.def');
+    expect(calls[0].url).toBe(`${BASE}/lots/altima/pass`);
+    expect(headers(calls[0]).authorization).toBe('Bearer b_abc.sig');
+    fake(200, { url: 'https://pay.google.com/gp/v/save/eyJ.x' });
+    expect(await server().walletPass('altima')).toBe('https://pay.google.com/gp/v/save/eyJ.x');
+    fake(200, { url: 'http://evil.example/x' });
+    expect(await server().walletPass('altima')).toBeNull();
+    fake(503, { error: 'pass_unavailable' });
+    expect(await server().walletPass('altima')).toBeNull();
+    fake(200, {});
+    expect(await server().walletPass('altima')).toBeNull();
+    calls = fake(200, { jwt: '' });
+    expect(await server().walletPass('altima')).toBeNull();
+    expect(calls).toHaveLength(1);
+    expect(await new RemoteAuctionServer(BASE, () => null).walletPass('altima')).toBeNull();   // not signed in: nothing asked
+  });
+});
+
+describe('recovery by phone (W3-B)', () => {
+  it('POST /me/recover carries the number alone, no Bearer (the number is the claim); the masked number comes back', async () => {
+    const calls = fake(200, { sent: true, phone: '(•••) •••-0142' });
+    expect(await RemoteAuctionServer.recover(BASE, '+12145550142')).toEqual({ ok: true, phone: '(•••) •••-0142' });
+    expect(calls[0].url).toBe(`${BASE}/me/recover`);
+    expect(headers(calls[0]).authorization).toBeUndefined();
+    expect(sent(calls[0])).toEqual({ phone: '+12145550142' });
+    fake(429, { error: 'rate_limited' });
+    expect(await RemoteAuctionServer.recover(BASE, '+12145550142')).toMatchObject({ ok: false, code: 'rate_limited' });
+  });
+
+  it('POST /me/recover/verify sends the number with the code and answers the recovered buyer with a fresh token', async () => {
+    const calls = fake(200, { id: 'b_old', token: 'b_old.2.sig', phone: '(•••) •••-0142' });
+    const r = await RemoteAuctionServer.recoverVerify(BASE, '+12145550142', '000000');
+    expect(r).toEqual({ ok: true, session: { id: 'b_old', token: 'b_old.2.sig' }, phone: '(•••) •••-0142' });
+    expect(calls[0].url).toBe(`${BASE}/me/recover/verify`);
+    expect(headers(calls[0]).authorization).toBeUndefined();
+    expect(sent(calls[0])).toEqual({ phone: '+12145550142', code: '000000' });
+  });
+
+  it('a wrong code, a run-out code, an unknown number and a body with no token are codes, not sessions', async () => {
+    fake(400, { error: 'wrong_code' });
+    expect(await RemoteAuctionServer.recoverVerify(BASE, '+12145550142', '111111')).toEqual({ ok: false, code: 'wrong_code' });
+    fake(410, { error: 'code_expired' });
+    expect(await RemoteAuctionServer.recoverVerify(BASE, '+12145550142', '000000')).toEqual({ ok: false, code: 'code_expired' });
+    fake(404, { error: 'no_such_phone' });
+    expect(await RemoteAuctionServer.recoverVerify(BASE, '+12145550142', '000000')).toEqual({ ok: false, code: 'no_such_phone' });
+    fake(200, { verified: true });
+    expect(await RemoteAuctionServer.recoverVerify(BASE, '+12145550142', '000000')).toEqual({ ok: false, code: 'not_verified' });
+  });
+});

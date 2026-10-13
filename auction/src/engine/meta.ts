@@ -14,6 +14,7 @@ export type CarMeta = {
   documents?: { guide?: string; bill?: string; title?: string };   // URLs on the Worker, as the Desk files them
   hours?: string[];                      // pickup windows the dealer offers, e.g. "Sat 10 to 2"
   collateral: Collateral;                // who holds what before the first bid; the lane refuses without it
+  listingUrl?: string | null;            // the dealer's own Marketplace listing, pasted on PostCar (W3-C), for Sold's "End your Marketplace listing"; null clears it
 };
 
 /** The collateral the dealer puts behind the lot. docs/plan/collateral.md. */
@@ -47,7 +48,12 @@ export type SaleState = {
   deposit?: 'held' | 'applied' | 'to_dealer' | 'released';   // where the buyer's $250 went; applied: counted toward the price at the engine start, the dealer's
   payout?: Payout;   // the dealer's $250 on an applied or forfeited sale (worker/src/auction.ts)
   plates?: Plates;   // the county's clock after the start, as the Desk marks it (worker/src/auction.ts POST /plates)
+  offer?: SaleOffer; // the second chance to the under-bidder at a no-pay forfeit (decisions §2 row 9; worker/src/auction.ts offer)
 };
+
+/** The second-chance offer: twelve hours at the under-bidder's max from `madeAt`; `acceptedAt` once taken (POST
+    /lots/:id/offer/accept), `expiredAt` once the alarm let it go. The "Second chance" push lands on screen `offer`. */
+export type SaleOffer = { buyer: string; amount: number; madeAt: number; expiresAt: number; acceptedAt?: number; expiredAt?: number };
 
 /** Where the buyer's plates stand (phases.md Phase 2 Paperwork: filed, approved, mailed, kickback). Written by the dealer's
     Desk on a started sale; forward only, except a kickback, which follows filed and is followed by filed again. The phone's

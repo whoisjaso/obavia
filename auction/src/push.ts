@@ -1,7 +1,9 @@
 /* Words in the push, silence in the app. Permission is asked at the first
    Watch or first bid (the caller decides when), never at launch. The token
-   goes to the Worker once; a tap on a push lands through ./nav. Native-only
-   modules are required lazily so the web export never loads them. */
+   goes to the Worker once; a tap on a push lands through ./nav (its data is
+   { screen, lotId }: lane, won, pickup, me, or offer for the "Second chance"
+   push, W3-B). Native-only modules are required lazily so the web export
+   never loads them. */
 import { Platform } from 'react-native';
 import { AUCTION_URL, buyerToken } from './store';
 import { go, isScreen } from './nav';

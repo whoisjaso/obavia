@@ -6,9 +6,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { type SharedValue, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { dollars } from '../engine/money';
 import { EASE_OUT, ms, spring } from '../motion';
+import { PRICE_ACTIONS, priceAction } from './priceActions';
 import { theme } from '../theme';
 
-export function Price({ hammer, total, size = theme.size.price, punchKey, ink = theme.color.cloud, lift, struck, centered, leading }: {
+export function Price({ hammer, total, size = theme.size.price, punchKey, ink = theme.color.cloud, lift, struck, centered, leading, onAdjust }: {
   hammer: number; total?: number; size?: number;
   punchKey?: number;          // changes on every server ack
   ink?: string;
@@ -16,6 +17,9 @@ export function Price({ hammer, total, size = theme.size.price, punchKey, ink = 
   struck?: boolean;           // offline: the price is not live
   centered?: boolean;
   leading?: boolean;          // you are the high bidder: a small mark beside the hammer
+  /** a screen reader's swipe up or down on the price: +1 rolls one engine increment up, -1 one down. The drag
+      stays the thumb's; this is the same roll for a thumb that cannot drag. Absent: the price is not adjustable. */
+  onAdjust?: (dir: 1 | -1) => void;
 }) {
   const roll = useSharedValue(0), scale = useSharedValue(1), still = useSharedValue(0);
   const mark = useSharedValue(leading ? 1 : 0);
@@ -41,7 +45,10 @@ export function Price({ hammer, total, size = theme.size.price, punchKey, ink = 
     <View style={centered ? { alignItems: 'center' } : undefined}>
       <Animated.View style={style}>
         <Text style={[s.hammer, { fontSize: size, color: ink, textDecorationLine: struck ? 'line-through' : 'none', textAlign: centered ? 'center' : 'left' }]}
-          accessibilityRole="adjustable" accessibilityLabel={`${dollars(hammer)} dollars`} maxFontSizeMultiplier={theme.size.priceMax / theme.size.price}>
+          accessibilityRole="adjustable" accessibilityLabel={`${dollars(hammer)} dollars`} maxFontSizeMultiplier={theme.size.priceMax / theme.size.price}
+          accessibilityValue={onAdjust ? { text: `${dollars(hammer)} dollars` } : undefined}
+          accessibilityActions={onAdjust ? PRICE_ACTIONS : undefined}
+          onAccessibilityAction={onAdjust ? e => { const d = priceAction(e.nativeEvent.actionName); if (d) onAdjust(d); } : undefined}>
           ${dollars(hammer)}
         </Text>
         <Animated.View style={[s.lead, { backgroundColor: ink }, markStyle]} accessibilityElementsHidden={!leading} accessibilityLabel={leading ? 'You are the high bidder' : undefined} />

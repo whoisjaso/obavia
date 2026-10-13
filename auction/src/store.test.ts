@@ -308,3 +308,82 @@ describe('one car until the first is paid (sim 03)', () => {
     expect(store.localOpen(lots, 'altima')).toBe(0);
   });
 });
+
+describe('recovery by phone: a proved number on a new install (W3-B /me/recover)', () => {
+  it('on the Worker: the recovery code proves the old buyer, the phone adopts its id and fresh token, and reads GET /me', async () => {
+    ls.setItem('obavia.buyer', JSON.stringify({ id: 'b-1', token: 't-0' }));   // this install's own buyer, signed in as t-1
+    const { store } = await launch(true);
+    const server = store.getServer() as unknown as { stop(): void };
+    stop = () => server.stop();
+    await settle(); await settle();
+    globalThis.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url), method = init?.method ?? 'GET';
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      calls.push({ url: u, method, body: init?.body ? JSON.parse(String(init.body)) : null, auth: headers.authorization ?? null });
+      if (u.endsWith('/me/phone/verify')) return new Response(JSON.stringify({ error: 'phone_in_use' }), { status: 409 });
+      if (u.endsWith('/me/recover')) return new Response(JSON.stringify({ sent: true, phone: '(•••) •••-0142' }), { status: 200 });
+      if (u.endsWith('/me/recover/verify')) return new Response(JSON.stringify({ id: 'b-old', token: 't-old.2', phone: '(•••) •••-0142' }), { status: 200 });
+      if (u.endsWith('/me')) return new Response(JSON.stringify({ id: 'b-old', winsLeft: 3, winsPerYear: 4, phone: '(•••) •••-0142', phoneVerified: true, deposit_status: 'captured' }), { status: 200 });
+      return new Response('{}', { status: 404 });
+    }) as typeof fetch;
+    calls.length = 0;
+    expect(await store.verifyPhoneCode('000000')).toEqual({ ok: false, code: 'phone_in_use' });
+    expect(store.peekBuyer().phoneVerified).not.toBe(true);
+    expect(await store.recoverByPhone('+12145550142')).toEqual({ ok: true, phone: '(•••) •••-0142' });
+    const r = await store.verifyRecovery('000000');
+    expect(r).toMatchObject({ ok: true, session: { id: 'b-old', token: 't-old.2' } });
+    expect(store.ME).toBe('b-old');
+    expect(store.buyerToken()).toBe('t-old.2');
+    expect(JSON.parse(ls.getItem('obavia.buyer')!)).toEqual({ id: 'b-old', token: 't-old.2' });
+    expect(store.peekBuyer()).toMatchObject({ lost: false, phoneVerified: true, phone: '(•••) •••-0142', winsLeft: 3, deposit: 'held' });
+    const recover = calls.filter(c => c.url.endsWith('/me/recover'));
+    expect(recover[0]).toMatchObject({ method: 'POST', body: { phone: '+12145550142' }, auth: null });   // the number is the claim, no Bearer
+    const verify = calls.filter(c => c.url.endsWith('/me/recover/verify'));
+    expect(verify[0]).toMatchObject({ method: 'POST', body: { phone: '+12145550142', code: '000000' }, auth: null });
+    expect(calls.filter(c => c.method === 'GET' && c.url.endsWith('/me')).at(-1)?.auth).toBe('Bearer t-old.2');
+    expect(calls.filter(c => JSON.stringify(c).includes('2145550142')).map(c => c.url.replace(/^.*\/me/, '/me'))).toEqual(['/me/recover', '/me/recover/verify']);   // the number goes in those two bodies, nowhere else
+  });
+
+  it('a wrong recovery code moves nothing', async () => {
+    ls.setItem('obavia.buyer', JSON.stringify({ id: 'b-1', token: 't-0' }));
+    const { store } = await launch(true);
+    const server = store.getServer() as unknown as { stop(): void };
+    stop = () => server.stop();
+    await settle(); await settle();
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ error: 'wrong_code' }), { status: 400 })) as typeof fetch;
+    expect(await store.verifyRecovery('111111')).toEqual({ ok: false, code: 'code_expired' });   // no recovery asked on this launch: nothing is sent
+    expect(await store.recoverByPhone('+12145550142')).toMatchObject({ ok: false, code: 'wrong_code' });   // the fake answers everything with that
+    expect(await store.verifyRecovery('111111')).toEqual({ ok: false, code: 'wrong_code' });
+    expect(store.ME).toBe('b-1');
+    expect(JSON.parse(ls.getItem('obavia.buyer')!)).toEqual({ id: 'b-1', token: 't-1' });
+  });
+
+  it('the local stand-in plays it: ?recover=1 makes the first code another install\'s, then New phone and 000000 prove it', async () => {
+    (globalThis as { location?: unknown }).location = { search: '?recover=1' };
+    try {
+      const { store } = await launch(false);
+      expect(await store.sendPhoneCode('+12145550142')).toEqual({ ok: true, phone: '(•••) •••-0142' });
+      expect(await store.verifyPhoneCode('000000')).toEqual({ ok: false, code: 'phone_in_use' });
+      expect(store.peekBuyer().phoneVerified).not.toBe(true);
+      expect(await store.verifyRecovery('000000')).toEqual({ ok: false, code: 'code_expired' });   // no recovery asked yet
+      expect(await store.recoverByPhone('+12145550142')).toEqual({ ok: true, phone: '(•••) •••-0142' });
+      expect(await store.verifyRecovery('123456')).toEqual({ ok: false, code: 'wrong_code' });
+      expect(await store.verifyRecovery('000000')).toMatchObject({ ok: true, phone: '(•••) •••-0142' });
+      expect(store.peekBuyer()).toMatchObject({ phoneVerified: true, phone: '(•••) •••-0142', lost: false });
+    } finally { delete (globalThis as { location?: unknown }).location; }
+  });
+});
+
+describe('the lane link, the second chance and the Wallet pass on the stand-in', () => {
+  it('laneLink is the site\'s lane path with the lot id', async () => {
+    const { store } = await launch(false);
+    expect(store.laneLink('altima')).toBe('https://obavia.co/lane/altima');
+    expect(store.laneLink('lot 9')).toBe('https://obavia.co/lane/lot%209');
+  });
+
+  it('with no offer on the lot, Take it is refused as offer_expired; the pass is null without a sale', async () => {
+    const { store } = await launch(false);
+    expect(await store.acceptOffer('nowhere')).toEqual({ ok: false, code: 'offer_expired' });
+    expect(await store.walletPassUrl('nowhere')).toBeNull();
+  });
+});

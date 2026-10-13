@@ -37,8 +37,8 @@ const server = http.createServer((q, r) => {
    kept:    which of the four kept reads sits on this screen (one-action.md, DOCTRINE CP1).
    choices: the decision is a set of words (Pay's three, a pickup time); their words are reads. */
 const SPEC = {
-  'lane':            { title: 'Lane', gesture: 'drag the price', anchor: /dollars, .* left/, allow: [/^Me$/, /photos, open the car$/, /^[\d,]+ dollars$/] },
-  'lane-watched':    { title: 'Lane, watched (double tap)', gesture: 'drag the price', anchor: /dollars, .* left/, allow: [/^Me$/, /photos, open the car$/, /^[\d,]+ dollars$/] },
+  'lane':            { title: 'Lane', gesture: 'drag the price', anchor: /dollars, .* left/, allow: [/^Me$/, /^Share$/, /photos, open the car$/, /^[\d,]+ dollars$/] },
+  'lane-watched':    { title: 'Lane, watched (double tap)', gesture: 'drag the price', anchor: /dollars, .* left/, allow: [/^Me$/, /^Share$/, /photos, open the car$/, /^[\d,]+ dollars$/] },
   'bid-first':       { title: 'Bid sheet, first bid', primary: /^Bid/, before: [/^[\d,]+ dollars$/], verb: 'Bid', kept: 'terms' },
   'phone-number':    { title: 'Phone, your number', primary: /^Your number$/ },
   'phone-code':      { title: 'Phone, the code', gesture: 'type the six (the keyboard is up)', anchor: /^Code$/, allow: [/^Not now$/, /^Sent to /, /^Code$/, /^$/] },
@@ -64,13 +64,17 @@ const SPEC = {
   'plates-mailed':   { title: 'Plates, mailed', gesture: 'nothing to do', anchor: /./, allow: [/./] },
   'won-done':        { title: 'Won, all four done', primary: /^To the lane$/ },
   'me':              { title: 'Me', gesture: 'nothing to do', anchor: /./, allow: [/./] },
+  // the second chance (decisions §2 row 9): the push's intent, played by ?offer=1; one verb, Take it; Not now faint and last
+  'offer':           { title: 'Offer, the second chance', primary: /^Take it/, verb: 'Take it' },
 };
 
 /* ---------- the browser ---------- */
 const failures = [];
 const notes = [];
 const fail = (screen, what) => { failures.push({ screen, what }); console.log(`FAIL ${screen}: ${what}`); };
-const browser = await chromium.launch({ executablePath: CHROME });
+// autoplay: a page that opens on launch (the Offer page, where the push lands) plays its settle before any tap;
+// Chromium would refuse play() with no gesture and count the refusal as a page error, which no phone has
+const browser = await chromium.launch({ executablePath: CHROME, args: ['--autoplay-policy=no-user-gesture-required'] });
 const ctx = await browser.newContext({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 2 });
 const page = await ctx.newPage();
 let current = 'boot';
@@ -312,6 +316,15 @@ const steps = [
     await tap('To the lane', 'last'); await wait(1600);
   }],
   ['Me', async () => { await tap('Me'); await wait(1500); await screen('me'); }],
+  ['the second chance', async () => {
+    // a fresh launch where the "Second chance" push would land: the first lot closed to a rival who never paid, the
+    // offer to me at my max (store.ts ?offer=1 plays the forfeit and the push's intent)
+    await page.goto(`http://127.0.0.1:${PORT}/?offer=1`); await wait(3000);
+    if (!(await until(() => visible(/^Take it/), 6000))) throw new Error('no Offer page on ?offer=1');
+    await screen('offer');
+    await tap(/^Take it/, 'last');
+    if (!(await until(async () => /who is it for/i.test(await bodyText()), 8000))) throw new Error('Take it did not open Won');
+  }],
 ];
 
 let reached = 0;

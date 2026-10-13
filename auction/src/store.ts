@@ -3,7 +3,7 @@
    stand-in with the same surface, so the screens never know which. */
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { carFromLot, cars as seeded, seedLots, type Car } from './data/cars';
-import { RemoteAuctionServer, Refused, TERMS_VERSION, type PhoneAnswer, type Profile, type Session } from './engine/client';
+import { RemoteAuctionServer, Refused, TERMS_VERSION, type PhoneAnswer, type Profile, type RecoverAnswer, type Session } from './engine/client';
 import { LocalAuctionServer, type Ack, type BidRequest, type Event, type Lot } from './engine/server';
 import { depositStanding, type DepositStanding } from './depositLine';
 import { kv } from './kv';
@@ -22,7 +22,18 @@ export type AuctionServer = {
   subscribe(fn: (e: Event) => void): () => void;
   get(id: string): Lot; all(): Lot[];
   bid(req: BidRequest): Promise<Ack>;
+  /** POST /lots/:id/offer/accept: the second chance taken; the lot with its new sale, or a Refused */
+  acceptOffer(lotId: string): Promise<Lot>;
+  /** GET /lots/:id/pass: the Google Wallet save link, or null (503 pass_unavailable) */
+  walletPass(lotId: string): Promise<string | null>;
 };
+
+/** The lot's lane link, the one link every surface shares (the Lane's share sheet here; Reach's Marketplace text on
+    the Desk, W3-C post.ts; the ad, AD7): the public site's lane path with the lot id. The origin is the site's
+    (EXPO_PUBLIC_LANE_SITE for a staging build). No page serves this path yet (obavia-co, deploy/site): the link is
+    the format the site will answer, named in the W3-D hand-back. */
+export const LANE_SITE = (process.env.EXPO_PUBLIC_LANE_SITE ?? 'https://obavia.co').replace(/\/$/, '');
+export const laneLink = (lotId: string) => `${LANE_SITE}/lane/${encodeURIComponent(lotId)}`;
 
 /* Where the buyer's id and token live: secure storage on a phone, localStorage on the web (./kv). */
 const SESSION_KEY = 'obavia.buyer', PROFILE_KEY = 'obavia.profile', OPENED_KEY = 'obavia.opened';
@@ -117,9 +128,38 @@ export async function sendPhoneCode(e164: string): Promise<PhoneAnswer> {
 export async function verifyPhoneCode(code: string): Promise<PhoneAnswer> {
   let r: PhoneAnswer;
   if (AUCTION_URL) r = token ? await RemoteAuctionServer.verifyPhone(AUCTION_URL, token, code) : { ok: false, code: 'sign_in' };
+  else if (localRecover && localPhone && code === '000000') r = { ok: false, code: 'phone_in_use' };   // preview: the number is another install's
   else r = !localPhone ? { ok: false, code: 'code_expired' } : code === '000000' ? { ok: true, phone: maskPhone(localPhone) } : { ok: false, code: 'wrong_code' };
   if (r.ok) setBuyer({ phone: r.phone, phoneVerified: true });
   return r;
+}
+
+/** Recovery by phone (W3-B, POST /me/recover and /me/recover/verify): the number was proved on another install
+    (the code answered 409 phone_in_use), the buyer says this is a new phone, a new code goes to the number, and its
+    proof moves that buyer here under a fresh token; the old install's token dies. Locally the stand-in plays it:
+    `?recover=1` makes the first code answer phone_in_use, then 000000 proves the recovery. Nothing logs the number
+    or the code. */
+let localRecover = /[?&]recover=1/.test(query()), localRecovering = false, recoverPhone = '';
+export async function recoverByPhone(e164: string): Promise<PhoneAnswer> {
+  recoverPhone = e164;   // the claim the code proves: sent again with the code, held in memory only
+  if (AUCTION_URL) return RemoteAuctionServer.recover(AUCTION_URL, e164);
+  localPhone = e164; localRecovering = true;
+  return { ok: true, phone: maskPhone(e164) };
+}
+/** The six digits of the recovery code. On success the phone holds the recovered buyer (its id and fresh token in
+    secure storage, ME and the Bearer switched), the number as proved, and GET /me has been read. */
+export async function verifyRecovery(code: string): Promise<RecoverAnswer> {
+  if (!recoverPhone) return { ok: false, code: 'code_expired' };   // no recovery asked on this launch
+  if (AUCTION_URL) {
+    const r = await RemoteAuctionServer.recoverVerify(AUCTION_URL, recoverPhone, code);
+    if (r.ok) { recoverPhone = ''; adopt(r.session); setBuyer({ lost: false, phone: r.phone, phoneVerified: true }); await refreshMe(); }
+    return r;
+  }
+  if (!localRecovering) return { ok: false, code: 'code_expired' };
+  if (code !== '000000') return { ok: false, code: 'wrong_code' };
+  localRecovering = false; localRecover = false;
+  setBuyer({ lost: false, phone: maskPhone(localPhone), phoneVerified: true });
+  return { ok: true, session: { id: ME, token: 'local' }, phone: maskPhone(localPhone) };
 }
 
 /** POST /me/rotate: a fresh token, the old one dead. Called once after a deposit capture. */
@@ -215,9 +255,17 @@ export function getServer(): AuctionServer {
       local.scheduleRival('altima', 55_000, 5700, 'r4');
       local.scheduleRival('fusion', 40_000, 3500, 'r5');
     }
+    // preview only: the second chance (decisions §2 row 9). The first lot closed to a rival who never paid; the
+    // forfeit wrote the offer to me at my max; the push's intent lands on the Offer page
+    if (/[?&]offer=1/.test(search) && lots[0]) {
+      local.playOffer(lots[0].id, ME, lots[0].high - 100);
+      if (!peekIntent()) go({ screen: 'offer', lotId: lots[0].id });
+    }
     // the Worker's admission rules, played locally so the screens meet the same refusals (D10, D15)
     server = {
       subscribe: f => local.subscribe(f), get: id => local.get(id), all: () => local.all(),
+      async acceptOffer(lotId) { const l = local.acceptOffer(lotId, ME); if (!l) throw new Refused('offer_expired', 409); return l; },
+      async walletPass(lotId) { return local.walletPass(lotId, ME); },
       async bid(req) {
         if (!buyer.phoneVerified) throw new Refused('phone_required', 409);
         if (!buyer.termsCurrent && req.terms !== TERMS_VERSION) throw new Refused('terms_required', 409);
@@ -234,6 +282,14 @@ export function getServer(): AuctionServer {
   }
   return server!;
 }
+
+/** The second chance taken (Offer's one verb): the lot with its new sale, or the refusal's code. */
+export async function acceptOffer(lotId: string): Promise<{ ok: true; lot: Lot } | { ok: false; code: string }> {
+  try { return { ok: true, lot: await getServer().acceptOffer(lotId) }; }
+  catch (e) { return { ok: false, code: e instanceof Refused ? e.code : 'network' }; }
+}
+/** The Google Wallet save link for a sale's pass, or null when the Worker cannot sign one (Pickup hides the verb). */
+export const walletPassUrl = (lotId: string): Promise<string | null> => getServer().walletPass(lotId).catch(() => null);
 
 /** The deposit, taken through ./deposit (Whop on the server, a flag locally). True once it is held. */
 export async function captureDeposit(): Promise<boolean> {

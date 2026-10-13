@@ -26,6 +26,7 @@ import { CloudButton } from '../components/CloudButton';
 import { Sky } from '../components/Sky';
 import { driftLevel, useDriftSound } from '../components/Sheet';
 import { Price } from '../components/Price';
+import { adjustSteps } from '../components/priceActions';
 import { Ring } from '../components/Ring';
 import { Label, Serif } from '../components/Type';
 import type { Car } from '../data/cars';
@@ -230,7 +231,8 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
               </View>
               <GestureDetector gesture={wheel}>
                 <Animated.View style={s.wheel}>
-                  <Price hammer={amount} total={total} ink={theme.color.ink} size={60} punchKey={punch} lift={lift} leading={lead} centered />
+                  <Price hammer={amount} total={total} ink={theme.color.ink} size={60} punchKey={punch} lift={lift} leading={lead} centered
+                    onAdjust={phase === 'arming' && !closed ? d => { setSteps(n => adjustSteps(n, d)); feel.tick(); } : undefined} />
                 </Animated.View>
               </GestureDetector>
               {stamp ? (

@@ -3,10 +3,11 @@
    acts once, and clears it. No navigation library. */
 import { useSyncExternalStore } from 'react';
 
-export type Screen = 'lane' | 'won' | 'pickup' | 'me';
+export type Screen = 'lane' | 'won' | 'pickup' | 'me' | 'offer';
 export type Intent = { screen: Screen; lotId?: string };
 
-export const SCREENS: readonly Screen[] = ['lane', 'won', 'pickup', 'me'];
+/** `offer`: the second-chance page (screens/won/Offer.tsx), where the "Second chance" push lands with its lot. */
+export const SCREENS: readonly Screen[] = ['lane', 'won', 'pickup', 'me', 'offer'];
 export const isScreen = (v: unknown): v is Screen => typeof v === 'string' && (SCREENS as readonly string[]).includes(v);
 
 let current: Intent | null = null;

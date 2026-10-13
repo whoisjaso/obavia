@@ -23,7 +23,7 @@ The Lane's one thing is the drag. The Bid sheet's is Bid. Won's is the one lit s
 
 | Screen | Primary action | Secondary | Advanced, hidden until needed | Not yet relevant, hidden | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| Lane | drag the price | swipe, tap, double-tap, hold, the mark | the Car (behind a swipe or the count) | Bid sheet, Won | passes |
+| Lane | drag the price | swipe, tap, double-tap, hold, the mark, Share (the platform's sheet, under the count) | the Car (behind a swipe or the count) | Bid sheet, Won | passes |
 | Bid sheet | **Bid** (ink bar) | swipe down | **the ceiling wheel: now behind one faint word** | the deposit line until a deposit exists | fixed |
 | Deposit | **Pay** | "Not now" in faint text | — | — | passes |
 | Car | swipe between three pages | tap a photo, Buyers Guide | — | — | passes |
@@ -31,13 +31,18 @@ The Lane's one thing is the drag. The Bid sheet's is Bid. Won's is the one lit s
 | ID | **That's me** (live as the facts arrive; confirms all five at once) | tap a fact to correct it | the State wheel and each fact's field, until that fact is tapped | — | passes (legibility-audit D1, October 13, 2026) |
 | Insure | the shutter | — | — | — | passes |
 | Sign | the one live document | "Later" in faint text | the signature pad until the end of the page | the reuse offer until a signature exists | passes |
-| Pay | one of three words | — | — | — | passes (three words are the decision, not options around it) |
+| Pay | one of three words (Bank and Wire open the Whop invoice once the sale carries one; their detail says "invoice") | — | — | — | passes (three words are the decision, not options around it) |
 | Pickup · where | the pin | after hours | — | — | passes |
 | Pickup · when | one slot | — | — | — | passes |
-| Pickup · pass | hold the pass | — | — | **Continue** appears only when the car has started | passes |
+| Pickup · pass | hold the pass | "Add to Google Wallet" in the accent, under the car's name (Android and web; hidden on 503 and once started) | — | **Continue** appears only when the car has started | passes |
 | Plates | nothing | pull to refresh, Back | — | — | passes |
 | Me | nothing | Sign out in faint text | — | **"Sell it back here" only once a car was won** | fixed |
 | Watching | tap a ring | swipe to unwatch | — | — | passes |
+| Offer (the second chance) | **Take it** (the cloud) | "Not now" in faint text, last in the reading order | none | the Won steps until the offer is taken; the invoice until the Worker has one | passes (W3-D, October 13, 2026) |
+| Desk · Whop (the lane settings' last page) | **Connect Whop** (the cloud; "That's Right" once connected) | "Later" in faint text | none | the connected card until Whop answers; the page itself until a lane key is held | passes (W3-C, October 13, 2026) |
+| Desk · Payout (#/auction/:lot/payout) | nothing (a justification surface: one state word, one row per piece of the money) | Back | none | **Connect Whop** only when the $250 is owed and no account exists | passes (W3-C, October 13, 2026) |
+| Desk · Sold at expiry | **Let It Go Again** | the second chance row's clock (the under-bidder's twelve hours) | none | the offer rows until the Worker writes sale.offer; End your Marketplace listing until a listing link exists | passes (W3-C, October 13, 2026) |
+| Phone · the code, the number on another install | type the six; then **New phone** (the cloud, only after the 409) | "Send it again" in faint text | none | the "New phone" cloud until the code answers phone_in_use | passes (W3-D, October 13, 2026) |
 
 ## The rule for new screens
 

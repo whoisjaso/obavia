@@ -1,6 +1,6 @@
 {
  "written": "2026-10-13",
- "from": "20261013-100146",
+ "from": "20261013-150626",
  "ceiling": 4,
  "screens": {
   "lane": {
@@ -272,6 +272,16 @@
    "kept": 0,
    "words": [
     "Watching"
+   ]
+  },
+  "offer": {
+   "title": "Offer, the second chance",
+   "must": 2,
+   "verb": 2,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Take it"
    ]
   }
  }

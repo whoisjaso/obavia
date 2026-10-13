@@ -8,7 +8,11 @@
    While the pass is on the glass the screen goes to full brightness, as a
    Wallet pass does for its barcode; leaving the page, the app or Pickup puts
    it back where the buyer had it. Under the QR, touching it, the VIN's last six in Bodoni: a Desk with no
-   scanner types what the buyer shows (Type The Pass). One source for both, ../../pass. */
+   scanner types what the buyer shows (Type The Pass). One source for both, ../../pass.
+   Under the car's name, on Android and the web, "Add to Google Wallet" (phases.md Phase 2 Frontend): the save link
+   from GET /lots/:id/pass (W3-B), a secondary in the accent; hidden while the Worker answers 503 pass_unavailable
+   (no issuer id or service account) and once the car has started. The local stand-in signs nothing: the verb
+   shows and opens nothing. iPhones wait for the Apple Wallet pass (Phase 5). */
 import React, { useEffect, useRef, useState } from 'react';
 import * as Brightness from 'expo-brightness';
 import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -22,7 +26,8 @@ import { Body, Button, Caps, Choice, Label, Page, Pager, Serif } from '../../com
 import type { Car } from '../../data/cars';
 import { passSix, passValue } from '../../pass';
 import { arriveAtLot, pickupWhen, setSale, useSale } from '../../sale';
-import { AUCTION_URL } from '../../store';
+import { AUCTION_URL, walletPassUrl } from '../../store';
+import { feel } from '../../feel';
 import { theme } from '../../theme';
 
 export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
@@ -42,6 +47,15 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   const times = pickupWhen(car);
   const ready = !!sale?.slot || times.kind === 'call';   // the pass shows once a time is picked, or at once when the time is set by phone
   useFullBrightness(page === 2 && ready);
+  // the Wallet link, asked once the pass is on the glass; null (503) keeps the verb off it
+  const [wallet, setWallet] = useState<string | null>(null);
+  const lotId = sale?.lotId;
+  useEffect(() => {
+    if (Platform.OS === 'ios' || page !== 2 || !ready || !lotId || sale?.pickedUp) return;
+    let live = true;
+    walletPassUrl(lotId).then(u => { if (live) setWallet(u); });
+    return () => { live = false; };
+  }, [page, ready, lotId]);
   const greenStyle = useAnimatedStyle(() => ({ opacity: green.value }));
   if (!sale) return null;
   const started = !!sale.pickedUp;
@@ -116,6 +130,12 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
         </Animated.View>
       )}
       <Caps size={17} ink={started ? theme.color.good : theme.color.muted} style={{ marginTop: theme.space.m }}>{car.year} {car.make} {car.model}</Caps>
+      {wallet && !started && (
+        <Pressable onPress={() => { feel.select(); if (/^https:\/\//.test(wallet)) Linking.openURL(wallet).catch(() => {}); }} hitSlop={12} style={{ marginTop: theme.space.s }}
+          accessibilityRole="link" accessibilityLabel="Add to Google Wallet">
+          <Caps size={17} ink={theme.color.accent}>Add to Google Wallet</Caps>
+        </Pressable>
+      )}
     </Page>
   );
 
