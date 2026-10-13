@@ -177,8 +177,10 @@ export function laneKeyIssuer(env, fetchImpl) {
 
 // The four steps. db is D1 (WAITLIST_DB) with 0001_lane_application.sql applied.
 // clientKey() resolves to the HMAC of the caller's IP. join(email, fullName,
-// applicationJson) is the waitlist store's join with the v9 template.
-export function createLane({ db, dealers, provider, clientKey, join, issueKey = null, now = Date.now }) {
+// applicationJson) is the waitlist store's join with the v9 template. events is
+// createMetaEvents (events.mjs) or null: an accepted application is the Lead
+// event (growth plan AD1), recorded and, with the META keys, sent server side.
+export function createLane({ db, dealers, provider, clientKey, join, issueKey = null, events = null, now = Date.now }) {
   const clock = () => {
     const value = now();
     if (!Number.isSafeInteger(value) || value < 0) throw Error("Invalid lane clock");
@@ -289,6 +291,7 @@ export function createLane({ db, dealers, provider, clientKey, join, issueKey = 
       const result = await join(email, fullName, JSON.stringify(record));
       if (result === "limited") return fail(429, "rate_limited", 3600);
       if (result !== "accepted") return fail(503, "temporarily_unavailable");
+      if (events) await events.send("Lead", { email, sourceUrl: "https://obavia.co/#apply" });
       if (issueKey && d && verified?.via === "telnyx") {
         let key = null;
         try {

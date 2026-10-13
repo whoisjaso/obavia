@@ -12,6 +12,7 @@ import { Whop } from './whop';
 import { BIDS_PER_MINUTE, BID_WINDOW_MS, COUNT_SQL, TERMS_VERSION, WINS_PER_YEAR, committed, oneOpenBidRefuses, openBids, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
 import type { BidIn, PayMethod, PayoutNews } from './auction';
 import { maskPhone, sendCode, verifiedForReal, verifyCode } from './phone';
+import { buyerPhoneOf, clientOf, record as recordMarketing, recordPurchase, summary as marketingSummary, type Client } from './marketing';
 export { Auction } from './auction';
 
 const DEPOSIT_USD = 250;
@@ -106,7 +107,12 @@ async function handle(req: Request, env: Env): Promise<Response> {
           if (s?.suspended_at) return text('dealer suspended', 403);
         }
         const body = await req.text();
-        return withContact(await toObject({ method: 'POST', body, dealer: dealer === '*' ? (rest === '/open' ? (JSON.parse(body || '{}').dealer ?? '*') : '') : dealer }), env, id, dealer);
+        const answered = await toObject({ method: 'POST', body, dealer: dealer === '*' ? (rest === '/open' ? (JSON.parse(body || '{}').dealer ?? '*') : '') : dealer });
+        if (rest === '/pickup' && answered.status === 200) {   // the car started: Purchase with the hammer as value (AD3), recorded, sent only with the Meta keys
+          const lot = await answered.clone().json<{ id?: unknown; sale?: { startedAt?: unknown; hammer?: unknown; buyer?: unknown } | null }>().catch(() => null);
+          if (lot) await recordPurchase(env, lot);
+        }
+        return withContact(answered, env, id, dealer);
       }
       // the Desk's Live: the lot's own dealer key, or the admin key, opens the same socket a buyer does (the token in ?token=)
       if (rest === '/live' && req.method === 'GET') {
@@ -244,6 +250,12 @@ async function handle(req: Request, env: Env): Promise<Response> {
       });
     }
 
+    // the four standard Meta events over the last thirty days (src/marketing.ts): recorded and sent per event, and AD3's started ratio
+    if (req.method === 'GET' && url.pathname === '/admin/marketing') {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const days = Math.max(1, Math.min(Number(url.searchParams.get('days')) || 30, 365));
+      return json(await marketingSummary(env, days));
+    }
     // the admin's money page (desk/src/lib/admin-api.ts): every event newest first, every payout, every sale with its buyer
     if (req.method === 'GET' && url.pathname === '/admin/money') {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
@@ -406,6 +418,8 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const d = await env.DB.prepare(`SELECT d.gdn, d.name, d.whop_account, (SELECT COALESCE(SUM(p.amount), 0) FROM dealer_payouts p WHERE p.dealer = d.gdn AND p.state = 'owed' AND p.held = 1) AS owed FROM dealers d WHERE d.gdn = ?1`)
         .bind(gdn).first<{ gdn: string; name: string; whop_account: string | null; owed: number }>();
       if (!d) return fail('no_such_dealer', 404);
+      // the key kept in the Desk, by the link or the paste: the Desk's first call with it is this one (CompleteRegistration, AD1; once per GDN)
+      await recordMarketing(env, { event: 'CompleteRegistration', sourceId: gdn, client: clientOf(req), sourceUrl: req.headers.get('origin') ?? undefined });
       return json({ gdn: d.gdn, name: d.name, whopAccount: d.whop_account ? maskAccount(d.whop_account) : null, payoutsOwed: d.owed });
     }
     // standing: the owner suspends or restores a dealer; a suspended dealer cannot open a lot
@@ -479,7 +493,7 @@ async function handle(req: Request, env: Env): Promise<Response> {
         ref = 'dev';   // wrangler dev and tests only
       }
       if (!ref) return text('not captured', 402);
-      const got = await capture(env, buyer, ref, 'verify');
+      const got = await capture(env, buyer, ref, 'verify', clientOf(req));
       if (got === 'used') return fail('payment_used', 409);   // this payment was a deposit before (applied, forfeited, refunded): it captures once
       if (got === 'duplicate') return fail('already_held', 409);   // a second payment while one is held: kept in the ledger for the admin to refund
       return json({ deposit: 'captured' });
@@ -718,7 +732,7 @@ async function busyOf(env: Env, buyer: string): Promise<'leads_a_lot' | 'owes_a_
     buyer's state move together in one batch, and only when this request wrote the row. A payment id captures once, ever:
     a replayed webhook or a reused payment after the deposit was applied, forfeited or refunded is 'used' and moves nothing.
     A second payment while one is held is kept as deposit.duplicate for the admin to refund. */
-async function capture(env: Env, buyer: string, ref: string, via: 'verify' | 'webhook'): Promise<'captured' | 'used' | 'duplicate' | 'unknown'> {
+async function capture(env: Env, buyer: string, ref: string, via: 'verify' | 'webhook', client?: Client): Promise<'captured' | 'used' | 'duplicate' | 'unknown'> {
   const row = await env.DB.prepare('SELECT deposit_status, deposit_ref FROM buyers WHERE id = ?1').bind(buyer).first<{ deposit_status: string; deposit_ref: string | null }>();
   if (!row) return 'unknown';
   if (row.deposit_status === 'captured' && row.deposit_ref === ref) return 'captured';   // the verify path and the webhook for the same payment
@@ -731,7 +745,10 @@ async function capture(env: Env, buyer: string, ref: string, via: 'verify' | 'we
     env.DB.prepare(`UPDATE buyers SET deposit_status = 'captured', deposit_ref = ?2 WHERE id = ?1 AND deposit_status != 'captured'
       AND EXISTS (SELECT 1 FROM money_events WHERE id = ?3 AND json_extract(body, '$.nonce') = ?4)`).bind(buyer, ref, id, nonce),
   ]);
-  if (moved.meta.changes) return 'captured';
+  if (moved.meta.changes) {   // the deposit is held: AddPaymentInfo (AD1; refundable, so never Purchase), keyed on the ledger row, sent only with the Meta keys
+    await recordMarketing(env, { event: 'AddPaymentInfo', sourceId: id, at: now, value: DEPOSIT_USD, currency: 'USD', phone: await buyerPhoneOf(env, buyer), client });
+    return 'captured';
+  }
   const mine = await env.DB.prepare(`SELECT 1 AS x FROM money_events WHERE id = ?1 AND json_extract(body, '$.nonce') = ?2`).bind(id, nonce).first();
   return mine ? 'duplicate' : 'used';
 }

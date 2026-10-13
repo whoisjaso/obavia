@@ -15,6 +15,7 @@ import { renderLaneConfirmation } from './lane/template-v9.mjs';
 import { renderWaitlistV10, waitlistTemplateVersion, BUYER_TEMPLATE_VERSION } from './lane/template-v10.mjs';
 import { serveSiteAsset, siteAssetType, SITE_ASSET_FOLDERS } from './lane/assets.mjs';
 import { syncBundle } from './lane/sync-bundle.mjs';
+import { createMetaEvents, metaEventId, metaNormalizeEmail, metaNormalizePhone, metaPayload, metaReady, metaSha256, metaUserData } from './lane/events.mjs';
 
 const BUNDLE_URL = new URL('./live-worker.js', import.meta.url);
 const bundle = existsSync(BUNDLE_URL) ? await import(BUNDLE_URL.href) : null;
@@ -31,7 +32,7 @@ CREATE TABLE confirmation_outbox (id TEXT PRIMARY KEY, idempotency_key TEXT NOT 
 CREATE TABLE waitlist_global_limit (id INTEGER PRIMARY KEY, window_start INTEGER NOT NULL, attempts INTEGER NOT NULL, last_request TEXT);
 CREATE TABLE waitlist_client_limit (client_key TEXT PRIMARY KEY, window_start INTEGER NOT NULL, attempts INTEGER NOT NULL, last_request TEXT);
 CREATE TABLE waitlist_email_limit (email TEXT PRIMARY KEY, window_start INTEGER NOT NULL, attempts INTEGER NOT NULL, last_request TEXT);`;
-const LANE_SCHEMA = readFileSync(new URL('./lane/0001_lane_application.sql', import.meta.url), 'utf8');
+const LANE_SCHEMA = readFileSync(new URL('./lane/0001_lane_application.sql', import.meta.url), 'utf8') + readFileSync(new URL('./lane/0002_marketing_events.sql', import.meta.url), 'utf8');
 
 /* ---------- a D1 stand-in ---------- */
 const clean = p => p.map(v => (v === undefined ? null : typeof v === 'boolean' ? Number(v) : v));
@@ -74,13 +75,14 @@ const validators = {   // stand-ins for endpoint.ts emailOf and normalizeFullNam
   emailOf: v => (typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[a-z]{2,63}$/i.test(v.trim()) ? v.trim().toLowerCase() : null),
   normalizeFullName: v => (typeof v === 'string' && v.trim() && v.trim().length <= 160 ? v.trim().replace(/\s+/g, ' ') : null),
 };
-function base({ env: extra = {}, telnyx = null, auction = null }) {
+function base({ env: extra = {}, telnyx = null, auction = null, meta = null }) {
   const clock = { t: 1_800_000_000_000 };
   const calls = [];
   const fetchImpl = async (url, init = {}) => {
     calls.push({ url: String(url), init });
     if (String(url).startsWith('https://api.telnyx.com/')) return telnyx(String(url), JSON.parse(init.body ?? '{}'));
     if (auction && String(url).startsWith('https://auction.example/')) return auction(String(url), init);
+    if (meta && String(url).startsWith('https://graph.facebook.com/')) return meta(String(url), init);
     throw Error('unexpected fetch ' + url);
   };
   const env = { PUBLIC_ORIGIN: ORIGIN, ABUSE_HMAC_KEY: 'k'.repeat(40), DEALERS: r2(), WAITLIST_TEMPLATE_VERSION: 'waitlist-confirmation-v8', ...extra };
@@ -92,7 +94,7 @@ function moduleHarness(opts = {}) {
   const post = async (body, { ip = '203.0.113.7' } = {}) => {
     const l = lane.createLane({ db, dealers, provider: lane.laneProvider(b.env, b.fetchImpl), clientKey: async () => `client:${ip}`,
       join: async (email, fullName, application) => { joins.push({ email, fullName, application }); return 'accepted'; },
-      issueKey: lane.laneKeyIssuer(b.env, b.fetchImpl), now: () => b.clock.t });
+      issueKey: lane.laneKeyIssuer(b.env, b.fetchImpl), events: createMetaEvents(b.env, b.fetchImpl, { db, now: () => b.clock.t, client: { ip, userAgent: 'Test/1' } }), now: () => b.clock.t });
     const r = await lane.handleLaneStep(body, l, {}, (status, error) => Response.json({ error }, { status }), validators);
     return { status: r.status, body: await r.json().catch(() => null), retryAfter: r.headers.get('Retry-After') };
   };
@@ -104,7 +106,7 @@ function bundleHarness({ lane: withLane = true, ...opts } = {}) {
   const env = { ...b.env, WAITLIST_DB: db };
   const worker = bundle.createWorker({ fetchImpl: b.fetchImpl, now: () => b.clock.t });
   const post = async (body, { ip = '203.0.113.7', raw } = {}) => {
-    const r = await worker.fetch(new Request(`${ORIGIN}/api/waitlist`, { method: 'POST', headers: { origin: ORIGIN, 'content-type': 'application/json', 'CF-Connecting-IP': ip }, body: raw ?? JSON.stringify(body) }), env);
+    const r = await worker.fetch(new Request(`${ORIGIN}/api/waitlist`, { method: 'POST', headers: { origin: ORIGIN, 'content-type': 'application/json', 'CF-Connecting-IP': ip, 'User-Agent': 'Test/1' }, body: raw ?? JSON.stringify(body) }), env);
     return { status: r.status, body: await r.json().catch(() => null), retryAfter: r.headers.get('Retry-After') };
   };
   const lastApplication = email => JSON.parse(db.raw.prepare('SELECT application FROM waitlist_entries WHERE email=?').get(email).application);
@@ -288,6 +290,96 @@ both('the whole flow writes nothing to the console', async make => {
   assert.deepEqual(seen, []);
 });
 
+/* ---------- the Meta events (growth plan AD1): Lead on the accepted application ---------- */
+const META_ENV = { META_PIXEL_ID: '123456789', META_CAPI_TOKEN: 'EAAtest-token', META_TEST_EVENT_CODE: 'TEST4242' };
+const metaOk = async () => Response.json({ events_received: 1, fbtrace_id: 'x' });
+const metaCalls = h => h.calls.filter(c => c.url.startsWith('https://graph.facebook.com/'));
+const marketingRows = h => h.db.raw.prepare('SELECT * FROM marketing_events ORDER BY id').all();
+test('events: the hashing as Meta wants it; the four names exactly; no name or address field', async () => {
+  assert.equal(await metaSha256('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+  assert.equal(metaNormalizeEmail('  Ana@Lot.COM '), 'ana@lot.com');
+  assert.equal(metaNormalizePhone('+1 (214) 555-0142'), '12145550142');
+  assert.equal(metaNormalizePhone('2145550142'), '12145550142');
+  assert.deepEqual(await metaUserData({ email: 'Ana@Lot.com', ip: '203.0.113.7', userAgent: 'Test/1' }), { em: [await metaSha256('ana@lot.com')], client_ip_address: '203.0.113.7', client_user_agent: 'Test/1' });
+  assert.deepEqual(await metaUserData({}), {});
+  const p = await metaPayload(META_ENV, { event: 'Lead', sourceId: 'em:x', at: 1_800_000_000_123, email: 'ana@lot.com', ip: '203.0.113.7', sourceUrl: 'https://obavia.co/#apply' });
+  assert.equal(p.test_event_code, 'TEST4242');
+  assert.deepEqual(p.data[0], { event_name: 'Lead', event_time: 1_800_000_000, event_id: await metaEventId('Lead', 'em:x'), action_source: 'website', user_data: { em: [await metaSha256('ana@lot.com')], client_ip_address: '203.0.113.7' }, event_source_url: 'https://obavia.co/#apply' });
+  assert.ok(!JSON.stringify(p).includes('ana@lot.com'));
+  assert.equal((await metaPayload({}, { event: 'Lead', sourceId: 'x', at: 0 })).test_event_code, undefined);
+  assert.equal(metaReady({}), false); assert.equal(metaReady({ META_PIXEL_ID: '1' }), false); assert.equal(metaReady({ META_CAPI_TOKEN: 't' }), false); assert.equal(metaReady(META_ENV), true);
+});
+test('events: without the keys send() is a no-op that still records a row, and nothing is fetched', async () => {
+  const b = base({}), db = d1();
+  const ev = createMetaEvents(b.env, b.fetchImpl, { db, now: () => b.clock.t, client: { ip: '203.0.113.7', userAgent: 'Test/1' } });
+  assert.equal(ev.ready, false);
+  assert.deepEqual(await ev.send('Lead', { email: 'ana@lot.com' }), { recorded: true, sent: false });
+  const rows = db.raw.prepare('SELECT * FROM marketing_events').all();
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].event, 'Lead'); assert.equal(rows[0].source_id, `em:${await metaSha256('ana@lot.com')}`); assert.equal(rows[0].sent, 0); assert.equal(rows[0].value, null); assert.equal(rows[0].error, null);
+  assert.ok(!JSON.stringify(rows).includes('ana@lot.com'), 'the email is not stored');
+  assert.deepEqual(await ev.send('Lead', { email: 'Ana@Lot.com ' }), { recorded: false, sent: false }, 'the same email again is no second row');
+  assert.deepEqual(await ev.send('Checkout', { email: 'x@y.co' }), { recorded: false, sent: false, error: 'not_a_standard_event' });
+  assert.deepEqual(await ev.send('Lead', {}), { recorded: false, sent: false, error: 'no_source' });
+  assert.equal(b.calls.length, 0);
+  const noDb = createMetaEvents(b.env, b.fetchImpl, { now: () => b.clock.t });
+  assert.deepEqual(await noDb.send('Lead', { email: 'ana@lot.com' }), { recorded: false, sent: false });
+});
+test('events: with the keys send() posts to the Conversions API with the token, the hashed email, the IP and the test code; the row says sent', async () => {
+  const b = base({ env: META_ENV, meta: metaOk }), db = d1();
+  const ev = createMetaEvents(b.env, b.fetchImpl, { db, now: () => b.clock.t, client: { ip: '203.0.113.7', userAgent: 'Test/1' } });
+  assert.equal(ev.ready, true);
+  assert.deepEqual(await ev.send('Lead', { email: 'ana@lot.com', sourceUrl: 'https://obavia.co/#apply' }), { recorded: true, sent: true });
+  assert.equal(b.calls.length, 1);
+  const c = b.calls[0];
+  assert.equal(c.url, 'https://graph.facebook.com/v21.0/123456789/events'); assert.equal(c.init.method, 'POST');
+  assert.equal(c.init.headers.Authorization, 'Bearer EAAtest-token');
+  const body = JSON.parse(c.init.body);
+  assert.equal(body.test_event_code, 'TEST4242');
+  assert.deepEqual(body.data[0].user_data, { em: [await metaSha256('ana@lot.com')], client_ip_address: '203.0.113.7', client_user_agent: 'Test/1' });
+  assert.equal(body.data[0].event_name, 'Lead'); assert.equal(body.data[0].action_source, 'website'); assert.equal(body.data[0].event_source_url, 'https://obavia.co/#apply');
+  assert.ok(!c.init.body.includes('ana@lot.com'));
+  const [row] = db.raw.prepare('SELECT * FROM marketing_events').all();
+  assert.equal(row.sent, 1); assert.equal(row.sent_at, b.clock.t); assert.equal(row.error, null);
+});
+test('events: a refusal from Meta or a network error leaves the row with sent = 0 and the error, and never throws', async () => {
+  const refused = base({ env: META_ENV, meta: async () => new Response('{"error":{"message":"Invalid OAuth access token"}}', { status: 400 }) }), db = d1();
+  const ev = createMetaEvents(refused.env, refused.fetchImpl, { db, now: () => refused.clock.t });
+  const r = await ev.send('Lead', { email: 'ana@lot.com' });
+  assert.equal(r.recorded, true); assert.equal(r.sent, false); assert.match(r.error, /^meta 400/);
+  assert.equal(db.raw.prepare('SELECT sent, error FROM marketing_events').get().sent, 0);
+  const down = base({ env: META_ENV, meta: async () => { throw Error('connection reset'); } }), db2 = d1();
+  const r2 = await createMetaEvents(down.env, down.fetchImpl, { db: db2, now: () => down.clock.t }).send('Lead', { email: 'ana@lot.com' });
+  assert.deepEqual(r2, { recorded: true, sent: false, error: 'connection reset' });
+  assert.equal(db2.raw.prepare('SELECT error FROM marketing_events').get().error, 'connection reset');
+});
+both('apply: an accepted application is the Lead event, recorded once per email with sent = 0 and nothing fetched without the keys', async make => {
+  const h = make();
+  assert.deepEqual((await h.post(applyBody())).body, { status: 'accepted' });
+  let rows = marketingRows(h);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].event, 'Lead'); assert.equal(rows[0].source_id, `em:${await metaSha256('ana@lot.com')}`); assert.equal(rows[0].sent, 0); assert.equal(rows[0].at, h.clock.t);
+  assert.equal(metaCalls(h).length, 0);
+  assert.ok(!JSON.stringify(rows).includes('ana@lot.com') && !JSON.stringify(rows).includes('Ana Ruiz') && !JSON.stringify(rows).includes('P000678X'));
+  assert.deepEqual((await h.post(applyBody())).body, { status: 'accepted' });
+  assert.equal(marketingRows(h).length, 1, 'the same email again adds no row');
+  assert.equal((await h.post(applyBody({ email: 'bad' }))).status, 422);
+  assert.equal(marketingRows(h).length, 1, 'a refused application is no Lead');
+});
+both('apply: with the keys the accepted application sends Lead with the hashed email and the caller\'s IP, never the name or the GDN', async make => {
+  const h = make({ env: META_ENV, meta: metaOk });
+  assert.deepEqual((await h.post(applyBody())).body, { status: 'accepted' });
+  assert.equal(metaCalls(h).length, 1);
+  const body = JSON.parse(metaCalls(h)[0].init.body);
+  assert.equal(body.data[0].event_name, 'Lead'); assert.equal(body.test_event_code, 'TEST4242');
+  assert.deepEqual(body.data[0].user_data, { em: [await metaSha256('ana@lot.com')], client_ip_address: '203.0.113.7', client_user_agent: 'Test/1' });
+  const text = metaCalls(h)[0].init.body;
+  for (const never of ['ana@lot.com', 'Ana Ruiz', 'P000678X', 'Impac', 'Los Fresnos']) assert.ok(!text.includes(never), never);
+  assert.equal(marketingRows(h)[0].sent, 1);
+  assert.deepEqual((await h.post(applyBody())).body, { status: 'accepted' });
+  assert.equal(metaCalls(h).length, 1, 'the same email again sends nothing');
+});
+
 /* ---------- the v9 confirmation ---------- */
 test('v9 confirmation: dealer copy, one action, no dashes, no fee, no agency copy', () => {
   const m = renderLaneConfirmation('Ana <Ruiz>');
@@ -303,7 +395,7 @@ test('v9 confirmation: dealer copy, one action, no dashes, no fee, no agency cop
   assert.ok(renderLaneConfirmation(undefined).text.startsWith('Hello,'));
 });
 test('the lane modules carry no en or em dash', () => {
-  for (const f of ['lane.mjs', 'template-v9.mjs', 'template-v10.mjs', 'assets.mjs', 'sync-bundle.mjs', 'README.md', '0001_lane_application.sql']) {
+  for (const f of ['lane.mjs', 'events.mjs', 'template-v9.mjs', 'template-v10.mjs', 'assets.mjs', 'sync-bundle.mjs', 'README.md', '0001_lane_application.sql', '0002_marketing_events.sql']) {
     const s = readFileSync(new URL(`./lane/${f}`, import.meta.url), 'utf8');
     assert.ok(!/[\u2013\u2014]/.test(s), f);
   }
@@ -317,6 +409,7 @@ btest('the bundle carries verbatim copies of deploy/site/lane', () => {
   assert.deepEqual(bundle.renderWaitlistV10(), renderWaitlistV10());
   assert.equal(bundle.waitlistTemplateVersion({}, 'x'), waitlistTemplateVersion({}, 'x'));
   assert.equal(bundle.serveSiteAsset.toString(), serveSiteAsset.toString());
+  assert.equal(bundle.createMetaEvents.toString(), createMetaEvents.toString());
 });
 const entry = (h, email) => h.db.raw.prepare('SELECT * FROM waitlist_entries WHERE email=?').get(email);
 const outbox = (h, id) => h.db.raw.prepare('SELECT * FROM confirmation_outbox WHERE id=?').get(id);

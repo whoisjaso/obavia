@@ -6,12 +6,14 @@ Written October 13, 2026 by systems. This folder is the committed source for the
 
 | File | What it is |
 | --- | --- |
+| `events.mjs` | `createMetaEvents`: the standard Meta event `Lead`, recorded in `marketing_events` on every accepted application and sent to the Conversions API only when `META_PIXEL_ID` and `META_CAPI_TOKEN` are set (growth plan AD1). The hashing (`metaSha256`, `metaUserData`) and the payload (`metaPayload`). No imports. |
+| `0002_marketing_events.sql` | The D1 migration for `marketing_events` on `WAITLIST_DB`. Additive only. |
 | `lane.mjs` | The four steps (`createLane`), the request handler (`handleLaneStep`), the TxDMV list reader (`createDealerBook`), the Telnyx Verify client (`createTelnyxVerify`), the fake verifier (`fakeVerify`), provider selection (`laneProvider`) and the key issuer (`laneKeyIssuer`). No imports. |
 | `template-v9.mjs` | The dealer confirmation email, template version `waitlist-confirmation-v9`, and `renderLaneConfirmation`. No imports. v2 to v8 stay where they are. |
 | `template-v10.mjs` | The buyer confirmation email, template version `waitlist-confirmation-v10` (`renderWaitlistV10`), and `waitlistTemplateVersion`, the one rule that picks the template for every body. No imports. |
 | `assets.mjs` | `serveSiteAsset` and `siteAssetType`: the asset folders below the top level (`/sky/`, `/audio/`, `/logos/`, `/connections/`, `/assets/cloud-3d/`). No imports. |
 | `0001_lane_application.sql` | The D1 migration for `WAITLIST_DB`. Additive only. |
-| `sync-bundle.mjs` | Writes the four modules (`template-v9.mjs`, `template-v10.mjs`, `lane.mjs`, `assets.mjs`) into `live-worker.js` between `// lane:begin <module>` and `// lane:end <module>`. `--check` exits 1 if the bundle differs. |
+| `sync-bundle.mjs` | Writes the five modules (`template-v9.mjs`, `template-v10.mjs`, `events.mjs`, `lane.mjs`, `assets.mjs`) into `live-worker.js` between `// lane:begin <module>` and `// lane:end <module>`. `--check` exits 1 if the bundle differs. |
 | `../live-worker.test.mjs` | `node --test deploy/site/live-worker.test.mjs`. The lane cases run against these modules in any checkout; the bundle cases run only when `live-worker.js` is present and are skipped with a printed reason otherwise. |
 
 The bundle's sections are verbatim copies of the modules. The only change is that a leading `export ` is dropped, because the bundle is one module with its own export list. A test checks that they match.
@@ -63,6 +65,7 @@ How the steps work:
 - **Same email twice.** An email already on the list keeps its entry and gets no second email; only the answers are attached.
 - **Key.** Issued only when all of these hold: `ISSUE_KEYS=1`, the GDN matched, a Telnyx code was verified by the same client (HMAC of the IP) within 30 minutes, and that verification has not been used yet. The key comes from auction/worker `POST /dealers/mint` with `MINT_SECRET`, sent the GDN with the legal name and city from the TxDMV list. That secret can mint a dealer key and do nothing else: it cannot list, suspend or read anything, and auction/worker refuses it on every admin route. One verification gives one key. If minting fails, the answer is accepted without a key. auction/worker answers the same GDN twice within 30 minutes with 409 `already_minted` and no key, and mints at most 20 an hour in all; both come back here as accepted without a key. A mint whose response is lost on the way back cannot be repeated for 30 minutes, so that dealer gets the key from the admin.
 - **Logging.** Nothing logs a phone number or a code. Telnyx holds the code; D1 holds neither.
+- **Lead (growth plan AD1).** An accepted apply step is the standard Meta event `Lead`, sent server side by `events.mjs`: one `marketing_events` row per email (`source_id` is `em:<SHA-256 of the email>`; the email itself is not stored there), then, only when `META_PIXEL_ID` and `META_CAPI_TOKEN` are both set, one POST to `https://graph.facebook.com/v21.0/<META_PIXEL_ID>/events` carrying the email hashed, the caller's IP and user agent, `event_source_url` https://obavia.co/#apply and, while `META_TEST_EVENT_CODE` is set, the test code. Without the keys the row still lands with `sent = 0`. A refusal or a network error leaves `sent = 0` with the error and the application is still accepted. No name, no GDN, no dealer name or city leaves: the event id is a hash of the source. No browser pixel: the event passes through this worker, so no third-party script is loaded on obavia.co. `CompleteRegistration` (the key kept in the Desk) fires from auction/worker on the Desk's first `GET /dealers/me`, not from here (`auction/worker/README.md`, the section The four Meta events).
 
 ## Env vars
 
@@ -73,6 +76,7 @@ New:
 - `ISSUE_KEYS`: `1` turns key issuance on. Off by default. Keys stay admin-only until the plan's gate.
 - `AUCTION_API_URL`: https base URL of auction/worker.
 - `MINT_SECRET`: secret, at least 32 characters. The same value as auction/worker's `MINT_SECRET`, and never its `DEALER_SECRET` (auction/worker answers 503 if the two are equal). `DEALER_SECRET` does not go on this worker.
+- `META_PIXEL_ID` (var, the dataset id from Events Manager), `META_CAPI_TOKEN` (secret, the Conversions API access token) and `META_TEST_EVENT_CODE` (var, the Test events code; set only while verifying `Lead`, removed before any spend): the `Lead` event. All unset by default; nothing is sent until the owner provides them (the growth plan's KEYS gate). The same three go on auction/worker.
 
 None new for v10 or the asset folders. `WAITLIST_TEMPLATE_VERSION` now applies only to rule 3 above (bodies with a `fullName` and no `application`); `ASSETS` now also serves the asset folders.
 
@@ -95,6 +99,7 @@ Unchanged: `PUBLIC_ORIGIN`, `SECONDARY_ORIGIN`, `ABUSE_HMAC_KEY`, `WAITLIST_DB`,
    - `createDealerBook(env.DEALERS)`
    - `laneProvider(env, fetch)`
    - `laneKeyIssuer(env, fetch)`
+   - `createMetaEvents(env, fetch, { db: env.WAITLIST_DB, now, client: { ip: request.headers.get("CF-Connecting-IP"), userAgent: request.headers.get("User-Agent") } })` as `events`
    - a memoised `clientIdentity`
    - a `join` that uses the store with `templateVersion: waitlistTemplateVersion({ application, fullName }, env.WAITLIST_TEMPLATE_VERSION)`
 
@@ -102,7 +107,7 @@ Unchanged: `PUBLIC_ORIGIN`, `SECONDARY_ORIGIN`, `ABUSE_HMAC_KEY`, `WAITLIST_DB`,
 
    Before the existing asset branch (the `const asset = /^\/(?:obavia\/)?(?:assets...` test), add `const siteAsset = await serveSiteAsset(request, env, url); if (siteAsset) return siteAsset;`.
 
-   Export `renderWaitlistV10`, `waitlistTemplateVersion` and `serveSiteAsset` from the bundle beside `renderLaneConfirmation`; the tests compare them with the modules.
+   Export `renderWaitlistV10`, `waitlistTemplateVersion`, `serveSiteAsset` and `createMetaEvents` from the bundle beside `renderLaneConfirmation`; the tests compare them with the modules.
 
    The bundle shows each of these steps exactly. Diff it against the pre-change copy.
 6. Run `node --test deploy/site/live-worker.test.mjs` against the new build placed at `deploy/site/live-worker.js`.
@@ -111,10 +116,11 @@ Unchanged: `PUBLIC_ORIGIN`, `SECONDARY_ORIGIN`, `ABUSE_HMAC_KEY`, `WAITLIST_DB`,
 
 v10 and the asset folders need no migration and no new binding or secret: port, run the tests, deploy. The steps below are for the dealer application.
 
-1. Apply `0001_lane_application.sql` to `WAITLIST_DB`: `npx wrangler@4 d1 execute <waitlist database> --remote --file deploy/site/lane/0001_lane_application.sql`. The legacy path never reads the new columns or tables, so the old worker runs fine on the migrated database.
+1. Apply `0001_lane_application.sql` and `0002_marketing_events.sql` to `WAITLIST_DB`: `npx wrangler@4 d1 execute <waitlist database> --remote --file deploy/site/lane/0001_lane_application.sql`, then the same with `0002_marketing_events.sql`. The legacy path never reads the new columns or tables, so the old worker runs fine on the migrated database. Without 0002 an accepted application still answers 200: the Lead row fails inside `events.send`, which catches it, and nothing is sent.
 2. Bind `DEALERS` and set the Telnyx secrets. Set the GitHub secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` so the nightly job writes `tx/index.json` and `tx/contacts.json`. Until they exist, lookup answers 503 and the page checks the GDN's shape only.
 3. Deploy the worker with `ISSUE_KEYS` unset.
-4. Set `MINT_SECRET` on both workers (`npx wrangler secret put MINT_SECRET` in auction/worker and on `obavia-waitlist`), apply auction/worker migration `0007_dealer_mints.sql`, and set `ISSUE_KEYS=1` only once the plan's gate is met.
+4. `Lead` to Meta: `META_PIXEL_ID`, `META_CAPI_TOKEN` and `META_TEST_EVENT_CODE` on this worker (vars and secret, above), then the owner's verification steps in `auction/worker/README.md` (the section The four Meta events); remove the test code before any spend.
+5. Set `MINT_SECRET` on both workers (`npx wrangler secret put MINT_SECRET` in auction/worker and on `obavia-waitlist`), apply auction/worker migration `0007_dealer_mints.sql`, and set `ISSUE_KEYS=1` only once the plan's gate is met.
 
 ## Open items
 
