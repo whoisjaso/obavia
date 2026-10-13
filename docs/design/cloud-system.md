@@ -26,6 +26,9 @@ A button is a cloud you push your thumb into.
 | **Release (touch up)** | It **rises back** with a soft overshoot, like a cloud re-inflating, carrying the finger's speed. | Spring: damping ratio 0.6 to 0.7, response 260 to 340 ms; overshoot ≤ 3 percent; never a bounce that visibly rings twice. |
 | **Cancel (drag off)** | It rises without the overshoot. | Same spring at damping 1.0. |
 | **Landed (an action completed)** | The surface breathes once: a single soft swell and settle in the same frame as the sound and the haptic. | scale 1 → 1.03 → 1 over 420 ms, ease in-out; this is the only moment a cloud grows. |
+| **Hover (pointer: fine only)** | The cloud lifts and brightens as the sun catches it; the near lobes swell a hair; a breath of air fades in under the pointer and out on leave. Never on touch screens. | translateY −2 px, sun term +8 percent, near lobes +1.5 percent, 180 ms expo.out; `cloud-hover` once on enter; leave returns on the cancel spring. |
+| **Hold (pressed past 400 ms)** | The compressed cloud breathes while held. | 1 percent swell on a 1.2 s sine loop with `cloud-drift` at low gain, until release. |
+| **After the release** | The cloud sheds wisps and the air moves: six to ten wisps leave the top edge and drift up and out while fading; a soft air ring brightens the page behind the button and is gone; the label dips a pixel and rises. These are the effects that happen *after* the click; a press with no aftermath is a dead button. | wisps 12 to 20 px over 600 ms; ring scale 1.0 → 1.4, opacity peak 0.18 at 120 ms; label −1 px. |
 
 Rules: transform and opacity only (plus shadow via a pseudo-element's opacity, never animating box-shadow blur per frame on the web); press feedback never waits for a network reply; a disabled surface does not sink.
 
@@ -42,8 +45,9 @@ Clouds are air. Every cloud sound is **filtered noise with a slow envelope**, ne
 | `cloud-settle` | A page or sheet settles into place | 380 ms, low-passed noise 200 → 600 Hz, long decay, the "air leaving". |
 | `cloud-drift` | A sheet or page moving under the finger (looped, gain follows velocity) | 1.2 s loop, pink noise through a 400 to 1200 Hz band, no transient. |
 | `cloud-landed` | An action completed (the one swell) | 520 ms, the puff plus a soft air swell, slight upward sweep, used with the house chime where one exists. |
+| `cloud-hover` | Pointer enters a cloud surface (web, fine pointer only), once; never on leave | 260 ms, the gentlest of the kit: pink noise rising 500 to 1400 Hz, 120 ms attack, 8 dB under the others. |
 
-The kit is synthesized deterministically by `tools/cloud-sfx/make.mjs` (16-bit WAV, 44.1 kHz) so every surface ships the same five files, under `assets/cloud-sfx/` at the repo root and copied into each surface. Negative paths stay silent (house asymmetry: silence is the punishment).
+The kit is synthesized deterministically by `tools/cloud-sfx/make.mjs` (16-bit WAV, 44.1 kHz) so every surface ships the same six files, under `assets/cloud-sfx/` at the repo root and copied into each surface. Negative paths stay silent (house asymmetry: silence is the punishment).
 
 ## 4. Motion: how clouds move
 
@@ -79,10 +83,15 @@ Dark lane (the phone's Lane, ink `#1C2436`): the same material in negative; clou
 
 Not glassmorphism, not neon glow, not a bounce, not a parallax that fights scroll, not sound on every scroll frame, not a blur that drops frames on a mid-range Android. If a cloud effect costs a dropped frame on the Lane, the cloud loses.
 
-## 8. The cloud button (amended October 12, 2026, owner's review)
+## 8. The cloud button and the 3D method (amended October 13, 2026, owner's review)
 
-The owner's review of the first pass: "the cloud button looks ass; it should feel real." The scalloped vector silhouette (bumps along the top, a flat fill, an outline) is **banned on every surface**. It is clip-art, not a cloud.
+The owner's reviews, in order: the procedural pill ("marshmallow logs"), the scalloped vector ("clip-art", banned on every surface), the photographic composite (a cloud on the sky, a cutout on ink; kept only as a fallback under `assets/cloud-button/`). Then: "make the clouds way better, even if you need to go into Blender, and genuinely make the 3D graphics from scratch, and the 3D buttons, and animations after clicking them, and SFX."
 
-The primary button on every surface is a **rendered volumetric cloud**: `assets/cloud-button/` holds deterministic sprites (rest and pressed, three widths, a hero size, a dark-lane variant) rendered from a displaced pill density field with lit volume, a blue-grey underside, wispy translucent edges and 2 to 3 percent grain, plus a separate soft contact shadow. The label sits in the sprite's safe zone in upright spaced capitals, ink on the light cloud, ice on the dark one. Press: crossfade rest → pressed over 100 ms with the §2 sink; rise on the §2 spring; the §2 landed swell on completion. Secondary surfaces (choices, rows, cards) keep the §5 material without the sprite; they are flatter clouds, not outlines.
+So the clouds are real 3D, rendered from scratch. `docs/design/blender-pipeline.md` is the pipeline. In short:
 
-The first screen of every surface (the site's first viewport, the Desk's Sales home and Lane, the phone's Lane and every sheet) opens inside the layered volumetric sky of §1 and §4: three drifting layers, grain, parallax by depth. No surface opens on a flat fill.
+- **The material** is a Blender Principled Volume driven by a seeded density field (lobes displaced by layered noise and billow), lit by a low warm sun with cool sky fill, rendered in Cycles on a transparent film. Light variant: white mass, blue-grey underside. Dark lane variant: ice rim on ink. `tools/cloud-3d/` renders it deterministically into `assets/cloud-3d/`.
+- **The primary button** on every surface is that volume shaped as a button: rest, pressed, a 24-frame press animation (sink, puff, settle, 400 ms) and separate contact shadows, at 320, 440 and 640 wide, 1x and 2x, with a documented label safe zone. On the web with WebGL2 the button is raymarched live (`obavia-co/cloud3d.js`, `desk/src/cloud3d.ts`) and the sprites are the fallback; on the phone the sprite sheet plays on the UI thread (`auction/src/components/CloudButton.tsx`). The §2 physics, the §2 hover, hold and after-release rows and the §3 sounds fire at the same instants on every surface.
+- **The sky** is three rendered, horizontally tileable layers (far, mid, near) in light and dark, drifting with parallax by depth; live raymarched where WebGL2 exists.
+- **Everything else** that can be a rendered object is rendered: the mark (`assets/mark-3d/`), the app icon and splash, section illustrations and film backplates, per the pipeline doc.
+
+Secondary surfaces (choices, rows, cards) keep the §5 material without the volume; they are flatter clouds, not outlines. The first screen of every surface opens inside the layered sky; no surface opens on a flat fill.
