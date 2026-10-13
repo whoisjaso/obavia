@@ -50,7 +50,8 @@ export const ms = {
   land: 200,       // the deposit line landing
   exit: 200,       // a sheet leaving without a finger
   lead: 90,        // thud to lead: inside the 100 ms window
-  pause: 200,      // Won: nothing, then the burst
+  build: 700,      // Won: the hammer hangs raised while the eye arrives (the chest pattern's build)
+  pause: 200,      // Won: stillness, then the fall and the strike
   green: 240,      // the pass turns green
   sink: 100,       // a cloud surface sinking under the thumb
   swell: 420,      // the landed swell, both legs

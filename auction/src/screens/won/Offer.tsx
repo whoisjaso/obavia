@@ -1,6 +1,7 @@
 /* The second chance (decisions §2 row 9): the winner never paid, the deposit forfeited, and the under-bidder has
    twelve hours at their max. The "Second chance · <car> · $X · 12 h" push lands here (nav screen `offer`).
    One page, one verb. The car's photo with its name under it; the amount in Bodoni with the coin touching it
+   (one number: the total is Pay's, simplicity-audit change 11)
    (lego §4.1; DOCTRINE §5: the coin is the money piece, and this money is the buyer's own number coming back to
    them); the clock touching what is left of the twelve hours, its arc sweeping once to its mark as the page settles
    (the Pay page's moment); then the one cloud: "Take it". The tap asks the Worker (POST /lots/:id/offer/accept);
@@ -19,7 +20,7 @@ import { MOMENT_3D } from '../../components/scene3d';
 import { Sky } from '../../components/Sky';
 import { Caps, Label, Page, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
-import { dollars, outTheDoor } from '../../engine/money';
+import { dollars } from '../../engine/money';
 import type { Lot } from '../../engine/server';
 import { feel } from '../../feel';
 import { EASE_OUT, cloud, ms } from '../../motion';
@@ -64,7 +65,6 @@ export function Offer({ car, lot, now, onTaken, onClose }: { car: Car; lot: Lot;
   const taken = useRef(false);
   useEffect(() => { if (gone && !taken.current && !busy) onClose(); }, [gone, busy]);
   if (!offer) return null;
-  const total = outTheDoor(offer.amount, car.dealer.fees).total;
   const take = async () => {
     if (busy || gone) return;
     setBusy(true); setStamp(null);
@@ -81,14 +81,13 @@ export function Offer({ car, lot, now, onTaken, onClose }: { car: Car; lot: Lot;
           <View style={s.thumb}>{car.photos[0] && <Image source={car.photos[0].src} style={StyleSheet.absoluteFill} contentFit="cover" />}</View>
           <Caps size={17} ink={theme.color.muted}>{car.year} {car.make} {car.model}</Caps>
           {/* the label over the amount, the coin touching it; a spacer half the coin's width keeps the number centred */}
-          <View accessible accessibilityLabel={`Second chance, ${dollars(offer.amount)} dollars, ${dollars(total)} dollars total`} style={{ alignItems: 'center', marginTop: theme.space.m }}>
+          <View accessible accessibilityLabel={`Second chance, ${dollars(offer.amount)} dollars`} style={{ alignItems: 'center', marginTop: theme.space.m }}>
             <Label>Second chance</Label>
             <View style={s.row}>
               <Object3D name="coin" height={COIN} delay={120} style={s.coin} />
               <Serif size={56}>${dollars(offer.amount)}</Serif>
               <View style={{ width: COIN * 0.5 }} />
             </View>
-            <Serif size={28} ink={theme.color.muted}>${dollars(total)}</Serif>
           </View>
           {/* the clock touching what is left of its twelve hours */}
           <View accessible accessibilityLabel={`${offerLeft(offer.expiresAt, now)} left`} style={s.row}>

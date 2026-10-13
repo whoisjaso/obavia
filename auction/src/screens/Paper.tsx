@@ -10,7 +10,7 @@
    that copy (the same bytes plus the stamp), with no pad: the one thing left
    is Done. The consent sits under the verb it is given by. */
 import React, { useEffect, useRef, useState } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { Sheet } from '../components/Sheet';
 import { Object3D } from '../components/Object3D';
-import { Button, Label } from '../components/Type';
+import { Button } from '../components/Type';
 import { feel } from '../feel';
 import { AUCTION_URL, buyerToken } from '../store';
 import { theme } from '../theme';
@@ -133,10 +133,15 @@ export function Paper({ title, subtitle, onClose, sign, reuse, url, signed }: {
         {needsSign && (
           <View style={[s.padWrap, !atEnd && { opacity: 0.35 }]} pointerEvents={atEnd && !busy ? 'auto' : 'none'}>
             {reuse && seen && !path ? (
-              <Pressable onPress={() => file(reuse, true)} style={s.reuse} accessibilityRole="button" accessibilityLabel="Use the same signature">
-                <Svg width={160} height={58} viewBox={`0 0 ${seen.w} ${seen.h}`}><Path d={seen.d} stroke={theme.color.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                <Label>Use the same signature</Label>
-              </Pressable>
+              /* the signature already given today sits on the pad it fills (lego §4.1), and the one word under it
+                 signs with it; nothing to read, nothing to draw */
+              <>
+                <View style={s.pad} aria-hidden importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+                  <Svg width="100%" height="100%" viewBox={`0 0 ${seen.w} ${seen.h}`} preserveAspectRatio="xMidYMid meet"><Path d={seen.d} stroke={theme.color.ink} strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                  <View style={s.baseline} />
+                </View>
+                <Button label="Sign" onPress={() => file(reuse, true)} disabled={busy} />
+              </>
             ) : (
               <>
                 <GestureDetector gesture={draw}>
@@ -181,7 +186,5 @@ const s = StyleSheet.create({
   btn: { height: 52, borderRadius: 26, backgroundColor: theme.color.accent, alignItems: 'center', justifyContent: 'center' },
   btnOff: { opacity: 0.4 },
   btnText: { ...theme.type.sansBold, fontSize: 17, color: theme.color.cloud },
-  reuse: { alignItems: 'center', gap: 6, paddingVertical: theme.space.s },
-  reuseText: { ...theme.type.sansBold, fontSize: 17, color: theme.color.accent },
   consent: { ...theme.type.sans, fontSize: 17, color: theme.color.muted, textAlign: 'center' },
 });

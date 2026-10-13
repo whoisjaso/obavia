@@ -39,25 +39,25 @@ const server = http.createServer((q, r) => {
 const SPEC = {
   'lane':            { title: 'Lane', gesture: 'drag the price', anchor: /dollars, .* left/, allow: [/^Me$/, /^Share$/, /photos, open the car$/, /^[\d,]+ dollars$/] },
   'lane-watched':    { title: 'Lane, watched (double tap)', gesture: 'drag the price', anchor: /dollars, .* left/, allow: [/^Me$/, /^Share$/, /photos, open the car$/, /^[\d,]+ dollars$/] },
-  'bid-first':       { title: 'Bid sheet, first bid', primary: /^Bid/, before: [/^[\d,]+ dollars$/], verb: 'Bid', kept: 'terms' },
+  'bid-first':       { title: 'Bid sheet, first bid', primary: /^Bid/, before: [/^[\d,]+ dollars$/], verb: 'Bid' },
   'phone-number':    { title: 'Phone, your number', primary: /^Your number$/ },
   'phone-code':      { title: 'Phone, the code', gesture: 'type the six (the keyboard is up)', anchor: /^Code$/, allow: [/^Not now$/, /^Sent to /, /^Code$/, /^$/] },
   'id-frame':        { title: 'ID frame (first bid)', primary: /^Take the photo$/ },
   'id-facts':        { title: 'ID facts', primary: /^That's me$/, before: [/^(Name|Born|Address|Licen[cs]e|State) /], verb: "That's me" },
   'deposit':         { title: 'Deposit', primary: /^Pay \d+ dollars/, verb: 'Pay', kept: 'deposit' },
+  // the four terms on their own page, the last of the first-bid sequence (decisions §3.4, amended October 13, 2026)
+  'terms':           { title: 'Terms, the first bid', primary: /^Bid/, verb: 'Bid', kept: 'terms' },
   'bid-landed':      { title: 'Bid landed, waiting for the hammer', gesture: 'nothing to do (the close)', anchor: /./, allow: [/./] },
-  'won-who':         { title: 'Won, who is it for', primary: /^Me$/, choices: true },
   'won-steps':       { title: 'Won, steps', primary: /^ID, next/ },
   'id-prefilled':    { title: 'ID, prefilled', primary: /^That's me$/, before: [/^(Name|Born|Address|Licen[cs]e|State) /], verb: "That's me" },
   'insure':          { title: 'Insure', primary: /^Take the photo$/ },
-  'sign':            { title: 'Sign', primary: /^Buyers Guide/ },
   'buyers-guide':    { title: 'Buyers Guide, the end', primary: /^(Signature pad|Sign)$/, verb: 'Sign', kept: 'document' },
   'buyers-signed':   { title: 'Buyers Guide, signed', primary: /^Sign$/, verb: 'Sign', kept: 'document' },
-  'bill-of-sale':    { title: 'Bill of Sale, the end', primary: /^(Use the same signature|Signature pad|Sign)$/, kept: 'document' },
-  'won-steps-2':     { title: 'Won, steps (the last one lit)', primary: /^(Plates|Title), next/ },
+  'bill-of-sale':    { title: 'Bill of Sale, the end', primary: /^(Signature pad|Sign)$/, verb: 'Sign', kept: 'document' },
+  'won-steps-2':     { title: 'Won, steps (the last one lit)', primary: /^(Pay|Keys|Plates|Title), next/ },
   'pay':             { title: 'Pay', primary: /^(Bank|Wire|Cash)/, choices: true },
   'pickup-where':    { title: 'Pickup, where', primary: /^Directions to / },
-  'pickup-when':     { title: 'Pickup, when', primary: /\d|^Call to set a time/, choices: true },
+  'pickup-when':     { title: 'Pickup, when', primary: /\d|^Call/, choices: true },
   'pickup-pass':     { title: 'Pickup, the pass', primary: /^Pass, / },
   'pickup-started':  { title: 'Pickup, started', primary: /^Done$/, before: [/^Car started/], verb: 'Done' },
   'plates':          { title: 'Plates', gesture: 'nothing to do', anchor: /./, allow: [/./] },
@@ -267,34 +267,42 @@ const steps = [
     await screen('deposit');
     await tap(/^Pay \d+ dollars/, 'last'); await wait(900);
   }],
+  ['the terms, the last page before the bid', async () => {
+    // the terms page stands over the sheet: its Bid is the only Bid on the glass that is tappable
+    if (!(await until(async () => /irrevocable/i.test(await bodyText()), 6000))) throw new Error('no terms page after the deposit');
+    await wait(400);
+    await screen('terms');
+    await tap(/^Bid/, 'last'); await wait(450);   // the local ack is at once; the landed sheet stays 900 ms, so the shot is inside it
+  }],
   ['the bid lands, the hammer falls', async () => {
     await screen('bid-landed');
-    if (!(await until(async () => /who is it for/i.test(await bodyText()), 20000))) throw new Error('the hammer never fell (?win=1)');
+    if (!(await until(() => visible(/^ID, next/), 20000))) throw new Error('the hammer never fell (?win=1)');
     await wait(1900);
-    await screen('won-who');
+    await screen('won-steps');
   }],
-  ['Won: Me, then the steps', async () => { await tap('Me', 'last'); await wait(1300); await screen('won-steps'); }],
   ['ID, prefilled', async () => { await tap(/^ID, next/); await wait(1100); await screen('id-prefilled'); await tap("That's me", 'last'); await wait(1700); }],
   ['Insure', async () => { await tap(/^Insure/); await wait(1000); await screen('insure'); await tap('Take the photo'); await wait(2700); }],
   ['Sign: the Buyers Guide', async () => {
-    await tap(/^Sign/); await wait(1100); await screen('sign');
-    await tap(/^Buyers Guide/); await wait(1200); await scrollToEnd(); await screen('buyers-guide');
+    // the step opens the document itself; no page between (simplicity-audit change 5)
+    await tap(/^Sign/); await wait(1300); await scrollToEnd(); await screen('buyers-guide');
     await sign(); await screen('buyers-signed');
-    await tap('Sign', 'last'); await wait(1400);
+    await tap('Sign', 'last'); await wait(1600);
   }],
   ['Sign: the Bill of Sale', async () => {
-    await tap(/^Bill of Sale/); await wait(1100); await scrollToEnd(); await screen('bill-of-sale');
-    await tap('Use the same signature'); await wait(1600);
+    // signing the Buyers Guide opened the Bill of Sale; the first signature sits on its pad, Sign signs with it
+    if (!(await until(async () => /Bill of Sale/i.test(await bodyText()), 6000))) throw new Error('the Bill of Sale did not open after the Buyers Guide');
+    await scrollToEnd(); await screen('bill-of-sale');
+    await tap('Sign', 'last'); await wait(1600);
     if (await visible('Done')) { await tap('Done', 'last'); await wait(1300); }
     await screen('won-steps-2');
   }],
-  ['Pay, a word', async () => { await tap(/^(Plates|Title)/); await wait(1200); await screen('pay'); await tap(/^Wire/); await wait(1400); }],
+  ['Pay, a word', async () => { await tap(/^(Pay|Keys|Plates|Title), next/); await wait(1200); await screen('pay'); await tap(/^Wire/); await wait(1400); }],
   ['Pickup: where, when, the pass', async () => {
     await screen('pickup-where');
     await page.mouse.move(196, 500); await page.mouse.wheel(393, 0); await wait(1200);
     await screen('pickup-when');
     const slot = await page.evaluate(() => [...document.querySelectorAll('[data-wt-tap]')].map(e => e.getAttribute('aria-label') || '').find(x => /\d/.test(x) && !/call/i.test(x)));
-    if (slot) { await tap(slot); await wait(600); } else notes.push('Pickup, when: the fixture lot has no hours; the page is "Call to set a time" and the pass is ready without a slot');
+    if (slot) { await tap(slot); await wait(600); } else notes.push('Pickup, when: the fixture lot has no hours; the page is "Call" over the number and the pass is ready without a slot');
     for (let i = 0; i < 4 && !(await visible(/^Pass, /)); i++) { await page.mouse.move(196, 500); await page.mouse.wheel(393, 0); await wait(1300); }
     await screen('pickup-pass');
     const pb = await page.locator('[aria-label^="Pass, "]').first().boundingBox();
@@ -304,7 +312,7 @@ const steps = [
     await tap('Done', 'last'); await wait(1300);
   }],
   ['Plates', async () => {
-    if (!/plate/i.test(await bodyText())) notes.push('Plates: the word "plate" is not on the glass');
+    if (!/filed/i.test(await bodyText())) notes.push('Plates: the ring carries no word (expected "Filed by" or "Filed")');
     await screen('plates');
     await wait(15500);   // the local demo cadence: filed 4 s, approved 9 s, mailed 14 s after the start (sale.ts)
     await screen('plates-mailed');
@@ -323,7 +331,7 @@ const steps = [
     if (!(await until(() => visible(/^Take it/), 6000))) throw new Error('no Offer page on ?offer=1');
     await screen('offer');
     await tap(/^Take it/, 'last');
-    if (!(await until(async () => /who is it for/i.test(await bodyText()), 8000))) throw new Error('Take it did not open Won');
+    if (!(await until(() => visible(/^ID, next/), 8000))) throw new Error('Take it did not open Won');
   }],
 ];
 

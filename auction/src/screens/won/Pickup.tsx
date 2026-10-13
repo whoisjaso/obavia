@@ -1,8 +1,11 @@
 /* Pickup. Three pages: where; when; the pass. When is the dealer's own hours
    from the lot (car.hours, set on the Desk), each a choice, with the
-   after-hours line under them to call; a lot with no hours shows one line,
-   "Call to set a time", and the number, and the pass is ready without a slot. At the lot the dealer scans the
-   VIN, the car starts, the pass turns green: that is when the sale completes.
+   after-hours line under them to call; a lot with no hours shows one word,
+   "Call", over the number, and the pass is ready without a slot. At the lot the dealer scans the
+   VIN, the car starts, the pass turns green: that is when the sale completes. The key beside the six turns a
+   quarter on that frame (DOCTRINE §5, "the key"; rule 14: the car started gets its rendered moment), with the
+   chime, the air and the success haptic (feel.done, from sale.ts locally or followServer with a Worker); no
+   word says "started": the green pass and the green name do.
    Locally, hold the pass to stand in for the dealer's scan; on the server the
    scan sets the lot's sale.startedAt and the pass turns green from that.
    While the pass is on the glass the screen goes to full brightness, as a
@@ -33,16 +36,20 @@ import { theme } from '../../theme';
 export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   const sale = useSale();
   const reduce = useReducedMotion();
-  const pulse = useSharedValue(1), green = useSharedValue(sale?.pickedUp ? 1 : 0);
+  const pulse = useSharedValue(1), green = useSharedValue(sale?.pickedUp ? 1 : 0), turn = useSharedValue(sale?.pickedUp ? 1 : 0);
   // waiting for the dealer's scan: the pass breathes (sine, both legs, 1 s a breath). Decoration, so
   // reduced motion keeps it still. The scan: the breath stops where it is and settles, and the green pass
   // crossfades over the ink one in 240 ms, on the same frame as the chime (sale.ts fires feel.done).
   useEffect(() => {
     if (sale?.arrived && !sale.pickedUp && !reduce) pulse.value = withRepeat(withSequence(withTiming(1.03, { duration: 500, easing: BREATH }), withTiming(1, { duration: 500, easing: BREATH })), -1);
     else pulse.value = withTiming(1, { duration: ms.green, easing: EASE_OUT });
-    if (sale?.pickedUp) green.value = withTiming(1, { duration: ms.green, easing: EASE_OUT });
+    if (sale?.pickedUp) {
+      green.value = withTiming(1, { duration: ms.green, easing: EASE_OUT });
+      turn.value = reduce ? 1 : withTiming(1, { duration: ms.green, easing: EASE_OUT });   // the key turns as the pass goes green
+    }
   }, [sale?.arrived, sale?.pickedUp]);
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  const keyStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${-90 * turn.value}deg` }] }));
   const [page, setPage] = useState(sale?.slot ? 2 : 0);
   const times = pickupWhen(car);
   const ready = !!sale?.slot || times.kind === 'call';   // the pass shows once a time is picked, or at once when the time is set by phone
@@ -91,17 +98,18 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   ) : (
     <Page>
       {times.call ? (
-        <Pressable onPress={() => call(times.call)} style={{ alignItems: 'center' }} accessibilityRole="button" accessibilityLabel={`Call to set a time, ${times.call}`}>
-          <Label>Call to set a time</Label>
+        /* the one word over the number it dials (lego §4.1) */
+        <Pressable onPress={() => call(times.call)} style={{ alignItems: 'center' }} accessibilityRole="button" accessibilityLabel={`Call ${times.call}`}>
+          <Label>Call</Label>
           <Body ink={theme.color.accent} style={{ marginTop: theme.space.xs }}>{times.call}</Body>
         </Pressable>
-      ) : <Label>Call to set a time</Label>}
+      ) : <Label>Call</Label>}
     </Page>
   );
 
   const pass = (
     <Page foot={started ? <Button label="Done" onPress={onDone} /> : undefined}>
-      {(started || times.kind === 'slots') && <Label>{started ? 'Started' : sale.slot ?? 'Pick a time'}</Label>}
+      {!started && times.kind === 'slots' && <Label>{sale.slot ?? 'Pick a time'}</Label>}
       {ready && (
         <Animated.View style={[{ marginTop: theme.space.m, alignItems: 'center' }, pulseStyle]}>
           {/* the pass is a cloud: it sinks under the thumb, and breathes once when the dealer's scan
@@ -121,7 +129,7 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
                   centred under the QR. The pass tile object does not go behind the QR: a second code under the
                   real one fights it (judged on the capture), so the real QR stands alone. */}
               <View style={s.sixRow}>
-                <Object3D name="key" height={KEY} delay={120} style={s.key} />
+                <Animated.View style={[s.key, keyStyle]}><Object3D name="key" height={KEY} delay={120} /></Animated.View>
                 <Serif size={theme.size.price * 0.625} style={s.six}>{six}</Serif>
                 <View style={{ width: KEY * 0.5 }} />
               </View>

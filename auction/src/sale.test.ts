@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // the sensory layer loads native modules; the sale only needs to know it was called
 vi.mock('./feel', () => ({ feel: { heartbeat: vi.fn(), done: vi.fn(), tick: vi.fn() } }));
 
-import { arriveAtLot, clearSale, followServer, nextTile, offerLeft, openSale, payByWords, payDeadline, peekSale, pickupWhen, platesWords, runPlates, titleDueAt, wonOpensItself, PAY_WINDOW_MS, type Sale } from './sale';
+import { arriveAtLot, clearSale, followServer, nextTile, offerLeft, openSale, paid, payByWords, payDeadline, peekSale, pickupWhen, platesWords, runPlates, tileWord, titleDueAt, wonOpensItself, PAY_WINDOW_MS, type Sale } from './sale';
 
 const HOUR = 3_600_000;
 // Tue Oct 13 2026 21:37 UTC = 4:37 pm in Houston (CDT, UTC-5)
@@ -190,5 +190,40 @@ describe('the plates words', () => {
       expect(w.split(' ').length).toBeLessThanOrEqual(4);
       expect(w).not.toMatch(/[\u2013\u2014]/);
     }
+  });
+});
+
+describe('the last tile reads what it opens (simplicity-audit change 11), and the server rewards fire on arrival', () => {
+  const base = { pay: undefined, paidAt: undefined, pickedUp: undefined, id: undefined } as Pick<Sale, 'paidAt' | 'pay' | 'pickedUp' | 'id'>;
+  const tx = { name: 'M', dob: '', address: '', licence: '', state: 'TX', confirmed: true };
+
+  it('Pay with the coin while the balance is open; Keys with the key once the money landed; Plates with the plate once started; Title out of state', () => {
+    expect(tileWord(base, true)).toEqual({ word: 'Pay', object: 'coin' });
+    expect(tileWord({ ...base, pay: 'wire' }, true)).toEqual({ word: 'Pay', object: 'coin' });          // a word chosen is not money landed
+    expect(tileWord({ ...base, pay: 'wire', paidAt: HAMMER + HOUR }, true)).toEqual({ word: 'Keys', object: 'key' });
+    expect(tileWord({ ...base, pay: 'wire' }, false)).toEqual({ word: 'Keys', object: 'key' });         // the local stand-in moves no money: the word stands in
+    expect(tileWord({ ...base, pickedUp: true, id: tx }, true)).toEqual({ word: 'Plates', object: 'plate' });
+    expect(tileWord({ ...base, pickedUp: true, id: { ...tx, state: 'OK' } }, true)).toEqual({ word: 'Title', object: 'title' });
+    expect(paid({ paidAt: HAMMER }, true)).toBe(true); expect(paid({ pay: 'cash' }, true)).toBe(false); expect(paid({ pay: 'cash' }, false)).toBe(true);
+  });
+
+  it('paidAt from the server lands once with the chime, and the start fires its own; neither fires again on a later read', async () => {
+    const { feel } = await import('./feel');
+    const done = feel.done as unknown as { mock: { calls: unknown[] } };
+    done.mock.calls.length = 0;
+    openSale({ lotId: 'L1', hammer: 5200, total: 5900, wonAt: HAMMER });
+    followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE });
+    expect(done.mock.calls.length).toBe(0);
+    followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE, paidAt: HAMMER + HOUR });
+    expect(peekSale()?.paidAt).toBe(HAMMER + HOUR);
+    expect(done.mock.calls.length).toBe(1);
+    followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE, paidAt: HAMMER + HOUR });
+    expect(done.mock.calls.length).toBe(1);
+    followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE, paidAt: HAMMER + HOUR, startedAt: HAMMER + 2 * HOUR });
+    expect(peekSale()?.pickedUp).toBe(true);
+    expect(done.mock.calls.length).toBe(2);
+    followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE, paidAt: HAMMER + HOUR, startedAt: HAMMER + 2 * HOUR });
+    expect(done.mock.calls.length).toBe(2);
+    clearSale();
   });
 });

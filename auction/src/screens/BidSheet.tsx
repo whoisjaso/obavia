@@ -9,8 +9,13 @@
    a bid reopens the phone. The deposit back
    from Whop lands its held line with the success haptic and the air swell,
    one event, 200 ms before the bid goes; the thud is the bid's own ack.
-   The first bid ever states the auction terms once (decisions §9 D10): four
-   short lines under the price, and that Bid carries the terms version. */
+   The first bid ever states the auction terms once (decisions §9 D10, §3.4 as
+   amended October 13, 2026): on their own page, the last of the first-bid
+   sequence (after the deposit), the number in Bodoni over the four lines and
+   the one cloud Bid, so the terms sit where the irrevocable act is; that Bid
+   carries the terms version. The sheet itself never shows them, and after the
+   ack nothing but the price, the mark and the held line is on the glass. The
+   increment ("+ $250") is not on the sheet until a deposit exists (lego §4.7). */
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -52,18 +57,16 @@ const COIN_H = 88;
 /** How long the glass holds on the captured deposit: the coin's turn (400 ms) and one landing's worth of rest
     on its face, then the held line lands and the bid goes. No coin shipped: no hold. */
 const COIN_HOLD = COIN ? momentClock(COIN).totalMs + ms.land : 0;
-const TERMS_ROOM = 96;   // the four terms at 17 pt, read at arm's length (DOCTRINE §4.3): five lines on a 393 phone
 const AIR = 64;          // the 17 pt words, the held line and the air above the cloud's crowns: everything fits at rest, nothing touches
-type Phase = 'arming' | 'phone' | 'id' | 'deposit' | 'inflight' | 'landed' | 'rejected';
+type Phase = 'arming' | 'phone' | 'id' | 'deposit' | 'terms' | 'inflight' | 'landed' | 'rejected';
 
 export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot; now: number; steps: number; onClose: () => void }) {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  // the terms read: shown when the Worker has not stamped the terms on this buyer (or has not said yet), and
-  // again on a 409. Read once at open so the lines do not leave while the bid lands. Its Bid sends the version.
+  // the terms read: the terms page stands before the bid when the Worker has not stamped the terms on this buyer
+  // (or has not said yet), and again on a 409. Read once at open. The page's Bid sends the version.
   const [terms, setTerms] = useState<number | undefined>(() => (peekBuyer().termsCurrent === true ? undefined : 0));
-  // the four lines take more room than the max-bid word they replace: the sheet stands taller while they show
-  const open = height * 0.46 + AIR + insets.bottom + (terms !== undefined ? TERMS_ROOM : 0);
+  const open = height * 0.46 + AIR + insets.bottom;
   const reduce = useReducedMotion();
   const y = useSharedValue(reduce ? 0 : open);
   const fade = useSharedValue(reduce ? 0 : 1);   // reduced motion: the sheet fades where it rests
@@ -148,8 +151,13 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   useEffect(() => { dragSteps.value = stepsNow; if (phase === 'arming') setStamp(null); }, [stepsNow]);   // a reset moves the base too; a new number clears an old line
 
   const place = async () => {
-    if (peekBuyer().phoneVerified !== true) { setPhase('phone'); return; }   // the chain's first link: Bid, Phone, ID, Pay
+    if (peekBuyer().phoneVerified !== true) { setPhase('phone'); return; }   // the chain's first link: Bid, Phone, ID, Pay, the terms
     if (!once.deposit) { setPhase(once.licence ? 'deposit' : 'id'); return; }
+    if (terms !== undefined) { setPhase('terms'); return; }                  // the last page before the irrevocable act
+    await send();
+  };
+  /** The bid itself: the irrevocable act. From the sheet's Bid once the terms are stamped, else from the terms page's. */
+  const send = async () => {
     setPhase('inflight'); setStamp(null);
     const key = `${ME}-${car.id}-${Date.now()}`;
     let ack: Ack;
@@ -158,7 +166,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
       // negative paths: silent; at most one line says what happened
       const code = e instanceof Refused ? e.code : '';
       if (code === 'phone_required') { setBuyer({ phoneVerified: false }); setPhase('phone'); return; }   // the number again, nothing else
-      if (code === 'terms_required') { setBuyer({ termsCurrent: false }); setTerms(Date.now()); setPhase('arming'); return; }   // the read again, nothing else
+      if (code === 'terms_required') { setBuyer({ termsCurrent: false }); setTerms(Date.now()); setPhase('terms'); return; }   // the read again, nothing else
       if (code === 'win_cap') { setBuyer({ winsLeft: 0 }); setPhase('rejected'); setStamp(SAID.win_cap); return; }
       if (code === 'too_many_bids') {
         // the Worker's 429: the words, the seconds beside them counting down, Bid off until they pass
@@ -178,7 +186,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
       if (code === 'deposit') { once.deposit = false; setPhase('deposit'); return; }
       setPhase('arming'); setStamp(SAID.not_sent); return;
     }
-    setBuyer({ termsCurrent: true });   // the lot answered: the Worker stamped the terms with this bid
+    setBuyer({ termsCurrent: true }); setTerms(undefined);   // the lot answered: the Worker stamped the terms with this bid; never again
     if (ack.ok) {
       // the high-bidder moment, all inside 100 ms: the thud, the heavy impact and the punch on the ack;
       // 90 ms later the lead chime, the success haptic and the leading mark on one frame
@@ -209,7 +217,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     if (r === 'cancelled') { setPhase('arming'); return; }              // silence is the punishment
     if (r === 'failed') { setPhase('arming'); return; }                   // silent too: the button is still there
     // the capture lands: the coin turns once beside the $250 (the Deposit's moment); then the line lands
-    // (feel.held on its first frame), then the bid goes
+    // (feel.held on its first frame), then the terms page (the first bid ever), then the bid goes
     setCaptured(true);
     later(() => { setLand(Date.now()); setPhase('arming'); later(place, ms.land); }, COIN_HOLD);
   };
@@ -238,12 +246,14 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
               {stamp ? (
                 <Stamp key={stamp} text={stamp} number={retryAt !== null ? `${left} s` : undefined} name={held?.name}
                   onPress={held ? () => { go({ screen: held.screen, lotId: held.lotId }); close(); } : undefined} />
-              ) : <Label style={{ marginTop: 6 }}>{`+ $${dollars(increment(amount))}`}</Label>}
+              ) : /* the increment, only once a deposit exists: before it the number is the one thing (lego §4.7) */
+                <Label style={{ marginTop: 6 }}>{landKey !== undefined ? `+ $${dollars(increment(amount))}` : ' '}</Label>}
 
-              {/* the first bid ever: the four terms in the ceiling's place (the ceiling is not relevant yet) */}
-              {terms !== undefined ? (
-                <Landing key={terms} animate={terms > 0}><Terms /></Landing>
-              ) : /* the second wheel: an advanced option, one faint word until it is wanted */ !ceilOpen ? (
+              {/* the second wheel: an advanced option, one faint word until it is wanted; not before the first bid,
+                  and not once the bid is away (nothing to do with it then) */}
+              {terms !== undefined || phase !== 'arming' ? (
+                <View style={{ paddingVertical: theme.space.xs }} />
+              ) : !ceilOpen ? (
                 <Pressable onPress={() => { setCeilOpen(true); feel.select(); }} hitSlop={10} style={{ paddingVertical: theme.space.xs }} accessibilityRole="button" accessibilityLabel={ceilSteps ? `Max bid up to ${dollars(ceiling)} dollars` : 'Set a max bid'}>
                   {/* "max bid": the buyer's own word for it (eBay's); "ceiling" was the engine's */}
                   <Label ink={ceilSteps ? theme.color.ink : theme.color.faint}>{ceilSteps ? `up to $${dollars(ceiling)}` : 'max bid'}</Label>
@@ -275,9 +285,10 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
         </Animated.View>
       </GestureDetector>
       {teach && <Teach />}
-      {/* the first bid: the phone, then the licence, then the deposit; the sheet waits under them */}
+      {/* the first bid: the phone, then the licence, then the deposit, then the terms; the sheet waits under them */}
       {phase === 'phone' && <PhoneSignIn onDone={phoned} onCancel={() => setPhase('arming')} />}
       {phase === 'id' && <IdScan onDone={id => { once.licence = id; setPhase('deposit'); }} onCancel={() => setPhase('arming')} />}
+      {phase === 'terms' && <TermsPage amount={amount} hold={hold} onBid={() => { void send(); }} onCancel={() => setPhase('arming')} />}
     </View>
   );
 }
@@ -311,24 +322,23 @@ function Tick() {
   return <Svg width={26} height={26} viewBox="0 0 26 26"><Path d="M5 13.5 L10.5 19 L21 7.5" stroke={theme.color.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>;
 }
 
-/** The one slow moment, Apple's shape: $250 · refunded if you lose. Once, ever. The coin is not on the glass
-    until the deposit exists (lego §4.7, absence); as the capture lands it comes back and settles face up touching
-    the $250 (§4.1), one turn of 400 ms, and rests there while the Pay verb leaves (its room kept, so the number
-    never moves). Reduced motion: the resting coin appears at once. No new sound: the held line's feel.held is
-    the moment's body proof, as before. */
+/** The one slow moment, Apple's shape: $250 · back if you lose. Once, ever. The rendered coin at rest touching
+    the $250 is the label (DOCTRINE §5; simplicity-audit change 13, October 13, 2026: no DEPOSIT word); as the
+    capture lands it turns once (400 ms) and settles face up again while the Pay verb leaves (its room kept, so
+    the number never moves). Reduced motion: the resting coin stays. No new sound: the held line's feel.held is
+    the moment's body proof, as before. "back if you lose" is the one phrase everywhere (CP9). */
 function Deposit({ captured, onConfirm, onCancel }: { captured: boolean; onConfirm: () => void; onCancel: () => void }) {
   const reduce = useReducedMotion();
-  const { f, onReady, begin } = useMoment(COIN, reduce, 'hidden');   // not on the glass until the deposit exists
+  const { f, onReady, begin } = useMoment(COIN, reduce, 'rest');   // the coin at rest, the money's own object
   useEffect(() => { if (captured) return begin(); }, [captured]);
   return (
     <View style={s.deposit}>
-      <Label>Deposit</Label>
       <View style={s.depositRow}>
         <Moment m={COIN} f={f} height={COIN_H} onReady={onReady} style={s.coin} testID="coin-sheet" />
         <Text style={s.depositAmt}>${DEPOSIT}</Text>
         <View style={{ width: COIN_H * 0.5 }} />
       </View>
-      <Text style={s.depositLine}>refunded if you lose</Text>
+      <Text style={s.depositLine}>back if you lose</Text>
       <View style={captured ? s.gone : null} pointerEvents={captured ? 'none' : 'auto'} importantForAccessibility={captured ? 'no-hide-descendants' : 'auto'} accessibilityElementsHidden={captured}>
         <CloudButton label="Pay" onPress={captured ? undefined : onConfirm} style={{ marginTop: theme.space.s }} accessibilityLabel={`Pay ${DEPOSIT} dollars with Apple Pay`} />
         <Pressable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel="Not now" style={{ alignSelf: 'center' }}><Text style={s.cancel}>Not now</Text></Pressable>
@@ -343,6 +353,35 @@ function Terms() {
     <View style={s.terms} accessible accessibilityLabel={`Terms. ${TERMS.join('. ')}.`}>
       {TERMS.map(t => <Text key={t} style={s.termsLine}>{t}</Text>)}
     </View>
+  );
+}
+
+/** The terms page: the last page of the first-bid sequence (decisions §3.4, amended October 13, 2026). The number
+    the thumb dragged, in Bodoni, over the four lines the law places (Bus. & Com. Code §2.328), and under them the
+    one cloud, Bid: the terms sit where the irrevocable act is, read once, and leave the glass with the act. "Not
+    now" sits faint top left, last in the reading order. The page arrives as the phone page does (Arrive). */
+function TermsPage({ amount, hold, onBid, onCancel }: { amount: number; hold: boolean; onBid: () => void; onCancel: () => void }) {
+  const insets = useSafeAreaInsets();
+  const k = useSharedValue(0);
+  useEffect(() => { feel.settle(); k.value = withTiming(1, { duration: ms.sheetFade, easing: EASE_OUT }); }, []);
+  const st = useAnimatedStyle(() => ({ opacity: k.value }));
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, st]}>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.sky, paddingTop: insets.top, paddingBottom: insets.bottom + theme.space.m }]}>
+        <Sky />
+        <Feather />
+        <View style={s.termsPage}>
+          <View style={s.termsMiddle}>
+            <Serif size={56}>${dollars(amount)}</Serif>
+            <Terms />
+          </View>
+          <CloudButton label="Bid" onPress={onBid} holdMs={hold ? theme.ms.hold : undefined} accessibilityLabel={hold ? 'Bid, double tap and hold' : 'Bid'} />
+        </View>
+        <Pressable onPress={onCancel} hitSlop={12} style={[s.later, { top: insets.top + theme.space.s }]} accessibilityRole="button" accessibilityLabel="Not now">
+          <Text style={s.laterText}>Not now</Text>
+        </Pressable>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -408,8 +447,12 @@ const s = StyleSheet.create({
   stampRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'center', columnGap: 10, rowGap: 2, minHeight: 28, paddingHorizontal: theme.space.s },   // a long name drops under the words, still touching
   stampNumber: { ...theme.type.sansBold, fontVariant: ['tabular-nums'], minWidth: 40, textAlign: 'left' },   // the digits hold their place as they fall
   stampName: { letterSpacing: 0, flexShrink: 1 },
-  terms: { alignItems: 'center', gap: 4, paddingTop: theme.space.xs },
-  termsLine: { ...theme.type.sans, fontSize: 17, lineHeight: 22, color: theme.color.inkSoft, textAlign: 'center' },   // arm's length: 17 pt, 8.6:1
+  terms: { alignItems: 'center', gap: 6, paddingTop: theme.space.m, paddingHorizontal: theme.space.m },
+  termsLine: { ...theme.type.sans, fontSize: 17, lineHeight: 24, color: theme.color.inkSoft, textAlign: 'center' },   // arm's length: 17 pt, 8.6:1
+  termsPage: { flex: 1, paddingHorizontal: theme.space.m, paddingTop: theme.space.xl },
+  termsMiddle: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.space.s },
+  later: { position: 'absolute', left: theme.space.m, zIndex: 2 },
+  laterText: { ...theme.type.sans, fontSize: 17, color: theme.color.faint },
   depositRoom: { height: 34, justifyContent: 'flex-end' },
   foot: { marginTop: 'auto', paddingTop: theme.space.m, alignSelf: 'stretch', alignItems: 'stretch' },   // the crowns rise into this, never into the words above
   deposit: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 6 },

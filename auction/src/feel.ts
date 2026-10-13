@@ -108,6 +108,15 @@ export const feel = {
     play('chime'); play('swell'); notify(Haptics.NotificationFeedbackType.Success);
     doneListeners.forEach(f => { try { f(); } catch {} });
   },
+  /** The win, the chest pattern's strike (DOCTRINE §4 rule 14): on the hammer's contact frame the chime, the air
+      swell and the heavy impact at once, then the success haptic 90 ms later, inside the 100 ms window, as the
+      page settles in under the puff. Once per car: Won calls it on the strike and never again. */
+  win() {
+    lastMoment = Date.now();
+    play('chime'); play('swell'); impact(Haptics.ImpactFeedbackStyle.Heavy);
+    setTimeout(() => notify(Haptics.NotificationFeedbackType.Success), 90);
+    doneListeners.forEach(f => { try { f(); } catch {} });
+  },
   /** A Won step done (ID, Insure, each signature): a short ding and a light impact, and the pressed surface
       breathes once. Lighter than done, so the win's chime keeps its meaning (native-patterns §6 item 6). */
   step() {

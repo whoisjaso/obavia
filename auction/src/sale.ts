@@ -24,6 +24,7 @@ export type Sale = {
   insured?: boolean;
   signed: Partial<Record<Doc, Signature>>;
   pay?: 'ach' | 'wire' | 'cash';
+  paidAt?: number;              // the money landed (the Worker's sale.paidAt, the Whop return); the key appears on that frame
   invoiceUrl?: string;          // the balance invoice on Whop (the lot's sale.invoiceUrl, W3-A); Bank and Wire open it
   slot?: string;
   arrived?: boolean;            // geofence at the lot
@@ -52,6 +53,19 @@ export const outOfState = (s: Sale | null) => !!s?.id?.confirmed && s.id.state !
 
 /** Sign is done when both drawn documents carry a signature. */
 export const signedAll = (s: Sale) => !!(s.signed.guide && s.signed.bill);
+
+/** The balance is paid: the Worker's paidAt (the money landed); the local stand-in, which moves no money, takes
+    the chosen word as the payment. */
+export const paid = (s: Pick<Sale, 'paidAt' | 'pay'>, worker = WORKER) => !!s.paidAt || (!worker && !!s.pay);
+
+/** The last tile reads what it opens, with its object (DOCTRINE §4 rule 13; lego §4.6, sequence): Pay with the
+    coin while the balance is open, Keys with the key once the money landed, Plates with the plate once the car
+    started (Title out of state). The word and the object come from one place so they never disagree. */
+export function tileWord(s: Pick<Sale, 'paidAt' | 'pay' | 'pickedUp' | 'id'>, worker = WORKER): { word: 'Pay' | 'Keys' | 'Plates' | 'Title'; object: 'coin' | 'key' | 'plate' | 'title' } {
+  if (s.pickedUp) return outOfState(s as Sale) ? { word: 'Title', object: 'title' } : { word: 'Plates', object: 'plate' };
+  if (!paid(s, worker)) return { word: 'Pay', object: 'coin' };
+  return { word: 'Keys', object: 'key' };
+}
 
 /** Which tile is next. The next one lifts; the ones before are ticked. The last tile is done when the car has
     started at the lot (the Worker's sale.startedAt, the dealer's VIN scan): the sale is complete (decisions §2 row
@@ -113,7 +127,11 @@ export { payByWords } from './engine/time';
 
 /** The server's sale as the glass follows it: the pay-by, the hammer time, the dealer's scan and, once the
     Worker carries them, the plates states. The Lane calls this on every lot change for the sale I hold. */
-export type ServerSale = { wonAt: number; deadlineAt: number; startedAt?: number; invoiceUrl?: string; plates?: Plates | { state: Plates } };   // the Worker sends { state, at, note? } (engine/meta.ts Plates); the ring reads state
+export type ServerSale = { wonAt: number; deadlineAt: number; paidAt?: number; startedAt?: number; invoiceUrl?: string; plates?: Plates | { state: Plates } };   // the Worker sends { state, at, note? } (engine/meta.ts Plates); the ring reads state
+/** Two of the rewards the body meets (DOCTRINE §4 rule 14) arrive from the server, not from a tap: the money
+    landing (paidAt) and the car starting (startedAt). Each fires feel.done on the frame the word arrives, once;
+    the glass changes on the same setSale (the key appears on the tile; the pass turns green). The start outranks
+    the payment when both arrive in one read: one moment, never two in a frame. */
 export function followServer(server: ServerSale) {
   const cur = sale; if (!cur) return;
   const patch: Partial<Sale> = {};
@@ -121,9 +139,11 @@ export function followServer(server: ServerSale) {
   if (cur.wonAt !== server.wonAt) patch.wonAt = server.wonAt;   // the server's hammer time, so the pass matches the Desk's
   if (cur.deadlineAt !== server.deadlineAt) patch.deadlineAt = server.deadlineAt;
   if (server.invoiceUrl && server.invoiceUrl !== cur.invoiceUrl) patch.invoiceUrl = server.invoiceUrl;   // the balance invoice, once Whop has it
+  if (server.paidAt && !cur.paidAt) patch.paidAt = server.paidAt;   // the money landed
   if (server.startedAt && !cur.pickedUp) patch.pickedUp = true;   // the dealer's VIN scan
   if (platesIn && platesIn !== cur.plates) patch.plates = platesIn;
   if (Object.keys(patch).length) setSale(patch);
+  if (patch.pickedUp || patch.paidAt) feel.done();
 }
 
 /** When to pick the car up: the dealer's own hours from the lot, as the choices, with the after-hours

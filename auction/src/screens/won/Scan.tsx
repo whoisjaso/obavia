@@ -2,7 +2,9 @@
    centered lines in ink; "That's me" confirms all five at once and is live the
    moment they arrive. Tapping a fact corrects it: State opens a wheel, the
    others open the field in place; a correction lands with the light impact and
-   a green rule under the fact it changed.
+   a green rule under the fact it changed. A name reads as a name, a date as a
+   date, a street as a street, so those three carry no label (simplicity-audit
+   change 17, October 13, 2026); LICENSE and STATE keep theirs over their values.
    The ID runs twice in a buyer's life: before the first bid (BidSheet, then
    the deposit) and as the first step after a win, prefilled from the first. The licence's state
    decides whether the last step says Plates or Title. On native the camera
@@ -17,6 +19,7 @@ import Svg, { Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Label } from '../../components/Type';
 import { Feather } from '../../components/Cloud';
+import { Object3D } from '../../components/Object3D';
 import { Sky } from '../../components/Sky';
 import { feel } from '../../feel';
 import { WORKER, setSale, type Licence } from '../../sale';
@@ -45,11 +48,21 @@ function Lens({ camera, onScan }: { camera: React.RefObject<CameraView | null>; 
     onBarcodeScanned={onScan ? ({ data }) => onScan(data) : undefined} />;
 }
 
+/* The outline's rect in the frame's own 320 by 420 units, and where the SVG (xMidYMid meet) puts it on the glass:
+   the rendered object (the insurance card, D7) sits in that rect, the slot the shutter fills. */
+const VB = { w: 320, h: 420, x: 30, y: 130, w2: 260 };
+const rectOnGlass = (W: number, H: number, h2: number) => {
+  const sc = Math.min(W / VB.w, H / VB.h), ox = (W - VB.w * sc) / 2, oy = (H - VB.h * sc) / 2;
+  return { left: ox + VB.x * sc, top: oy + VB.y * sc, width: VB.w2 * sc, height: h2 * sc };
+};
+
 /** The frame. `onScan`: the barcode read is live (the shutter steps aside and the outline is the card's back, the
-    barcode band, which is the side to point at). `stamp`: a refused read's four words, where the shutter was. */
-function Frame({ kind, read, onShutter, onScan, stamp }: { kind: 'licence' | 'card'; read: boolean; onShutter: () => void; onScan?: (data: string) => void; stamp?: string | null }) {
+    barcode band, which is the side to point at). `stamp`: a refused read's four words, where the shutter was.
+    `object`: the rendered thing that belongs in the outline (the card), in place of drawn lines. */
+function Frame({ kind, read, onShutter, onScan, stamp, object }: { kind: 'licence' | 'card'; read: boolean; onShutter: () => void; onScan?: (data: string) => void; stamp?: string | null; object?: React.ReactNode }) {
   const camera = useRef<CameraView | null>(null);
   const [, setShot] = useState<string | null>(null);   // the picture's uri; held for the read, never persisted
+  const [box, setBox] = useState({ w: 0, h: 0 });
   const press = async () => {
     if (NATIVE && camera.current) {
       try {
@@ -59,15 +72,18 @@ function Frame({ kind, read, onShutter, onScan, stamp }: { kind: 'licence' | 'ca
     }
     onShutter();
   };
+  const rectH = kind === 'licence' ? 164 : 150;
+  const slot = object && box.w > 0 ? rectOnGlass(box.w, box.h, rectH) : null;
   return (
-    <View style={s.viewfinder}>
+    <View style={s.viewfinder} onLayout={e => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       {NATIVE && <Lens camera={camera} onScan={read ? undefined : onScan} />}
-      <Svg width="100%" height="100%" viewBox="0 0 320 420" preserveAspectRatio="xMidYMid meet">
-        <Rect x={30} y={130} width={260} height={kind === 'licence' ? 164 : 150} rx={14} stroke={read ? theme.color.good : theme.color.cloud} strokeWidth={1.5} strokeOpacity={read ? 1 : 0.7} fill="rgba(255,255,255,0.04)" />
+      <Svg width="100%" height="100%" viewBox={`0 0 ${VB.w} ${VB.h}`} preserveAspectRatio="xMidYMid meet">
+        <Rect x={VB.x} y={VB.y} width={VB.w2} height={rectH} rx={14} stroke={read ? theme.color.good : theme.color.cloud} strokeWidth={1.5} strokeOpacity={read ? 1 : 0.7} fill="rgba(255,255,255,0.04)" />
         {kind === 'licence' && onScan && <Rect x={50} y={190} width={220} height={60} rx={4} fill="rgba(255,255,255,0.22)" />}
         {kind === 'licence' && !onScan && <><Rect x={50} y={160} width={64} height={80} rx={8} fill="rgba(255,255,255,0.14)" /><Path d="M130 170h120M130 192h90M130 214h110M130 236h70" stroke="rgba(255,255,255,0.28)" strokeWidth={5} strokeLinecap="round" /></>}
-        {kind === 'card' && <Path d="M50 160h150M50 190h220M50 215h180M50 250h120" stroke="rgba(255,255,255,0.28)" strokeWidth={5} strokeLinecap="round" />}
+        {kind === 'card' && !object && <Path d="M50 160h150M50 190h220M50 215h180M50 250h120" stroke="rgba(255,255,255,0.28)" strokeWidth={5} strokeLinecap="round" />}
       </Svg>
+      {slot && <View pointerEvents="none" style={[{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }, slot]}>{object}</View>}
       {!read && !!stamp && <Text style={s.stamp} accessibilityLiveRegion="polite">{stamp}</Text>}
       {!read && !onScan && (
         <Pressable onPress={press} style={s.shutter} accessibilityRole="button" accessibilityLabel="Take the photo">
@@ -84,6 +100,8 @@ const STATES = ['AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL', 'GA'
 
 type Fact = 'Name' | 'Born' | 'Address' | 'License' | 'State';
 const KEYS: Exclude<Fact, 'State'>[] = ['Name', 'Born', 'Address', 'License'];
+/* The facts that carry a label over their value; the other three are what they look like. */
+const LABELLED: Fact[] = ['License', 'State'];
 /* The keyboard each field opens with. The licence number is masked back to its last four as it lands: the
    phone keeps no more of it than the read showed. */
 const KEYBOARD: Record<Exclude<Fact, 'State'>, 'default' | 'numbers-and-punctuation' | 'number-pad'> = { Name: 'default', Born: 'numbers-and-punctuation', Address: 'default', License: 'number-pad' };
@@ -184,7 +202,7 @@ export function IdScan({ initial, onDone, onCancel }: { initial?: Licence; onDon
               <Animated.View key={k} entering={pre ? undefined : FadeInDown.delay(i * 60).duration(180)} style={{ alignSelf: 'stretch', alignItems: 'center' }}>
                 {open === k && k !== 'State' ? (
                   <View style={s.fact}>
-                    <Label>{k}</Label>
+                    {LABELLED.includes(k) && <Label>{k}</Label>}
                     <TextInput value={draft} onChangeText={setDraft} onSubmitEditing={close} onBlur={close}
                       autoFocus selectTextOnFocus returnKeyType="done" keyboardType={KEYBOARD[k]} placeholder={k === 'License' ? v : undefined}
                       placeholderTextColor={theme.color.faint} autoCapitalize={k === 'Name' || k === 'Address' ? 'words' : 'none'} autoCorrect={false}
@@ -194,7 +212,7 @@ export function IdScan({ initial, onDone, onCancel }: { initial?: Licence; onDon
                 ) : (
                   <Pressable onPress={() => tap(k)} style={s.fact} accessibilityRole="button" accessibilityLabel={`${k} ${v}`} accessibilityHint="Opens it to correct"
                     accessibilityState={{ expanded: open === k }}>
-                    <Label>{k}</Label>
+                    {LABELLED.includes(k) && <Label>{k}</Label>}
                     {!(k === 'State' && open === 'State') && <Text style={s.value}>{v}</Text>}
                     {!(k === 'State' && open === 'State') && <View style={[s.mark, fixed[k] && s.markOn]} />}
                   </Pressable>
@@ -212,17 +230,23 @@ export function IdScan({ initial, onDone, onCancel }: { initial?: Licence; onDon
   );
 }
 
+/** Insure. The rendered insurance card sits in the frame as the slot (DOCTRINE §5; legibility-audit D7): the
+    object says what to point at, no words. The VIN belongs to the agent on the phone, not to the lot: one faint
+    word under the shutter opens it (simplicity-audit change 18, October 13, 2026). */
 export function InsureScan({ vin, onDone }: { vin: string; onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const [read, setRead] = useState(false);
+  const [vinOpen, setVinOpen] = useState(false);
   const shutter = () => { feel.touch(); setTimeout(() => { setRead(true); setSale({ insured: true }); feel.step(); setTimeout(onDone, 700); }, 500); };
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.ink, paddingTop: insets.top + theme.space.m }]}>
-      {/* what goes in the frame, in plain words: the card outline alone was a drawing to decode */}
-      <Text style={s.what}>Insurance card</Text>
-      <Label ink={theme.color.ice} style={{ marginTop: theme.space.s }}>VIN</Label>
-      <Text style={s.vin}>{vin}</Text>
-      <Frame kind="card" read={read} onShutter={shutter} />
+      {/* the card object in the outline it belongs to (lego §4.1): the slot says what to point at */}
+      <Frame kind="card" read={read} onShutter={shutter} object={<Object3D name="insurance" width={212} strength={read ? 1 : 0.6} />} />
+      <Pressable onPress={() => { feel.select(); setVinOpen(v => !v); }} hitSlop={12} style={[s.vinRow, { paddingBottom: insets.bottom + theme.space.s }]}
+        accessibilityRole="button" accessibilityLabel={vinOpen ? `VIN ${vin}` : 'VIN'} accessibilityState={{ expanded: vinOpen }}>
+        <Text style={s.vinWord}>VIN</Text>
+        {vinOpen && <Text style={s.vin}>{vin}</Text>}
+      </Pressable>
     </View>
   );
 }
@@ -242,6 +266,7 @@ const s = StyleSheet.create({
   later: { position: 'absolute', left: theme.space.m },
   stamp: { ...theme.type.sansBold, position: 'absolute', bottom: 64, left: theme.space.m, right: theme.space.m, fontSize: 17, color: theme.color.cloud, letterSpacing: 2, textTransform: 'uppercase', textAlign: 'center' },
   laterText: { ...theme.type.sans, fontSize: 17, color: theme.color.cloud, opacity: 0.8 },
-  what: { ...theme.type.sansBold, fontSize: 22, color: theme.color.cloud, letterSpacing: 3, textTransform: 'uppercase', textAlign: 'center' },
-  vin: { ...theme.type.sansBold, fontSize: 17, color: theme.color.cloud, letterSpacing: 1.5, textAlign: 'center', marginTop: 4 },
+  vinRow: { alignItems: 'center', paddingTop: theme.space.s, gap: 4 },
+  vinWord: { ...theme.type.sans, fontSize: 17, color: theme.color.cloud, opacity: 0.6, letterSpacing: 1.5 },
+  vin: { ...theme.type.sansBold, fontSize: 17, color: theme.color.cloud, letterSpacing: 1.5, textAlign: 'center' },
 });

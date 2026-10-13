@@ -1,14 +1,15 @@
-/* Plates. One ring, the plate inside it, three words. Pull to refresh. A county kickback turns the
-   ring amber and the dealer fixes it. Before the server has sent a filing the ring is grey and says the
-   dealer's deadline (sale.ts platesWords), never a stage that has not happened. */
+/* Plates. One ring, the plate inside it, the one word inside the ring: the ring's fill and its word are the
+   stage (simplicity-audit change 16, October 13, 2026; Find My does not caption its ring). Pull to refresh. A
+   county kickback turns the ring amber and the dealer fixes it. Before the server has sent a filing the ring is
+   grey and says the dealer's deadline (sale.ts platesWords), never a stage that has not happened. */
 import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ring } from '../../components/Ring';
 import { FAINT, Object3D } from '../../components/Object3D';
-import { Button, Caps, Label } from '../../components/Type';
+import { Button, Caps } from '../../components/Type';
 import { feel } from '../../feel';
-import { PLATES_WORDS, platesWords, useSale, type Plates as Stage } from '../../sale';
+import { platesWords, useSale, type Plates as Stage } from '../../sale';
 import { theme } from '../../theme';
 
 const STEPS: Exclude<Stage, 'none'>[] = ['filed', 'approved', 'mailed'];
@@ -27,7 +28,6 @@ export function Plates({ onBack }: { onBack: () => void }) {
   return (
     <ScrollView style={StyleSheet.absoluteFill} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + theme.space.m, paddingBottom: insets.bottom + theme.space.m, paddingHorizontal: theme.space.m, alignItems: 'center', justifyContent: 'center' }}
       refreshControl={<RefreshControl refreshing={busy} onRefresh={refresh} tintColor={theme.color.accent} />}>
-      <Label>Plates</Label>
       <View style={s.ringWrap}>
         <Ring size={220} stroke={6} progress={Math.max(0.02, progress)} blue={false} grey={stage === 'none'} warn={stage === 'kickback'} />
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -38,19 +38,12 @@ export function Plates({ onBack }: { onBack: () => void }) {
           </View>
         </View>
       </View>
-      <View style={s.steps}>
-        {STEPS.map((st, k) => {
-          const on = stage === 'mailed' || (i >= k && stage !== 'kickback');
-          return <Label key={st} ink={on ? theme.color.ink : theme.color.faint}>{PLATES_WORDS[st]}</Label>;
-        })}
-      </View>
       <View style={{ marginTop: theme.space.xl, alignSelf: 'stretch' }}><Button label="Back" onPress={onBack} ghost /></View>
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  ringWrap: { width: 220, height: 220, marginTop: theme.space.m, alignItems: 'center', justifyContent: 'center' },
-  steps: { flexDirection: 'row', gap: theme.space.m, marginTop: theme.space.l },
+  ringWrap: { width: 220, height: 220, alignItems: 'center', justifyContent: 'center' },
   word: { maxWidth: 190, lineHeight: 24 },   // inside the ring: the deadline reads as two centred lines
 });

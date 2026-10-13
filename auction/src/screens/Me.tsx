@@ -15,7 +15,11 @@
    Under the $250, where it stands in the Worker's word (depositLine.ts): held, or it went to the car once the
    engine started (the car's name in Bodoni touching the words, the row opens that car's Won to read), sent
    back, forfeited with the car, disputed. "Get it back" only while held. A won car's row under Cars opens
-   its Won the same way (Lane's onOpenCar reads a won lot). */
+   its Won the same way (Lane's onOpenCar reads a won lot).
+   The deposit coming back is the return (DOCTRINE §4 rule 14; RESONANCE's return rule): it fires on the frame the
+   word "released" arrives, from the Worker (the push lands, Me opens, GET /me says refunded) or from the tap on
+   Get it back, never on the tap itself: the coin beside the $250 rolls once and settles face up as the chime, the
+   air and the success haptic land (feel.done). Once per return; a launch that already finds it back is silent. */
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Linking, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
@@ -25,7 +29,8 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { EASE_OUT, spring } from '../motion';
 import { Ring } from '../components/Ring';
 import { Sheet } from '../components/Sheet';
-import { Object3D } from '../components/Object3D';
+import { Moment, useMoment } from '../components/Moment';
+import { MOMENT_3D } from '../components/scene3d';
 import { Body, Button, Caps, Hairline, Label, Page, Pager, Serif } from '../components/Type';
 import type { Car } from '../data/cars';
 import { inLastTwoMinutes } from '../engine/auction';
@@ -40,8 +45,13 @@ import { AUCTION_URL, DEPOSIT, ME, WINS_PER_YEAR, backAfterADay, heldLot, localC
 import { theme } from '../theme';
 
 const WEB_FIELD = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null;
-/** The coin's canvas beside the 34 pt $250 (the coin fills 86 percent of it): the deposit at rest, face up. */
-const COIN = 44;
+/** The coin moment, light on the sheet's sky; null when no render ships. */
+const COIN_MOMENT = MOMENT_3D.coin?.light ?? null;
+/** The coin's cell beside the 34 pt $250 (the coin fills its middle 74 percent): the deposit at rest, face up. */
+const COIN = 52;
+/** The last standing Me showed in this launch: the return fires on the change to released, not on a launch that
+    already finds it back. */
+let lastStanding: DepositStanding | undefined;
 
 /** The name, or its field. Bodoni either way: the name owns the top of Me. Save is the one verb and shows
     only once there is a name to save; Return saves too. A saved name taps open to correct it. */
@@ -172,8 +182,17 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
     busy.current = true; setRefused(null);
     const r = await releaseDeposit();
     busy.current = false;
-    if (r.ok) { setReleased(true); feel.done(); } else setRefused(r.reason);
+    if (r.ok) setReleased(true); else setRefused(r.reason);   // the reward is the arrival's (below), not the tap's
   };
+  // the return: the coin rolls once and the chime, the air and the success haptic land on the frame the word
+  // changes to released; the coin rests face up before and after (Moment from 'rest')
+  const reduce = useReducedMotion();
+  const coin = useMoment(COIN_MOMENT, reduce, 'rest');
+  useEffect(() => {
+    const was = lastStanding; lastStanding = standing;
+    if (standing !== 'released' || was === undefined || was === 'released') return;
+    return coin.begin(() => feel.done());
+  }, [standing]);
 
   const mePage = (
     <Page foot={<Button label="Sign out" onPress={() => { feel.silence(); onClose(); }} ghost />}>
@@ -195,7 +214,7 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
       {/* the resting coin touching the number (lego §4.1; DOCTRINE §5): the same object that turned when the deposit
           was taken, still now, because nothing happens on Me; a spacer half its width keeps the number centred */}
       <View style={s.depositRow}>
-        <Object3D name="coin" height={COIN} appear={false} style={s.coin} />
+        <Moment m={COIN_MOMENT} f={coin.f} height={COIN} onReady={coin.onReady} style={s.coin} testID="coin-me" />
         <Serif size={34}>${DEPOSIT}</Serif>
         <View style={{ width: COIN * 0.5 }} />
       </View>
@@ -285,6 +304,6 @@ const s = StyleSheet.create({
   openRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'center', columnGap: 10, rowGap: 2, marginTop: 2, paddingHorizontal: theme.space.s },
   openName: { letterSpacing: 0, flexShrink: 1 },
   depositRow: { flexDirection: 'row', alignItems: 'center' },
-  coin: { marginRight: 2 },
+  coin: { marginRight: -4 },   // the cell's transparent edge overlaps the gap, so the coin's rim touches the figure
   passThumb: { width: 56, height: 70, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.color.well },
 });

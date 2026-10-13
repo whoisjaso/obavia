@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # The Phase 0 exit test: build the app's web export, walk Lane to Won to Plates to Me at 393 by 852 @2x,
 # count the reads, write the evidence. Exits non-zero on any failure.
-#   tools/walkthrough/run.sh                     walk and compare with baseline.json
+#   tools/walkthrough/run.sh                     walk, compare with baseline.json, fail any screen over the three-word ceiling
 #   tools/walkthrough/run.sh --rebuild           export again even if dist is newer than the source
 #   tools/walkthrough/run.sh --write-baseline    accept this run's reads as the baseline (commit the file)
-#   tools/walkthrough/run.sh --strict            also fail any screen over the four-word ceiling
+#   tools/walkthrough/run.sh --strict            accepted, and the default since October 13, 2026 (DOCTRINE §4 rule 15)
+#   tools/walkthrough/run.sh --no-strict         compare with the baseline only (reads may not rise), no ceiling
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,14 +17,17 @@ RUN="$HERE/.runs/$STAMP"               # this run's own export: two walks at onc
 export NODE_PATH="${NODE_PATH:-$APP/node_modules}"
 export CHROME="${CHROME:-/opt/pw-browsers/chromium}"
 
-REBUILD=0; READS_FLAGS=()
+REBUILD=0; STRICT=1; READS_FLAGS=()
 for a in "$@"; do
   case "$a" in
     --rebuild) REBUILD=1 ;;
-    --write-baseline|--strict) READS_FLAGS+=("$a") ;;
+    --strict) STRICT=1 ;;
+    --no-strict) STRICT=0 ;;
+    --write-baseline) READS_FLAGS+=("$a") ;;
     *) echo "unknown flag: $a" >&2; exit 2 ;;
   esac
 done
+[ "$STRICT" = 1 ] && READS_FLAGS+=("--strict")
 
 # 1. the export, skipped when dist is newer than everything the app is built from
 stale=1

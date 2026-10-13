@@ -25,7 +25,12 @@ export const MOMENT_WAIT = 400;
 /** The frame clock's rest value: a moment that has not begun shows its first frame (the hammer raised), or
     nothing when the object is not yet on the glass at all (`from: 'hidden'`, the coin before the deposit exists:
     lego §4.7, absence); reduced motion and the absence of a render show nothing until the contact. */
-export const startFrame = (m: Moment3D | null, reduce: boolean, from: 'first' | 'hidden' = 'first') => (m && !reduce && from === 'first' ? 0 : HIDDEN);
+export type MomentFrom = 'first' | 'hidden' | 'rest';
+export const startFrame = (m: Moment3D | null, reduce: boolean, from: MomentFrom = 'first') => {
+  if (!m) return HIDDEN;
+  if (from === 'rest') return m.rest;              // the still, already there (the coin at rest before it turns again)
+  return !reduce && from === 'first' ? 0 : HIDDEN;
+};
 
 /** Play once: the frames to the contact, `onContact` on that frame, then on to the still. Reduced motion or no
     render: the still (or nothing) and the contact at once. */
@@ -41,7 +46,7 @@ export function play(m: Moment3D | null, f: SharedValue<number>, reduce: boolean
 
 /** A moment's clock and its readiness in one place: `f` for the player, `onReady` for the player's sheet, and
     `begin`, which plays once the sheet is on the glass (at most MOMENT_WAIT later) and returns its cleanup. */
-export function useMoment(m: Moment3D | null, reduce: boolean, from: 'first' | 'hidden' = 'first') {
+export function useMoment(m: Moment3D | null, reduce: boolean, from: MomentFrom = 'first') {
   const f = useSharedValue(startFrame(m, reduce, from));
   const ready = useRef(!m), waiting = useRef<null | (() => void)>(null);
   const onReady = useCallback(() => { ready.current = true; const go = waiting.current; waiting.current = null; go?.(); }, []);
