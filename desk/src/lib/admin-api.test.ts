@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NOT_YET, adminApi, bottleneck, diffWord, disputedDeposits, pickupRefusals, readMoney, readStreak, reconLine, refusals, reserveLine, scorecard, streakRow, typeWord, weekOf, WEEK1, type AdminExposure, type Money, type MoneyEvent, type Reconciliation, type Streak } from './admin-api';
+import { NOT_YET, adminApi, bottleneck, diffWord, disputedDeposits, disputeRows, gdnRow, invoicesByState, logRow, pickupRefusals, readExposure, readLog, readMoney, readPlatform, readStreak, reconLine, refusals, reserveLine, scorecard, streakRow, threeRows, typeWord, verifiedWord, weekOf, WEEK1, type AdminExposure, type Money, type MoneyEvent, type Reconciliation, type Streak } from './admin-api';
 import type { Lot } from './auction';
 
 const BASE = 'http://lane.test';
@@ -59,6 +59,8 @@ describe('admin-api: every route, and a 404 reads as Not yet', () => {
     expect(r.value.events.map(e => e.id)).toEqual(['e2', 'e1']);
     expect(r.value.payouts[0]).toMatchObject({ id: 'p1', state: 'owed', method: null, paidAt: null });
     expect(r.value.sales).toEqual([]);
+    expect(r.value.invoices).toEqual([]);
+    expect(r.value.evidencePacks).toEqual([]);
   });
   it('GET /admin/money 404 is Not yet', async () => {
     expect(await lane({}).api.money()).toEqual({ ok: false, reason: NOT_YET });
@@ -125,7 +127,7 @@ describe('admin-api: every route, and a 404 reads as Not yet', () => {
 
 describe('readMoney', () => {
   it('reads nothing as empty lists and keeps unknown methods out', () => {
-    expect(readMoney(null)).toEqual({ events: [], payouts: [], sales: [] });
+    expect(readMoney(null)).toEqual({ events: [], payouts: [], sales: [], invoices: [], evidencePacks: [] });
     expect(readMoney({ payouts: [{ lotId: 'l', method: 'venmo', state: 'paid' }] }).payouts[0]).toMatchObject({ id: 'l', method: null, state: 'paid' });
   });
 });
@@ -279,9 +281,10 @@ describe('refusals and words', () => {
     const x = { ...ex([]), bidRefusals: { byReason: { win_cap: 2, not_a_buyer: 5 }, recent: Array.from({ length: 8 }, (_, i) => ({ lotId: 'l', who: 'b', reason: 'win_cap', matched: null, at: i })) },
       tokenRefusals: { byPresented: { stale: 1 }, recent: Array.from({ length: 8 }, (_, i) => ({ claimed: 'b', reason: 'not_yours', presented: 'stale', known: 1, at: 100 + i })) } };
     const r = refusals(x);
-    expect(r.counts[0]).toEqual({ label: 'A Desk key tried to bid', n: 5 });
+    expect(r.counts[0]).toEqual({ label: 'Desk key bid', n: 5 });
     expect(r.recent).toHaveLength(10);
-    expect(r.recent[0]).toMatchObject({ label: 'Sign-in with an old token', at: 107 });
+    expect(r.recent[0]).toMatchObject({ label: 'Old token sign-in', at: 107 });
+    for (const c of [...r.counts, ...r.recent]) expect(c.label.split(/\s+/).length).toBeLessThanOrEqual(4);
     expect(refusals(ex([])).read).toBe(false);
   });
   it('the Worker\'s two bid gates have their desk words, four words or fewer', () => {
@@ -331,5 +334,154 @@ describe('disputed deposits, pickup refusals, the reserve read', () => {
     expect(reserveLine({ ...ex([]), deposits: { heldCount: 0, heldUsd: 0, byStatus: {}, reserveRatio: 1, reserveReadAt: at } })).toBe('Read Tue, Oct 13, 3:00 AM');
     expect(reserveLine({ ...ex([]), deposits: { heldCount: 0, heldUsd: 0, byStatus: {}, reserveRatio: null, reserveReadAt: null } })).toBe('Never read');
     expect(reserveLine(null)).toBe('Not read');
+  });
+});
+
+/* ---------- Wave 3 (gap-table.md §4 W3-E): the readers coded to W3-B's and W3-A's names, against a faked fetch ---------- */
+const T0 = Date.parse('2026-10-13T08:00:00Z');
+const x3 = (p: Partial<AdminExposure> = {}): AdminExposure => ({ ...ex([]), ...p });
+
+describe('W3-B routes: the lot log, the GDN, the exposure fields', () => {
+  it('GET /admin/lots/:id/log reads every row oldest first, in the desk words, with the admin key', async () => {
+    const { api, seen } = lane({ 'GET /admin/lots/lot%201/log': ok({ lotId: 'lot 1', rows: [
+      { kind: 'payout', state: 'owed', dealer: 'P1', amountUsd: 250, at: T0 + 5000 },
+      { kind: 'bid', buyer: 'b_1', amount: 5400, at: T0 + 1000 },
+      { kind: 'bid_refusal', who: 'b_2', reason: 'win_cap', at: T0 + 2000 },
+      { kind: 'signature', document: 'Buyers Guide', buyer: 'b_1', at: T0 + 3000 },
+      { kind: 'plates', state: 'filed', at: T0 + 4000 },
+      { kind: 'evidence_pack', sha256: 'abcdef0123456789', uploadedAt: null, at: T0 + 6000 },
+    ] }) });
+    const r = await api.log('lot 1');
+    expect(seen[0]).toMatchObject({ url: '/admin/lots/lot%201/log', method: 'GET', auth: `Bearer ${KEY}` });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.lotId).toBe('lot 1');
+    expect(r.value.rows.map(w => w.word)).toEqual(['Bid', 'Fifth win this year', 'Signed', 'Plates filed', 'Payout owed', 'Evidence pack']);
+    expect(r.value.rows[0]).toMatchObject({ at: T0 + 1000, line: 'b_1', amountUsd: 5400 });
+    expect(r.value.rows[5].line).toBe('sha abcdef012345 · not sent');
+    for (const w of r.value.rows) expect(w.word.split(/\s+/).length).toBeLessThanOrEqual(4);
+  });
+  it('GET /admin/lots/:id/log 404 is Not yet; a bare array and `events` read the same', async () => {
+    expect(await lane({}).api.log('l')).toEqual({ ok: false, reason: NOT_YET });
+    expect(readLog([{ type: 'deposit.captured', buyer: 'b', at: 2 }, { kind: 'incident', reason: 'no_start', dealer: 'P1', at: 1 }], 'l').rows.map(r => r.word)).toEqual(['Did not start', 'Deposit held']);
+    expect(readLog({ events: [{ kind: 'pickup_refusal', reason: 'wrong car', presented: 'ABC123', at: 1 }] }, 'l').rows[0]).toMatchObject({ word: 'Wrong car', line: 'scanned ABC123' });
+    expect(readLog(null, 'l')).toEqual({ lotId: 'l', rows: [] });
+  });
+  it('POST /admin/gdn sends the date and the two fees in cents, as typed; nothing is sent without a date or with a bad fee', async () => {
+    const { api, seen, f } = lane({ 'POST /admin/gdn': ok({ gdn_issued_at: T0, fee_per_car_cents: 19900, fee_monthly_cents: 29900 }) });
+    const r = await api.gdn(T0 + 0.4, 19900, 29900);
+    expect(seen[0]).toMatchObject({ method: 'POST', body: { issuedAt: T0, feePerCarCents: 19900, feeMonthlyCents: 29900 } });
+    expect(r).toEqual({ ok: true, value: { gdnIssuedAt: T0, feePerCarCents: 19900, feeMonthlyCents: 29900 } });
+    expect(await api.gdn(NaN, 1, 1)).toEqual({ ok: false, reason: 'no date' });
+    expect(await api.gdn(T0, 1.5, 1)).toEqual({ ok: false, reason: 'bad fee' });
+    expect(await api.gdn(T0, 1, -1)).toEqual({ ok: false, reason: 'bad fee' });
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(await lane({}).api.gdn(T0, 0, 0)).toEqual({ ok: false, reason: NOT_YET });
+  });
+  it('GET /admin/exposure reads the platform row (camel or snake), the watchers and the packs; absent stays absent', async () => {
+    const { api } = lane({ 'GET /admin/exposure': ok({ deposits: { heldCount: 1 }, platform: { gdnIssuedAt: T0, feePerCarCents: 100, feeMonthlyCents: 0 },
+      watchers: [{ lotId: 'a', watching: 3 }, { lotId: 'b', watchers: 1 }], evidencePacks: [{ lotId: 'a', buyer: 'b_1', sha256: 'ff', uploaded_at: T0, at: T0 }],
+      dealers: [{ gdn: 'P1', name: 'One', whop_account: 'biz_1', whop_account_verified_at: T0 }] }) });
+    const r = await api.exposure();
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.platform).toEqual({ gdnIssuedAt: T0, feePerCarCents: 100, feeMonthlyCents: 0 });
+    expect(r.value.watchers).toEqual([{ lotId: 'a', dealer: undefined, watching: 3 }, { lotId: 'b', dealer: undefined, watching: 1 }]);
+    expect(r.value.evidencePacks![0]).toMatchObject({ lotId: 'a', sha256: 'ff', uploadedAt: T0, uploadError: null });
+    expect(r.value.deposits).toMatchObject({ heldCount: 1, reserveRatio: null });
+    const old = readExposure({ deposits: { heldCount: 0, heldUsd: 0, byStatus: {}, reserveRatio: 1 }, lots: { open: 0, atLender: 0, floorBelowPayoff: 0 }, sales: [], incidentsByDealer: {}, dealers: [], obaviaFeesOwed: 0 });
+    expect('platform' in old).toBe(false);
+    expect(old.watchers).toBeUndefined();
+    expect(readExposure({ platform: null }).platform).toBe(null);
+    expect(readPlatform({ gdn_issued_at: null, fee_per_car_cents: null, fee_monthly_cents: null })).toEqual({ gdnIssuedAt: null, feePerCarCents: null, feeMonthlyCents: null });
+  });
+  it('GET /admin/money reads the invoices (cents or dollars, kinds outside balance and fee dropped) and the packs', () => {
+    const m = readMoney({ invoices: [{ id: 'i1', lotId: 'a', kind: 'balance', whopId: 'inv_1', state: 'open', amountCents: 540000, at: 2 }, { id: 'i2', lotId: 'a', kind: 'fee', state: 'paid', amountUsd: 199, at: 3 }, { id: 'i3', kind: 'tip', amountUsd: 1, at: 4 }],
+      disputes: [{ lot: 'a', buyer: 'b_1', dispute_id: 'dp_1', sha256: 'ab', upload_error: 'no key', created_at: 1 }] });
+    expect(m.invoices.map(i => [i.id, i.kind, i.amountUsd])).toEqual([['i2', 'fee', 199], ['i1', 'balance', 5400]]);
+    expect(m.evidencePacks).toEqual([{ lotId: 'a', buyer: 'b_1', disputeId: 'dp_1', sha256: 'ab', uploadedAt: null, uploadError: 'no key', at: 1 }]);
+  });
+});
+
+describe('Home: the three rows beside deposits held (phases.md:61)', () => {
+  const now = w3 + 2 * D;
+  const bidder = (lotId: string, closedAt: number, sold: boolean, hammer?: number | null, floor?: number | null) => ({ lotId, dealer: 'P1', closedAt, sold, bidders: 2, hammer, floor });
+  it('watchers per open lot: the exposure rows first, the lane list when the Worker does not send them, shown rounded down', () => {
+    const lanes = [lot({ id: 'a', watching: 5 }), lot({ id: 'b', watching: 2 }), lot({ id: 'c', watching: 40, closed: { at: 1, sold: true } })];
+    expect(threeRows(now, x3(), lanes)[0]).toEqual({ k: 'W', label: 'Watchers per lot', value: 3.5, shown: '3.5', from: '2 open now' });
+    expect(threeRows(now, x3({ watchers: [{ lotId: 'a', watching: 8 }, { lotId: 'b', watching: 3 }, { lotId: 'c', watching: 0 }] }), lanes)[0]).toMatchObject({ value: 11 / 3, shown: '3.6', from: '3 open now' });
+    expect(threeRows(now, null, null)[0]).toMatchObject({ value: null, shown: 'Not yet', from: 'The lane did not answer' });
+    expect(threeRows(now, x3({ watchers: [] }), lanes)[0]).toMatchObject({ value: null, from: 'No lot open' });
+  });
+  it('hammer over floor: the lots sold this week with a floor, two places rounded down (CF1), null without the floor', () => {
+    const x = x3({ bidders: [bidder('a', w3 + H, true, 5400, 5000), bidder('b', w3 + 2 * H, true, 4000, 3900), bidder('c', w3 + 3 * H, false, null, 3000), bidder('old', w3 - D, true, 9000, 3000)] });
+    const h = threeRows(now, x, null)[1];
+    expect(h.value).toBeCloseTo((1.08 + 4000 / 3900) / 2);
+    expect(h).toMatchObject({ k: 'H', label: 'Hammer over floor', shown: '1.05', from: '2 sold this week' });
+    expect(threeRows(now, x3({ bidders: [bidder('a', w3 + H, true)] }), null)[1]).toMatchObject({ value: null, shown: 'Not yet', from: 'The lane does not send the floor yet' });
+    expect(threeRows(now, x3({ bidders: [bidder('old', w3 - D, true, 1, 1)] }), null)[1]).toMatchObject({ value: null, from: 'No lot sold this week' });
+    expect(threeRows(now, x3(), null)[1].from).toBe('The lane does not send the floor yet');
+    expect(threeRows(now, null, null)[1].from).toBe('The exposure did not answer');
+  });
+  it('days to pickup: startedAt less wonAt over every started sale, one place rounded up (a wait shown is never shorter than it was)', () => {
+    const sale = (lotId: string, wonAt: number | null, startedAt: number | null, state: 'started' | 'paid' = 'started') => ({ lotId, state, hammer: 1, deadlineAt: 0, wonAt, startedAt });
+    const x = x3({ sales: [sale('a', T0, T0 + 2 * D + 1), sale('b', T0, T0 + 3 * D), sale('c', T0, null), sale('d', T0, T0 + 9 * D, 'paid')] });
+    const p = threeRows(now, x, null)[2];
+    expect(p.value).toBeCloseTo(2.5 + 1 / (2 * D));
+    expect(p).toMatchObject({ k: 'P', label: 'Days to pickup', shown: '2.6', from: '2 picked up, all weeks' });
+    expect(threeRows(now, x3({ sales: [sale('a', T0, T0 + 2 * D)] }), null)[2].shown).toBe('2');
+    expect(threeRows(now, x3({ sales: [sale('a', null, null)] }), null)[2]).toMatchObject({ value: null, from: 'The lane does not send wonAt yet' });
+    expect(threeRows(now, x3(), null)[2]).toMatchObject({ value: null, from: 'No car picked up yet' });
+    expect(threeRows(now, null, null)[2].from).toBe('The exposure did not answer');
+  });
+  it('every label is four words or fewer', () => {
+    for (const r of threeRows(now, null, null)) expect(r.label.split(/\s+/).length).toBeLessThanOrEqual(4);
+  });
+});
+
+describe('the GDN row, the fees line, the verified state, the invoices, the disputes', () => {
+  it('the GDN row: Not read without the field, Not issued while the row is null, the date once set; fees say none until then', () => {
+    expect(gdnRow(null)).toEqual({ read: false, issued: false, line: 'Not read', feesLine: 'None until the GDN issues' });
+    expect(gdnRow(x3())).toMatchObject({ read: false, line: 'Not read' });
+    expect(gdnRow(x3({ platform: null }))).toEqual({ read: true, issued: false, line: 'Not issued', feesLine: 'None until the GDN issues' });
+    expect(gdnRow(x3({ platform: { gdnIssuedAt: null, feePerCarCents: null, feeMonthlyCents: null } }))).toMatchObject({ read: true, issued: false, line: 'Not issued' });
+    expect(gdnRow(x3({ platform: { gdnIssuedAt: Date.parse('2026-11-02T18:00:00Z'), feePerCarCents: 100, feeMonthlyCents: 0 } }))).toEqual({ read: true, issued: true, line: 'Issued Nov 2, 2026', feesLine: 'Since Nov 2, 2026' });
+  });
+  it('the dealer row: Not read, Verified, Not verified, No account', () => {
+    const row = { gdn: 'P1', name: 'One', created_at: 0, suspended_at: null, suspended: false, incidents: 0 };
+    expect(verifiedWord(row)).toBe('Not read');
+    expect(verifiedWord({ ...row, whop_account: 'biz_1', whop_account_verified_at: T0 })).toBe('Verified');
+    expect(verifiedWord({ ...row, whop_account: 'biz_1', whop_account_verified_at: null })).toBe('Not verified');
+    expect(verifiedWord({ ...row, whop_account: null, whop_account_verified_at: null })).toBe('No account');
+  });
+  it('invoices by state: open first, then paid, then the rest; each row keeps its kind', () => {
+    const m = readMoney({ invoices: [{ id: 'a', kind: 'fee', state: 'paid', amountUsd: 199, at: 1 }, { id: 'b', kind: 'balance', state: 'void', amountUsd: 1, at: 2 }, { id: 'c', kind: 'balance', state: 'open', amountUsd: 5400, at: 3 }, { id: 'd', kind: 'balance', state: 'open', amountUsd: 100, at: 4 }] });
+    const g = invoicesByState(m);
+    expect(g.map(x => [x.state, x.word, x.rows.map(r => r.id)])).toEqual([['open', 'Open', ['d', 'c']], ['paid', 'Paid', ['a']], ['void', 'Voided', ['b']]]);
+    expect(invoicesByState(null)).toEqual([]);
+  });
+  it('the disputes rows: the sha256 and one word for the upload, newest first; the exposure packs stand in when the money list has none', () => {
+    const packs = [{ lotId: 'a', buyer: 'b_1', disputeId: 'dp', sha256: 'aa', uploadedAt: T0, uploadError: null, at: 1 }, { lotId: 'b', buyer: null, disputeId: null, sha256: 'bb', uploadedAt: null, uploadError: 'no key', at: 2 }, { lotId: 'c', buyer: null, disputeId: null, sha256: null, uploadedAt: null, uploadError: null, at: 3 }];
+    expect(disputeRows(null, { events: [], payouts: [], sales: [], invoices: [], evidencePacks: packs }).map(r => [r.lotId, r.upload])).toEqual([['c', 'Not sent'], ['b', 'Refused'], ['a', 'Sent']]);
+    expect(disputeRows(x3({ evidencePacks: [packs[0]] }), null)).toEqual([{ lotId: 'a', buyer: 'b_1', sha256: 'aa', upload: 'Sent', at: 1 }]);
+    expect(disputeRows(null, null)).toEqual([]);
+  });
+  it('every log word is four words or fewer, every kind the Worker joins has one', () => {
+    const rows = [
+      { kind: 'bid', buyer: 'b', at: 1 }, { kind: 'bid', buyer: 'b', placed: false, at: 1 }, { kind: 'bid_refusals', reason: 'too_many_bids', at: 1 }, { kind: 'pickup_refusals', reason: 'vin_required', at: 1 },
+      { kind: 'signatures', document: 'Bill of sale', at: 1 }, { kind: 'plates', state: 'kickback', note: 'VIN wrong', at: 1 }, { kind: 'dealer_payouts', state: 'paid', method: 'check', at: 1 },
+      { kind: 'incidents', reason: 'non_delivery', at: 1 }, { kind: 'evidence_packs', sha256: 'x', error: 'refused', at: 1 }, { kind: 'money_events', type: 'admin.gdn', at: 1 }, { type: 'sale.offer', at: 1 }, { kind: 'closed', sold: false, at: 1 }, { at: 1 },
+    ];
+    const words = rows.map(r => logRow(r).word);
+    expect(words).toEqual(['Bid', 'Bid too low', 'Twenty-one bids a minute', 'VIN not read', 'Signed', 'Plates kicked back', 'Paid by hand', 'Not delivered', 'Evidence pack', 'GDN issued', 'Second chance', 'Closed, not sold', 'Event']);
+    for (const w of words) expect(w.split(/\s+/).length).toBeLessThanOrEqual(4);
+    expect(logRow(rows[8]).line).toBe('sha x · refused');
+    expect(logRow(rows[5]).line).toBe('VIN wrong');
+  });
+  it('the Wave 3 money events have their words', () => {
+    expect(typeWord({ type: 'admin.gdn', kind: null })).toBe('GDN issued');
+    expect(typeWord({ type: 'invoice.paid', kind: null })).toBe('Invoice paid');
+    expect(typeWord({ type: 'invoice.voided', kind: null })).toBe('Invoice');
+    expect(typeWord({ type: 'fee.waived', kind: null })).toBe('Fee');
   });
 });

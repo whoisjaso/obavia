@@ -8,6 +8,13 @@
      POST /admin/buyers/:id/release  { reason, lotId? } -> { id, deposit: 'refunded' }
      POST /admin/lots/:id/forfeit    { reason } -> the lot
      GET  /admin/reconcile?n=        -> Streak (the nightly rows newest first and "equal seven nights running")
+   Wave 3 (gap-table.md §4 W3-E, coded to W3-B's and W3-A's names; a 404 reads as NOT_YET the same way):
+     GET  /admin/lots/:id/log        -> LotLog (one lot: bids, refusals, signatures, plates, payouts, incidents, packs, oldest first)
+     POST /admin/gdn                 { issuedAt, feePerCarCents, feeMonthlyCents } -> the platform row (the fee numbers are
+                                     typed by the owner on the sheet, never written here: gap-table.md deviation 9)
+     GET  /admin/exposure            adds watchers per open lot, hammer and floor per closed lot, wonAt and startedAt per
+                                     sale, the platform row, the dealers' Whop verified state, the evidence packs
+     GET  /admin/money               adds invoices (balance and fee, by state) and the evidence packs on disputes
 
    The arithmetic the admin home shows (the scorecard's five numbers, the bottleneck line, the last
    reconciliation, the refusals) is here too, as pure functions, so the tests read it without a page.
@@ -37,9 +44,20 @@ export type Night = {
 export type Streak = { equalNights: number; sevenEqual: boolean; latest: { id: string; ranAt: number; equal: boolean } | null; nights: Night[] };
 export type BidRefusal = { lotId: string; who: string; reason: string; matched: string | null; at: number };
 export type TokenRefusal = { claimed: string; reason: string; presented: string; known: number; at: number };
-export type ExposureSale = { lotId: string; dealer?: string; state: SaleState; deposit?: string; hammer: number; deadlineAt: number };
-/** One closed lot and the distinct buyers whose bid was placed on it (led, or beaten by a standing ceiling). */
-export type ClosedLotBidders = { lotId: string; dealer: string; closedAt: number; sold: boolean; bidders: number };
+/** wonAt and startedAt (W3-B) give days to pickup; absent on a Worker before migration 0017. */
+export type ExposureSale = { lotId: string; dealer?: string; state: SaleState; deposit?: string; hammer: number; deadlineAt: number; wonAt?: number | null; startedAt?: number | null };
+/** One closed lot and the distinct buyers whose bid was placed on it (led, or beaten by a standing ceiling).
+ *  hammer and floor (W3-B) give hammer over floor; absent before migration 0017. */
+export type ClosedLotBidders = { lotId: string; dealer: string; closedAt: number; sold: boolean; bidders: number; hammer?: number | null; floor?: number | null };
+/** One open lot and the phones watching it (W3-B); the lane list's `watching` stands in until the Worker sends it. */
+export type OpenLotWatchers = { lotId: string; dealer?: string; watching: number };
+/** W3-A's platform row (migration 0016): one row, every field null until the owner sets it through POST /admin/gdn. */
+export type Platform = { gdnIssuedAt: number | null; feePerCarCents: number | null; feeMonthlyCents: number | null };
+/** A dealer row as the admin reads it: W3-B adds the Whop account's verified state (dealers.whop_account_verified_at, 0017).
+ *  Absent (undefined) on a Worker before 0017: the page says "Not read". */
+export type AdminDealerRow = DealerRow & { whop_account?: string | null; whop_account_verified_at?: number | null };
+/** W3-F's evidence pack (migration 0018) with W3-A's upload result, one per dispute. */
+export type EvidencePack = { lotId: string; buyer: string | null; disputeId: string | null; sha256: string | null; uploadedAt: number | null; uploadError: string | null; at: number };
 /** A VIN scan the lane refused at pickup: `presented` is the last six scanned, null when nothing was. */
 export type PickupRefusal = { lotId: string; dealer: string; reason: string; presented: string | null; at: number };
 export type AdminExposure = {
@@ -55,9 +73,13 @@ export type AdminExposure = {
   incidentsByDealer: Record<string, number>;
   bidRefusals?: { byReason: Record<string, number>; recent: BidRefusal[] };
   tokenRefusals?: { byPresented: Record<string, number>; recent: TokenRefusal[] };
-  dealers: DealerRow[];
+  dealers: AdminDealerRow[];
   obaviaFeesOwed: number;
   reconciliations?: Reconciliation[];
+  /** Wave 3 fields, each absent on a Worker before its migration. */
+  watchers?: OpenLotWatchers[];
+  platform?: Platform | null;
+  evidencePacks?: EvidencePack[];
 };
 export type PayMethod = 'wire' | 'check' | 'cash';
 export const PAY_METHODS: PayMethod[] = ['wire', 'check', 'cash'];
@@ -66,7 +88,13 @@ export type MoneyEvent = { id: string; type: string; kind: string | null; amount
 /** What a dealer is owed for a sale, and whether it went out. */
 export type Payout = { id: string; lotId: string; dealer: string; amountUsd: number; state: 'owed' | 'paid'; paidAt: number | null; method: PayMethod | null; note: string | null };
 export type MoneySale = { lotId: string; dealer: string | null; buyer: string | null; state: SaleState; hammer: number; deadlineAt: number; deposit: string | null };
-export type Money = { events: MoneyEvent[]; payouts: Payout[]; sales: MoneySale[] };
+/** One row of W3-A's `invoices` table: the balance invoice at the hammer, or the fee invoice to the dealer once the GDN issued. */
+export type InvoiceKind = 'balance' | 'fee';
+export type Invoice = { id: string; lotId: string; kind: InvoiceKind; whopId: string | null; state: string; amountUsd: number; at: number };
+export type Money = { events: MoneyEvent[]; payouts: Payout[]; sales: MoneySale[]; invoices: Invoice[]; evidencePacks: EvidencePack[] };
+/** One row of a lot's log (GET /admin/lots/:id/log): what happened, when, in the desk's words. */
+export type LogRow = { kind: string; at: number; word: string; line: string; amountUsd: number | null };
+export type LotLog = { lotId: string; rows: LogRow[] };
 
 /* ---------- the calls ---------- */
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
@@ -86,7 +114,15 @@ export function adminApi(base: string, key: () => string | null, f: Fetch = (i, 
   }
   const id = (s: string) => encodeURIComponent(s);
   return {
-    exposure: () => call<AdminExposure>('GET', '/admin/exposure'),
+    exposure: async (): Promise<Result<AdminExposure>> => { const r = await call<unknown>('GET', '/admin/exposure'); return r.ok ? { ok: true, value: readExposure(r.value) } : r; },
+    /** One lot's every row, oldest first (the page shows newest last). */
+    log: async (lotId: string): Promise<Result<LotLog>> => { const r = await call<unknown>('GET', `/admin/lots/${id(lotId)}/log`); return r.ok ? { ok: true, value: readLog(r.value, lotId) } : r; },
+    /** The owner says the GDN issued: the date, and the two fees in cents, typed by the owner on the sheet (deviation 9). */
+    gdn: (issuedAt: number, feePerCarCents: number, feeMonthlyCents: number) => {
+      if (!Number.isFinite(issuedAt) || issuedAt <= 0) return Promise.resolve<Result<Platform>>({ ok: false, reason: 'no date' });
+      if (!cents(feePerCarCents) || !cents(feeMonthlyCents)) return Promise.resolve<Result<Platform>>({ ok: false, reason: 'bad fee' });
+      return call<unknown>('POST', '/admin/gdn', { issuedAt: Math.round(issuedAt), feePerCarCents, feeMonthlyCents }).then(r => (r.ok ? { ok: true as const, value: readPlatform(r.value) ?? { gdnIssuedAt: Math.round(issuedAt), feePerCarCents, feeMonthlyCents } } : r));
+    },
     reconcile: () => call<Reconciliation>('POST', '/admin/reconcile'),
     bump: (buyer: string) => call<{ id: string; epoch: number }>('POST', `/admin/buyers/${id(buyer)}/bump`),
     dealers: () => call<DealerRow[]>('GET', '/dealers'),
@@ -118,6 +154,8 @@ export type AdminApi = ReturnType<typeof adminApi>;
 /** The Desk's admin calls: the auction Worker, the key pasted under Lane, Key. */
 export const admin = adminApi(AUCTION_API, () => dealerKey.get());
 
+/** A fee is a whole number of cents, zero or more. */
+const cents = (n: number) => Number.isInteger(n) && n >= 0;
 /** A reason is one plain line, 1 to 200 characters. */
 export const reasonOf = (s: string) => { const t = s.replace(/\s+/g, ' ').trim(); return t.length >= 1 && t.length <= 200 ? t : null; };
 
@@ -136,7 +174,6 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : nul
 /** The money answer, read defensively: a missing list is empty, events are newest first. */
 export function readMoney(raw: unknown): Money {
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const list = (v: unknown) => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') as Record<string, unknown>[] : []);
   const events: MoneyEvent[] = list(o.events).map(e => ({
     id: String(e.id ?? ''), type: String(e.type ?? ''), kind: str(e.kind), amountUsd: num(e.amountUsd), lotId: str(e.lotId), buyer: str(e.buyer), at: num(e.at) ?? 0,
   })).sort((a, b) => b.at - a.at);
@@ -148,12 +185,48 @@ export function readMoney(raw: unknown): Money {
     lotId: String(s.lotId ?? ''), dealer: str(s.dealer), buyer: str(s.buyer), state: (['owed', 'paid', 'started', 'forfeited', 'voided'].includes(s.state as string) ? s.state : 'owed') as SaleState,
     hammer: num(s.hammer) ?? 0, deadlineAt: num(s.deadlineAt) ?? 0, deposit: str(s.deposit),
   }));
-  return { events, payouts, sales };
+  // W3-A's invoices: an amount in cents is read as dollars, kinds outside balance and fee are dropped
+  const invoices: Invoice[] = list(o.invoices).flatMap(i => {
+    const kind: InvoiceKind | null = i.kind === 'balance' || i.kind === 'fee' ? i.kind : null;
+    if (!kind) return [];
+    const usd = num(i.amountUsd) ?? (num(i.amountCents) != null ? num(i.amountCents)! / 100 : 0);
+    return [{ id: String(i.id ?? i.whopId ?? ''), lotId: String(i.lotId ?? ''), kind, whopId: str(i.whopId), state: String(i.state ?? 'open'), amountUsd: usd, at: num(i.at) ?? num(i.createdAt) ?? 0 }];
+  }).sort((a, b) => b.at - a.at);
+  const evidencePacks = list(o.evidencePacks ?? o.disputes).map(readPack).sort((a, b) => b.at - a.at);
+  return { events, payouts, sales, invoices, evidencePacks };
+}
+const list = (v: unknown) => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') as Record<string, unknown>[] : []);
+const obj = (v: unknown) => (v && typeof v === 'object' ? v as Record<string, unknown> : null);
+/** The exposure as the Worker gives it, with the Wave 3 fields read defensively (camel or snake, absent stays absent). */
+export function readExposure(raw: unknown): AdminExposure {
+  const x = (obj(raw) ?? {}) as AdminExposure & Record<string, unknown>;
+  const out: AdminExposure = { ...x, deposits: { heldCount: 0, heldUsd: 0, byStatus: {}, reserveRatio: null, ...(obj(x.deposits) ?? {}) } as AdminExposure['deposits'], lots: { open: 0, atLender: 0, floorBelowPayoff: 0, ...(obj(x.lots) ?? {}) } as AdminExposure['lots'],
+    sales: list(x.sales) as unknown as ExposureSale[], incidentsByDealer: (obj(x.incidentsByDealer) ?? {}) as Record<string, number>, dealers: list(x.dealers) as unknown as AdminDealerRow[], obaviaFeesOwed: num(x.obaviaFeesOwed) ?? 0 };
+  if ('platform' in x) out.platform = readPlatform(x.platform);
+  if (Array.isArray(x.watchers)) out.watchers = list(x.watchers).map(w => ({ lotId: String(w.lotId ?? ''), dealer: str(w.dealer) ?? undefined, watching: num(w.watching) ?? num(w.watchers) ?? 0 }));
+  if (Array.isArray(x.evidencePacks)) out.evidencePacks = list(x.evidencePacks).map(readPack);
+  return out;
+}
+/** The platform row, camel or snake; null when there is no row. */
+export function readPlatform(raw: unknown): Platform | null {
+  const p = obj(raw); if (!p) return null;
+  const pick = (a: string, b: string) => num(p[a] ?? p[b]);
+  return { gdnIssuedAt: pick('gdnIssuedAt', 'gdn_issued_at'), feePerCarCents: pick('feePerCarCents', 'fee_per_car_cents'), feeMonthlyCents: pick('feeMonthlyCents', 'fee_monthly_cents') };
+}
+function readPack(p: Record<string, unknown>): EvidencePack {
+  const uploadedAt = num(p.uploadedAt ?? p.uploaded_at) ?? (p.upload === 'sent' || p.uploaded === true ? num(p.at) ?? 0 : null);
+  return { lotId: String(p.lotId ?? p.lot ?? ''), buyer: str(p.buyer), disputeId: str(p.disputeId ?? p.dispute_id ?? p.dispute), sha256: str(p.sha256), uploadedAt,
+    uploadError: str(p.uploadError ?? p.upload_error ?? p.error), at: num(p.at) ?? num(p.createdAt ?? p.created_at) ?? 0 };
+}
+/** The lot's log, read defensively: an array, or `{ rows | events | log }`; each row's `kind` (or `type`) and `at`; oldest first. */
+export function readLog(raw: unknown, lotId: string): LotLog {
+  const o = obj(raw);
+  const rows = Array.isArray(raw) ? list(raw) : list(o?.rows ?? o?.events ?? o?.log);
+  return { lotId: str(o?.lotId) ?? lotId, rows: rows.map(logRow).sort((a, b) => a.at - b.at) };
 }
 /** The streak answer, read defensively: a missing list is empty, the streak is never guessed above what the rows say. */
 export function readStreak(raw: unknown): Streak {
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const list = (v: unknown) => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') as Record<string, unknown>[] : []);
   const nights: Night[] = list(o.nights).map(r => ({
     id: String(r.id ?? ''), ranAt: num(r.ranAt) ?? 0, equal: r.equal === true || r.equal === 1, lotsChecked: num(r.lotsChecked) ?? 0, lotsDiffering: num(r.lotsDiffering) ?? 0,
     differing: Array.isArray(r.differing) ? r.differing.map(String) : [],
@@ -347,10 +420,11 @@ export function streakRow(s: Streak | null): StreakRow {
 
 /* ---------- the refusals ---------- */
 export const BID_REASON: Record<string, string> = {
-  seller_cannot_bid: 'Seller bid on own car', not_a_buyer: 'A Desk key tried to bid', win_cap: 'A fifth win this year',
+  seller_cannot_bid: 'Dealer bid own car', not_a_buyer: 'Desk key bid', win_cap: 'Fifth win this year',
   too_many_bids: 'Twenty-one bids a minute', one_open_bid: 'A second open bid',
 };
-export const TOKEN_PRESENTED: Record<string, string> = { none: 'Sign-in with no token', forged: 'Sign-in with a forged token', other: 'Sign-in with another buyer’s token', stale: 'Sign-in with an old token' };
+/** Four words or fewer each (DOCTRINE §4 rule 7). */
+export const TOKEN_PRESENTED: Record<string, string> = { none: 'Sign-in, no token', forged: 'Forged token sign-in', other: 'Another buyer’s token', stale: 'Old token sign-in' };
 export type RefusalRow = { label: string; n: number };
 export type RecentRefusal = { label: string; who: string; at: number };
 export function refusals(x: AdminExposure | null): { counts: RefusalRow[]; recent: RecentRefusal[]; read: boolean } {
@@ -396,6 +470,110 @@ export function pickupRefusals(x: AdminExposure | null): { rows: PickupRow[]; re
   return { rows, read: true };
 }
 
+/* ---------- Home's three new rows (Phase 2 Admin, phases.md:61): one number each, beside deposits held ---------- */
+export type Row3 = { k: 'W' | 'H' | 'P'; label: string; value: number | null; shown: string; from: string };
+/** Two places, rounded down (CF1: a ratio shown never flatters). */
+const twoDown = (x: number) => (Math.floor(x * 100 + 1e-9) / 100).toFixed(2);
+/** One place, rounded up: days waiting are a cost, so the shown figure is never shorter than the true one. */
+const oneUp = (x: number) => { const v = Math.ceil(x * 10 - 1e-9) / 10; return Number.isInteger(v) ? String(v) : v.toFixed(1); };
+/** Watchers per open lot (now), hammer over floor (lots sold this week), days to pickup (every started sale).
+ *  A number the Desk cannot read in full is null, never guessed. */
+export function threeRows(now: number, x: AdminExposure | null, lane: Lot[] | null): Row3[] {
+  const w = weekOf(now);
+  const inWeek = (t: number | null | undefined) => t != null && t >= w.start && t < w.end;
+  // watchers: the exposure's rows when the Worker sends them, else the lane list's open lots (lot.watching is on every lot)
+  const open = x?.watchers ?? lane?.filter(l => !l.closed).map(l => ({ lotId: l.id, watching: l.watching })) ?? null;
+  const W: Row3 = !open ? { k: 'W', label: 'Watchers per lot', value: null, shown: 'Not yet', from: 'The lane did not answer' }
+    : !open.length ? { k: 'W', label: 'Watchers per lot', value: null, shown: 'Not yet', from: 'No lot open' }
+    : (v => ({ k: 'W', label: 'Watchers per lot', value: v, shown: oneDown(v), from: `${open.length} open now` }))(open.reduce((a, l) => a + l.watching, 0) / open.length);
+  const sold = x?.bidders?.filter(b => b.sold && inWeek(b.closedAt)) ?? null;
+  const priced = sold?.filter(b => typeof b.hammer === 'number' && typeof b.floor === 'number' && b.floor > 0) ?? [];
+  const H: Row3 = !sold ? { k: 'H', label: 'Hammer over floor', value: null, shown: 'Not yet', from: !x ? 'The exposure did not answer' : 'The lane does not send the floor yet' }
+    : !sold.length ? { k: 'H', label: 'Hammer over floor', value: null, shown: 'Not yet', from: 'No lot sold this week' }
+    : !priced.length ? { k: 'H', label: 'Hammer over floor', value: null, shown: 'Not yet', from: 'The lane does not send the floor yet' }
+    : (v => ({ k: 'H', label: 'Hammer over floor', value: v, shown: twoDown(v), from: `${priced.length} sold this week` }))(priced.reduce((a, b) => a + b.hammer! / b.floor!, 0) / priced.length);
+  const started = x?.sales.filter(s => s.state === 'started') ?? null;
+  const timed = started?.filter(s => typeof s.startedAt === 'number' && typeof s.wonAt === 'number' && s.startedAt! >= s.wonAt!) ?? [];
+  const P: Row3 = !started ? { k: 'P', label: 'Days to pickup', value: null, shown: 'Not yet', from: 'The exposure did not answer' }
+    : !started.length ? { k: 'P', label: 'Days to pickup', value: null, shown: 'Not yet', from: 'No car picked up yet' }
+    : !timed.length ? { k: 'P', label: 'Days to pickup', value: null, shown: 'Not yet', from: 'The lane does not send wonAt yet' }
+    : (v => ({ k: 'P', label: 'Days to pickup', value: v, shown: oneUp(v), from: `${timed.length} picked up, all weeks` }))(timed.reduce((a, s) => a + (s.startedAt! - s.wonAt!) / DAY, 0) / timed.length);
+  return [W, H, P];
+}
+
+/* ---------- the GDN row and the fees owed (43 TAC §215.85: no fee before Obavia's own GDN) ---------- */
+const dayWord = (t: number) => new Date(t).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' });
+export type GdnRow = { read: boolean; issued: boolean; line: string; feesLine: string };
+/** "Not read" when the exposure has no platform field; "Not issued" while the row is null; the date once set. */
+export function gdnRow(x: AdminExposure | null): GdnRow {
+  if (!x || !('platform' in x)) return { read: false, issued: false, line: 'Not read', feesLine: 'None until the GDN issues' };
+  const at = x.platform?.gdnIssuedAt ?? null;
+  if (at == null) return { read: true, issued: false, line: 'Not issued', feesLine: 'None until the GDN issues' };
+  return { read: true, issued: true, line: `Issued ${dayWord(at)}`, feesLine: `Since ${dayWord(at)}` };
+}
+
+/* ---------- the dealer's Whop account, verified or not ---------- */
+/** Four words or fewer: "Not read" when the Worker does not send the field, "Verified" with a time, "Not verified" otherwise. */
+export function verifiedWord(r: AdminDealerRow): string {
+  if (!('whop_account_verified_at' in r)) return 'Not read';
+  const at = r.whop_account_verified_at;
+  if (typeof at === 'number' && at > 0) return 'Verified';
+  return r.whop_account ? 'Not verified' : 'No account';
+}
+
+/* ---------- invoices by state ---------- */
+export const INVOICE_STATE: Record<string, string> = { open: 'Open', sent: 'Sent', paid: 'Paid', void: 'Voided', voided: 'Voided', failed: 'Failed', refunded: 'Refunded' };
+export const INVOICE_KIND: Record<InvoiceKind, string> = { balance: 'Balance', fee: 'Fee' };
+export type InvoiceGroup = { state: string; word: string; rows: Invoice[] };
+/** Open first, then paid, then the rest in the order met; each row keeps its kind word. */
+export function invoicesByState(m: Money | null): InvoiceGroup[] {
+  if (!m) return [];
+  const order = ['open', 'sent', 'paid'];
+  const groups = new Map<string, Invoice[]>();
+  for (const i of m.invoices) groups.set(i.state, [...(groups.get(i.state) ?? []), i]);
+  return [...groups.entries()].sort(([a], [b]) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99)).map(([state, rows]) => ({ state, word: INVOICE_STATE[state] ?? state, rows }));
+}
+
+/* ---------- the disputes rows: the pack's sha256 and Whop's upload result ---------- */
+export type DisputeRow = { lotId: string; buyer: string | null; sha256: string | null; upload: 'Sent' | 'Not sent' | 'Refused'; at: number };
+/** Packs from the money list first, the exposure's if the money list has none; newest first. */
+export function disputeRows(x: AdminExposure | null, m: Money | null): DisputeRow[] {
+  const packs = m?.evidencePacks.length ? m.evidencePacks : x?.evidencePacks ?? [];
+  return [...packs].sort((a, b) => b.at - a.at).map(p => ({ lotId: p.lotId, buyer: p.buyer, sha256: p.sha256, upload: p.uploadedAt ? 'Sent' : p.uploadError ? 'Refused' : 'Not sent', at: p.at }));
+}
+
+/* ---------- the lot's log: every row in the desk's words ---------- */
+/** The plates' states (worker README "The plates") and the payout's, as the desk says them. */
+const PLATES_WORD: Record<string, string> = { filed: 'Plates filed', approved: 'Plates approved', mailed: 'Plates mailed', kickback: 'Plates kicked back' };
+const PAYOUT_WORD: Record<string, string> = { owed: 'Payout owed', sent: 'Payout sent', paid: 'Paid by hand' };
+const INCIDENT_WORD: Record<string, string> = { no_start: 'Did not start', non_delivery: 'Not delivered', no_pay: 'Buyer did not pay' };
+/** One row of the log as the Worker gives it: `kind` (or `type`) names the table; the rest is read for its one line. */
+export function logRow(r: Record<string, unknown>): LogRow {
+  const kind = String(r.kind ?? r.table ?? r.type ?? '');
+  const at = num(r.at) ?? num(r.createdAt ?? r.created_at ?? r.placedAt ?? r.ranAt) ?? 0;
+  const who = str(r.buyer) ?? str(r.who) ?? str(r.claimed) ?? null;
+  const amount = num(r.amountUsd) ?? num(r.amount) ?? null;
+  const reason = str(r.reason), state = str(r.state), ms = (s: string, max = 24) => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
+  const say = (word: string, parts: (string | null | undefined)[]) => ({ kind, at, word, line: parts.filter(Boolean).join(' · '), amountUsd: amount });
+  switch (kind) {
+    case 'bid': return say(r.placed === false || r.outcome === 'low' ? 'Bid too low' : 'Bid', [who]);
+    case 'bid_refusal': case 'bid_refusals': return say(BID_REASON[reason ?? ''] ?? 'Bid refused', [who]);
+    case 'pickup_refusal': case 'pickup_refusals': return say(PICKUP_REASON[reason ?? ''] ?? 'Pickup refused', [str(r.presented) ? `scanned ${str(r.presented)}` : 'nothing scanned']);
+    case 'signature': case 'signatures': return say('Signed', [str(r.document) ?? str(r.doc), who]);
+    case 'plates': return say(PLATES_WORD[state ?? ''] ?? 'Plates', [str(r.note)]);
+    case 'payout': case 'dealer_payouts': return say(PAYOUT_WORD[state ?? ''] ?? 'Payout', [str(r.dealer), str(r.method), str(r.note)]);
+    case 'incident': case 'incidents': return say(INCIDENT_WORD[reason ?? str(r.kindOf) ?? ''] ?? 'Incident', [str(r.dealer), reason && !INCIDENT_WORD[reason] ? ms(reason) : null]);
+    case 'evidence_pack': case 'evidence_packs': return say('Evidence pack', [str(r.sha256) ? `sha ${String(r.sha256).slice(0, 12)}` : null, num(r.uploadedAt ?? r.uploaded_at) ? 'sent' : str(r.uploadError ?? r.error) ? 'refused' : 'not sent']);
+    case 'money': case 'money_events': return say(typeWord({ type: String(r.type ?? ''), kind: str(r.kindOf) ?? str(r.kind2) ?? null }), [who, reason ? ms(reason) : null]);
+    case 'open': case 'opened': return say('Opened', [str(r.dealer)]);
+    case 'close': case 'closed': return say(r.sold === false ? 'Closed, not sold' : 'Hammer', [who]);
+    default: {
+      const type = str(r.type);
+      return say(type ? typeWord({ type, kind: str(r.kind) === type ? null : str(r.kind) }) : kind || 'Event', [who, reason ? ms(reason) : null]);
+    }
+  }
+}
+
 /* ---------- the money list's words ---------- */
 /** Every type the Worker writes to money_events (README, the deposit ledger and the sale), one desk word each. */
 export const EVENT_WORD: Record<string, string> = {
@@ -404,6 +582,8 @@ export const EVENT_WORD: Record<string, string> = {
   'deposit.forfeited': 'Forfeited',
   'payout.sent': 'Payout sent', 'payout.by_hand': 'Paid by hand', 'payout.paid': 'Paid by hand', 'balance.paid_at_lot': 'Paid at the lot',
   'admin.forfeit': 'Forfeited by admin', 'admin.release': 'Released by admin', 'admin.paid': 'Paid by hand', 'dealer.account': 'Dealer account',
+  'admin.gdn': 'GDN issued', 'sale.plates': 'Plates', 'sale.offer': 'Second chance', 'invoice.paid': 'Invoice paid', 'invoice.created': 'Invoice sent',
+  'fee.invoiced': 'Fee invoiced', 'fee.paid': 'Fee paid', 'dealer.verified': 'Dealer verified',
 };
 /** A money event's type as a word the owner already uses. */
 export function typeWord(e: Pick<MoneyEvent, 'type' | 'kind'>): string {
@@ -414,6 +594,8 @@ export function typeWord(e: Pick<MoneyEvent, 'type' | 'kind'>): string {
   if (t.startsWith('refund.')) return 'Refunded';
   if (t.startsWith('dispute.')) return 'Disputed';
   if (t.startsWith('transfer.')) return 'Sent to dealer';
+  if (t.startsWith('invoice.')) return 'Invoice';
+  if (t.startsWith('fee.')) return 'Fee';
   if (t === 'forfeit') return 'Forfeited';
   if (t === 'release') return 'Released';
   return t || 'Unknown';

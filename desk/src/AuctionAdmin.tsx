@@ -4,13 +4,17 @@
      #/auction/admin/money      who is owed, the sales waiting, every money event (Paid By Hand, Release, Forfeit)
      #/auction/admin/refusals   bids and sign-ins the lane refused, by reason, the last ten
      #/auction/admin/lane       deposits, lots, sales by state, fees owed (collateral.md §5)
-     #/auction/admin/dealers    standing: suspend or restore; Add A Dealer mints his key once (collateral.md §6)
+     #/auction/admin/dealers    standing: suspend or restore; the Whop account's verified state; Add A Dealer mints his key once (collateral.md §6)
+     #/auction/admin/lot/:id    one lot's log: every row in time order, newest last (GET /admin/lots/:id/log)
+   Wave 3 (gap-table.md §4 W3-E): Home's three rows beside deposits held (watchers per lot, hammer over floor, days to pickup);
+   the GDN row on the lane page, "Not issued" until the owner types the date and the two fees on the sheet (the numbers live
+   in the platform row, never here: deviation 9); the invoices by state and the disputes' evidence packs on the money page.
    Every verb that moves money or standing is asked on the bottom sheet (BottomSheet.tsx ActionSheet).
    Money is Bodoni Moda (the house face for money and names; obavia-co/waitlist.css). */
 import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import bodoniUrl from '../../obavia-co/assets/bodoni-moda-500.woff2?url';
 import { auctionLive, isAdminKey, type DealerRow, type Lot, type SaleState } from './lib/auction';
-import { admin, disputedDeposits, PAY_METHODS, pickupRefusals, reconLine, refusals, reserveLine, scorecard, streakRow, typeWord, when, NOT_YET, type AdminExposure, type Money, type MoneySale, type Payout, type PayMethod, type Streak } from './lib/admin-api';
+import { admin, disputedDeposits, disputeRows, gdnRow, invoicesByState, INVOICE_KIND, PAY_METHODS, pickupRefusals, reconLine, refusals, reserveLine, scorecard, streakRow, threeRows, typeWord, verifiedWord, when, NOT_YET, type AdminExposure, type LotLog, type Money, type MoneySale, type Payout, type PayMethod, type Streak } from './lib/admin-api';
 import { Back, Ic, feel, transition, useHash } from './ui';
 import { Count } from './motion';
 import { ActionSheet } from './BottomSheet';
@@ -27,6 +31,7 @@ const SAID: Record<string, string> = {
   offline: 'The lane is out of reach.', 'no key': 'Paste the admin key first.', 'admin only': 'This key is a dealer’s key.',
   'bad dealer': 'The GDN is 5 to 12 capital letters or digits, and the name is required.', 'no such dealer': 'That dealer is not on file.',
   [NOT_YET]: 'Not yet.', 'no reason': 'Write a reason first.', 'no method': 'Pick the method first.', 'no such buyer': 'That buyer is not on file.',
+  'no date': 'Type the date it issued.', 'bad fee': 'Type both fees in dollars.',
 };
 const say = (reason: string) => SAID[reason] ?? `The lane said no: ${reason}.`;
 const whole = (n: number) => Math.round(n).toLocaleString('en-US');
@@ -48,6 +53,10 @@ const M = ({ children, size = 24 }: { children: ReactNode; size?: number }) => <
 /* A section's name: upright spaced capitals, quiet. */
 const Label = ({ children }: { children: ReactNode }) => <p className="note" style={{ marginTop: 30, textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 650, fontSize: 17 }}>{children}</p>;
 const Chev = () => <span className="chev" aria-hidden="true"><Ic n="chev" s={18} w={2.2} /></span>;
+/* Nothing under 17 px on the glass (DOCTRINE §4 rule 3): the Wave 3 rows set their own size over the desk's .row b and small. */
+const B = ({ children, color }: { children: ReactNode; color?: string }) => <b style={{ fontSize: 17, lineHeight: 1.25, color }}>{children}</b>;
+const S = ({ children }: { children: ReactNode }) => <small style={{ fontSize: 17, lineHeight: 1.3 }}>{children}</small>;
+const V = ({ children, color }: { children: ReactNode; color?: string }) => <span className="v" style={{ fontSize: 17, color }}>{children}</span>;
 
 export function AuctionAdmin() {
   if (!auctionLive) return <OneLine line="The lane is not connected." />;
@@ -67,7 +76,8 @@ type Data = { x: AdminExposure | null; lane: Lot[] | null; money: Money | null; 
 
 function Cockpit() {
   useBodoni();
-  const page = useHash().split('/')[3] ?? '';
+  const hash = useHash();
+  const page = hash.split('/')[3] ?? '';
   const [d, setD] = useState<Data>({ x: null, lane: null, money: null, moneyWhy: null, streak: null, err: null, at: 0 });
   const load = async () => {
     const [x, lane, money, streak] = await Promise.all([admin.exposure(), admin.lane(), admin.money(), admin.streak()]);
@@ -77,8 +87,9 @@ function Cockpit() {
 
   if (page === 'money') return <MoneyPage d={d} reload={load} />;
   if (page === 'refusals') return <Refusals d={d} />;
-  if (page === 'lane') return <LanePage d={d} />;
+  if (page === 'lane') return <LanePage d={d} reload={load} />;
   if (page === 'dealers') return <Dealers d={d} reload={load} />;
+  if (page === 'lot') return <LotLogPage id={decodeURIComponent(hash.split('/')[4] ?? '')} />;
   return <Home d={d} />;
 }
 
@@ -91,6 +102,7 @@ function Home({ d }: { d: Data }) {
   const owed = d.money?.payouts.filter(p => p.state === 'owed').length ?? null;
   const ref = refusals(x);
   const nights = streakRow(d.streak);
+  const three = threeRows(Date.now(), x, d.lane);
   const day = (t: number) => new Date(t).toLocaleDateString('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric' });
   return (
     <main className="wrap center">
@@ -111,6 +123,17 @@ function Home({ d }: { d: Data }) {
           ))}
         </div>
         <p className="note" style={{ color: 'var(--ink)', fontWeight: 600, marginTop: 14 }}>{s.bottleneck}</p>
+
+        {/* Phase 2 Admin (phases.md:61): deposits held and the three numbers beside it, each touching its words (lego.md §4 placement 1). */}
+        <Label>The lane</Label>
+        <div className="group">
+          <div className="row"><span className="t"><B>Deposits held</B><S>{x ? `${whole(x.deposits.heldCount)} × ${dollars(DEPOSIT_USD)}` : 'Not read'}</S></span>
+            {x ? <span style={{ ...MONEY, fontSize: 24 }}><Count pulse value={x.deposits.heldCount} format={whole} /></span> : <V color="var(--faint)">Not read</V>}</div>
+          {three.map(n => (
+            <div className="row" key={n.k}><span className="t"><B>{n.label}</B><S>{n.from}</S></span>
+              {n.value == null ? <V color="var(--faint)">{n.shown}</V> : <M>{n.shown}</M>}</div>
+          ))}
+        </div>
 
         <Label>Reserve</Label>
         <div className="group">
@@ -165,6 +188,8 @@ function MoneyPage({ d, reload }: { d: Data; reload: () => void }) {
     .filter(s => s.state === 'owed' || s.state === 'paid').sort((a, b) => (a.state === b.state ? a.deadlineAt - b.deadlineAt : a.state === 'owed' ? -1 : 1));
   const types = [...new Set((m?.events ?? []).map(typeWord))];
   const dispute = disputedDeposits(d.x, m);
+  const packs = disputeRows(d.x, m);
+  const invoices = invoicesByState(m);
   const events = (m?.events ?? []).filter(e => !only || typeWord(e) === only).slice(0, 100);
 
   const open = (a: Ask) => { feel.tap(); setErr(null); setMethod(null); setNote(''); setAsk(a); };
@@ -227,10 +252,30 @@ function MoneyPage({ d, reload }: { d: Data; reload: () => void }) {
           })}
         </div>
 
+        <Label>Invoices</Label>
+        <div className="group">
+          {!m && <div className="row"><span className="t"><B>{notYet ? 'Not yet' : 'Not read'}</B></span></div>}
+          {m && !invoices.length && <div className="row"><span className="t"><B>No invoice yet</B><S>The balance at the hammer; the fee after the GDN</S></span></div>}
+          {invoices.map(g => g.rows.map((i, k) => (
+            <div className="row" key={i.id || `${g.state}-${k}`}>
+              <span className="t"><B>{INVOICE_KIND[i.kind]} · {g.word}</B><S>{[`Lot ${i.lotId}`, i.whopId, i.at ? when(i.at) : null].filter(Boolean).join(' · ')}</S></span>
+              <span className="v"><M size={20}>{dollars(i.amountUsd)}</M></span>
+            </div>
+          )))}
+        </div>
+
         <Label>Disputed</Label>
         <div className="group">
-          <div className="row"><span className="t"><b>Deposits disputed</b><small>{dispute.n == null ? 'Not read' : dispute.buyers.length ? dispute.buyers.join(' · ') : 'No bid and no release until Whop rules'}</small></span>
+          <div className="row"><span className="t"><B>Deposits disputed</B><S>{dispute.n == null ? 'Not read' : dispute.buyers.length ? dispute.buyers.join(' · ') : 'No bid and no release until Whop rules'}</S></span>
             <span className="v" style={{ ...MONEY, fontSize: 24, color: dispute.n ? 'var(--red)' : 'var(--ink)' }}>{dispute.n == null ? '' : whole(dispute.n)}</span></div>
+          {/* One pack per dispute (collateral.md:28, the four parts in one PDF): its hash touches its lot; Whop's answer is one word. */}
+          {packs.map((p, i) => (
+            <div className="row" key={`${p.lotId}-${i}`}>
+              <span className="t"><B>Lot {p.lotId}</B><S>{[p.buyer, p.at ? when(p.at) : null].filter(Boolean).join(' · ')}</S>
+                <S>{p.sha256 ? <span className="num" style={{ overflowWrap: 'anywhere' }}>{p.sha256}</span> : 'No pack yet'}</S></span>
+              <V color={p.upload === 'Sent' ? 'var(--good)' : p.upload === 'Refused' ? 'var(--red)' : 'var(--faint)'}>{p.upload}</V>
+            </div>
+          ))}
         </div>
 
         <Label>Events</Label>
@@ -297,17 +342,37 @@ function Refusals({ d }: { d: Data }) {
 }
 
 /* ---------- lots and deposits: the exposure report ---------- */
-function LanePage({ d }: { d: Data }) {
+function LanePage({ d, reload }: { d: Data; reload: () => void }) {
   const { x } = d;
   const count = (s: SaleState) => x?.sales.filter(v => v.state === s).length ?? 0;
   const pick = pickupRefusals(x);
   const names = new Map((x?.dealers ?? []).map(r => [r.gdn, r.name]));
+  const gdn = gdnRow(x);
+  const [asking, setAsking] = useState(false);
+  const [date, setDate] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }));
+  const [perCar, setPerCar] = useState('');
+  const [monthly, setMonthly] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  /* The fee numbers are typed here by the owner and sent in cents; nothing in this file knows them (gap-table.md deviation 9). */
+  const toCents = (v: string) => { const t = v.trim(); if (!/^\d+(\.\d{1,2})?$/.test(t)) return NaN; return Math.round(Number(t) * 100); };
+  const issued = async () => {
+    const [y, mo, da] = date.split('-').map(Number);
+    const at = y && mo && da ? Date.UTC(y, mo - 1, da, 12) : NaN;
+    const r = await admin.gdn(at, toCents(perCar), toCents(monthly));
+    if (r.ok) { feel.done(); reload(); } else setErr(say(r.reason));
+  };
+  const fee = (v: string, set: (s: string) => void, label: string) => (
+    <input className="input num" value={v} onChange={e => set(e.target.value.replace(/[^\d.]/g, '').slice(0, 9))} inputMode="decimal" placeholder={label} aria-label={label}
+      style={{ display: 'block', width: '100%', margin: '12px 0 0', fontSize: 18, textAlign: 'center' }} />
+  );
+  const lots = [...(d.lane ?? [])].sort((a, b) => (!!a.closed === !!b.closed ? b.opensAt - a.opensAt : a.closed ? 1 : -1));
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/auction/admin" label="Admin" /></div>
       <section className="enter" key="lane">
         <h1 className="q">The lane, <em>now.</em></h1>
         <p className="note">{x ? 'From the auction Worker. Refreshes every 10 seconds.' : d.err ?? 'Reaching the lane…'}</p>
+        {err && <p className="note bad">{err}</p>}
         {x && <>
           <Label>Deposits</Label>
           <div className="group">
@@ -332,9 +397,64 @@ function LanePage({ d }: { d: Data }) {
           </div>
           <Label>Fees</Label>
           <div className="group">
-            <div className="row"><span className="t"><b>Fees owed to Obavia</b><small>None until the GDN issues (43 TAC §215.85)</small></span><span style={{ ...MONEY, fontSize: 24 }}><Count pulse value={x.obaviaFeesOwed} format={dollars} /></span></div>
+            {/* The GDN row is this page's one verb, and only until the date is set: a licence issues once (one-action.md, "if an option isn't relevant yet, don't show it"). */}
+            {gdn.read && !gdn.issued
+              ? <button className="row" onClick={() => { feel.tap(); setErr(null); setAsking(true); }}><span className="t"><B>Obavia’s GDN</B><S>43 TAC §215.85</S></span><V color="var(--accent)">{gdn.line}</V></button>
+              : <div className="row"><span className="t"><B>Obavia’s GDN</B><S>43 TAC §215.85</S></span><V color={gdn.issued ? 'var(--good)' : 'var(--faint)'}>{gdn.line}</V></div>}
+            <div className="row"><span className="t"><B>Fees owed to Obavia</B><S>{gdn.feesLine}</S></span>
+              {gdn.issued ? <span style={{ ...MONEY, fontSize: 24 }}><Count pulse value={x.obaviaFeesOwed} format={dollars} /></span> : <V color="var(--faint)">None</V>}</div>
+          </div>
+          <Label>Every lot</Label>
+          <div className="group">
+            {!lots.length && <div className="row"><span className="t"><B>No lot on the lane</B></span></div>}
+            {lots.map(l => (
+              <a className="row" href={`#/auction/admin/lot/${encodeURIComponent(l.id)}`} key={l.id} onClick={feel.tap}>
+                <span className="t"><B>{l.car ? `${l.car.year} ${l.car.make} ${l.car.model}` : `Lot ${l.id}`}</B><S>{l.closed ? (l.closed.sold ? 'Sold' : 'Not sold') : 'Open'} · {l.id}</S></span>
+                <V>{l.closed ? 'Log' : `${whole(l.watching)} watching`}</V><Chev />
+              </a>
+            ))}
           </div>
         </>}
+      </section>
+      {asking && <ActionSheet verb="Issued" onAct={issued} onClose={() => setAsking(false)}
+        line={<>
+          Obavia’s GDN issued on this date. Fees start from it, never before.
+          <input className="input num" type="date" value={date} onChange={e => setDate(e.target.value)} aria-label="The date it issued" max={new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })}
+            style={{ display: 'block', width: '100%', margin: '16px 0 0', fontSize: 18, textAlign: 'center' }} />
+          {fee(perCar, setPerCar, 'Per sold car, dollars')}
+          {fee(monthly, setMonthly, 'Per month, dollars')}
+          <span style={{ display: 'block', height: 22 }} />
+        </>} />}
+    </main>
+  );
+}
+
+/* ---------- one lot's log: every row in time order, newest last ---------- */
+function LotLogPage({ id }: { id: string }) {
+  const [log, setLog] = useState<LotLog | null>(null);
+  const [why, setWhy] = useState<string | null>(null);
+  useEffect(() => {
+    let on = true;
+    const tick = async () => { const r = await admin.log(id); if (!on) return; if (r.ok) { setLog(r.value); setWhy(null); } else setWhy(r.reason); };
+    tick(); const t = setInterval(tick, 10_000); return () => { on = false; clearInterval(t); };
+  }, [id]);
+  return (
+    <main className="wrap center">
+      <div className="top"><Back to="#/auction/admin/lane" label="Lane" /></div>
+      <section className="enter" key={`log-${id}`}>
+        <h1 className="q">Lot {id}, <em>in order.</em></h1>
+        <p className="note">Oldest first. The newest row is last.</p>
+        <div className="group" style={{ marginTop: 22 }}>
+          {!log && <div className="row"><span className="t"><B>{why === NOT_YET ? 'Not yet' : 'Not read'}</B><S>{why == null ? 'Reaching the lane…' : why === NOT_YET ? 'The lane does not keep a log yet' : say(why)}</S></span></div>}
+          {log && !log.rows.length && <div className="row"><span className="t"><B>Nothing yet</B></span></div>}
+          {/* Each row's time sits under its word (placement 1, touching); the order is the story (placement 6, sequence). */}
+          {log?.rows.map((r, i) => (
+            <div className="row" key={`${r.kind}-${r.at}-${i}`}>
+              <span className="t"><B>{r.word}</B><S>{[when(r.at), r.line].filter(Boolean).join(' · ')}</S></span>
+              <span className="v">{r.amountUsd == null ? '' : <M size={20}>{dollars(r.amountUsd)}</M>}</span>
+            </div>
+          ))}
+        </div>
       </section>
     </main>
   );
@@ -366,7 +486,8 @@ function Dealers({ d, reload }: { d: Data; reload: () => void }) {
           {d.x && !rows.length && <div className="row"><span className="t"><b>No dealers yet</b><small>Add one below.</small></span></div>}
           {rows.map(r => (
             <button className="row" key={r.gdn} disabled={busy === r.gdn} onClick={() => { feel.tap(); setAsking(r); }}>
-              <span className="t"><b>{r.name}</b><small>{r.gdn} · {r.incidents} {r.incidents === 1 ? 'incident' : 'incidents'}{r.suspended ? ' · suspended' : ''}</small></span>
+              <span className="t"><B>{r.name}</B><S>{r.gdn} · {r.incidents} {r.incidents === 1 ? 'incident' : 'incidents'}{r.suspended ? ' · suspended' : ''}</S>
+                <S>Whop · {verifiedWord(r)}</S></span>
               <span className="v" style={{ color: r.suspended ? 'var(--accent)' : 'var(--red)' }}>{busy === r.gdn ? '…' : r.suspended ? 'Restore' : 'Suspend'}</span>
             </button>
           ))}
