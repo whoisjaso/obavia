@@ -102,3 +102,4 @@ Later waves (Phase 2 marketing events, Android pass, VoiceOver pass, the results
 | A phone | iPhone and a mid-range Android for the device items (haptics, camera, licence read, push, secure store, brightness) | wk2 |
 | The one phone number | For the runbook and the after-hours line | Fri Oct 16 |
 | Repo name; legacy app/ and agency pages | Decide | open since Oct 12 |
+| The mark | Pick set a (the two interlocking ice bodies, obavia-co/assets/obavia-connected-mark.svg, rendered in 3D at assets/mark-3d/a) or set b (the orb with the ribbon, desk/public/mark.svg, what ships today); the chosen set is then wired into the site, the Desk and the app | Wed Oct 14 |
