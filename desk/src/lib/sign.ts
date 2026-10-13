@@ -14,7 +14,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf
 import type { DealerConfig } from './config';
 import type { Sale, Vehicle } from './sale';
 import { buyersGuidePdf } from './official';
-import { AUCTION_API, dealerKey, putDocument } from './auction';
+import { AUCTION_API, dealerKey } from './auction';
 import { openLanePapers, type LaneOpened } from './filed';
 
 /** The consent the buyer gives by signing, and its version: the same as the Worker's (sign.ts) and the phone's
@@ -161,15 +161,43 @@ export async function putFields(lot: string, fields: SignFields, io: Io = liveIo
   } catch { return false; }
 }
 
-/** At Go: each PDF, then its fields. Returns the documents' paths for CarMeta.documents; a document whose PDF or
-    fields did not land is left out, so the phone never offers a page the Worker cannot stamp. */
-export async function uploadLaneDocuments(lot: string, docs: LaneDocuments): Promise<{ guide?: string; bill?: string }> {
-  const out: { guide?: string; bill?: string } = {};
+/** One PDF into R2 (PUT /lots/:lot/documents/:doc.pdf, the dealer key); the path the lot's documents carry, or null. */
+export async function putPdf(lot: string, doc: LaneDoc, pdf: Uint8Array, io: Io = liveIo()): Promise<string | null> {
+  if (!io.api || !io.key) return null;
+  try {
+    const r = await io.fetch(`${io.api}/lots/${lot}/documents/${doc}.pdf`, { method: 'PUT', headers: { Authorization: `Bearer ${io.key}`, 'Content-Type': 'application/pdf' }, body: new Blob([pdf.slice()], { type: 'application/pdf' }) });
+    if (!r.ok) return null;
+    const j = await r.json() as { url?: string };
+    return typeof j.url === 'string' && j.url ? j.url : null;
+  } catch { return null; }
+}
+
+/** What Go gets back: the two paths for CarMeta.documents, or the first step that did not land, in the dealer's words
+    through said() (auction.ts SAID: "Guide did not land."). */
+export type LaneUpload = { ok: true; documents: { guide: string; bill: string } } | { ok: false; reason: string };
+/** The paper's steps at Go, in order, each a word the Go button shows while it runs. */
+export const UPLOAD_STEPS: Record<'guide' | 'bill' | 'fields', string> = { guide: 'The Buyer’s Guide', bill: 'The bill of sale', fields: 'The signature lines' };
+
+/** At Go, before the lot opens: the guide PDF, the bill PDF, then the guide's fields, then the bill's
+    (PUT /lots/:id/documents/:doc.pdf, then PUT /sales/:id/fields/:doc; the Worker's sign.ts takes fields on a lot
+    not yet open, since it has no owner yet). The lot opens only when all four landed, so POST /sales/:lot/sign never
+    answers no_document or no_fields on a lot the Desk opened; the first PUT that fails stops the rest and names
+    itself, and Go is refused. */
+export async function uploadLaneDocuments(lot: string, docs: LaneDocuments, io: Io = liveIo(), onStep: (label: string) => void = () => {}): Promise<LaneUpload> {
+  if (!io.api) return { ok: false, reason: 'offline' };
+  if (!io.key) return { ok: false, reason: 'no key' };
+  const documents = { guide: '', bill: '' };
   for (const d of ['guide', 'bill'] as const) {
-    const r = await putDocument(lot, d, docs[d].pdf);
-    if (r.ok && (await putFields(lot, docs[d].fields))) out[d] = r.value.url;
+    onStep(UPLOAD_STEPS[d]);
+    const url = await putPdf(lot, d, docs[d].pdf, io);
+    if (!url) return { ok: false, reason: `${d} pdf failed` };
+    documents[d] = url;
   }
-  return out;
+  onStep(UPLOAD_STEPS.fields);
+  for (const d of ['guide', 'bill'] as const) {
+    if (!(await putFields(lot, docs[d].fields, io))) return { ok: false, reason: `${d} fields failed` };
+  }
+  return { ok: true, documents };
 }
 
 /** Open The Paperwork for a lane sale: the signed PDFs (or the Go uploads) and the buyer's name, from the Worker. */

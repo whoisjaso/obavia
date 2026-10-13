@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RELEASE_MAX_DAYS, SAID, collateralRefusal, collect, depositWords, dial, onLane, payBy, relistable, releaseRefusal, said, type Collateral, type LotLink } from './auction';
+import { RELEASE_MAX_DAYS, SAID, collateralRefusal, collect, depositWords, dial, keepContact, onLane, payBy, relistable, releaseRefusal, said, type Collateral, type Lot, type LotLink } from './auction';
 import { payByWords } from '../../../auction/src/engine/time';
 import { outTheDoor } from '../../../auction/src/engine/money';
 import { HOURS, defaultSettings, laneReady, lotFields } from './dealer-settings';
@@ -144,5 +144,35 @@ describe('Live: the socket first, polling at 15 s only after it fails', () => {
     expect(socks[1].onclose).toBeNull();
     await vi.advanceTimersByTimeAsync(POLL_MS * 2);
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Sold keeps the winner\'s number across socket frames (the socket never carries sale.contact)', () => {
+  const contact = { name: 'Marisol Treviño', phone: '+12145550142' };
+  const sale = { buyer: 'b_1', hammer: 5100, wonAt: 1, deadlineAt: 2 };
+  const read = { id: 'l1', start: 4000, retail: 8900, opensAt: 0, closesAt: 1, high: 5100, bids: 3, watching: 0, sale: { ...sale, contact } } as Lot;
+  it('a frame with a sale and no contact keeps the last contact read with the dealer key', () => {
+    const frame = { ...read, bids: 4, sale: { ...sale, paidAt: 3 } } as Lot;
+    const kept = keepContact(read, frame);
+    expect(kept.sale?.contact).toEqual(contact);
+    expect(kept.sale?.paidAt).toBe(3);
+    expect(kept.bids).toBe(4);
+    expect(frame.sale?.contact).toBeUndefined();   // the frame itself is left alone
+  });
+  it('a frame that brings a contact wins; a frame with no sale carries none; another lot\'s contact never crosses', () => {
+    const fresh = { name: 'Ana', phone: '+12145550199' };
+    expect(keepContact(read, { ...read, sale: { ...sale, contact: fresh } } as Lot).sale?.contact).toEqual(fresh);
+    const live = { ...read, sale: undefined } as Lot;
+    expect(keepContact(read, live)).toBe(live);
+    expect(keepContact(read, { ...read, id: 'l2', sale: { ...sale } } as Lot).sale?.contact).toBeUndefined();
+    const first = { ...read, sale: { ...sale } } as Lot;
+    expect(keepContact(null, first)).toBe(first);
+  });
+  it('the paper\'s four refusals at Go are said in four words or fewer', () => {
+    for (const r of ['guide pdf failed', 'bill pdf failed', 'guide fields failed', 'bill fields failed']) {
+      expect(SAID[r], r).toBeDefined();
+      expect(said(r).split(/\s+/).length).toBeLessThanOrEqual(4);
+      expect(said(r)).not.toMatch(/[–—]/);
+    }
   });
 });

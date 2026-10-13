@@ -4,14 +4,14 @@
    buyer's clock, the money, the VIN at pickup, and the way out (void).
    The lane refuses collateral it cannot see; so does this screen, earlier. */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { DEPOSIT_USD, KEY_SHAPE, auctionLive, carMeta, closeLot, collateralRefusal, collect, dealerKey, depositWords, dial, getMe, releaseRefusal, said, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, onLane, openLot, payBy, photoBlob, pickup, putDocument, putPhoto, relistable, rememberLot, takeArrival, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
+import { DEPOSIT_USD, KEY_SHAPE, auctionLive, carMeta, closeLot, collateralRefusal, collect, dealerKey, depositWords, dial, getMe, releaseRefusal, said, getLot, holdingCost, isAdminKey, keepContact, lotId, lotLinks, markPaid, onLane, openLot, payBy, photoBlob, pickup, putPhoto, relistable, rememberLot, takeArrival, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
 import { HOURS, HOURS_ORDER, defaultSettings, hoursChoice, laneReady, lotFields, toE164, E164, type HoursChoice } from './lib/dealer-settings';
 import { formatPhone } from './lib/forms/phone';
-import { buyersGuidePdf } from './lib/official';
+import { laneDocuments, uploadLaneDocuments, type LaneUpload } from './lib/sign';
 import { usd } from './lib/money';
 import { today } from './lib/loans';
 import { laneTitleWatch, taxRemitWatch, type LaneWatch } from './lib/tax';
-import type { Sale, Vehicle } from './lib/sale';
+import type { Vehicle } from './lib/sale';
 import { shrink } from './Paper';
 import { setLaneSettings, startSale, useStore } from './store';
 import { LaneSettings } from './Onboarding';
@@ -226,14 +226,19 @@ export function LetItGo() {
       if (!r.ok) { setSending(null); setFailed(`The lane did not take photo ${i + 1}: ${r.reason}.`); return; }
       remote.push({ url: r.value.url, w, h });
     }
+    /* The paper the buyer signs (sign.ts): the Buyers Guide and the bill of sale as PDFs, then the signature lines
+       for each, all before the lot opens. The Worker stamps the buyer's drawing into these exact bytes
+       (auction/worker/src/sign.ts), so a lot without them cannot be signed: a PUT that fails refuses Go. */
     setSending('The Buyer’s Guide');
-    let guide: string | undefined;
-    try { const g = await putDocument(id, 'guide', await buyersGuidePdf({ vehicle: car } as Sale, dealer, 'en')); if (g.ok) guide = g.value.url; } catch { /* the lane opens without it; the window copy is printed at the lot */ }
+    let papers: LaneUpload;
+    try { papers = await uploadLaneDocuments(id, await laneDocuments(car, dealer), undefined, setSending); }
+    catch { papers = { ok: false, reason: 'guide pdf failed' }; }
+    if (!papers.ok) { setSending(null); setFailed(said(papers.reason)); return; }
     setSending('Opening the lane');
     const ls = laneNow(); setLaneSettings(ls);
     const f = lotFields(ls);   // the pickup hours, the after-hours line and the address the buyer's Pickup screen reads
     const car2 = carMeta(car, dealer, remote, grade.map(g => g ?? 0.6) as [number, number, number, number, number, number], collateral, f.afterHours, f.hours, f.address);
-    if (guide) car2.documents = { guide };
+    car2.documents = papers.documents;   // the paths the phone's Paper pages open
     const closesAt = Date.now() + days * 86_400_000;
     const r = await openLot(id, { id, dealer: dealer.licence, start: floorN, retail: car.price, closesAt, car: car2 });
     setSending(null);
@@ -387,10 +392,19 @@ function LotPageOf({ id }: { id: string }) {
     const t = setTimeout(() => transition(() => { setHammer(false); scrollTo(0, 0); }), 760);
     return () => clearTimeout(t);
   }, [lot ? (lot.sale ? 1 : 0) : -1]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* Every frame goes through keepContact: the socket never carries sale.contact, so the last one read with the
+     dealer key stays on the lot (the Sold call line). A sale that arrives over the socket before any read carried
+     a contact (the clock closed it while Live was on the glass) is read once more with the key. */
+  const askedContact = useRef(false);
   useEffect(() => {
     let on = true;
-    getLot(id).then(r => { if (!on) return; if (r.ok) setLot(r.value); else setGone(true); });
-    const stop = watchLot(id, l => { if (on) setLot(l); });
+    askedContact.current = false;
+    const take = (l: Lot) => { if (on) setLot(prev => keepContact(prev, l)); };
+    getLot(id).then(r => { if (!on) return; if (r.ok) take(r.value); else setGone(true); });
+    const stop = watchLot(id, l => {
+      take(l);
+      if (l.sale && !l.sale.contact && !askedContact.current) { askedContact.current = true; getLot(id).then(r => { if (r.ok && r.value.sale?.contact) take(r.value); }); }
+    });
     const t = setInterval(() => tick(n => n + 1), 1000);
     return () => { on = false; stop(); clearInterval(t); };
   }, [id]);
@@ -401,7 +415,7 @@ function LotPageOf({ id }: { id: string }) {
   /* the frame the sale arrives on is already the hammer's (the effect above has not run yet) */
   const landing = hammer || (!!lot.sale && sawLive.current);
   if (lot.sale && !landing) return <Sold lot={lot} v={v} link={link} />;
-  return <Live lot={lot} v={v} link={link} hammer={landing} onLot={setLot} />;
+  return <Live lot={lot} v={v} link={link} hammer={landing} onLot={l => setLot(prev => keepContact(prev, l))} />;
 }
 
 function Live({ lot, v, link, hammer, onLot }: { lot: Lot; v?: Vehicle; link?: LotLink; hammer?: boolean; onLot: (l: Lot) => void }) {

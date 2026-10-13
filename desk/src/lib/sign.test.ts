@@ -4,7 +4,7 @@ import { PDFDocument } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { EXAMPLE_DEALER } from './config';
 import type { Vehicle } from './sale';
-import { BILL_FIELDS, CONSENT_VERSION, FIELDS, GUIDE_BOX, GUIDE_FIELDS, LANE_TERMS, LANE_TERMS_VERSION, laneDocuments, type Rect } from './sign';
+import { BILL_FIELDS, CONSENT_VERSION, FIELDS, GUIDE_BOX, GUIDE_FIELDS, LANE_TERMS, LANE_TERMS_VERSION, UPLOAD_STEPS, laneDocuments, uploadLaneDocuments, type Rect } from './sign';
 import { freeze, laneBillAgreement, laneBuyer, openLanePapers, type LanePapers } from './filed';
 // the Worker's own stamper and checks, run on the Desk's real bytes: the same code that signs in production
 import { CONSENT_VERSION as WORKER_CONSENT, parseFields, parseSignature, stampPdf } from '../../../auction/worker/src/sign';
@@ -129,5 +129,62 @@ describe('the Desk opens a lane sale from the signed PDFs', () => {
     const at = Date.UTC(2026, 9, 13, 17, 5);
     expect(laneBillAgreement({ pdf: new Uint8Array(), signed: true, at, reuse: true }, frozen)).toEqual({ state: 'filed', frozen, buyerSigned: true, signedAt: new Date(at).toISOString(), signatureReused: true, reuseConsentAt: new Date(at).toISOString() });
     expect(laneBillAgreement({ pdf: new Uint8Array(), signed: false }, frozen)).toBeNull();
+  });
+});
+
+describe('Go uploads the paper in the order the Worker needs, and refuses Go when a PUT fails', () => {
+  const api = 'https://w.test', key = 'd:P000000.sig';
+  /** A faked Worker: every PUT answers 200 with its path, except the ones named in `refuse`. */
+  function worker(refuse: string[] = []) {
+    const calls: { method: string; path: string; type: string | undefined; auth: string | undefined; body: unknown }[] = [];
+    const fetch = (async (u: string, init?: RequestInit) => {
+      const path = u.replace(api, ''), h = init?.headers as Record<string, string>;
+      let body: unknown = init?.body;
+      if (body instanceof Blob) body = { blob: body.size, type: body.type };
+      else if (typeof body === 'string') body = JSON.parse(body);
+      calls.push({ method: init?.method ?? 'GET', path, type: h?.['Content-Type'], auth: h?.Authorization, body });
+      if (refuse.includes(path)) return new Response('{"error":"bad_fields"}', { status: 400 });
+      return new Response(JSON.stringify({ url: path.startsWith('/sales/') ? path.replace(/^\/sales\/(.+)\/fields\/(.+)$/, '/documents/$1/$2.fields.json') : path.replace(/^\/lots\/(.+)\/documents\//, '/documents/$1/') }), { status: 200 });
+    }) as typeof globalThis.fetch;
+    return { calls, io: { api, key, fetch } };
+  }
+
+  it('the guide PDF, the bill PDF, then the guide fields, then the bill fields; the paths come back for the open', async () => {
+    const d = await docs;
+    const { calls, io } = worker();
+    const steps: string[] = [];
+    const r = await uploadLaneDocuments('l1', d, io, s => steps.push(s));
+    expect(r).toEqual({ ok: true, documents: { guide: '/documents/l1/guide.pdf', bill: '/documents/l1/bill.pdf' } });
+    expect(calls.map(c => `${c.method} ${c.path}`)).toEqual(['PUT /lots/l1/documents/guide.pdf', 'PUT /lots/l1/documents/bill.pdf', 'PUT /sales/l1/fields/guide', 'PUT /sales/l1/fields/bill']);
+    expect(calls.every(c => c.auth === `Bearer ${key}`)).toBe(true);
+    expect(calls.slice(0, 2).map(c => c.type)).toEqual(['application/pdf', 'application/pdf']);
+    expect(calls[0].body).toEqual({ blob: d.guide.pdf.byteLength, type: 'application/pdf' });
+    expect(calls[1].body).toEqual({ blob: d.bill.pdf.byteLength, type: 'application/pdf' });
+    expect(calls.slice(2).map(c => c.type)).toEqual(['application/json', 'application/json']);
+    expect(calls[2].body).toEqual(GUIDE_FIELDS);
+    expect(calls[3].body).toEqual(BILL_FIELDS);
+    expect(steps).toEqual([UPLOAD_STEPS.guide, UPLOAD_STEPS.bill, UPLOAD_STEPS.fields]);
+  });
+
+  it('a PUT that fails stops the rest and names itself; the lot is not given its paths', async () => {
+    const d = await docs;
+    const bill = worker(['/lots/l1/documents/bill.pdf']);
+    expect(await uploadLaneDocuments('l1', d, bill.io)).toEqual({ ok: false, reason: 'bill pdf failed' });
+    expect(bill.calls.map(c => c.path)).toEqual(['/lots/l1/documents/guide.pdf', '/lots/l1/documents/bill.pdf']);
+    const fields = worker(['/sales/l1/fields/guide']);
+    expect(await uploadLaneDocuments('l1', d, fields.io)).toEqual({ ok: false, reason: 'guide fields failed' });
+    expect(fields.calls.map(c => c.path)).toEqual(['/lots/l1/documents/guide.pdf', '/lots/l1/documents/bill.pdf', '/sales/l1/fields/guide']);
+    const last = worker(['/sales/l1/fields/bill']);
+    expect(await uploadLaneDocuments('l1', d, last.io)).toEqual({ ok: false, reason: 'bill fields failed' });
+    expect(last.calls).toHaveLength(4);
+  });
+
+  it('a lane out of reach, or no key, refuses before any PUT', async () => {
+    const d = await docs;
+    const dead = worker();
+    expect(await uploadLaneDocuments('l1', d, { ...dead.io, fetch: (async () => { throw new Error('ECONNREFUSED'); }) as typeof globalThis.fetch })).toEqual({ ok: false, reason: 'guide pdf failed' });
+    expect(await uploadLaneDocuments('l1', d, { ...dead.io, api: '' })).toEqual({ ok: false, reason: 'offline' });
+    expect(await uploadLaneDocuments('l1', d, { ...dead.io, key: null })).toEqual({ ok: false, reason: 'no key' });
+    expect(dead.calls).toHaveLength(0);
   });
 });

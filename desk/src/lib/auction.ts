@@ -84,6 +84,8 @@ export const SAID: Record<string, string> = {
   'release past day 14': 'Release must land inside 14 days so title reaches the buyer before day 21.',
   /* the Desk's own */
   offline: 'Lane out of reach.', 'no key': 'Paste your key first.', 'lane settings missing': 'Set the after-hours line.',
+  /* the paper at Go (sign.ts uploadLaneDocuments): the lot never opens without it */
+  'guide pdf failed': 'Guide did not land.', 'bill pdf failed': 'Bill did not land.', 'guide fields failed': 'Guide lines not kept.', 'bill fields failed': 'Bill lines not kept.',
   /* /open */
   'collateral missing': 'The lane needs collateral.', 'title in repossession': 'Finish the repossession first.', 'title location unknown': 'Say where the title is.',
   'lender release time missing': 'Say the release days.', 'floor below payoff without acknowledgement': 'Say you bring it.', 'not insured': 'Insure it first.',
@@ -195,6 +197,15 @@ export async function getLot(lot: string): Promise<Result<Lot>> {
   if (!auctionLive) return { ok: false, reason: 'offline' };
   const key = dealerKey.get();
   try { const r = await fetch(`${AUCTION_API}/lots/${lot}`, key ? { headers: { Authorization: `Bearer ${key}` } } : undefined); return r.ok ? { ok: true, value: await r.json() as Lot } : { ok: false, reason: `http ${r.status}` }; } catch { return { ok: false, reason: 'offline' }; }
+}
+
+/** The live socket never carries `sale.contact` (README: the dealer key's GET /lots/:id and the dealer routes do), so a
+    frame that replaces the lot would blank the Sold page's call line. A frame with a sale and no contact keeps the
+    last contact read for the same lot; a frame that brings one wins. */
+export function keepContact(prev: Lot | null, next: Lot): Lot {
+  const c = prev?.sale?.contact;
+  if (!c || !next.sale || next.sale.contact || prev?.id !== next.id) return next;
+  return { ...next, sale: { ...next.sale, contact: c } };
 }
 
 /** Polling only after the socket fails, and then slowly: the socket carries every bid; a poll is the fallback, not the lane. */
