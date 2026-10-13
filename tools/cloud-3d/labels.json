@@ -1,9 +1,9 @@
 {
-  "note": "The labels the phone carves into the cloud button. Text is set as the app sets it: upright spaced capitals (textTransform uppercase), the platform face at weight 600 (Inter SemiBold stands in for SF Pro and Roboto), 13 pt with 3.1 pt tracking on a 345 pt cloud, so the em is 0.03768 of the canvas width at every size; a label wider than 92 percent of the safe rect is set smaller, as adjustsFontSizeToFit does. The cap line is centred at 0.56 of the canvas height, in the top of the safe rect (0.52 to 0.74), on the sunlit face of the belly: below 0.6 the belly turns to its blue-grey underside, where no floor can hold 4.5:1.",
+  "note": "The labels the phone carves into the cloud button. Text is set as the app sets it: upright spaced capitals (textTransform uppercase), the platform face at weight 600 (Inter SemiBold stands in for SF Pro and Roboto), 17 pt with 3.1 pt tracking (0.18 em) on a 345 pt cloud, so the em is 0.04928 of the canvas width at every size (cap height 12.4 pt on the 345 cloud, 11.5 px on the 320 canvas, 15.8 px on the 440, 22.9 px on the 640, each under the safe zone's cap ceiling of 12, 16 and 24); a label wider than 92 percent of the safe rect is set smaller, as adjustsFontSizeToFit does (Back to the lane and Get on the lane: neither holds 16 pt in the rect at any tracking). The cap line is centred at 0.58 of the canvas height, so the taller cap stays inside the top of the safe rect (0.52 to 0.74) and on the sunlit face of the belly: below about 0.63 the belly turns to its blue-grey underside, where no floor can hold 4.5:1. Raised from 13 pt on October 13, 2026 (docs/design/legibility-audit.md, D6).",
   "font": "fonts/Inter.ttf",
   "weight": 600,
-  "em_of_canvas_w": 0.03768,
-  "tracking_em": 0.2385,
+  "em_of_canvas_w": 0.04928,
+  "tracking_em": 0.1824,
   "fit_of_safe_w": 0.92,
   "labels": [
     "Bid",
@@ -17,5 +17,5 @@
     "Get on the lane",
     "Let a car go"
   ],
-  "cap_centre_y": 0.56
+  "cap_centre_y": 0.58
 }

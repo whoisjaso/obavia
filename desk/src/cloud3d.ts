@@ -74,11 +74,14 @@ export function startSky(host: HTMLElement): () => void {
   return () => { alive = false; stop(); };
 }
 
+/** How far a dock button's crowns rise above its box, in button heights (the engine's `top`). */
+export const DOCK_CROWN = .7;
+
 /** Every .btn.primary under root becomes a cloud as it mounts; React re-renders never strip it. */
 export function watchButtons(root: HTMLElement): () => void {
   const SEL = '.btn.primary';
   let mo: MutationObserver | null = null, alive = true;
-  const add = (el: HTMLElement, form: boolean) => { engine().attach(el, { live: true, top: el.closest('.dock') ? .7 : .62, form }); };
+  const add = (el: HTMLElement, form: boolean) => { engine().attach(el, { live: true, top: el.closest('.dock') ? DOCK_CROWN : .62, form }); };
   whenIdle(() => {
     if (!alive) return;
     const e = engine();
@@ -101,4 +104,32 @@ export function watchButtons(root: HTMLElement): () => void {
     mo.observe(root, { childList: true, subtree: true });
   });
   return () => { alive = false; mo?.disconnect(); };
+}
+
+/* The dock's cloud height, measured (legibility-audit D3): from the top of the dock button's crowns, or the dock's
+   own top if that is higher, to the dock's bottom, the safe area included. Written to --dock-cloud on the root;
+   every page with a dock pads its foot by it plus 16 px (styles.css), so the last row is never under the cloud.
+   Measured when the page's tree changes and when the dock resizes, once per frame at most; written only on a change. */
+export function watchDock(root: HTMLElement): () => void {
+  const doc = document.documentElement;
+  let last = -1, raf = 0, seen: Element | null = null;
+  const ro = new ResizeObserver(() => soon());
+  const measure = () => {
+    raf = 0;
+    const dock = root.querySelector<HTMLElement>('.dock');
+    if (dock !== seen) { if (seen) ro.unobserve(seen); if (dock) ro.observe(dock); seen = dock; }
+    if (!dock) return;
+    const d = dock.getBoundingClientRect();
+    let top = d.top;
+    const btn = dock.querySelector<HTMLElement>('.btn.primary');
+    if (btn) { const b = btn.getBoundingClientRect(); if (b.height) top = Math.min(top, b.top - DOCK_CROWN * b.height); }
+    const h = Math.ceil(d.bottom - top);
+    if (h > 0 && h !== last) { last = h; doc.style.setProperty('--dock-cloud', `${h}px`); }
+  };
+  const soon = () => { if (!raf) raf = requestAnimationFrame(measure); };
+  const mo = new MutationObserver(soon);
+  mo.observe(root, { childList: true, subtree: true });
+  addEventListener('resize', soon);
+  soon();
+  return () => { mo.disconnect(); ro.disconnect(); removeEventListener('resize', soon); if (raf) cancelAnimationFrame(raf); };
 }

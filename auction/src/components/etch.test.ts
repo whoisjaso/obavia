@@ -29,12 +29,13 @@ const lum = (c: RGB) => {
 const ratio = (a: RGB, b: RGB) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 
 /** The worst ratio of a recipe's floor over every pixel of the label band (the widest label, "THAT'S ME",
-    96.5 pt on a 345 pt cloud; the cap band of a 13 pt line centered in the safe zone, y 40 to 85 %). */
+    118.6 pt on a 345 pt cloud at 17 pt with 3.1 pt tracking; the cap band of a 17 pt line centered in the safe
+    zone, y 40 to 85 %). */
 function worst(file: string, page: RGB, r: Recipe, floorO: number) {
   const png = PNG.sync.read(readFileSync(join(root, 'assets/cloud-button', file)));
   const { width: W, height: H, data } = png;
-  const half = (96.5 / 345) * W / 2, x0 = Math.round(W / 2 - half), x1 = Math.round(W / 2 + half);
-  const cy = H * 0.625, band = (9 / 88) * H, y0 = Math.round(cy - band / 2), y1 = Math.round(cy + band / 2);
+  const half = (118.6 / 345) * W / 2, x0 = Math.round(W / 2 - half), x1 = Math.round(W / 2 + half);
+  const cy = H * 0.625, band = (11.8 / 88) * H, y0 = Math.round(cy - band / 2), y1 = Math.round(cy + band / 2);
   let min = Infinity;
   for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
     const i = (y * W + x) * 4;
@@ -125,17 +126,49 @@ function carved(imprint: Img, floor: Img, frame: Img, rect: { x: number; y: numb
   return n ? { min, strict, n } : null;
 }
 const exists = (f: string) => { try { readFileSync(f); return true; } catch { return false; } };
+/* The cloud frames. The contract's per-frame PNGs are regenerable renders and gitignored (assets/cloud-3d/.gitignore);
+   the WebP beside each is committed. A frame is read from its PNG where a render left one, else decoded from the
+   WebP with sharp (auction's own, else the Desk's). A tone whose frames cannot be read is skipped with the reason
+   printed, never failed: a clean checkout without a decoder measures nothing rather than lying. */
+type Sharp = (f: string) => { ensureAlpha(): { raw(): { toBuffer(o: { resolveWithObject: true }): Promise<{ data: Buffer; info: { width: number; height: number; channels: number } }> } } };
+const sharp: Sharp | null = (() => {
+  for (const base of [join(root, 'package.json'), join(root, '..', 'desk', 'package.json')]) {
+    try { return createRequire(base)('sharp') as Sharp; } catch { /* the next */ }
+  }
+  return null;
+})();
+const frameSource = (stem: string): string | null =>
+  exists(`${stem}.png`) ? `${stem}.png` : sharp && exists(`${stem}.webp`) ? `${stem}.webp` : null;
+async function frame(f: string): Promise<Img> {
+  if (f.endsWith('.png')) return png(f);
+  const { data, info } = await sharp!(f).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  if (info.channels !== 4) throw new Error(`${f}: ${info.channels} channels`);
+  return { width: info.width, height: info.height, data };
+}
 const L = exists(labelsJson) ? JSON.parse(readFileSync(labelsJson, 'utf8')) as {
   surround_of_cap: number;
   sizes: Record<string, Record<string, { canvas: { w: number }; rect: { x: number; y: number; w: number; h: number } }>>;
   labels: Record<string, { text: string; cap_of_canvas_w: number }>;
 } : null;
 const rows = L ? Object.keys(L.labels).flatMap(slug => (['light', 'dark'] as const).map(tone => [slug, tone] as const)) : [];
+const btnDir = (tone: string, size: string) => join(root, '..', 'assets', 'cloud-3d', 'button', tone, size);
+/** Why a tone's frames cannot be read, or null when every rest and pressed frame has a source. */
+const missing = (tone: string) => {
+  for (const size of ['320', '440', '640']) for (const sfx of ['', '@2x']) for (const n of ['rest', 'pressed']) {
+    const stem = join(btnDir(tone, size), `${n}${sfx}`);
+    if (!frameSource(stem)) return exists(`${stem}.webp`) ? `${stem}.png is not rendered and no sharp is installed to decode its WebP` : `${stem}.png and .webp are both absent`;
+  }
+  return null;
+};
+const why = { light: L ? missing('light') : null, dark: L ? missing('dark') : null };
+for (const [tone, w] of Object.entries(why)) if (w) console.log(`etch.test: the carved labels on ${tone} are skipped: ${w}`);
 const table: string[] = [];
 const f2 = (v?: number) => (v == null ? '-' : v.toFixed(2));
 
 describe.skipIf(!L)('the carved labels', () => {
-  it.each(rows)('%s (%s) holds a 4.5:1 floor against its cloud at every size, at rest and pressed', (slug, tone) => {
+  const title = '%s (%s) holds a 4.5:1 floor against its cloud at every size, at rest and pressed';
+  it.skip.each(rows.filter(([, tone]) => why[tone]))(title, () => {});   // the reason is printed above
+  it.each(rows.filter(([, tone]) => !why[tone]))(title, async (slug, tone) => {
     const page = tone === 'dark' ? hex('#1C2436') : hex('#EEF2FC');
     let solid = 0;
     for (const size of ['320', '440', '640']) for (const k of ['1', '2']) {
@@ -145,9 +178,9 @@ describe.skipIf(!L)('the carved labels', () => {
       const imprint = png(join(labelsDir, tone, size, `${slug}${scale}.png`));
       const floor = png(join(labelsDir, size, `${slug}-floor${scale}.png`));
       expect([imprint.width, imprint.height]).toEqual([rect.w, rect.h]);
-      const btn = join(root, '..', 'assets', 'cloud-3d', 'button', tone, size);
-      const rest = carved(imprint, floor, png(join(btn, `rest${sfx}.png`)), rect, page, 0, sigma);
-      const pressed = carved(imprint, floor, png(join(btn, `pressed${sfx}.png`)), rect, page, imprintPress, sigma);
+      const btn = btnDir(tone, size);
+      const rest = carved(imprint, floor, await frame(frameSource(join(btn, `rest${sfx}`))!), rect, page, 0, sigma);
+      const pressed = carved(imprint, floor, await frame(frameSource(join(btn, `pressed${sfx}`))!), rect, page, imprintPress, sigma);
       table.push(`| ${L!.labels[slug].text} | ${tone} | ${size}${scale} | ${f2(rest?.min)} | ${f2(pressed?.min)} | ${f2(rest?.strict)} | ${rest?.n ?? 0} |`);
       if (!rest || !pressed) continue;   // a 1x stroke with no solid pixel: the 2x of the same size carries it
       solid++;

@@ -1,5 +1,8 @@
 /* ID and insurance. Point the phone; the frame reads; the facts come back as
-   centered lines; confirm each with a touch; State opens a wheel; "That's me".
+   centered lines in ink; "That's me" confirms all five at once and is live the
+   moment they arrive. Tapping a fact corrects it: State opens a wheel, the
+   others open the field in place; a correction lands with the light impact and
+   a green rule under the fact it changed.
    The ID runs twice in a buyer's life: before the first bid (BidSheet, then
    the deposit) and as the first step after a win, prefilled from the first. The licence's state
    decides whether the last step says Plates or Title. On native the camera
@@ -7,7 +10,7 @@
    the read (ML Kit / Vision) is a later phase, so the facts stay as they are.
    On web the frame stays dark. */
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
@@ -16,29 +19,35 @@ import { Button, Label } from '../../components/Type';
 import { Feather } from '../../components/Cloud';
 import { Sky } from '../../components/Sky';
 import { feel } from '../../feel';
-import { setSale, type Licence } from '../../sale';
+import { WORKER, setSale, type Licence } from '../../sale';
+import { isAdult, isExpired, isTexas, parseAamva, toSale, type LicenceRead } from '../../licence';
 import { Wheel } from '../../components/Wheel';
 import { saveProfile } from '../../store';
 import { theme } from '../../theme';
 
-/* The licence read (ML Kit / Vision) is a later phase: until it lands every scan shows these facts. They are
-   never sent to the Worker as the buyer's address; only a real read's street line feeds the shill check (D11). */
+/* The local fixture server's licence (no Worker, sale.ts WORKER): the shutter shows these facts. With a Worker the
+   facts come only from the back of the card (licence.ts, the PDF417 read) and this never shows. */
 const FIXTURE = { name: 'Marisol Treviño', dob: '04/12/1991', address: '2210 Example Ave, San Antonio', licence: '•••• 4821' };
 
 const NATIVE = Platform.OS !== 'web';
 
 /* Native only: the camera and its permission. Asked when the frame mounts
    (the buyer has just chosen to scan), never at launch. Denied keeps the dark frame. */
-function Lens({ camera }: { camera: React.RefObject<CameraView | null> }) {
+/* `onScan`: the PDF417 on the back of a licence, read by the camera; undefined once read, so one shot fires once. */
+function Lens({ camera, onScan }: { camera: React.RefObject<CameraView | null>; onScan?: (data: string) => void }) {
   const [permission, request] = useCameraPermissions();
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain && permission.status === 'undetermined') request().catch(() => {});
   }, [permission, request]);
   if (!permission?.granted) return null;
-  return <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" />;
+  return <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back"
+    barcodeScannerSettings={onScan ? { barcodeTypes: ['pdf417'] } : undefined}
+    onBarcodeScanned={onScan ? ({ data }) => onScan(data) : undefined} />;
 }
 
-function Frame({ kind, read, onShutter }: { kind: 'licence' | 'card'; read: boolean; onShutter: () => void }) {
+/** The frame. `onScan`: the barcode read is live (the shutter steps aside and the outline is the card's back, the
+    barcode band, which is the side to point at). `stamp`: a refused read's four words, where the shutter was. */
+function Frame({ kind, read, onShutter, onScan, stamp }: { kind: 'licence' | 'card'; read: boolean; onShutter: () => void; onScan?: (data: string) => void; stamp?: string | null }) {
   const camera = useRef<CameraView | null>(null);
   const [, setShot] = useState<string | null>(null);   // the picture's uri; held for the read, never persisted
   const press = async () => {
@@ -52,13 +61,15 @@ function Frame({ kind, read, onShutter }: { kind: 'licence' | 'card'; read: bool
   };
   return (
     <View style={s.viewfinder}>
-      {NATIVE && <Lens camera={camera} />}
+      {NATIVE && <Lens camera={camera} onScan={read ? undefined : onScan} />}
       <Svg width="100%" height="100%" viewBox="0 0 320 420" preserveAspectRatio="xMidYMid meet">
         <Rect x={30} y={130} width={260} height={kind === 'licence' ? 164 : 150} rx={14} stroke={read ? theme.color.good : theme.color.cloud} strokeWidth={1.5} strokeOpacity={read ? 1 : 0.7} fill="rgba(255,255,255,0.04)" />
-        {kind === 'licence' && <><Rect x={50} y={160} width={64} height={80} rx={8} fill="rgba(255,255,255,0.14)" /><Path d="M130 170h120M130 192h90M130 214h110M130 236h70" stroke="rgba(255,255,255,0.28)" strokeWidth={5} strokeLinecap="round" /></>}
+        {kind === 'licence' && onScan && <Rect x={50} y={190} width={220} height={60} rx={4} fill="rgba(255,255,255,0.22)" />}
+        {kind === 'licence' && !onScan && <><Rect x={50} y={160} width={64} height={80} rx={8} fill="rgba(255,255,255,0.14)" /><Path d="M130 170h120M130 192h90M130 214h110M130 236h70" stroke="rgba(255,255,255,0.28)" strokeWidth={5} strokeLinecap="round" /></>}
         {kind === 'card' && <Path d="M50 160h150M50 190h220M50 215h180M50 250h120" stroke="rgba(255,255,255,0.28)" strokeWidth={5} strokeLinecap="round" />}
       </Svg>
-      {!read && (
+      {!read && !!stamp && <Text style={s.stamp} accessibilityLiveRegion="polite">{stamp}</Text>}
+      {!read && !onScan && (
         <Pressable onPress={press} style={s.shutter} accessibilityRole="button" accessibilityLabel="Take the photo">
           <View style={s.shutterInner} />
         </Pressable>
@@ -71,33 +82,91 @@ function Frame({ kind, read, onShutter }: { kind: 'licence' | 'card'; read: bool
    the read can come back with any state, and a non-Texas one turns the last step into Title. */
 const STATES = ['AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL', 'GA', 'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY'];
 
+type Fact = 'Name' | 'Born' | 'Address' | 'License' | 'State';
+const KEYS: Exclude<Fact, 'State'>[] = ['Name', 'Born', 'Address', 'License'];
+/* The keyboard each field opens with. The licence number is masked back to its last four as it lands: the
+   phone keeps no more of it than the read showed. */
+const KEYBOARD: Record<Exclude<Fact, 'State'>, 'default' | 'numbers-and-punctuation' | 'number-pad'> = { Name: 'default', Born: 'numbers-and-punctuation', Address: 'default', License: 'number-pad' };
+/* On the web the browser's focus box would sit around the field; the accent rule under it is the focus. */
+const WEB_FIELD = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null;
+/* The State fact is the issuer's: Texas by the card's IIN (isTexas), which decides Plates or Title (sale.ts
+   outOfState). A card another state issued to a Texas address must not read TX: it shows as out of state. */
+const issuer = (r: LicenceRead) => (isTexas(r) ? 'TX' : r.state && r.state !== 'TX' ? r.state : 'Out of state');
+const masked = (v: string) => { const d = v.replace(/\D/g, ''); return d.length >= 4 ? `•••• ${d.slice(-4)}` : v; };
+
 /** The licence: frame, shutter, five facts, "That's me". `initial`: a licence already read (the first bid's,
-    or the sale's); confirmed, every fact starts lit. `onCancel`: the first bid's way back to the Bid sheet. */
+    or the sale's). "That's me" is never disabled: it confirms the five as they stand. A tap on a fact opens it
+    to correct (State: the wheel; the rest: the field, in place). `onCancel`: the first bid's way back. */
 export function IdScan({ initial, onDone, onCancel }: { initial?: Licence; onDone: (id: Licence) => void; onCancel?: () => void }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [read, setRead] = useState(!!initial);
   const pre = !!initial?.confirmed;
-  const [ok, setOk] = useState<Record<string, boolean>>(pre ? { Name: true, Born: true, Address: true, Licence: true, State: true } : {});
-  const [state, setState] = useState(initial?.state ?? 'TX');
-  const [wheel, setWheel] = useState(false);   // the State wheel: hidden until State is tapped
-  const id: Licence = initial ?? { ...FIXTURE, state, confirmed: false };
-  const fields: [string, string][] = [['Name', id.name], ['Born', id.dob], ['Address', id.address], ['Licence', id.licence], ['State', state]];
-  const all = fields.every(([k]) => ok[k]);
+  // with a Worker the facts wait for the card's own read; the fixture is the local fixture server's alone
+  const first: Licence = initial ?? (WORKER ? { name: '', dob: '', address: '', licence: '', state: 'TX', confirmed: false } : { ...FIXTURE, state: 'TX', confirmed: false });
+  const [facts, setFacts] = useState<Record<Exclude<Fact, 'State'>, string>>({ Name: first.name, Born: first.dob, Address: first.address, License: first.licence });
+  const [state, setState] = useState(first.state);
+  const [fixed, setFixed] = useState<Partial<Record<Fact, boolean>>>({});   // the facts the buyer corrected
+  const [open, setOpen] = useState<Fact | null>(null);                       // the one fact open for correction
+  const [draft, setDraft] = useState('');
+  const wheelFrom = useRef(state);                                           // State when the wheel opened
   const shutter = () => { feel.touch(); setTimeout(() => { setRead(true); feel.select(); }, 500); };
-  const confirm = (k: string) => {
-    if (k === 'State') { setWheel(w => !w); feel.select(); return; }   // State opens the wheel; picking a value confirms it
-    setOk(o => ({ ...o, [k]: true })); feel.touch();
+  const [stamp, setStamp] = useState<string | null>(null);   // a refused read, in four words or fewer
+  const scanning = NATIVE && WORKER && !read;
+  /** The back of the card, read: the five facts and the State, or a refusal that only stamps (no sound, no touch). */
+  const onScan = (data: string) => {
+    if (live.current.read) return;
+    const r = parseAamva(data);
+    if (!r) return;                                                // not a licence: keep looking, silently
+    const now = Date.now();
+    if (isExpired(r, now)) { setStamp('That license has expired'); return; }
+    if (!isAdult(r, now)) { setStamp('Must be eighteen'); return; }
+    live.current.read = true;
+    const l = toSale(r);
+    live.current.facts = { Name: l.name, Born: l.dob, Address: l.address, License: l.licence };
+    live.current.state = issuer(r);
+    setFacts(live.current.facts); setState(live.current.state); setStamp(null); setRead(true); feel.select();
   };
-  const pickState = (v: string) => { setState(v); setOk(o => ({ ...o, State: true })); setWheel(false); feel.touch(); };
+
+  /* The latest values, for handlers that run in the same tick as the field's blur (a tap on That's me or on
+     another fact blurs the field first; the closure that follows still holds the values of the render before). */
+  const live = useRef({ open: null as Fact | null, facts, state, draft, read });
+  live.current.draft = draft;
+  /** Close the open fact; a correction lands with the light impact and its green rule. Twice is once. */
+  const close = () => {
+    const L = live.current, k = L.open;
+    if (!k) return;
+    L.open = null; setOpen(null);
+    let changed = false;
+    if (k === 'State') changed = L.state !== wheelFrom.current;
+    else {
+      const typed = L.draft.trim(), v = k === 'License' ? masked(typed) : typed;
+      if (v && v !== L.facts[k]) { L.facts = { ...L.facts, [k]: v }; setFacts(L.facts); changed = true; }
+    }
+    if (changed) { setFixed(f => ({ ...f, [k]: true })); feel.touch(); }
+  };
+  const tap = (k: Fact) => {
+    const was = live.current.open;
+    close();
+    if (was === k) return;
+    if (k === 'State') { wheelFrom.current = live.current.state; feel.select(); }
+    else setDraft(k === 'License' ? '' : live.current.facts[k]);
+    live.current.open = k; setOpen(k);
+  };
+  const turn = (v: string) => { live.current.state = v; setState(v); };
+  const pickState = (v: string) => { turn(v); close(); };
   const thatsMe = () => {
-    const done = { ...id, state, confirmed: true };
-    if (id.address !== FIXTURE.address) saveProfile({ address: id.address.split(',')[0] });   // the street line, as the Worker compares it
+    close();
+    const { facts: f, state: st } = live.current;
+    const done: Licence = { name: f.Name, dob: f.Born, address: f.Address, licence: f.License, state: st, confirmed: true };
+    // the street line, as the Worker compares it (D11): the card's read or the buyer's own correction; never the fixture's
+    if (done.address && (WORKER || done.address !== FIXTURE.address)) saveProfile({ address: done.address.split(',')[0] });
     feel.step(); onDone(done);
   };
+  const rows: [Fact, string][] = [...KEYS.map(k => [k, facts[k]] as [Fact, string]), ['State', state]];
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.ink, paddingTop: insets.top }]}>
-      <Frame kind="licence" read={read} onShutter={shutter} />
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.ink, paddingTop: insets.top }]}>
+      <Frame kind="licence" read={read} onShutter={shutter} onScan={scanning ? onScan : undefined} stamp={stamp} />
       {onCancel && !read && (
         <Pressable onPress={onCancel} hitSlop={12} style={[s.later, { top: insets.top + theme.space.s }]} accessibilityRole="button">
           <Text style={s.laterText}>Not now</Text>
@@ -108,23 +177,35 @@ export function IdScan({ initial, onDone, onCancel }: { initial?: Licence; onDon
           <Feather />
           <Sky radius={28} low />
           <View style={s.facts}>
-            {fields.map(([k, v], i) => (
+            {rows.map(([k, v], i) => (
               <Animated.View key={k} entering={pre ? undefined : FadeInDown.delay(i * 60).duration(180)} style={{ alignSelf: 'stretch', alignItems: 'center' }}>
-                <Pressable onPress={() => confirm(k)} style={s.fact} accessibilityRole="button" accessibilityLabel={`${k} ${v}`} accessibilityState={{ selected: !!ok[k], expanded: k === 'State' ? wheel : undefined }}>
-                  <Label>{k}</Label>
-                  {!(k === 'State' && wheel) && <Text style={[s.value, ok[k] && { color: theme.color.ink }]}>{v}</Text>}
-                  {!(k === 'State' && wheel) && <View style={[s.mark, ok[k] && s.markOn]} />}
-                </Pressable>
-                {k === 'State' && wheel && (
-                  <Wheel items={STATES} value={state} width={width - theme.space.m * 2} onChange={setState} onPick={pickState} label="State" />
+                {open === k && k !== 'State' ? (
+                  <View style={s.fact}>
+                    <Label>{k}</Label>
+                    <TextInput value={draft} onChangeText={setDraft} onSubmitEditing={close} onBlur={close}
+                      autoFocus selectTextOnFocus returnKeyType="done" keyboardType={KEYBOARD[k]} placeholder={k === 'License' ? v : undefined}
+                      placeholderTextColor={theme.color.faint} autoCapitalize={k === 'Name' || k === 'Address' ? 'words' : 'none'} autoCorrect={false}
+                      accessibilityLabel={k} style={[s.value, s.field, WEB_FIELD, { width: width - theme.space.m * 4 }]} />
+                    <View style={[s.mark, s.markOpen]} />
+                  </View>
+                ) : (
+                  <Pressable onPress={() => tap(k)} style={s.fact} accessibilityRole="button" accessibilityLabel={`${k} ${v}`} accessibilityHint="Opens it to correct"
+                    accessibilityState={{ expanded: open === k }}>
+                    <Label>{k}</Label>
+                    {!(k === 'State' && open === 'State') && <Text style={s.value}>{v}</Text>}
+                    {!(k === 'State' && open === 'State') && <View style={[s.mark, fixed[k] && s.markOn]} />}
+                  </Pressable>
+                )}
+                {k === 'State' && open === 'State' && (
+                  <Wheel items={STATES} value={state} width={width - theme.space.m * 2} onChange={turn} onPick={pickState} label="State" />
                 )}
               </Animated.View>
             ))}
           </View>
-          <Button label="That's me" onPress={thatsMe} disabled={!all || wheel} />
+          <Button label="That's me" onPress={thatsMe} />
         </Animated.View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -150,10 +231,13 @@ const s = StyleSheet.create({
   sheet: { backgroundColor: theme.color.sky, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: theme.space.m, paddingTop: theme.space.l, gap: theme.space.l },
   facts: { alignItems: 'center', gap: theme.space.s },
   fact: { alignItems: 'center', gap: 3 },
-  value: { ...theme.type.sans, fontSize: 18, color: theme.color.muted, textAlign: 'center' },
+  value: { ...theme.type.sans, fontSize: 18, color: theme.color.ink, textAlign: 'center' },
+  field: { paddingVertical: 0, minHeight: 24 },
   mark: { width: 18, height: 2, borderRadius: 1, backgroundColor: 'transparent', marginTop: 3 },
   markOn: { backgroundColor: theme.color.good },
+  markOpen: { backgroundColor: theme.color.accent },
   later: { position: 'absolute', left: theme.space.m },
+  stamp: { ...theme.type.sansBold, position: 'absolute', bottom: 64, left: theme.space.m, right: theme.space.m, fontSize: 17, color: theme.color.cloud, letterSpacing: 2, textTransform: 'uppercase', textAlign: 'center' },
   laterText: { ...theme.type.sans, fontSize: 17, color: theme.color.cloud, opacity: 0.8 },
   what: { ...theme.type.sansBold, fontSize: 22, color: theme.color.cloud, letterSpacing: 3, textTransform: 'uppercase', textAlign: 'center' },
   vin: { ...theme.type.sansBold, fontSize: 17, color: theme.color.cloud, letterSpacing: 1.5, textAlign: 'center', marginTop: 4 },

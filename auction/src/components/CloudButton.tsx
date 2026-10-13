@@ -465,7 +465,9 @@ const s = StyleSheet.create({
   ink: { borderRadius: 4, backgroundColor: theme.color.ink, overflow: 'hidden' },
   off: { opacity: 0.4 },
   safe: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  label: { ...theme.type.sansBold, fontSize: 13, letterSpacing: 3.1, textTransform: 'uppercase', textAlign: 'center' },
+  // 17 pt, the glass's floor (DOCTRINE §4.3); 3.1 pt tracking is 0.18 em. The imprints are carved at the same size
+  // (tools/cloud-3d/labels.json: 17 pt on a 345 pt cloud); the two long labels are fitted to the safe rect there.
+  label: { ...theme.type.sansBold, fontSize: 17, letterSpacing: 3.1, textTransform: 'uppercase', textAlign: 'center' },
   etch: { alignSelf: 'center' },
   wall: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
   unseen: { position: 'absolute', left: 0, right: 0, top: 0, color: 'transparent' },

@@ -28,7 +28,7 @@ The Lane's one thing is the drag. The Bid sheet's is Bid. Won's is the one lit s
 | Deposit | **Pay** | "Not now" in faint text | — | — | passes |
 | Car | swipe between three pages | tap a photo, Buyers Guide | — | — | passes |
 | Won · steps | the one lit step | — | — | the locked steps are faint, the done ones ticked | passes |
-| ID | **That's me** (disabled until confirmed) | long-press State | — | — | passes |
+| ID | **That's me** (live as the facts arrive; confirms all five at once) | tap a fact to correct it | the State wheel and each fact's field, until that fact is tapped | — | passes (legibility-audit D1, October 13, 2026) |
 | Insure | the shutter | — | — | — | passes |
 | Sign | the one live document | "Later" in faint text | the signature pad until the end of the page | the reuse offer until a signature exists | passes |
 | Pay | one of three words | — | — | — | passes (three words are the decision, not options around it) |
