@@ -55,7 +55,7 @@ The kit is synthesized deterministically by `tools/cloud-sfx/make.mjs` (16-bit W
 - **Layers**: backgrounds are three cloud layers (far, mid, near) with parallax 0.2 / 0.5 / 1.0 of scroll or of a device tilt where available; they drift on their own timelines, slower when far.
 - **Sheets** rise like a cloud forming from the bottom: translateY from 100 percent on a spring at damping 0.75, with the scrim fading in, and the sheet's top edge feathered (a soft highlight) so it does not read as a card.
 - **Pages** arrive by settling (translateY −8 px → 0, opacity 0 → 1, 420 ms, staggered 40 ms), which the Desk already does through `motion.ts`.
-- **Reduced motion**: every state change still happens; drift stops; press becomes an opacity change; sheets fade.
+- **Reduced motion**: every state change still happens; drift stops; press becomes an opacity change; sheets fade. Sounds and haptics stay (owner, October 13, 2026): reduced motion is about motion, not about silence.
 
 ## 5. Look: the cloud material, in tokens
 

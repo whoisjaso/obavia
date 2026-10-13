@@ -39,7 +39,7 @@ The user already knows how to use the phone. We borrow the gestures and the feed
 | --- | --- | --- |
 | Instagram | double tap = want; the heart is the proof, no text | Lane: double tap watches a car, the mark swells, Light haptic, cloud-touch |
 | Instagram, TikTok | vertical full-bleed cards, one subject per screen, swipe to the next | Lane: one car fills the glass, the next one is under the thumb |
-| TikTok | hold to pause, release to resume; the thing under the finger obeys | Lane: hold freezes the countdown ring on the current car |
+| TikTok | hold to pause, release to resume; the thing under the finger obeys | Lane: hold plays the engine recording of the current car (`obavia-auction-decisions.md` §3.1); the ring never freezes, it is the server's clock |
 | YouTube | drag the scrubber; the number follows the finger | Lane: drag the price, the Bid sheet's number follows the drag |
 | Facebook Marketplace | a price, a photo, a distance; nothing else on the card | Lane card: price, one photo, the ring, the name; miles only if it changes a decision |
 | iOS | the sheet from the bottom, the scrim, the grabber; swipe down dismisses | every sheet (`auction/src/components/Sheet.tsx`); never a modal with an X |
@@ -87,7 +87,7 @@ Research files under `docs/plan/research/` keep their citations, but the way the
 | Lane | the price on the photo; the ring beside the price | touching, same motion | the price, the name | "this price is leaving, and I can move it" | drag follows the thumb; cloud-drift under it |
 | Bid sheet | the number under the thumb; the one ink Bid | touching, same colour | the number, Bid | "my number goes in when I press this" | sink, rise, cloud-landed, Heavy haptic |
 | Won | the car that slid in; the one lit step | sequence, same colour | the step's one noun | "the next thing is the lit one" | settle, cloud-settle |
-| Pay | three words, one ink | same colour | three words | "I pay with one of these" | Apple Pay's gesture, Success haptic |
+| Pay | three words, one ink | same colour | three words | "I pay with one of these" | the tap records a choice, not a payment, so Medium haptic and cloud-touch; the Success haptic and cloud-landed belong to the moment the money lands (the Whop return, the Paid state) |
 | Desk, Let It Go | the car's cost on the photo; the floor beside it | touching, aligned | two numbers, one verb | "this is what waiting costs me" | the count rolls; Go settles |
 | Site, first viewport | the lane photograph; the cloud button | touching | one verb | "the car on the phone is the one on the lot" | the cloud sinks and rises |
 
