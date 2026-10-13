@@ -78,7 +78,7 @@
           <label class="wl-vh" for="wlEmail">Email</label>
           <input id="wlEmail" name="email" type="email" maxlength="254" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="send" placeholder="Your email" required aria-describedby="wlSay">
           <div class="trap" aria-hidden="true"><label for="wlSite">Website</label><input id="wlSite" name="website" tabindex="-1" autocomplete="off"></div>
-          <button class="btn cloud" id="wlBtn" type="submit">Get early access</button>
+          <button class="btn cloud" id="wlBtn" type="submit" data-cloud3d>Get early access</button>
           <p class="wl-say" id="wlSay" role="status" aria-live="polite"></p>
         </form>
         <div class="wl-done" id="wlDone" tabindex="-1" hidden>
@@ -144,7 +144,7 @@
 
 <section class="sec close wl-close" aria-label="Get early access">
   <div class="wrap">
-    <div class="act" data-r><button class="btn cloud" type="button" data-go="wl">Get early access</button></div>
+    <div class="act" data-r><button class="btn cloud" type="button" data-go="wl" data-cloud3d>Get early access</button></div>
   </div>
 </section>
 </main>
@@ -161,6 +161,7 @@
 <script src="assets/vendor/gsap/ScrollTrigger.min.js"></script>
 <script src="site.js"></script>
 <script src="cloud-atmosphere.js"></script>
+<script type="module" src="cloud3d.js"></script>
 <script>
 /* The sign-up: one email, one press. Posts {email} to POST /api/waitlist on obavia.co (and on localhost for
    previews, as lane-apply.js does). The proof is the body, not a sentence: the card breathes once with the
