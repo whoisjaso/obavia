@@ -1,8 +1,9 @@
-import { env, SELF, applyD1Migrations, runDurableObjectAlarm, listDurableObjectIds } from 'cloudflare:test';
+import { env, SELF, applyD1Migrations, runDurableObjectAlarm, listDurableObjectIds, runInDurableObject } from 'cloudflare:test';
 import worker from '../src/index';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { D1Migration } from '@cloudflare/vitest-pool-workers';
 import type { Env as WorkerEnv } from '../src/env';
+import { createTelnyxVerify, fakeVerify, phoneProvider, sendCode, verifyCode } from '../src/phone';
 
 const DEALER = { authorization: 'Bearer test-dealer-secret', 'content-type': 'application/json' };
 const base = 'https://auction.test';
@@ -11,9 +12,28 @@ declare global { namespace Cloudflare { interface Env extends WorkerEnv { TEST_M
 const CAR = { year: 2014, make: 'Nissan', model: 'Altima', miles: 128400, vin: '1N4AL3AP0EC000001', photos: [], grade: [1, 1, 1, 1, 0.5, 1], title: 'in hand', dealer: { name: 'Triple J Auto', city: 'Houston', street: '100 Example St', gdn: 'P000000', phone: '', afterHours: '', fees: { taxRate: 0.0625, title: 33, registration: 75, doc: 150 } }, collateral: { title: { status: 'hand' }, floor: 4900, insured: true } };
 let token = '';
 
+/** Bring a lot's close to now inside its object. The dealer's /close is refused inside the soft close of a lot with bids (409 soft_close). */
+async function closeNow(id: string) {
+  const run = runInDurableObject as unknown as (s: DurableObjectStub, f: (inst: any, state: DurableObjectState) => Promise<void>) => Promise<void>;
+  await run(env.AUCTION.get(env.AUCTION.idFromName(id)) as unknown as DurableObjectStub, async (inst, state) => {
+    const lot = await state.storage.get<any>('lot'); lot.closesAt = Date.now() - 1;
+    await state.storage.put('lot', lot); inst.lot = lot; await state.storage.setAlarm(Date.now());
+  });
+}
+
+/** Sign-in by phone with the fake provider (MESSAGING_PROVIDER=fake, DEV=1): send, then 000000. */
+const PHONE = '+12145550142';
+async function provePhone(tok: string, phone = PHONE) {
+  const s = await SELF.fetch(`${base}/me/phone`, { method: 'POST', headers: { authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: JSON.stringify({ phone }) });
+  expect(s.status).toBe(200);
+  const v = await SELF.fetch(`${base}/me/phone/verify`, { method: 'POST', headers: { authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: JSON.stringify({ code: '000000' }) });
+  expect(v.status).toBe(200);
+}
+
 async function signIn(id: string) {
   const r = await SELF.fetch(`${base}/me`, { method: 'POST', body: JSON.stringify({ id, name: 'Test', state: 'TX' }) });
   const { token } = await r.json<{ token: string }>();
+  await provePhone(token);
   const d = await SELF.fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: '{}' });
   expect(d.status).toBe(200);
   return token;
@@ -38,6 +58,7 @@ describe('admission', () => {
   it('no deposit, no bid', async () => {
     const r = await SELF.fetch(`${base}/me`, { method: 'POST', body: JSON.stringify({ id: 'buyer-nodep' }) });
     const { token: t } = await r.json<{ token: string }>();
+    await provePhone(t);
     expect((await bid('l0', t, 5000)).status).toBe(402);
   });
   it('a forged token is refused', async () => {
@@ -81,7 +102,7 @@ describe('the object', () => {
     const ids = await listDurableObjectIds(env.AUCTION);
     expect(ids.length).toBeGreaterThan(0);
     // bring the close forward as the dealer, then fire the alarm
-    await SELF.fetch(`${base}/lots/l5/close`, { method: 'POST', headers: DEALER });
+    await closeNow('l5');
     const stub = env.AUCTION.get(env.AUCTION.idFromName('l5'));
     await runDurableObjectAlarm(stub);            // false if the runtime already fired it: a past time fires at once
     await new Promise(r => setTimeout(r, 60));
@@ -167,13 +188,14 @@ describe('the pilot', () => {
   it('the hammer opens a sale with a 48 h deadline; pickup with the wrong VIN is refused; the right one starts the car', async () => {
     await open('p3', 5_000);
     await bid('p3', await signIn('buyer-p3'), 5000);
-    await SELF.fetch(`${base}/lots/p3/close`, { method: 'POST', headers: DEALER });
+    await closeNow('p3');
     const stub = env.AUCTION.get(env.AUCTION.idFromName('p3'));
     await runDurableObjectAlarm(stub); await new Promise(r => setTimeout(r, 60));
     const lot = await (await SELF.fetch(`${base}/lots/p3`)).json<any>();
     expect(lot.sale?.buyer).toBe('buyer-p3'); expect(lot.sale.deadlineAt - lot.sale.wonAt).toBe(48 * 3_600_000);
     const wrong = await SELF.fetch(`${base}/lots/p3/pickup`, { method: 'POST', headers: DEALER, body: JSON.stringify({ vin: '999999' }) });
     expect(wrong.status).toBe(409);
+    expect((await SELF.fetch(`${base}/lots/p3/paid`, { method: 'POST', headers: DEALER })).status).toBe(200);   // pickup needs the payment
     const right = await SELF.fetch(`${base}/lots/p3/pickup`, { method: 'POST', headers: DEALER, body: JSON.stringify({ vin: '000001' }) });
     expect(right.status).toBe(200); expect((await right.json<any>()).sale.startedAt).toBeGreaterThan(0);
   });
@@ -207,7 +229,7 @@ describe('collateral', () => {
   it('a void releases the deposit and counts against the dealer; the owner sees it in the exposure', async () => {
     await open('c2', 5_000);
     await bid('c2', await signIn('buyer-c2'), 5000);
-    await SELF.fetch(`${base}/lots/c2/close`, { method: 'POST', headers: DEALER });
+    await closeNow('c2');
     await runDurableObjectAlarm(env.AUCTION.get(env.AUCTION.idFromName('c2'))); await new Promise(r => setTimeout(r, 60));
     const v = await SELF.fetch(`${base}/lots/c2/void`, { method: 'POST', headers: DEALER, body: JSON.stringify({ reason: 'sold on the lot' }) });
     expect(v.status).toBe(200); expect((await v.json<any>()).sale.deposit).toBe('released');
@@ -342,10 +364,12 @@ describe('the viewer', () => {
 });
 
 describe('who may bid (decisions §9 D10, D11, D15)', () => {
-  const asBuyer = async (id: string, extra: Record<string, string> = {}) => {
+  /** `verified`: the number the buyer proves with a code (the one D11 compares); the rest go on POST /me. */
+  const asBuyer = async (id: string, extra: Record<string, string> = {}, verified = PHONE) => {
     const r = await SELF.fetch(`${base}/me`, { method: 'POST', body: JSON.stringify({ id, name: 'Test', state: 'TX', ...extra }) });
     expect(r.status).toBe(200);
     const t = (await r.json<{ token: string }>()).token;
+    await provePhone(t, verified);
     expect((await SELF.fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${t}` }, body: '{}' })).status).toBe(200);
     return t;
   };
@@ -387,8 +411,8 @@ describe('who may bid (decisions §9 D10, D11, D15)', () => {
 
   it('D11: a buyer sharing the seller\'s phone, address or name is refused (403 seller_cannot_bid); the check is logged with every bid', async () => {
     expect((await SELF.fetch(`${base}/me`, { method: 'POST', body: JSON.stringify({ id: 'buyer-badphone', phone: '555-01' }) })).status).toBe(400);
-    const byPhone = await asBuyer('buyer-shill-phone', { phone: '+1 713 555 0100' });
-    const byAfterHours = await asBuyer('buyer-shill-after', { phone: '7135550199' });
+    const byPhone = await asBuyer('buyer-shill-phone', {}, '+17135550100');
+    const byAfterHours = await asBuyer('buyer-shill-after', {}, '+17135550199');
     const byAddress = await asBuyer('buyer-shill-street', { address: '100 Example St.' });
     const byName = await asBuyer('buyer-shill-name', { name: 'TRIPLE J AUTO' });
     const clean = await asBuyer('buyer-clean', { phone: '214-555-0123', address: '9 Other Rd' });
@@ -548,6 +572,7 @@ describe('buyer tokens (migration 0009)', () => {
     // the bid path folds the epoch into its admission read
     await open('tok1', 10 * 60_000);
     expect((await call('/me/deposit', { token: n.token, body: {} }, env as WorkerEnv)).status).toBe(200);
+    await provePhone(n.token);
     expect((await bid('tok1', a.token, 5000)).status).toBe(401);
     expect((await bid('tok1', n.token, 5000)).status).toBe(200);
   });
@@ -582,5 +607,226 @@ describe('buyer tokens (migration 0009)', () => {
     expect(after.token.startsWith('fixture-buyer.1.')).toBe(true);
     expect(await meStatus(after.token)).toBe(200);
     expect(await refusals('fixture-buyer')).toEqual([]);
+  });
+});
+
+describe('sign-in by phone (migration 0010)', () => {
+  const post = (path: string, tok: string | null, body: unknown, e?: WorkerEnv) => {
+    const req = new Request(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...(tok ? { authorization: `Bearer ${tok}` } : {}) }, body: JSON.stringify(body) });
+    return e ? worker.fetch(req, e) : SELF.fetch(req);
+  };
+  const fresh = async (id: string) => (await (await SELF.fetch(`${base}/me`, { method: 'POST', body: JSON.stringify({ id, name: 'Test', state: 'TX' }) })).json<{ token: string }>()).token;
+  const me = async (t: string) => (await SELF.fetch(`${base}/me`, { headers: { authorization: `Bearer ${t}` } })).json<any>();
+  const pending = (id: string) => env.DB.prepare('SELECT phone, sends, attempts, via FROM phone_codes WHERE buyer_id = ?1').bind(id).first<any>();
+  const buyerRow = (id: string) => env.DB.prepare('SELECT phone, phone_verified_at, phone_verified_via FROM buyers WHERE id = ?1').bind(id).first<any>();
+  const back = (id: string, ms: number, col = 'sent_at') => env.DB.prepare(`UPDATE phone_codes SET ${col} = ${col} - ?2 WHERE buyer_id = ?1`).bind(id, ms).run();
+
+  it('sends a code to a US number in E.164; a bad number or no token is refused; nothing is verified yet', async () => {
+    const t = await fresh('ph-send');
+    expect((await post('/me/phone', null, { phone: PHONE })).status).toBe(401);
+    for (const phone of ['2145550142', '+442071838750', '+11235550142', '+1214555014', '+1 214 555 0142', 12145550142, null]) {
+      const r = await post('/me/phone', t, { phone });
+      expect(r.status).toBe(400); expect(await r.json()).toEqual({ error: 'bad_phone' });
+    }
+    const r = await post('/me/phone', t, { phone: PHONE });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ sent: true, phone: '(•••) •••-0142', retryIn: 30 });
+    expect(await pending('ph-send')).toEqual({ phone: PHONE, sends: 1, attempts: 0, via: 'fake' });
+    expect(await buyerRow('ph-send')).toEqual({ phone: null, phone_verified_at: null, phone_verified_via: null });
+    expect(await me(t)).toMatchObject({ phone: null, phoneVerified: false });
+  });
+
+  it('the right code marks buyers.phone and phone_verified_at; /me shows the last four only; the code is spent', async () => {
+    const t = await fresh('ph-verify');
+    await post('/me/phone', t, { phone: '+17135550123' });
+    expect((await post('/me/phone/verify', t, { code: '12345' })).status).toBe(400);
+    expect((await post('/me/phone/verify', t, { code: 123456 })).status).toBe(400);
+    const before = Date.now();
+    const r = await post('/me/phone/verify', t, { code: '000000' });
+    expect(r.status).toBe(200); expect(await r.json()).toEqual({ verified: true, phone: '(•••) •••-0123' });
+    const row = await buyerRow('ph-verify');
+    expect(row.phone).toBe('7135550123'); expect(row.phone_verified_via).toBe('fake'); expect(row.phone_verified_at).toBeGreaterThanOrEqual(before);
+    const m = await me(t);
+    expect(m.phone).toBe('(•••) •••-0123'); expect(m.phoneVerified).toBe(true);
+    expect(JSON.stringify(m)).not.toContain('5550123');
+    expect((await post('/me/phone/verify', t, { code: '000000' })).status).toBe(429);   // spent: one code, one proof
+    // a later POST /me cannot overwrite the proved number with a typed one
+    await SELF.fetch(`${base}/me`, { method: 'POST', headers: { authorization: `Bearer ${t}` }, body: JSON.stringify({ phone: '(214) 555-9999' }) });
+    expect((await buyerRow('ph-verify')).phone).toBe('7135550123');
+  });
+
+  it('a wrong code marks nothing (422 wrong_code); five wrong and the code is dead (429 too_many_attempts)', async () => {
+    const t = await fresh('ph-wrong');
+    await post('/me/phone', t, { phone: PHONE });
+    const r = await post('/me/phone/verify', t, { code: '111111' });
+    expect(r.status).toBe(422); expect(await r.json()).toEqual({ error: 'wrong_code' });
+    expect(await buyerRow('ph-wrong')).toMatchObject({ phone_verified_at: null });
+    for (let i = 0; i < 4; i++) expect((await post('/me/phone/verify', t, { code: '222222' })).status).toBe(422);
+    const sixth = await post('/me/phone/verify', t, { code: '000000' });
+    expect(sixth.status).toBe(429); expect(await sixth.json()).toEqual({ error: 'too_many_attempts' });
+    expect(Number(sixth.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect(await buyerRow('ph-wrong')).toMatchObject({ phone_verified_at: null });
+  });
+
+  it('a code expires after ten minutes (410 code_expired); with no code sent it is expired too', async () => {
+    const t = await fresh('ph-expire');
+    expect((await post('/me/phone/verify', t, { code: '000000' })).status).toBe(410);
+    await post('/me/phone', t, { phone: PHONE });
+    await back('ph-expire', 10 * 60_000 + 1);
+    const r = await post('/me/phone/verify', t, { code: '000000' });
+    expect(r.status).toBe(410); expect(await r.json()).toEqual({ error: 'code_expired' });
+    expect(await buyerRow('ph-expire')).toMatchObject({ phone_verified_at: null });
+  });
+
+  it('limits: one send per 30 s and five an hour per buyer, with Retry-After; the hour rolls', async () => {
+    const t = await fresh('ph-limit');
+    expect((await post('/me/phone', t, { phone: PHONE })).status).toBe(200);
+    const soon = await post('/me/phone', t, { phone: PHONE });
+    expect(soon.status).toBe(429); expect(await soon.json()).toEqual({ error: 'rate_limited' });
+    expect(Number(soon.headers.get('retry-after'))).toBeGreaterThan(0); expect(Number(soon.headers.get('retry-after'))).toBeLessThanOrEqual(30);
+    for (let i = 2; i <= 5; i++) { await back('ph-limit', 31_000); expect((await post('/me/phone', t, { phone: PHONE })).status).toBe(200); }
+    expect((await pending('ph-limit')).sends).toBe(5);
+    await back('ph-limit', 31_000);
+    const sixth = await post('/me/phone', t, { phone: PHONE });
+    expect(sixth.status).toBe(429); expect(Number(sixth.headers.get('retry-after'))).toBeGreaterThan(30);
+    await back('ph-limit', 3_600_000, 'window_start');
+    expect((await post('/me/phone', t, { phone: PHONE })).status).toBe(200);
+    expect((await pending('ph-limit')).sends).toBe(1);
+  });
+
+  it('limits: at most 100 codes an hour across every buyer, so fresh buyers cannot pump texts', async () => {
+    const t = await fresh('ph-ceiling');
+    const at = Date.now() - 1234;
+    await env.DB.batch(Array.from({ length: 100 }, () => env.DB.prepare('INSERT INTO phone_sends (at) VALUES (?1)').bind(at)));
+    const r = await post('/me/phone', t, { phone: PHONE });
+    expect(r.status).toBe(429); expect(Number(r.headers.get('retry-after'))).toBeGreaterThan(30);
+    expect(await pending('ph-ceiling')).toBeNull();
+    await env.DB.prepare('DELETE FROM phone_sends WHERE at = ?1').bind(at).run();
+    expect((await post('/me/phone', t, { phone: PHONE })).status).toBe(200);
+  });
+
+  it('a bid with no verified phone is refused 409 phone_required, before the deposit; after the code it goes', async () => {
+    await open('ph1', 10 * 60_000);
+    const t = await fresh('ph-bidder');
+    const first = await bid('ph1', t, 5000);
+    expect(first.status).toBe(409); expect(await first.json()).toEqual({ error: 'phone_required' });   // no deposit yet either: the phone is asked first
+    expect((await SELF.fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${t}` }, body: '{}' })).status).toBe(200);
+    expect((await bid('ph1', t, 5000)).status).toBe(409);
+    await post('/me/phone', t, { phone: PHONE });
+    expect((await bid('ph1', t, 5000)).status).toBe(409);                    // sent is not verified
+    await post('/me/phone/verify', t, { code: '000000' });
+    const ok = await bid('ph1', t, 5000);
+    expect(ok.status).toBe(200); expect((await ok.json<any>()).youLead).toBe(true);
+    expect((await env.DB.prepare(`SELECT COUNT(*) AS n FROM bid_refusals WHERE who = 'ph-bidder'`).first<{ n: number }>())!.n).toBe(0);   // not logged, as D10
+  });
+
+  it('D11 compares the verified phone only: a typed seller number is ignored, a proved one is refused', async () => {
+    const SELLER = { ...CAR, dealer: { ...CAR.dealer, phone: '(713) 555-0100', afterHours: '' } };
+    await SELF.fetch(`${base}/lots/ph2/open`, { method: 'POST', headers: DEALER, body: JSON.stringify({ id: 'ph2', dealer: 'P000000', start: 4900, retail: 7995, closesAt: Date.now() + 10 * 60_000, car: SELLER }) });
+    const r = await SELF.fetch(`${base}/me`, { method: 'POST', body: JSON.stringify({ id: 'ph-typed', name: 'Test', phone: '7135550100' }) });
+    const typed = (await r.json<{ token: string }>()).token;
+    await SELF.fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${typed}` }, body: '{}' });
+    await provePhone(typed, '+12145550177');                                   // proves another number: that one is compared
+    expect((await bid('ph2', typed, 5000)).status).toBe(200);
+    const shill = await signIn('ph-proved');
+    await back('ph-proved', 31_000);                                           // past the 30 s gap after its first code
+    expect((await post('/me/phone', shill, { phone: '+17135550100' })).status).toBe(200);
+    await post('/me/phone/verify', shill, { code: '000000' });
+    const no = await bid('ph2', shill, 5600);
+    expect(no.status).toBe(403); expect(await no.json()).toEqual({ error: 'seller_cannot_bid' });
+  });
+
+  it('the fake provider never verifies for real: on a DEV=0 Worker it records the proof and admits no bid', async () => {
+    const prod = { ...env, DEV: '0' } as WorkerEnv;
+    const made = await (await post('/me', null, { name: 'Test', state: 'TX' }, prod)).json<{ id: string; token: string }>();
+    expect((await post('/me/deposit', made.token, {}, env as WorkerEnv)).status).toBe(200);
+    expect((await post('/me/phone', made.token, { phone: PHONE }, prod)).status).toBe(200);
+    const v = await post('/me/phone/verify', made.token, { code: '000000' }, prod);
+    expect(v.status).toBe(200); expect((await v.json<any>()).verified).toBe(false);
+    expect((await buyerRow(made.id)).phone_verified_via).toBe('fake');
+    expect(await (await worker.fetch(new Request(`${base}/me`, { headers: { authorization: `Bearer ${made.token}` } }), prod)).json()).toMatchObject({ phone: null, phoneVerified: false });
+    await open('ph3', 10 * 60_000);
+    const r = await worker.fetch(new Request(`${base}/lots/ph3/bids`, { method: 'POST', headers: { authorization: `Bearer ${made.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ amount: 5000, max: 5000, key: 'k', terms: TERMS }) }), prod);
+    expect(r.status).toBe(409); expect(await r.json()).toEqual({ error: 'phone_required' });
+  });
+
+  it('the Telnyx client: the lane\'s requests and answers; the provider is chosen as the lane chooses it; a failed send is 502', async () => {
+    const calls: { url: string; body: any }[] = [];
+    const answers: [number, unknown][] = [[200, { data: { id: 'v1' } }], [200, { data: { response_code: 'accepted' } }], [200, { data: { response_code: 'expired' } }], [200, { data: { response_code: 'max_attempts_exceeded' } }], [404, {}], [500, {}]];
+    const fetchImpl = (async (url: string, init: RequestInit) => { calls.push({ url, body: JSON.parse(String(init.body)) }); const [s, b] = answers.shift()!; return new Response(JSON.stringify(b), { status: s }); }) as unknown as typeof fetch;
+    const tx = createTelnyxVerify({ apiKey: 'k', verifyProfileId: 'vp', fetchImpl });
+    expect(await tx.startVerification(PHONE)).toEqual({ id: 'v1' });
+    expect(calls[0]).toEqual({ url: 'https://api.telnyx.com/v2/verifications/sms', body: { phone_number: PHONE, verify_profile_id: 'vp' } });
+    expect(await tx.checkVerification(PHONE, '123456')).toBe('accepted');
+    expect(calls[1].url).toBe(`https://api.telnyx.com/v2/verifications/by_phone_number/${encodeURIComponent(PHONE)}/actions/verify`);
+    expect(calls[1].body).toEqual({ code: '123456', verify_profile_id: 'vp' });
+    expect(await tx.checkVerification(PHONE, '1')).toBe('expired');
+    expect(await tx.checkVerification(PHONE, '1')).toBe('too_many_attempts');
+    expect(await tx.checkVerification(PHONE, '1')).toBe('rejected');
+    await expect(tx.checkVerification(PHONE, '1')).rejects.toThrow('Telnyx 500');
+    expect(phoneProvider({ MESSAGING_PROVIDER: 'fake', TELNYX_API_KEY: 'k', TELNYX_VERIFY_PROFILE_ID: 'vp' })?.name).toBe('fake');
+    expect(phoneProvider({ TELNYX_API_KEY: 'k', TELNYX_VERIFY_PROFILE_ID: 'vp' })?.name).toBe('telnyx');
+    expect(phoneProvider({ TELNYX_API_KEY: 'k' })).toBeNull();
+    expect(phoneProvider({ TELNYX_API_KEY: 'k\n', TELNYX_VERIFY_PROFILE_ID: 'vp' })).toBeNull();
+    // the route with no provider, and with one whose send fails; a fake code cannot be checked against Telnyx
+    const t = await fresh('ph-provider');
+    const none = await post('/me/phone', t, { phone: PHONE }, { ...env, MESSAGING_PROVIDER: undefined } as WorkerEnv);
+    expect(none.status).toBe(503); expect(await none.json()).toEqual({ error: 'code_unavailable' });
+    const broken = { ...fakeVerify, name: 'telnyx' as const, startVerification: async () => { throw new Error('down'); } };
+    const req = (path: string, body: unknown) => new Request(`${base}${path}`, { method: 'POST', body: JSON.stringify(body) });
+    const failed = await sendCode(req('/me/phone', { phone: PHONE }), env as WorkerEnv, 'ph-provider', {}, broken);
+    expect(failed.status).toBe(502); expect(await failed.json()).toEqual({ error: 'code_not_sent' });
+    await back('ph-provider', 31_000);
+    await sendCode(req('/me/phone', { phone: PHONE }), env as WorkerEnv, 'ph-provider', {}, fakeVerify);
+    const mismatch = await verifyCode(req('/me/phone/verify', { code: '000000' }), env as WorkerEnv, 'ph-provider', {}, { ...fakeVerify, name: 'telnyx' });
+    expect(mismatch.status).toBe(410);
+  });
+});
+
+describe('after a void, and the winner for the Desk', () => {
+  const won = async (lotId: string, buyerId: string) => {
+    await open(lotId, 5_000);
+    const t = await signIn(buyerId);
+    expect((await bid(lotId, t, 5000)).status).toBe(200);
+    await closeNow(lotId);
+    await runDurableObjectAlarm(env.AUCTION.get(env.AUCTION.idFromName(lotId))); await new Promise(r => setTimeout(r, 60));
+    return t;
+  };
+  const release = (t: string) => SELF.fetch(`${base}/me/deposit/release`, { method: 'POST', headers: { authorization: `Bearer ${t}` } });
+
+  it('a buyer whose only sale was voided gets the deposit back; before the void they owe a car', async () => {
+    const t = await won('v1', 'buyer-voided');
+    const owes = await release(t);
+    expect(owes.status).toBe(409); expect(await owes.text()).toBe('you lead a car or owe one');
+    expect((await SELF.fetch(`${base}/lots/v1/void`, { method: 'POST', headers: DEALER, body: JSON.stringify({ reason: 'sold on the lot' }) })).status).toBe(200);
+    await new Promise(r => setTimeout(r, 60));
+    const r = await release(t);
+    expect(r.status).toBe(200); expect(await r.json()).toEqual({ deposit: 'refunded' });
+    expect((await env.DB.prepare('SELECT deposit_status FROM buyers WHERE id = ?1').bind('buyer-voided').first())).toEqual({ deposit_status: 'refunded' });
+  });
+
+  it('the lot\'s dealer and the admin read the winner\'s name and full verified number; nobody else does', async () => {
+    const t = await won('v2', 'buyer-callme');
+    await new Promise(r => setTimeout(r, 60));
+    const own = (await (await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn: 'P000000', name: 'Triple J Auto' }) })).json<{ token: string }>()).token;
+    const other = (await (await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn: 'P555555', name: 'Elsewhere Motors' }) })).json<{ token: string }>()).token;
+    const read = async (tok?: string) => (await SELF.fetch(`${base}/lots/v2`, { headers: tok ? { authorization: `Bearer ${tok}` } : {} })).json<any>();
+    const contact = { name: 'Test', phone: PHONE };
+    expect((await read(own)).sale.contact).toEqual(contact);
+    expect((await read('test-dealer-secret')).sale.contact).toEqual(contact);
+    expect((await read(own)).sale.buyer).toBe('buyer-callme');               // the id stays where the app and the Desk read it
+    for (const who of [undefined, t, other]) {
+      const l = await read(who);
+      expect(l.sale.buyer).toBe('buyer-callme'); expect(l.sale.contact).toBeUndefined();
+      expect(JSON.stringify(l)).not.toContain('5550142');
+    }
+    const paid = await SELF.fetch(`${base}/lots/v2/paid`, { method: 'POST', headers: { authorization: `Bearer ${own}` } });
+    expect((await paid.json<any>()).sale.contact).toEqual(contact);          // what the dealer's own actions return
+    const lane = await (await SELF.fetch(`${base}/lots`)).json<any[]>();
+    expect(JSON.stringify(lane)).not.toContain('5550142');
+    const x = await (await SELF.fetch(`${base}/admin/exposure`, { headers: DEALER })).json<any>();
+    expect(x.sales.find((s: any) => s.lotId === 'v2').buyer).toEqual(contact);
+    expect((await SELF.fetch(`${base}/admin/exposure`, { headers: { authorization: `Bearer ${own}` } })).status).toBe(403);
+    expect(JSON.stringify(await (await SELF.fetch(`${base}/me`, { headers: { authorization: `Bearer ${t}` } })).json())).not.toContain('5550142');
   });
 });

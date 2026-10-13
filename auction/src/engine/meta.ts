@@ -44,5 +44,9 @@ export function collateralRefusal(c: Collateral | undefined): string | null {
 export type SaleState = {
   buyer: string; hammer: number; wonAt: number; deadlineAt: number;
   paidAt?: number; startedAt?: number; forfeitedAt?: number; voidedAt?: number;
-  deposit?: 'held' | 'to_dealer' | 'released';   // where the buyer's $250 went
+  deposit?: 'held' | 'applied' | 'to_dealer' | 'released';   // where the buyer's $250 went; applied: counted toward the price at the engine start, the dealer's
+  payout?: Payout;   // the dealer's $250 on an applied or forfeited sale (worker/src/auction.ts)
 };
+
+/** Where the dealer's $250 stands: owed until a Whop transfer lands, then sent with the transfer id. */
+export type Payout = { state: 'owed' | 'sent'; transferId?: string };

@@ -73,22 +73,9 @@ export function payDeadline(s: Pick<Sale, 'wonAt' | 'deadlineAt'>, worker = WORK
   return worker ? null : s.wonAt + PAY_WINDOW_MS;
 }
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-/** The deadline as the buyer reads it, in the buyer's time zone: "Thu 4 pm", "Thu 4:37 pm". The page,
-    the push, the SMS and the Desk say these same words after "Pay by" (DOCTRINE CP9). `timeZone` is for
-    a sender that is not the buyer's phone (the Worker's push, a test); the phone uses its own zone. */
-export function payByWords(at: number, timeZone?: string): string {
-  let day: number, h: number, m: number;
-  if (timeZone) {
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short', hour: 'numeric', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(at));
-    const get = (t: string) => parts.find(p => p.type === t)?.value ?? '';
-    day = DAYS.indexOf(get('weekday')); h = Number(get('hour')) % 24; m = Number(get('minute'));
-  } else {
-    const d = new Date(at); day = d.getDay(); h = d.getHours(); m = d.getMinutes();
-  }
-  const clock = `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h >= 12 ? 'pm' : 'am'}`;
-  return `${DAYS[day]} ${clock}`;
-}
+/** The deadline as the buyer reads it: "Thu 4 pm", "Thu 4:37 pm", in the pilot's zone (America/Chicago) unless
+    another is passed. One function for the page, the push and the Desk (DOCTRINE CP9): engine/time.ts. */
+export { payByWords } from './engine/time';
 
 /** The server's sale as the glass follows it: the pay-by, the hammer time, the dealer's scan and, once the
     Worker carries them, the plates states. The Lane calls this on every lot change for the sale I hold. */
