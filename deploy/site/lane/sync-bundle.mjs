@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-export const MODULES = ['template-v9.mjs', 'lane.mjs'];
+export const MODULES = ['template-v9.mjs', 'template-v10.mjs', 'lane.mjs', 'assets.mjs'];
 const here = new URL('./', import.meta.url);
 
 export const inline = source => source.replace(/^export (?=(?:async function|function|const|let|class) )/gm, '');

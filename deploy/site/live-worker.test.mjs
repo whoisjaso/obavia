@@ -8,10 +8,12 @@
 // with the private worker; the lane tables come from lane/0001_lane_application.sql.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import * as lane from './lane/lane.mjs';
 import { renderLaneConfirmation } from './lane/template-v9.mjs';
+import { renderWaitlistV10, waitlistTemplateVersion, BUYER_TEMPLATE_VERSION } from './lane/template-v10.mjs';
+import { serveSiteAsset, siteAssetType, SITE_ASSET_FOLDERS } from './lane/assets.mjs';
 import { syncBundle } from './lane/sync-bundle.mjs';
 
 const BUNDLE_URL = new URL('./live-worker.js', import.meta.url);
@@ -301,7 +303,7 @@ test('v9 confirmation: dealer copy, one action, no dashes, no fee, no agency cop
   assert.ok(renderLaneConfirmation(undefined).text.startsWith('Hello,'));
 });
 test('the lane modules carry no en or em dash', () => {
-  for (const f of ['lane.mjs', 'template-v9.mjs', 'sync-bundle.mjs', 'README.md', '0001_lane_application.sql']) {
+  for (const f of ['lane.mjs', 'template-v9.mjs', 'template-v10.mjs', 'assets.mjs', 'sync-bundle.mjs', 'README.md', '0001_lane_application.sql']) {
     const s = readFileSync(new URL(`./lane/${f}`, import.meta.url), 'utf8');
     assert.ok(!/[\u2013\u2014]/.test(s), f);
   }
@@ -312,6 +314,9 @@ btest('the bundle carries verbatim copies of deploy/site/lane', () => {
   const text = readFileSync(BUNDLE_URL, 'utf8');
   assert.equal(syncBundle(text), text, 'run: node deploy/site/lane/sync-bundle.mjs');
   assert.equal(bundle.renderLaneConfirmation('Ana Ruiz').html, renderLaneConfirmation('Ana Ruiz').html);
+  assert.deepEqual(bundle.renderWaitlistV10(), renderWaitlistV10());
+  assert.equal(bundle.waitlistTemplateVersion({}, 'x'), waitlistTemplateVersion({}, 'x'));
+  assert.equal(bundle.serveSiteAsset.toString(), serveSiteAsset.toString());
 });
 const entry = (h, email) => h.db.raw.prepare('SELECT * FROM waitlist_entries WHERE email=?').get(email);
 const outbox = (h, id) => h.db.raw.prepare('SELECT * FROM confirmation_outbox WHERE id=?').get(id);
@@ -372,4 +377,157 @@ btest('the v9 outbox row goes out through the existing delivery path', async () 
   assert.equal(sent[0].subject, 'Your Obavia lane application is in');
   assert.deepEqual(sent[0].to, ['ana@lot.com']);
   assert.ok(sent[0].text.startsWith('Hi Ana Ruiz,'));
+});
+
+/* ---------- the v10 buyer confirmation and the rule that picks it ---------- */
+test('the template rule: application gives v9, no application and no fullName gives v10, anything else the legacy version', () => {
+  const LEGACY = 'waitlist-confirmation-v8';
+  assert.equal(BUYER_TEMPLATE_VERSION, 'waitlist-confirmation-v10');
+  assert.equal(waitlistTemplateVersion({ email: 'a@b.co' }, LEGACY), 'waitlist-confirmation-v10', 'the buyer page body');
+  assert.equal(waitlistTemplateVersion({ email: 'a@b.co', website: '' }, LEGACY), 'waitlist-confirmation-v10');
+  assert.equal(waitlistTemplateVersion({ email: 'a@b.co', firstName: 'Ana' }, LEGACY), 'waitlist-confirmation-v10', 'no fullName, no application');
+  assert.equal(waitlistTemplateVersion({ fullName: undefined }, LEGACY), 'waitlist-confirmation-v10');
+  assert.equal(waitlistTemplateVersion({ fullName: 'Ana Ruiz', email: 'a@b.co' }, LEGACY), LEGACY);
+  assert.equal(waitlistTemplateVersion({ fullName: 'Ana Ruiz' }, undefined), undefined, 'legacy stays whatever the worker is configured with');
+  assert.equal(waitlistTemplateVersion({ fullName: 'Ana Ruiz', application: '{}' }, LEGACY), 'waitlist-confirmation-v9');
+  assert.equal(waitlistTemplateVersion({ application: {} }, LEGACY), 'waitlist-confirmation-v9');
+  assert.equal(waitlistTemplateVersion(null, LEGACY), 'waitlist-confirmation-v10');
+});
+test('v10 confirmation: buyer copy, the three pairs, one link, no dashes, no fee, outcome or saving claims', () => {
+  const m = renderWaitlistV10();
+  assert.equal(m.subject, "You're on the lane");
+  assert.ok(m.text.startsWith('Hello,'));
+  for (const pair of ['A $250 deposit to bid. Back if you lose.', "A Texas driver's license.", 'A price, a time, a name.']) {
+    assert.ok(m.text.includes(pair), pair); assert.ok(m.html.includes(pair), pair);
+  }
+  for (const part of [m.subject, m.text, m.html]) {
+    assert.ok(!/[\u2013\u2014]/.test(part), 'no en or em dash');
+    assert.ok(!/agency|sales team|fee|premium|commission|guarantee|promise|save|saving|cheap|discount|below|bargain|deal|profit|win\b|winning|refund within|hour/i.test(part), part.slice(0, 60));
+  }
+  const links = m.html.match(/<a [^>]*href="([^"]+)"/g) || [];
+  assert.equal(links.length, 1, 'one link');
+  assert.ok(links[0].includes('https://obavia.co/waitlist.html#deposit'));
+  assert.equal((m.text.match(/https:\/\//g) || []).length, 1);
+  assert.ok(m.html.includes('>See the lane</a>'), 'one verb');
+  const page = readFileSync(new URL('../../obavia-co/waitlist.html', import.meta.url), 'utf8');
+  assert.ok(page.includes('id="deposit"'), 'the anchor exists on the buyer page');
+  assert.ok(!page.includes('id="how"'), 'waitlist.html has no #how, so the link uses #deposit');
+});
+
+btest('the buyer body {email} is accepted and queues the v10 confirmation, which goes out through the delivery path', async () => {
+  const h = bundleHarness();
+  const r = await h.post({ email: 'Buyer@Example.com' });
+  assert.deepEqual(r.body, { status: 'accepted' });
+  const e = entry(h, 'buyer@example.com');
+  assert.equal(e.full_name, null); assert.equal(e.first_name, null); assert.equal(e.application, null);
+  const o = outbox(h, e.id);
+  assert.equal(o.template_version, 'waitlist-confirmation-v10'); assert.equal(o.greeting_name, null);
+  const sent = [], waits = [];
+  const env = { ...h.env, CONFIRMATION_ENABLED: 'true', CONFIRMATION_ACTIVATION_AFTER_MS: '1', WAITLIST_EMAIL_PROVIDER: 'cloudflare', WAITLIST_EMAIL_FROM: 'no-reply@notify.obavia.co',
+    CONFIRMATION_EMAIL: { async send(m) { sent.push(m); return { messageId: 'm-1' }; } } };
+  await bundle.createWorker().scheduled({}, env, { waitUntil: p => waits.push(p) });
+  await Promise.all(waits);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].subject, "You're on the lane");
+  assert.deepEqual(sent[0].to, ['buyer@example.com']);
+  assert.equal(sent[0].html, renderWaitlistV10().html);
+});
+btest('fullName bodies keep the legacy template; a buyer who later applies gets no second email', async () => {
+  const h = bundleHarness();
+  await h.post({ fullName: 'Ana Ruiz', email: 'ana@example.com', website: '' });
+  assert.equal(outbox(h, entry(h, 'ana@example.com').id).template_version, 'waitlist-confirmation-v8');
+  await h.post({ email: 'ana@lot.com' });
+  assert.equal((await h.post(applyBody())).status, 200);
+  const e = entry(h, 'ana@lot.com');
+  assert.equal(outbox(h, e.id).template_version, 'waitlist-confirmation-v10', 'no second email');
+  assert.ok(e.application_at > 0, 'the answers are attached');
+});
+btest('the store and the outbox accept v10 as they accept v9, and reject an unknown version', async () => {
+  const db = d1();
+  assert.equal(await bundle.createWorker({ storeFactory: (d, o) => { assert.equal(o.templateVersion, 'waitlist-confirmation-v10'); return { join: async () => 'accepted' }; } })
+    .fetch(new Request(`${ORIGIN}/api/waitlist`, { method: 'POST', headers: { origin: ORIGIN, 'content-type': 'application/json', 'CF-Connecting-IP': '203.0.113.7' }, body: '{"email":"b@example.com"}' }),
+      { ...base({}).env, WAITLIST_DB: db }).then(r => r.status), 200);
+  const h = bundleHarness({ env: { WAITLIST_TEMPLATE_VERSION: 'waitlist-confirmation-v11' } });
+  assert.equal((await h.post({ fullName: 'Ana Ruiz', email: 'ana@example.com' })).status, 503, 'unknown legacy version still refused');
+});
+btest('the buyer sign-up and its delivery write no email address to the console', async () => {
+  const seen = [], keep = {};
+  for (const k of ['log', 'info', 'warn', 'error', 'debug']) { keep[k] = console[k]; console[k] = (...a) => seen.push(a.map(String).join(' ')); }
+  try {
+    const h = bundleHarness();
+    await h.post({ email: 'quiet@example.com' });
+    const waits = [];
+    const env = { ...h.env, CONFIRMATION_ENABLED: 'true', CONFIRMATION_ACTIVATION_AFTER_MS: '1', WAITLIST_EMAIL_PROVIDER: 'cloudflare', WAITLIST_EMAIL_FROM: 'no-reply@notify.obavia.co',
+      CONFIRMATION_EMAIL: { async send() { throw Error('provider down for quiet@example.com'); } } };
+    await bundle.createWorker().scheduled({}, env, { waitUntil: p => waits.push(p) });
+    await Promise.all(waits).catch(() => {});
+  } finally { Object.assign(console, keep); }
+  assert.ok(!seen.some(line => line.includes('@')), seen.join('\n'));
+});
+
+/* ---------- the asset folders ---------- */
+const fakeAssets = (status = 200) => {
+  const seen = [];
+  return { seen, async fetch(req) { seen.push(new URL(req.url).pathname); return new Response(status === 200 ? 'bytes' : 'missing', { status, headers: { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'public, max-age=600', ETag: '"e1"' } }); } };
+};
+const FOLDER_CASES = [
+  ['/sky/clouds/far@2x.webp', 'image/webp'],
+  ['/sky/paper.png', 'image/png'],
+  ['/obavia/sky/w0.webp', 'image/webp'],
+  ['/audio/cloud/cloud-touch.wav', 'audio/wav'],
+  ['/logos/whop.svg', 'image/svg+xml'],
+  ['/connections/zoom-light.svg', 'image/svg+xml'],
+  ['/connections/highlevel-light.png', 'image/png'],
+  ['/assets/cloud-3d/sky/light/far@2x.webp', 'image/webp'],
+  ['/assets/cloud-3d/button/light/320/rest@2x.png', 'image/png'],
+  ['/assets/cloud-3d/button/light/320/sheet.json', 'application/json; charset=utf-8'],
+  ['/assets/cloud-3d/type/face.woff2', 'font/woff2'],
+];
+test('asset folders: each folder is served with its content type and the ASSETS cache headers', async () => {
+  assert.deepEqual([...SITE_ASSET_FOLDERS], ['sky', 'audio', 'logos', 'connections', 'assets/cloud-3d']);
+  for (const [path, type] of FOLDER_CASES) {
+    const ASSETS = fakeAssets();
+    const r = await serveSiteAsset(new Request(ORIGIN + path), { ASSETS });
+    assert.equal(r.status, 200, path); assert.equal(r.headers.get('Content-Type'), type, path);
+    assert.equal(r.headers.get('Cache-Control'), 'public, max-age=600', 'the same cache headers as the existing branch: the ASSETS ones');
+    assert.equal(r.headers.get('X-Content-Type-Options'), 'nosniff'); assert.equal(r.headers.get('Referrer-Policy'), 'no-referrer');
+    assert.equal(await r.text(), 'bytes'); assert.deepEqual(ASSETS.seen, [path]);
+  }
+  const head = await serveSiteAsset(new Request(ORIGIN + '/sky/paper.png', { method: 'HEAD' }), { ASSETS: fakeAssets() });
+  assert.equal(head.status, 200); assert.equal(await head.text(), '');
+  const missing = await serveSiteAsset(new Request(ORIGIN + '/sky/nope.webp'), { ASSETS: fakeAssets(404) });
+  assert.equal(missing.status, 404); assert.equal(missing.headers.get('Content-Type'), 'application/octet-stream', 'a miss keeps the ASSETS type');
+});
+test('asset folders: 404 for anything else in them, null outside them', async () => {
+  for (const path of ['/sky/', '/sky/x.exe', '/sky/x.html', '/sky/x.js', '/audio/manifest', '/sky/.hidden.webp', '/logos/a b.svg', '/connections/x.WEBP']) {
+    const ASSETS = fakeAssets();
+    const r = await serveSiteAsset(new Request(ORIGIN + path), { ASSETS });
+    assert.equal(r.status, 404, path); assert.equal(r.headers.get('Cache-Control'), 'private, no-store'); assert.deepEqual(ASSETS.seen, [], path);
+  }
+  assert.equal(siteAssetType('/sky/a/../b.webp'), null);
+  assert.equal(await serveSiteAsset(new Request(ORIGIN + '/sky/%2e%2e/x.webp'), { ASSETS: fakeAssets() }), null, 'the URL parser resolves %2e%2e out of the folder first');
+  assert.equal((await serveSiteAsset(new Request(ORIGIN + '/sky/paper.png', { method: 'POST' }), { ASSETS: fakeAssets() })).status, 404);
+  assert.equal((await serveSiteAsset(new Request(ORIGIN + '/sky/paper.png'), {})).status, 404, 'no ASSETS binding');
+  for (const path of ['/secret/x.webp', '/assets/obavia-clouds.webp', '/index.html', '/skyline/x.webp', '/sky', '/api/waitlist', '/email-assets/waitlist-v4/cloud.png'])
+    assert.equal(await serveSiteAsset(new Request(ORIGIN + path), { ASSETS: fakeAssets() }), null, path);
+});
+test('asset folders: every file the site ships in sky/ and audio/cloud/ has a served type', () => {
+  const site = new URL('../../obavia-co/', import.meta.url);
+  const walk = rel => readdirSync(new URL(rel, site)).flatMap(n => statSync(new URL(rel + n, site)).isDirectory() ? walk(`${rel}${n}/`) : [rel + n]);
+  const files = [...walk('sky/'), ...walk('audio/cloud/')];
+  assert.ok(files.length >= 20);
+  for (const f of files) assert.ok(siteAssetType('/' + f), f);
+});
+btest('the bundle serves each asset folder and still 404s anything else', async () => {
+  const worker = bundle.createWorker();
+  const get = async (path, method = 'GET') => worker.fetch(new Request(ORIGIN + path, { method }), { PUBLIC_ORIGIN: ORIGIN, ASSETS: fakeAssets() });
+  for (const [path, type] of FOLDER_CASES) {
+    const r = await get(path);
+    assert.equal(r.status, 200, path); assert.equal(r.headers.get('Content-Type'), type, path);
+  }
+  assert.equal((await get('/assets/manrope-400.woff2')).status, 200, 'the existing /assets/ branch is unchanged');
+  assert.equal((await get('/favicon.svg')).status, 200, 'top-level files are unchanged');
+  for (const path of ['/secret/x.webp', '/sky/x.exe', '/films/x.mp4', '/sky/', '/assets/.env'])
+    assert.equal((await get(path)).status, 404, path);
+  assert.equal((await get('/sky/paper.png', 'POST')).status, 404);
 });
