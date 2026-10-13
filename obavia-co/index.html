@@ -3,167 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Obavia Desk: every sale, start to signed</title>
-<meta name="description" content="Obavia Desk is the dealership desk for Texas independent dealers: the car, the buyer, the money, the paperwork in your name, and the signatures, one question per screen.">
-<meta name="theme-color" content="#D6E2FD">
-<meta property="og:title" content="Obavia Desk">
-<meta property="og:description" content="Every sale, start to signed. For Texas independent dealers.">
-<meta property="og:image" content="films/obavia-desk.jpg">
+<title>Obavia: the lane for the car your lot is losing money on</title>
+<meta name="description" content="Name the least you’ll take on the car you’re losing money on, and its bidding closes Thursday at 3. Obavia is the public lane behind your desk, for licensed Texas dealers.">
+<meta name="theme-color" content="#DCE6FA">
+<meta property="og:title" content="Obavia: the lane for the car your lot is losing money on">
+<meta property="og:description" content="Name the least you’ll take, and its bidding closes Thursday at 3. The public lane behind your desk, for licensed Texas dealers.">
+<meta property="og:image" content="apple-touch-icon.png">
+<link rel="canonical" href="https://obavia.co/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="sky/w0.webp">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shell.css">
 <link rel="stylesheet" href="cloud.css">
+<link rel="stylesheet" href="lane.css">
 <script>(function(){var h=document.documentElement;h.className+=' o-pre';try{var n=(performance.getEntriesByType('navigation')[0]||{}).type,r=document.referrer,inside=!!r&&new URL(r).origin===location.origin;if((n==='reload'||!inside)&&!matchMedia('(prefers-reduced-motion: reduce)').matches)h.className+=' o-intro o-veil'}catch(e){}})()</script>
-<style>
-:root{--ink:#1C2436;--body:#4B5468;--muted:#6B7385;--navy:#28344F;--tint:#4E6AA8;--deep:#7D97C7;--line:rgba(28,36,54,.08);--card:rgba(255,255,255,.82);
-  --sans:'Manrope','Helvetica Neue',Arial,sans-serif;--ease:cubic-bezier(.2,.7,.2,1);--out:cubic-bezier(.16,1,.3,1);--spring:cubic-bezier(.32,.72,0,1)}
-*,*::before,*::after{box-sizing:border-box}
-body{margin:0;font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-a{color:inherit;text-decoration:none}
-img,video{display:block;max-width:100%}
-.wrap{width:min(1180px,100% - 40px);margin-inline:auto}
-.center{text-align:center}
-.g{color:var(--deep)}
-.kick{display:inline-flex;align-items:center;gap:9px;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 1.5px rgba(175,193,238,.75);font:700 13px/1 var(--sans);letter-spacing:.01em;color:var(--navy)}
-.kick::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--deep)}
-h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.045em;color:var(--ink)}
-h1{font-size:clamp(46px,7.4vw,96px);line-height:.98;margin-top:22px}
-h1 .g{display:block}
-h2{font-size:clamp(34px,4.4vw,56px);line-height:1.02;margin-top:18px}
-h2 .g{display:block}
-p{margin:0}
-.lead{max-width:640px;margin:26px auto 0;font:500 clamp(17px,1.6vw,20px)/1.55 var(--sans);color:var(--body)}
-.cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 22px;margin-top:34px}
-.btn{height:58px;padding:0 32px;font-size:17px;font-family:var(--sans)}
-.more{display:inline-flex;align-items:center;gap:6px;font:700 16px/1 var(--sans);color:var(--tint);padding:12px 4px}
-.more .ico{width:15px;height:15px;transition:transform .3s var(--spring)}
-.more:hover .ico{transform:translateX(3px)}
-:focus-visible{outline:2.5px solid var(--tint);outline-offset:3px;border-radius:12px}
-
-/* reveal: GSAP in site.js. Content is visible by default; only the hero waits
-   (html.o-pre, set in the head) for its entrance, with a failsafe if scripts never run. */
-html.o-pre .hero [data-r]{opacity:0;animation:o-pre-safe 0s 6s forwards}
-@keyframes o-pre-safe{to{opacity:1}}
-
-/* hero */
-.hero{padding:clamp(120px,16vh,170px) 0 40px;text-align:center}
-.hero .copy{max-width:980px}
-.film{position:relative;width:min(1180px,100% - 40px);margin:clamp(44px,6vw,70px) auto 0;border-radius:clamp(18px,2.4vw,30px);overflow:hidden;background:#E6EDFD;aspect-ratio:16/9;
-  box-shadow:0 60px 120px -60px rgba(28,36,54,.55),0 0 0 1px rgba(255,255,255,.7) inset,0 0 0 1px rgba(28,36,54,.06)}
-.film video{width:100%;height:100%;object-fit:cover}
-.snd{position:absolute;right:16px;bottom:16px;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px 0 12px;border:0;border-radius:999px;background:rgba(28,36,54,.62);color:#fff;
-  font:700 14px/1 var(--sans);cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:background .3s,transform .3s var(--spring)}
-.snd:hover{background:rgba(28,36,54,.8)}
-.snd:active{transform:scale(.96)}
-.snd svg{width:20px;height:20px}
-.snd .w{display:none}.snd.on .w{display:inline}.snd.on .x{display:none}
-
-/* facts */
-.facts{padding:clamp(56px,8vw,90px) 0 10px}
-.facts .row{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
-.facts .row>div{padding:26px 26px 24px;border-radius:24px;background:var(--card);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 20px 50px -34px rgba(40,52,79,.4)}
-.facts .row>div:first-child{grid-row:span 2;display:flex;flex-direction:column;justify-content:flex-end;padding:34px 34px 32px}
-.facts b{display:block;font:800 clamp(38px,4vw,50px)/1 var(--sans);letter-spacing:-.04em;color:var(--navy)}
-.facts .row>div:first-child b{font-size:clamp(56px,6.4vw,88px)}
-.facts .row>div:first-child span{max-width:380px;font-size:17px}
-.facts span{display:block;margin-top:10px;font:500 15.5px/1.5 var(--sans);color:var(--body)}
-
-/* features */
-.feat{padding:clamp(70px,10vw,130px) 0}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,6vw,90px);align-items:center}
-.flip .copy{order:2}
-.feat .copy p{margin-top:20px;max-width:500px;font:500 18px/1.6 var(--sans);color:var(--body)}
-.ticks{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:12px}
-.ticks li{position:relative;padding-left:32px;font:600 16px/1.45 var(--sans);color:var(--ink)}
-.ticks li::before{content:"";position:absolute;left:0;top:1px;width:21px;height:21px;border-radius:50%;background:var(--navy) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 12.5l3.6 3.6 7.4-8' fill='none' stroke='white' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/15px no-repeat}
-.loop{margin:0;border-radius:32px;overflow:hidden;background:#E6EDFD;aspect-ratio:10/11;box-shadow:0 50px 100px -56px rgba(28,36,54,.5),0 0 0 1px rgba(255,255,255,.8) inset}
-.loop video{width:100%;height:100%;object-fit:cover}
-.sheet{margin:0;padding:clamp(18px,2.4vw,28px);border-radius:32px;background:linear-gradient(160deg,rgba(255,255,255,.75),rgba(226,234,253,.75));box-shadow:0 50px 100px -56px rgba(28,36,54,.5),0 0 0 1px rgba(255,255,255,.9) inset}
-.sheet .clip{height:min(640px,78vh);overflow:hidden;border-radius:10px;box-shadow:0 30px 60px -36px rgba(28,36,54,.45),0 0 0 1px rgba(28,36,54,.06);-webkit-mask-image:linear-gradient(#000 82%,transparent);mask-image:linear-gradient(#000 82%,transparent)}
-.sheet img{width:100%;height:auto;transition:transform 5s cubic-bezier(.45,0,.25,1)}
-@media (hover:hover) and (pointer:fine){html:not(.gs) .sheet:hover img{transform:translateY(calc(-100% + min(640px,78vh)))}}
-html.gs .sheet img{transition:none}
-
-/* lessons */
-.lessons{padding:clamp(70px,10vw,120px) 0}
-.lessons .copy{max-width:720px;margin-inline:auto}
-.lessons .copy p{margin-top:16px;font:500 18px/1.55 var(--sans);color:var(--body)}
-.reel{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:46px}
-.lesson{margin:0}
-.lesson .vid{position:relative;aspect-ratio:9/16;border-radius:24px;overflow:hidden;background:#EDEBE6;box-shadow:0 40px 80px -48px rgba(28,36,54,.55),0 0 0 1px rgba(28,36,54,.06);transition:transform .55s var(--spring),box-shadow .5s var(--ease)}
-.lesson:hover .vid{transform:translateY(-5px);box-shadow:0 50px 90px -48px rgba(28,36,54,.6),0 0 0 1px rgba(28,36,54,.06)}
-.lesson video{width:100%;height:100%;object-fit:cover}
-.lesson .play{position:absolute;left:50%;top:50%;width:68px;height:68px;margin:-34px 0 0 -34px;padding:0}
-.lesson .play svg{width:26px;height:26px;margin-left:3px}
-.lesson.on .play{opacity:0;pointer-events:none;transform:scale(.8)}
-.lesson figcaption{padding:16px 4px 0}
-.lesson figcaption b{display:block;font:800 18px/1.25 var(--sans);letter-spacing:-.02em}
-.lesson figcaption span{display:block;margin-top:6px;font:500 14.5px/1.5 var(--sans);color:var(--body)}
-.lesson figcaption i{font-style:normal;font-weight:700;color:var(--muted);margin-left:4px}
-@media (max-width:900px){.reel{grid-template-columns:1fr 1fr}}
-@media (max-width:520px){.reel{grid-template-columns:1fr 1fr;gap:12px}.lesson .vid{border-radius:18px}.lesson .play{width:56px;height:56px;margin:-28px 0 0 -28px}.lesson figcaption b{font-size:15.5px}.lesson figcaption span{font-size:13px}}
-
-/* next */
-.next{padding:clamp(70px,10vw,120px) 0}
-.next .copy{max-width:720px;margin-inline:auto}
-.next .copy p{margin-top:16px;font:500 18px/1.55 var(--sans);color:var(--body)}
-.next .kick::before{background:#9AA1B0}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:44px}
-.cards article:first-child{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;column-gap:22px;align-items:start}
-.cards article:first-child .ic{grid-row:span 2}
-.cards article:first-child h3{margin-top:4px}
-.cards article:first-child p{max-width:560px}
-.cards article{padding:30px 28px;border-radius:26px;background:var(--card);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 24px 60px -40px rgba(40,52,79,.45);transition:transform .45s var(--spring),box-shadow .4s var(--ease)}
-.cards article:hover{transform:translateY(-4px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 34px 70px -40px rgba(40,52,79,.55)}
-.cards .ic{display:grid;place-items:center;width:52px;height:52px;border-radius:15px;background:#EEF3FF;color:var(--navy)}
-.cards .ic svg{width:26px;height:26px}
-.cards .ic.fb{background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
-.cards .ic img{width:30px;height:30px}
-.cards h3{margin-top:20px;font-size:22px;letter-spacing:-.03em}
-.cards p{margin-top:10px;font:500 15.5px/1.55 var(--sans);color:var(--body)}
-
-/* final */
-.final{padding:clamp(80px,12vw,150px) 0 clamp(90px,12vw,140px)}
-.final .p{margin-top:18px;font:500 19px/1.55 var(--sans);color:var(--body);max-width:560px;margin-inline:auto}
-
-/* footer */
-.foot{padding:34px 0 44px;border-top:1px solid var(--line)}
-.foot .wrap{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-.foot .brand img{width:30px;height:30px}
-.foot nav{display:flex;flex-wrap:wrap;gap:6px 22px;flex:1}
-.foot nav a{font:600 14.5px/1 var(--sans);color:var(--body);padding:6px 0}
-.foot nav a:hover{color:var(--ink)}
-.foot small{font:500 13.5px/1 var(--sans);color:var(--muted)}
-
-@media (max-width:900px){
-  .two{grid-template-columns:1fr}
-  .flip .copy{order:0}
-  .feat .copy{max-width:620px}
-  .facts .row,.cards{grid-template-columns:1fr}
-  .facts .row>div:first-child{grid-row:auto;padding:26px 26px 24px}
-  .facts .row>div:first-child b{font-size:clamp(38px,4vw,50px)}
-  .facts .row>div:first-child span{font-size:15.5px}
-  .cards article:first-child{display:block}
-  .loop{max-width:520px;width:100%;margin-inline:auto}
-  .sheet{max-width:560px;width:100%;margin-inline:auto}
-}
-@media (max-width:520px){
-  .wrap,.film{width:calc(100% - 32px)}
-  .btn{width:100%}
-  .cta{flex-direction:column;gap:6px}
-  .snd span{display:none}.snd{padding:0 11px}
-  .feat .copy p,.next .copy p{font-size:17px}
-}
-@media (prefers-reduced-motion:reduce){
-  html.o-pre .hero [data-r]{opacity:1;animation:none}
-  .btn,.more .ico,.cards article,.sheet img,.snd{transition:none}
-  .sheet:hover img{transform:none}
-}
-</style>
 </head>
 <body>
 <div class="o-sky" aria-hidden="true">
@@ -196,141 +51,219 @@ html.gs .sheet img{transition:none}
 </div>
 <header class="o-nav" id="oNav">
   <div class="o-wrap">
-    <a class="o-brand" href="index.html" aria-label="Obavia home"><img src="favicon.svg" alt="" id="oMark"></a>
-    <ul class="o-links"><li><a href="#desk">The Desk</a></li><li><a href="#paperwork">Paperwork</a></li><li><a href="#signing">Signing</a></li><li><a href="#lessons">Free lessons</a></li><li><a href="#next">What’s next</a></li></ul>
-    <a class="o-join cloud" href="waitlist.html">Get early access</a>
+    <a class="o-brand" href="#top" aria-label="Obavia, back to the top"><img src="favicon.svg" alt="" id="oMark"></a>
+    <ul class="o-links"><li><a href="#how">How it works</a></li><li><a href="#cost">What it costs</a></li><li><a href="#buyers">Buyers</a></li><li><a href="#worst">How bad it can get</a></li></ul>
+    <a class="o-join cloud" href="#apply">Get on the lane</a>
     <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
   </div>
 </header>
-<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="#desk">The Desk</a><a href="#paperwork">Paperwork</a><a href="#signing">Signing</a><a href="#lessons">Free lessons</a><a href="#next">What’s next</a><a class="o-join cloud" href="waitlist.html">Get early access</a></nav>
+<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="#how">How it works</a><a href="#cost">What it costs</a><a href="#buyers">Buyers</a><a href="#worst">How bad it can get</a><a class="o-join cloud" href="#apply">Get on the lane</a></nav>
 <script src="shell.js"></script>
 <main>
-<!-- 1. what it is, and the film -->
+<!-- The first viewport: the dealer hook (messaging-hooks.md, DV1), one line, the film slot, one action (CF6). -->
 <section class="hero" id="top">
-  <div class="wrap copy">
-    <span class="kick" data-r>Obavia Desk · for Texas independent dealers</span>
-    <h1 data-r style="--d:.06s">Every sale, <span class="g cloudtext">start to signed.</span></h1>
-    <p class="lead" data-r style="--d:.14s">Pick the car, take the buyer’s details, work out the money and print the paperwork in your name. Then the buyer signs at the desk. One question per screen, so anyone on your lot can run it.</p>
-    <div class="cta" data-r style="--d:.22s"><a class="btn cloud" href="waitlist.html">Get early access</a><a class="more" href="#film">Watch the film<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l5.5 4.5L5 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
-  </div>
-  <figure class="film" id="film" data-r style="--d:.3s">
-    <video id="filmV" src="films/obavia-desk.mp4" poster="films/obavia-desk.jpg" muted playsinline loop preload="metadata" aria-label="Obavia Desk film: finding the dealership, the paperwork, a sale and the signing, all real screens from the Desk."></video>
-    <button class="snd" id="snd" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path class="w" d="M15.5 9a4.5 4.5 0 010 6M18 6.5a8 8 0 010 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="x" d="M16 9.5l5 5M21 9.5l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Sound</span></button>
-  </figure>
-</section>
-
-<!-- 2. three plain facts -->
-<section class="facts" aria-label="At a glance">
-  <div class="wrap row">
-    <div data-r><b>19,666</b><span>licensed Texas dealers on the state’s list, refreshed every night</span></div>
-    <div data-r style="--d:.08s"><b>6.25%</b><span>sales tax, title, registration and your doc fee, worked out on every deal</span></div>
-    <div data-r style="--d:.16s"><b>1</b><span>question per screen, from the car to the last signature</span></div>
-  </div>
-</section>
-
-<!-- 3. onboarding -->
-<section class="feat" id="desk">
-  <div class="wrap two">
-    <div class="copy">
-      <span class="kick" data-r>Getting started</span>
-      <h2 data-r>Find your dealership. <span class="g cloudtext">That’s the sign-up.</span></h2>
-      <p data-r style="--d:.08s">Tap your state, start typing your name, and pick it from the Texas licence list. We send a code to the phone or email on your licence, so nobody can set up your dealership but you.</p>
-      <ul class="ticks" data-r style="--d:.14s"><li>Your licence number, city and county come from the state</li><li>Your logo and colour go on every document</li><li>Tell us what you use today, and we’ll plan the switch with you</li></ul>
-    </div>
-    <figure class="loop" data-r><video data-src="films/loop-find.mp4" poster="films/loop-find.jpg" muted playsinline loop preload="none" aria-label="Onboarding in the Desk: Texas, typing the dealership's name, confirming it, entering the code."></video></figure>
-  </div>
-</section>
-
-<!-- 4. paperwork -->
-<section class="feat flip" id="paperwork">
-  <div class="wrap two">
-    <div class="copy">
-      <span class="kick" data-r>Paperwork</span>
-      <h2 data-r>A bill of sale <span class="g cloudtext">you’d be proud to hand over.</span></h2>
-      <p data-r style="--d:.08s">Your name, address and GDN at the top. The vehicle, the odometer statement and the terms in clean ruled boxes. The price to the cent, the Texas doc-fee notice, and signature lines for both of you.</p>
-      <ul class="ticks" data-r style="--d:.14s"><li>Bill of sale and Title Application (130-U) fields filled from the deal</li><li>Rebuilt and salvage titles get their own disclosures</li><li>Print it, or sign it on the screen</li></ul>
-    </div>
-    <figure class="sheet" data-r><div class="clip"><img src="films/bill-of-sale.webp" alt="A bill of sale from Obavia Desk for Triple J Auto Investment LLC, Houston, with the vehicle, odometer statement, terms and price." loading="lazy" width="1200" height="1998"></div></figure>
-  </div>
-</section>
-
-<!-- 5. a sale -->
-<section class="feat" id="sale">
-  <div class="wrap two">
-    <div class="copy">
-      <span class="kick" data-r>Handle a sale</span>
-      <h2 data-r>One question per screen. <span class="g cloudtext">The answer is the next tap.</span></h2>
-      <p data-r style="--d:.08s">Which car. What the odometer says. Who’s buying, read back so they can check it. How they’re paying. The Desk works out tax, title, registration and your doc fee as you go, and knows which papers this deal needs.</p>
-      <ul class="ticks" data-r style="--d:.14s"><li>Cash, buy here pay here or bank financing</li><li>Out-the-door or plus tax and fees</li><li>Nobody has to be shown how to use it</li></ul>
-    </div>
-    <figure class="loop" data-r><video data-src="films/loop-sale.mp4" poster="films/loop-sale.jpg" muted playsinline loop preload="none" aria-label="A sale in the Desk: choosing the car, the odometer, the buyer, the read-back and the money."></video></figure>
-  </div>
-</section>
-
-<!-- 6. signing -->
-<section class="feat flip" id="signing">
-  <div class="wrap two">
-    <div class="copy">
-      <span class="kick" data-r>Signing</span>
-      <h2 data-r>Signed at the desk. <span class="g cloudtext">Filed in order.</span></h2>
-      <p data-r style="--d:.08s">Hand the buyer the screen. They read each page, sign with a finger, and hand it back. You see what’s signed, what’s filed and what still needs ink, in one list.</p>
-      <ul class="ticks" data-r style="--d:.14s"><li>Every page shows what it means in one plain sentence</li><li>Forms that need ink are printed for ink, never signed on a screen</li><li>Print the whole packet when you need paper</li></ul>
-    </div>
-    <figure class="loop" data-r><video data-src="films/loop-sign.mp4" poster="films/loop-sign.jpg" muted playsinline loop preload="none" aria-label="Signing in the Desk: the bill of sale signed, the packet, and the buyer signing each page."></video></figure>
-  </div>
-</section>
-
-<!-- 7. free lessons: films made on the lot -->
-<section class="lessons" id="lessons">
   <div class="wrap">
-    <div class="copy center">
-      <span class="kick" data-r>Free lessons</span>
-      <h2 data-r>The paperwork <span class="g cloudtext">nobody shows you.</span></h2>
-      <p data-r style="--d:.08s">Short films made at Triple J Auto Investment in Houston, where the Desk is being built. Watch them whether or not you ever use Obavia.</p>
+    <div class="copy">
+      <h1 data-r>Name the least you’ll take on the car you’re losing money on, and <em>its bidding closes Thursday at 3.</em></h1>
+      <p class="lead" data-r>Obavia is the public lane behind your desk. Buyers across Texas bid from their phones, and the Desk runs the paperwork.</p>
+      <div class="act" data-r><button class="btn cloud" type="button" data-go="apply">Get on the lane</button></div>
     </div>
-    <div class="reel">
-      <figure class="lesson" data-r><div class="vid"><video src="films/handle-a-sale.mp4" poster="films/handle-a-sale.jpg" playsinline preload="none"></video><button class="play cloud" type="button" aria-label="Play Handle A Sale, 1 minute 22"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></button></div>
-        <figcaption><b>Handle A Sale</b><span>Every answer changes the paperwork. Here’s a desk that keeps up. <i>1:22</i></span></figcaption></figure>
-      <figure class="lesson" data-r style="--d:.06s"><div class="vid"><video src="films/seller-line.mp4" poster="films/seller-line.jpg" playsinline preload="none"></video><button class="play cloud" type="button" aria-label="Play The 130-U seller line, 43 seconds"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></button></div>
-        <figcaption><b>The 130-U seller line</b><span>Why title packages come back from webDEALER over one line, and what goes on it. <i>0:43</i></span></figcaption></figure>
-      <figure class="lesson" data-r style="--d:.12s"><div class="vid"><video src="films/title-packet.mp4" poster="films/title-packet.jpg" playsinline preload="none"></video><button class="play cloud" type="button" aria-label="Play The title packet, in order, 58 seconds"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></button></div>
-        <figcaption><b>The title packet, in order</b><span>The order the county reads it, from the 130-U to the inspection last. <i>0:58</i></span></figcaption></figure>
-      <figure class="lesson" data-r style="--d:.18s"><div class="vid"><video src="films/webdealer-order.mp4" poster="films/webdealer-order.jpg" playsinline preload="none"></video><button class="play cloud" type="button" aria-label="Play The webDEALER order, 1 minute 1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></button></div>
-        <figcaption><b>The webDEALER order</b><span>ePLATE, then the title application step by step, and the upload order. <i>1:01</i></span></figcaption></figure>
-    </div>
+    <!-- The Let It Go film is shot Fri Dec 4, 2026 (plan section 2.1). Until it exists this frame stays empty: no poster, no thumbnail. -->
+    <figure class="film" id="film" data-r aria-label="The film slot">
+      <figcaption>Film in the works, December 4</figcaption>
+    </figure>
   </div>
 </section>
 
-<!-- 8. what's next, said plainly -->
-<section class="next" id="next">
+<!-- The application (docs/plan/growth/application.md): nine pages, one question each; the submit screen is the key screen (CF7).
+     BACKEND CHANGE NEEDED. It posts to the endpoint the waitlist already uses, POST /api/waitlist on obavia.co,
+     which today accepts only {fullName, email, website} and answers 422 to any other key. New body shapes:
+       {step:"lookup", gdn}                         -> {status:"match", name, city, phoneLast4} | {status:"no_match"}
+       {step:"code",   gdn}                         -> {status:"code_sent", phoneLast4}   (Telnyx Verify, desk/server)
+       {step:"verify", gdn, code}                   -> {status:"verified"} | {status:"wrong_code"}
+       {step:"apply", fullName, email, website, application:{v, gdnHeld, lotSize, agedOver60, floorplan, losingCar, gdn, dealerName, dealerCity, phoneVerified}}
+                                                    -> {status:"accepted", key?}   (key issued only after a TxDMV match and a verified code)
+     Until the worker accepts them, the page checks the GDN's shape only, skips the code page, and on a 422 resends the
+     legacy {fullName, email, website} so the person still lands on the list. Logic: lane-apply.js. -->
+<section class="apply" id="apply" aria-label="Apply for the lane">
   <div class="wrap">
-    <div class="copy center">
-      <span class="kick" data-r>In development</span>
-      <h2 data-r>What we’re building next.</h2>
-      <p data-r style="--d:.08s">Each of these joins the Desk when it’s ready. None of them is live yet.</p>
+    <form class="ap" id="ap" novalidate data-r
+      data-endpoint="/api/waitlist"
+      data-backend="pending: worker must accept step, application{gdnHeld,lotSize,agedOver60,floorplan,losingCar,gdn,dealerName,dealerCity,phoneVerified}">
+      <div class="ap-top"><button class="ap-back" id="apBack" type="button" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 3.5L5 8l5.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</button></div>
+      <div class="ap-line" id="apLine" role="progressbar" aria-label="Application progress" aria-valuemin="1" aria-valuemax="9" aria-valuenow="1"><i></i></div>
+      <div class="ap-pages" id="apPages" aria-live="polite">
+
+        <div class="ap-p" data-p="1" data-key="gdnHeld">
+          <h2 class="ap-q" tabindex="-1">Do you hold a Texas dealer license (GDN)?</h2>
+          <div class="ap-ch"><button class="btn ap-choice" type="button" data-v="yes">Yes</button><button class="btn ap-choice" type="button" data-v="not_yet">Not yet</button></div>
+        </div>
+
+        <div class="ap-p" data-p="stop" hidden>
+          <h2 class="ap-q" tabindex="-1">The lane is for licensed Texas dealers.</h2>
+          <p class="ap-sub">When your GDN issues, this page will be here.</p>
+        </div>
+
+        <div class="ap-p" data-p="2" data-key="lotSize" hidden>
+          <h2 class="ap-q" tabindex="-1">How many cars are on your lot today?</h2>
+          <div class="ap-ch"><button class="btn ap-choice" type="button" data-v="1-10">1 to 10</button><button class="btn ap-choice" type="button" data-v="11-30">11 to 30</button><button class="btn ap-choice" type="button" data-v="31-75">31 to 75</button><button class="btn ap-choice" type="button" data-v="76+">76 or more</button></div>
+        </div>
+
+        <div class="ap-p" data-p="3" data-key="agedOver60" hidden>
+          <h2 class="ap-q" tabindex="-1">How many of them have been on the lot more than 60 days?</h2>
+          <div class="ap-ch"><button class="btn ap-choice" type="button" data-v="0">None</button><button class="btn ap-choice" type="button" data-v="1-2">1 to 2</button><button class="btn ap-choice" type="button" data-v="3-5">3 to 5</button><button class="btn ap-choice" type="button" data-v="6-10">6 to 10</button><button class="btn ap-choice" type="button" data-v="11+">11 or more</button></div>
+        </div>
+
+        <div class="ap-p" data-p="4" data-key="floorplan" hidden>
+          <h2 class="ap-q" tabindex="-1">Do you floor-plan any of your cars?</h2>
+          <div class="ap-ch"><button class="btn ap-choice" type="button" data-v="yes">Yes</button><button class="btn ap-choice" type="button" data-v="no">No</button></div>
+        </div>
+
+        <div class="ap-p" data-p="5" data-key="losingCar" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apCar">Which car are you losing money on this week?</label></h2>
+          <div class="ap-field">
+            <input id="apCar" type="text" maxlength="140" autocomplete="off" autocapitalize="sentences" enterkeyhint="next" placeholder="Year, make, model, and how long it’s been on the lot." aria-describedby="apCarErr">
+            <div class="ap-meta"><span class="ap-err" id="apCarErr" role="status"></span><span class="count" id="apCarCount" aria-hidden="true"></span></div>
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next>Continue</button>
+        </div>
+
+        <div class="ap-p" data-p="6" data-key="gdn" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apGdn">What’s your GDN number?</label></h2>
+          <div class="ap-field">
+            <input id="apGdn" type="text" maxlength="12" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="P123456" aria-describedby="apGdnMatch">
+            <p class="ap-match" id="apGdnMatch" role="status"></p>
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next disabled>That’s us</button>
+        </div>
+
+        <div class="ap-p" data-p="7" data-key="fullName" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apName">What’s your name?</label></h2>
+          <div class="ap-field">
+            <input id="apName" type="text" maxlength="160" autocomplete="name" autocapitalize="words" enterkeyhint="next" placeholder="First and last name" aria-describedby="apNameErr">
+            <p class="ap-err" id="apNameErr" role="status"></p>
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next>Continue</button>
+        </div>
+
+        <div class="ap-p" data-p="8" data-key="code" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apCode">We texted a code to the phone on your license, ending in <span id="apLast4">0000</span>. Enter it here.</label></h2>
+          <div class="ap-field">
+            <input id="apCode" class="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-describedby="apCodeErr">
+            <p class="ap-err" id="apCodeErr" role="status"></p>
+          </div>
+          <button class="btn cloud ap-go" type="button" data-next disabled>Continue</button>
+          <button class="ap-again" id="apAgain" type="button" hidden>Send it again</button>
+        </div>
+
+        <div class="ap-p" data-p="9" data-key="email" hidden>
+          <h2 class="ap-q" tabindex="-1"><label for="apEmail">Where should we send a copy of your key?</label></h2>
+          <div class="ap-field">
+            <input id="apEmail" type="email" maxlength="254" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="send" placeholder="you@yourdealership.com" aria-describedby="apEmailErr">
+            <p class="ap-err" id="apEmailErr" role="status"></p>
+          </div>
+          <div class="trap" aria-hidden="true"><label for="apSite">Website</label><input id="apSite" name="website" tabindex="-1" autocomplete="off"></div>
+          <button class="btn cloud ap-go" type="button" data-next>Apply</button>
+        </div>
+
+        <div class="ap-p" data-p="key" hidden>
+          <h2 class="ap-q" tabindex="-1">Here is your key.</h2>
+          <code class="ap-key" id="apKey"></code>
+          <button class="btn cloud ap-go" type="button" id="apCopy">Copy Key</button>
+          <p class="ap-sub">Paste it in the Desk under Auction, then Key. One key, one device.</p>
+          <p class="ap-sub faint" id="apStart"></p>
+        </div>
+
+        <div class="ap-p" data-p="in" hidden>
+          <h2 class="ap-q" tabindex="-1">Your application is in.</h2>
+          <p class="ap-sub" id="apInText">Keys aren’t issued on this page yet. Until they are, each application is checked by hand against the TxDMV list, and the key goes to the email you gave.</p>
+        </div>
+
+      </div>
+      <p class="ap-note" id="apNote"></p>
+    </form>
+  </div>
+</section>
+
+<!-- How it works, for the dealer, in four lines -->
+<section class="sec" id="how">
+  <div class="wrap split">
+    <div><h2 data-r>How it works.</h2><p class="p" data-r>Four steps, from your lot to a signed sale.</p></div>
+    <ol class="lines slab" data-r>
+      <li><b>Name your floor.</b><span>The least you’ll take. A car that doesn’t reach it doesn’t sell.</span></li>
+      <li><b>Take the photos.</b><span>In the Desk, on your lot.</span></li>
+      <li><b>It goes on the lane.</b><span>Buyers bid from their phones until the close you set. List it Monday for three days, and bidding closes Thursday at 3.</span></li>
+      <li><b>The Desk runs the paper.</b><span>If it reaches your floor, the Desk fills the 130-U from the sale.</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- The collateral line (docs/plan/collateral.md sections 1 to 3) -->
+<section class="sec" id="held">
+  <div class="wrap held">
+    <h2 data-r>The car stays yours until the VIN scan.</h2>
+    <p class="p" data-r>It stays on your lot and on your insurance until the buyer scans the VIN and starts it at pickup. The buyer’s $250 deposit is their collateral. Your collateral is the title: in your hand, or at your lender with a release time you set before the first bid.</p>
+  </div>
+</section>
+
+<!-- What it costs (43 TAC 215.85, docs/plan/research/texas-rules.md row S01, read 2026-10-12) -->
+<section class="sec" id="cost">
+  <div class="wrap split">
+    <div>
+      <h2 data-r>Nothing, until Obavia holds its own dealer license.</h2>
+      <p class="p" data-r>There is no fee of any kind before Obavia’s own GDN issues. No price is promised here for after.</p>
     </div>
-    <div class="cards">
-      <article data-r><i class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 18.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></i><h3>Text it to sign</h3><p>Send the buyer the paperwork by text. They read it and sign on their own phone, and you get the signed copy back.</p></article>
-      <article data-r style="--d:.08s"><i class="ic fb"><img src="films/facebook.png" alt="" width="40" height="40"></i><h3>Reach</h3><p>Post each car once and list it on Facebook Marketplace from your phone, after you agree to the terms. Leads come back to one inbox.</p></article>
-      <article data-r style="--d:.16s"><i class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></i><h3>Your website</h3><p>A site that lists every car on your lot from the Desk, with real photos and prices, and drops a car when it sells.</p></article>
+    <div data-r>
+      <figure class="rule slab">
+        <blockquote>“Any other entity that accepts a fee for arranging a transaction involving the sale of a used motor vehicle is required to meet the requirements for and obtain a GDN.”</blockquote>
+        <figcaption>43 Tex. Admin. Code §215.85(b), as amended effective June 1, 2024. Read October 12, 2026 at <a href="https://www.law.cornell.edu/regulations/texas/43-Tex-Admin-Code-SS-215-85" rel="noopener" target="_blank">law.cornell.edu</a>.</figcaption>
+      </figure>
+      <p class="status">Today the lane is a pilot: one Houston dealership selling its own cars. Other dealers’ cars go on it only after Obavia’s own GDN issues.</p>
     </div>
   </div>
 </section>
 
-<!-- 9. the ask -->
-<section class="final center" id="final">
-  <div class="wrap copy">
-    <h2 data-r>Now onboarding <span class="g cloudtext">Texas dealers.</span></h2>
-    <p class="p" data-r style="--d:.1s">Built on the floor of a Houston dealership. Early access dealers set up first, and we set it up with you.</p>
-    <div class="cta" data-r style="--d:.2s"><a class="btn cloud" href="waitlist.html">Get early access</a></div>
+<!-- The buyer: a price, a time, a name (messaging-hooks.md section 1). The urgency fact is buyer-urgency.md, register S27: US, dated, never beside a lot's bid. -->
+<section class="sec buyer" id="buyers">
+  <div class="wrap split">
+    <div>
+      <h2 data-r>For the buyer: a price, a time, a name.</h2>
+      <p class="p" data-r>Every car shows its live bid, the close time kept by our server, and the selling dealer’s legal name and GDN.</p>
+      <p class="p" data-r>To bid, a buyer puts down $250 once. It’s refunded if they lose. A Texas driver’s license is required.</p>
+      <a class="more" href="waitlist.html" data-r>Buying, not selling? Get early access to the app.<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l5.5 4.5L5 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+    <figure class="fact slab" data-r>
+      <blockquote>US dealers’ average used-vehicle listing price was <b>$27,239</b> in August 2026, 7% above a year ago.</blockquote>
+      <figcaption>Cox Automotive, from vAuto Live Market View data. Published September 11, 2026; checked October 12, 2026 at <a href="https://www.coxautoinc.com/insights/used-vehicle-inventory-august-2026/" rel="noopener" target="_blank">coxautoinc.com</a>.</figcaption>
+      <p class="frame">That’s what lots are asking. On the lane, the price is whatever the bidders say, and they can see it live.</p>
+    </figure>
+  </div>
+</section>
+
+<!-- How bad it can get (CP10; docs/plan/collateral.md section 2) -->
+<section class="sec" id="worst">
+  <div class="wrap split">
+    <div><h2 data-r>How bad it can get.</h2><p class="p" data-r>The worst cases, from your side of the desk.</p></div>
+    <ul class="worst" data-r>
+      <li><b>The car doesn’t start at pickup.</b><span>No sale. The buyer’s money goes back, and the car stays yours.</span></li>
+      <li><b>The winner walks away.</b><span>They lose their $250 deposit. It goes to you, less processing, and you relist from the Desk.</span></li>
+      <li><b>You can’t deliver.</b><span>The buyer gets the $250 back in full, and the miss is recorded on your account.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="sec close" id="again">
+  <div class="wrap">
+    <h2 data-r>Which car are you losing money on this week?</h2>
+    <div class="act" data-r><button class="btn cloud" type="button" data-go="apply">Get on the lane</button></div>
   </div>
 </section>
 </main>
 
 <footer class="foot">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Obavia home"><img src="favicon.svg" alt=""></a>
-    <nav aria-label="Footer"><a href="#desk">The Desk</a><a href="#paperwork">Paperwork</a><a href="#signing">Signing</a><a href="#lessons">Free lessons</a><a href="#next">What’s next</a><a href="waitlist.html">Early access</a></nav>
+    <a class="brand" href="#top" aria-label="Obavia, back to the top"><img src="favicon.svg" alt=""></a>
+    <nav aria-label="Footer"><a href="#how">How it works</a><a href="#cost">What it costs</a><a href="#buyers">Buyers</a><a href="#worst">How bad it can get</a><a href="#apply">Get on the lane</a></nav>
     <small>© 2026 Obavia</small>
   </div>
 </footer>
@@ -339,43 +272,6 @@ html.gs .sheet img{transition:none}
 <script src="assets/vendor/gsap/ScrollTrigger.min.js"></script>
 <script src="site.js"></script>
 <script src="cloud-atmosphere.js"></script>
-<script>
-(() => {
-'use strict';
-const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/* entrances and reveals run in site.js (GSAP); the hero waits for the mark's entrance */
-
-/* the film plays silently on its own; sound is one tap. Reduced motion: it waits for a tap. */
-const v = $('#filmV'), snd = $('#snd');
-const play = el => { const p = el.play(); if (p && p.catch) p.catch(() => {}); };
-if (!REDUCED) new IntersectionObserver(es => es.forEach(e => e.isIntersecting ? play(v) : v.pause()), { threshold: .35 }).observe(v);
-else { v.controls = true; v.loop = false; }
-snd.addEventListener('click', () => {
-  const on = v.muted; v.muted = !on; snd.setAttribute('aria-pressed', String(on)); snd.classList.toggle('on', on);
-  if (on) { if (!REDUCED || v.paused) { v.currentTime = 0; } play(v); }
-});
-
-/* section loops load when near, play while visible */
-$$('.loop video').forEach(el => {
-  if (REDUCED) { el.preload = 'none'; return; }   // posters only
-  new IntersectionObserver(es => es.forEach(e => {
-    if (e.isIntersecting) { if (!el.src) el.src = el.dataset.src; play(el); } else el.pause();
-  }), { rootMargin: '200px 0px', threshold: .2 }).observe(el);
-});
-/* lessons: one plays at a time, with sound; the frame pauses it */
-$$('.lesson').forEach(fig => {
-  const el = fig.querySelector('video'), btn = fig.querySelector('.play');
-  const stop = () => { el.pause(); fig.classList.remove('on'); el.controls = false; };
-  btn.addEventListener('click', () => {
-    $$('.lesson.on').forEach(o => { if (o !== fig) { o.querySelector('video').pause(); o.classList.remove('on'); o.querySelector('video').controls = false; } });
-    if (!v.paused && !v.muted) { v.muted = true; snd.setAttribute('aria-pressed', 'false'); snd.classList.remove('on'); }
-    fig.classList.add('on'); el.controls = true; play(el);
-  });
-  el.addEventListener('ended', stop);
-});
-})();
-</script>
+<script src="lane-apply.js"></script>
 </body>
 </html>
