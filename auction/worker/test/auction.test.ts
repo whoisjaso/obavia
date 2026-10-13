@@ -82,16 +82,17 @@ describe('the object', () => {
   });
   it('is idempotent on the key', async () => {
     await open('l3', 10 * 60_000);
+    const t = await signIn('buyer-l3');   // one buyer per lot: buyer-a leads l2 with no paid car, so a second lead is 409 one_open_bid (sim 03)
     const key = 'same-key';
-    const a = await (await bid('l3', token, 5000, 5000, key)).json<any>();
-    const b = await (await bid('l3', token, 5000, 5000, key)).json<any>();
+    const a = await (await bid('l3', t, 5000, 5000, key)).json<any>();
+    const b = await (await bid('l3', t, 5000, 5000, key)).json<any>();
     expect(b).toEqual(a);
     expect((await (await SELF.fetch(`${base}/lots/l3`)).json<any>()).bids).toBe(1);
   });
   it('a bid in the last two minutes refills the close to exactly 2:00', async () => {
     await open('l4', 30_000);
     const before = Date.now();
-    const a = await (await bid('l4', token, 5000)).json<any>();
+    const a = await (await bid('l4', await signIn('buyer-l4'), 5000)).json<any>();
     expect(a.lot.closesAt - before).toBeGreaterThanOrEqual(119_000);
     expect(a.lot.closesAt - before).toBeLessThanOrEqual(121_000);
   });

@@ -31,4 +31,4 @@ migrations_dir = "migrations"
 
 # Secrets (wrangler secret put): BUYER_SECRET, DEALER_SECRET, MINT_SECRET (POST /dealers/mint only), WHOP_API_KEY, WHOP_WEBHOOK_SECRET, TELNYX_API_KEY
 # Vars to set: WHOP_ACCOUNT_ID (biz_…), WHOP_API_BASE (sandbox in staging), TELNYX_VERIFY_PROFILE_ID
-# Migrations: 0013 before this code (dealer_payouts.method, reconciliations.payouts_owed, the one-phone-one-buyer index)
+# Migrations: 0014 before this code (bid_attempts for the bids-per-buyer limit, reconciliations.differences); 0013 before the earlier code (dealer_payouts.method, reconciliations.payouts_owed, the one-phone-one-buyer index)

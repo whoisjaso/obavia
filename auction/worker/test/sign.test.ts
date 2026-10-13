@@ -153,6 +153,9 @@ beforeAll(async () => {
   await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
   buyer = await signIn('buyer-sign');
   stranger = await signIn('buyer-stranger', 'Someone Else');
+  // sim 03 (Wave 2-E): a buyer with no paid car holds one open bid, and s1, s2 and s3 are each won and unpaid; one paid car first lifts the gate
+  await sold('s0', buyer, false);
+  expect((await SELF.fetch(`${base}/lots/s0/paid`, { method: 'POST', headers: DEALER })).status).toBe(200);
   await sold('s1', buyer);
 });
 afterEach(() => { vi.restoreAllMocks(); });

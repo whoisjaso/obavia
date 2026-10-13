@@ -7,7 +7,9 @@
       not yet sent or paid). GET /ledger_accounts/{biz_…} → balances[].balance
       in USD. Only the settled `balance` is counted; pending and reserve are
       noted, not added.
-   One row per run in `reconciliations`; the admin reads the last seven. */
+   One row per run in `reconciliations` (equal 1 or 0, the ids that differed,
+   and since 0014 which field of each: `differences`); the admin reads the last
+   seven on GET /admin/exposure and the streak on GET /admin/reconcile. */
 import type { Env } from './env';
 import { Whop } from './whop';
 
@@ -17,13 +19,21 @@ export type Row = {
   id: string; ran_at: number; lots_checked: number; lots_differing: number; differing: string[];
   deposits_held: number; whop_balance_cents: number | null; equal: 0 | 1; note: string;
   payouts_owed: number; payouts_owed_cents: number;
+  differences: Difference[];
 };
+/** One field of one lot where the copy and the object disagreed; `object: null` with `field: 'object'` when the object is gone. */
+export type Difference = { lot: string; field: string; copy: unknown; object: unknown };
 
 type LotLike = { high?: number; bids?: number; closesAt?: number; leader?: string; closed?: unknown; sale?: unknown };
+const FIELDS = ['high', 'bids', 'closesAt', 'leader', 'closed', 'sale'] as const;
 
 /** The fields that move money or the hammer. A stable string, so key order never reads as a difference. */
 function facts(l: LotLike) {
   return stable({ high: l.high ?? null, bids: l.bids ?? null, closesAt: l.closesAt ?? null, leader: l.leader ?? null, closed: l.closed ?? null, sale: l.sale ?? null });
+}
+/** Which of the fields differ, with both sides, for the admin to read. */
+function fieldDiffs(id: string, copy: LotLike, live: LotLike): Difference[] {
+  return FIELDS.filter(f => stable(copy[f] ?? null) !== stable(live[f] ?? null)).map(f => ({ lot: id, field: f, copy: copy[f] ?? null, object: live[f] ?? null }));
 }
 function stable(x: unknown): string {
   if (Array.isArray(x)) return `[${x.map(stable).join(',')}]`;
@@ -36,6 +46,7 @@ export async function reconcile(env: Env): Promise<Row> {
   const notes: string[] = [];
   const differing: string[] = [];
   const unrepaired: string[] = [];
+  const differences: Difference[] = [];
 
   const rows = (await env.DB.prepare('SELECT id, lot FROM lots').all<{ id: string; lot: string }>()).results;
   for (const row of rows) {
@@ -47,9 +58,10 @@ export async function reconcile(env: Env): Promise<Row> {
       const r = await stub.fetch(`https://auction/lots/${encodeURIComponent(row.id)}`);
       if (r.ok) live = await r.json<LotLike>();
     } catch { live = null; }
-    if (!live) { differing.push(row.id); unrepaired.push(row.id); continue; }   // a copy with no object: kept for the owner to read, never deleted here
+    if (!live) { differing.push(row.id); unrepaired.push(row.id); differences.push({ lot: row.id, field: 'object', copy: facts(copy), object: null }); continue; }   // a copy with no object: kept for the owner to read, never deleted here
     if (facts(copy) === facts(live)) continue;
     differing.push(row.id);
+    differences.push(...fieldDiffs(row.id, copy, live));
     // repair: the object writes its own copy (it holds the dealer and the ceiling the public lot leaves out), then we read it back
     try { await stub.fetch(`https://auction/lots/${encodeURIComponent(row.id)}/copy`, { method: 'POST' }); } catch { /* checked below */ }
     const after = await env.DB.prepare('SELECT lot FROM lots WHERE id = ?1').bind(row.id).first<{ lot: string }>();
@@ -87,17 +99,21 @@ export async function reconcile(env: Env): Promise<Row> {
     id: `rec_${ranAt}_${crypto.randomUUID().slice(0, 8)}`, ran_at: ranAt, lots_checked: rows.length, lots_differing: differing.length, differing,
     deposits_held: held, whop_balance_cents: balanceCents, equal: differing.length === 0 && covered ? 1 : 0, note: notes.join('; ') || 'equal',
     payouts_owed: owedN, payouts_owed_cents: owedCents,
+    differences,
   };
-  await env.DB.prepare('INSERT INTO reconciliations (id, ran_at, lots_checked, lots_differing, differing, deposits_held, whop_balance_cents, equal, note, payouts_owed, payouts_owed_cents) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)')
-    .bind(out.id, out.ran_at, out.lots_checked, out.lots_differing, JSON.stringify(out.differing), out.deposits_held, out.whop_balance_cents, out.equal, out.note, out.payouts_owed, out.payouts_owed_cents).run();
+  await env.DB.prepare('INSERT INTO reconciliations (id, ran_at, lots_checked, lots_differing, differing, deposits_held, whop_balance_cents, equal, note, payouts_owed, payouts_owed_cents, differences) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)')
+    .bind(out.id, out.ran_at, out.lots_checked, out.lots_differing, JSON.stringify(out.differing), out.deposits_held, out.whop_balance_cents, out.equal, out.note, out.payouts_owed, out.payouts_owed_cents, JSON.stringify(out.differences)).run();
   return out;
 }
 
 export async function lastReconciliations(env: Env, n = 7): Promise<Row[]> {
   const r = await env.DB.prepare('SELECT * FROM reconciliations ORDER BY ran_at DESC LIMIT ?1').bind(Math.max(1, Math.min(n, 100)))
-    .all<Omit<Row, 'differing'> & { differing: string }>();
-  return r.results.map(x => ({ ...x, differing: JSON.parse(x.differing || '[]') }));
+    .all<Omit<Row, 'differing' | 'differences'> & { differing: string; differences: string | null }>();
+  return r.results.map(x => ({ ...x, differing: JSON.parse(x.differing || '[]'), differences: JSON.parse(x.differences || '[]') }));
 }
+
+/** How many nights running, newest first, said equal: 0 when the latest did not. The gate reads 7. */
+export const equalNights = (rows: Pick<Row, 'equal'>[]): number => { let n = 0; for (const r of rows) { if (r.equal !== 1) break; n += 1; } return n; };
 
 /** GET /ledger_accounts/{id} (permission company:balance:read): `balances[]` of { balance, pending_balance, reserve_balance, currency }, amounts in dollars. */
 async function whopUsdBalance(env: Env) {

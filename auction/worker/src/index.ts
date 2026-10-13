@@ -7,9 +7,9 @@ import { bearerOf, buyerClaim, buyerFrom, claimOf, dealerFrom, mintBuyerToken, m
 import type { Env } from './env';
 import type { BidRequest } from '../../src/engine/server';
 import { viewerHtml } from './view';
-import { lastReconciliations, reconcile, reserveRatio } from './reconcile';
+import { equalNights, lastReconciliations, reconcile, reserveRatio } from './reconcile';
 import { Whop } from './whop';
-import { COUNT_SQL, TERMS_VERSION, WINS_PER_YEAR, committed, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
+import { BIDS_PER_MINUTE, BID_WINDOW_MS, COUNT_SQL, TERMS_VERSION, WINS_PER_YEAR, committed, oneOpenBidRefuses, openBids, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
 import type { BidIn, PayMethod, PayoutNews } from './auction';
 import { maskPhone, sendCode, verifiedForReal, verifyCode } from './phone';
 export { Auction } from './auction';
@@ -133,7 +133,7 @@ async function handle(req: Request, env: Env): Promise<Response> {
         const buyer = claim.id;
         if (rest === '/bids') {
           // one read of the copy admits the buyer: the token's epoch, deposit, terms, the year's count, and what the shill check compares
-          const row = await env.DB.prepare(`SELECT b.token_epoch, b.deposit_status, b.terms_at, b.name, b.phone, b.phone_verified_at, b.phone_verified_via, b.address, c.wins, c.owed, c.leading FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
+          const row = await env.DB.prepare(`SELECT b.token_epoch, b.deposit_status, b.terms_at, b.name, b.phone, b.phone_verified_at, b.phone_verified_via, b.address, c.wins, c.owed, c.leading, c.paid FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
             .bind(buyer, yearStart(Date.now()), id).first<{ token_epoch: number; deposit_status: string; terms_at: number | null; name: string | null; phone: string | null; phone_verified_at: number | null; phone_verified_via: string | null; address: string | null } & Counts>();
           if (row?.token_epoch !== claim.epoch) return text('sign in', 401);   // rotated or bumped away
           const body = await req.json<Omit<BidRequest, 'bidder' | 'lotId'> & { terms?: string }>();
@@ -144,12 +144,25 @@ async function handle(req: Request, env: Env): Promise<Response> {
           if (row.deposit_status !== 'captured') return text('deposit first', 402);
           const firstBid = row.terms_at == null;
           if (firstBid && body.terms !== TERMS_VERSION) return json({ error: 'terms_required', version: TERMS_VERSION }, 409);
+          // the rate limit (Wave 2-E): at most BIDS_PER_MINUTE attempts a rolling minute across every lot, counted here in the
+          // Worker because a lot's object sees one lot; D1 runs the conditional insert as one atomic statement, so parallel
+          // requests cannot all pass (the lane mint's pattern). A retried key finds its own row and goes through
+          const key = `${buyer}:${body.key}`;
+          const wait = await attempt(env, buyer, id, key);
+          if (wait) {
+            await refuse(env, id, buyer, 'too_many_bids', String(wait));
+            return fail('too_many_bids', 429, { 'retry-after': String(wait) });
+          }
           const count = committed(row);
           if (count >= WINS_PER_YEAR) {   // D15: a bid that could become a fifth win this year is refused
             await refuse(env, id, buyer, 'win_cap', String(count));
             return json({ error: 'win_cap', count, cap: WINS_PER_YEAR }, 403);
           }
-          const fwd: BidIn = { lotId: id, bidder: buyer, amount: Math.round(body.amount), max: Math.round(body.max), key: `${buyer}:${body.key}`, who: { phone: verifiedPhone, address: row.address, name: row.name } };   // D11 compares the verified phone only
+          if (oneOpenBidRefuses(row)) {   // sim 03: one open bid across every lot until the first car is paid; raising on the lot led is not a second
+            await refuse(env, id, buyer, 'one_open_bid', String(openBids(row)));
+            return json({ error: 'one_open_bid', open: openBids(row) }, 409);
+          }
+          const fwd: BidIn = { lotId: id, bidder: buyer, amount: Math.round(body.amount), max: Math.round(body.max), key, who: { phone: verifiedPhone, address: row.address, name: row.name } };   // D11 compares the verified phone only
           const res = await toObject({ method: 'POST', body: JSON.stringify(fwd) });
           if (firstBid && res.status === 200) {   // D10: the first bid placed carries the terms; stamped once
             await env.DB.prepare('UPDATE buyers SET terms_version = ?2, terms_at = ?3 WHERE id = ?1 AND terms_at IS NULL').bind(buyer, TERMS_VERSION, Date.now()).run();
@@ -216,6 +229,19 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (req.method === 'POST' && url.pathname === '/admin/reconcile') {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
       return json(await reconcile(env));
+    }
+    // the nightly rows, newest first, and the streak: "the nightly report says equal seven nights running" (phases.md Phase 2 Server exit)
+    if (req.method === 'GET' && url.pathname === '/admin/reconcile') {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const n = Math.max(1, Math.min(Number(url.searchParams.get('n')) || 7, 100));
+      const rows = await lastReconciliations(env, Math.max(n, 7));
+      const streak = equalNights(rows);
+      return json({
+        equalNights: streak, sevenEqual: streak >= 7,
+        latest: rows[0] ? { id: rows[0].id, ranAt: rows[0].ran_at, equal: rows[0].equal === 1 } : null,
+        nights: rows.slice(0, n).map(r => ({ id: r.id, ranAt: r.ran_at, equal: r.equal === 1, lotsChecked: r.lots_checked, lotsDiffering: r.lots_differing, differing: r.differing, differences: r.differences,
+          depositsHeld: r.deposits_held, payoutsOwed: r.payouts_owed, payoutsOwedCents: r.payouts_owed_cents, whopBalanceCents: r.whop_balance_cents, reserveRatio: reserveRatio(r), note: r.note })),
+      });
     }
 
     // the admin's money page (desk/src/lib/admin-api.ts): every event newest first, every payout, every sale with its buyer
@@ -423,14 +449,15 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (req.method === 'GET' && url.pathname === '/me') {
       const buyer = await buyerFrom(req, env);
       if (!buyer) return text('sign in', 401);
-      const row = await env.DB.prepare(`SELECT b.name, b.state, b.deposit_status, b.terms_version, b.terms_at, b.phone, b.phone_verified_at, b.phone_verified_via, c.wins, c.owed, c.leading FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
+      const row = await env.DB.prepare(`SELECT b.name, b.state, b.deposit_status, b.terms_version, b.terms_at, b.phone, b.phone_verified_at, b.phone_verified_via, c.wins, c.owed, c.leading, c.paid FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
         .bind(buyer, yearStart(Date.now()), '').first<{ name: string | null; state: string | null; deposit_status: string; terms_version: string | null; terms_at: number | null; phone: string | null; phone_verified_at: number | null; phone_verified_via: string | null } & Counts>();
       if (!row) return json({ id: buyer, phone: null, phoneVerified: false });
-      const { wins, owed, leading, terms_version, terms_at, phone, phone_verified_at, phone_verified_via, ...rest } = row;
+      const { wins, owed, leading, paid, terms_version, terms_at, phone, phone_verified_at, phone_verified_via, ...rest } = row;
       // the number leaves only as its last four, and only once a code proved it
       const phoneVerified = verifiedForReal(env, phone_verified_at, phone_verified_via);
       // D15: winsLeft is the one number the Me screen shows; wins are cars started this calendar year
-      return json({ id: buyer, ...rest, phone: phoneVerified ? maskPhone(phone) : null, phoneVerified, wins, winsLeft: winsLeft({ wins, owed, leading }), winsPerYear: WINS_PER_YEAR, termsVersion: terms_version, termsAt: terms_at, termsCurrent: TERMS_VERSION });
+      // sim 03: openBids is what the one-open-bid gate counts; paidCars lifts it (the Me screen shows winsLeft alone)
+      return json({ id: buyer, ...rest, phone: phoneVerified ? maskPhone(phone) : null, phoneVerified, wins, winsLeft: winsLeft({ wins, owed, leading, paid }), winsPerYear: WINS_PER_YEAR, openBids: openBids({ owed, leading }), paidCars: paid, termsVersion: terms_version, termsAt: terms_at, termsCurrent: TERMS_VERSION });
     }
     if (req.method === 'POST' && url.pathname === '/me/deposit/checkout') {
       const buyer = await buyerFrom(req, env);
@@ -575,9 +602,25 @@ function randomId(): string {
   return btoa(String.fromCharCode(...a)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/** A bid refused for who the bidder is (D11, D15): one row for the admin's exposure view. */
-async function refuse(env: Env, lotId: string, who: string, reason: 'seller_cannot_bid' | 'not_a_buyer' | 'win_cap', matched: string | null) {
+/** A bid refused for who the bidder is (D11, D15) or how fast (Wave 2-E): one row for the admin's exposure view. */
+async function refuse(env: Env, lotId: string, who: string, reason: 'seller_cannot_bid' | 'not_a_buyer' | 'win_cap' | 'one_open_bid' | 'too_many_bids', matched: string | null) {
   await env.DB.prepare('INSERT INTO bid_refusals (lot_id, who, reason, matched, at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(lotId, who.slice(0, 80), reason, matched, Date.now()).run().catch(() => {});
+}
+
+/** The bids-per-buyer rate limit (migration 0014 bid_attempts): one conditional insert is the lock. Returns 0 when the attempt
+    is admitted (a new row, or a retry of a key already seen), else the seconds to wait for the oldest attempt in the window
+    to age out. Rows older than ten minutes are pruned in the same batch. */
+async function attempt(env: Env, buyer: string, lotId: string, key: string): Promise<number> {
+  const now = Date.now();
+  const [, ins] = await env.DB.batch<{ id: number }>([
+    env.DB.prepare('DELETE FROM bid_attempts WHERE at < ?1').bind(now - 10 * BID_WINDOW_MS),
+    env.DB.prepare(`INSERT OR IGNORE INTO bid_attempts (buyer, lot_id, key, at) SELECT ?1, ?2, ?3, ?4
+      WHERE (SELECT COUNT(*) FROM bid_attempts WHERE buyer = ?1 AND at > ?4 - ?5) < ?6 RETURNING id`).bind(buyer, lotId, key, now, BID_WINDOW_MS, BIDS_PER_MINUTE),
+  ]);
+  if (ins.results.length === 1) return 0;
+  if (await env.DB.prepare('SELECT 1 AS x FROM bid_attempts WHERE key = ?1').bind(key).first()) return 0;   // a retry: the object answers the same ack
+  const oldest = await env.DB.prepare('SELECT MIN(at) AS at FROM (SELECT at FROM bid_attempts WHERE buyer = ?1 AND at > ?2 ORDER BY at DESC LIMIT ?3)').bind(buyer, now - BID_WINDOW_MS, BIDS_PER_MINUTE).first<{ at: number | null }>();
+  return Math.max(1, Math.ceil(((oldest?.at ?? now) + BID_WINDOW_MS - now) / 1000));
 }
 
 /* POST /dealers/mint. Bearer MINT_SECRET, never DEALER_SECRET. One key for one
