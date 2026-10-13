@@ -62,7 +62,7 @@ const SPEC = {
   'pickup-started':  { title: 'Pickup, started', primary: /^Done$/, before: [/^Car started/], verb: 'Done' },
   'plates':          { title: 'Plates', gesture: 'nothing to do', anchor: /./, allow: [/./] },
   'plates-mailed':   { title: 'Plates, mailed', gesture: 'nothing to do', anchor: /./, allow: [/./] },
-  'won-done':        { title: 'Won, all four done', primary: /^Back to the lane$/ },
+  'won-done':        { title: 'Won, all four done', primary: /^To the lane$/ },
   'me':              { title: 'Me', gesture: 'nothing to do', anchor: /./, allow: [/./] },
 };
 
@@ -305,11 +305,11 @@ const steps = [
     await wait(15500);   // the local demo cadence: filed 4 s, approved 9 s, mailed 14 s after the start (sale.ts)
     await screen('plates-mailed');
   }],
-  ['back to the lane', async () => {
+  ['to the lane', async () => {
     await tap('Back', 'last'); await wait(1300);
-    if (!(await until(() => visible('Back to the lane'), 4000))) throw new Error('no "Back to the lane" after the plates were mailed');
+    if (!(await until(() => visible('To the lane'), 4000))) throw new Error('no "To the lane" after the plates were mailed');
     await screen('won-done');
-    await tap('Back to the lane', 'last'); await wait(1600);
+    await tap('To the lane', 'last'); await wait(1600);
   }],
   ['Me', async () => { await tap('Me'); await wait(1500); await screen('me'); }],
 ];

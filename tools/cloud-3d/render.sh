@@ -32,14 +32,14 @@ fi
 if [ "$STAGE" = all ] || [ "$STAGE" = render ]; then
   # rest (23), pressed (5) and the first two sink frames at the hero @2x
   # master; the in-between frames at 960 wide (see README, render budget)
-  "$BLENDER_PY" render_button.py "$WORK" "$BUTTON_W" "$BUTTON_SPP" --frames=23,5,0,1 2>&1 | grep -E '^render|Error'
-  "$BLENDER_PY" render_button.py "$WORK" "$INBETWEEN_W" "$INBETWEEN_SPP" 2>&1 | grep -E '^render|Error'
-  "$BLENDER_PY" render_fx.py "$WORK" 2>&1 | grep -E '^render|Error'
-  "$BLENDER_PY" render_sky.py "$WORK" "$SKY_W" "$SKY_SPP" 2>&1 | grep -E '^render|Error'
-  "$BLENDER_PY" render_etched.py "$WORK" "$BUTTON_W" "$BUTTON_SPP" 2>&1 | grep -E '^render|Error'
+  "$BLENDER_PY" render_button.py "$WORK" "$BUTTON_W" "$BUTTON_SPP" --frames=23,5,0,1 2>&1 | grep -E '^render|Error' || true
+  "$BLENDER_PY" render_button.py "$WORK" "$INBETWEEN_W" "$INBETWEEN_SPP" 2>&1 | grep -E '^render|Error' || true
+  "$BLENDER_PY" render_fx.py "$WORK" 2>&1 | grep -E '^render|Error' || true
+  "$BLENDER_PY" render_sky.py "$WORK" "$SKY_W" "$SKY_SPP" 2>&1 | grep -E '^render|Error' || true
+  "$BLENDER_PY" render_etched.py "$WORK" "$BUTTON_W" "$BUTTON_SPP" 2>&1 | grep -E '^render|Error' || true
 fi
 if [ "$STAGE" = all ] || [ "$STAGE" = render ] || [ "$STAGE" = labels ]; then
-  "$BLENDER_PY" render_labels.py "$WORK" render "$BUTTON_W" "$LABEL_SPP" 2>&1 | grep -E '^render|Error'
+  "$BLENDER_PY" render_labels.py "$WORK" render "$BUTTON_W" "$LABEL_SPP" 2>&1 | grep -E '^render|Error' || true
 fi
 if [ "$STAGE" = all ] || [ "$STAGE" = post ]; then
   IMAGEQUANT_PATH=${IMAGEQUANT_PATH:-} "$PY" post.py "$WORK" "$OUT" all

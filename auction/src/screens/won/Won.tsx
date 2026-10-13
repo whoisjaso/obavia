@@ -93,14 +93,14 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
       )}
 
       {screen === 'steps' && (
-        <Page foot={next === null ? <Button label="Back to the lane" onPress={onDone} /> : undefined}>
+        <Page foot={next === null ? <Button label="To the lane" onPress={onDone} /> : undefined}>
           {head}
           <View style={{ marginTop: theme.space.xl, alignItems: 'center', gap: theme.space.xs }}>
             {steps.map(t => {
               const live = t.key === next, locked = !t.done && !live;
               return (
                 // a done step is finished: it keeps its look (the tick) but is not a control and is not read, so
-                // the lit step (or Back to the lane) is the first thing a thumb or a screen reader meets
+                // the lit step (or To the lane) is the first thing a thumb or a screen reader meets
                 <Lift key={t.key} on={live} after={drew ? TICK_AFTER + ms.green : 0} hidden={t.done}>
                   <PressCloud disabled={locked || t.done} onPress={() => { feel.select(); open(t.key); }} bodyStyle={s.step}
                     accessibilityState={{ selected: live }} accessibilityLabel={`${t.label}${t.done ? ', done' : live ? ', next' : ''}`}>
