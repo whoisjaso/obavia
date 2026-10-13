@@ -3,14 +3,14 @@
    carries a dealer token and opens, closes, marks paid and scans pickup.
    Photos and documents live in R2. Reads of the lane come from D1, the copy;
    everything live comes from the object. */
-import { bearerOf, buyerClaim, buyerFrom, claimOf, dealerFrom, mintBuyerToken, mintDealerToken, secretMatches } from './auth';
+import { bearerOf, buyerClaim, buyerFrom, claimOf, dealerClaim, dealerFrom, mintBuyerToken, mintDealerToken, roleOf, secretMatches, type DealerRole } from './auth';
 import type { Env } from './env';
 import type { BidRequest } from '../../src/engine/server';
 import { viewerHtml } from './view';
 import { equalNights, lastReconciliations, reconcile, reserveRatio } from './reconcile';
 import { Whop } from './whop';
-import { BIDS_PER_MINUTE, BID_WINDOW_MS, COUNT_SQL, TERMS_VERSION, WINS_PER_YEAR, committed, oneOpenBidRefuses, openBids, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
-import type { BidIn, PayMethod, PayoutNews } from './auction';
+import { BIDS_PER_MINUTE, BID_WINDOW_MS, COUNT_SQL, TERMS, TERMS_VERSION, WINS_PER_YEAR, committed, oneOpenBidRefuses, openBids, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
+import { LANES, type BidIn, type Lane, type PayMethod, type PayoutNews } from './auction';
 import { maskPhone, sendCode, sendRecoveryCode, verifiedForReal, verifyCode, verifyRecovery } from './phone';
 import { passSix, passValue } from '../../src/pass';
 import { invoices, markPaidAtLot, onWebhook, uploadEvidence } from './invoice';
@@ -38,6 +38,38 @@ const reasonOf = (v: unknown) => typeof v === 'string' ? plain(v, 200) : null;
 /** A JSON object body, or {} for none or anything else. */
 const body = async (req: Request): Promise<Record<string, unknown>> => { try { const raw = await req.text(); const b = raw ? JSON.parse(raw) : {}; return b && typeof b === 'object' && !Array.isArray(b) ? b : {}; } catch { return {}; } };
 const plain = (v: unknown, max: number) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= max && !/[\u0000-\u001f\u007f]/.test(v) ? v.trim().replace(/\s+/g, ' ') : null;
+const GDN = /^[A-Z0-9]{5,12}$/;
+/* ---- Wave 4 (gap table §4 W4-A; phases.md amendment 2026-10-13: Phase 4 and 5 code behind flags, no deploy, no money, no keys) */
+/** The arbitration clause (decisions §9 D13), behind ARBITRATION=1. The text is D13's own line, marked draft: the words are counsel's
+    (Q14), not ours, and nothing on the glass says otherwise. A new wording is a new version. */
+export const CLAUSE_VERSION = 'D13-draft-2026-10-13';
+export const CLAUSE_TEXT = 'DRAFT, counsel review pending: Arbitration: FAA-governed clause naming Obavia and the dealer; no DTPA waiver; small-claims carve-out; shown once, scroll-to-end.';
+const arbitrationOn = (env: Env) => env.ARBITRATION === '1';
+/** Audio and video on the car (phases.md Phase 5 Frontend: engine idle recordings, the walkaround): the types and caps. */
+const MEDIA = { audio: { types: ['audio/mp4', 'audio/webm'], cap: 8_000_000 }, video: { types: ['video/mp4', 'video/webm'], cap: 60_000_000 } } as const;
+const extOf = (ct: string) => ct.endsWith('/webm') ? 'webm' : 'mp4';
+/** A referral code: eight of these, no vowels, no 0, O, 1 or I (nothing a thumb mistypes or a voice mishears). */
+const CODE_ALPHABET = 'BCDFGHJKLMNPQRSTVWXYZ23456789';
+export const REFERRAL_CODE = /^[BCDFGHJKLMNPQRSTVWXYZ23456789]{8}$/;
+function referralCode(): string {
+  let out = '';
+  while (out.length < 8) { const [b] = crypto.getRandomValues(new Uint8Array(1)); if (b < 232) out += CODE_ALPHABET[b % CODE_ALPHABET.length]; }   // 232 = 8 x 29: no bias
+  return out;
+}
+/** What a role may not call (phases.md Phase 5 Admin: owner, manager, lot). The owner: everything. The manager: everything but the
+    Whop account start, the settings and key minting. The lot key: GET routes, and the three taps at the lot (pickup, paid, plates).
+    Decided once here, before any route; a refusal is 403 role_denied with the role named. The admin key is an owner. */
+function roleRefusal(role: DealerRole, method: string, path: string): boolean {
+  if (role === 'owner') return false;
+  if (role === 'manager') return (method === 'POST' && (path === '/dealers/account/start' || path === '/dealers' || path === '/dealers/mint' || path === '/dealers/keys/mint')) || (method === 'PUT' && path === '/dealers/settings');
+  if (method === 'GET') return false;
+  return !(method === 'POST' && /^\/lots\/[A-Za-z0-9_-]{1,64}\/(pickup|paid|plates)$/.test(path));
+}
+/** RFC 4180: a field is quoted when it carries a comma, a quote, a CR or an LF; a quote inside is doubled; rows end CRLF. */
+const csvField = (v: unknown): string => { const t = v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v); return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+const csv = (header: string[], rows: unknown[][]) => [header, ...rows].map(r => r.map(csvField).join(',')).join('\r\n') + '\r\n';
+/** The lot's dealer and lane from the copy, for admission before a bid is forwarded (the copy carries both from the open). */
+const laneOf = (env: Env, id: string) => env.DB.prepare("SELECT dealer, json_extract(lot, '$.car.lane') AS lane FROM lots WHERE id = ?1").bind(id).first<{ dealer: string; lane: Lane | null }>();
 
 /** Every response leaves with the CORS headers, the Durable Object's included (a WebSocket upgrade is passed through untouched). */
 function withCors(r: Response): Response {
@@ -55,6 +87,13 @@ export default {
 async function handle(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+    // a dealer key with a role (Wave 4): what the role may not call is refused here, once, before any route sees it
+    const role = await dealerClaim(req, env.DEALER_SECRET);
+    if (role && roleRefusal(role.role, req.method, url.pathname)) return json({ error: 'role_denied', role: role.role }, 403);
+    // the four auction terms (D10) and, behind ARBITRATION=1, the arbitration clause (D13, draft): what the phone shows before the first bid
+    if (req.method === 'GET' && url.pathname === '/terms') {
+      return json({ version: TERMS_VERSION, terms: TERMS, clause: arbitrationOn(env) ? { version: CLAUSE_VERSION, text: CLAUSE_TEXT, requiresScrollToEnd: true } : null });
+    }
     // signing on the lane (src/sign.ts, Wave 2-A): /sales/:lot/... ; withCors wraps it like every route
     if (url.pathname.startsWith('/sales/')) return (await import('./sign')).sales(req, env);
     // the balance and fee invoices (src/invoice.ts, Wave 3-A): /invoices/:lot, /invoices/:lot/paid
@@ -63,7 +102,13 @@ async function handle(req: Request, env: Env): Promise<Response> {
 
     // the lane: every open lot, from the copy
     if (req.method === 'GET' && url.pathname === '/lots') {
-      const rows = await env.DB.prepare('SELECT lot FROM lots ORDER BY updated_at DESC LIMIT 200').all<{ lot: string }>();
+      const rows = await env.DB.prepare("SELECT lot FROM lots WHERE json_extract(lot, '$.car.lane') IS NOT 'closed' ORDER BY updated_at DESC LIMIT 200").all<{ lot: string }>();   // the closed lane is never on the public list
+      return json(rows.results.map(r => { const l = JSON.parse(r.lot); delete l.max; delete l.dealer; return l; }).filter(l => !l.closed || Date.now() - (l.closed.at ?? 0) < 3 * 86_400_000));
+    }
+    // the closed lane (Wave 4): every closed lot, for a dealer key (any role) or the admin; the same shape as /lots
+    if (req.method === 'GET' && url.pathname === '/lots/closed') {
+      if (!(await dealerFrom(req, env.DEALER_SECRET))) return text('dealer only', 403);
+      const rows = await env.DB.prepare("SELECT lot FROM lots WHERE json_extract(lot, '$.car.lane') = 'closed' ORDER BY updated_at DESC LIMIT 200").all<{ lot: string }>();
       return json(rows.results.map(r => { const l = JSON.parse(r.lot); delete l.max; delete l.dealer; return l; }).filter(l => !l.closed || Date.now() - (l.closed.at ?? 0) < 3 * 86_400_000));
     }
 
@@ -99,10 +144,39 @@ async function handle(req: Request, env: Env): Promise<Response> {
         if (!dealer) return text('dealer only', 403);
         return toObject({ method: 'POST', body: await req.text(), dealer: dealer === '*' ? '' : dealer });
       }
-      // dealer: open, close, paid, pickup, car, void, forfeit, plates, photos, documents
-      if (['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/plates'].includes(rest) || rest.startsWith('/photos/') || rest.startsWith('/documents/')) {
+      // audio and video on the car (Wave 4): public reads, streamed from R2 with the type the dealer sent; the lot is public, so is its sound
+      if ((rest === '/audio' || rest === '/video') && req.method === 'GET') {
+        const kind = rest.slice(1) as 'audio' | 'video';
+        const row = await env.DB.prepare(`SELECT json_extract(lot, '$.car.${kind}Key') AS key FROM lots WHERE id = ?1`).bind(id).first<{ key: string | null }>();
+        const obj = row?.key ? await env.FILES.get(row.key) : null;
+        if (!obj) return text('not found', 404);
+        return new Response(obj.body, { headers: { 'content-type': obj.httpMetadata?.contentType ?? MEDIA[kind].types[0], 'content-length': String(obj.size), 'cache-control': 'private, max-age=300', ...CORS } });
+      }
+      // dealer: open, close, paid, pickup, car, void, forfeit, plates, photos, documents, audio, video
+      if (['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/plates', '/audio', '/video'].includes(rest) || rest.startsWith('/photos/') || rest.startsWith('/documents/')) {
         const dealer = await dealerFrom(req, env.DEALER_SECRET);
         if (!dealer) return text('dealer only', 403);
+        if (rest === '/audio' || rest === '/video') {   // PUT only: the bytes to R2 under the lot, then the key on the car through the object (which checks the lot is this dealer's)
+          if (req.method !== 'PUT') return text('not found', 404);
+          const kind = rest.slice(1) as 'audio' | 'video';
+          const ct = (req.headers.get('content-type') ?? '').split(';')[0].trim();
+          if (!(MEDIA[kind].types as readonly string[]).includes(ct)) return fail('bad_type', 415);
+          const declared = Number(req.headers.get('content-length') ?? 0);
+          if (declared > MEDIA[kind].cap) return fail('too_big', 413);
+          const own = await env.DB.prepare('SELECT dealer FROM lots WHERE id = ?1').bind(id).first<{ dealer: string }>();
+          if (!own) return fail('no_lot', 404);
+          if (dealer !== '*' && own.dealer !== dealer) return fail('not_your_lot', 403);
+          const bytes = await req.arrayBuffer();
+          if (bytes.byteLength > MEDIA[kind].cap) return fail('too_big', 413);
+          if (!bytes.byteLength) return fail('empty', 400);
+          const key = `lots/${id}/${kind}.${extOf(ct)}`;
+          await env.FILES.put(key, bytes, { httpMetadata: { contentType: ct } });
+          const patched = await stub.fetch(new Request(`https://auction/lots/${id}/car`, { method: 'POST', headers: { 'content-type': 'application/json', ...(dealer === '*' ? {} : { 'x-dealer': dealer }) }, body: JSON.stringify({ [`${kind}Key`]: key }) }));
+          if (patched.status !== 200) { await env.FILES.delete(key).catch(() => {}); return fail((await patched.text()).trim() || 'refused', patched.status); }
+          const other = `lots/${id}/${kind}.${extOf(ct) === 'mp4' ? 'webm' : 'mp4'}`;   // the one key per kind: the other type's file, if any, goes
+          await env.FILES.delete(other).catch(() => {});
+          return json({ [`${kind}Key`]: key, url: `/lots/${id}/${kind}`, bytes: bytes.byteLength, contentType: ct });
+        }
         if (req.method === 'PUT' && (rest.startsWith('/photos/') || rest.startsWith('/documents/'))) {
           const name = rest.split('/')[2] ?? '';
           if (!/^[A-Za-z0-9_.-]{1,64}$/.test(name)) return text('bad name', 400);
@@ -121,6 +195,17 @@ async function handle(req: Request, env: Env): Promise<Response> {
           if (s?.suspended_at) return text('dealer suspended', 403);
         }
         const body = await req.text();
+        if (rest === '/open') {   // the closed lane (Wave 4): only a dealer whose row carries the wholesale GDN; a public lot needs the Guide only under GUIDE_REQUIRED=1
+          let o: { dealer?: unknown; car?: { lane?: unknown; documents?: { guide?: unknown } } };
+          try { o = JSON.parse(body || '{}'); } catch { return text('bad body', 400); }
+          const lane = o?.car?.lane;
+          if (lane !== undefined && !LANES.includes(lane as Lane)) return fail('bad_lane', 400);
+          const who = dealer === '*' ? (typeof o?.dealer === 'string' ? o.dealer : '') : dealer;
+          if (lane === 'closed') {
+            const d = who ? await env.DB.prepare('SELECT wholesale_gdn FROM dealers WHERE gdn = ?1').bind(who).first<{ wholesale_gdn: string | null }>() : null;
+            if (!d?.wholesale_gdn) return fail('wholesale_required', 403);
+          } else if (env.GUIDE_REQUIRED === '1' && !o?.car?.documents?.guide) return fail('guide_required', 422);
+        }
         const answered = await toObject({ method: 'POST', body, dealer: dealer === '*' ? (rest === '/open' ? (JSON.parse(body || '{}').dealer ?? '*') : '') : dealer });
         if (rest === '/pickup' && answered.status === 200) {   // the car started: Purchase with the hammer as value (AD3), recorded, sent only with the Meta keys
           const lot = await answered.clone().json<{ id?: unknown; sale?: { startedAt?: unknown; hammer?: unknown; buyer?: unknown } | null }>().catch(() => null);
@@ -173,11 +258,25 @@ async function handle(req: Request, env: Env): Promise<Response> {
       }
       // buyer: bid, watch, live
       if (rest === '/bids' || rest === '/watch' || rest === '/live') {
-        if (rest === '/bids' && req.method === 'POST') {   // a Desk or admin key never bids, on any lot (D11)
+        if (rest === '/bids' && req.method === 'POST') {   // a Desk or admin key never bids on a public lot (D11); on the closed lane (Wave 4) another dealer's key does
           const desk = await dealerFrom(req, env.DEALER_SECRET);
           if (desk) {
-            await refuse(env, id, desk === '*' ? 'admin' : `dealer:${desk}`, 'not_a_buyer', null);
-            return fail('not_a_buyer', 403);
+            const lane = await laneOf(env, id);
+            if (lane?.lane !== 'closed' || desk === '*') {
+              await refuse(env, id, desk === '*' ? 'admin' : `dealer:${desk}`, 'not_a_buyer', null);
+              return fail('not_a_buyer', 403);
+            }
+            if (lane.dealer === desk) { await refuse(env, id, `dealer:${desk}`, 'seller_cannot_bid', 'gdn'); return fail('seller_cannot_bid', 403); }   // D11 on the closed lane: the seller's own licence
+            const st = await env.DB.prepare('SELECT suspended_at FROM dealers WHERE gdn = ?1').bind(desk).first<{ suspended_at: number | null }>();
+            if (!st) return fail('no_such_dealer', 404);
+            if (st.suspended_at) return text('dealer suspended', 403);
+            const body = await req.json<Omit<BidRequest, 'bidder' | 'lotId'>>().catch(() => null);
+            if (!body || !(body.amount > 0) || !(body.max >= body.amount) || !body.key || body.key.length > 128) return text('bad bid', 400);
+            const bidder = `d:${desk}`, key = `${bidder}:${body.key}`;   // the dealer's licence is the bidder; no deposit, no terms line, no win cap: those are the buyer's gates
+            const wait = await attempt(env, bidder, id, key);
+            if (wait) { await refuse(env, id, bidder, 'too_many_bids', String(wait)); return fail('too_many_bids', 429, { 'retry-after': String(wait) }); }
+            const fwd: BidIn = { lotId: id, bidder, amount: Math.round(body.amount), max: Math.round(body.max), key };
+            return toObject({ method: 'POST', body: JSON.stringify(fwd) });
           }
         }
         const claim = await buyerClaim(req, env.BUYER_SECRET);
@@ -185,9 +284,11 @@ async function handle(req: Request, env: Env): Promise<Response> {
         const buyer = claim.id;
         if (rest === '/bids') {
           // one read of the copy admits the buyer: the token's epoch, deposit, terms, the year's count, and what the shill check compares
-          const row = await env.DB.prepare(`SELECT b.token_epoch, b.deposit_status, b.terms_at, b.name, b.phone, b.phone_verified_at, b.phone_verified_via, b.address, c.wins, c.owed, c.leading, c.paid FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
-            .bind(buyer, yearStart(Date.now()), id).first<{ token_epoch: number; deposit_status: string; terms_at: number | null; name: string | null; phone: string | null; phone_verified_at: number | null; phone_verified_via: string | null; address: string | null } & Counts>();
+          const row = await env.DB.prepare(`SELECT b.token_epoch, b.deposit_status, b.terms_at, b.clause_at, b.name, b.phone, b.phone_verified_at, b.phone_verified_via, b.address, c.wins, c.owed, c.leading, c.paid,
+              (SELECT json_extract(l.lot, '$.car.lane') FROM lots l WHERE l.id = ?3) AS lane FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
+            .bind(buyer, yearStart(Date.now()), id).first<{ token_epoch: number; deposit_status: string; terms_at: number | null; clause_at: number | null; name: string | null; phone: string | null; phone_verified_at: number | null; phone_verified_via: string | null; address: string | null; lane: Lane | null } & Counts>();
           if (row?.token_epoch !== claim.epoch) return text('sign in', 401);   // rotated or bumped away
+          if (row.lane === 'closed') { await refuse(env, id, buyer, 'dealers_only', null); return fail('dealers_only', 403); }   // the closed lane (Wave 4): dealer keys only
           const body = await req.json<Omit<BidRequest, 'bidder' | 'lotId'> & { terms?: string }>();
           if (!(body.amount > 0) || !(body.max >= body.amount) || !body.key || body.key.length > 128) return text('bad bid', 400);
           // sign-in by phone, the first page of the first-bid chain (phone, licence, deposit): no verified number, no bid
@@ -196,6 +297,7 @@ async function handle(req: Request, env: Env): Promise<Response> {
           if (row.deposit_status !== 'captured') return text('deposit first', 402);
           const firstBid = row.terms_at == null;
           if (firstBid && body.terms !== TERMS_VERSION) return json({ error: 'terms_required', version: TERMS_VERSION }, 409);
+          if (arbitrationOn(env) && row.clause_at == null) return json({ error: 'clause_required', version: CLAUSE_VERSION }, 409);   // D13 behind the flag: the clause once, scrolled to the end, before any bid
           // the rate limit (Wave 2-E): at most BIDS_PER_MINUTE attempts a rolling minute across every lot, counted here in the
           // Worker because a lot's object sees one lot; D1 runs the conditional insert as one atomic statement, so parallel
           // requests cannot all pass (the lane mint's pattern). A retried key finds its own row and goes through
@@ -233,8 +335,8 @@ async function handle(req: Request, env: Env): Promise<Response> {
     }
 
     // every dealer with standing: incidents counted, suspended or not (collateral.md §6)
-    const dealerRows = async () => (await env.DB.prepare('SELECT d.gdn, d.name, d.created_at, d.suspended_at, (SELECT COUNT(*) FROM incidents i WHERE i.dealer = d.gdn) AS incidents FROM dealers d ORDER BY d.created_at').all<{ gdn: string; name: string; created_at: number; suspended_at: number | null; incidents: number }>()).results
-      .map(d => ({ ...d, suspended: d.suspended_at != null }));
+    const dealerRows = async () => (await env.DB.prepare('SELECT d.gdn, d.name, d.created_at, d.suspended_at, d.wholesale_gdn, d.referral, (SELECT COUNT(*) FROM incidents i WHERE i.dealer = d.gdn) AS incidents FROM dealers d ORDER BY d.created_at').all<{ gdn: string; name: string; created_at: number; suspended_at: number | null; wholesale_gdn: string | null; referral: string | null; incidents: number }>()).results
+      .map(d => ({ ...d, suspended: d.suspended_at != null, wholesaleGdn: d.wholesale_gdn, wholesale_gdn: undefined, referral: d.referral }));
 
     // the public results page (obavia.co/results; growth plan CP5): aggregate, dated counts from the copy, the ledger and the
     // last reconciliation, no key. No name, no GDN, no lot id, no dollar amount per lot, no fee (43 TAC §215.85). The reserve
@@ -326,6 +428,28 @@ async function handle(req: Request, env: Env): Promise<Response> {
       await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
         .bind(`gdn:${now}`, 'admin.gdn', JSON.stringify({ actor: 'admin', issuedAt, feePerCarCents, feeMonthlyCents, before: before ? { issuedAt: before.gdnIssuedAt, feePerCarCents: before.feePerCarCents, feeMonthlyCents: before.feeMonthlyCents } : null }), now).run();
       return json({ gdnIssuedAt: issuedAt, feePerCarCents, feeMonthlyCents });
+    }
+    // the closed lane's gate (Wave 4): the admin types the dealer's Wholesale Motor Vehicle Auction GDN; null clears it. Ledger row dealer.wholesale (no money)
+    const wholesale = url.pathname.match(/^\/admin\/dealers\/([A-Z0-9]{5,12})\/wholesale$/);
+    if (req.method === 'POST' && wholesale) {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const b = await body(req);
+      const w = b.wholesaleGdn === null ? null : typeof b.wholesaleGdn === 'string' && GDN.test(b.wholesaleGdn) ? b.wholesaleGdn : undefined;
+      if (w === undefined) return fail('bad_wholesale_gdn', 400);
+      const r = await env.DB.prepare('UPDATE dealers SET wholesale_gdn = ?2 WHERE gdn = ?1').bind(wholesale[1], w).run();
+      if (!r.meta.changes) return fail('no_such_dealer', 404);
+      const now = Date.now();
+      await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+        .bind(`wholesale:${wholesale[1]}:${now}`, 'dealer.wholesale', JSON.stringify({ dealer: wholesale[1], wholesaleGdn: w, actor: 'admin' }), now).run();
+      return json({ gdn: wholesale[1], wholesaleGdn: w });
+    }
+    // exports (Wave 4, phases.md Phase 5 Admin): one CSV per what, RFC 4180, the buyer's id only (no name, no phone, no address in any export)
+    if (req.method === 'GET' && url.pathname === '/admin/export.csv') {
+      if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
+      const what = url.searchParams.get('what');
+      if (what !== 'sales' && what !== 'money' && what !== 'lots') return fail('bad_what', 400);
+      const out = await exportCsv(env, what);
+      return new Response(out, { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="obavia-${what}-${new Date().toISOString().slice(0, 10)}.csv"`, 'cache-control': 'private, no-store', ...CORS } });
     }
     // one lot's audit log (phases.md Phase 3 Admin): every row the lane kept about it, in time order, for the Desk's lot page (W3-E)
     const lotLog = url.pathname.match(/^\/admin\/lots\/([A-Za-z0-9_-]{1,64})\/log$/);
@@ -454,10 +578,57 @@ async function handle(req: Request, env: Env): Promise<Response> {
     // dealers: an admin with the secret mints a Desk's token once
     if (req.method === 'POST' && url.pathname === '/dealers') {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
-      const b = await req.json<{ gdn: string; name: string }>();
+      const b = await req.json<{ gdn: string; name: string; role?: unknown; referral?: unknown }>();
       if (!/^[A-Z0-9]{5,12}$/.test(b.gdn ?? '') || !b.name) return text('bad dealer', 400);
-      await env.DB.prepare('INSERT INTO dealers (gdn, name, created_at) VALUES (?1, ?2, ?3) ON CONFLICT(gdn) DO UPDATE SET name = ?2').bind(b.gdn, b.name, Date.now()).run();
-      return json({ token: await mintDealerToken(env.DEALER_SECRET, b.gdn) });
+      const role = roleOf(b.role);   // Wave 4: owner (default), manager or lot
+      if (!role) return fail('bad_role', 400);
+      const referral = b.referral === undefined || b.referral === null || b.referral === '' ? null : plain(b.referral, 64);   // Wave 4: the application's referral, kept as typed; waives nothing
+      if (b.referral != null && b.referral !== '' && !referral) return fail('bad_referral', 400);
+      const now = Date.now();
+      await env.DB.prepare('INSERT INTO dealers (gdn, name, referral, created_at) VALUES (?1, ?2, ?4, ?3) ON CONFLICT(gdn) DO UPDATE SET name = ?2, referral = COALESCE(?4, referral)').bind(b.gdn, b.name, now, referral).run();
+      if (referral) await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+        .bind(`referral:${b.gdn}:${now}`, 'dealer.referral', JSON.stringify({ dealer: b.gdn, referral, actor: 'admin', waives: 'nothing' }), now).run();
+      return json({ token: await mintDealerToken(env.DEALER_SECRET, b.gdn, role), role });
+    }
+    // Wave 4: the owner's key mints a manager or lot key for its own GDN (and an owner key for a second phone); the admin names the GDN
+    if (req.method === 'POST' && url.pathname === '/dealers/keys/mint') {
+      const c = await dealerClaim(req, env.DEALER_SECRET);
+      if (!c) return text('dealer only', 403);
+      const b = await body(req);
+      const role = roleOf(b.role);
+      if (!role) return fail('bad_role', 400);
+      const gdn = c.gdn === '*' ? (typeof b.gdn === 'string' && GDN.test(b.gdn) ? b.gdn : null) : c.gdn;
+      if (!gdn) return fail('bad_dealer', 400);
+      const d = await env.DB.prepare('SELECT suspended_at FROM dealers WHERE gdn = ?1').bind(gdn).first<{ suspended_at: number | null }>();
+      if (!d) return fail('no_such_dealer', 404);
+      if (d.suspended_at) return text('dealer suspended', 403);
+      await env.DB.prepare('INSERT INTO dealer_mints (gdn, name, city, source, minted_at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(gdn, `role:${role}`, '', c.gdn === '*' ? 'admin' : 'owner', Date.now()).run().catch(() => {});
+      return json({ token: await mintDealerToken(env.DEALER_SECRET, gdn, role), gdn, role });
+    }
+    // Wave 4: per-dealer settings on the Worker. The Desk's shapes (desk/src/lib/dealer-settings.ts) as opaque JSON; owner or manager key
+    if (url.pathname === '/dealers/settings' && (req.method === 'GET' || req.method === 'PUT')) {
+      const c = await dealerClaim(req, env.DEALER_SECRET);
+      if (!c || c.gdn === '*') return text('dealer only', 403);
+      if (c.role === 'lot') return json({ error: 'role_denied', role: c.role }, 403);
+      type SettingsRow = { gdn: string; hours_json: string; pickup_address_json: string | null; after_hours_phone: string | null; lane_on: number; updated_at: number };
+      const parse = (t: string | null) => { if (t == null) return null; try { return JSON.parse(t); } catch { return null; } };
+      const out = (r: SettingsRow | null) => ({ gdn: c.gdn, hours: (parse(r?.hours_json ?? null) as unknown[] | null) ?? [], pickupAddress: parse(r?.pickup_address_json ?? null), afterHoursPhone: r?.after_hours_phone ?? null, laneOn: r ? r.lane_on === 1 : true, updatedAt: r?.updated_at ?? null });
+      if (req.method === 'GET') return json(out(await env.DB.prepare('SELECT * FROM dealer_settings WHERE gdn = ?1').bind(c.gdn).first<SettingsRow>()));
+      const b = await body(req);
+      const hours = b.hours === undefined ? [] : Array.isArray(b.hours) && b.hours.length <= 14 && b.hours.every(h => typeof h === 'string' && h.trim() && h.length <= 80) ? b.hours.map(h => (h as string).trim()) : null;
+      if (!hours) return fail('bad_hours', 400);
+      const addr = b.pickupAddress === undefined ? null : b.pickupAddress;
+      const addrJson = addr === null ? null : JSON.stringify(addr);
+      if (addrJson !== null && (addrJson.length > 2000 || /[\u0000-\u001f\u007f]/.test(addrJson))) return fail('bad_address', 400);
+      const phone = b.afterHoursPhone === undefined || b.afterHoursPhone === null || b.afterHoursPhone === '' ? null : plain(b.afterHoursPhone, 32);
+      if (b.afterHoursPhone != null && b.afterHoursPhone !== '' && !phone) return fail('bad_phone', 400);
+      if (b.laneOn !== undefined && typeof b.laneOn !== 'boolean') return fail('bad_lane_on', 400);
+      const laneOn = b.laneOn === undefined ? true : b.laneOn;
+      if (!(await env.DB.prepare('SELECT 1 AS x FROM dealers WHERE gdn = ?1').bind(c.gdn).first())) return fail('no_such_dealer', 404);
+      const now = Date.now();
+      await env.DB.prepare('INSERT INTO dealer_settings (gdn, hours_json, pickup_address_json, after_hours_phone, lane_on, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(gdn) DO UPDATE SET hours_json = ?2, pickup_address_json = ?3, after_hours_phone = ?4, lane_on = ?5, updated_at = ?6')
+        .bind(c.gdn, JSON.stringify(hours), addrJson, phone, laneOn ? 1 : 0, now).run();
+      return json(out(await env.DB.prepare('SELECT * FROM dealer_settings WHERE gdn = ?1').bind(c.gdn).first<SettingsRow>()));
     }
     if (req.method === 'GET' && url.pathname === '/dealers') {
       if ((await dealerFrom(req, env.DEALER_SECRET)) !== '*') return text('admin only', 403);
@@ -575,15 +746,44 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (req.method === 'GET' && url.pathname === '/me') {
       const buyer = await buyerFrom(req, env);
       if (!buyer) return text('sign in', 401);
-      const row = await env.DB.prepare(`SELECT b.name, b.state, b.deposit_status, b.terms_version, b.terms_at, b.phone, b.phone_verified_at, b.phone_verified_via, c.wins, c.owed, c.leading, c.paid FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
-        .bind(buyer, yearStart(Date.now()), '').first<{ name: string | null; state: string | null; deposit_status: string; terms_version: string | null; terms_at: number | null; phone: string | null; phone_verified_at: number | null; phone_verified_via: string | null } & Counts>();
+      const row = await env.DB.prepare(`SELECT b.name, b.state, b.deposit_status, b.terms_version, b.terms_at, b.clause_version, b.clause_at, b.phone, b.phone_verified_at, b.phone_verified_via, c.wins, c.owed, c.leading, c.paid FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
+        .bind(buyer, yearStart(Date.now()), '').first<{ name: string | null; state: string | null; deposit_status: string; terms_version: string | null; terms_at: number | null; clause_version: string | null; clause_at: number | null; phone: string | null; phone_verified_at: number | null; phone_verified_via: string | null } & Counts>();
       if (!row) return json({ id: buyer, phone: null, phoneVerified: false });
-      const { wins, owed, leading, paid, terms_version, terms_at, phone, phone_verified_at, phone_verified_via, ...rest } = row;
+      const { wins, owed, leading, paid, terms_version, terms_at, clause_version, clause_at, phone, phone_verified_at, phone_verified_via, ...rest } = row;
+      // Wave 4: the referral code, made on the first read and kept; `referred` is how many claimed it. The clause (D13) as recorded, and whether a bid needs it now
+      const referralCode = await referralFor(env, buyer);
+      const referred = (await env.DB.prepare('SELECT COUNT(*) AS n FROM referral_claims WHERE code = ?1').bind(referralCode).first<{ n: number }>())?.n ?? 0;
+      const clause = { clauseVersion: clause_version, clauseAt: clause_at, clauseCurrent: arbitrationOn(env) ? CLAUSE_VERSION : null, clauseRequired: arbitrationOn(env) && clause_at == null };
       // the number leaves only as its last four, and only once a code proved it
       const phoneVerified = verifiedForReal(env, phone_verified_at, phone_verified_via);
       // D15: winsLeft is the one number the Me screen shows; wins are cars started this calendar year
       // sim 03: openBids is what the one-open-bid gate counts; paidCars lifts it (the Me screen shows winsLeft alone)
-      return json({ id: buyer, ...rest, phone: phoneVerified ? maskPhone(phone) : null, phoneVerified, wins, winsLeft: winsLeft({ wins, owed, leading, paid }), winsPerYear: WINS_PER_YEAR, openBids: openBids({ owed, leading }), paidCars: paid, termsVersion: terms_version, termsAt: terms_at, termsCurrent: TERMS_VERSION });
+      return json({ id: buyer, ...rest, phone: phoneVerified ? maskPhone(phone) : null, phoneVerified, wins, winsLeft: winsLeft({ wins, owed, leading, paid }), winsPerYear: WINS_PER_YEAR, openBids: openBids({ owed, leading }), paidCars: paid, termsVersion: terms_version, termsAt: terms_at, termsCurrent: TERMS_VERSION, referralCode, referred, ...clause });
+    }
+    // Wave 4: a referral claimed once per buyer, never their own code; waives nothing, moves no money, counts on the referrer's GET /me
+    if (req.method === 'POST' && url.pathname === '/me/referral/claim') {
+      const buyer = await buyerFrom(req, env);
+      if (!buyer) return text('sign in', 401);
+      const b = await body(req);
+      const code = typeof b.code === 'string' ? b.code.trim().toUpperCase() : '';
+      if (!REFERRAL_CODE.test(code)) return fail('bad_code', 400);
+      const owner = await env.DB.prepare('SELECT buyer_id FROM referrals WHERE code = ?1').bind(code).first<{ buyer_id: string }>();
+      if (!owner) return fail('no_such_code', 404);
+      if (owner.buyer_id === buyer) return fail('own_code', 409);
+      const r = await env.DB.prepare('INSERT OR IGNORE INTO referral_claims (referred_id, code, at) VALUES (?1, ?2, ?3)').bind(buyer, code, Date.now()).run();
+      if (!r.meta.changes) return fail('already_claimed', 409);
+      return json({ claimed: code });
+    }
+    // Wave 4: the arbitration clause accepted (D13: shown once, scroll-to-end; the phone posts after the end is reached). Recorded once; the same version again is the same answer
+    if (req.method === 'POST' && url.pathname === '/me/clause') {
+      const buyer = await buyerFrom(req, env);
+      if (!buyer) return text('sign in', 401);
+      const b = await body(req);
+      if (b.version !== CLAUSE_VERSION) return json({ error: 'bad_version', version: CLAUSE_VERSION }, 400);
+      const now = Date.now();
+      await env.DB.prepare('UPDATE buyers SET clause_version = ?2, clause_at = ?3 WHERE id = ?1 AND clause_at IS NULL').bind(buyer, CLAUSE_VERSION, now).run();
+      const row = await env.DB.prepare('SELECT clause_version, clause_at FROM buyers WHERE id = ?1').bind(buyer).first<{ clause_version: string; clause_at: number }>();
+      return json({ clauseVersion: row?.clause_version ?? CLAUSE_VERSION, clauseAt: row?.clause_at ?? now });
     }
     if (req.method === 'POST' && url.pathname === '/me/deposit/checkout') {
       const buyer = await buyerFrom(req, env);
@@ -761,7 +961,7 @@ function randomId(): string {
 }
 
 /** A bid refused for who the bidder is (D11, D15) or how fast (Wave 2-E): one row for the admin's exposure view. */
-async function refuse(env: Env, lotId: string, who: string, reason: 'seller_cannot_bid' | 'not_a_buyer' | 'win_cap' | 'one_open_bid' | 'too_many_bids', matched: string | null) {
+async function refuse(env: Env, lotId: string, who: string, reason: 'seller_cannot_bid' | 'not_a_buyer' | 'win_cap' | 'one_open_bid' | 'too_many_bids' | 'dealers_only', matched: string | null) {
   await env.DB.prepare('INSERT INTO bid_refusals (lot_id, who, reason, matched, at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(lotId, who.slice(0, 80), reason, matched, Date.now()).run().catch(() => {});
 }
 
@@ -793,11 +993,13 @@ async function mint(req: Request, env: Env): Promise<Response> {
   if (!(await secretMatches(bearerOf(req), secret))) return fail('forbidden', 403);
   const raw = await req.text();
   if (raw.length > 2048) return fail('too_big', 413);
-  let b: { gdn?: unknown; name?: unknown; city?: unknown };
+  let b: { gdn?: unknown; name?: unknown; city?: unknown; referral?: unknown };
   try { b = JSON.parse(raw); } catch { return fail('bad_dealer', 400); }
   const gdn = typeof b?.gdn === 'string' && /^[A-Z0-9]{5,12}$/.test(b.gdn) ? b.gdn : null;
   const name = plain(b?.name, 160), city = plain(b?.city, 80);
   if (!gdn || !name || !city) return fail('bad_dealer', 400);
+  const referral = b?.referral == null || b.referral === '' ? null : plain(b.referral, 64);   // Wave 4: the application's referral, as typed; waives nothing
+  if (b?.referral != null && b.referral !== '' && !referral) return fail('bad_referral', 400);
   const now = Date.now();
   // One statement decides: no lane mint for this GDN in 30 minutes and fewer than 20 lane mints in the hour.
   const [minted] = await env.DB.batch<{ id: number }>([
@@ -816,7 +1018,44 @@ async function mint(req: Request, env: Env): Promise<Response> {
     const wait = Math.max(1, Math.ceil(((oldest?.at ?? now) + MINT_WINDOW_MS - now) / 1000));
     return fail('rate_limited', 429, { 'retry-after': String(wait) });
   }
+  if (referral) {   // kept on the row (the first referral stands) and on the ledger as dealer.referral, as POST /dealers writes it
+    await env.DB.prepare('UPDATE dealers SET referral = COALESCE(referral, ?2) WHERE gdn = ?1').bind(gdn, referral).run();
+    await env.DB.prepare('INSERT OR IGNORE INTO money_events (id, type, body, received_at) VALUES (?1, ?2, ?3, ?4)')
+      .bind(`referral:${gdn}:${now}`, 'dealer.referral', JSON.stringify({ dealer: gdn, referral, actor: 'lane', waives: 'nothing' }), now).run();
+  }
   return json({ token: await mintDealerToken(env.DEALER_SECRET, gdn) });
+}
+
+/** The buyer's referral code, made once (eight characters, no vowels, no 0, O, 1, I) and kept; a second request finds the row. */
+async function referralFor(env: Env, buyer: string): Promise<string> {
+  const have = await env.DB.prepare('SELECT code FROM referrals WHERE buyer_id = ?1').bind(buyer).first<{ code: string }>();
+  if (have) return have.code;
+  for (let i = 0; i < 8; i++) {
+    const code = referralCode();
+    const r = await env.DB.prepare('INSERT OR IGNORE INTO referrals (code, buyer_id, created_at) VALUES (?1, ?2, ?3)').bind(code, buyer, Date.now()).run();
+    if (r.meta.changes) return code;
+    const again = await env.DB.prepare('SELECT code FROM referrals WHERE buyer_id = ?1').bind(buyer).first<{ code: string }>();   // a parallel first read won the unique index
+    if (again) return again.code;
+  }
+  throw new Error('referral code');
+}
+
+/** GET /admin/export.csv: the three exports. Columns are fixed here, so no phone, name or address can reach a file: sales and money
+    carry the buyer's id only; lots carry the car and the money on it, never a person. */
+async function exportCsv(env: Env, what: 'sales' | 'money' | 'lots'): Promise<string> {
+  const lots = (await env.DB.prepare('SELECT id, dealer, lot, updated_at FROM lots ORDER BY updated_at DESC LIMIT 5000').all<{ id: string; dealer: string; lot: string; updated_at: number }>()).results
+    .map(r => ({ id: r.id, dealer: r.dealer, updatedAt: r.updated_at, l: JSON.parse(r.lot) }));
+  if (what === 'lots') {
+    return csv(['lotId', 'dealer', 'lane', 'year', 'make', 'model', 'vin', 'miles', 'start', 'retail', 'high', 'bids', 'watching', 'floor', 'titleStatus', 'opensAt', 'closesAt', 'closedAt', 'sold', 'updatedAt'],
+      lots.map(({ id, dealer, updatedAt, l }) => [id, dealer, l.car?.lane ?? 'public', l.car?.year, l.car?.make, l.car?.model, l.car?.vin, l.car?.miles, l.start, l.retail, l.high, l.bids, l.watching, l.car?.collateral?.floor, l.car?.collateral?.title?.status, l.opensAt, l.closesAt, l.closed?.at ?? null, l.closed ? (l.closed.sold ? 1 : 0) : null, updatedAt]));
+  }
+  if (what === 'sales') {
+    const payouts = new Map((await env.DB.prepare('SELECT lot_id, state, reason FROM dealer_payouts').all<{ lot_id: string; state: string; reason: string }>()).results.map(p => [p.lot_id, p]));
+    return csv(['lotId', 'dealer', 'buyerId', 'buyerGdn', 'sellerGdn', 'state', 'hammer', 'wonAt', 'deadlineAt', 'paidAt', 'startedAt', 'voidedAt', 'forfeitedAt', 'deposit', 'payoutState', 'payoutReason', 'platesState', 'year', 'make', 'model', 'vin'],
+      lots.filter(x => x.l.sale).map(({ id, dealer, l }) => { const s = l.sale, p = payouts.get(id); return [id, dealer, s.buyer, s.buyerGdn ?? null, s.sellerGdn ?? null, saleState(s), s.hammer, s.wonAt, s.deadlineAt, s.paidAt ?? null, s.startedAt ?? null, s.voidedAt ?? null, s.forfeitedAt ?? null, s.deposit ?? null, p?.state ?? null, p?.reason ?? null, s.plates?.state ?? null, l.car?.year, l.car?.make, l.car?.model, l.car?.vin]; }));
+  }
+  const events = (await env.DB.prepare('SELECT id, type, body, received_at FROM money_events ORDER BY received_at DESC, id DESC LIMIT 5000').all<EventRow>()).results.map(moneyEvent);
+  return csv(['id', 'type', 'kind', 'amountUsd', 'lotId', 'buyerId', 'actor', 'reason', 'at'], events.map(e => [e.id, e.type, e.kind, e.amountUsd, e.lotId, e.buyer, e.actor, e.reason, e.at]));
 }
 
 /* ---------------------------------------------------------------- money */

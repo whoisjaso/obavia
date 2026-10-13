@@ -5,7 +5,11 @@
    cuts off every token minted before it. A dealer token is `d:${gdn}.${hmac}`
    signed with DEALER_SECRET, minted once for the Desk by an admin call that
    carries the secret itself. No sessions; a buyer request costs one D1 read of
-   the epoch, and the bid path folds it into the admission read it already makes. */
+   the epoch, and the bid path folds it into the admission read it already makes.
+   Wave 4 (phases.md Phase 5 Admin, roles): a dealer token may carry a role,
+   `d:${gdn}:${role}.${hmac}` for manager and lot; the bare form `d:${gdn}.${hmac}`
+   stays valid and is the owner. What each role may call is decided once in
+   src/index.ts (roleRefusal), never per route. */
 
 const enc = new TextEncoder();
 
@@ -40,7 +44,16 @@ export async function mintBuyerToken(secret: string, buyerId: string, epoch = 0)
   const p = buyerPayload(buyerId, epoch);
   return `${p}.${await hmac(secret, p)}`;
 }
-export const mintDealerToken = async (secret: string, gdn: string) => `d:${gdn}.${await hmac(secret, `d:${gdn}`)}`;
+/** The three roles a Desk key can carry (phases.md Phase 5 Admin: "a manager runs a dealer without the owner"). The owner's key
+    is the bare form (every key minted before Wave 4 is an owner key); manager and lot are named in the signed part. */
+export type DealerRole = 'owner' | 'manager' | 'lot';
+export const DEALER_ROLES: readonly DealerRole[] = ['owner', 'manager', 'lot'];
+export const roleOf = (v: unknown): DealerRole | null => v === undefined || v === null ? 'owner' : DEALER_ROLES.includes(v as DealerRole) ? v as DealerRole : null;
+const dealerPayload = (gdn: string, role: DealerRole) => role === 'owner' ? `d:${gdn}` : `d:${gdn}:${role}`;
+export async function mintDealerToken(secret: string, gdn: string, role: DealerRole = 'owner'): Promise<string> {
+  const p = dealerPayload(gdn, role);
+  return `${p}.${await hmac(secret, p)}`;
+}
 
 /** A presented secret against the configured one, in constant time: both are hashed to 32 bytes first, so neither length nor content leaks. */
 export async function secretMatches(presented: string, secret: string): Promise<boolean> {
@@ -72,11 +85,23 @@ export async function buyerFrom(req: Request, env: { DB: D1Database; BUYER_SECRE
   return row?.token_epoch === c.epoch ? c.id : null;
 }
 
-/** The dealer's GDN: from a dealer token, or "*" for the master secret (admin, tests, the first Desk). */
-export async function dealerFrom(req: Request, secret: string): Promise<string | null> {
+export type DealerClaim = { gdn: string; role: DealerRole };
+
+/** What a dealer token says: the GDN and the role, or `{ gdn: '*', role: 'owner' }` for the master secret (admin, tests, the
+    first Desk). A token naming a role other than manager or lot (or naming owner in the long form) is no token. */
+export async function dealerClaim(req: Request, secret: string): Promise<DealerClaim | null> {
   if (!secret) return null;
   const t = bearer(req);
-  if (t && same(t, secret)) return '*';
+  if (t && same(t, secret)) return { gdn: '*', role: 'owner' };
   const id = await verify(t, secret);
-  return id?.startsWith('d:') ? id.slice(2) : null;
+  if (!id?.startsWith('d:')) return null;
+  const body = id.slice(2), colon = body.indexOf(':');
+  if (colon < 0) return { gdn: body, role: 'owner' };
+  const role = body.slice(colon + 1);
+  return role === 'manager' || role === 'lot' ? { gdn: body.slice(0, colon), role } : null;
+}
+
+/** The dealer's GDN: from a dealer token (any role), or "*" for the master secret. */
+export async function dealerFrom(req: Request, secret: string): Promise<string | null> {
+  return (await dealerClaim(req, secret))?.gdn ?? null;
 }

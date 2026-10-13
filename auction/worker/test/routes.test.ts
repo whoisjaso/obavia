@@ -760,3 +760,100 @@ describe('the /sales/ mount (src/sign.ts)', () => {
     expect(papers.headers.get('access-control-allow-origin')).toBe('*');
   });
 });
+
+describe('19. the closed lane on the routes (Wave 4): the wholesale gate, the lane fixed after open, the admin route', () => {
+  it('POST /admin/dealers/:gdn/wholesale is the admin\'s; a bad GDN is 400; the dealer list carries it; the lane cannot be changed by /car', async () => {
+    const d = await dealer('P901901');
+    expect((await post('/admin/dealers/P901901/wholesale', as(d), { wholesaleGdn: 'W901901' })).status).toBe(403);
+    expect((await post('/admin/dealers/P901901/wholesale', ADMIN, { wholesaleGdn: 'w-bad' })).status).toBe(400);
+    expect((await post('/admin/dealers/P999999/wholesale', ADMIN, { wholesaleGdn: 'W901901' })).status).toBe(404);
+    expect((await post('/admin/dealers/P901901/wholesale', ADMIN, { wholesaleGdn: 'W901901' })).status).toBe(200);
+    expect((await (await get('/dealers', ADMIN)).json<any[]>()).find(x => x.gdn === 'P901901').wholesaleGdn).toBe('W901901');
+    expect((await eventById((await env.DB.prepare("SELECT id FROM money_events WHERE type = 'dealer.wholesale' ORDER BY received_at DESC LIMIT 1").first<{ id: string }>())!.id))?.type).toBe('dealer.wholesale');
+    const r = await post('/lots/cl9/open', as(d), { id: 'cl9', dealer: 'P901901', start: 4900, retail: 7995, closesAt: Date.now() + 600_000, car: { ...car('P901901'), lane: 'closed' } });
+    expect(r.status).toBe(200);
+    const moved = await post('/lots/cl9/car', as(d), { lane: 'public' });
+    expect(moved.status).toBe(409); expect(await moved.text()).toBe('lane_fixed');
+    const keyed = await post('/lots/cl9/car', as(d), { audioKey: 'lots/other/audio.mp4' });
+    expect(keyed.status).toBe(400); expect(await keyed.text()).toBe('bad_media_key');
+    const b = await buyer('buyer-closed-9');
+    const refused = await bid('cl9', b, 5000);
+    expect(refused.status).toBe(403); expect(await refused.json()).toEqual({ error: 'dealers_only' });
+    const other = await dealer('P901902');
+    const ok = await post('/lots/cl9/bids', as(other), { amount: 5000, max: 5000, key: crypto.randomUUID() });
+    expect(ok.status).toBe(200); expect((await ok.json<any>()).lot.leader).toBe('d:P901902');
+    await settle();
+    expect((await (await get('/lots')).json<any[]>()).find(l => l.id === 'cl9')).toBeUndefined();
+    expect((await (await get('/lots/closed', as(other))).json<any[]>()).find(l => l.id === 'cl9')?.car.lane).toBe('closed');
+  });
+});
+
+describe('20. dealer keys with a role (Wave 4): owner, manager, lot; the old form is the owner', () => {
+  const mintRole = async (gdn: string, role: string) => { const r = await post('/dealers', ADMIN, { gdn, name: `Dealer ${gdn}`, role }); expect(r.status).toBe(200); return (await r.json<{ token: string; role: string }>()); };
+  it('the bare token form still works as owner; the role form carries the role; a forged role is no token', async () => {
+    const owner = await dealer('P902001');
+    expect(owner.startsWith('d:P902001.')).toBe(true);
+    const { token: manager, role } = await mintRole('P902001', 'manager');
+    expect(role).toBe('manager'); expect(manager.startsWith('d:P902001:manager.')).toBe(true);
+    const { token: lot } = await mintRole('P902001', 'lot');
+    expect((await post('/dealers', ADMIN, { gdn: 'P902001', name: 'x', role: 'admin' })).status).toBe(400);
+    expect((await get('/dealers/me', as(owner))).status).toBe(200);
+    expect((await get('/dealers/me', as(manager))).status).toBe(200);
+    expect((await get('/dealers/me', as(lot))).status).toBe(200);
+    const sig = manager.slice(manager.lastIndexOf('.') + 1);
+    expect((await get('/dealers/me', as(`d:P902001:owner.${sig}`))).status).toBe(403);   // the long form never names the owner
+    expect((await get('/dealers/me', as(`d:P902001:lot.${sig}`))).status).toBe(403);     // a signature for another role
+  });
+  it('lot: pickup, paid, plates and GET only; manager: all but the account start, the settings and minting; 403 role_denied names the role', async () => {
+    const owner = await dealer('P902002');
+    const { token: manager } = await mintRole('P902002', 'manager');
+    const { token: lot } = await mintRole('P902002', 'lot');
+    await sold('w4r1', owner, 'P902002', 'buyer-role-1');
+    // lot role: allowed
+    expect((await post('/lots/w4r1/paid', as(lot))).status).toBe(200);
+    expect((await post('/lots/w4r1/pickup', as(lot), { vin: '1N4AL3AP0EC000001' })).status).toBe(200);
+    expect((await post('/lots/w4r1/plates', as(lot), { state: 'filed' })).status).toBe(200);
+    expect((await get('/lots/w4r1', as(lot))).status).toBe(200);
+    // lot role: denied
+    for (const [path, body] of [['/lots/w4r2/open', { id: 'w4r2', dealer: 'P902002', start: 4900, retail: 7995, closesAt: Date.now() + 600_000, car: car('P902002') }], ['/lots/w4r1/void', { reason: 'x' }], ['/dealers/push', { token: 'ExponentPushToken[abcdefghij]' }], ['/dealers/account/start', { email: 'a@b.co' }]] as const) {
+      const r = await post(path, as(lot), body);
+      expect(r.status, path).toBe(403); expect(await r.json()).toEqual({ error: 'role_denied', role: 'lot' });
+    }
+    expect((await SELF.fetch(`${base}/lots/w4r1/photos/1.jpg`, { method: 'PUT', headers: { ...as(lot), 'content-type': 'image/jpeg' }, body: new Uint8Array(10) })).status).toBe(403);
+    // manager: allowed
+    expect((await openLot('w4r3', manager, 'P902002')).status).toBe(200);
+    expect((await post('/lots/w4r3/close', as(manager))).status).toBe(200);
+    expect((await post('/dealers/push', as(manager), { token: 'ExponentPushToken[abcdefghij]' })).status).toBe(200);
+    // manager: denied
+    for (const [method, path] of [['POST', '/dealers/account/start'], ['PUT', '/dealers/settings'], ['POST', '/dealers/keys/mint'], ['POST', '/dealers'], ['POST', '/dealers/mint']] as const) {
+      const r = await SELF.fetch(`${base}${path}`, { method, headers: as(manager), body: '{}' });
+      expect(r.status, `${method} ${path}`).toBe(403); expect(await r.json()).toEqual({ error: 'role_denied', role: 'manager' });
+    }
+    // owner: mints for its own GDN only; the admin is never role-gated
+    const minted = await post('/dealers/keys/mint', as(owner), { role: 'lot', gdn: 'P000001' });
+    expect(minted.status).toBe(200); expect(await minted.json()).toMatchObject({ gdn: 'P902002', role: 'lot' });
+    expect((await post('/dealers/keys/mint', as(owner), { role: 'boss' })).status).toBe(400);
+    expect((await post('/dealers/keys/mint', ADMIN, { role: 'manager', gdn: 'P902002' })).status).toBe(200);
+    expect((await post('/dealers/keys/mint', ADMIN, { role: 'manager' })).status).toBe(400);
+    expect((await post('/dealers/keys/mint', as(lot), { role: 'lot' })).status).toBe(403);
+  });
+});
+
+describe('21. the lane mint carries the application\'s referral (Wave 4, item 6)', () => {
+  const MINT = 'test-mint-secret-0123456789abcdefghij';
+  const mint = (body: Record<string, unknown>) => SELF.fetch(`${base}/dealers/mint`, { method: 'POST', headers: { authorization: `Bearer ${MINT}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  it('with a referral: the dealer row and the ledger row dealer.referral; without: null and no row; too long is 400', async () => {
+    const r = await mint({ gdn: 'P903001', name: 'Referred Lane Motors LLC', city: 'Waco', referral: 'BCDFGHJK' });
+    expect(r.status).toBe(200); expect((await r.json<{ token: string }>()).token.startsWith('d:P903001.')).toBe(true);
+    expect((await env.DB.prepare('SELECT referral FROM dealers WHERE gdn = ?1').bind('P903001').first<{ referral: string | null }>())?.referral).toBe('BCDFGHJK');
+    const ev = await env.DB.prepare("SELECT body FROM money_events WHERE type = 'dealer.referral' AND json_extract(body, '$.dealer') = 'P903001'").first<{ body: string }>();
+    expect(JSON.parse(ev!.body)).toMatchObject({ dealer: 'P903001', referral: 'BCDFGHJK', actor: 'lane', waives: 'nothing' });
+    const plainMint = await mint({ gdn: 'P903002', name: 'Plain Lane Motors LLC', city: 'Waco' });
+    expect(plainMint.status).toBe(200);
+    expect((await env.DB.prepare('SELECT referral FROM dealers WHERE gdn = ?1').bind('P903002').first<{ referral: string | null }>())?.referral).toBeNull();
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM money_events WHERE type = 'dealer.referral' AND json_extract(body, '$.dealer') = 'P903002'").first<{ n: number }>())?.n).toBe(0);
+    const long = await mint({ gdn: 'P903003', name: 'Long Lane Motors LLC', city: 'Waco', referral: 'x'.repeat(65) });
+    expect(long.status).toBe(400); expect(await long.json()).toEqual({ error: 'bad_referral' });
+    expect(await env.DB.prepare('SELECT 1 AS x FROM dealers WHERE gdn = ?1').bind('P903003').first()).toBeNull();
+  });
+});

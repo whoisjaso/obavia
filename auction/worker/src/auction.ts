@@ -18,7 +18,15 @@ import { payBy, push, pushDealer } from './push';
 import { shillMatch, type Who } from './bidders';
 import { Whop } from './whop';
 
-export type OpenRequest = { id: string; dealer: string; start: number; retail: number; opensAt?: number; closesAt: number; car?: CarMeta };
+/** The lane a lot runs on (Wave 4, phases.md Phase 4 Server): public (every phone, buyer tokens bid) or closed (dealer keys bid,
+    buyer tokens are refused, no Buyers Guide, both GDNs on the sale). Absent is public. */
+export type Lane = 'public' | 'closed';
+export const LANES: readonly Lane[] = ['public', 'closed'];
+/** The car as the lane carries it: the engine's CarMeta plus what Wave 4 adds. `lane`; `audioKey` and `videoKey`, the R2 keys
+    PUT /lots/:id/audio and /video wrote (lots/<id>/audio.mp4 or .webm, lots/<id>/video.mp4 or .webm), which GET /lots/:id/audio
+    and /video stream. The engine's meta.ts does not carry them yet (the phone agent adds them there, as with form130U). */
+export type LaneCarMeta = CarMeta & { lane?: Lane; audioKey?: string; videoKey?: string };
+export type OpenRequest = { id: string; dealer: string; start: number; retail: number; opensAt?: number; closesAt: number; car?: LaneCarMeta };
 export type { Payout, Plates, PlatesState, SaleState };   // LotPlates and Form130U below: the plates with the Desk's Filed mark
 /** The dealer's $250 as the lot keeps it: owed, sent by a Whop transfer, or paid by hand (wire, check, cash). Wider than the
     engine's Payout (src/engine/meta.ts, 'owed' | 'sent'), which does not yet carry 'paid', the method or the time. */
@@ -30,13 +38,14 @@ export type PayoutNews = { id: string; state: 'sent' | 'paid'; transferId?: stri
     ceiling for twelve hours. `buyer` is the under-bidder, `amount` their max; accepted writes the new sale, the alarm
     expires it. The engine's SaleState (src/engine/meta.ts) does not carry it yet: W3-D adds `offer` there. */
 export type Offer = { buyer: string; amount: number; madeAt: number; expiresAt: number; acceptedAt?: number; expiredAt?: number };
-type StoredSale = Omit<SaleState, 'payout'> & { payout?: LotPayout; offer?: Offer };
+/** On a closed lot's sale the two licences (Wave 4): the bidding dealer's GDN (the leader is `d:<gdn>`) and the selling dealer's. */
+type StoredSale = Omit<SaleState, 'payout'> & { payout?: LotPayout; offer?: Offer; buyerGdn?: string; sellerGdn?: string };
 /** `under`: the standing under-bidder and their ceiling, kept only here (never on the wire), for the offer.
     `prior`: sales this lot carried before the current one (a forfeit whose offer was taken), kept whole. */
-type Stored = Omit<Lot, 'sale'> & { sale?: StoredSale; dealer: string; reminded?: number[]; under?: { bidder: string; max: number }; prior?: StoredSale[] };   // reminded: the pay-by pushes sent, in hours before the deadline
+type Stored = Omit<Lot, 'sale' | 'car'> & { car?: LaneCarMeta; sale?: StoredSale; dealer: string; reminded?: number[]; under?: { bidder: string; max: number }; prior?: StoredSale[] };   // reminded: the pay-by pushes sent, in hours before the deadline
 type PayoutReason = 'applied' | 'forfeit' | 'no_pay';
 /** The Desk's patch of the car: CarMeta, plus the dealer's own Marketplace listing URL (deviation 6; W3-C sends it, the lane carries it). */
-type CarPatch = Partial<CarMeta> & { listingUrl?: unknown };
+type CarPatch = Partial<LaneCarMeta> & { listingUrl?: unknown };
 /** What the nightly alarm audit reads (src/reconcile.ts): the lot's clocks and state, read without dropping the hammer. */
 export type Audit = { id: string; closesAt: number; closed: boolean; sale: null | { deadlineAt: number; settled: boolean; offerExpiresAt: number | null; offerSettled: boolean } };
 /** The bid as the Worker forwards it: the engine's request plus what the Worker knows of the bidder (D11). */
@@ -106,13 +115,15 @@ export class Auction extends DurableObject<Env> {
         if (!lot) return text('no lot', 404);
         const patch = await req.json<CarPatch>();
         if ('listingUrl' in patch && patch.listingUrl != null && !listingUrlOf(patch.listingUrl)) return text('bad_listing', 400);   // https only; null clears it
+        if ('lane' in patch && patch.lane !== lot.car?.lane) return text('lane_fixed', 409);   // the lane is set at open and never moves: who may bid does not change under a bidder
+        for (const k of ['audioKey', 'videoKey'] as const) if (k in patch && patch[k] !== undefined && !mediaKeyOf(lot.id, k, patch[k])) return text('bad_media_key', 400);   // only the keys the Worker's own PUT writes
         if (patch.collateral) {   // the floor can move only while nobody has bid, only down, and only on collateral the lane still accepts
           const why = collateralRefusal(patch.collateral); if (why) return text(why, 422);
           if (lot.bids > 0 && patch.collateral.floor !== lot.car?.collateral.floor) return text('bids placed', 409);
           if (patch.collateral.floor > (lot.car?.collateral.floor ?? lot.start)) return text('floor only lowers', 409);
           lot.start = patch.collateral.floor; lot.high = patch.collateral.floor;
         }
-        lot.car = { ...(lot.car as CarMeta), ...patch } as CarMeta;
+        lot.car = { ...(lot.car as LaneCarMeta), ...patch } as LaneCarMeta;
         await this.save(lot); this.broadcast({ lotId: lot.id, lot: this.publicLot(lot), kind: 'bid' }); return json(this.publicLot(lot));
       }
       case 'POST /copy': {   // the nightly reconciliation: the object rewrites its own D1 copy (not routed by the Worker)
@@ -279,6 +290,7 @@ export class Auction extends DurableObject<Env> {
     lot.closed = { at: lot.closesAt, sold: lot.bids > 0 && !!lot.leader };
     if (lot.closed.sold && lot.leader) {
       lot.sale = { buyer: lot.leader, hammer: lot.high, wonAt: lot.closesAt, deadlineAt: lot.closesAt + PAY_WINDOW_MS, deposit: 'held' };
+      if (lot.car?.lane === 'closed') { lot.sale.buyerGdn = gdnOfBidder(lot.leader) ?? undefined; lot.sale.sellerGdn = lot.dealer; }   // the closed lane: both licences on the sale (Wave 4)
       // the same deadline words as the pay-by pushes, the Won screen and the Desk (CP9)
       this.ctx.waitUntil(push(this.env, lot.leader, 'Yours', `$${dollars(lot.high)} · ${carName(lot) || lot.id} · Pay by ${payBy(lot.sale.deadlineAt)}`, { lotId: lot.id, screen: 'won' }));
     }
@@ -424,6 +436,8 @@ export class Auction extends DurableObject<Env> {
     if (existing && !existing.closed) return text('already open', 409);
     if (existing?.sale) return text('sale_exists', 409);   // an id that carries a sale is never reopened: the sale's record stays whole
     if (o.car) { const why = collateralRefusal(o.car.collateral); if (why) return text(why, 422); }   // docs/plan/collateral.md §5
+    if (o.car?.lane !== undefined && !LANES.includes(o.car.lane)) return text('bad_lane', 400);   // public or closed; absent is public (the Worker checked the wholesale GDN for closed)
+    if (o.car && (o.car.audioKey !== undefined || o.car.videoKey !== undefined)) return text('bad_media_key', 400);   // the media keys come only from PUT /lots/:id/audio and /video
     const lot: Stored = { id: o.id, dealer: (dealer && dealer !== '*') ? dealer : o.dealer, start: o.start, retail: o.retail, opensAt: o.opensAt ?? Date.now(), closesAt: o.closesAt, high: o.start, bids: 0, watching: 0, car: o.car };
     await this.ctx.storage.deleteAll();
     await this.save(lot);
@@ -527,5 +541,9 @@ export class Auction extends DurableObject<Env> {
 }
 
 const carName = (lot: Stored) => lot.car ? `${lot.car.year} ${lot.car.make} ${lot.car.model}` : '';
+/** A dealer bidding on the closed lane is `d:<gdn>` in the bid log and as the leader; the GDN back out of it, or null for a buyer id. */
+export const gdnOfBidder = (bidder: string | undefined): string | null => { const m = /^d:([A-Z0-9]{5,12})$/.exec(bidder ?? ''); return m ? m[1] : null; };
+/** The one R2 key each media kind may carry on a lot: lots/<id>/audio.mp4 or .webm, lots/<id>/video.mp4 or .webm; null clears it. */
+export const mediaKeyOf = (lotId: string, kind: 'audioKey' | 'videoKey', v: unknown): boolean => v === null || (typeof v === 'string' && ['mp4', 'webm'].some(ext => v === `lots/${lotId}/${kind === 'audioKey' ? 'audio' : 'video'}.${ext}`));
 const json = (x: unknown, status = 200) => new Response(JSON.stringify(x), { status, headers: { 'content-type': 'application/json' } });
 const text = (t: string, status: number) => new Response(t, { status });

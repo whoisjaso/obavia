@@ -11,5 +11,5 @@
     "isolatedModules": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "../src/engine/*.ts"],
-  "exclude": ["../src/engine/*.test.ts"]
+  "exclude": ["../src/engine/*.test.ts", "../src/engine/hear.ts"]
 }

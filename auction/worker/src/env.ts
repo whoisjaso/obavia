@@ -19,5 +19,7 @@ export type Env = {
   META_TEST_EVENT_CODE?: string; // TEST#### from Events Manager's Test events tab; set while verifying the four events, removed before the first dollar
   GOOGLE_WALLET_ISSUER_ID?: string;       // var: the Google Wallet issuer id; with the service account GET /lots/:id/pass signs a generic pass (gap table deviation 10, KEYS)
   GOOGLE_WALLET_SERVICE_ACCOUNT?: string; // secret: the service account's JSON (client_email, private_key); without both the pass route is 503 pass_unavailable
+  ARBITRATION?: string;         // var: "1" puts the D13 arbitration clause (draft, counsel pending) on GET /terms and requires its acceptance before a bid (Wave 4; unset or "0": off, nothing changes)
+  GUIDE_REQUIRED?: string;      // var: "1" makes POST /lots/:id/open refuse a public lot without car.documents.guide (422 guide_required); a closed lot never needs it (Wave 4; unset: the Desk's own gate stands alone)
   DEV: string;   // "1" admits a deposit without Whop, for wrangler dev and tests only; never on a deployed Worker
 };

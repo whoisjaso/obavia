@@ -872,3 +872,82 @@ describe('after a void, and the winner for the Desk', () => {
     expect(JSON.stringify(await (await SELF.fetch(`${base}/me`, { headers: { authorization: `Bearer ${t}` } })).json())).not.toContain('5550142');
   });
 });
+
+describe('the closed lane (Wave 4, phases.md Phase 4 Server; behind the dealer\'s wholesale GDN)', () => {
+  const closedCar = { ...CAR, lane: 'closed' };
+  const openClosed = (id: string, headers: Record<string, string> = DEALER, car: Record<string, unknown> = closedCar) =>
+    SELF.fetch(`${base}/lots/${id}/open`, { method: 'POST', headers, body: JSON.stringify({ id, dealer: 'P000000', start: 4900, retail: 7995, closesAt: Date.now() + 10 * 60_000, car }) });
+  const mintKey = async (gdn: string) => (await (await SELF.fetch(`${base}/dealers`, { method: 'POST', headers: DEALER, body: JSON.stringify({ gdn, name: `Dealer ${gdn}` }) })).json<{ token: string }>()).token;
+
+  it('a closed lot opens only for a dealer whose row carries the wholesale GDN', async () => {
+    await mintKey('P000000');
+    await SELF.fetch(`${base}/admin/dealers/P000000/wholesale`, { method: 'POST', headers: DEALER, body: JSON.stringify({ wholesaleGdn: null }) });
+    const refused = await openClosed('cl0');
+    expect(refused.status).toBe(403); expect(await refused.json()).toEqual({ error: 'wholesale_required' });
+    const w = await SELF.fetch(`${base}/admin/dealers/P000000/wholesale`, { method: 'POST', headers: DEALER, body: JSON.stringify({ wholesaleGdn: 'W000001' }) });
+    expect(w.status).toBe(200); expect(await w.json()).toEqual({ gdn: 'P000000', wholesaleGdn: 'W000001' });
+    const r = await openClosed('cl0');
+    expect(r.status).toBe(200); expect((await r.json<any>()).car.lane).toBe('closed');
+    const bad = await openClosed('cl0x', DEALER, { ...CAR, lane: 'private' });
+    expect(bad.status).toBe(400); expect(await bad.json()).toEqual({ error: 'bad_lane' });
+  });
+
+  it('a closed lot refuses a buyer token (403 dealers_only) and admits another dealer\'s key; the seller\'s own key and the admin never bid', async () => {
+    expect((await openClosed('cl1')).status).toBe(200);
+    const b = await bid('cl1', token, 5000);
+    expect(b.status).toBe(403); expect(await b.json()).toEqual({ error: 'dealers_only' });
+    const other = await mintKey('P777001');
+    const ok = await SELF.fetch(`${base}/lots/cl1/bids`, { method: 'POST', headers: { authorization: `Bearer ${other}`, 'content-type': 'application/json' }, body: JSON.stringify({ amount: 5000, max: 5200, key: crypto.randomUUID() }) });
+    expect(ok.status).toBe(200);
+    const ack = await ok.json<any>();
+    expect(ack.ok).toBe(true); expect(ack.lot.leader).toBe('d:P777001'); expect(ack.lot.max).toBeUndefined();
+    const seller = await mintKey('P000000');
+    const own = await SELF.fetch(`${base}/lots/cl1/bids`, { method: 'POST', headers: { authorization: `Bearer ${seller}`, 'content-type': 'application/json' }, body: JSON.stringify({ amount: 5100, max: 5100, key: crypto.randomUUID() }) });
+    expect(own.status).toBe(403); expect(await own.json()).toEqual({ error: 'seller_cannot_bid' });
+    const admin = await SELF.fetch(`${base}/lots/cl1/bids`, { method: 'POST', headers: DEALER, body: JSON.stringify({ amount: 5100, max: 5100, key: crypto.randomUUID() }) });
+    expect(admin.status).toBe(403); expect(await admin.json()).toEqual({ error: 'not_a_buyer' });
+    const refusals = await env.DB.prepare("SELECT reason FROM bid_refusals WHERE lot_id = 'cl1' ORDER BY id").all<{ reason: string }>();
+    expect(refusals.results.map(r => r.reason)).toEqual(['dealers_only', 'seller_cannot_bid', 'not_a_buyer']);
+  });
+
+  it('the public list omits a closed lot; GET /lots/closed lists it for a dealer key and nobody else', async () => {
+    expect((await openClosed('cl2')).status).toBe(200);
+    await new Promise(r => setTimeout(r, 80));
+    const lane = await (await SELF.fetch(`${base}/lots`)).json<any[]>();
+    expect(lane.find(l => l.id === 'cl2')).toBeUndefined();
+    expect(lane.some(l => l.car?.lane === 'closed')).toBe(false);
+    expect((await SELF.fetch(`${base}/lots/closed`)).status).toBe(403);
+    expect((await SELF.fetch(`${base}/lots/closed`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(403);
+    const other = await mintKey('P777002');
+    const closed = await (await SELF.fetch(`${base}/lots/closed`, { headers: { authorization: `Bearer ${other}` } })).json<any[]>();
+    const mine = closed.find(l => l.id === 'cl2');
+    expect(mine.car.lane).toBe('closed'); expect(mine.max).toBeUndefined(); expect(mine.dealer).toBeUndefined();
+    expect(closed.every(l => l.car?.lane === 'closed')).toBe(true);
+  });
+
+  it('a public lot without a Buyers Guide is refused only under GUIDE_REQUIRED=1; a closed lot never needs one; a public lot with it passes', async () => {
+    const guided = { ...env, GUIDE_REQUIRED: '1' } as WorkerEnv;
+    const openWith = (id: string, car: Record<string, unknown>) => worker.fetch(new Request(`${base}/lots/${id}/open`, { method: 'POST', headers: DEALER, body: JSON.stringify({ id, dealer: 'P000000', start: 4900, retail: 7995, closesAt: Date.now() + 600_000, car }) }), guided);
+    const pub = await openWith('gd1', CAR);
+    expect(pub.status).toBe(422); expect(await pub.json()).toEqual({ error: 'guide_required' });
+    expect((await openWith('gd2', closedCar)).status).toBe(200);
+    expect((await openWith('gd3', { ...CAR, documents: { guide: '/documents/gd3/guide.pdf' } })).status).toBe(200);
+    expect((await open('gd4', 600_000)).status).toBe(200);   // the flag unset: as before
+  });
+
+  it('the hammer on a closed lot carries buyerGdn and sellerGdn; a public sale carries neither', async () => {
+    expect((await openClosed('cl3')).status).toBe(200);
+    const other = await mintKey('P777003');
+    const r = await SELF.fetch(`${base}/lots/cl3/bids`, { method: 'POST', headers: { authorization: `Bearer ${other}`, 'content-type': 'application/json' }, body: JSON.stringify({ amount: 5000, max: 5000, key: crypto.randomUUID() }) });
+    expect(r.status).toBe(200);
+    await closeNow('cl3'); await runDurableObjectAlarm(env.AUCTION.get(env.AUCTION.idFromName('cl3')) as unknown as DurableObjectStub);
+    const lot = await (await SELF.fetch(`${base}/lots/cl3`)).json<any>();
+    expect(lot.sale).toMatchObject({ buyer: 'd:P777003', buyerGdn: 'P777003', sellerGdn: 'P000000', hammer: 5000 });
+    await open('pub3', 60_000);
+    const fresh = await signIn('buyer-cl-pub');
+    expect((await bid('pub3', fresh, 5000)).status).toBe(200);
+    await closeNow('pub3'); await runDurableObjectAlarm(env.AUCTION.get(env.AUCTION.idFromName('pub3')) as unknown as DurableObjectStub);
+    const p = await (await SELF.fetch(`${base}/lots/pub3`)).json<any>();
+    expect(p.sale.buyerGdn).toBeUndefined(); expect(p.sale.sellerGdn).toBeUndefined();
+  });
+});
