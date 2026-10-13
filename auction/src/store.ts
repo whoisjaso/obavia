@@ -6,6 +6,7 @@ import { carFromLot, cars as seeded, seedLots, type Car } from './data/cars';
 import { RemoteAuctionServer, Refused, TERMS_VERSION, type PhoneAnswer, type Profile, type Session } from './engine/client';
 import { LocalAuctionServer, type Ack, type BidRequest, type Event, type Lot } from './engine/server';
 import { kv } from './kv';
+import { go, isScreen, peekIntent, subscribeIntent, type Intent, type Screen } from './nav';
 import type { Licence } from './sale';
 
 export const DEPOSIT = 250;
@@ -23,7 +24,7 @@ export type AuctionServer = {
 };
 
 /* Where the buyer's id and token live: secure storage on a phone, localStorage on the web (./kv). */
-const SESSION_KEY = 'obavia.buyer', PROFILE_KEY = 'obavia.profile';
+const SESSION_KEY = 'obavia.buyer', PROFILE_KEY = 'obavia.profile', OPENED_KEY = 'obavia.opened';
 function readJSON<T>(k: string): T | null { try { const v = kv.get(k); return v ? JSON.parse(v) as T : null; } catch { return null; } }
 
 /** D15 (decisions §9): four wins a calendar year. The Worker's number decides; this is the local stand-in's. */
@@ -32,9 +33,17 @@ export const WINS_PER_YEAR = 4;
 /** The buyer as the Worker last read them. `lost`: the stored token was refused (rotated or bumped away);
     nothing here makes a new buyer to replace it. `termsCurrent` false: the next bid is the first under the terms.
     `phone`: the verified number as its last four, the only form the phone ever holds; `phoneVerified` false or
-    unknown: the next Bid opens the Phone page first. */
-export type Buyer = { lost: boolean; winsLeft?: number; winsPerYear: number; termsCurrent?: boolean; phone?: string | null; phoneVerified?: boolean };
-let buyer: Buyer = { lost: false, winsPerYear: WINS_PER_YEAR, termsCurrent: AUCTION_URL ? undefined : false };
+    unknown: the next Bid opens the Phone page first. `name`: the licence read's name or the one the buyer typed
+    on Me; absent until one of the two, and then the Worker holds none and the Desk shows "Buyer". */
+export type Buyer = { lost: boolean; winsLeft?: number; winsPerYear: number; termsCurrent?: boolean; phone?: string | null; phoneVerified?: boolean; name?: string };
+
+/* The local stand-in's buyer (no Worker) wears a fixture name so the demo reads; `?name=none` previews the
+   empty field, `?data=worst` the longest name break-ui uses. Never on the Worker's sign-in path. */
+const query = () => (globalThis as { location?: { search?: string } }).location?.search ?? '';
+const localName = () => (/[?&]name=none/.test(query()) ? undefined : /[?&]data=worst/.test(query()) ? 'Maximiliano Echeverría-Ortiz' : 'Marisol Treviño');
+const savedName = () => readJSON<Profile>(PROFILE_KEY)?.name?.trim() || undefined;
+
+let buyer: Buyer = { lost: false, winsPerYear: WINS_PER_YEAR, termsCurrent: AUCTION_URL ? undefined : false, name: savedName() ?? (AUCTION_URL ? undefined : localName()) };
 const buyerSubs = new Set<() => void>();
 export const peekBuyer = () => buyer;
 export function setBuyer(patch: Partial<Buyer>) { buyer = { ...buyer, ...patch }; for (const f of buyerSubs) f(); }
@@ -44,11 +53,17 @@ export function useBuyer(): Buyer {
 
 function adopt(s: Session) { ME = s.id; token = s.token; kv.set(SESSION_KEY, JSON.stringify(s)); }
 
+/** What sign-in sends: the state and whatever the buyer gave on this phone (a name from the licence read or
+    typed on Me, a street, a phone). No name until there is one; client.ts drops empty fields. */
+export function signInProfile(): Profile {
+  return { state: 'TX', ...readJSON<Profile>(PROFILE_KEY) };
+}
+
 /** Sign-in at launch (worker/README.md, Buyer tokens): nothing stored, the profile alone and the Worker makes
     the buyer; stored, the token with the id. A refused token marks the buyer lost and stops there. */
 async function signIn() {
   const stored = readJSON<Session>(SESSION_KEY);
-  const profile: Profile = { name: me.name, state: 'TX', ...readJSON<Profile>(PROFILE_KEY) };
+  const profile = signInProfile();
   try {
     adopt(await RemoteAuctionServer.signIn(AUCTION_URL, stored, profile));
   } catch (e) {
@@ -65,7 +80,7 @@ export async function refreshMe(): Promise<void> {
   const m = await RemoteAuctionServer.me(AUCTION_URL, token);
   if (!m) return;
   once.deposit = m.deposit_status === 'captured';
-  setBuyer({ winsLeft: m.winsLeft, winsPerYear: m.winsPerYear ?? WINS_PER_YEAR, termsCurrent: m.termsCurrent, phone: m.phone ?? null, phoneVerified: m.phoneVerified === true });
+  setBuyer({ winsLeft: m.winsLeft, winsPerYear: m.winsPerYear ?? WINS_PER_YEAR, termsCurrent: m.termsCurrent, phone: m.phone ?? null, phoneVerified: m.phoneVerified === true, name: m.name?.trim() || savedName() });
 }
 
 /** The number as the phone shows it once proved: the last four. The Worker's mask, made here for the stand-in. */
@@ -102,18 +117,34 @@ export async function rotateToken(): Promise<boolean> {
   return true;
 }
 
-/** Contact the buyer gave (the licence's street line, a phone) for the Worker's shill check (D11): kept on the
-    phone for every later sign-in, and sent now when signed in. Empty fields are dropped, never sent blank. */
-export function saveProfile(p: Pick<Profile, 'phone' | 'address'>) {
+/** What the buyer gave (the licence read's name and street line, a name typed on Me, a phone): the name for the
+    paperwork and the Desk, the rest for the Worker's shill check (D11). Kept on the phone for every later
+    sign-in, and sent now when signed in. Empty fields are dropped, never sent blank. */
+export function saveProfile(p: Pick<Profile, 'phone' | 'address' | 'name'>) {
   const keep: Profile = { ...readJSON<Profile>(PROFILE_KEY) };
   if (p.phone?.trim()) keep.phone = p.phone.trim();
   if (p.address?.trim()) keep.address = p.address.trim();
+  const name = p.name?.trim().replace(/\s+/g, ' ');
+  if (name) { keep.name = name; setBuyer({ name }); }
   kv.set(PROFILE_KEY, JSON.stringify(keep));
   if (!AUCTION_URL || !token || buyer.lost) return;
   RemoteAuctionServer.signIn(AUCTION_URL, { id: ME, token }, keep).then(adopt, e => {
     if (e instanceof Refused && e.code === 'not_yours') { token = null; setBuyer({ lost: true }); }
   });
 }
+
+/** The name typed on Me (one field, Save). The licence read sets it the same way, through saveProfile. */
+export function saveName(name: string): boolean {
+  if (!name.trim()) return false;
+  saveProfile({ name });
+  return true;
+}
+
+/** The one phone number (ops-runbook.md, Rule 1): for the pilot, Triple J's phone as it is set in the Desk.
+    A build can carry it (EXPO_PUBLIC_SUPPORT_PHONE); until the Worker supplies it, the dealer's phone the Desk
+    sends with every car (carMeta) is that same number. Empty when neither is known: then no number is shown. */
+export const SUPPORT_PHONE = (process.env.EXPO_PUBLIC_SUPPORT_PHONE ?? '').trim();
+export const supportPhone = (cars: { dealer: { phone: string } }[]): string => SUPPORT_PHONE || cars.find(c => c.dealer.phone.trim())?.dealer.phone.trim() || '';
 
 /** Local stand-in for D15: wins taken this year (`?wins=N`, preview only) plus closed lots I won plus open lots I
     lead, other than `except`. The Worker counts the same three things. */
@@ -131,10 +162,12 @@ export function getServer(): AuctionServer {
     const remote = new RemoteAuctionServer(AUCTION_URL, buyerToken);
     server = remote;
     signIn().catch(() => {}).finally(() => { remote.start(); });
+    reopen();
     return server;
   }
   if (!server) {
     const lots = seedLots(Date.now());
+    reopen();
     const closeIn = Number((globalThis as { location?: { search?: string } }).location?.search?.match(/closeIn=(\d+)/)?.[1]);
     const search = (globalThis as { location?: { search?: string } }).location?.search ?? '';
     const lag = Number(search.match(/lag=(\d+)/)?.[1]);
@@ -220,5 +253,36 @@ export function toggleWatch(id: string): boolean {
 }
 export const isWatched = (id: string) => watched.includes(id);
 
-/** The buyer, until sign-in exists: the name the licence read, or nothing. */
-export const me = { name: /[?&]data=worst/.test((globalThis as { location?: { search?: string } }).location?.search ?? '') ? 'Maximiliano Echeverría-Ortiz' : 'Marisol Treviño', lastOpened: Date.now() - 26 * 3_600_000 };   // demo: away more than a day, so the first ring gets the heartbeat
+/* Where the app was last opened, kept in kv: `at` for the welcome back on Me (away more than a day), and the
+   screen a push sent the buyer to, so a phone that killed the app between the tap and the next launch reopens
+   there once. Every intent on the nav bus (push.ts routes taps through go()) is written here as it happens. */
+export type Opened = { at: number; screen: Screen; lotId?: string; push?: boolean };
+const DAY = 24 * 3_600_000;
+
+export function lastOpened(): Opened | null {
+  const o = readJSON<Opened>(OPENED_KEY);
+  return o && typeof o.at === 'number' && isScreen(o.screen) ? o : null;
+}
+export function markOpened(screen: Screen, lotId?: string, push = false) {
+  kv.set(OPENED_KEY, JSON.stringify({ at: Date.now(), screen, ...(lotId ? { lotId } : {}), ...(push ? { push: true } : {}) }));
+}
+/** The screen to reopen at launch: a push's place less than a day old that the buyer never got back to. */
+export function reopenIntent(o: Opened | null, now: number): Intent | null {
+  if (!o?.push || now - o.at > DAY) return null;
+  return o.lotId ? { screen: o.screen, lotId: o.lotId } : { screen: o.screen };
+}
+/** At launch: reopen once where the last push sent the buyer, unless a push tap already set the place. */
+function reopen() {
+  const o = lastOpened(), i = reopenIntent(o, Date.now());
+  if (!i || peekIntent()) return;
+  go(i);
+  markOpened(i.screen, i.lotId);   // spent: the next launch opens on the lane
+}
+subscribeIntent(() => { const i = peekIntent(); if (i) markOpened(i.screen, i.lotId, true); });
+
+/** Away more than a day since the app last opened (the first watched ring gets the heartbeat). With no record:
+    the local stand-in says yes so the demo shows it; on the Worker, no. */
+export function backAfterADay(now = Date.now()): boolean {
+  const o = lastOpened();
+  return o ? now - o.at > DAY : !AUCTION_URL;
+}

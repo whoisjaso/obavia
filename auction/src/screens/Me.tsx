@@ -1,13 +1,16 @@
 /* Me, and Watching. Two pages. Me: the name, the standing deposit, the cars
-   won as passes, "Sell it back here", sign out. Watching: a column of rings
+   won as passes, sign out. No name yet (no licence read): the name's place is
+   the field, in the name's own Bodoni, and Save appears once there is a name
+   in it; a saved name taps open to correct it. Watching: a column of rings
    with the price under each; tap to go to the car; swipe left to unwatch.
    Returning after a day, the first ring spins in with the heartbeat before
    anything else loads. The neutral screen: nothing fires here but that.
    Under the deposit, the wins left this year (D15), a number that darkens as
-   it runs out. A phone whose sign-in was refused says so in one quiet line.
+   it runs out. A phone whose sign-in was refused says so in one quiet line
+   that is also the one phone number (ops-runbook.md Rule 1); a tap calls it.
    Under the name, faint, the number the buyer proved with a code: last four only. */
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Linking, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { LinearTransition, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -23,8 +26,45 @@ import type { Lot } from '../engine/server';
 import { feel } from '../feel';
 import { releaseDeposit } from '../deposit';
 import { useSale } from '../sale';
-import { AUCTION_URL, DEPOSIT, ME, WINS_PER_YEAR, localCommitted, me, once, refreshMe, toggleWatch, useBuyer, useCars, useWatched } from '../store';
+import { AUCTION_URL, DEPOSIT, ME, WINS_PER_YEAR, backAfterADay, localCommitted, markOpened, once, refreshMe, saveName, supportPhone, toggleWatch, useBuyer, useCars, useWatched } from '../store';
 import { theme } from '../theme';
+
+const WEB_FIELD = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null;
+
+/** The name, or its field. Bodoni either way: the name owns the top of Me. Save is the one verb and shows
+    only once there is a name to save; Return saves too. A saved name taps open to correct it. */
+function Name({ name }: { name?: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const field = useRef<TextInput>(null);
+  if (name && !editing) {
+    return (
+      <Pressable onPress={() => { feel.select(); setDraft(name); setEditing(true); }} hitSlop={8} accessibilityRole="button" accessibilityLabel={name} accessibilityHint="Change the name">
+        <Serif size={36} style={{ paddingHorizontal: theme.space.s }}>{name}</Serif>
+      </Pressable>
+    );
+  }
+  const ready = draft.trim().length > 0;
+  const save = () => {
+    if (!saveName(draft)) return;
+    Keyboard.dismiss(); feel.done(); setEditing(false);
+  };
+  return (
+    <View style={{ alignItems: 'center', alignSelf: 'stretch' }}>
+      <TextInput ref={field} value={draft} onChangeText={setDraft} onSubmitEditing={save} placeholder="Your name" placeholderTextColor={theme.color.faint}
+        autoCapitalize="words" autoComplete="name" textContentType="name" autoCorrect={false} returnKeyType="done" autoFocus={editing} maxLength={60}
+        accessibilityLabel="Your name" style={[s.name, WEB_FIELD]} selectionColor={theme.color.accent} />
+      <View style={[s.mark, ready && s.markOn]} />
+      <View style={s.saveRoom}>
+        {ready && (
+          <Pressable onPress={save} hitSlop={12} accessibilityRole="button" accessibilityLabel="Save the name">
+            <Caps>Save</Caps>
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}
 
 /** The wins-left number's ink: faint at four, ink at one (and none); between, the steps of the theme's greys. */
 const winsInk = (n: number) => (n >= 4 ? theme.color.faint : n === 3 ? theme.color.muted : n === 2 ? theme.color.inkSoft : theme.color.ink);
@@ -85,11 +125,12 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
   const watched = useWatched();
   const sale = useSale();
   const cars = useCars(lots);
-  const back = useRef(Date.now() - me.lastOpened > 24 * 3_600_000).current;
-  useEffect(() => { me.lastOpened = Date.now(); void refreshMe(); }, []);
+  const back = useRef(backAfterADay()).current;
+  useEffect(() => { markOpened('me'); void refreshMe(); }, []);
   const buyer = useBuyer();
   const winsLeft = AUCTION_URL ? buyer.winsLeft : Math.max(0, WINS_PER_YEAR - localCommitted(Object.values(lots)));
   const won = sale ? [sale] : [];
+  const call = supportPhone(cars);
   // the deposit comes back only when the buyer leads nothing and owes nothing
   const [released, setReleased] = useState(false);
   const [refused, setRefused] = useState<string | null>(null);
@@ -110,11 +151,17 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
     <Page foot={<Button label="Sign out" onPress={() => { feel.silence(); onClose(); }} ghost />}>
       <Label>Me</Label>
       <View style={{ alignItems: 'center' }}>
-        <Serif size={36} style={{ paddingHorizontal: theme.space.s }}>{me.name}</Serif>
+        {/* a lost phone cannot send a name: the field waits until the sign-in is back */}
+        {buyer.name || !buyer.lost ? <Name name={buyer.name} /> : null}
         {/* the proved number, last four only, faint and touching the name it belongs to */}
         {buyer.phone ? <Body ink={theme.color.faint} style={{ fontVariant: ['tabular-nums'] }}>{buyer.phone}</Body> : null}
       </View>
-      {buyer.lost && <Body ink={theme.color.faint} style={{ marginTop: 4 }}>This phone lost its sign-in. Write to us.</Body>}
+      {buyer.lost && (call ? (
+        <Pressable onPress={() => { feel.select(); void Linking.openURL(`tel:${call.replace(/[^\d+]/g, '')}`).catch(() => {}); }} hitSlop={8} accessibilityRole="link" accessibilityLabel={`This phone lost its sign-in. Call ${call}`}>
+          <Body ink={theme.color.inkSoft} style={{ marginTop: 4, textAlign: 'center' }}>This phone lost its sign-in.</Body>
+          <Body ink={theme.color.ink} style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>{`Call ${call}`}</Body>
+        </Pressable>
+      ) : <Body ink={theme.color.inkSoft} style={{ marginTop: 4 }}>This phone lost its sign-in.</Body>)}
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Deposit</Label>
       <Serif size={34}>${DEPOSIT}</Serif>
@@ -145,12 +192,6 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
           </View>
         );
       })}
-      {won.length > 0 && (   // not relevant until there is a car to sell back
-        <Pressable onPress={() => feel.select()} style={{ marginTop: theme.space.l, alignItems: 'center' }} accessibilityRole="button">
-          <Label>When it is time</Label>
-          <Caps>Sell it back here</Caps>
-        </Pressable>
-      )}
     </Page>
   );
 
@@ -181,5 +222,10 @@ const s = StyleSheet.create({
   watchHit: { alignItems: 'center', gap: 10, paddingVertical: theme.space.xs },
   lead: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.ink, opacity: 0.9 },
   pass: { flexDirection: 'row', alignItems: 'center', gap: theme.space.s, marginTop: theme.space.s },
+  // the name's own face and size, so the field reads as the name not yet written
+  name: { fontFamily: theme.font.price, fontSize: 36, color: theme.color.ink, textAlign: 'center', alignSelf: 'stretch', paddingVertical: 0, paddingHorizontal: theme.space.s, minHeight: 48 },
+  mark: { width: 18, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 2 },
+  markOn: { backgroundColor: theme.color.good },
+  saveRoom: { height: 40, justifyContent: 'center' },
   passThumb: { width: 56, height: 70, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.color.well },
 });

@@ -460,3 +460,14 @@ describe('9. the reconciliation counts owed payouts as liabilities', () => {
     expect(x.deposits.reserveRatio).toBe(1);
   });
 });
+
+describe('the /sales/ mount (src/sign.ts)', () => {
+  it('the Worker hands /sales/ to sign.ts, with the CORS headers', async () => {
+    const r = await get('/sales/nolot/nothing');
+    expect(r.status).toBe(404); expect(await r.json()).toEqual({ error: 'not_found' });   // sign.ts's own 404, not the Worker's bare "not found"
+    expect(r.headers.get('access-control-allow-origin')).toBe('*');
+    const papers = await get('/sales/nolot/papers');
+    expect(papers.status).not.toBe(404);
+    expect(papers.headers.get('access-control-allow-origin')).toBe('*');
+  });
+});
