@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EXAMPLE_DEALER } from './config';
 import type { DealerRecord } from './dealers';
-import { E164, HOURS, HOURS_ORDER, defaultSettings, gdnFromKey, hoursChoice, isValid, laneReady, lotFields, oneLine, problems, recordFor, toE164, type DealerSettings } from './dealer-settings';
+import { E164, HOURS, HOURS_ORDER, defaultSettings, fromWire, gdnFromKey, hoursChoice, isValid, laneReady, lotFields, oneLine, problems, recordFor, toE164, toWire, type DealerSettings } from './dealer-settings';
 
 /* Wave 2-C: the dealer's lane settings and the key's GDN. The lot's `hours` is what the buyer's Pickup
    reads (auction/src/sale.ts pickupWhen): a list of windows, empty for "Call to set a time". */
@@ -101,5 +101,20 @@ describe('the key', () => {
     expect(recordFor(idx, 'P000001')).toBeNull();
     expect(recordFor(null, 'P153084')).toBeNull();
     expect(recordFor(idx, null)).toBeNull();
+  });
+});
+
+describe('W4-C: the settings as the Worker keeps them (GET and PUT /dealers/settings)', () => {
+  it('toWire is the contract\'s four names; the Whop account never rides', () => {
+    expect(toWire(good)).toEqual({ hours: [...HOURS.weekdays.hours], pickupAddress: '1201 Main St, Pasadena, TX 77504', afterHoursPhone: '+17135550142', laneOn: true });
+    expect(toWire({ ...good, lane: false, address: '  x  ', whopAccount: 'biz_1' })).toMatchObject({ laneOn: false, pickupAddress: 'x' });
+    expect('whopAccount' in toWire(good)).toBe(false);
+  });
+  it('fromWire lays the Worker\'s copy over the local one, field by field, and keeps the local field where the Worker\'s is missing or bad', () => {
+    expect(fromWire({ hours: [], pickupAddress: '9 Elm St, Austin, TX 78701', afterHoursPhone: '+15125550199', laneOn: false }, good)).toEqual({ ...good, hours: [], address: '9 Elm St, Austin, TX 78701', afterHours: '+15125550199', lane: false });
+    expect(fromWire({ afterHoursPhone: 'not a number', pickupAddress: '' }, good)).toEqual(good);
+    expect(fromWire(null, good)).toBe(good);
+    expect(fromWire({}, good)).toEqual(good);
+    expect(fromWire(toWire(good), { ...good, lane: false, hours: [] })).toEqual(good);
   });
 });

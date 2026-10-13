@@ -14,8 +14,8 @@ import { SAY, checkVerify, live, session, startVerify, type Profile } from './li
 import { SHAPES } from './lib/shapes';
 import { STATES, hasList as listFor, loadDealerIndex, searchDealers, type DealerIndex, type DealerRecord } from './lib/dealers';
 import { finishOnboarding, setLaneSettings, useStore } from './store';
-import { KEY_SHAPE, accountStart, accountWords, dealerKey, emailOk, getMe, said } from './lib/auction';
-import { E164, HOURS, HOURS_ORDER, defaultSettings, gdnFromKey, hoursChoice, recordFor, toE164, type DealerSettings } from './lib/dealer-settings';
+import { KEY_SHAPE, accountStart, accountWords, dealerKey, emailOk, getMe, getSettings, putSettings, said } from './lib/auction';
+import { E164, HOURS, HOURS_ORDER, defaultSettings, fromWire, gdnFromKey, hoursChoice, recordFor, toE164, type DealerSettings } from './lib/dealer-settings';
 import { Sheet } from './Sheet';
 import { exampleSales } from './data';
 import { COMMON, KIND_TITLE, SYSTEMS, searchSystems, systemById, type System, type SystemKind } from './lib/systems';
@@ -167,6 +167,15 @@ function useWhopConnect(put: (p: Partial<Draft>) => void) {
   return { busy, err, connect };
 }
 
+/* The settings on the Worker (W4-C; W4-A's GET and PUT /dealers/settings): the pages open on the Worker's copy over the local one
+   (fromWire, field by field; the local store stays the fallback and the cache), and the last Yes or That's right sends the saved
+   settings up (toWire). A key whose role the route refuses (403 role_denied) is said in four words under the cloud; the local
+   copy is kept either way, so the lot still carries the hours and the line. */
+export async function keepLaneSettings(s: DealerSettings): Promise<string | null> {
+  setLaneSettings(s);
+  const r = await putSettings(s);
+  return r.ok || r.reason === 'offline' || r.reason === 'no key' ? null : r.reason;
+}
 /** The lane settings from the Desk, later: the same pages, saved on the last answer (or at Not Now). `start` opens on one page
     (the payout page's Connect Whop lands on the Whop page). */
 export function LaneSettings({ onDone, start }: { onDone: () => void; start?: LanePage }) {
@@ -176,15 +185,23 @@ export function LaneSettings({ onDone, start }: { onDone: () => void; start?: La
   const [k, setK] = useState(() => Math.max(0, pages.indexOf(start ?? 'lane')));
   const [editAddr, setEditAddr] = useState(false);
   const [editAfter, setEditAfter] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const page = pages[k];
   const total = d.lane ? pages.length : 1;
   const put = (p: Partial<Draft>) => setD(x => ({ ...x, ...p }));
+  /* on open: the Worker's copy over the local one, before the first answer; a page already answered is left as answered */
+  useEffect(() => { let on = true; getSettings().then(r => { if (on && r.ok) setD(x => draftFrom(fromWire(r.value, saved(x)))); }); return () => { on = false; }; }, []);
   const whop = useWhopConnect(put);
   const onward = async (p: Partial<Draft> = {}) => {
     /* the Whop page's Connect: the call first; the page stays (now a confirmation) until That's Right */
     if (page === 'whop' && !d.whopAccount && p.whopEmail !== undefined && !('whopAccount' in p)) { await whop.connect(p.whopEmail); return; }
     const nd = { ...d, ...p }; setD(nd);
-    if (k === pages.length - 1 || !nd.lane) { setLaneSettings(saved(nd)); feel.done(); onDone(); return; }
+    if (k === pages.length - 1 || !nd.lane) {
+      setErr(null);
+      const why = await keepLaneSettings(saved(nd));
+      if (why) { feel.tap(); setErr(said(why)); return; }   // the faint line says why; Back leaves with the local copy kept
+      feel.done(); onDone(); return;
+    }
     feel.next(); transition(() => { setK(k + 1); scrollTo(0, 0); });
   };
   const back = () => { feel.tap(); if (k === 0) { onDone(); return; } transition(() => { setK(k - 1); scrollTo(0, 0); }, 'back'); };
@@ -197,7 +214,7 @@ export function LaneSettings({ onDone, start }: { onDone: () => void; start?: La
       </div>
       <div className="bar"><i style={{ width: `${((k + 1) / total) * 100}%` }} /></div>
       <LaneQuestion {...props} />
-      <div className="dock"><div className="in"><LaneDock {...props} /></div></div>
+      <div className="dock"><div className="in"><LaneDock {...props} />{err && <p className="note" role="alert" style={{ ...T17, margin: '2px 0 0', textAlign: 'center' }}>{err}</p>}</div></div>
     </main>
   );
 }
@@ -517,7 +534,7 @@ export function Onboarding() {
         {page === 'signer' && <button className="btn primary block" disabled={!isPersonName(signer)} onClick={next}>Continue</button>}
         {page === 'docFee' && <button className="btn primary block" disabled={parseMoney(docFee) === null} onClick={next}>Continue</button>}
         {page === 'lateFee' && lateFee !== null && lateFee !== '0' && <button className="btn primary block" disabled={parseMoney(lateFee) === null} onClick={next}>Continue</button>}
-        {page === 'paper' && <button className="btn primary block" onClick={() => { feel.done(); setLaneSettings(saved(lane)); finishOnboarding(dealer); }}>Start Selling</button>}
+        {page === 'paper' && <button className="btn primary block" onClick={() => { feel.done(); void keepLaneSettings(saved(lane)); finishOnboarding(dealer); }}>Start Selling</button>}
       </div></div>
     </main>
   );

@@ -6,6 +6,7 @@ import type { Vehicle } from './sale';
 import { payByWords } from '../../../auction/src/engine/time';
 import { outTheDoor } from '../../../auction/src/engine/money';
 import type { FiledMark } from './filed';
+import { toWire, type DealerSettings, type WireSettings } from './dealer-settings';
 
 export const AUCTION_API = (import.meta.env.VITE_AUCTION_API ?? '').replace(/\/$/, '');
 export const auctionLive = !!AUCTION_API;
@@ -71,7 +72,39 @@ export type CarMeta = {
   /** The dealer's own Marketplace listing for this car (deviation 6: Marketplace has no API, so Sold opens it for the dealer
       to end). Sent by PostCar once the dealer pastes it (POST /lots/:id/car { listingUrl }); the lane carries it. */
   listingUrl?: string | null;
+  /* Wave 4 (gap table W4-C; W4-A's routes). `lane`: which lane the lot runs on; sent in the open body only by a dealer whose
+     GET /dealers/me carries wholesaleGdn (the Wholesale Motor Vehicle Auction GDN, phases.md Phase 4 Server). A closed lot admits
+     dealer keys to bid and refuses buyer tokens; Go skips the Buyers Guide on it (16 CFR 455 is the consumer rule). `audioKey` and
+     `videoKey`: the engine idle and the walkaround in R2, written by PUT /lots/:id/audio and /video; the Worker answers the lot. */
+  lane?: Lane;
+  audioKey?: string | null;
+  videoKey?: string | null;
 };
+export type Lane = 'public' | 'closed';
+/** The Buyers Guide gate on Go: a public lot never opens without the Guide (collateral.md, the paper at Go); a closed lot has no consumer, so no Guide. */
+export const guideNeeded = (lane: Lane | undefined) => lane !== 'closed';
+/** The one faint word on Live, Sold and the lane home's row for a closed lot; nothing for a public one. */
+export const laneWord = (lane: Lane | undefined) => (lane === 'closed' ? 'Dealers only' : '');
+/** The "Which lane?" page exists only for a dealer whose /dealers/me carries the wholesale flag. */
+export const canCloseLane = (me: Pick<Me, 'wholesaleGdn'> | null | undefined) => !!me?.wholesaleGdn;
+/* ---------- the engine and the walkaround (phases.md Phase 5 Frontend; both optional, Go never waits on them) ---------- */
+/** Eight seconds of the engine at idle: enough to hear it start and settle; the file stays well under the route's 8 MB. */
+export const ENGINE_SECONDS = 8;
+/** The Worker's caps (index.ts MEDIA): 8,000,000 and 60,000,000 bytes, decimal, so the Desk refuses exactly where the lane would (413 too_big). */
+export const AUDIO_MAX_BYTES = 8_000_000;
+export const VIDEO_MAX_BYTES = 60_000_000;
+/** The MediaRecorder type this browser writes: webm where it can (Chrome, Android), mp4 where it cannot (Safari); null when it records neither. */
+export function audioMime(isSupported: (t: string) => boolean = t => { try { return typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t); } catch { return false; } }): 'audio/webm' | 'audio/mp4' | null {
+  return isSupported('audio/webm') ? 'audio/webm' : isSupported('audio/mp4') ? 'audio/mp4' : null;
+}
+/** The walkaround the picker gave: mp4 or webm, inside 60 MB; the reason in four words when not (DOCTRINE §4.7). */
+export function videoRefusal(f: Pick<File, 'type' | 'size'>): string | null {
+  if (f.size > VIDEO_MAX_BYTES) return 'video too big';
+  if (!/^video\/(mp4|webm)$/.test(f.type) && !/^video\/quicktime$/.test(f.type)) return 'video type';
+  return null;
+}
+/** A phone's picker hands back video/quicktime for a .mov; the Worker takes mp4 or webm, so the Desk sends the mp4 type for it (the container is the same ISO base). */
+export const videoType = (t: string): 'video/mp4' | 'video/webm' => (t === 'video/webm' ? 'video/webm' : 'video/mp4');
 /** A listing URL the lane will carry: https, at most 300 characters, no spaces or control characters (the Worker's
     listingUrlOf, auction/worker/src/auction.ts). The same rule here so the Desk never sends one the lane bounces (400 bad_listing). */
 export const LISTING_URL_MAX = 300;
@@ -116,6 +149,10 @@ export const SAID: Record<string, string> = {
   no_payout: 'No payout on this.', wrong_payout: 'Not this payout.', payout_settled: 'Payout already settled.', already_paid: 'Already paid.', not_held: 'No deposit was held.',
   account_exists: 'Already connected.', bad_email: 'Check the email.', whop_refused: 'Whop said no.', whop_bad_account: 'Whop gave no account.', whop_unavailable: 'Whop is not connected.', account_from_whop_only: 'Whop sets the account.',
   no_such_dealer: 'Unknown dealer key.', 'dealer only': 'Dealer key only.', 'admin only': 'Admin only.',
+  /* Wave 4: a key with a role the route refuses (W4-A), the engine and the walkaround (W4-C) */
+  role_denied: 'Not your role.', 'video too big': 'Over 60 MB.', 'video type': 'Not mp4 or webm.', 'audio too long': 'Over 8 MB.',
+  wholesale_required: 'No closed lane yet.', bad_lane: 'Not a lane.', lane_fixed: 'The lane is set.', bad_media_key: 'Not a media key.', bad_type: 'Not mp4 or webm.', too_big: 'Too big.', empty: 'Nothing to send.', no_lot: 'No such lot.',
+  bad_phone: 'Number does not ring.', bad_lane_on: 'Not yes or no.',
   /* a buyer's refusals, should Live ever show one */
   too_many_bids: 'Too many bids. Wait.', one_open_bid: 'One open bid.', low: 'Under the high bid.', outbid: 'Outbid.', seller_cannot_bid: 'Seller cannot bid.',
 };
@@ -233,9 +270,15 @@ async function call<T>(method: string, path: string, body?: BodyInit | object, t
   try {
     const isJson = body !== undefined && !(body instanceof Blob) && !(body instanceof ArrayBuffer) && typeof body === 'object';
     const r = await fetch(`${AUCTION_API}${path}`, { method, headers: { Authorization: `Bearer ${key}`, ...(type ? { 'Content-Type': type } : isJson ? { 'Content-Type': 'application/json' } : {}) }, body: isJson ? JSON.stringify(body) : (body as BodyInit | undefined) });
-    if (!r.ok) return { ok: false, reason: (await r.text()) || `http ${r.status}` };
+    if (!r.ok) return { ok: false, reason: reasonOf(await r.text(), r.status) };
     return { ok: true, value: await r.json() as T };
   } catch { return { ok: false, reason: 'offline' }; }
+}
+/** A refusal's reason as the Worker gives it: plain text (auction.ts text()), or `{ "error": "role_denied" }` (index.ts fail() and the role gate). */
+export function reasonOf(body: string, status: number): string {
+  const t = body.trim();
+  if (t.startsWith('{')) { try { const j = JSON.parse(t); if (j && typeof j.error === 'string') return j.error; } catch { /* plain text that starts with a brace */ } }
+  return t || `http ${status}`;
 }
 
 export const lotId = (v: Vehicle) => `${v.vin.slice(-8).toLowerCase()}-${Date.now().toString(36).slice(-4)}`;
@@ -278,7 +321,8 @@ export const restoreDealer = (gdn: string) => call<DealerRow>('POST', `/dealers/
 export const mintDealer = (gdn: string, name: string) => call<{ token: string }>('POST', '/dealers', { gdn, name });
 /** The dealer's settings row: Connected or Not yet, the $250s owed, and Whop's own checks on the account (dealers.whop_account_verified_at,
     migration 0017, set by the account.updated webhook; the field is W3-B's to send and is read as absent until it does). The dealer's own key only (the admin key is 403). */
-export type Me = { gdn: string; name: string; whopAccount: string | null; payoutsOwed: number; whopAccountVerifiedAt?: number | null };
+export type Me = { gdn: string; name: string; whopAccount: string | null; payoutsOwed: number; whopAccountVerifiedAt?: number | null;
+  wholesaleGdn?: string | null };   // the Wholesale Motor Vehicle Auction GDN once the owner holds one (W4-A); absent or null until then
 export const getMe = () => call<Me>('GET', '/dealers/me');
 /** The account's words on the settings row and the Whop page: Not yet; Connected with the masked id; then Whop's checks. Four words
     or fewer a line. Nothing is said about the checks when the Worker has not sent the field. */
@@ -327,6 +371,40 @@ export function watchLot(lot: string, onLot: (l: Lot) => void): () => void {
   } catch { poll(); }
   return () => { stopped = true; if (timer) clearInterval(timer); if (ws) { ws.onclose = null; ws.onerror = null; try { ws.close(); } catch { /* closed */ } } };
 }
+
+/* ---------- Wave 4 (gap table W4-C): the engine, the walkaround, the closed lane's list and the settings on the Worker ----------
+   Coded to W4-A's fixed contract: PUT /lots/:id/audio (audio/webm or audio/mp4, 8 MB) and PUT /lots/:id/video (video/mp4 or
+   video/webm, 60 MB), both answering the lot with car.audioKey / car.videoKey; GET /lots/closed with the dealer key; GET and PUT
+   /dealers/settings with { hours, pickupAddress, afterHoursPhone, laneOn }. The factory takes the base, the key and the fetch so
+   the tests read the exact request each sends; the module's own exports are bound to the Desk's. A 403 role_denied is said. */
+type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
+export function laneApi(base: string, key: () => string | null, f: Fetch = (i, init) => fetch(i, init)) {
+  async function send<T>(method: string, path: string, body?: Blob | object, type?: string): Promise<Result<T>> {
+    const k = key();
+    if (!base) return { ok: false, reason: 'offline' };
+    if (!k) return { ok: false, reason: 'no key' };
+    try {
+      const json = body !== undefined && !(body instanceof Blob);
+      const r = await f(`${base}${path}`, { method, headers: { Authorization: `Bearer ${k}`, ...(type ? { 'Content-Type': type } : json ? { 'Content-Type': 'application/json' } : {}) }, body: json ? JSON.stringify(body) : body });
+      if (!r.ok) return { ok: false, reason: reasonOf(await r.text(), r.status) };
+      return { ok: true, value: await r.json() as T };
+    } catch { return { ok: false, reason: 'offline' }; }
+  }
+  return {
+    /** The engine at idle, as MediaRecorder wrote it; refused here over 8 MB so the lane never bounces it. */
+    putAudio: (lot: string, blob: Blob, type: 'audio/webm' | 'audio/mp4') => (blob.size > AUDIO_MAX_BYTES ? Promise.resolve<Result<Lot>>({ ok: false, reason: 'audio too long' }) : send<Lot>('PUT', `/lots/${encodeURIComponent(lot)}/audio`, blob, type)),
+    /** The walkaround from the picker; refused here over 60 MB. */
+    putVideo: (lot: string, blob: Blob, type: 'video/mp4' | 'video/webm') => (blob.size > VIDEO_MAX_BYTES ? Promise.resolve<Result<Lot>>({ ok: false, reason: 'video too big' }) : send<Lot>('PUT', `/lots/${encodeURIComponent(lot)}/video`, blob, type)),
+    /** The closed lots this key may see (the lane home lists them under the public ones). */
+    closedLots: () => send<Lot[]>('GET', '/lots/closed'),
+    getSettings: () => send<Partial<WireSettings>>('GET', '/dealers/settings'),
+    putSettings: (s: DealerSettings) => send<WireSettings>('PUT', '/dealers/settings', toWire(s)),
+  };
+}
+const w4 = laneApi(AUCTION_API, dealerKey.get);
+export const putAudio = w4.putAudio, putVideo = w4.putVideo, closedLots = w4.closedLots, getSettings = w4.getSettings, putSettings = w4.putSettings;
+/** The stream the Worker serves back, for the play-back tap once the lot is open. */
+export const mediaUrl = (lot: string, kind: 'audio' | 'video') => `${AUCTION_API}/lots/${encodeURIComponent(lot)}/${kind}`;
 
 /* ---------- the Floor's arithmetic ---------- */
 /** What the lane would likely pay: a band under retail, narrowed by condition. An estimate until the lane has its own history. */

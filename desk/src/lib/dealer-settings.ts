@@ -83,3 +83,22 @@ export function recordFor(idx: Pick<DealerIndex, 'list'> | null | undefined, gdn
   if (!idx || !gdn) return null;
   return idx.list.find(d => d.licence.toUpperCase() === gdn) ?? null;
 }
+
+/* ---------- the settings on the Worker (gap table W4-C; W4-A's GET and PUT /dealers/settings) ----------
+   The Worker keeps the dealer's settings as opaque JSON in the contract's four names: `{ hours, pickupAddress,
+   afterHoursPhone, laneOn }`. The Desk's own shape (DealerSettings above) stays the local store and the cache; the
+   Whop account is the Worker's own row (dealers.whop_account) and never rides here. toWire is what the settings
+   pages' Yes and That's right send; fromWire is what the pages open on, over the local copy, field by field, so a
+   Worker row missing a field leaves the local one standing. */
+export type WireSettings = { hours: string[]; pickupAddress: string; afterHoursPhone: string; laneOn: boolean };
+export function toWire(s: DealerSettings): WireSettings {
+  return { hours: [...s.hours], pickupAddress: s.address.trim(), afterHoursPhone: s.afterHours, laneOn: !!s.lane };
+}
+export function fromWire(w: Partial<WireSettings> | null | undefined, local: DealerSettings): DealerSettings {
+  if (!w || typeof w !== 'object') return local;
+  const hours = Array.isArray(w.hours) && w.hours.every(h => typeof h === 'string') ? [...w.hours] : local.hours;
+  const address = typeof w.pickupAddress === 'string' && w.pickupAddress.trim() ? w.pickupAddress.trim() : local.address;
+  const afterHours = typeof w.afterHoursPhone === 'string' && E164.test(w.afterHoursPhone) ? w.afterHoursPhone : local.afterHours;
+  const lane = typeof w.laneOn === 'boolean' ? w.laneOn : local.lane;
+  return { ...local, hours, address, afterHours, lane };
+}

@@ -15,6 +15,12 @@
      GET  /admin/exposure            adds watchers per open lot, hammer and floor per closed lot, wonAt and startedAt per
                                      sale, the platform row, the dealers' Whop verified state, the evidence packs
      GET  /admin/money               adds invoices (balance and fee, by state) and the evidence packs on disputes
+   Wave 4 (gap-table.md §4 W4-D, coded to W4-A's names; a 404 reads as NOT_YET the same way, a 403 role_denied is said plainly):
+     POST /dealers                   { gdn, name, role: 'owner' | 'manager' | 'lot' } -> { token }, the key `d:<gdn>:<role>.<sig>`
+     POST /admin/dealers/:gdn/wholesale { wholesaleGdn } -> the dealer row, marked for the closed lane (the dealers only lane)
+     GET  /admin/dealers/:gdn/settings  -> { hours, pickupAddress, afterHoursPhone, laneOn }, read-only here
+     GET  /admin/export.csv?what=sales|money|lots -> text/csv, Content-Disposition: attachment; the key goes in the header,
+                                     never the URL; the Desk saves the blob under the header's filename
 
    The arithmetic the admin home shows (the scorecard's five numbers, the bottleneck line, the last
    reconciliation, the refusals) is here too, as pure functions, so the tests read it without a page.
@@ -55,7 +61,9 @@ export type OpenLotWatchers = { lotId: string; dealer?: string; watching: number
 export type Platform = { gdnIssuedAt: number | null; feePerCarCents: number | null; feeMonthlyCents: number | null };
 /** A dealer row as the admin reads it: W3-B adds the Whop account's verified state (dealers.whop_account_verified_at, 0017).
  *  Absent (undefined) on a Worker before 0017: the page says "Not read". */
-export type AdminDealerRow = DealerRow & { whop_account?: string | null; whop_account_verified_at?: number | null };
+export type AdminDealerRow = DealerRow & { whop_account?: string | null; whop_account_verified_at?: number | null;
+  /** W4-A's wholesale mark: the GDN the dealer bids and sells under on the closed lane; null or absent until the admin marks it. */
+  wholesale_gdn?: string | null; wholesaleGdn?: string | null };
 /** W3-F's evidence pack (migration 0018) with W3-A's upload result, one per dispute. */
 export type EvidencePack = { lotId: string; buyer: string | null; disputeId: string | null; sha256: string | null; uploadedAt: number | null; uploadError: string | null; at: number };
 /** A VIN scan the lane refused at pickup: `presented` is the last six scanned, null when nothing was. */
@@ -112,6 +120,15 @@ export function adminApi(base: string, key: () => string | null, f: Fetch = (i, 
     if (r.ok) { try { return { ok: true, value: await r.json() as T }; } catch { return { ok: false, reason: 'bad answer' }; } }
     return { ok: false, reason: await why(r) };
   }
+  /** The same request, the answer kept as bytes (the CSV export). */
+  async function raw(path: string): Promise<Result<Response>> {
+    if (!base) return { ok: false, reason: 'offline' };
+    const k = key();
+    if (!k) return { ok: false, reason: 'no key' };
+    let r: Response;
+    try { r = await f(`${base}${path}`, { method: 'GET', headers: { Authorization: `Bearer ${k}` } }); } catch { return { ok: false, reason: 'offline' }; }
+    return r.ok ? { ok: true, value: r } : { ok: false, reason: await why(r) };
+  }
   const id = (s: string) => encodeURIComponent(s);
   return {
     exposure: async (): Promise<Result<AdminExposure>> => { const r = await call<unknown>('GET', '/admin/exposure'); return r.ok ? { ok: true, value: readExposure(r.value) } : r; },
@@ -128,7 +145,26 @@ export function adminApi(base: string, key: () => string | null, f: Fetch = (i, 
     dealers: () => call<DealerRow[]>('GET', '/dealers'),
     suspend: (gdn: string) => call<DealerRow>('POST', `/dealers/${id(gdn)}/suspend`, {}),
     restore: (gdn: string) => call<DealerRow>('POST', `/dealers/${id(gdn)}/restore`, {}),
-    mint: (gdn: string, name: string) => call<{ token: string }>('POST', '/dealers', { gdn, name }),
+    /** A dealer's key with a role (W4-A): owner is everything, manager runs the lane, lot is pickup and paid. */
+    mint: (gdn: string, name: string, role: Role = 'owner') => {
+      if (!ROLES.includes(role)) return Promise.resolve<Result<{ token: string }>>({ ok: false, reason: 'no role' });
+      return call<{ token: string }>('POST', '/dealers', { gdn, name, role });
+    },
+    /** Mark a dealer for the closed lane: the GDN he trades under there (5 to 12 capitals or digits). */
+    wholesale: (gdn: string, wholesaleGdn: string) => {
+      const w = wholesaleGdn.trim().toUpperCase();
+      if (!GDN.test(w)) return Promise.resolve<Result<AdminDealerRow>>({ ok: false, reason: 'bad dealer' });
+      return call<AdminDealerRow>('POST', `/admin/dealers/${id(gdn)}/wholesale`, { wholesaleGdn: w });
+    },
+    /** One dealer's lane settings, read-only (the dealer writes them from his Desk). */
+    settings: async (gdn: string): Promise<Result<DealerLaneSettings>> => { const r = await call<unknown>('GET', `/admin/dealers/${id(gdn)}/settings`); return r.ok ? { ok: true, value: readSettings(r.value) } : r; },
+    /** One of the three CSVs, as bytes, named by the Worker's Content-Disposition (never by the URL, which never carries the key). */
+    exportCsv: async (what: ExportWhat): Promise<Result<CsvFile>> => {
+      if (!EXPORTS.includes(what)) return { ok: false, reason: 'no export' };
+      const r = await raw(`/admin/export.csv?what=${what}`);
+      if (!r.ok) return r;
+      try { return { ok: true, value: { name: csvFilename(r.value.headers.get('content-disposition'), what), blob: await r.value.blob() } }; } catch { return { ok: false, reason: 'bad answer' }; }
+    },
     /** The lane from the D1 copy: open lots and lots closed in the last three days (index.ts GET /lots). */
     lane: () => call<Lot[]>('GET', '/lots'),
     money: async (): Promise<Result<Money>> => { const r = await call<unknown>('GET', '/admin/money'); return r.ok ? { ok: true, value: readMoney(r.value) } : r; },
@@ -153,6 +189,75 @@ export function adminApi(base: string, key: () => string | null, f: Fetch = (i, 
 export type AdminApi = ReturnType<typeof adminApi>;
 /** The Desk's admin calls: the auction Worker, the key pasted under Lane, Key. */
 export const admin = adminApi(AUCTION_API, () => dealerKey.get());
+
+/* ---------- keys with a role (W4-A; phases.md Phase 5 Admin: owner, manager, lot) ---------- */
+export type Role = 'owner' | 'manager' | 'lot';
+export const ROLES: Role[] = ['owner', 'manager', 'lot'];
+/** The role's name on the cloud, and its one line under it: four words or fewer (DOCTRINE §4 rule 7). */
+export const ROLE_NAME: Record<Role, string> = { owner: 'Owner', manager: 'Manager', lot: 'Lot' };
+export const ROLE_LINE: Record<Role, string> = { owner: 'Everything', manager: 'Runs the lane', lot: 'Pickup and paid' };
+/** The role inside a minted key: `d:<gdn>:<role>.<sig>` names it; the older `d:<gdn>.<sig>` is an owner's key; anything else is null. */
+export function roleOfKey(token: string | null | undefined): Role | null {
+  const m = /^d:([A-Za-z0-9*]+)(?::([a-z]+))?\.[A-Za-z0-9_-]+$/.exec((token ?? '').trim());
+  if (!m) return null;
+  if (!m[2]) return 'owner';
+  return ROLES.includes(m[2] as Role) ? m[2] as Role : null;
+}
+/** A Texas GDN as the Desk takes it: 5 to 12 capitals or digits (AddDealer's rule). */
+export const GDN = /^[A-Z0-9]{5,12}$/;
+/** "Dealers only" once the dealer is marked for the closed lane; null until then (the faint line offers the mark). */
+export function wholesaleWord(r: Pick<AdminDealerRow, 'wholesale_gdn' | 'wholesaleGdn'>): string | null {
+  const g = str(r.wholesaleGdn ?? r.wholesale_gdn);
+  return g ? 'Dealers only' : null;
+}
+
+/* ---------- per-dealer settings, read by the admin (W4-A GET /admin/dealers/:gdn/settings) ---------- */
+export type DealerLaneSettings = { laneOn: boolean; hours: string[]; pickupAddress: string; afterHoursPhone: string };
+/** The Worker's shape, read defensively (camel or snake; a missing list is empty, a missing flag is off). */
+export function readSettings(raw: unknown): DealerLaneSettings {
+  const o = obj(raw) ?? {};
+  const hours = Array.isArray(o.hours) ? o.hours.filter((h): h is string => typeof h === 'string' && !!h.trim()) : [];
+  const on = o.laneOn ?? o.lane_on ?? o.lane;
+  return { laneOn: on === true || on === 1, hours, pickupAddress: str(o.pickupAddress ?? o.pickup_address ?? o.address) ?? '', afterHoursPhone: str(o.afterHoursPhone ?? o.after_hours_phone ?? o.afterHours) ?? '' };
+}
+export type SettingsRow = { label: 'Lane' | 'Hours' | 'Pickup' | 'After hours'; value: string };
+/** A US number as the desk prints it, "(214) 555-0142"; anything else as typed. */
+const phoneWord = (v: string) => { const d = v.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, ''); return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : v.trim(); };
+/** The four rows the admin reads: each value four words or fewer, or the thing itself (an address, a number). */
+export function settingsRows(s: DealerLaneSettings | null): SettingsRow[] {
+  if (!s) return [{ label: 'Lane', value: 'Not read' }, { label: 'Hours', value: 'Not read' }, { label: 'Pickup', value: 'Not read' }, { label: 'After hours', value: 'Not read' }];
+  return [
+    { label: 'Lane', value: s.laneOn ? 'On' : 'Off' },
+    { label: 'Hours', value: s.hours.length ? s.hours.join(' · ') : 'Call to set' },
+    { label: 'Pickup', value: s.pickupAddress.trim() || 'Not set' },
+    { label: 'After hours', value: s.afterHoursPhone.trim() ? phoneWord(s.afterHoursPhone) : 'Not set' },
+  ];
+}
+
+/* ---------- the three exports (W4-A GET /admin/export.csv) ---------- */
+export type ExportWhat = 'sales' | 'money' | 'lots';
+export const EXPORTS: ExportWhat[] = ['sales', 'money', 'lots'];
+export const EXPORT_WORD: Record<ExportWhat, string> = { sales: 'Sales', money: 'Money', lots: 'Lots' };
+export type CsvFile = { name: string; blob: Blob };
+/** The filename the Worker names in Content-Disposition (`attachment; filename="sales-2026-10-13.csv"`, or RFC 5987
+ *  `filename*=UTF-8''...`); `<what>.csv` when the header is missing or names no file. Path separators are dropped. */
+export function csvFilename(header: string | null | undefined, what: string): string {
+  const h = header ?? '';
+  let name: string | null = null;
+  const star = /filename\*\s*=\s*(?:UTF-8|utf-8)?''([^;]+)/.exec(h);
+  if (star) { try { name = decodeURIComponent(star[1].trim()); } catch { name = null; } }
+  if (!name) { const plain = /filename\s*=\s*(?:"([^"]*)"|([^;]+))/.exec(h); if (plain) name = (plain[1] ?? plain[2] ?? '').trim(); }
+  name = (name ?? '').replace(/[\\/]/g, '').trim();
+  return name && name !== '.csv' ? name : `${what}.csv`;
+}
+/** Save a CSV through the browser's own download (an anchor with `download`, an object URL freed after). Never a URL with the key. */
+export function saveCsv(file: CsvFile, doc: Document = document): void {
+  const url = URL.createObjectURL(file.blob);
+  const a = doc.createElement('a');
+  a.href = url; a.download = file.name; a.rel = 'noopener'; a.style.display = 'none';
+  doc.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 /** A fee is a whole number of cents, zero or more. */
 const cents = (n: number) => Number.isInteger(n) && n >= 0;

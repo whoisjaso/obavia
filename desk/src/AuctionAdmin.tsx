@@ -5,16 +5,22 @@
      #/auction/admin/refusals   bids and sign-ins the lane refused, by reason, the last ten
      #/auction/admin/lane       deposits, lots, sales by state, fees owed (collateral.md §5)
      #/auction/admin/dealers    standing: suspend or restore; the Whop account's verified state; Add A Dealer mints his key once (collateral.md §6)
+     #/auction/admin/dealers/:gdn  one dealer: his lane settings as four rows, read-only (GET /admin/dealers/:gdn/settings); Suspend or
+                                Restore in the dock; the faint "Dealers only lane" marks him for the closed lane (POST .../wholesale)
      #/auction/admin/lot/:id    one lot's log: every row in time order, newest last (GET /admin/lots/:id/log)
    Wave 3 (gap-table.md §4 W3-E): Home's three rows beside deposits held (watchers per lot, hammer over floor, days to pickup);
    the GDN row on the lane page, "Not issued" until the owner types the date and the two fees on the sheet (the numbers live
    in the platform row, never here: deviation 9); the invoices by state and the disputes' evidence packs on the money page.
+   Wave 4 (gap-table.md §4 W4-D): Add A Dealer asks the key's role on three clouds (Owner, Manager, Lot; the key object beside
+   each) and the key page names the role; Home's faint "Export" opens the sheet with Sales, Money, Lots and saves the CSV through
+   the admin key in the header (never a URL with the key); the dealer page above.
    Every verb that moves money or standing is asked on the bottom sheet (BottomSheet.tsx ActionSheet).
    Money is Bodoni Moda (the house face for money and names; obavia-co/waitlist.css). */
 import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import bodoniUrl from '../../obavia-co/assets/bodoni-moda-500.woff2?url';
-import { auctionLive, isAdminKey, type DealerRow, type Lot, type SaleState } from './lib/auction';
-import { admin, disputedDeposits, disputeRows, gdnRow, invoicesByState, INVOICE_KIND, PAY_METHODS, pickupRefusals, reconLine, refusals, reserveLine, scorecard, streakRow, threeRows, typeWord, verifiedWord, when, NOT_YET, type AdminExposure, type LotLog, type Money, type MoneySale, type Payout, type PayMethod, type Streak } from './lib/admin-api';
+import { auctionLive, isAdminKey, type Lot, type SaleState } from './lib/auction';
+import { admin, disputedDeposits, disputeRows, gdnRow, invoicesByState, INVOICE_KIND, PAY_METHODS, pickupRefusals, reconLine, refusals, reserveLine, scorecard, streakRow, threeRows, typeWord, verifiedWord, when, NOT_YET, EXPORTS, EXPORT_WORD, ROLES, ROLE_LINE, ROLE_NAME, roleOfKey, saveCsv, settingsRows, wholesaleWord, GDN, type AdminDealerRow, type AdminExposure, type DealerLaneSettings, type ExportWhat, type LotLog, type Money, type MoneySale, type Payout, type PayMethod, type Role, type Streak } from './lib/admin-api';
+import { Obj } from './Auction';
 import { Back, Ic, feel, transition, useHash } from './ui';
 import { Count } from './motion';
 import { ActionSheet } from './BottomSheet';
@@ -32,6 +38,7 @@ const SAID: Record<string, string> = {
   'bad dealer': 'The GDN is 5 to 12 capital letters or digits, and the name is required.', 'no such dealer': 'That dealer is not on file.',
   [NOT_YET]: 'Not yet.', 'no reason': 'Write a reason first.', 'no method': 'Pick the method first.', 'no such buyer': 'That buyer is not on file.',
   'no date': 'Type the date it issued.', 'bad fee': 'Type both fees in dollars.',
+  'no role': 'Pick the role first.', role_denied: 'Not this key’s role.', 'no export': 'Pick one first.',
 };
 const say = (reason: string) => SAID[reason] ?? `The lane said no: ${reason}.`;
 const whole = (n: number) => Math.round(n).toLocaleString('en-US');
@@ -57,6 +64,16 @@ const Chev = () => <span className="chev" aria-hidden="true"><Ic n="chev" s={18}
 const B = ({ children, color }: { children: ReactNode; color?: string }) => <b style={{ fontSize: 17, lineHeight: 1.25, color }}>{children}</b>;
 const S = ({ children }: { children: ReactNode }) => <small style={{ fontSize: 17, lineHeight: 1.3 }}>{children}</small>;
 const V = ({ children, color }: { children: ReactNode; color?: string }) => <span className="v" style={{ fontSize: 17, color }}>{children}</span>;
+/* The one faint word for a hidden option (lego.md §2): 17 px, spaced capitals, faint ink. */
+const FAINT: CSSProperties = { display: 'block', margin: '14px auto 0', padding: '10px 14px', font: '650 17px/1 var(--sans)', textTransform: 'uppercase', letterSpacing: '.12em', color: 'var(--faint)', background: 'none', border: 0 };
+/* A cloud in a sheet or a page: the Desk's choice card, its words at 17 px (DOCTRINE §4 rule 3), one object beside them. */
+const Cloud = ({ label, line, on, disabled, obj, onPick }: { label: string; line: string; on?: boolean; disabled?: boolean; obj?: boolean; onPick: () => void }) => (
+  <button className="choice" aria-pressed={on} disabled={disabled} onClick={onPick} style={{ marginTop: 10 }}>
+    {obj && <span className="art"><Obj name="key" h={36} /></span>}
+    <span className="t"><b style={{ fontSize: 18 }}>{label}</b><small style={{ fontSize: 17 }}>{line}</small></span>
+    <span className="tick">{on && <Ic n="check" s={15} w={3} />}</span>
+  </button>
+);
 
 export function AuctionAdmin() {
   if (!auctionLive) return <OneLine line="The lane is not connected." />;
@@ -88,7 +105,7 @@ function Cockpit() {
   if (page === 'money') return <MoneyPage d={d} reload={load} />;
   if (page === 'refusals') return <Refusals d={d} />;
   if (page === 'lane') return <LanePage d={d} reload={load} />;
-  if (page === 'dealers') return <Dealers d={d} reload={load} />;
+  if (page === 'dealers') { const gdn = decodeURIComponent(hash.split('/')[4] ?? ''); return gdn ? <DealerPage key={gdn} gdn={gdn} d={d} reload={load} /> : <Dealers d={d} reload={load} />; }
   if (page === 'lot') return <LotLogPage id={decodeURIComponent(hash.split('/')[4] ?? '')} />;
   return <Home d={d} />;
 }
@@ -96,6 +113,15 @@ function Cockpit() {
 /* ---------- the week: five numbers, one bottleneck ---------- */
 function Home({ d }: { d: Data }) {
   const { x } = d;
+  const [exporting, setExporting] = useState(false);
+  const [what, setWhat] = useState<ExportWhat>('sales');
+  const [exportErr, setExportErr] = useState<string | null>(null);
+  /* The CSV comes down with the key in the header; the browser saves the blob under the Worker's filename. */
+  const exportCsv = async () => {
+    setExportErr(null);
+    const r = await admin.exportCsv(what);
+    if (r.ok) { saveCsv(r.value); feel.done(); } else setExportErr(say(r.reason));
+  };
   const s = scorecard(Date.now(), x, d.lane, d.money);
   const r = x?.deposits.reserveRatio ?? null;
   const ratioOk = r == null || Math.abs(r - 1) < 1e-9;
@@ -163,11 +189,23 @@ function Home({ d }: { d: Data }) {
           <a className="row" href="#/auction/admin/lane" onClick={feel.tap}><span className="t"><b>Lots and deposits</b><small>Every dollar and every risk on the lane</small></span><span className="v">{x ? `${whole(x.lots.open)} open` : ''}</span><Chev /></a>
           <a className="row" href="#/auction/admin/dealers" onClick={feel.tap}><span className="t"><b>Dealers</b><small>Standing: suspend or restore</small></span><span className="v">{x ? whole(x.dealers.length) : ''}</span><Chev /></a>
         </div>
+        {/* The one faint word (lego.md §2): the three CSVs for the Monday scorecard live behind it, never on the glass. */}
+        <button style={FAINT} onClick={() => { feel.tap(); setExportErr(null); setExporting(true); }}>Export</button>
+        {exportErr && <p className="note bad">{exportErr}</p>}
       </section>
+      {exporting && <ActionSheet verb={`Export ${EXPORT_WORD[what]}`} onAct={exportCsv} onClose={() => setExporting(false)}
+        line={<>
+          One CSV, from the Worker’s copy.
+          <span role="group" aria-label="Which one" style={{ display: 'block', marginTop: 6, marginBottom: 22 }}>
+            {EXPORTS.map(w => <Cloud key={w} label={EXPORT_WORD[w]} line={EXPORT_LINE[w]} on={what === w} onPick={() => { feel.tap(); setWhat(w); }} />)}
+          </span>
+        </>} />}
       <div className="dock"><div className="in"><a className="btn primary block" href="#/auction/admin/money" onClick={feel.next}>See The Money</a></div></div>
     </main>
   );
 }
+/** Under each export's name, four words or fewer. */
+const EXPORT_LINE: Record<ExportWhat, string> = { sales: 'Every sale, every state', money: 'Every event, every payout', lots: 'Every lot, open and closed' };
 
 /* ---------- the money: who is owed, the sales waiting, every event ---------- */
 type Ask = { kind: 'paid'; p: Payout } | { kind: 'forfeit' | 'release'; s: MoneySale };
@@ -462,18 +500,8 @@ function LotLogPage({ id }: { id: string }) {
 
 /* ---------- dealers: standing, and a new dealer's key ---------- */
 function Dealers({ d, reload }: { d: Data; reload: () => void }) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [asking, setAsking] = useState<DealerRow | null>(null);
   if (adding) return <AddDealer onDone={() => { setAdding(false); reload(); }} />;
-  /* Suspend and Restore are asked on a bottom sheet (native-patterns §7 line 12), never a browser confirm(). */
-  const standing = async (r: DealerRow) => {
-    setBusy(r.gdn); setErr(null);
-    const res = r.suspended ? await admin.restore(r.gdn) : await admin.suspend(r.gdn);
-    setBusy(null);
-    if (res.ok) { feel.done(); reload(); } else setErr(say(res.reason));
-  };
   const rows = d.x?.dealers ?? [];
   return (
     <main className="wrap center">
@@ -481,31 +509,92 @@ function Dealers({ d, reload }: { d: Data; reload: () => void }) {
       <section className="enter" key="dealers">
         <h1 className="q">The <em>dealers.</em></h1>
         <p className="note">A suspended dealer opens no new lot. Open lots keep running.</p>
-        {(err || d.err) && <p className="note bad">{err ?? d.err}</p>}
+        {d.err && <p className="note bad">{d.err}</p>}
         <div className="group" style={{ marginTop: 22 }}>
           {d.x && !rows.length && <div className="row"><span className="t"><b>No dealers yet</b><small>Add one below.</small></span></div>}
+          {/* Each row opens the dealer's page (his settings, his standing, the closed lane mark); the mark's word sits on the row once set. */}
           {rows.map(r => (
-            <button className="row" key={r.gdn} disabled={busy === r.gdn} onClick={() => { feel.tap(); setAsking(r); }}>
+            <a className="row" key={r.gdn} href={`#/auction/admin/dealers/${encodeURIComponent(r.gdn)}`} onClick={feel.tap}>
               <span className="t"><B>{r.name}</B><S>{r.gdn} · {r.incidents} {r.incidents === 1 ? 'incident' : 'incidents'}{r.suspended ? ' · suspended' : ''}</S>
                 <S>Whop · {verifiedWord(r)}</S></span>
-              <span className="v" style={{ color: r.suspended ? 'var(--accent)' : 'var(--red)' }}>{busy === r.gdn ? '…' : r.suspended ? 'Restore' : 'Suspend'}</span>
-            </button>
+              <V color={r.suspended ? 'var(--red)' : wholesaleWord(r) ? 'var(--accent)' : 'var(--faint)'}>{r.suspended ? 'Suspended' : wholesaleWord(r) ?? ''}</V><Chev />
+            </a>
           ))}
         </div>
       </section>
-      {asking && <ActionSheet
-        line={asking.suspended ? <><b>{asking.name}</b> ({asking.gdn}) can open lots again.</> : <><b>{asking.name}</b> ({asking.gdn}) cannot open a lot until you restore them. Lots already open keep running.</>}
-        verb={asking.suspended ? 'Restore' : 'Suspend'} onAct={() => standing(asking)} onClose={() => setAsking(null)} />}
       <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); setAdding(true); }}>Add A Dealer</button></div></div>
     </main>
   );
 }
 
-/* ---------- Add a dealer: the GDN, the name, then the key once ---------- */
+/* ---------- one dealer: his settings as four rows (read-only), his standing, the closed lane mark ---------- */
+function DealerPage({ gdn, d, reload }: { gdn: string; d: Data; reload: () => void }) {
+  const r: AdminDealerRow | undefined = d.x?.dealers.find(x => x.gdn === gdn);
+  const [settings, setSettings] = useState<DealerLaneSettings | null>(null);
+  const [why, setWhy] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [marking, setMarking] = useState(false);
+  const [wgdn, setWgdn] = useState('');
+  useEffect(() => {
+    let on = true;
+    const tick = async () => { const s = await admin.settings(gdn); if (!on) return; if (s.ok) { setSettings(s.value); setWhy(null); } else { setSettings(null); setWhy(s.reason); } };
+    tick(); const t = setInterval(tick, 10_000); return () => { on = false; clearInterval(t); };
+  }, [gdn]);
+  /* Suspend and Restore are asked on a bottom sheet (native-patterns §7 line 12), never a browser confirm(). */
+  const standing = async () => {
+    if (!r) return;
+    setBusy(true); setErr(null);
+    const res = r.suspended ? await admin.restore(r.gdn) : await admin.suspend(r.gdn);
+    setBusy(false);
+    if (res.ok) { feel.done(); reload(); } else setErr(say(res.reason));
+  };
+  const mark = async () => {
+    const res = await admin.wholesale(gdn, wgdn);
+    if (res.ok) { feel.done(); reload(); } else setErr(say(res.reason));
+  };
+  const rows = settingsRows(settings).map(x => (settings ? x : { ...x, value: why === NOT_YET ? 'Not yet' : why == null ? '…' : 'Not read' }));
+  const marked = r ? wholesaleWord(r) : null;
+  return (
+    <main className="wrap center">
+      <div className="top"><Back to="#/auction/admin/dealers" label="Dealers" /></div>
+      <section className="enter" key={`dealer-${gdn}`}>
+        <h1 className="q" style={(r?.name.length ?? 0) > 28 ? { fontSize: 'clamp(28px,7.4vw,36px)' } : undefined}>{r?.name ?? gdn}<em>.</em></h1>
+        <p className="note">{r ? `${r.gdn} · ${r.incidents} ${r.incidents === 1 ? 'incident' : 'incidents'} · Whop ${verifiedWord(r).toLowerCase()}` : d.x ? 'Not on file.' : d.err ?? 'Reaching the lane…'}</p>
+        {err && <p className="note bad">{err}</p>}
+        {/* The dealer's own settings, as his Desk saved them: each value touches its word (lego.md §4 placement 1); nothing here writes them. */}
+        <div className="group" style={{ marginTop: 22 }}>
+          {rows.map(x => (x.value.length > 16
+            ? <div className="row" key={x.label}><span className="t"><B>{x.label}</B><S>{x.value}</S></span></div>
+            : <div className="row" key={x.label}><span className="t"><B>{x.label}</B></span><V color={settings ? 'var(--ink)' : 'var(--faint)'}>{x.value}</V></div>))}
+        </div>
+        {why && why !== NOT_YET && <p className="note bad">{say(why)}</p>}
+        {/* The closed lane (gap-table W4-A): one faint line until the mark is set, then the word in ink. */}
+        {r && (marked
+          ? <p className="note" style={{ marginTop: 18, color: 'var(--ink)', fontWeight: 650 }}>{marked}</p>
+          : <button style={FAINT} onClick={() => { feel.tap(); setErr(null); setWgdn(''); setMarking(true); }}>Dealers only lane</button>)}
+      </section>
+      {asking && r && <ActionSheet
+        line={r.suspended ? <><b>{r.name}</b> ({r.gdn}) can open lots again.</> : <><b>{r.name}</b> ({r.gdn}) cannot open a lot until you restore them. Lots already open keep running.</>}
+        verb={r.suspended ? 'Restore' : 'Suspend'} onAct={standing} onClose={() => setAsking(false)} />}
+      {marking && r && <ActionSheet verb="Mark" onAct={mark} onClose={() => setMarking(false)}
+        line={<>
+          <b>{r.name}</b> trades on the dealers only lane under this GDN.
+          <input className="input num" value={wgdn} onChange={e => setWgdn(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12))} placeholder="P123456" aria-label="The wholesale GDN"
+            autoCapitalize="characters" autoCorrect="off" spellCheck={false} style={{ display: 'block', width: '100%', margin: '16px 0 22px', fontSize: 18, textAlign: 'center', boxShadow: wgdn && !GDN.test(wgdn) ? '0 0 0 2px var(--red)' : undefined }} />
+        </>} />}
+      {r && <div className="dock"><div className="in"><button className="btn primary block" disabled={busy} onClick={() => { feel.tap(); setErr(null); setAsking(true); }}>{busy ? '…' : r.suspended ? 'Restore' : 'Suspend'}</button></div></div>}
+    </main>
+  );
+}
+
+/* ---------- Add a dealer: the GDN, the name, the role on three clouds, then the key once ---------- */
 function AddDealer({ onDone }: { onDone: () => void }) {
-  const [page, setPage] = useState<'gdn' | 'name' | 'key'>('gdn');
+  const [page, setPage] = useState<'gdn' | 'name' | 'role' | 'key'>('gdn');
   const [gdn, setGdn] = useState('');
   const [name, setName] = useState('');
+  const [role, setRole] = useState<Role>('owner');
   const [key, setKey] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -513,17 +602,19 @@ function AddDealer({ onDone }: { onDone: () => void }) {
   const to = (p: typeof page, d: 'fwd' | 'back' = 'fwd') => transition(() => { setPage(p); setErr(null); scrollTo(0, 0); }, d);
   const gdnOk = /^[A-Z0-9]{5,12}$/.test(gdn);
 
-  const mint = async () => {
-    setBusy(true); setErr(null);
-    const r = await admin.mint(gdn, name.trim());
+  /* Tapping a role cloud is the verb: the key is minted with that role (Choice's rule: tapping saves and advances). */
+  const mint = async (want: Role) => {
+    setRole(want); setBusy(true); setErr(null);
+    const r = await admin.mint(gdn, name.trim(), want);
     setBusy(false);
     if (r.ok) { feel.done(); setKey(r.value.token); to('key'); } else setErr(say(r.reason));
   };
+  const minted = roleOfKey(key) ?? role;
   const copy = async () => { try { await navigator.clipboard.writeText(key); setCopied(true); feel.done(); } catch { setErr('Copy failed. Select the key and copy it by hand.'); } };
 
   return (
     <main className="wrap center">
-      <div className="top">{page === 'key' ? <span /> : <button className="back" onClick={() => { feel.tap(); page === 'gdn' ? onDone() : to('gdn', 'back'); }}><Ic n="chev" s={18} w={2.4} />Back</button>}</div>
+      <div className="top">{page === 'key' ? <span /> : <button className="back" onClick={() => { feel.tap(); page === 'gdn' ? onDone() : to(page === 'role' ? 'name' : 'gdn', 'back'); }}><Ic n="chev" s={18} w={2.4} />Back</button>}</div>
       {page === 'gdn' && <section className="enter" key="gdn">
         <h1 className="q">The dealer’s <em>GDN.</em></h1>
         <p className="note">The Texas dealer licence number, as printed. P followed by digits.</p>
@@ -534,15 +625,25 @@ function AddDealer({ onDone }: { onDone: () => void }) {
         <p className="note">As the buyer will see it. {gdn}.</p>
         <label className="field"><input className="input" autoFocus value={name} onChange={e => setName(e.target.value.slice(0, 80))} placeholder="Triple J Auto" /></label>
       </section>}
+      {page === 'role' && <section className="enter" key="role">
+        <h1 className="q">Whose <em>key?</em></h1>
+        <p className="note">{name.trim()}, {gdn}.</p>
+        {/* Three clouds, the key object on each, the role's one line under its name (four words or fewer); the tap mints. */}
+        <div role="group" aria-label="The role" style={{ marginTop: 16 }}>
+          {ROLES.map(k => <Cloud key={k} obj label={ROLE_NAME[k]} line={ROLE_LINE[k]} on={busy && role === k} disabled={busy} onPick={() => { feel.next(); mint(k); }} />)}
+        </div>
+      </section>}
       {page === 'key' && <section className="enter" key="key">
-        <h1 className="q" style={name.length > 28 ? { fontSize: 'clamp(28px,7.4vw,36px)' } : undefined}>{name}’s <em>key.</em></h1>
+        <h1 className="q" style={name.length > 28 ? { fontSize: 'clamp(28px,7.4vw,36px)' } : undefined}>{name}’s <em>{ROLE_NAME[minted].toLowerCase()} key.</em></h1>
         <p className="note">Shown once. Paste it into the dealer's Desk under Lane, then Key.</p>
         <label className="field"><textarea className="input num" readOnly rows={2} value={key} onFocus={e => e.currentTarget.select()} style={{ height: 'auto', padding: '16px 18px', lineHeight: 1.4, resize: 'none', overflowWrap: 'anywhere', textAlign: 'center' }} /></label>
+        {/* The key object touching the role it carries, read from the key itself (lego.md §4 placement 1). */}
+        <div className="group"><div className="row"><span className="t" style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Obj name="key" h={36} /><span><B>{ROLE_NAME[minted]}</B><S>{ROLE_LINE[minted]}</S></span></span></div></div>
       </section>}
       {err && <p className="note">{err}</p>}
       <div className="dock"><div className="in">
         {page === 'gdn' && <button className="btn primary block" disabled={!gdnOk} onClick={() => { feel.next(); to('name'); }}>Next</button>}
-        {page === 'name' && <button className="btn primary block" disabled={busy || !name.trim()} onClick={mint}>Make The Key</button>}
+        {page === 'name' && <button className="btn primary block" disabled={!name.trim()} onClick={() => { feel.next(); to('role'); }}>Next</button>}
         {page === 'key' && <button className="btn primary block" onClick={copied ? onDone : copy}>{copied ? 'Done' : 'Copy'}</button>}
       </div></div>
     </main>

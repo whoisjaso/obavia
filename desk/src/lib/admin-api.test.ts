@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NOT_YET, adminApi, bottleneck, diffWord, disputedDeposits, disputeRows, gdnRow, invoicesByState, logRow, pickupRefusals, readExposure, readLog, readMoney, readPlatform, readStreak, reconLine, refusals, reserveLine, scorecard, streakRow, threeRows, typeWord, verifiedWord, weekOf, WEEK1, type AdminExposure, type Money, type MoneyEvent, type Reconciliation, type Streak } from './admin-api';
+import { NOT_YET, adminApi, bottleneck, csvFilename, diffWord, disputedDeposits, disputeRows, EXPORTS, EXPORT_WORD, gdnRow, invoicesByState, logRow, pickupRefusals, readExposure, readLog, readMoney, readPlatform, readSettings, readStreak, reconLine, refusals, reserveLine, ROLE_LINE, ROLE_NAME, ROLES, roleOfKey, saveCsv, scorecard, settingsRows, streakRow, threeRows, typeWord, verifiedWord, weekOf, WEEK1, wholesaleWord, type AdminExposure, type Money, type MoneyEvent, type Reconciliation, type Streak } from './admin-api';
 import type { Lot } from './auction';
 
 const BASE = 'http://lane.test';
@@ -44,7 +44,7 @@ describe('admin-api: every route, and a 404 reads as Not yet', () => {
     expect((await api.suspend('P12345')).ok).toBe(true);
     expect((await api.restore('P12345')).ok).toBe(true);
     expect(await api.mint('P12345', 'Example Motors')).toEqual({ ok: true, value: { token: 'd:P12345.x' } });
-    expect(seen.at(-1)!.body).toEqual({ gdn: 'P12345', name: 'Example Motors' });
+    expect(seen.at(-1)!.body).toEqual({ gdn: 'P12345', name: 'Example Motors', role: 'owner' });
   });
   it('GET /lots', async () => {
     const { api } = lane({ 'GET /lots': ok([{ id: 'a' }]) });
@@ -485,5 +485,115 @@ describe('the GDN row, the fees line, the verified state, the invoices, the disp
     expect(typeWord({ type: 'invoice.paid', kind: null })).toBe('Invoice paid');
     expect(typeWord({ type: 'invoice.voided', kind: null })).toBe('Invoice');
     expect(typeWord({ type: 'fee.waived', kind: null })).toBe('Fee');
+  });
+});
+
+describe('W4-D: keys with a role, the wholesale mark, the settings read, the three exports', () => {
+  it('POST /dealers carries the role, and refuses a role that is not one of the three', async () => {
+    const { api, seen } = lane({ 'POST /dealers': ok({ token: 'd:P12345:lot.sig' }) });
+    expect(await api.mint('P12345', 'Example Motors', 'lot')).toEqual({ ok: true, value: { token: 'd:P12345:lot.sig' } });
+    expect(seen[0].body).toEqual({ gdn: 'P12345', name: 'Example Motors', role: 'lot' });
+    expect(seen[0].auth).toBe(`Bearer ${KEY}`);
+    expect(await api.mint('P12345', 'Example Motors', 'admin' as never)).toEqual({ ok: false, reason: 'no role' });
+    expect(seen).toHaveLength(1);
+  });
+  it('the three roles, their names and their one line under four words', () => {
+    expect(ROLES).toEqual(['owner', 'manager', 'lot']);
+    expect(ROLE_NAME).toEqual({ owner: 'Owner', manager: 'Manager', lot: 'Lot' });
+    expect(ROLE_LINE).toEqual({ owner: 'Everything', manager: 'Runs the lane', lot: 'Pickup and paid' });
+    for (const r of ROLES) expect(ROLE_LINE[r].split(' ').length).toBeLessThanOrEqual(4);
+  });
+  it('reads the role out of the minted key; the older form is an owner key; anything else is null', () => {
+    expect(roleOfKey('d:P12345:lot.abcDEF_-1')).toBe('lot');
+    expect(roleOfKey('d:P12345:manager.abcDEF')).toBe('manager');
+    expect(roleOfKey('d:P12345:owner.abcDEF')).toBe('owner');
+    expect(roleOfKey('d:P12345.abcDEF')).toBe('owner');
+    expect(roleOfKey('d:P12345:boss.abcDEF')).toBe(null);
+    expect(roleOfKey('b_1.abc')).toBe(null);
+    expect(roleOfKey('')).toBe(null);
+    expect(roleOfKey(null)).toBe(null);
+  });
+  it('a 403 role_denied is passed on as its own reason', async () => {
+    const { api } = lane({ 'POST /dealers/P12345/suspend': () => new Response(JSON.stringify({ error: 'role_denied' }), { status: 403 }) });
+    expect(await api.suspend('P12345')).toEqual({ ok: false, reason: 'role_denied' });
+  });
+  it('POST /admin/dealers/:gdn/wholesale sends the wholesale GDN upper-cased, and refuses a bad one before the wire', async () => {
+    const { api, seen } = lane({ 'POST /admin/dealers/P12345/wholesale': ok({ gdn: 'P12345', wholesale_gdn: 'P99999' }) });
+    const r = await api.wholesale('P12345', ' p99999 ');
+    expect(r.ok && wholesaleWord(r.value)).toBe('Dealers only');
+    expect(seen[0]).toMatchObject({ method: 'POST', url: '/admin/dealers/P12345/wholesale', body: { wholesaleGdn: 'P99999' } });
+    expect(await api.wholesale('P12345', 'P1')).toEqual({ ok: false, reason: 'bad dealer' });
+    expect(await api.wholesale('P12345', '')).toEqual({ ok: false, reason: 'bad dealer' });
+    expect(seen).toHaveLength(1);
+  });
+  it('the wholesale word: Dealers only once set, camel or snake; null until then', () => {
+    expect(wholesaleWord({ wholesale_gdn: 'P99999' })).toBe('Dealers only');
+    expect(wholesaleWord({ wholesaleGdn: 'P99999' })).toBe('Dealers only');
+    expect(wholesaleWord({ wholesale_gdn: null })).toBe(null);
+    expect(wholesaleWord({})).toBe(null);
+  });
+  it('GET /admin/dealers/:gdn/settings reads the four fields; a 404 is Not yet', async () => {
+    const { api, seen } = lane({ 'GET /admin/dealers/P12345/settings': ok({ hours: ['Mon-Fri 9 am-6 pm', 'Sat 9 am-6 pm'], pickupAddress: '1200 N Main St, Fort Worth, TX 76164', afterHoursPhone: '+12145550142', laneOn: true }) });
+    const r = await api.settings('P12345');
+    expect(r).toEqual({ ok: true, value: { laneOn: true, hours: ['Mon-Fri 9 am-6 pm', 'Sat 9 am-6 pm'], pickupAddress: '1200 N Main St, Fort Worth, TX 76164', afterHoursPhone: '+12145550142' } });
+    expect(seen[0]).toMatchObject({ method: 'GET', url: '/admin/dealers/P12345/settings', auth: `Bearer ${KEY}` });
+    expect(await api.settings('P00000')).toEqual({ ok: false, reason: NOT_YET });
+  });
+  it('readSettings is defensive: snake case, a missing list, a flag as 1', () => {
+    expect(readSettings({ lane_on: 1, pickup_address: 'x', after_hours_phone: '2145550142' })).toEqual({ laneOn: true, hours: [], pickupAddress: 'x', afterHoursPhone: '2145550142' });
+    expect(readSettings(null)).toEqual({ laneOn: false, hours: [], pickupAddress: '', afterHoursPhone: '' });
+    expect(readSettings({ hours: ['', 3, 'Sat 9 am-6 pm'] }).hours).toEqual(['Sat 9 am-6 pm']);
+  });
+  it('the four rows: Lane, Hours, Pickup, After hours; the phone printed; empties say so; null is Not read', () => {
+    const rows = settingsRows({ laneOn: true, hours: ['Mon-Fri 9 am-6 pm'], pickupAddress: '1200 N Main St, Fort Worth, TX 76164', afterHoursPhone: '+12145550142' });
+    expect(rows).toEqual([{ label: 'Lane', value: 'On' }, { label: 'Hours', value: 'Mon-Fri 9 am-6 pm' }, { label: 'Pickup', value: '1200 N Main St, Fort Worth, TX 76164' }, { label: 'After hours', value: '(214) 555-0142' }]);
+    expect(settingsRows({ laneOn: false, hours: [], pickupAddress: ' ', afterHoursPhone: '' }).map(r => r.value)).toEqual(['Off', 'Call to set', 'Not set', 'Not set']);
+    expect(settingsRows(null).map(r => r.value)).toEqual(['Not read', 'Not read', 'Not read', 'Not read']);
+    expect(settingsRows(null).map(r => r.label)).toEqual(['Lane', 'Hours', 'Pickup', 'After hours']);
+  });
+  it('GET /admin/export.csv?what= carries the key in the header, never the URL, and names the file from Content-Disposition', async () => {
+    const csv = 'lotId,dealer,state\nseeded-9,P12345,owed\n';
+    const { api, seen } = lane({ 'GET /admin/export.csv?what=sales': () => new Response(csv, { status: 200, headers: { 'content-type': 'text/csv', 'content-disposition': 'attachment; filename="sales-2026-10-13.csv"' } }) });
+    const r = await api.exportCsv('sales');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.name).toBe('sales-2026-10-13.csv');
+    expect(await r.value.blob.text()).toBe(csv);
+    expect(seen[0]).toMatchObject({ method: 'GET', url: '/admin/export.csv?what=sales', auth: `Bearer ${KEY}` });
+    expect(seen[0].url).not.toContain(KEY);
+    expect(await api.exportCsv('money')).toEqual({ ok: false, reason: NOT_YET });
+    expect(await api.exportCsv('bids' as never)).toEqual({ ok: false, reason: 'no export' });
+  });
+  it('the three exports and their words', () => {
+    expect(EXPORTS).toEqual(['sales', 'money', 'lots']);
+    expect(EXPORT_WORD).toEqual({ sales: 'Sales', money: 'Money', lots: 'Lots' });
+  });
+  it('csvFilename: quoted, bare, RFC 5987, missing, and a path that is dropped', () => {
+    expect(csvFilename('attachment; filename="sales-2026-10-13.csv"', 'sales')).toBe('sales-2026-10-13.csv');
+    expect(csvFilename('attachment; filename=money.csv', 'money')).toBe('money.csv');
+    expect(csvFilename("attachment; filename*=UTF-8''lots%202026-10-13.csv", 'lots')).toBe('lots 2026-10-13.csv');
+    expect(csvFilename('attachment', 'lots')).toBe('lots.csv');
+    expect(csvFilename(null, 'sales')).toBe('sales.csv');
+    expect(csvFilename('attachment; filename="../../etc/x.csv"', 'sales')).toBe('....etcx.csv');
+  });
+  it('saveCsv clicks an anchor named by the file, removes it, and frees the object URL a second later', () => {
+    vi.useFakeTimers();
+    const freed: string[] = [];
+    const url = globalThis.URL as unknown as { createObjectURL?: (b: Blob) => string; revokeObjectURL?: (u: string) => void };
+    const c0 = url.createObjectURL, r0 = url.revokeObjectURL;
+    url.createObjectURL = () => 'blob:x';
+    url.revokeObjectURL = (u: string) => { freed.push(u); };
+    const clicked: { href: string; download: string; rel: string }[] = [];
+    let attached = 0, removed = 0;
+    const a = { href: '', download: '', rel: '', style: { display: '' }, click() { clicked.push({ href: this.href, download: this.download, rel: this.rel }); }, remove() { removed += 1; } };
+    const doc = { createElement: () => a, body: { appendChild: () => { attached += 1; } } } as unknown as Document;
+    try {
+      saveCsv({ name: 'sales-2026-10-13.csv', blob: new Blob(['a,b\n'], { type: 'text/csv' }) }, doc);
+      expect(clicked).toEqual([{ href: 'blob:x', download: 'sales-2026-10-13.csv', rel: 'noopener' }]);
+      expect([attached, removed]).toEqual([1, 1]);
+      expect(freed).toEqual([]);
+      vi.advanceTimersByTime(1000);
+      expect(freed).toEqual(['blob:x']);
+    } finally { url.createObjectURL = c0; url.revokeObjectURL = r0; vi.useRealTimers(); }
   });
 });

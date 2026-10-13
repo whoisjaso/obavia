@@ -4,7 +4,7 @@
    buyer's clock, the money, the VIN at pickup, and the way out (void).
    The lane refuses collateral it cannot see; so does this screen, earlier. */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { DEPOSIT_USD, INVOICE_WORDS, KEY_SHAPE, OFFER_WORDS, PAYOUT_PAGE_WORDS, PLATES_WORDS, accountWords, auctionLive, carMeta, closeLot, collateralRefusal, collect, dealerKey, depositWords, dial, getInvoices, getMe, releaseRefusal, said, getLot, holdingCost, isAdminKey, keepContact, lotId, lotLinks, markPaid, markPlates, offerLeft, offerState, onLane, openLot, payBy, payoutPageState, payoutSplit, photoBlob, pickup, platesKickback, platesVerb, putPhoto, relistable, rememberLot, takeArrival, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Invoice, type Lot, type LotLink, type Me, type PlatesState, type RemotePhoto } from './lib/auction';
+import { AUDIO_MAX_BYTES, DEPOSIT_USD, ENGINE_SECONDS, INVOICE_WORDS, KEY_SHAPE, OFFER_WORDS, PAYOUT_PAGE_WORDS, PLATES_WORDS, accountWords, auctionLive, audioMime, canCloseLane, carMeta, closeLot, closedLots, collateralRefusal, collect, dealerKey, depositWords, dial, getInvoices, getMe, guideNeeded, laneWord, releaseRefusal, said, getLot, holdingCost, isAdminKey, keepContact, lotId, lotLinks, markPaid, markPlates, offerLeft, offerState, onLane, openLot, payBy, payoutPageState, payoutSplit, photoBlob, pickup, platesKickback, platesVerb, putAudio, putPhoto, putSettings, putVideo, relistable, rememberLot, takeArrival, timeLeft, updateCar, videoRefusal, videoType, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Invoice, type Lane as LaneKind, type Lot, type LotLink, type Me, type PlatesState, type RemotePhoto } from './lib/auction';
 import { HOURS, HOURS_ORDER, defaultSettings, hoursChoice, laneReady, lotFields, toE164, E164, type DealerSettings, type HoursChoice } from './lib/dealer-settings';
 import { formatPhone } from './lib/forms/phone';
 import { laneDocuments, openLaneSale, uploadLaneDocuments, type LaneUpload } from './lib/sign';
@@ -92,7 +92,9 @@ export function Lane() {
   const { lot, dealer } = useStore();
   const [links, setLinks] = useState<LotLink[]>(lotLinks);
   const [lots, setLots] = useState<Record<string, Lot>>({});
-  useEffect(() => { setLinks(lotLinks()); }, []);
+  /* the closed lane's lots (W4-C; GET /lots/closed with the dealer key), under the public ones; a Desk that opened one remembers it already */
+  const [closed, setClosed] = useState<Lot[]>([]);
+  useEffect(() => { setLinks(lotLinks()); let on = true; closedLots().then(r => { if (on && r.ok && Array.isArray(r.value)) setClosed(r.value); }); return () => { on = false; }; }, []);
   useEffect(() => {
     let on = true;
     const load = async () => { for (const l of links) { const r = await getLot(l.lotId); if (on && r.ok) setLots(x => ({ ...x, [l.lotId]: r.value })); } };
@@ -102,14 +104,18 @@ export function Lane() {
   if (!dealerKey.get()) return <Setup />;
   const byId = (id: string) => lot.find(v => v.id === id);
   const open = links.filter(l => !lots[l.lotId]?.closed), done = links.filter(l => lots[l.lotId]?.closed);
+  const dealersOnly = closed.filter(c => !links.some(l => l.lotId === c.id));
+  const asLink = (c: Lot): LotLink => ({ lotId: c.id, vehicleId: lot.find(v => c.car && v.vin === c.car.vin)?.id ?? '', openedAt: new Date(c.opensAt).toISOString(), closesAt: c.closesAt, floor: c.car?.collateral?.floor ?? c.start, days: 0 });
   return (
     <main className="wrap center">
-      <div className="top"><Back to="#/" label="Sales" /><span style={{ display: 'flex', gap: 18 }}>{isAdminKey() && <a className="link" href="#/auction/admin" onClick={feel.tap}>Admin</a>}<a className="link" href="#/auction/setup" onClick={feel.tap}>Key</a></span></div>
+      <div className="top"><Back to="#/" label="Sales" /><span style={{ display: 'flex', gap: 18 }}>{isAdminKey() && <a className="link" href="#/auction/admin" onClick={feel.tap}>Admin</a>}<a className="link" href="#/checklist" onClick={feel.tap} style={{ color: 'var(--faint)' }}>Checklist</a><a className="link" href="#/auction/setup" onClick={feel.tap}>Key</a></span></div>
       <section className="enter" key="lane">
         {!open.length && <Obj name="car" h={96} style={{ display: 'block', margin: '0 auto 10px' }} />}
         <h1 className="q">{open.length ? <>On the <em>lane.</em></> : <>Let a car <em>go.</em></>}</h1>
         {!open.length && <p className="note">A car the lot is losing money on, on every phone in Texas by tonight. You set the floor; the lane finds the price.</p>}
         <div className="choices">{open.map(l => <LotRow key={l.lotId} link={l} lot={lots[l.lotId]} v={byId(l.vehicleId)} tz={dealer.timeZone} />)}</div>
+        {/* the closed lane's lots under the public ones; each row carries its own faint word, so no heading repeats it (DOCTRINE §4 rule 15) */}
+        {!!dealersOnly.length && <div className="choices" style={{ marginTop: 12 }}>{dealersOnly.map(c => <LotRow key={c.id} link={asLink(c)} lot={c} v={byId(asLink(c).vehicleId)} tz={dealer.timeZone} />)}</div>}
         {!!done.length && <><p className="note" style={{ marginTop: 28 }}>Sold or closed</p><div className="choices">{done.map(l => <LotRow key={l.lotId} link={l} lot={lots[l.lotId]} v={byId(l.vehicleId)} tz={dealer.timeZone} />)}</div></>}
         <LaneSettingsRow />
       </section>
@@ -152,10 +158,12 @@ function LotRow({ link, lot, v, tz }: { link: LotLink; lot?: Lot; v?: Vehicle; t
     : s ? (s.paidAt ? 'Paid · waiting on pickup' : `Sold · ${timeLeft(s.deadlineAt)} for the buyer`)
     : lot.closed ? 'Closed, no bids'
     : `${usd(lot.high)} · ${n(lot.bids)} ${lot.bids === 1 ? 'bid' : 'bids'} · ${timeLeft(lot.closesAt)}`;
+  const word = laneWord(lot?.car?.lane);   // the closed lane's one faint word on the row (W4-C)
+  const name = v ? carName(v) : lot?.car ? `${lot.car.year} ${lot.car.make} ${lot.car.model}` : link.lotId;
   return (
     <a className="choice" href={`#/auction/${link.lotId}`} onClick={feel.next}>
       <span className="art car-art">{v ? <CarArt color={v.color} body={v.bodyStyle} w={44} /> : <Ic n="plate" s={24} />}</span>
-      <span className="t"><b>{v ? carName(v) : link.lotId}</b><small>{line}</small></span>
+      <span className="t"><b>{name}</b><small>{line}</small>{word && <small style={{ color: 'var(--faint)' }}>{word}</small>}</span>
       <span className="go"><Ic n="chev" s={18} w={2.4} /></span>
     </a>
   );
@@ -189,7 +197,9 @@ export function Setup() {
 }
 
 /* ---------- /auction/go : Let It Go, one question per page ---------- */
-type Page = 'car' | 'title' | 'lienholder' | 'payoff' | 'release' | 'photos' | `word${0 | 1 | 2 | 3 | 4 | 5}` | 'insured' | 'pickup' | 'days' | 'floor' | 'bring' | 'go';
+type Page = 'car' | 'title' | 'lienholder' | 'payoff' | 'release' | 'photos' | 'engine' | 'walk' | `word${0 | 1 | 2 | 3 | 4 | 5}` | 'insured' | 'pickup' | 'lane' | 'days' | 'floor' | 'bring' | 'go';
+/** The engine page exists where the browser can record (MediaRecorder with webm or mp4, and a microphone to ask for). */
+const canRecord = () => !!audioMime() && typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 /** The pickup page is skipped when the lane settings already hold the hours and a number that rings (simplicity-audit §4 row 3);
     the Go page carries them as one row, which opens the page to change them. */
 const pickupHeld = (s: DealerSettings | undefined) => !!s && hoursChoice(s.hours) !== null && E164.test(s.afterHours);
@@ -212,6 +222,16 @@ export function LetItGo() {
   const [release, setRelease] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
+  /* Wave 4 (W4-C): the engine at idle and the walkaround, both optional; Go never waits on them. The closed lane's choice exists
+     only for a dealer whose /dealers/me carries the wholesale flag (canCloseLane); everyone else never sees the page. */
+  const [engine, setEngine] = useState<Blob | null>(null);
+  const [walk, setWalk] = useState<File | null>(null);
+  const [walkErr, setWalkErr] = useState<string | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
+  const [laneKind, setLaneKind] = useState<LaneKind | null>(null);
+  useEffect(() => { let on = true; getMe().then(r => { if (on && r.ok) setMe(r.value); }); return () => { on = false; }; }, []);
+  const mime = useMemo(audioMime, []);
+  const recordable = useMemo(canRecord, []);
   const [shot, setShot] = useState<{ i: number; src: string } | null>(null);
   const [grade, setGrade] = useState<(number | null)[]>([null, null, null, null, null, null]);
   const [insured, setInsured] = useState(false);
@@ -230,13 +250,13 @@ export function LetItGo() {
   const found = useMemo(() => lot.filter(v => !busy.has(v.id) && !taken.has(v.id) && `${v.stock} ${v.year} ${v.make} ${v.model} ${v.vin}`.toLowerCase().includes(q.toLowerCase())), [lot, q, sales]); // eslint-disable-line react-hooks/exhaustive-deps
   const payoffN = status === 'lender' ? Number(payoff) || 0 : 0, floorN = Number(floor) || 0;
   const bring = youGetYouBring(floorN, payoffN);
-  const pages: Page[] = ['car', 'title', ...(status === 'lender' ? ['lienholder', 'payoff', 'release'] as const : []), 'photos', 'word0', 'word1', 'word2', 'word3', 'word4', 'word5', 'insured', ...(pickupHeld(laneSettings) ? [] : ['pickup'] as const), 'days', 'floor', ...(bring.bring > 0 ? ['bring'] as const : []), 'go'];
+  const pages: Page[] = ['car', 'title', ...(status === 'lender' ? ['lienholder', 'payoff', 'release'] as const : []), 'photos', ...(recordable ? ['engine'] as const : []), 'walk', 'word0', 'word1', 'word2', 'word3', 'word4', 'word5', 'insured', ...(pickupHeld(laneSettings) ? [] : ['pickup'] as const), ...(canCloseLane(me) ? ['lane'] as const : []), 'days', 'floor', ...(bring.bring > 0 ? ['bring'] as const : []), 'go'];
   /* the pickup page opened from the Go page's row: Next and Back both return to Go */
   const detour = page === 'pickup' && !pages.includes('pickup');
   /* The pickup answer is the dealer's lane settings, kept for every later lot (store.laneSettings; dealer-settings.ts). */
   const afterOk = E164.test(toE164(after));
   const laneNow = () => ({ ...settings, lane: true, hours: hours ? [...HOURS[hours].hours] : settings.hours, afterHours: toE164(after) || settings.afterHours });
-  const keepPickup = (h: HoursChoice) => { setHours(h); const nd = { ...laneNow(), hours: [...HOURS[h].hours] }; setLaneSettings(nd); };
+  const keepPickup = (h: HoursChoice) => { setHours(h); const nd = { ...laneNow(), hours: [...HOURS[h].hours] }; setLaneSettings(nd); void putSettings(nd); };   // the Worker's copy too (W4-C); a refusal changes nothing here
   const at = detour ? pages.length - 1 : Math.max(0, pages.indexOf(page));
   const to = (p: Page, d: 'fwd' | 'back' = 'fwd') => transition(() => { setPage(p); scrollTo(0, 0); }, d);
   const next = () => { feel.next(); to(detour ? 'go' : pages[at + 1]); };
@@ -273,20 +293,27 @@ export function LetItGo() {
     /* The paper the buyer signs (sign.ts): the Buyers Guide and the bill of sale as PDFs, then the signature lines
        for each, all before the lot opens. The Worker stamps the buyer's drawing into these exact bytes
        (auction/worker/src/sign.ts), so a lot without them cannot be signed: a PUT that fails refuses Go. */
-    setSending('The Buyer’s Guide');
-    let papers: LaneUpload;
-    try { papers = await uploadLaneDocuments(id, await laneDocuments(car, dealer), undefined, setSending); }
-    catch { papers = { ok: false, reason: 'guide pdf failed' }; }
-    if (!papers.ok) { setSending(null); setFailed(said(papers.reason)); return; }
+    /* A closed lot (W4-C) has no consumer: no Buyers Guide, no bill for a buyer to sign; the Worker's /open does not ask for them. */
+    let papers: LaneUpload | null = null;
+    if (guideNeeded(laneKind ?? undefined)) {
+      setSending('The Buyer’s Guide');
+      try { papers = await uploadLaneDocuments(id, await laneDocuments(car, dealer), undefined, setSending); }
+      catch { papers = { ok: false, reason: 'guide pdf failed' }; }
+      if (!papers.ok) { setSending(null); setFailed(said(papers.reason)); return; }
+    }
     setSending('Opening the lane');
     const ls = laneNow(); setLaneSettings(ls);
     const f = lotFields(ls);   // the pickup hours, the after-hours line and the address the buyer's Pickup screen reads
     const car2 = carMeta(car, dealer, remote, grade.map(g => g ?? 0.6) as [number, number, number, number, number, number], collateral, f.afterHours, f.hours, f.address);
-    car2.documents = papers.documents;   // the paths the phone's Paper pages open
+    if (papers?.ok) car2.documents = papers.documents;   // the paths the phone's Paper pages open
+    if (laneKind && canCloseLane(me)) car2.lane = laneKind;   // only a flagged dealer sends the field (the Worker refuses it from anyone else)
     const closesAt = Date.now() + days * 86_400_000;
     const r = await openLot(id, { id, dealer: dealer.licence, start: floorN, retail: car.price, closesAt, car: car2 });
+    if (!r.ok) { setSending(null); setFailed(`The lane refused: ${r.reason}.`); return; }
+    /* the engine and the walkaround ride after the lot is open (the routes answer the lot); a refusal leaves the lot open and says nothing */
+    if (engine && mime) { setSending('The engine'); await putAudio(id, engine, mime); }
+    if (walk) { setSending('The walk around'); await putVideo(id, walk, videoType(walk.type)); }
     setSending(null);
-    if (!r.ok) { setFailed(`The lane refused: ${r.reason}.`); return; }
     for (const old of lotLinks().filter(l => l.vehicleId === car.id && relistable(l))) rememberLot({ ...old, unwound: true });   // the earlier lot stays remembered as left
     rememberLot({ lotId: id, vehicleId: car.id, openedAt: new Date().toISOString(), closesAt, floor: floorN, days });
     /* The one landed state: the chime, the button settling and its word changing on the same frame; the car rolls off the lot as
@@ -345,6 +372,27 @@ export function LetItGo() {
         {shot && <PhotoSheet src={shot.src} n={shot.i + 1} onRemove={() => setPhotos(x => x.filter((_, j) => j !== shot.i))} onClose={() => setShot(null)} />}
       </section>}
 
+      {page === 'engine' && <EnginePage mime={mime} engine={engine} onEngine={setEngine} />}
+
+      {page === 'walk' && <section className="enter" key="walk">
+        <Obj name="car" h={72} style={{ display: 'block', margin: '0 auto 8px' }} />
+        <h1 className="q">Walk <em>around.</em></h1>
+        <div className="choices">
+          <label className="choice" style={{ cursor: 'pointer' }} aria-pressed={!!walk}><span className="art"><Ic n="upload" s={24} /></span><span className="t"><b>{walk ? 'Your video' : 'Take a video'}</b><small>{walk ? `${(walk.size / 1_048_576).toFixed(1)} MB` : 'Up to 60 MB'}</small></span><span className="tick">{walk && <Ic n="check" s={15} w={3} />}</span>
+            <input type="file" accept="video/*" capture="environment" hidden onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; const why = videoRefusal(f); setWalkErr(why); if (why) { setWalk(null); return; } setWalk(f); feel.done(); }} /></label>
+        </div>
+        {walkErr && <p className="note" role="alert">{said(walkErr)}</p>}
+      </section>}
+
+      {page === 'lane' && <section className="enter" key="lane">
+        <h1 className="q">Which <em>lane?</em></h1>
+        {/* the plate beside Public (every phone in Texas), the dealer key beside Dealers only (DOCTRINE §5; lego.md §4.1 touching) */}
+        <div className="choices">
+          <Choice label="Public" art={<Obj name="plate" h={30} />} on={laneKind === 'public'} onPick={() => { setLaneKind('public'); next(); }} />
+          <Choice label="Dealers only" art={<Obj name="key" h={36} />} on={laneKind === 'closed'} onPick={() => { setLaneKind('closed'); next(); }} />
+        </div>
+      </section>}
+
       {word >= 0 && <section className="enter" key={page}>
         <h1 className="q">{WORDS[word]}<em>.</em></h1>
         <div className="choices">{GRADES.map(g => <Choice key={g.label} label={g.label} gloss={g.gloss} on={grade[word] === g.v} onPick={() => { setGrade(x => x.map((v, i) => (i === word ? g.v : v))); next(); }} />)}</div>
@@ -393,6 +441,7 @@ export function LetItGo() {
           <div className="row"><span className="t"><b>Title</b></span><span className="v" style={{ flex: '0 1 62%', minWidth: 0, lineHeight: 1.35, overflowWrap: 'anywhere' }}>{status === 'hand' ? 'In hand' : `${lienholder.trim() || 'Lender'} · ${release} days`}</span></div>
           <div className="row"><span className="t"><b>Closes</b></span><span className="v">{new Date(Date.now() + days * 86_400_000).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span></div>
           <div className="row"><span className="t"><b>Photos</b></span><span className="v num">{photos.length}</span></div>
+          {laneKind === 'closed' && <div className="row"><span className="t"><b>Lane</b></span><span className="v" style={{ color: 'var(--faint)' }}>{laneWord('closed')}</span></div>}
           <a className="row" href="#/auction/go" onClick={e => { e.preventDefault(); feel.tap(); to('pickup'); }} style={{ textDecoration: 'none', color: 'inherit' }}><span className="t"><b>Pickup</b></span><span className="v" style={{ flex: '0 1 62%', minWidth: 0, lineHeight: 1.35 }}>{hours ? HOURS[hours].label : settings.hours.join(', ')}</span><span className="go"><Ic n="chev" s={18} w={2.4} /></span></a>
         </div>
         {refusal && <p className="note">{said(refusal)}</p>}
@@ -404,11 +453,105 @@ export function LetItGo() {
         {page === 'payoff' && <button className="btn primary block" disabled={!payoffN} onClick={next}>Next</button>}
         {page === 'release' && <button className="btn primary block" disabled={!Number(release) || !!releaseLate} onClick={next}>Next</button>}
         {page === 'photos' && <button className="btn primary block" disabled={photos.length < 3 || adding} onClick={next}>{photos.length < 3 ? `${3 - photos.length} more to go` : 'Next'}</button>}
+        {page === 'engine' && (engine ? <button className="btn primary block" onClick={next}>Next</button> : <HoldCloud mime={mime} onEngine={setEngine} />)}
+        {page === 'engine' && !engine && <button className="textlink" onClick={next}>Not now</button>}
+        {page === 'walk' && (walk ? <button className="btn primary block" onClick={next}>Next</button> : <button className="textlink" onClick={next}>Not now</button>)}
         {page === 'pickup' && hours && <button className="btn primary block" disabled={!afterOk} onClick={() => { keepPickup(hours); next(); }}>{detour ? 'Keep it' : 'Next'}</button>}
         {page === 'floor' && <button className="btn primary block" disabled={floorN < 100} onClick={next}>Next</button>}
         {page === 'go' && <button ref={goBtn} className="btn primary block" disabled={!!refusal || !!sending || photos.length < 3} onClick={landed ? undefined : send}>{landed ? <><Ic n="check" s={18} w={2.6} />On The Lane</> : sending ? `${sending}…` : 'Go'}</button>}
       </div></div>
     </main>
+  );
+}
+
+/* ---------- the engine at idle (phases.md Phase 5 Frontend; W4-C) ----------
+   One thing: hold the cloud in the dock and the engine is recorded; the ring around the key fills as the eight seconds run,
+   the key itself swells with the sound (the waveform, as the ring and the key, no bars to read). Let go and it is kept: the
+   chime, the key lit. A tap on the key plays it back; the faint "Hold again" under the key records over it. Nothing here is
+   needed for Go. Reduced motion: the ring is set, not swept; the key does not swell. */
+type Rec = { mr: MediaRecorder; stream: MediaStream; chunks: Blob[]; t0: number; raf: number; ac: AudioContext | null; an: AnalyserNode | null };
+const REDUCED = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** The hold: pointer down asks for the microphone and records; pointer up (or the eighth second) stops and keeps it. A hold let go
+    before the microphone answered records nothing. The ring and the key are found by their ids on the page (one engine page at a time). */
+function useHold(mime: 'audio/webm' | 'audio/mp4' | null, onEngine: (b: Blob | null) => void) {
+  const rec = useRef<Rec | null>(null), held = useRef(false);
+  const [recording, setRecording] = useState(false);
+  const ringEl = () => document.getElementById('engine-ring'), keyEl = () => document.getElementById('engine-key');
+  const stop = () => { held.current = false; const r = rec.current; if (!r) return; cancelAnimationFrame(r.raf); if (r.mr.state !== 'inactive') r.mr.stop(); };
+  const start = async () => {
+    if (!mime || rec.current || held.current) return;
+    held.current = true;
+    let stream: MediaStream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { held.current = false; return; }   // no microphone, or no: silence
+    if (!held.current) { stream.getTracks().forEach(t => t.stop()); return; }
+    let mr: MediaRecorder;
+    try { mr = new MediaRecorder(stream, { mimeType: mime }); } catch { stream.getTracks().forEach(t => t.stop()); held.current = false; return; }
+    const chunks: Blob[] = [];
+    let ac: AudioContext | null = null, an: AnalyserNode | null = null;
+    if (!REDUCED()) { try { ac = new AudioContext(); an = ac.createAnalyser(); an.fftSize = 256; ac.createMediaStreamSource(stream).connect(an); } catch { ac = null; an = null; } }
+    mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    mr.onstop = () => {
+      stream.getTracks().forEach(t => t.stop()); ac?.close().catch(() => { /* closed */ });
+      const r = rec.current; rec.current = null; setRecording(false);
+      const ms = r ? performance.now() - r.t0 : 0;
+      const b = new Blob(chunks, { type: mime });
+      const ring = ringEl(), key = keyEl();
+      if (ms < 400 || !b.size || b.size > AUDIO_MAX_BYTES) { ring?.style.setProperty('--p', '0'); if (key) key.style.transform = ''; return; }   // a tap, or nothing: silent
+      ring?.style.setProperty('--p', '100'); if (key) key.style.transform = '';
+      onEngine(b); feel.landedOn(key);
+    };
+    const t0 = performance.now();
+    rec.current = { mr, stream, chunks, t0, raf: 0, ac, an };
+    try { mr.start(); } catch { stream.getTracks().forEach(t => t.stop()); rec.current = null; held.current = false; return; }
+    setRecording(true);
+    const buf = an ? new Uint8Array(an.fftSize) : null;
+    const tick = () => {
+      const r = rec.current; if (!r) return;
+      const p = Math.min(100, ((performance.now() - r.t0) / (ENGINE_SECONDS * 1000)) * 100);
+      ringEl()?.style.setProperty('--p', String(p));
+      if (r.an && buf) { r.an.getByteTimeDomainData(buf); let s = 0; for (let i = 0; i < buf.length; i++) { const x = (buf[i] - 128) / 128; s += x * x; } const rms = Math.sqrt(s / buf.length); const k = keyEl(); if (k) k.style.transform = `scale(${(1 + Math.min(0.5, rms * 1.6)).toFixed(3)})`; }
+      if (p >= 100) { stop(); return; }
+      r.raf = requestAnimationFrame(tick);
+    };
+    rec.current.raf = requestAnimationFrame(tick);
+  };
+  useEffect(() => () => { stop(); }, []);   // leaving the page mid-hold stops the microphone
+  return { recording, start, stop };
+}
+function HoldCloud({ mime, onEngine }: { mime: 'audio/webm' | 'audio/mp4' | null; onEngine: (b: Blob | null) => void }) {
+  const h = useHold(mime, onEngine);
+  return <button className="btn primary block" style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }} aria-pressed={h.recording}
+    onPointerDown={e => { e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); void h.start(); }} onPointerUp={h.stop} onPointerCancel={h.stop} onContextMenu={e => e.preventDefault()}
+    onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); void h.start(); } }} onKeyUp={e => { if (e.key === ' ' || e.key === 'Enter') h.stop(); }}>{h.recording ? 'Listening' : 'Hold'}</button>;
+}
+function EnginePage({ mime, engine, onEngine }: { mime: 'audio/webm' | 'audio/mp4' | null; engine: Blob | null; onEngine: (b: Blob | null) => void }) {
+  const [playing, setPlaying] = useState(false);
+  const url = useMemo(() => (engine ? URL.createObjectURL(engine) : null), [engine]);
+  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const play = () => {
+    if (!url) return;
+    feel.tap();
+    audio.current?.pause();
+    const a = new Audio(url); audio.current = a; setPlaying(true);
+    const key = document.getElementById('engine-key'); const stopBreath = key ? breathe(key) : undefined;
+    a.onended = a.onerror = () => { setPlaying(false); stopBreath?.(); };
+    a.play().catch(() => { setPlaying(false); stopBreath?.(); });
+  };
+  useEffect(() => () => { audio.current?.pause(); }, []);
+  const again = useHold(mime, onEngine);
+  return (
+    <section className="enter" key="engine">
+      <h1 className="q">The <em>engine.</em></h1>
+      {/* the ring fills as the eight seconds run; the key inside it swells with the sound; lit and tappable once kept (lego.md §4.1: the object inside the ring it means) */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 30, gap: 10 }}>
+        <button id="engine-ring" className="ring big" aria-label={engine ? 'Play the engine' : 'The engine'} disabled={!engine} onClick={play} style={{ width: 132, height: 132, margin: 0, cursor: engine ? 'pointer' : 'default', opacity: engine || again.recording ? 1 : 0.6, transition: 'opacity .3s', ['--p' as string]: engine ? 100 : 0 }}>
+          <span style={{ width: 112, height: 112 }}><i id="engine-key" style={{ display: 'inline-block', lineHeight: 0, willChange: 'transform', transition: 'transform .08s linear' }}><Obj name="key" h={64} /></i></span>
+        </button>
+        {engine && !playing && <button className="textlink" style={{ color: 'var(--faint)', touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }} aria-pressed={again.recording}
+          onPointerDown={e => { e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); void again.start(); }} onPointerUp={again.stop} onPointerCancel={again.stop} onContextMenu={e => e.preventDefault()}>{again.recording ? 'Listening' : 'Hold again'}</button>}
+      </div>
+    </section>
   );
 }
 
@@ -505,6 +648,7 @@ function Live({ lot, v, link, hammer, onLot }: { lot: Lot; v?: Vehicle; link?: L
         <Ring className="ring big" p={closed ? 100 : p}><span className="num" style={FACE}>{closed ? 'Done' : timeLeft(lot.closesAt)}</span></Ring>
         <h1 className="q num" ref={fig}>{hammer && lot.sale ? usd(lot.sale.hammer) : lot.bids ? <Count value={lot.high} format={dollars} /> : <>No bids <em>yet.</em></>}</h1>
         <p className="note">{name}{lot.bids ? ` · ${n(lot.bids)} ${lot.bids === 1 ? 'bid' : 'bids'}` : ''}{lot.watching ? ` · ${n(lot.watching)} watching` : ''}</p>
+        {laneWord(lot.car?.lane) && <p className="note" style={{ marginTop: 4, color: 'var(--faint)' }}>{laneWord(lot.car?.lane)}</p>}
         <div className="group">
           <div className="row" ref={floorRow}><span className="t"><b>Floor</b><small>{lot.bids ? (lot.high >= floor ? 'Covered' : 'Not yet reached') : 'Bidding opens here'}</small></span><span className="v num">{usd(floor)}</span></div>
           {lot.car?.collateral?.title.status === 'lender' && <div className="row"><span className="t"><b>Title at {lot.car.collateral.title.lienholder || 'the lender'}</b><small>{lot.car.collateral.title.releaseDays} days to release after payoff</small></span><span className="v num">{usd(lot.car.collateral.title.payoff ?? 0)}</span></div>}
@@ -658,6 +802,7 @@ function Sold({ lot, v, link, onLot }: { lot: Lot; v?: Vehicle; link?: LotLink; 
         {mode === 'vin' && !cam && <div ref={keyObj} style={{ display: 'block', margin: '0 auto 8px', width: 'fit-content' }}><Obj name="key" h={72} /></div>}
         <h1 className="q num">{usd(s.hammer)}</h1>
         <p className="note">{name}{state === 'voided' ? ' · Voided' : state === 'forfeited' ? ' · The buyer walked.' : ''}</p>
+        {laneWord(lot.car?.lane) && <p className="note" style={{ marginTop: 4, color: 'var(--faint)' }}>{laneWord(lot.car?.lane)}</p>}
         {mode === 'sale' && <div className="group">
           <div className="row"><span className="t"><b>Won</b></span><span className="v">{new Date(s.wonAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></div>
           {state !== 'started' && state !== 'forfeited' && <div className="row"><span className="t"><b>Pay by</b></span><V obj="clock">{payBy(s.deadlineAt)}</V></div>}

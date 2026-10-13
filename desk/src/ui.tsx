@@ -139,6 +139,9 @@ const G: Record<string, ReactNode> = {
 export function Ic({ n, s = 22, w = 1.9 }: { n: string; s?: number; w?: number }) {
   return <svg viewBox="0 0 24 24" width={s} height={s} fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{G[n]}</svg>;
 }
+/** The ink ring and check the corridor's licence fields use (Corridor.tsx): a faint ring, then the accent fill with the check.
+ *  Ink only, no cloud body: the grain rides a cloud, never a 26 px mark (docs/design/cloud-system.md). */
+export const Tick = ({ on }: { on: boolean }) => <span aria-hidden style={{ width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff', flex: 'none', background: on ? 'var(--accent)' : 'transparent', boxShadow: on ? 'none' : 'inset 0 0 0 2px var(--line)', transition: 'background .2s, box-shadow .2s' }}>{on && <Ic n="check" s={15} w={3} />}</span>;
 export const Chev = () => <span className="chev"><Ic n="chev" s={16} w={2.2} /></span>;
 export const Back = ({ to, label = 'Back' }: { to: string; label?: string }) => <a className="back" href={to} onClick={() => { feel.tap(); backward(); }}><Ic n="chev" s={18} w={2.4} />{label}</a>;
 
@@ -161,10 +164,10 @@ export function CarArt({ color = '#9AA6BF', body = 'Sedan', w = 150 }: { color?:
 }
 
 /* ---------- a choice button: tapping it saves and advances ---------- */
-export function Choice({ label, gloss, icon, on, disabled, onPick }: { label: string; gloss?: string; icon?: string; on?: boolean; disabled?: boolean; onPick: () => void }) {
+export function Choice({ label, gloss, icon, art, on, disabled, onPick }: { label: string; gloss?: string; icon?: string; art?: ReactNode; on?: boolean; disabled?: boolean; onPick: () => void }) {
   return (
     <button className="choice" aria-pressed={!!on} disabled={disabled} onClick={() => { feel.next(); onPick(); }}>
-      {icon && <span className="art"><Ic n={icon} s={24} /></span>}
+      {art ? <span className="art">{art}</span> : icon && <span className="art"><Ic n={icon} s={24} /></span>}
       <span className="t"><b>{label}</b>{gloss && <small>{gloss}</small>}</span>
       <span className="tick">{on && <Ic n="check" s={15} w={3} />}</span>
     </button>
