@@ -8,7 +8,7 @@ export default defineConfig({
       return {
         wrangler: { configPath: './wrangler.toml' },
         miniflare: {
-          bindings: { BUYER_SECRET: 'test-buyer-secret', DEALER_SECRET: 'test-dealer-secret', MINT_SECRET: 'test-mint-secret-0123456789abcdefghij', DEV: '1', WHOP_WEBHOOK_SECRET: 'test-whop-secret', TEST_MIGRATIONS: migrations },
+          bindings: { BUYER_SECRET: 'test-buyer-secret', DEALER_SECRET: 'test-dealer-secret', MINT_SECRET: 'test-mint-secret-0123456789abcdefghij', DEV: '1', WHOP_WEBHOOK_SECRET: 'test-whop-secret', MESSAGING_PROVIDER: 'fake', TEST_MIGRATIONS: migrations },
           d1Databases: ['DB'],
           r2Buckets: ['FILES'],
         },

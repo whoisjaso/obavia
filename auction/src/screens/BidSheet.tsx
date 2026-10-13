@@ -3,8 +3,10 @@
    The drag only arms; the button bids; over 2× asks a 600 ms hold. The thump
    fires on the server's ack, never before. A bid that lands after close is
    the one place a sentence is allowed, and it is the server's sentence.
-   The first Bid ever runs the licence (IdScan, full screen) and then the
-   deposit, two screens, once (decisions §3.1, first bid). The deposit back
+   The first Bid ever runs the phone (PhoneSignIn, the number and its code:
+   Phase 2 sign-in), the licence (IdScan, full screen) and then the deposit,
+   three screens, once (decisions §3.1, first bid). A 409 phone_required on
+   a bid reopens the phone. The deposit back
    from Whop lands its held line with the success haptic and the air swell,
    one event, 200 ms before the bid goes; the thud is the bid's own ack.
    The first bid ever states the auction terms once (decisions §9 D10): four
@@ -35,11 +37,12 @@ import { Refused, TERMS, TERMS_VERSION } from '../engine/client';
 import { EASE_OUT, EASE_SHEET, cloud, ms, spring } from '../motion';
 import { theme } from '../theme';
 import { IdScan } from './won/Scan';
+import { PhoneSignIn } from './won/Phone';
 
 const STEP_PT = 28;
 const TERMS_ROOM = 96;   // the four terms at 17 pt, read at arm's length (DOCTRINE §4.3): five lines on a 393 phone
 const AIR = 64;          // the 17 pt words, the held line and the air above the cloud's crowns: everything fits at rest, nothing touches
-type Phase = 'arming' | 'id' | 'deposit' | 'inflight' | 'landed' | 'rejected';
+type Phase = 'arming' | 'phone' | 'id' | 'deposit' | 'inflight' | 'landed' | 'rejected';
 
 export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot; now: number; steps: number; onClose: () => void }) {
   const { height } = useWindowDimensions();
@@ -114,6 +117,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   useEffect(() => { dragSteps.value = stepsNow; if (phase === 'arming') setStamp(null); }, [stepsNow]);   // a reset moves the base too; a new number clears an old line
 
   const place = async () => {
+    if (peekBuyer().phoneVerified !== true) { setPhase('phone'); return; }   // the chain's first link: Bid, Phone, ID, Pay
     if (!once.deposit) { setPhase(once.licence ? 'deposit' : 'id'); return; }
     setPhase('inflight'); setStamp(null);
     const key = `${ME}-${car.id}-${Date.now()}`;
@@ -122,6 +126,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
     catch (e) {
       // negative paths: silent; at most one line says what happened
       const code = e instanceof Refused ? e.code : '';
+      if (code === 'phone_required') { setBuyer({ phoneVerified: false }); setPhase('phone'); return; }   // the number again, nothing else
       if (code === 'terms_required') { setBuyer({ termsCurrent: false }); setTerms(Date.now()); setPhase('arming'); return; }   // the read again, nothing else
       if (code === 'win_cap') { setBuyer({ winsLeft: 0 }); setPhase('rejected'); setStamp('Four wins a year. Next January.'); return; }
       if (code === 'deposit') { once.deposit = false; setPhase('deposit'); return; }
@@ -145,6 +150,12 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
       // outbid during flight, or under the ask: the price rolls to the new number. Silence is the punishment.
       setPhase('arming'); setSteps(0); setCeil(0);
     }
+  };
+
+  // the number proved: the chain goes on where it left off (the licence and the deposit the first time; the bid itself after)
+  const phoned = () => {
+    if (!once.deposit) { setPhase(once.licence ? 'deposit' : 'id'); return; }
+    setPhase('arming'); later(place, ms.land);
   };
 
   const confirmDeposit = async () => {
@@ -211,7 +222,8 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
         </Animated.View>
       </GestureDetector>
       {teach && <Teach />}
-      {/* the first bid: the licence before the deposit; the sheet waits under it */}
+      {/* the first bid: the phone, then the licence, then the deposit; the sheet waits under them */}
+      {phase === 'phone' && <PhoneSignIn onDone={phoned} onCancel={() => setPhase('arming')} />}
       {phase === 'id' && <IdScan onDone={id => { once.licence = id; setPhase('deposit'); }} onCancel={() => setPhase('arming')} />}
     </View>
   );

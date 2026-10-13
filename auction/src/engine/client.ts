@@ -20,10 +20,14 @@ export type Profile = { name?: string; state?: string; phone?: string; address?:
 export type MeRead = {
   id: string; name?: string; state?: string; deposit_status?: string;
   wins?: number; winsLeft?: number; winsPerYear?: number; termsVersion?: string | null; termsCurrent?: boolean;
+  /** the verified number as its last four ("(•••) •••-0142"), null until a code proved it */
+  phone?: string | null; phoneVerified?: boolean;
 };
+/** What the phone routes answer: the masked number on success, the Worker's code and its Retry-After otherwise. */
+export type PhoneAnswer = { ok: true; phone: string | null } | { ok: false; code: string; retryAfter?: number };
 
 /** A request the Worker refused, by its code: `not_yours` (sign-in with a dead token), `sign_in` (401 elsewhere),
-    `deposit` (402), `terms_required` (409), `win_cap`, `seller_cannot_bid`, `not_a_buyer` (403), or `http_<status>`. */
+    `phone_required` (409, no number proved by a code), `deposit` (402), `terms_required` (409), `win_cap`, `seller_cannot_bid`, `not_a_buyer` (403), or `http_<status>`. */
 export class Refused extends Error {
   readonly code: string; readonly status: number;
   constructor(code: string, status: number) { super(code); this.code = code; this.status = status; }
@@ -140,6 +144,20 @@ export class RemoteAuctionServer {
   static async deposit(base: string, token: string, paymentId?: string): Promise<boolean> {
     const r = await fetch(`${base}/me/deposit`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ paymentId }) });
     return r.ok;
+  }
+
+  /** Sign-in by phone, the first page of the first bid (worker/README.md, Sign-in by phone). `phone` in E.164.
+      Never logged here or anywhere: the number and the code go in the body and nowhere else. */
+  static sendPhone(base: string, token: string, phone: string): Promise<PhoneAnswer> { return RemoteAuctionServer.phoneCall(base, token, '/me/phone', { phone }); }
+  static verifyPhone(base: string, token: string, code: string): Promise<PhoneAnswer> { return RemoteAuctionServer.phoneCall(base, token, '/me/phone/verify', { code }); }
+  private static async phoneCall(base: string, token: string, path: string, body: Record<string, string>): Promise<PhoneAnswer> {
+    try {
+      const r = await fetch(`${base}${path}`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      if (!r.ok) { const e = await refusal(r); const after = Number(r.headers.get('retry-after')); return { ok: false, code: e.code, ...(after > 0 ? { retryAfter: after } : {}) }; }
+      const b = await r.json() as { phone?: string | null; verified?: boolean; sent?: boolean };
+      if (path.endsWith('/verify') && b.verified !== true) return { ok: false, code: 'not_verified' };   // a fake proof on a deployed Worker
+      return { ok: true, phone: typeof b.phone === 'string' ? b.phone : null };
+    } catch { return { ok: false, code: 'network' }; }
   }
 
   /** Who the Worker thinks the buyer is, and where the deposit stands. */

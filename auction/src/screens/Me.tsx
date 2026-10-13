@@ -4,7 +4,8 @@
    Returning after a day, the first ring spins in with the heartbeat before
    anything else loads. The neutral screen: nothing fires here but that.
    Under the deposit, the wins left this year (D15), a number that darkens as
-   it runs out. A phone whose sign-in was refused says so in one quiet line. */
+   it runs out. A phone whose sign-in was refused says so in one quiet line.
+   Under the name, faint, the number the buyer proved with a code: last four only. */
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
@@ -108,7 +109,11 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
   const mePage = (
     <Page foot={<Button label="Sign out" onPress={() => { feel.silence(); onClose(); }} ghost />}>
       <Label>Me</Label>
-      <Serif size={36} style={{ paddingHorizontal: theme.space.s }}>{me.name}</Serif>
+      <View style={{ alignItems: 'center' }}>
+        <Serif size={36} style={{ paddingHorizontal: theme.space.s }}>{me.name}</Serif>
+        {/* the proved number, last four only, faint and touching the name it belongs to */}
+        {buyer.phone ? <Body ink={theme.color.faint} style={{ fontVariant: ['tabular-nums'] }}>{buyer.phone}</Body> : null}
+      </View>
       {buyer.lost && <Body ink={theme.color.faint} style={{ marginTop: 4 }}>This phone lost its sign-in. Write to us.</Body>}
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Deposit</Label>

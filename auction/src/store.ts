@@ -3,7 +3,7 @@
    stand-in with the same surface, so the screens never know which. */
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { carFromLot, cars as seeded, seedLots, type Car } from './data/cars';
-import { RemoteAuctionServer, Refused, TERMS_VERSION, type Profile, type Session } from './engine/client';
+import { RemoteAuctionServer, Refused, TERMS_VERSION, type PhoneAnswer, type Profile, type Session } from './engine/client';
 import { LocalAuctionServer, type Ack, type BidRequest, type Event, type Lot } from './engine/server';
 import { kv } from './kv';
 import type { Licence } from './sale';
@@ -30,8 +30,10 @@ function readJSON<T>(k: string): T | null { try { const v = kv.get(k); return v 
 export const WINS_PER_YEAR = 4;
 
 /** The buyer as the Worker last read them. `lost`: the stored token was refused (rotated or bumped away);
-    nothing here makes a new buyer to replace it. `termsCurrent` false: the next bid is the first under the terms. */
-export type Buyer = { lost: boolean; winsLeft?: number; winsPerYear: number; termsCurrent?: boolean };
+    nothing here makes a new buyer to replace it. `termsCurrent` false: the next bid is the first under the terms.
+    `phone`: the verified number as its last four, the only form the phone ever holds; `phoneVerified` false or
+    unknown: the next Bid opens the Phone page first. */
+export type Buyer = { lost: boolean; winsLeft?: number; winsPerYear: number; termsCurrent?: boolean; phone?: string | null; phoneVerified?: boolean };
 let buyer: Buyer = { lost: false, winsPerYear: WINS_PER_YEAR, termsCurrent: AUCTION_URL ? undefined : false };
 const buyerSubs = new Set<() => void>();
 export const peekBuyer = () => buyer;
@@ -63,7 +65,32 @@ export async function refreshMe(): Promise<void> {
   const m = await RemoteAuctionServer.me(AUCTION_URL, token);
   if (!m) return;
   once.deposit = m.deposit_status === 'captured';
-  setBuyer({ winsLeft: m.winsLeft, winsPerYear: m.winsPerYear ?? WINS_PER_YEAR, termsCurrent: m.termsCurrent });
+  setBuyer({ winsLeft: m.winsLeft, winsPerYear: m.winsPerYear ?? WINS_PER_YEAR, termsCurrent: m.termsCurrent, phone: m.phone ?? null, phoneVerified: m.phoneVerified === true });
+}
+
+/** The number as the phone shows it once proved: the last four. The Worker's mask, made here for the stand-in. */
+export const maskPhone = (e164: string) => `(•••) •••-${e164.replace(/\D/g, '').slice(-4)}`;
+
+/** Sign-in by phone: a code to `e164` (+1 and ten digits). Locally the stand-in plays the Worker's fake: any
+    number is sent, 000000 proves it, the 30 s gap holds. Nothing here logs the number or the code. */
+let localSentAt = 0, localPhone = '';
+export async function sendPhoneCode(e164: string): Promise<PhoneAnswer> {
+  if (AUCTION_URL) {
+    if (!token) return { ok: false, code: 'sign_in' };
+    return RemoteAuctionServer.sendPhone(AUCTION_URL, token, e164);
+  }
+  const wait = localSentAt + 30_000 - Date.now();
+  if (wait > 0) return { ok: false, code: 'rate_limited', retryAfter: Math.ceil(wait / 1000) };
+  localSentAt = Date.now(); localPhone = e164;
+  return { ok: true, phone: maskPhone(e164) };
+}
+/** The six digits. On success the store holds the masked number and phoneVerified, and every screen hears it. */
+export async function verifyPhoneCode(code: string): Promise<PhoneAnswer> {
+  let r: PhoneAnswer;
+  if (AUCTION_URL) r = token ? await RemoteAuctionServer.verifyPhone(AUCTION_URL, token, code) : { ok: false, code: 'sign_in' };
+  else r = !localPhone ? { ok: false, code: 'code_expired' } : code === '000000' ? { ok: true, phone: maskPhone(localPhone) } : { ok: false, code: 'wrong_code' };
+  if (r.ok) setBuyer({ phone: r.phone, phoneVerified: true });
+  return r;
 }
 
 /** POST /me/rotate: a fresh token, the old one dead. Called once after a deposit capture. */
@@ -126,6 +153,7 @@ export function getServer(): AuctionServer {
     server = {
       subscribe: f => local.subscribe(f), get: id => local.get(id), all: () => local.all(),
       async bid(req) {
+        if (!buyer.phoneVerified) throw new Refused('phone_required', 409);
         if (!buyer.termsCurrent && req.terms !== TERMS_VERSION) throw new Refused('terms_required', 409);
         if (localCommitted(local.all(), req.lotId) >= WINS_PER_YEAR) throw new Refused('win_cap', 403);
         const ack = await local.bid(req);

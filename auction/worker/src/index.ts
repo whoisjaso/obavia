@@ -11,6 +11,7 @@ import { lastReconciliations, reconcile } from './reconcile';
 import { Whop } from './whop';
 import { COUNT_SQL, TERMS_VERSION, WINS_PER_YEAR, committed, phoneDigits, winsLeft, yearStart, type Counts } from './bidders';
 import type { BidIn } from './auction';
+import { maskPhone, sendCode, verifiedForReal, verifyCode } from './phone';
 export { Auction } from './auction';
 
 const DEPOSIT_USD = 250;
@@ -91,7 +92,7 @@ async function handle(req: Request, env: Env): Promise<Response> {
           if (s?.suspended_at) return text('dealer suspended', 403);
         }
         const body = await req.text();
-        return toObject({ method: 'POST', body, dealer: dealer === '*' ? (rest === '/open' ? (JSON.parse(body || '{}').dealer ?? '*') : '') : dealer });
+        return withContact(await toObject({ method: 'POST', body, dealer: dealer === '*' ? (rest === '/open' ? (JSON.parse(body || '{}').dealer ?? '*') : '') : dealer }), env, id, dealer);
       }
       // buyer: bid, watch, live
       if (rest === '/bids' || rest === '/watch' || rest === '/live') {
@@ -107,11 +108,14 @@ async function handle(req: Request, env: Env): Promise<Response> {
         const buyer = claim.id;
         if (rest === '/bids') {
           // one read of the copy admits the buyer: the token's epoch, deposit, terms, the year's count, and what the shill check compares
-          const row = await env.DB.prepare(`SELECT b.token_epoch, b.deposit_status, b.terms_at, b.name, b.phone, b.address, c.wins, c.owed, c.leading FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
-            .bind(buyer, yearStart(Date.now()), id).first<{ token_epoch: number; deposit_status: string; terms_at: number | null; name: string | null; phone: string | null; address: string | null } & Counts>();
+          const row = await env.DB.prepare(`SELECT b.token_epoch, b.deposit_status, b.terms_at, b.name, b.phone, b.phone_verified_at, b.phone_verified_via, b.address, c.wins, c.owed, c.leading FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
+            .bind(buyer, yearStart(Date.now()), id).first<{ token_epoch: number; deposit_status: string; terms_at: number | null; name: string | null; phone: string | null; phone_verified_at: number | null; phone_verified_via: string | null; address: string | null } & Counts>();
           if (row?.token_epoch !== claim.epoch) return text('sign in', 401);   // rotated or bumped away
           const body = await req.json<Omit<BidRequest, 'bidder' | 'lotId'> & { terms?: string }>();
           if (!(body.amount > 0) || !(body.max >= body.amount) || !body.key || body.key.length > 128) return text('bad bid', 400);
+          // sign-in by phone, the first page of the first-bid chain (phone, licence, deposit): no verified number, no bid
+          const verifiedPhone = verifiedForReal(env, row.phone_verified_at, row.phone_verified_via) ? row.phone : null;
+          if (!verifiedPhone) return json({ error: 'phone_required' }, 409);
           if (row.deposit_status !== 'captured') return text('deposit first', 402);
           const firstBid = row.terms_at == null;
           if (firstBid && body.terms !== TERMS_VERSION) return json({ error: 'terms_required', version: TERMS_VERSION }, 409);
@@ -120,7 +124,7 @@ async function handle(req: Request, env: Env): Promise<Response> {
             await refuse(env, id, buyer, 'win_cap', String(count));
             return json({ error: 'win_cap', count, cap: WINS_PER_YEAR }, 403);
           }
-          const fwd: BidIn = { lotId: id, bidder: buyer, amount: Math.round(body.amount), max: Math.round(body.max), key: `${buyer}:${body.key}`, who: { phone: row.phone, address: row.address, name: row.name } };
+          const fwd: BidIn = { lotId: id, bidder: buyer, amount: Math.round(body.amount), max: Math.round(body.max), key: `${buyer}:${body.key}`, who: { phone: verifiedPhone, address: row.address, name: row.name } };   // D11 compares the verified phone only
           const res = await toObject({ method: 'POST', body: JSON.stringify(fwd) });
           if (firstBid && res.status === 200) {   // D10: the first bid placed carries the terms; stamped once
             await env.DB.prepare('UPDATE buyers SET terms_version = ?2, terms_at = ?3 WHERE id = ?1 AND terms_at IS NULL').bind(buyer, TERMS_VERSION, Date.now()).run();
@@ -130,7 +134,11 @@ async function handle(req: Request, env: Env): Promise<Response> {
         if (!(await buyerFrom(req, env))) return text('sign in', 401);   // the epoch, for watch and live
         return stub.fetch(req);   // watch; or the WebSocket upgrade for /live
       }
-      if (rest === '/' && req.method === 'GET') return stub.fetch(req);
+      if (rest === '/' && req.method === 'GET') {   // the lot's own dealer (and the admin) also get the winner's name and number (CF9: the call within the hour)
+        const desk = await dealerFrom(req, env.DEALER_SECRET);
+        const r = await stub.fetch(req);
+        return desk ? withContact(r, env, id, desk) : r;
+      }
       return text('not found', 404);
     }
 
@@ -149,7 +157,10 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const recentRefusals = await env.DB.prepare('SELECT lot_id AS lotId, who, reason, matched, at FROM bid_refusals ORDER BY at DESC, id DESC LIMIT 50').all();
       const tokenRefusals = await env.DB.prepare('SELECT presented, COUNT(*) AS n FROM token_refusals GROUP BY presented').all<{ presented: string; n: number }>();
       const recentTokenRefusals = await env.DB.prepare('SELECT claimed, reason, presented, known, at FROM token_refusals ORDER BY at DESC, id DESC LIMIT 50').all();
-      const sales = lots.filter(l => l.sale).map(l => ({ lotId: l.id, dealer: l.dealer, state: l.sale.startedAt ? 'started' : l.sale.voidedAt ? 'voided' : l.sale.forfeitedAt ? 'forfeited' : l.sale.paidAt ? 'paid' : 'owed', deposit: l.sale.deposit, hammer: l.sale.hammer, deadlineAt: l.sale.deadlineAt }));
+      const winners = new Map((await env.DB.prepare(`SELECT id, name, phone, phone_verified_at, phone_verified_via FROM buyers WHERE id IN (SELECT json_extract(lot, '$.sale.buyer') FROM lots WHERE json_extract(lot, '$.sale.buyer') IS NOT NULL)`)
+        .all<ContactRow & { id: string }>()).results.map(b => [b.id, contactOf(env, b)]));
+      const sales = lots.filter(l => l.sale).map(l => ({ lotId: l.id, dealer: l.dealer, state: l.sale.startedAt ? 'started' : l.sale.voidedAt ? 'voided' : l.sale.forfeitedAt ? 'forfeited' : l.sale.paidAt ? 'paid' : 'owed', deposit: l.sale.deposit, hammer: l.sale.hammer, deadlineAt: l.sale.deadlineAt,
+        buyer: winners.get(l.sale.buyer) ?? { name: null, phone: null } }));   // the desk person's one call (CF9); admin only
       return json({
         deposits: { heldCount: held, heldUsd: held * DEPOSIT_USD, byStatus: Object.fromEntries(dep.results.map(d => [d.s, d.n])), reserveRatio: 1 },   // every held deposit sits in the Whop balance; nothing is spent
         lots: { open: lots.filter(l => !l.closed).length, atLender: lots.filter(l => !l.closed && l.car?.collateral?.title?.status === 'lender').length, floorBelowPayoff: lots.filter(l => !l.closed && (l.car?.collateral?.title?.payoff ?? 0) > (l.car?.collateral?.floor ?? Infinity)).length },
@@ -215,6 +226,12 @@ async function handle(req: Request, env: Env): Promise<Response> {
       if (!r) return text('sign in', 401);
       return json({ id: c.id, token: await mintBuyerToken(env.BUYER_SECRET, c.id, r.token_epoch) });
     }
+    // sign-in by phone (src/phone.ts): a code to a US number, then the code; the verified number is the one the shill check reads
+    if (req.method === 'POST' && (url.pathname === '/me/phone' || url.pathname === '/me/phone/verify')) {
+      const buyer = await buyerFrom(req, env);
+      if (!buyer) return text('sign in', 401);
+      return url.pathname === '/me/phone' ? sendCode(req, env, buyer, CORS) : verifyCode(req, env, buyer, CORS);
+    }
     if (req.method === 'POST' && url.pathname === '/me/push') {
       const buyer = await buyerFrom(req, env);
       if (!buyer) return text('sign in', 401);
@@ -226,12 +243,14 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (req.method === 'GET' && url.pathname === '/me') {
       const buyer = await buyerFrom(req, env);
       if (!buyer) return text('sign in', 401);
-      const row = await env.DB.prepare(`SELECT b.name, b.state, b.deposit_status, b.terms_version, b.terms_at, c.wins, c.owed, c.leading FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
-        .bind(buyer, yearStart(Date.now()), '').first<{ name: string | null; state: string | null; deposit_status: string; terms_version: string | null; terms_at: number | null } & Counts>();
-      if (!row) return json({ id: buyer });
-      const { wins, owed, leading, terms_version, terms_at, ...rest } = row;
+      const row = await env.DB.prepare(`SELECT b.name, b.state, b.deposit_status, b.terms_version, b.terms_at, b.phone, b.phone_verified_at, b.phone_verified_via, c.wins, c.owed, c.leading FROM buyers b, (${COUNT_SQL}) c WHERE b.id = ?1`)
+        .bind(buyer, yearStart(Date.now()), '').first<{ name: string | null; state: string | null; deposit_status: string; terms_version: string | null; terms_at: number | null; phone: string | null; phone_verified_at: number | null; phone_verified_via: string | null } & Counts>();
+      if (!row) return json({ id: buyer, phone: null, phoneVerified: false });
+      const { wins, owed, leading, terms_version, terms_at, phone, phone_verified_at, phone_verified_via, ...rest } = row;
+      // the number leaves only as its last four, and only once a code proved it
+      const phoneVerified = verifiedForReal(env, phone_verified_at, phone_verified_via);
       // D15: winsLeft is the one number the Me screen shows; wins are cars started this calendar year
-      return json({ id: buyer, ...rest, wins, winsLeft: winsLeft({ wins, owed, leading }), winsPerYear: WINS_PER_YEAR, termsVersion: terms_version, termsAt: terms_at, termsCurrent: TERMS_VERSION });
+      return json({ id: buyer, ...rest, phone: phoneVerified ? maskPhone(phone) : null, phoneVerified, wins, winsLeft: winsLeft({ wins, owed, leading }), winsPerYear: WINS_PER_YEAR, termsVersion: terms_version, termsAt: terms_at, termsCurrent: TERMS_VERSION });
     }
     if (req.method === 'POST' && url.pathname === '/me/deposit/checkout') {
       const buyer = await buyerFrom(req, env);
@@ -263,7 +282,7 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const row = await env.DB.prepare('SELECT deposit_status, deposit_ref FROM buyers WHERE id = ?1').bind(buyer).first<{ deposit_status: string; deposit_ref: string | null }>();
       if (row?.deposit_status !== 'captured') return text('nothing held', 409);
       const open = await env.DB.prepare('SELECT lot FROM lots').all<{ lot: string }>();
-      const busy = open.results.some(r => { const l = JSON.parse(r.lot); return (!l.closed && l.leader === buyer) || (l.sale && l.sale.buyer === buyer && !l.sale.startedAt && !l.sale.forfeitedAt); });
+      const busy = open.results.some(r => { const l = JSON.parse(r.lot); return (!l.closed && l.leader === buyer) || (l.sale && l.sale.buyer === buyer && !l.sale.startedAt && !l.sale.forfeitedAt && !l.sale.voidedAt); });   // a voided sale owes nothing: the dealer could not deliver
       if (busy) return text('you lead a car or owe one', 409);
       if (whop.ready && row.deposit_ref && row.deposit_ref !== 'dev') await whop.refund(row.deposit_ref);
       await env.DB.prepare('UPDATE buyers SET deposit_status = ?2 WHERE id = ?1').bind(buyer, 'refunded').run();
@@ -321,9 +340,33 @@ async function signIn(req: Request, env: Env): Promise<Response> {
   } else {
     id = `b_${randomId()}`;   // a new buyer: the only place a buyer id is made
   }
-  const r = await env.DB.prepare('INSERT INTO buyers (id, name, state, phone, address, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(id) DO UPDATE SET name = COALESCE(?2, name), state = COALESCE(?3, state), phone = COALESCE(?4, phone), address = COALESCE(?5, address) RETURNING token_epoch')
+  const r = await env.DB.prepare('INSERT INTO buyers (id, name, state, phone, address, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(id) DO UPDATE SET name = COALESCE(?2, name), state = COALESCE(?3, state), phone = CASE WHEN phone_verified_at IS NULL THEN COALESCE(?4, phone) ELSE phone END, address = COALESCE(?5, address) RETURNING token_epoch')
     .bind(id, b.name ?? null, b.state ?? null, phone, address, Date.now()).first<{ token_epoch: number }>();
   return json({ id, token: await mintBuyerToken(env.BUYER_SECRET, id, r?.token_epoch ?? 0) });
+}
+
+/* The winner, for the people who call them: the name and the verified number in full (+1 and ten digits),
+   only on what a dealer key reads for its own lot and on the admin's exposure. Never on a buyer-facing payload
+   (the lane, GET /lots/:id without a dealer key, the live socket). */
+type ContactRow = { name: string | null; phone: string | null; phone_verified_at: number | null; phone_verified_via: string | null };
+const contactOf = (env: Env, b: ContactRow | null) => ({ name: b?.name ?? null, phone: b && b.phone && verifiedForReal(env, b.phone_verified_at, b.phone_verified_via) ? `+1${b.phone}` : null });
+
+/** The lot a dealer key reads, with `sale.contact` when the key is this lot's dealer (or the admin) and there is a winner. */
+async function withContact(res: Response, env: Env, lotId: string, dealer: string): Promise<Response> {
+  if (res.status !== 200) return res;
+  if (dealer !== '*') {   // the object strips the dealer from what it returns: the copy says whose lot it is
+    const own = await env.DB.prepare('SELECT dealer FROM lots WHERE id = ?1').bind(lotId).first<{ dealer: string }>();
+    if (own?.dealer !== dealer) return res;
+  }
+  // read once and rebuilt: a tee of the object's stream left a branch unread and held the object (its alarm with it)
+  const raw = await res.text();
+  const same = () => new Response(raw, { status: res.status, headers: res.headers });
+  let lot: { sale?: { buyer?: string; contact?: unknown } } | null = null;
+  try { lot = JSON.parse(raw); } catch { return same(); }
+  if (!lot?.sale?.buyer) return same();
+  const b = await env.DB.prepare('SELECT name, phone, phone_verified_at, phone_verified_via FROM buyers WHERE id = ?1').bind(lot.sale.buyer).first<ContactRow>();
+  lot.sale.contact = contactOf(env, b);
+  return json(lot);
 }
 
 /** 128 random bits, base64url: 22 characters. */
