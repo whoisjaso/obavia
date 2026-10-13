@@ -47,7 +47,7 @@ Reading of CF5. The plan says "The dealer application asks for the GDN number fi
 | | |
 | --- | --- |
 | Copy | **How many cars are on your lot today?** |
-| Field | Single choice: `1–10` · `11–30` · `31–75` · `76 or more` |
+| Field | Single choice: `1 to 10` · `11 to 30` · `31 to 75` · `76 or more` |
 | Signals | Size of the desk and of the supply. It is easy to answer honestly because it isn't money (CF psych 8). |
 | Desk uses it for | Desk math (model §2.1): how many lots this dealer's desk could run a week, so the second-desk clock can be read. It is not used to branch or to reject. |
 | Held to | No per-page floor in the plan. The drop is recorded. |
@@ -59,7 +59,7 @@ Reading of CF5. The plan says "The dealer application asks for the GDN number fi
 | | |
 | --- | --- |
 | Copy | **How many of them have been on the lot more than 60 days?** |
-| Field | Single choice: `None` · `1–2` · `3–5` · `6–10` · `11 or more` |
+| Field | Single choice: `None` · `1 to 2` · `3 to 5` · `6 to 10` · `11 or more` |
 | Signals | Whether there is a losing car to put on the lane. It works as a competence question, like Fazio's arithmetic (CF psych 9): a dealer who knows the number knows his lot. |
 | Desk uses it for | Sets the dealer's day count, so the Let It Go days ring turns amber past it (`decisions.md` §3.2). The default is 60. `None` still continues, because the friction here is chosen low. |
 | Held to | No per-page floor in the plan. The drop is recorded. |
@@ -116,7 +116,7 @@ Reading of CF5. The plan says "The dealer application asks for the GDN number fi
 | Copy | **We texted a code to the phone on your license, ending in 3294. Enter it here.** (The last four digits come from the lookup.) |
 | Field | Six-digit code, using the code field's autofill. A faint "Send it again" appears after 30 seconds. |
 | Signals | The person applying controls the dealership's licensed phone (`decisions.md` §2 row 10: "sellers only from the TxDMV list, verified by the licence's phone on file"). |
-| Desk uses it for | Verification, using the Telnyx Verify path already built in `desk/server/` (`messaging.md`, build order 1–2). If the dealer no longer has that phone, admin fixes the record by hand. That fix is logged, and it counts against "without a call". |
+| Desk uses it for | Verification, using the Telnyx Verify path already built in `desk/server/` (`messaging.md`, build order 1 to 2). If the dealer no longer has that phone, admin fixes the record by hand. That fix is logged, and it counts against "without a call". |
 | Held to | No per-page floor in the plan. The drop is recorded. |
 
 **Page r. Who sent you?** (added October 13, 2026, Phase 5 Marketing row, phases.md:107, Wave 4)
