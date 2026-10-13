@@ -33,8 +33,8 @@ export function Bars({ bid, retail }: { bid: number; retail: number }) {
 const s = StyleSheet.create({
   wrap: { gap: 6, marginTop: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  label: { width: 48, ...theme.type.sans, fontSize: 12, color: theme.color.cloud, opacity: 0.85, letterSpacing: 0.2 },
+  label: { width: 58, ...theme.type.sans, fontSize: 17, color: theme.color.cloud, letterSpacing: 0.2, textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
   track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.14)', overflow: 'hidden' },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 3 },   // absolute and childless: width is the one layout property allowed to move
-  value: { width: 64, textAlign: 'right', ...theme.type.sans, fontSize: 12, color: theme.color.cloud, opacity: 0.85, fontVariant: ['tabular-nums'] },
+  value: { width: 78, textAlign: 'right', ...theme.type.sans, fontSize: 17, color: theme.color.cloud, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
 });

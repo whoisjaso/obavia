@@ -100,7 +100,7 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
                 <Lift key={t.key} on={live} after={drew ? TICK_AFTER + ms.green : 0}>
                   <PressCloud disabled={locked} onPress={() => { feel.select(); open(t.key); }} bodyStyle={s.step}
                     accessibilityState={{ selected: live }} accessibilityLabel={`${t.label}${t.done ? ', done' : live ? ', next' : ''}`}>
-                    <Caps size={live ? 22 : 16} ink={locked ? theme.color.faint : theme.color.ink}>{t.label}</Caps>
+                    <Caps size={live ? 22 : 17} ink={locked ? theme.color.faint : theme.color.ink}>{t.label}</Caps>
                     {t.done && <Tick draw={!shownDone.current!.has(t.key)} />}
                     {live && <View style={s.underline} />}
                   </PressCloud>

@@ -134,7 +134,9 @@ export function InsureScan({ vin, onDone }: { vin: string; onDone: () => void })
   const shutter = () => { feel.touch(); setTimeout(() => { setRead(true); setSale({ insured: true }); feel.step(); setTimeout(onDone, 700); }, 500); };
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.ink, paddingTop: insets.top + theme.space.m }]}>
-      <Label ink={theme.color.ice}>VIN</Label>
+      {/* what goes in the frame, in plain words: the card outline alone was a drawing to decode */}
+      <Text style={s.what}>Insurance card</Text>
+      <Label ink={theme.color.ice} style={{ marginTop: theme.space.s }}>VIN</Label>
       <Text style={s.vin}>{vin}</Text>
       <Frame kind="card" read={read} onShutter={shutter} />
     </View>
@@ -152,6 +154,7 @@ const s = StyleSheet.create({
   mark: { width: 18, height: 2, borderRadius: 1, backgroundColor: 'transparent', marginTop: 3 },
   markOn: { backgroundColor: theme.color.good },
   later: { position: 'absolute', left: theme.space.m },
-  laterText: { ...theme.type.sans, fontSize: 14, color: theme.color.cloud, opacity: 0.6 },
-  vin: { ...theme.type.sansBold, fontSize: 16, color: theme.color.cloud, letterSpacing: 1.5, textAlign: 'center', marginTop: 4 },
+  laterText: { ...theme.type.sans, fontSize: 17, color: theme.color.cloud, opacity: 0.8 },
+  what: { ...theme.type.sansBold, fontSize: 22, color: theme.color.cloud, letterSpacing: 3, textTransform: 'uppercase', textAlign: 'center' },
+  vin: { ...theme.type.sansBold, fontSize: 17, color: theme.color.cloud, letterSpacing: 1.5, textAlign: 'center', marginTop: 4 },
 });

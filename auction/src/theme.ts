@@ -9,13 +9,15 @@ export const theme = {
     iceDeep: '#869FD6',
     ink: '#1C2436',
     inkSoft: '#3F4759',
-    muted: '#6B7385',
-    faint: '#9AA1B0',
+    /* legibility (DOCTRINE §4.3): every grey that carries words reads at 4.5:1 or more on the sky and on the
+       cloud bands (#DCE6FA), measured. faint 4.5, muted 5.8, inkSoft 7.4 on the darkest band. */
+    muted: '#4F576B',
+    faint: '#5F677A',
     line: 'rgba(28,36,54,0.09)',
-    accent: '#4E6AA8',       // buttons
+    accent: '#435D9B',       // buttons, and words in blue: 5.1:1 on the cloud band
     blue: '#0A84FF',         // the last two minutes: one colour, only here
-    good: '#2E8A60',
-    warn: '#A8611F',
+    good: '#26744F',
+    warn: '#8F5218',
     scrim: 'rgba(8,14,30,0.60)',
   },
   /* Bodoni Moda, cut at optical size 72, for every number and word that owns a
@@ -39,8 +41,8 @@ export const theme = {
     ringStroke: 4,
     display: 44,     // a word or a number that owns a page
     title: 28,
-    body: 16,
-    label: 11,       // small, spaced, uppercase, faint
+    body: 17,
+    label: 17,       // spaced, uppercase; never under 17 on the glass (DOCTRINE §4.3)
   },
   space: { xs: 8, s: 16, m: 24, l: 40, xl: 64 },   // room is the luxury
   // springs and curves live in ../motion (animate-expo's tables)

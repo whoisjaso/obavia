@@ -30,7 +30,7 @@ function hyphens(children: React.ReactNode): React.ReactNode {
 }
 
 /** A word in spaced capitals, upright, the way a crown or a crest sets its name. */
-export function Caps({ children, size = 15, ink = theme.color.ink, style }: { children: React.ReactNode; size?: number; ink?: string; style?: TextStyle }) {
+export function Caps({ children, size = 17, ink = theme.color.ink, style }: { children: React.ReactNode; size?: number; ink?: string; style?: TextStyle }) {
   return <Text style={[s.caps, { fontSize: size, color: ink, letterSpacing: size * 0.18 }, style]}>{children}</Text>;
 }
 
@@ -51,7 +51,7 @@ export function Choice({ label, detail, selected, dim, onPress, size = 22, acces
   return (
     <PressCloud onPress={onPress ? () => { feel.select(); onPress(); } : undefined} style={{ alignSelf: 'stretch' }} bodyStyle={s.choice}
       accessibilityState={{ selected: !!selected }} accessibilityLabel={accessibilityLabel ?? (detail ? `${label}, ${detail}` : label)}>
-      <Text style={[s.choiceLabel, { fontSize: Math.round(size * 0.68), letterSpacing: size * 0.12, color: ink, fontWeight: selected ? '600' : '500', fontFamily: 'System', textTransform: 'uppercase' }]}>{label}</Text>
+      <Text style={[s.choiceLabel, { fontSize: Math.max(17, Math.round(size * 0.68)), letterSpacing: size * 0.12, color: ink, fontWeight: selected ? '600' : '500', fontFamily: 'System', textTransform: 'uppercase' }]}>{label}</Text>
       {detail ? <Text style={[s.choiceDetail, { color: selected ? theme.color.inkSoft : theme.color.faint }]}>{detail}</Text> : null}
       {selected && <View style={s.choiceMark} />}
     </PressCloud>
@@ -133,21 +133,21 @@ export function Pager({ pages, initial = 0, onIndex }: { pages: React.ReactNode[
 }
 
 const s = StyleSheet.create({
-  label: { ...theme.type.sans, fontSize: theme.size.label, letterSpacing: 2.6, textTransform: 'uppercase', color: theme.color.faint, textAlign: 'center' },
+  label: { ...theme.type.sans, fontSize: theme.size.label, letterSpacing: 2.2, textTransform: 'uppercase', color: theme.color.muted, textAlign: 'center' },   // muted, not faint: it sits on the cloud bands too
   serif: { fontFamily: theme.font.price, textAlign: 'center', letterSpacing: 0 },
   hyphen: { fontFamily: 'System', fontWeight: '300' },
   caps: { ...theme.type.sansBold, textTransform: 'uppercase', textAlign: 'center' },
-  body: { ...theme.type.sans, fontSize: theme.size.body, textAlign: 'center', lineHeight: 24 },
+  body: { ...theme.type.sans, fontSize: theme.size.body, textAlign: 'center', lineHeight: 25 },
   hair: { height: StyleSheet.hairlineWidth, backgroundColor: theme.color.line, alignSelf: 'center', width: 48 },
   choice: { alignItems: 'center', paddingVertical: theme.space.s, alignSelf: 'stretch' },
   settle: { alignSelf: 'stretch', alignItems: 'center' },
   choiceLabel: { textAlign: 'center' },
-  choiceDetail: { ...theme.type.sans, fontSize: 13, marginTop: 4, textAlign: 'center' },
+  choiceDetail: { ...theme.type.sans, fontSize: 17, marginTop: 4, textAlign: 'center' },
   choiceMark: { width: 18, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 8 },
   btn: { height: 54, borderRadius: 4, backgroundColor: theme.color.ink, alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch', overflow: 'hidden' },
   btnGhost: { backgroundColor: 'transparent' },
   btnOff: { opacity: 0.3 },
-  btnText: { ...theme.type.sansBold, fontSize: 13, color: theme.color.cloud, letterSpacing: 2.4, textTransform: 'uppercase' },
+  btnText: { ...theme.type.sansBold, fontSize: 17, color: theme.color.cloud, letterSpacing: 2.6, textTransform: 'uppercase' },
   dots: { position: 'absolute', bottom: 14, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.color.ink, opacity: 0.18 },
   dotOn: { opacity: 0.7 },

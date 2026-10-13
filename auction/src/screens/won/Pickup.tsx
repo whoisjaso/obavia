@@ -70,7 +70,7 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   );
 
   const pass = (
-    <Page foot={started ? <Button label="Continue" onPress={onDone} /> : undefined}>
+    <Page foot={started ? <Button label="Done" onPress={onDone} /> : undefined}>
       <Label>{started ? 'Started' : sale.slot ?? 'Pick a time'}</Label>
       {sale.slot && (
         <Animated.View style={[{ marginTop: theme.space.m, alignItems: 'center' }, pulseStyle]}>
@@ -92,7 +92,7 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
           </PressCloud>
         </Animated.View>
       )}
-      <Caps size={14} ink={started ? theme.color.good : theme.color.muted} style={{ marginTop: theme.space.m }}>{car.year} {car.make} {car.model}</Caps>
+      <Caps size={17} ink={started ? theme.color.good : theme.color.muted} style={{ marginTop: theme.space.m }}>{car.year} {car.make} {car.model}</Caps>
     </Page>
   );
 

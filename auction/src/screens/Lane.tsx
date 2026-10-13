@@ -3,6 +3,7 @@
    press the ring: the time, spoken once. No reading: two bars are the copy. */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
@@ -130,6 +131,8 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
         </Animated.View>
       </GestureDetector>
       <LinearGradient pointerEvents="none" colors={['rgba(8,14,30,0)', 'rgba(8,14,30,0.15)', theme.color.scrim]} locations={[0.3, 0.55, 0.82]} style={StyleSheet.absoluteFill} />
+      {/* a breath of ink under the top row, so the white count reads on a pale sky (DOCTRINE §4.3, measured) */}
+      <LinearGradient pointerEvents="none" colors={['rgba(8,14,30,0.72)', 'rgba(8,14,30,0.45)', 'rgba(8,14,30,0)']} locations={[0, 0.5, 1]} style={[s.topShade, { height: insets.top + 120 }]} />
       {/* the cloud scrim: ice behind the ring and behind the price, never across the car (only on this page
           and its neighbours: the pages further down the list draw nothing) */}
       {near && <LaneClouds width={width} height={height} far={clouds.far} mid={clouds.mid} />}
@@ -147,8 +150,9 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
           <Pressable onPress={() => { feel.select(); onMe(); }} hitSlop={12} accessibilityRole="button" accessibilityLabel="Me">
             <Mark size={30} />
           </Pressable>
+          {/* the count and its plain word: a dot beside a number was a pictogram to decode (DOCTRINE §4.5) */}
           <View style={s.eye} accessibilityLabel={`${lot.watching + (watching ? 1 : 0)} watching${watching ? ', you too' : ''}`}>
-            <View style={[s.eyeDot, watching && { backgroundColor: theme.color.blue, opacity: 1 }]} /><Text style={s.eyeText}>{(lot.watching + (watching ? 1 : 0)).toLocaleString('en-US')}</Text>
+            <Text style={[s.eyeText, watching && s.eyeOn]}>{(lot.watching + (watching ? 1 : 0)).toLocaleString('en-US')} watching</Text>
           </View>
         </View>
       </View>
@@ -163,8 +167,9 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
         <Bars bid={lot.high} retail={lot.retail} />
         <View style={s.foot}>
           <Text style={s.dealer} numberOfLines={1}>{car.dealer.name} · {car.dealer.city}</Text>
+          {/* the car's next photo, small, with its count: the object, not a grid glyph to decode */}
           <Pressable onPress={onOpen} style={s.pill} hitSlop={10} accessibilityRole="button" accessibilityLabel={`${photos} photos, open the car`}>
-            <View style={s.pillGrid}>{[0, 1, 2, 3].map(i => <View key={i} style={s.pillCell} />)}</View>
+            {photos > 1 && <View style={s.thumb}><Image source={car.photos[(angle + 1) % photos].src} style={StyleSheet.absoluteFill} contentFit="cover" /></View>}
             <Text style={s.pillText}>{photos}</Text>
           </Pressable>
         </View>
@@ -330,19 +335,19 @@ const s = StyleSheet.create({
   bloom: { position: 'absolute', left: 0, top: 0, width: BLOOM, height: BLOOM, borderRadius: BLOOM / 2, shadowColor: '#080E1E', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   ringWrap: { padding: 6, marginLeft: -6 },
-  toast: { position: 'absolute', left: 60, top: 14, backgroundColor: 'rgba(8,14,30,0.7)', paddingHorizontal: 10, height: 28, borderRadius: 4, justifyContent: 'center' },   // squared: no pills
-  toastText: { color: theme.color.cloud, ...theme.type.sansBold, fontSize: 13, fontVariant: ['tabular-nums'] },
-  eye: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  eyeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.cloud, opacity: 0.8 },
-  eyeText: { color: theme.color.cloud, opacity: 0.9, ...theme.type.sans, fontSize: 12, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
+  toast: { position: 'absolute', left: 60, top: 12, backgroundColor: 'rgba(8,14,30,0.7)', paddingHorizontal: 10, height: 32, borderRadius: 4, justifyContent: 'center' },   // squared: no pills
+  toastText: { color: theme.color.cloud, ...theme.type.sansBold, fontSize: 17, fontVariant: ['tabular-nums'] },
+  topShade: { position: 'absolute', left: 0, right: 0, top: 0 },
+  eye: { flexDirection: 'row', alignItems: 'center' },
+  eyeOn: { ...theme.type.sansBold },
+  eyeText: { color: theme.color.cloud, ...theme.type.sans, fontSize: 17, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.75)', textShadowRadius: 8 },
   empty: { alignItems: 'center', justifyContent: 'center' },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 22 },
   priceHit: { alignSelf: 'flex-start', paddingVertical: 8, paddingRight: 40 },
   foot: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   nophoto: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: theme.color.inkSoft },
-  dealer: { flexShrink: 1, marginRight: 12, color: theme.color.cloud, opacity: 0.8, ...theme.type.sans, fontSize: 12, textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 28 },
-  pillGrid: { width: 12, height: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
-  pillCell: { width: 5, height: 5, borderRadius: 1, backgroundColor: theme.color.cloud, opacity: 0.85 },
-  pillText: { color: theme.color.cloud, opacity: 0.9, ...theme.type.sans, fontSize: 12, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
+  dealer: { flexShrink: 1, marginRight: 12, color: theme.color.cloud, ...theme.type.sans, fontSize: 17, textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40 },
+  thumb: { width: 40, height: 40, borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)' },   // squared, a photo's corner
+  pillText: { color: theme.color.cloud, ...theme.type.sans, fontSize: 17, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
 });

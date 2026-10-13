@@ -115,14 +115,14 @@ const docH = Math.max(480, Math.round(Dimensions.get('window').height * 0.72));
 const s = StyleSheet.create({
   head: { paddingHorizontal: 18, paddingBottom: theme.space.s, alignItems: 'center' },
   title: { fontFamily: theme.font.price, fontSize: 28, color: theme.color.ink, textAlign: 'center' },
-  sub: { ...theme.type.sans, fontSize: 11, color: theme.color.warn, marginTop: 4, letterSpacing: 1.6, textAlign: 'center' },
+  sub: { ...theme.type.sansBold, fontSize: 17, color: theme.color.warn, marginTop: 4, letterSpacing: 1, textAlign: 'center' },
   page: { paddingHorizontal: 18, paddingBottom: 40 },
   doc: { backgroundColor: theme.color.cloud, borderRadius: 6, overflow: 'hidden' },
   web: { flex: 1, backgroundColor: theme.color.cloud },
   paper: { backgroundColor: theme.color.cloud, borderRadius: 6, padding: 22 },
   line: { height: 7, borderRadius: 3, backgroundColor: theme.color.well },
   field: { marginTop: 26, borderBottomWidth: 1, borderColor: theme.color.ink, paddingBottom: 4 },
-  fieldLabel: { ...theme.type.sans, fontSize: 11, color: theme.color.muted },
+  fieldLabel: { ...theme.type.sans, fontSize: 17, color: theme.color.muted },
   padWrap: { marginTop: 16, gap: 10 },
   pad: { height: 150, backgroundColor: theme.color.cloud, borderRadius: 12, overflow: 'hidden' },
   baseline: { position: 'absolute', left: 20, right: 20, bottom: 30, height: 1, backgroundColor: theme.color.line },
@@ -130,5 +130,5 @@ const s = StyleSheet.create({
   btnOff: { opacity: 0.4 },
   btnText: { ...theme.type.sansBold, fontSize: 17, color: theme.color.cloud },
   reuse: { alignItems: 'center', gap: 6, paddingVertical: theme.space.s },
-  reuseText: { ...theme.type.sansBold, fontSize: 15, color: theme.color.accent },
+  reuseText: { ...theme.type.sansBold, fontSize: 17, color: theme.color.accent },
 });

@@ -2,9 +2,9 @@
    large stacked choices, one primary action, the figure that matters in the
    dealer's accent. */
 :root{
-  --bg:#F2F6FF; --panel:rgba(255,255,255,.88); --well:#F2F5FB; --ink:#1C2436; --navy:#28344F; --text:#3F4759; --muted:#6B7385; --faint:#9AA1B0;
-  --line:rgba(28,36,54,.09); --accent:#4E6AA8; --accent-bg:rgba(78,106,168,.1);
-  --good:#2E8A60; --good-bg:#E9F7EF; --warn:#A8611F; --warn-bg:#FFF3E6; --red:#B4232C;
+  --bg:#F2F6FF; --panel:rgba(255,255,255,.88); --well:#F2F5FB; --ink:#1C2436; --navy:#28344F; --text:#3F4759; --muted:#4F576B; --faint:#5F677A;
+  --line:rgba(28,36,54,.09); --accent:#435D9B; --accent-bg:rgba(78,106,168,.1);
+  --good:#26744F; --good-bg:#E9F7EF; --warn:#8F5218; --warn-bg:#FFF3E6; --red:#B4232C;
   --sans:'Manrope','Helvetica Neue',Arial,sans-serif; --mono:ui-monospace,'SF Mono',Menlo,monospace;
   --ease:cubic-bezier(.2,.7,.2,1); --spring:cubic-bezier(.32,.72,0,1);
   color-scheme:light;
@@ -768,3 +768,23 @@ button.row:active{background:rgba(255,255,255,.7)}
 .scan i{position:absolute;inset:17%;border-radius:22px;box-shadow:0 0 0 2px rgba(255,255,255,.92),0 0 0 999px rgba(28,36,54,.3);pointer-events:none}
 /* the six from the pass, filled in where the camera was */
 .field.caught .input{box-shadow:0 0 0 2px var(--good),var(--cloud-in),var(--cloud-ao),0 5px 12px rgba(28,36,54,.08)}
+
+/* Legibility (docs/DOCTRINE.md §4, the owner, October 13, 2026). The people at the desk are not technical and
+   read this at arm's length on a lot: nothing that must be read sits under 17 px, every grey that carries
+   words reads at 4.5:1 or more (the tokens above, measured from the pixels in legibility-audit.md), and the
+   accent words are upright, never italic. The cloud's crowns rise above the dock's box: the page keeps room
+   for them so the last row never sits under a cloud. */
+.q em,.cap em,.note em{font-style:normal}
+.q + .note,.center .q + .note,.center .note,.note{font-size:17px}
+.choice small{font-size:17px}
+.row b{font-size:17px}
+.row small{font-size:17px}
+.row .v{font-size:17px}
+.empty{font-size:17px}
+.textlink,.top .link,.back{font-size:17px}
+.textlink.undo{font-size:17px}
+.step{font-size:17px}
+.field span{font-size:17px}
+.wrap{padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+.wrap:has(.dock .textlink){padding-bottom:calc(230px + env(safe-area-inset-bottom,0px))}
+

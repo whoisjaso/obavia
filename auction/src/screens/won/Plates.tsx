@@ -29,7 +29,7 @@ export function Plates({ onBack }: { onBack: () => void }) {
         <Ring size={220} stroke={6} progress={Math.max(0.02, progress)} blue={false} grey={stage === 'none'} warn={stage === 'kickback'} />
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Caps size={18} ink={stage === 'kickback' ? theme.color.warn : stage === 'none' ? theme.color.faint : theme.color.ink}>{LABEL[stage]}</Caps>
+            <Caps size={18} ink={stage === 'kickback' ? theme.color.warn : stage === 'none' ? theme.color.muted : theme.color.ink}>{LABEL[stage]}</Caps>
           </View>
         </View>
       </View>

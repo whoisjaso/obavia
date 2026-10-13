@@ -26,15 +26,15 @@
 .wl-hero .copy{display:contents}
 .wl-hero h1{order:1;max-width:13ch;text-align:center;font-size:clamp(31px,4.6vw,66px);line-height:1.04;letter-spacing:-.04em}
 .wl-phone{order:2;margin:clamp(16px,2.4vh,28px) 0 0;display:grid;justify-items:center;gap:10px}
-.wl-phone figcaption{font:500 13px/1.4 var(--sans);color:var(--muted);text-align:center}
+.wl-phone figcaption{font:500 17px/1.4 var(--sans);color:var(--muted);text-align:center}
 
 /* the one card: the field and the cloud button, nothing else */
 .wl-card{order:3;width:min(420px,100%);margin-top:clamp(16px,2.4vh,26px);padding:12px 12px 14px;border-radius:30px}
-.wl-card form{display:grid;gap:30px}
+.wl-card form{display:grid;gap:clamp(52px,5vw,60px)}   /* the button's crowns rise into this gap, never over the field */
 .wl-card form[hidden]{display:none}
 .wl-card input{display:block;width:100%;height:58px;padding:0 18px;border:0;border-radius:18px;background:#fff;color:var(--ink);
   font:600 17px/1 var(--sans);caret-color:var(--tint);box-shadow:inset 0 0 0 1px rgba(28,36,54,.1),0 1px 2px rgba(28,36,54,.04);transition:box-shadow .2s var(--ease)}
-.wl-card input::placeholder{color:#6B7385;font-weight:500;opacity:1}
+.wl-card input::placeholder{color:#5F677A;font-weight:500;opacity:1}
 .wl-card input:focus{outline:0;box-shadow:inset 0 0 0 2px var(--deep),0 1px 2px rgba(28,36,54,.04)}
 .wl-card input[aria-invalid="true"]{box-shadow:inset 0 0 0 2px rgba(154,90,28,.55)}
 .wl-card .btn{width:100%}
@@ -81,7 +81,7 @@
 .wl-fact{width:min(860px,100%);margin:0 auto;display:grid;gap:14px;padding:clamp(26px,3.4vw,44px)}
 .wl-fact .n{margin:0;font-size:clamp(58px,8.4vw,112px);line-height:.95;color:var(--ink)}
 .wl-fact .what{max-width:40ch;font:600 clamp(17px,1.45vw,20px)/1.45 var(--sans);letter-spacing:-.01em;color:var(--ink)}
-.wl-fact figcaption{max-width:56ch;font:500 14.5px/1.5 var(--sans);color:var(--muted)}
+.wl-fact figcaption{max-width:56ch;font:500 17px/1.5 var(--sans);color:var(--muted)}
 .wl-fact figcaption a{color:var(--tint);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(78,106,168,.4)}
 @media (min-width:900px){
   .wl-fact{grid-template-columns:auto minmax(0,1fr);column-gap:clamp(36px,4vw,56px);align-items:end}

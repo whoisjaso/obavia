@@ -109,21 +109,20 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
     <Page foot={<Button label="Sign out" onPress={() => { feel.silence(); onClose(); }} ghost />}>
       <Label>Me</Label>
       <Serif size={36} style={{ paddingHorizontal: theme.space.s }}>{me.name}</Serif>
-      {buyer.lost && <Body ink={theme.color.faint} style={{ fontSize: 13, marginTop: 4 }}>This phone lost its sign-in. Write to us.</Body>}
+      {buyer.lost && <Body ink={theme.color.faint} style={{ marginTop: 4 }}>This phone lost its sign-in. Write to us.</Body>}
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Deposit</Label>
       <Serif size={34}>${DEPOSIT}</Serif>
-      <Body ink={theme.color.faint} style={{ fontSize: 13, marginTop: 2 }}>{released && !once.deposit ? 'back to your card' : once.deposit ? 'held · back if you lose' : 'held at your first bid'}</Body>
+      <Body ink={theme.color.faint} style={{ marginTop: 2 }}>{released && !once.deposit ? 'back to your card' : once.deposit ? 'held · back if you lose' : 'held at your first bid'}</Body>
       {winsLeft !== undefined && (
-        <Body ink={winsInk(winsLeft)} style={{ fontSize: 13, marginTop: 2, fontVariant: ['tabular-nums'] }}>{`Wins left this year: ${winsLeft}`}</Body>
+        <Body ink={winsInk(winsLeft)} style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}>{`Wins left this year: ${winsLeft}`}</Body>
       )}
       {canRelease && (
-        <Pressable onPress={release} style={{ marginTop: theme.space.m, alignItems: 'center' }} accessibilityRole="button" accessibilityLabel={`Release the ${DEPOSIT} dollar deposit`}>
-          <Label>Deposit</Label>
-          <Caps size={15}>Release it</Caps>
+        <Pressable onPress={release} style={{ marginTop: theme.space.m, alignItems: 'center' }} accessibilityRole="button" accessibilityLabel={`Get the ${DEPOSIT} dollar deposit back`}>
+          <Caps>Get it back</Caps>
         </Pressable>
       )}
-      {refused && <Body ink={theme.color.warn} style={{ fontSize: 13, marginTop: 4 }}>{refused}</Body>}
+      {refused && <Body ink={theme.color.warn} style={{ marginTop: 4 }}>{refused}</Body>}
       <Hairline style={{ marginVertical: theme.space.l }} />
       <Label>Cars</Label>
       {won.length === 0 ? (
@@ -144,7 +143,7 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
       {won.length > 0 && (   // not relevant until there is a car to sell back
         <Pressable onPress={() => feel.select()} style={{ marginTop: theme.space.l, alignItems: 'center' }} accessibilityRole="button">
           <Label>When it is time</Label>
-          <Caps size={15}>Sell it back here</Caps>
+          <Caps>Sell it back here</Caps>
         </Pressable>
       )}
     </Page>

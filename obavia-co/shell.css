@@ -51,7 +51,7 @@ html.o-veil .o-sky .glow{opacity:0}
 .o-brand img{width:30px;height:30px;transition:transform .8s var(--o-out)}
 .o-brand:hover img{transform:rotate(-20deg)}
 .o-links{display:flex;gap:28px;list-style:none;margin:0 0 0 auto;padding:0}
-.o-links a{font:600 14px/1 var(--o-sans);color:var(--o-body);text-decoration:none;transition:color .3s}
+.o-links a{font:600 17px/1 var(--o-sans);color:var(--o-body);text-decoration:none;transition:color .3s}
 .o-links a:hover,.o-links a[aria-current]{color:var(--o-ink)}
 .o-join{display:inline-flex;align-items:center;height:34px;padding:0 16px;border-radius:999px;background:var(--o-navy);color:#fff;font:700 14px/1 var(--o-sans);text-decoration:none;white-space:nowrap;transition:background .3s,transform .35s var(--o-ease)}
 .o-join:hover{background:#1E2940}.o-join:active{transform:scale(.97)}

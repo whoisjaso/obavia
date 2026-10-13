@@ -37,7 +37,8 @@ import { theme } from '../theme';
 import { IdScan } from './won/Scan';
 
 const STEP_PT = 28;
-const TERMS_ROOM = 40;
+const TERMS_ROOM = 96;   // the four terms at 17 pt, read at arm's length (DOCTRINE §4.3): five lines on a 393 phone
+const AIR = 64;          // the 17 pt words, the held line and the air above the cloud's crowns: everything fits at rest, nothing touches
 type Phase = 'arming' | 'id' | 'deposit' | 'inflight' | 'landed' | 'rejected';
 
 export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot; now: number; steps: number; onClose: () => void }) {
@@ -46,8 +47,8 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   // the terms read: shown when the Worker has not stamped the terms on this buyer (or has not said yet), and
   // again on a 409. Read once at open so the lines do not leave while the bid lands. Its Bid sends the version.
   const [terms, setTerms] = useState<number | undefined>(() => (peekBuyer().termsCurrent === true ? undefined : 0));
-  // the four lines take more room than the ceiling word they replace: the sheet stands 40 pt taller while they show
-  const open = height * 0.46 + insets.bottom + (terms !== undefined ? TERMS_ROOM : 0);
+  // the four lines take more room than the max-bid word they replace: the sheet stands taller while they show
+  const open = height * 0.46 + AIR + insets.bottom + (terms !== undefined ? TERMS_ROOM : 0);
   const reduce = useReducedMotion();
   const y = useSharedValue(reduce ? 0 : open);
   const fade = useSharedValue(reduce ? 0 : 1);   // reduced motion: the sheet fades where it rests
@@ -179,17 +180,18 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
               {terms !== undefined ? (
                 <Landing key={terms} animate={terms > 0}><Terms /></Landing>
               ) : /* the second wheel: an advanced option, one faint word until it is wanted */ !ceilOpen ? (
-                <Pressable onPress={() => { setCeilOpen(true); feel.select(); }} hitSlop={10} style={{ paddingVertical: theme.space.s }} accessibilityRole="button" accessibilityLabel={ceilSteps ? `Ceiling up to ${dollars(ceiling)} dollars` : 'Set a ceiling'}>
-                  <Label ink={ceilSteps ? theme.color.ink : theme.color.faint}>{ceilSteps ? `up to $${dollars(ceiling)}` : 'ceiling'}</Label>
+                <Pressable onPress={() => { setCeilOpen(true); feel.select(); }} hitSlop={10} style={{ paddingVertical: theme.space.xs }} accessibilityRole="button" accessibilityLabel={ceilSteps ? `Max bid up to ${dollars(ceiling)} dollars` : 'Set a max bid'}>
+                  {/* "max bid": the buyer's own word for it (eBay's); "ceiling" was the engine's */}
+                  <Label ink={ceilSteps ? theme.color.ink : theme.color.faint}>{ceilSteps ? `up to $${dollars(ceiling)}` : 'max bid'}</Label>
                 </Pressable>
               ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.ceil} decelerationRate="fast" style={{ flexGrow: 0, alignSelf: 'stretch' }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.ceil} decelerationRate="fast" style={{ flexGrow: 0, flexShrink: 0, alignSelf: 'stretch' }}>
                   {Array.from({ length: 7 }, (_, i) => i).map(i => {
                     const v = i === 0 ? amount : roll(amount, true, i - 1);
                     const on = i === ceilSteps;
                     return (
-                      <Pressable key={i} onPress={() => { setCeil(i); feel.select(); setCeilOpen(false); }} style={s.ceilItem} hitSlop={8} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={i === 0 ? 'No ceiling' : `up to ${dollars(v)} dollars`}>
-                        <Text style={[s.ceilText, on && s.ceilTextOn]}>{i === 0 ? 'no ceiling' : `up to $${dollars(v)}`}</Text>
+                      <Pressable key={i} onPress={() => { setCeil(i); feel.select(); setCeilOpen(false); }} style={s.ceilItem} hitSlop={8} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={i === 0 ? 'No max bid' : `up to ${dollars(v)} dollars`}>
+                        <Text style={[s.ceilText, on && s.ceilTextOn]}>{i === 0 ? 'no max' : `up to $${dollars(v)}`}</Text>
                         {on && <View style={s.ceilMark} />}
                       </Pressable>
                     );
@@ -201,7 +203,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
                 <BidButton phase={phase} hold={hold} disabled={closed || phase === 'rejected'} onBid={place} landedKey={punch} />
                 {/* the line's room is always kept, so the button never moves under the thumb when it lands */}
                 <View style={s.depositRoom}>
-                  {landKey !== undefined && <Landing animate={landKey > 0} onLand={feel.held}><Label style={{ alignSelf: 'center' }}>${DEPOSIT} held · back if you lose</Label></Landing>}
+                  {landKey !== undefined && <Landing animate={landKey > 0} onLand={feel.held}><Label style={{ alignSelf: 'center', letterSpacing: 1 }}>${DEPOSIT} held · back if you lose</Label></Landing>}
                 </View>
               </View>
             </>
@@ -305,19 +307,19 @@ const s = StyleSheet.create({
   grab: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: theme.color.line, marginBottom: theme.space.s },
   ringRow: { alignItems: 'center', marginBottom: 4 },
   wheel: { paddingVertical: 4, alignSelf: 'stretch', alignItems: 'center' },
-  ceil: { gap: theme.space.m, paddingVertical: theme.space.s, paddingHorizontal: theme.space.s },
+  ceil: { gap: theme.space.m, paddingVertical: theme.space.xs, paddingHorizontal: theme.space.s },
   ceilItem: { alignItems: 'center', justifyContent: 'center' },
-  ceilText: { ...theme.type.sans, fontSize: 15, color: theme.color.faint, fontVariant: ['tabular-nums'] },
+  ceilText: { ...theme.type.sans, fontSize: 17, color: theme.color.faint, fontVariant: ['tabular-nums'] },
   ceilTextOn: { color: theme.color.ink, ...theme.type.sansBold },
   ceilMark: { width: 16, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 5 },
-  terms: { alignItems: 'center', gap: 2, paddingTop: theme.space.xs },
-  termsLine: { ...theme.type.sans, fontSize: 13, lineHeight: 17, color: theme.color.muted, textAlign: 'center' },
-  depositRoom: { height: 30, justifyContent: 'flex-end' },
-  foot: { marginTop: 'auto', alignSelf: 'stretch', alignItems: 'stretch' },
+  terms: { alignItems: 'center', gap: 4, paddingTop: theme.space.xs },
+  termsLine: { ...theme.type.sans, fontSize: 17, lineHeight: 22, color: theme.color.inkSoft, textAlign: 'center' },   // arm's length: 17 pt, 8.6:1
+  depositRoom: { height: 34, justifyContent: 'flex-end' },
+  foot: { marginTop: 'auto', paddingTop: theme.space.m, alignSelf: 'stretch', alignItems: 'stretch' },   // the crowns rise into this, never into the words above
   deposit: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 6 },
   depositAmt: { fontFamily: theme.font.price, fontSize: 64, color: theme.color.ink, marginTop: 4 },
-  depositLine: { ...theme.type.sans, fontSize: 15, color: theme.color.muted, marginBottom: 14 },
-  cancel: { ...theme.type.sans, fontSize: 14, color: theme.color.faint, marginTop: 8 },
+  depositLine: { ...theme.type.sans, fontSize: 17, color: theme.color.muted, marginBottom: 14 },
+  cancel: { ...theme.type.sans, fontSize: 17, color: theme.color.faint, marginTop: 8, paddingVertical: 6 },
   teach: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(8,14,30,0.35)' },
   teachRing: { width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(8,14,30,0.75)', alignItems: 'center', justifyContent: 'center' },
 });

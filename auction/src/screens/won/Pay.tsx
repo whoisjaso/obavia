@@ -28,7 +28,7 @@ export function Pay({ onDone }: { onDone: () => void }) {
       <Label style={{ marginTop: 2 }}>by {by}</Label>
       <Hairline style={{ marginVertical: theme.space.l }} />
       <View>
-        <Choice label="ACH" detail={`clears ${achClears(sale.wonAt)}`} selected={sale.pay === 'ach'} onPress={() => pick('ach')} />
+        <Choice label="Bank" detail={`transfer, clears ${achClears(sale.wonAt)}`} accessibilityLabel={`Bank transfer, clears ${achClears(sale.wonAt)}`} selected={sale.pay === 'ach'} onPress={() => pick('ach')} />
         <Choice label="Wire" detail="today" selected={sale.pay === 'wire'} onPress={() => pick('wire')} />
         <Choice label="Cash" detail="at the lot" selected={sale.pay === 'cash'} onPress={() => pick('cash')} />
       </View>

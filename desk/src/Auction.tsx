@@ -4,7 +4,7 @@
    buyer's clock, the money, the VIN at pickup, and the way out (void).
    The lane refuses collateral it cannot see; so does this screen, earlier. */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AUCTION_API, auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, releaseRefusal, said, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
+import { auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, releaseRefusal, said, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
 import { buyersGuidePdf } from './lib/official';
 import { usd } from './lib/money';
 import { today } from './lib/loans';
@@ -79,7 +79,7 @@ function LotRow({ link, lot, v }: { link: LotLink; lot?: Lot; v?: Vehicle }) {
 function Offline() {
   return (
     <main className="wrap center"><div className="top"><Back to="#/" label="Sales" /></div>
-      <section className="enter"><h1 className="q">The lane is <em>not connected.</em></h1><p className="note">Set VITE_AUCTION_API to the auction Worker and build the Desk again.</p></section>
+      <section className="enter"><h1 className="q">The lane is <em>not connected.</em></h1><p className="note">Call Obavia to connect it.</p>{/* the build has no VITE_AUCTION_API: a system word, kept off the glass */}</section>
     </main>
   );
 }
@@ -93,7 +93,6 @@ export function Setup() {
         <h1 className="q">Your lane <em>key.</em></h1>
         <p className="note">Obavia gives each dealer one key. Paste it here, once, on this device.</p>
         <label className="field"><input className="input" value={k} onChange={e => setK(e.target.value)} placeholder="d:P123456.…" autoCapitalize="off" autoCorrect="off" spellCheck={false} /></label>
-        <p className="note">{AUCTION_API}</p>
       </section>
       <div className="dock"><div className="in"><button className="btn primary block" disabled={!/^d:[^.]+\.[A-Za-z0-9_-]+$/.test(k.trim())} onClick={() => { feel.done(); dealerKey.set(k); go('/auction'); }}>Keep It</button></div></div>
     </main>
@@ -423,10 +422,10 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
     <main className="wrap center">
       <div className="top"><Back to="#/auction" label="Lane" /></div>
       <section className="enter" key={state + mode}>
-        {state === 'owed' && <Ring className="ring big" p={Math.round((1 - Math.max(0, left) / total) * 100)}><span className="num" style={{ ...FACE, fontSize: 15 }}>{h(left)}</span></Ring>}
+        {state === 'owed' && <Ring className="ring big" p={Math.round((1 - Math.max(0, left) / total) * 100)}><span className="num" style={{ ...FACE, fontSize: 17 }}>{h(left)}</span></Ring>}
         <h1 className="q num">{usd(s.hammer)}</h1>
         <p className="note">{name} · {
-          state === 'started' ? `Picked up ${new Date(s.startedAt!).toLocaleString()}` :
+          state === 'started' ? `Picked up ${new Date(s.startedAt!).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` :
           state === 'voided' ? 'Voided. The buyer’s deposit went back.' :
           state === 'forfeited' ? 'The buyer walked. Their deposit is yours; the car is still yours.' :
           state === 'paid' ? (scanner ? 'Paid. Scan their pass when the buyer is here.' : 'Paid. Type the pass when the buyer is here.') :

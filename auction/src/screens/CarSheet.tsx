@@ -60,7 +60,7 @@ export function CarSheet({ car, onClose }: { car: Car; onClose: () => void }) {
       {car.grade.map((g, i) => (
         <View key={i} style={s.row} accessible accessibilityLabel={`${GRADE_WORDS[i]} ${WORD(g)}`}>
           <Text style={s.rowKey}>{GRADE_WORDS[i]}</Text>
-          <Caps size={16} ink={g > 0 ? theme.color.ink : theme.color.warn}>{WORD(g)}</Caps>
+          <Caps size={17} ink={g > 0 ? theme.color.ink : theme.color.warn}>{WORD(g)}</Caps>
         </View>
       ))}
     </View>
@@ -89,7 +89,7 @@ export function CarSheet({ car, onClose }: { car: Car; onClose: () => void }) {
       <Label>Sold by</Label>
       <Serif size={26}>{car.dealer.name}</Serif>
       <Body ink={theme.color.muted}>{car.dealer.city} · {car.dealer.gdn}</Body>
-      <Body ink={theme.color.faint} style={{ marginTop: theme.space.s, fontSize: 13 }}>VIN …{car.vin.slice(-6)}</Body>
+      <Body ink={theme.color.faint} style={{ marginTop: theme.space.s }}>VIN …{car.vin.slice(-6)}</Body>
     </View>
   );
 
@@ -132,5 +132,5 @@ const s = StyleSheet.create({
   page: { paddingHorizontal: theme.space.m, paddingTop: theme.space.s, paddingBottom: theme.space.xl, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
   row: { alignItems: 'center', paddingVertical: 12, gap: 6 },
-  rowKey: { ...theme.type.sans, fontSize: theme.size.label, letterSpacing: 1.8, textTransform: 'uppercase', color: theme.color.faint, marginBottom: 2 },
+  rowKey: { ...theme.type.sans, fontSize: theme.size.label, letterSpacing: 1.8, textTransform: 'uppercase', color: theme.color.muted, marginBottom: 2 },
 });
