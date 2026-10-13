@@ -3,8 +3,8 @@
   python3 post.py WORK OUT [button|sky|contact|all]
 
 Reads the linear passes in WORK, writes the shipping assets to OUT
-(assets/cloud-3d). Every PNG is a 256-colour RGBA palette (Floyd-Steinberg
-dithered), every WebP is lossy with alpha at quality 82; straight alpha in
+(assets/cloud-3d). Every PNG is a 256-colour RGBA palette made by
+libimagequant (dithered), every WebP is lossy with alpha at quality 82; straight alpha in
 both, as the formats define.
 """
 import json
@@ -39,11 +39,22 @@ def premul_resize(rgba, w, h):
     return (out * 255 + 0.5).astype(np.uint8)
 
 
+try:  # libimagequant (pip install imagequant; IMAGEQUANT_PATH adds a --target dir)
+    if os.environ.get("IMAGEQUANT_PATH"):
+        sys.path.insert(0, os.environ["IMAGEQUANT_PATH"])
+    import imagequant
+except ImportError:  # never fall back to octree: it posterizes the volume
+    imagequant = None
+
+
 def save_png(arr, path):
+    """256-colour palette PNG through libimagequant (dithered), or a
+    full-colour RGBA PNG when libimagequant is missing."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     im = Image.fromarray(arr, "RGBA")
-    q = im.quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.FLOYDSTEINBERG)
-    q.save(path, optimize=True)
+    if imagequant is not None:
+        im = imagequant.quantize_pil_image(im, dithering_level=1.0, max_colors=256)
+    im.save(path, optimize=True)
 
 
 def save_webp(arr, path, quality=82):
@@ -96,9 +107,28 @@ def load_button(work):
     return frames
 
 
+def edge_feather(rgba, frac=0.035):
+    """Fade alpha to zero over the outer 3.5 percent of the canvas so the
+    puff's outward wisps (frames 8 to 13) never end on a hard canvas edge."""
+    h, w = rgba.shape[:2]
+
+    def ramp(n):
+        k = max(1, int(round(n * frac)))
+        r = np.ones(n, np.float32)
+        t = (np.arange(k, dtype=np.float32) + 0.5) / k
+        s = t * t * (3 - 2 * t)
+        r[:k] = s
+        r[-k:] = s[::-1]
+        return r
+    m = ramp(h)[:, None] * ramp(w)[None, :]
+    out = rgba.copy()
+    out[..., 3] = (out[..., 3].astype(np.float32) * m + 0.5).astype(np.uint8)
+    return out
+
+
 def build_button(work, out):
     frames = load_button(work)
-    graded = {v: [grade.grade(frames[f], v) for f in range(FRAMES)] for v in ("light", "dark")}
+    graded = {v: [edge_feather(grade.grade(frames[f], v)) for f in range(FRAMES)] for v in ("light", "dark")}
     H0, W0 = graded["light"][0].shape[:2]
     # safe zone check: the rect must be solid (alpha >= 0.97) in every frame
     def _amin(a):
@@ -147,9 +177,10 @@ def build_button(work, out):
                     cx, cy = (f % cols) * (w + gap), (f // cols) * (h + gap)
                     sheet[cy:cy + h, cx:cx + w] = sized[f]
                     rects.append(dict(i=f, x=cx, y=cy, w=w, h=h))
-                save_both(sheet, os.path.join(d, f"sheet{sfx}.png"))
+                save_png(sheet, os.path.join(d, f"sheet{sfx}.png"))  # phone only: no webp
                 json.dump(dict(image=f"sheet{sfx}.png", fps=60, duration_ms=400, gap=gap, frames=rects,
                                rest=REST, pressed=PRESSED, scale=s, css=dict(w=W, h=H),
+                               safe=safe["sizes"][str(W)][f"@{s}x"]["safe"], safe_css=safe["sizes"][str(W)]["safe"],
                                phases=dict(sink=[0, 5], puff=[6, 15], settle=[16, 23]),
                                note="frames 6 to 23 carry the re-inflation baked in; play them linearly at 60 fps"),
                           open(os.path.join(d, f"sheet{sfx}.json"), "w"), indent=1)

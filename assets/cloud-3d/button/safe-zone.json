@@ -1,0 +1,123 @@
+{
+  "note": "Label safe rect per size, in CSS px and in device px at each scale. Canvas is the full sprite; the label is centred in the rect, upright spaced capitals, ink #1C2436 on light, ice #E9EFFE on dark.",
+  "fractions": {
+    "x": 0.25,
+    "y": 0.52,
+    "w": 0.5,
+    "h": 0.21999999999999997
+  },
+  "min_alpha_in_rect_all_frames": 1.0,
+  "sizes": {
+    "320": {
+      "canvas": {
+        "w": 320,
+        "h": 128
+      },
+      "safe": {
+        "x": 80,
+        "y": 67,
+        "w": 160,
+        "h": 28
+      },
+      "label_cap_height_max": 12,
+      "@1x": {
+        "canvas": {
+          "w": 320,
+          "h": 128
+        },
+        "safe": {
+          "x": 80,
+          "y": 67,
+          "w": 160,
+          "h": 28
+        }
+      },
+      "@2x": {
+        "canvas": {
+          "w": 640,
+          "h": 256
+        },
+        "safe": {
+          "x": 160,
+          "y": 134,
+          "w": 320,
+          "h": 56
+        }
+      }
+    },
+    "440": {
+      "canvas": {
+        "w": 440,
+        "h": 176
+      },
+      "safe": {
+        "x": 110,
+        "y": 92,
+        "w": 220,
+        "h": 39
+      },
+      "label_cap_height_max": 16,
+      "@1x": {
+        "canvas": {
+          "w": 440,
+          "h": 176
+        },
+        "safe": {
+          "x": 110,
+          "y": 92,
+          "w": 220,
+          "h": 39
+        }
+      },
+      "@2x": {
+        "canvas": {
+          "w": 880,
+          "h": 352
+        },
+        "safe": {
+          "x": 220,
+          "y": 184,
+          "w": 440,
+          "h": 78
+        }
+      }
+    },
+    "640": {
+      "canvas": {
+        "w": 640,
+        "h": 256
+      },
+      "safe": {
+        "x": 160,
+        "y": 133,
+        "w": 320,
+        "h": 56
+      },
+      "label_cap_height_max": 24,
+      "@1x": {
+        "canvas": {
+          "w": 640,
+          "h": 256
+        },
+        "safe": {
+          "x": 160,
+          "y": 133,
+          "w": 320,
+          "h": 56
+        }
+      },
+      "@2x": {
+        "canvas": {
+          "w": 1280,
+          "h": 512
+        },
+        "safe": {
+          "x": 320,
+          "y": 266,
+          "w": 640,
+          "h": 112
+        }
+      }
+    }
+  }
+}

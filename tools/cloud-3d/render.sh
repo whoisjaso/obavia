@@ -34,5 +34,5 @@ if [ "$STAGE" = all ] || [ "$STAGE" = render ]; then
   "$BLENDER_PY" render_etched.py "$WORK" "$BUTTON_W" "$BUTTON_SPP" 2>&1 | grep -E '^render|Error'
 fi
 if [ "$STAGE" = all ] || [ "$STAGE" = post ]; then
-  "$PY" post.py "$WORK" "$OUT" all
+  IMAGEQUANT_PATH=${IMAGEQUANT_PATH:-} "$PY" post.py "$WORK" "$OUT" all
 fi

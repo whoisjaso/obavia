@@ -45,11 +45,12 @@ button/{light,dark}/{320,440,640}/        640 is the hero
   pressed.png  pressed@2x.png             frame 5: 6 percent shorter about the base, 15 percent denser
   press/000.png ... 023.png (+ @2x)       the 400 ms press, 60 fps
   shadow-rest.png  shadow-pressed.png (+ @2x)
-  sheet.png sheet.json  sheet@2x.png sheet@2x.json
-  every .png has a .webp beside it
+  sheet.png sheet.json  sheet@2x.png sheet@2x.json   (phone only, no webp)
+  every other .png has a .webp beside it
 button/wisp.png wisp@2x.png wisp-dark*    one soft wisp, 128 px (256 at @2x)
 button/ring.png ring@2x.png ring-dark*    a soft air ring, 256 px (512 at @2x)
 sky/{light,dark}/{far,mid,near}.png/.webp 2048 x 1024, tile horizontally
+button/{light,dark}/640/etched-reference.png  GET ON THE LANE carved into the volume (reference only)
 contact.png                               the owner's one-glance judgement sheet
 ```
 
@@ -64,6 +65,8 @@ Keyframed in `field.press_params`, no randomness: the field's vertical scale abo
 | 0 to 5 | sink | compresses to 94 percent height about the base, density up to 115 percent (ease out); frame 5 is `pressed` |
 | 6 to 15 | puff | releases; lobes swell up to 3 percent (peak at frame 10), the edge ramp widens, wisps rise and drift outward |
 | 16 to 23 | settle | a 0.45 percent undershoot and back; wisps fade; frame 23 is exactly `rest` |
+
+At the puff peak the outward wisps reach the canvas edge; `post.py` fades alpha over the outer 3.5 percent of every frame so they thin out instead of clipping (nothing at rest reaches that band).
 
 The re-inflation is baked into frames 6 to 23: play them linearly at 60 fps. The translateY sink of §2 stays in code (the sprite compresses about its own base and never translates).
 
@@ -81,8 +84,26 @@ Each layer is a field that is periodic in x (every noise frequency is quantized 
 
 ## Render budget (this machine: 4 CPUs, shared)
 
-RENDER_TIMES
+Measured on October 13, 2026 while another agent rendered on the same 4 CPUs (load 10 to 17), so a quiet machine is faster.
+
+| Stage | Size, samples | Time |
+| --- | --- | --- |
+| Button grid, one frame (321 x 129 x 127 voxels, 4 workers) | | 28 to 110 s |
+| Button rest (23), pressed (5), frames 0 and 1 | 1280 x 512, 20 spp + OIDN | 404 to 486 s each |
+| Button in-between frames 2 to 4, 6 to 22 | 960 x 384, 16 spp + OIDN | 106 to 406 s each |
+| Etched reference | 1280 x 512, 20 spp, step rate 1.0 | 1130 s |
+| wisp, ring | 256, 512 square, 48 spp | 10 s, 89 s |
+| Sky far, mid, near grids | 737 x 209 x 142, 576 x 163 x 89, 419 x 119 x 92 | 468 s, 130 s, 64 s |
+| Sky far, mid, near | 2048 x 1024, 16 spp + OIDN | 58 s, 325 s, 807 s |
+| post.py (grade, sizes, palette PNG, WebP, sheets) | | about 3 min |
+| Whole pipeline from an empty `.work` | | about 2.5 h |
+
+The in-between frames render at 960 wide to keep the press inside the budget. Every published size except the hero @2x is a downsample. The hero @2x in-betweens are upscaled 1.33x; rest, pressed and frames 0 and 1 are native 1280. Set `INBETWEEN_W=1280` for a native hero (about 2x the time).
 
 ## Formats
 
-PNG: 256-colour RGBA palette, Floyd-Steinberg dithered (for the phone). WebP: lossy with alpha, quality 82, method 6 (for the web). Straight alpha in both.
+PNG: 256-colour RGBA palette made by libimagequant with dithering (for the phone); `pip install imagequant` (or point `IMAGEQUANT_PATH` at a `pip install --target` dir). Without it `post.py` writes full-colour PNGs; it never uses Pillow's octree quantizer, which posterizes the volume into cel-shading. WebP: lossy with alpha, quality 82, method 6 (for the web). Straight alpha in both.
+
+## The etched reference
+
+`render_etched.py` carves the label into the rest volume inside Cycles. `build_fields.py etch` writes a glyph mask (DejaVu Sans Bold, upright spaced capitals, centred in the safe rect) and a front-surface depth map (the first voxel above density 0.06 along the view axis) as 16-bit PNGs. The volume shader projects both along the view axis and removes density from the visible surface to 0.14 units deep (about a third of the belly's front depth), feathered 0.03 units at the floor and by a blurred mask at the glyph edges. The same sun shades the groove: the walls fall into blue-grey shade and the floor reads as ink. Labels are never baked into the shipped sprites.
