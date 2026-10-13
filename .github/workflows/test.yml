@@ -68,7 +68,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: desk/package-lock.json
+          cache-dependency-path: |
+            auction/package-lock.json
+            desk/package-lock.json
+      # The Desk imports auction/src/engine (pay-by words, money), whose tsconfig extends expo/tsconfig.base.
+      - run: npm ci --prefix ../auction
       - run: npm ci
       - run: npm run typecheck
       - run: npx vitest run
