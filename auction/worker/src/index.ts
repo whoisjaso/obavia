@@ -17,6 +17,7 @@ import { invoices, markPaidAtLot, onWebhook, uploadEvidence } from './invoice';
 import { feeFor, feesOwedCents, platformRow, setPlatform } from './fees';
 import { buyerPhoneOf, clientOf, record as recordMarketing, recordPurchase, summary as marketingSummary, type Client } from './marketing';
 export { Auction } from './auction';
+import { CLAUSE_TEXT, CLAUSE_VERSION, CODE_ALPHABET, REFERRAL_CODE } from './wave4';
 
 const DEPOSIT_USD = 250;
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type, x-photo-size', 'access-control-allow-methods': 'GET, POST, PUT' };
@@ -40,17 +41,11 @@ const body = async (req: Request): Promise<Record<string, unknown>> => { try { c
 const plain = (v: unknown, max: number) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= max && !/[\u0000-\u001f\u007f]/.test(v) ? v.trim().replace(/\s+/g, ' ') : null;
 const GDN = /^[A-Z0-9]{5,12}$/;
 /* ---- Wave 4 (gap table §4 W4-A; phases.md amendment 2026-10-13: Phase 4 and 5 code behind flags, no deploy, no money, no keys) */
-/** The arbitration clause (decisions §9 D13), behind ARBITRATION=1. The text is D13's own line, marked draft: the words are counsel's
-    (Q14), not ours, and nothing on the glass says otherwise. A new wording is a new version. */
-export const CLAUSE_VERSION = 'D13-draft-2026-10-13';
-export const CLAUSE_TEXT = 'DRAFT, counsel review pending: Arbitration: FAA-governed clause naming Obavia and the dealer; no DTPA waiver; small-claims carve-out; shown once, scroll-to-end.';
+/** The clause and the referral code's shape live in src/wave4.ts: the entry module exports only handlers and classes. */
 const arbitrationOn = (env: Env) => env.ARBITRATION === '1';
 /** Audio and video on the car (phases.md Phase 5 Frontend: engine idle recordings, the walkaround): the types and caps. */
 const MEDIA = { audio: { types: ['audio/mp4', 'audio/webm'], cap: 8_000_000 }, video: { types: ['video/mp4', 'video/webm'], cap: 60_000_000 } } as const;
 const extOf = (ct: string) => ct.endsWith('/webm') ? 'webm' : 'mp4';
-/** A referral code: eight of these, no vowels, no 0, O, 1 or I (nothing a thumb mistypes or a voice mishears). */
-const CODE_ALPHABET = 'BCDFGHJKLMNPQRSTVWXYZ23456789';
-export const REFERRAL_CODE = /^[BCDFGHJKLMNPQRSTVWXYZ23456789]{8}$/;
 function referralCode(): string {
   let out = '';
   while (out.length < 8) { const [b] = crypto.getRandomValues(new Uint8Array(1)); if (b < 232) out += CODE_ALPHABET[b % CODE_ALPHABET.length]; }   // 232 = 8 x 29: no bias

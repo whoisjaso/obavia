@@ -5,7 +5,8 @@ import { env, SELF, applyD1Migrations } from 'cloudflare:test';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { D1Migration } from '@cloudflare/vitest-pool-workers';
 import type { Env as WorkerEnv } from '../src/env';
-import worker, { CLAUSE_TEXT, CLAUSE_VERSION, REFERRAL_CODE } from '../src/index';
+import worker from '../src/index';
+import { CLAUSE_TEXT, CLAUSE_VERSION, REFERRAL_CODE } from '../src/wave4';
 
 declare global { namespace Cloudflare { interface Env extends WorkerEnv { TEST_MIGRATIONS: D1Migration[] } } }
 const base = 'https://auction.test';
@@ -287,5 +288,13 @@ describe('7. the arbitration clause behind ARBITRATION (D13, draft; counsel pend
     // off: a second buyer with no clause bids as before
     const u = await buyer('buyer-ar-2');
     expect((await bid('ar1', u, 5100)).status).toBe(200);
+  });
+});
+
+describe('the entry module exports only handlers and classes', () => {
+  it('every named export of src/index.ts is a function or a class (the runtime refuses a string or a RegExp there and the Worker never starts)', async () => {
+    const mod = await import('../src/index');
+    const bad = Object.entries(mod).filter(([k, v]) => k !== 'default' && typeof v !== 'function').map(([k]) => k);
+    expect(bad).toEqual([]);
   });
 });
