@@ -1,4 +1,7 @@
-/* Pickup. Three pages: where; when; the pass. At the lot the dealer scans the
+/* Pickup. Three pages: where; when; the pass. When is the dealer's own hours
+   from the lot (car.hours, set on the Desk), each a choice, with the
+   after-hours line under them to call; a lot with no hours shows one line,
+   "Call to set a time", and the number, and the pass is ready without a slot. At the lot the dealer scans the
    VIN, the car starts, the pass turns green: that is when the sale completes.
    Locally, hold the pass to stand in for the dealer's scan; on the server the
    scan sets the lot's sale.startedAt and the pass turns green from that.
@@ -17,11 +20,9 @@ import { PressCloud } from '../../components/Cloud';
 import { Body, Button, Caps, Choice, Label, Page, Pager, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
 import { passSix, passValue } from '../../pass';
-import { arriveAtLot, setSale, useSale } from '../../sale';
+import { arriveAtLot, pickupWhen, setSale, useSale } from '../../sale';
 import { AUCTION_URL } from '../../store';
 import { theme } from '../../theme';
-
-const SLOTS = ['Today 4-6', 'Tomorrow 10-12', 'Tomorrow 2-4', 'Sat 10-2', 'Mon 9-11'];   // hyphens: no en dash on the glass
 
 export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   const sale = useSale();
@@ -37,11 +38,13 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   }, [sale?.arrived, sale?.pickedUp]);
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
   const [page, setPage] = useState(sale?.slot ? 2 : 0);
-  useFullBrightness(page === 2 && !!sale?.slot);
+  const times = pickupWhen(car);
+  const ready = !!sale?.slot || times.kind === 'call';   // the pass shows once a time is picked, or at once when the time is set by phone
+  useFullBrightness(page === 2 && ready);
   const greenStyle = useAnimatedStyle(() => ({ opacity: green.value }));
   if (!sale) return null;
   const started = !!sale.pickedUp;
-  const slots = car.hours?.length ? car.hours : SLOTS;
+  const call = (n: string) => Linking.openURL(`tel:${n.replace(/\D/g, '')}`);
   const code = passValue(sale.lotId, car.vin, sale.wonAt), six = passSix(car.vin);
 
   const where = (
@@ -53,26 +56,38 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
         <Svg width={40} height={52} viewBox="0 0 34 44"><Path d="M17 43 C17 43 3 25 3 15 A14 14 0 0 1 31 15 C31 25 17 43 17 43Z" fill={theme.color.accent} /><Circle cx={17} cy={15} r={5.5} fill={theme.color.cloud} /></Svg>
         <Label style={{ marginTop: 6 }}>Directions</Label>
       </Pressable>
-      <Pressable onPress={() => Linking.openURL(`tel:${car.dealer.afterHours.replace(/\D/g, '')}`)} style={{ marginTop: theme.space.l, alignItems: 'center' }} accessibilityRole="button" accessibilityLabel={`After hours ${car.dealer.afterHours}`}>
-        <Label>After hours</Label>
-        <Body ink={theme.color.accent}>{car.dealer.afterHours}</Body>
-      </Pressable>
     </Page>
   );
 
-  const when = (
+  const when = times.kind === 'slots' ? (
     <Page>
       <Label style={{ marginBottom: theme.space.s }}>When</Label>
-      <View>
-        {slots.map(sl => <Choice key={sl} label={sl} selected={sale.slot === sl} onPress={() => setSale({ slot: sl })} />)}
+      <View style={{ alignSelf: 'stretch' }}>
+        {times.slots.map(sl => <Choice key={sl} label={sl} selected={sale.slot === sl} onPress={() => setSale({ slot: sl })} />)}
       </View>
+      {/* the after-hours line sits under the hours it is the fallback for */}
+      {!!times.call && (
+        <Pressable onPress={() => call(times.call)} style={s.call} accessibilityRole="button" accessibilityLabel={`After hours, call ${times.call}`}>
+          <Label>After hours</Label>
+          <Body ink={theme.color.accent}>{times.call}</Body>
+        </Pressable>
+      )}
+    </Page>
+  ) : (
+    <Page>
+      {times.call ? (
+        <Pressable onPress={() => call(times.call)} style={{ alignItems: 'center' }} accessibilityRole="button" accessibilityLabel={`Call to set a time, ${times.call}`}>
+          <Label>Call to set a time</Label>
+          <Body ink={theme.color.accent} style={{ marginTop: theme.space.xs }}>{times.call}</Body>
+        </Pressable>
+      ) : <Label>Call to set a time</Label>}
     </Page>
   );
 
   const pass = (
     <Page foot={started ? <Button label="Done" onPress={onDone} /> : undefined}>
-      <Label>{started ? 'Started' : sale.slot ?? 'Pick a time'}</Label>
-      {sale.slot && (
+      {(started || times.kind === 'slots') && <Label>{started ? 'Started' : sale.slot ?? 'Pick a time'}</Label>}
+      {ready && (
         <Animated.View style={[{ marginTop: theme.space.m, alignItems: 'center' }, pulseStyle]}>
           {/* the pass is a cloud: it sinks under the thumb, and breathes once when the dealer's scan
               completes the sale (feel.done, from sale.ts or the server), whoever pressed */}
@@ -125,5 +140,6 @@ function useFullBrightness(on: boolean) {
 
 const s = StyleSheet.create({
   pin: { marginTop: theme.space.l, alignItems: 'center' },
+  call: { marginTop: theme.space.l, alignItems: 'center' },
   six: { letterSpacing: theme.size.price * 0.075, marginRight: -theme.size.price * 0.075 },   // spaced; the last letter's tracking taken back so the six centre under the QR
 });

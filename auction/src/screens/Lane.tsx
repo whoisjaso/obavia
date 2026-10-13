@@ -28,7 +28,7 @@ import { AUCTION_URL, ME, isWatched, toggleWatch, useCars, useLots, useWatched }
 import { Me } from './Me';
 import { Label } from '../components/Type';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
-import { clearSale, openSale, peekSale, setSale, useSale } from '../sale';
+import { clearSale, followServer, openSale, peekSale, useSale } from '../sale';
 import { clearIntent, useIntent } from '../nav';
 
 const STEP_PT = 28;   // one increment per 28 pt of drag
@@ -205,9 +205,8 @@ function Mark({ size, id = 'm' }: { size: number; id?: string }) {
 function ensureSale(lot: Lot, car: Car) {
   const sale = lot.sale!;
   const cur = peekSale();
-  if (!cur || cur.lotId !== lot.id) openSale({ lotId: lot.id, hammer: sale.hammer, total: outTheDoor(sale.hammer, car.dealer.fees).total, wonAt: sale.wonAt });
-  else if (cur.wonAt !== sale.wonAt) setSale({ wonAt: sale.wonAt });   // the server's hammer time, so the pass matches the Desk's
-  if (sale.startedAt && !peekSale()?.pickedUp) setSale({ pickedUp: true });   // the dealer's VIN scan, from the server; plates untouched
+  if (!cur || cur.lotId !== lot.id) openSale({ lotId: lot.id, hammer: sale.hammer, total: outTheDoor(sale.hammer, car.dealer.fees).total, wonAt: sale.wonAt, deadlineAt: sale.deadlineAt });
+  followServer(sale);   // the server's hammer time (the pass matches the Desk's), its pay-by for Pay, the dealer's VIN scan, the plates states it carries
 }
 const live = (l: Lot) => l.sale?.buyer === ME && !l.sale.voidedAt && !l.sale.forfeitedAt;
 

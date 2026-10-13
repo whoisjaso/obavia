@@ -1,7 +1,9 @@
 /* The sale after the hammer: what the buyer has done, in order. One object,
-   one store, no navigation state anywhere else. The plates timeline is the
-   dealer's and the county's; here a demo cadence stands in for the Desk's
-   130-U filing events until the Worker carries them. */
+   one store, no navigation state anywhere else. The pay-by is the server's
+   (the lot's sale.deadlineAt, 48 h from the hammer). The plates timeline is
+   the dealer's and the county's: with a Worker the ring follows the server's
+   sale state and nothing else; only the local fixtures (no Worker) run the
+   demo cadence that stands in for the Desk's 130-U filing events. */
 import { useSyncExternalStore } from 'react';
 import type { Signature } from './screens/Paper';
 import { feel } from './feel';
@@ -14,6 +16,7 @@ export type Plates = 'none' | 'filed' | 'approved' | 'mailed' | 'kickback';
 export type Licence = { name: string; dob: string; address: string; licence: string; state: string; confirmed: boolean };
 export type Sale = {
   lotId: string; hammer: number; total: number; wonAt: number;
+  deadlineAt?: number;          // pay by: the server's, from the lot's sale; never computed on the glass with a Worker
   forWhom?: 'me' | 'other';
   id?: Licence;
   insured?: boolean;
@@ -36,7 +39,7 @@ export function useSale() {
 export const peekSale = () => sale;
 export const setSale = (patch: Partial<Sale>) => { if (sale) { sale = { ...sale, ...patch }; emit(); } };
 export const clearSale = () => { sale = null; emit(); };
-export function openSale(init: Pick<Sale, 'lotId' | 'hammer' | 'total'> & { wonAt?: number }) {
+export function openSale(init: Pick<Sale, 'lotId' | 'hammer' | 'total'> & { wonAt?: number; deadlineAt?: number }) {
   sale = { ...init, wonAt: init.wonAt ?? Date.now(), signed: {}, plates: 'none' };
   emit();
 }
@@ -57,19 +60,77 @@ export function nextTile(s: Sale): Tile | null {
   return null;
 }
 
+/** A Worker is configured (EXPO_PUBLIC_AUCTION_URL, inlined at build time): the server owns the sale. */
+export const WORKER = !!(process.env.EXPO_PUBLIC_AUCTION_URL ?? '').trim();
+
+/** The pay window the Worker sets (worker/src/auction.ts PAY_WINDOW_MS). Used only by the local fixtures. */
+export const PAY_WINDOW_MS = 48 * 3_600_000;
+
+/** The pay-by instant. With a Worker, the server's deadlineAt or nothing yet (the line waits for it);
+    without one, the local fixtures' hammer plus the same 48 hours. */
+export function payDeadline(s: Pick<Sale, 'wonAt' | 'deadlineAt'>, worker = WORKER): number | null {
+  if (typeof s.deadlineAt === 'number' && Number.isFinite(s.deadlineAt)) return s.deadlineAt;
+  return worker ? null : s.wonAt + PAY_WINDOW_MS;
+}
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** The deadline as the buyer reads it, in the buyer's time zone: "Thu 4 pm", "Thu 4:37 pm". The page,
+    the push, the SMS and the Desk say these same words after "Pay by" (DOCTRINE CP9). `timeZone` is for
+    a sender that is not the buyer's phone (the Worker's push, a test); the phone uses its own zone. */
+export function payByWords(at: number, timeZone?: string): string {
+  let day: number, h: number, m: number;
+  if (timeZone) {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short', hour: 'numeric', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(at));
+    const get = (t: string) => parts.find(p => p.type === t)?.value ?? '';
+    day = DAYS.indexOf(get('weekday')); h = Number(get('hour')) % 24; m = Number(get('minute'));
+  } else {
+    const d = new Date(at); day = d.getDay(); h = d.getHours(); m = d.getMinutes();
+  }
+  const clock = `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h >= 12 ? 'pm' : 'am'}`;
+  return `${DAYS[day]} ${clock}`;
+}
+
+/** The server's sale as the glass follows it: the pay-by, the hammer time, the dealer's scan and, once the
+    Worker carries them, the plates states. The Lane calls this on every lot change for the sale I hold. */
+export type ServerSale = { wonAt: number; deadlineAt: number; startedAt?: number; plates?: Plates };
+export function followServer(server: ServerSale) {
+  const cur = sale; if (!cur) return;
+  const patch: Partial<Sale> = {};
+  if (cur.wonAt !== server.wonAt) patch.wonAt = server.wonAt;   // the server's hammer time, so the pass matches the Desk's
+  if (cur.deadlineAt !== server.deadlineAt) patch.deadlineAt = server.deadlineAt;
+  if (server.startedAt && !cur.pickedUp) patch.pickedUp = true;   // the dealer's VIN scan
+  if (server.plates && server.plates !== cur.plates) patch.plates = server.plates;
+  if (Object.keys(patch).length) setSale(patch);
+}
+
+/** When to pick the car up: the dealer's own hours from the lot, as the choices, with the after-hours
+    line under them to call; no hours on the lot, one line to call and the number. Dashes are set as
+    hyphens (no en dash on the glass: the Desk may type "Sat 10\u20132"); a closed day is not a choice. */
+export type PickupWhen =
+  | { kind: 'slots'; slots: string[]; call: string }
+  | { kind: 'call'; call: string };
+export function pickupWhen(car: { hours?: string[]; dealer: { phone: string; afterHours: string } }): PickupWhen {
+  const slots = [...new Set((car.hours ?? []).map(h => h.replace(/[\u2012-\u2015]/g, '-').replace(/\s+/g, ' ').trim()).filter(h => h && !/\bclosed\b/i.test(h)))];   // "Sun closed" is not a time to come
+  if (slots.length) return { kind: 'slots', slots, call: car.dealer.afterHours || car.dealer.phone };
+  return { kind: 'call', call: car.dealer.phone || car.dealer.afterHours };
+}
+
 /** Pickup: at the lot the dealer scans the VIN and the car starts; the QR turns green.
-    Demo: a short wait stands in for the dealer's scan. */
-export function arriveAtLot() {
+    Local fixtures only: a short wait stands in for the dealer's scan. With a Worker the scan is the
+    Desk's (sale.startedAt over the socket) and arriving only marks the arrival. */
+export function arriveAtLot(worker = WORKER) {
   setSale({ arrived: true }); feel.heartbeat();
+  if (worker) return;
   setTimeout(() => {
     setSale({ pickedUp: true }); feel.done();
-    if (!outOfState(sale)) runPlates();
+    if (!outOfState(sale)) runPlates(worker);
   }, 1800);
 }
 
-/** Filed → Approved → Mailed, each a tick on the ring; Mailed gets the heartbeat twice.
-    Demo cadence; the real events are the Desk's 130-U filing and the county's answer. */
-function runPlates() {
+/** Filed, Approved, Mailed, each a tick on the ring; Mailed gets the heartbeat twice.
+    Demo cadence for the local fixtures; with a Worker it never runs (followServer carries the states). */
+export function runPlates(worker = WORKER) {
+  if (worker) return;
   const step = (p: Plates, after: number) => setTimeout(() => {
     if (!sale) return;
     setSale({ plates: p });

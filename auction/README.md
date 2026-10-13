@@ -8,7 +8,7 @@ Expo (React Native) app for the phone-first public auction. Spec: `docs/plan/oba
 - `src/screens/Lane.tsx` one car per screen: swipe up for the next car, tap for the next angle, hold the photo, drag the price up to arm a bid, long-press the ring for the time. Bid and total stacked 2:1, Bid and Retail bars, dealer name and city.
 - `src/screens/CarSheet.tsx` the Car: three detents, twelve photos in a packed grid (a sideways shot takes two cells, never a hole: `src/engine/grid.ts`), the six-dot grade that becomes six words on a tap, odometer, VIN last six, the title chip, the Buyers Guide as `Paper`.
 - `src/components/LanePhoto.tsx` sideways photos on the Lane: the same photo blurred behind, the sharp frame at width, a little above centre so the price has room.
-- `src/sale.ts` + `src/screens/won/` the sale after the hammer: Won (flash, chime, confetti, "Who is it for?", four tiles with the next one lifted), ID and insurance scans (frames and chips; the camera and the read are the next wiring), Sign (three documents as `Paper`, scroll-to-end unlocks the pad, one signature reused with a tap), Pay (ACH with its clearing day, Wire, Cash at the lot, the 48 h deadline), Pickup (the pin, the window wheel, the after-hours line, a QR pass that turns green when the car starts), Plates (one ring, three ticks, amber on a county kickback). An out-of-state licence relabels the last tile to Title.
+- `src/sale.ts` + `src/screens/won/` the sale after the hammer: Won (flash, chime, confetti, "Who is it for?", four tiles with the next one lifted), ID and insurance scans (frames and chips; the camera and the read are the next wiring), Sign (three documents as `Paper`, scroll-to-end unlocks the pad, one signature reused with a tap), Pay (ACH with its clearing day, Wire, Cash at the lot, and "Pay by" with the server's deadline, the lot's `sale.deadlineAt`, in Bodoni in the buyer's time zone, the words the push uses), Pickup (the pin; the dealer's own hours from the lot, `hours`, as the choices with the after-hours line under them; no hours on the lot, "Call to set a time" and the number; a QR pass that turns green when the car starts), Plates (one ring, three ticks, amber on a county kickback; with a Worker it follows the server's sale state, and only the local fixtures run the demo cadence). An out-of-state licence relabels the last tile to Title.
 - `src/licence.ts` the licence read (scanPlan): the frame scans the back's PDF417 with expo-camera (`barcodeScannerSettings={{ barcodeTypes: ['pdf417'] }}`, `onBarcodeScanned`), one shot, and `parseAamva` turns the AAMVA DL subfile into name, street, city, state, zip, DOB, number, expiry and the Texas audit number (DCF); an ID card subfile or a bad read returns null and the frame keeps looking. The front is still photographed for the ID frame. `isTexas`, `isExpired`, `isAdult`, `fieldsForWebDealer` (DL number, DOB, audit; the last four of the SSN is never on the card and stays typed). Persona only if the read misses the nine-in-ten exit on device (KEYS). Tests use synthetic payloads only (`src/licence.test.ts`); never commit a real licence's barcode text.
 - `src/screens/Me.tsx` Me and Watching: the name, the standing deposit, the cars won, "Sell it back here", sign out; a column of rings with the price under each, tap to jump to the car, swipe left to unwatch, the first ring spins in with the heartbeat after a day away. Double-tap a car on the Lane to watch it; the mark top-right opens Me.
 - `src/screens/BidSheet.tsx` the bottom 40%: the wheel, the total, the increment, the ceiling chips ("up to $X"), one Bid button (hold 600 ms over 2×), the $250 deposit step once ever, the hollow deposit chip, the ack punch, the one-time soft-close teach, and the only sentence: "Closed 0.4 s before your bid".
@@ -32,10 +32,20 @@ A Cloudflare Worker and one Durable Object per lot, running the same engine with
 ```
 npm install
 npx expo start            # iOS / Android via a development build (haptics, audio are native modules)
-npx tsc --noEmit && npx vitest run
+npm run typecheck && npm test
 npx expo export --platform web --output-dir dist   # the web preview used for screenshots; no haptics on web
 ```
 Preview switches on the web build only: `?closeIn=3000&lag=1500` closes the first lot in 3 s with 1.5 s of network latency, to watch a late bid get rejected; `?win=1` drops the hammer 2.5 s after your first bid, to walk Won through Plates. In Pickup, hold the pass to stand in for the dealer's VIN scan.
 
+## Push (device builds)
+The config is `app.config.ts` (it replaced `app.json`). Push tokens need the EAS project id on a device build: `src/push.ts` passes `extra.eas.projectId` to `getExpoPushTokenAsync`, and the config reads it from `EAS_PROJECT_ID` in the environment. Without it a phone build registers no token and hears nothing.
+```
+npx eas-cli init                       # once: creates or links the EAS project, prints its id
+export EAS_PROJECT_ID=<the id>         # or set it as an EAS environment variable for the build profile
+npx expo config --type public | grep -A2 eas   # shows projectId when it is set
+npx eas-cli build --platform ios       # or: npx expo run:ios on a connected phone
+```
+The web export and the simulators do not need it. The config plugins registered for device builds: expo-audio, expo-image, expo-font, expo-web-browser, expo-secure-store, expo-brightness (the pass at full brightness), expo-notifications (push) and expo-camera (licence and insurance card; camera only, no microphone).
+
 ## Not yet
-The camera and the licence/insurance read, the deposit checkout in the sheet (the Worker creates a Whop checkout and verifies the payment; the sheet does not open it yet), the Desk's document renders inside `Paper`, Wallet passes, push notifications, engine audio recordings, the walkaround video, sign-in, the dealer side (lives in the Desk).
+The camera and the licence/insurance read, the deposit checkout in the sheet (the Worker creates a Whop checkout and verifies the payment; the sheet does not open it yet), the Desk's document renders inside `Paper`, Wallet passes, the pay-by reminder pushes at 24 h and 6 h (Phase 1), engine audio recordings, the walkaround video, sign-in, the dealer side (lives in the Desk).
