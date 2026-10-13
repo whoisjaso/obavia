@@ -55,7 +55,7 @@ export const listingUrlOf = (v: unknown): string | null => typeof v === 'string'
 export const DEPOSIT_USD = 250;
 /** The soft close (decisions §2 #8): Sell It Now is refused inside the last two minutes of a lot with bids. */
 export const SOFT_CLOSE_MS = 120_000;
-const DEALER_ROUTES = ['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/plates', '/copy', '/audit'];
+const DEALER_ROUTES = ['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/plates', '/copy', '/audit', '/dev/clock'];
 /** The plates clock, forward only (phases.md Phase 2 Paperwork: filed, approved, mailed, kickback): what may follow each state.
     A kickback follows filed and is followed by filed again (the Desk fixed the 130-U and refiled). Nothing follows mailed. */
 export const PLATES_NEXT: Record<'none' | PlatesState, readonly PlatesState[]> = {
@@ -212,8 +212,31 @@ export class Auction extends DurableObject<Env> {
         await this.forfeit(lot, 'forfeit', typeof b.reason === 'string' ? b.reason : '', now);
         return json(this.publicLot(lot));
       }
+      case 'POST /dev/clock': {   // test aid (DEV=1 only; the Worker gates it too): move closesAt or the sale's deadlineAt, then re-arm the alarm at the earliest pending time
+        if (this.env.DEV !== '1') return text('not found', 404);
+        if (!lot) return text('no lot', 404);
+        const b = await req.json<{ deadlineAt?: unknown; closesAt?: unknown }>().catch(() => ({} as { deadlineAt?: unknown; closesAt?: unknown }));
+        const ms = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : null;
+        const closesAt = ms(b.closesAt), deadlineAt = ms(b.deadlineAt);
+        if (closesAt == null && deadlineAt == null) return text('bad_clock', 400);
+        if (deadlineAt != null && !lot.sale) return text('no sale', 409);
+        if (closesAt != null) lot.closesAt = closesAt;
+        if (deadlineAt != null && lot.sale) lot.sale.deadlineAt = deadlineAt;
+        await this.save(lot);
+        await this.rearm(lot, now);
+        return json({ ok: true, alarmAt: await this.ctx.storage.getAlarm() });
+      }
       default: return text('not found', 404);
     }
+  }
+
+  /** The alarm re-armed at the earliest pending time, by the same paths the lane uses: the close, the open offer's expiry, else the sale's pushes and deadline. */
+  private async rearm(lot: Stored, now: number): Promise<void> {
+    if (!lot.closed) { await this.ctx.storage.setAlarm(lot.closesAt); return; }
+    const s = lot.sale; if (!s) return;
+    if (s.forfeitedAt && s.offer && !s.offer.acceptedAt && !s.offer.expiredAt) { await this.ctx.storage.setAlarm(s.offer.expiresAt); return; }
+    if (s.paidAt || s.startedAt || s.voidedAt || s.forfeitedAt) return;
+    await this.scheduleSale(lot, now);
   }
 
   /** The alarm: the hammer, then the two pay-by pushes, then the deadline. */

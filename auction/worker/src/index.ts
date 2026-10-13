@@ -92,6 +92,13 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const stub = env.AUCTION.get(env.AUCTION.idFromName(id));
       const toObject = (init: RequestInit & { dealer?: string }) => stub.fetch(new Request(req.url, { ...init, headers: { 'content-type': 'application/json', ...(init.dealer ? { 'x-dealer': init.dealer } : {}) } }));
 
+      // a test aid, never product: on a DEV=1 Worker the lot's dealer or the admin moves the clocks and re-arms the alarm; 404 everywhere else
+      if (rest === '/dev/clock') {
+        if (env.DEV !== '1' || req.method !== 'POST') return text('not found', 404);
+        const dealer = await dealerFrom(req, env.DEALER_SECRET);
+        if (!dealer) return text('dealer only', 403);
+        return toObject({ method: 'POST', body: await req.text(), dealer: dealer === '*' ? '' : dealer });
+      }
       // dealer: open, close, paid, pickup, car, void, forfeit, plates, photos, documents
       if (['/open', '/close', '/paid', '/pickup', '/car', '/void', '/forfeit', '/plates'].includes(rest) || rest.startsWith('/photos/') || rest.startsWith('/documents/')) {
         const dealer = await dealerFrom(req, env.DEALER_SECRET);
@@ -360,7 +367,10 @@ async function handle(req: Request, env: Env): Promise<Response> {
       const lots = (await env.DB.prepare(`SELECT lot FROM lots WHERE json_extract(lot, '$.sale') IS NOT NULL ORDER BY updated_at DESC LIMIT 500`).all<{ lot: string }>()).results.map(r => JSON.parse(r.lot));
       const names = new Map((await env.DB.prepare(`SELECT id, name FROM buyers WHERE id IN (SELECT json_extract(lot, '$.sale.buyer') FROM lots WHERE json_extract(lot, '$.sale.buyer') IS NOT NULL)`).all<{ id: string; name: string | null }>()).results.map(b => [b.id, b.name]));
       const sales = lots.map(l => ({ lotId: l.id, dealer: l.dealer ?? null, buyer: l.sale.buyer ?? null, buyerName: names.get(l.sale.buyer) ?? null, state: saleState(l.sale), hammer: l.sale.hammer, deadlineAt: l.sale.deadlineAt, deposit: l.sale.deposit ?? null }));
-      return json({ events, payouts, sales });
+      // the Desk's Invoices section (admin-api.ts readMoney: id, lotId, kind, whopId, state, amountCents, createdAt) and its Disputed rows (readPack)
+      const invoiceRows = (await env.DB.prepare('SELECT id, lot_id, kind, payer, payee, whop_id, state, amount_cents, currency, payment_ref, error, created_at, paid_at, updated_at FROM invoices ORDER BY created_at DESC LIMIT 500').all<InvoiceRow>()).results.map(invoiceOut);
+      const evidencePacks = (await env.DB.prepare('SELECT id, lot_id, buyer, dispute_id, key, sha256, bytes, at, uploaded_at, upload_ref, upload_error FROM evidence_packs ORDER BY at DESC LIMIT 500').all<PackRow>()).results.map(packOut);
+      return json({ events, payouts, sales, invoices: invoiceRows, evidencePacks });
     }
     // a payout settled outside Whop (wire, check, cash): the row is paid, the ledger says who and how. Only an owed row with the deposit held
     const paidBy = url.pathname.match(/^\/admin\/payouts\/([^/]{1,200})\/paid$/);
@@ -815,6 +825,8 @@ type WhopData = { id?: unknown; status?: unknown; payment_id?: unknown; payment?
 type EventRow = { id: string; type: string; body: string; received_at: number };
 type PayoutRow = { id: string; lot_id: string; dealer: string; buyer: string; amount: number; reason: string; note: string | null; held: number; state: string; transfer_id: string | null; error: string | null; created_at: number; sent_at: number | null; method: string | null; paid_note: string | null };
 type SaleLike = { startedAt?: number; voidedAt?: number; forfeitedAt?: number; paidAt?: number };
+type InvoiceRow = { id: string; lot_id: string; kind: string; payer: string; payee: string | null; whop_id: string | null; state: string; amount_cents: number; currency: string; payment_ref: string | null; error: string | null; created_at: number; paid_at: number | null; updated_at: number };
+type PackRow = { id: number; lot_id: string; buyer: string | null; dispute_id: string | null; key: string; sha256: string; bytes: number; at: number; uploaded_at: number | null; upload_ref: string | null; upload_error: string | null };
 
 const saleState = (s: SaleLike) => s.startedAt ? 'started' : s.voidedAt ? 'voided' : s.forfeitedAt ? 'forfeited' : s.paidAt ? 'paid' : 'owed';
 const str = (v: unknown): string | null => typeof v === 'string' && v ? v : null;
@@ -838,6 +850,16 @@ function payoutOut(p: PayoutRow) {
   const out = p.state !== 'owed';
   return { id: p.id, lotId: p.lot_id, dealer: p.dealer, buyer: p.buyer, amountUsd: p.amount, state: out ? 'paid' as const : 'owed' as const, via: p.state === 'sent' ? 'whop' : p.state === 'paid' ? 'hand' : null,
     paidAt: out ? p.sent_at : null, method: p.method, note: p.state === 'paid' ? p.paid_note : p.note, reason: p.reason, held: !!p.held, transferId: p.transfer_id, error: p.error, createdAt: p.created_at };
+}
+
+/** An invoices row (0016) as the admin's money page reads it (admin-api.ts Invoice): the amount in cents, never a pay URL or a key. */
+function invoiceOut(i: InvoiceRow) {
+  return { id: i.id, lotId: i.lot_id, kind: i.kind, payer: i.payer, payee: i.payee, whopId: i.whop_id, state: i.state, amountCents: i.amount_cents, amountUsd: i.amount_cents / 100, currency: i.currency, paymentRef: i.payment_ref, error: i.error, createdAt: i.created_at, at: i.created_at, paidAt: i.paid_at, updatedAt: i.updated_at };
+}
+/** An evidence_packs row (0018) as the admin's Disputed rows read it (admin-api.ts readPack): the upload state is uploadedAt or uploadError. */
+function packOut(p: PackRow) {
+  return { id: p.id, lotId: p.lot_id, buyer: p.buyer, disputeId: p.dispute_id, key: p.key, sha256: p.sha256, bytes: p.bytes, at: p.at, createdAt: p.at, uploadedAt: p.uploaded_at, uploadRef: p.upload_ref, uploadError: p.upload_error,
+    upload: p.uploaded_at ? 'sent' as const : p.upload_error ? 'refused' as const : 'not_sent' as const };
 }
 
 /** Owed and sent, in dollars, in all and by dealer. Rows with held = 0 are counted apart: nothing came in, nothing goes out. */

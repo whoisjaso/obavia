@@ -296,7 +296,7 @@ describe('5. the admin\'s money routes (desk/src/lib/admin-api.ts)', () => {
     expect((await post('/admin/lots/mo1/forfeit', ADMIN, { reason: 'did not pay' })).status).toBe(200);
     expect((await get('/admin/money', as(own))).status).toBe(403);
     const m = await (await get('/admin/money', ADMIN)).json<any>();
-    expect(Object.keys(m).sort()).toEqual(['events', 'payouts', 'sales']);
+    expect(Object.keys(m).sort()).toEqual(['events', 'evidencePacks', 'invoices', 'payouts', 'sales']);
     const ats = m.events.map((e: any) => e.at);
     expect(ats).toEqual([...ats].sort((a: number, b: number) => b - a));
     const cap = m.events.find((e: any) => e.type === 'deposit.captured' && e.buyer === 'rt-mo1');
@@ -306,6 +306,26 @@ describe('5. the admin\'s money routes (desk/src/lib/admin-api.ts)', () => {
     expect(m.payouts.find((p: any) => p.id === 'forfeit:mo1')).toMatchObject({ lotId: 'mo1', dealer: 'P800041', amountUsd: 250, state: 'owed', paidAt: null, method: null, held: true });
     expect(m.sales.find((s: any) => s.lotId === 'mo1')).toMatchObject({ dealer: 'P800041', buyer: 'rt-mo1', buyerName: 'Routes Buyer', state: 'forfeited', hammer: 5000, deposit: 'to_dealer' });
     expect(JSON.stringify(m)).not.toContain('2145550142');   // no phone on the money page
+  });
+
+  it('GET /admin/money: evidencePacks (0018) and invoices (0016) in the names the Desk reads; a seeded pack and a seeded fee invoice land; no pay URL', async () => {
+    const own = await dealer('P800049');
+    await sold('mo9', own, 'P800049', 'rt-mo9');
+    const at = Date.now();
+    await env.DB.prepare('INSERT INTO evidence_packs (lot_id, buyer, dispute_id, key, sha256, bytes, at, upload_error) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
+      .bind('mo9', 'rt-mo9', 'dsp_mo9', `evidence/mo9/${at}.pdf`, 'a'.repeat(64), 4096, at, 'whop_unavailable').run();
+    await env.DB.prepare(`INSERT INTO invoices (id, lot_id, kind, payer, payee, whop_id, state, amount_cents, currency, pay_url, created_at, updated_at) VALUES (?1, ?2, 'fee', ?3, 'biz_obavia', 'inv_mo9', 'open', 9900, 'usd', 'https://whop.test/pay/inv_mo9', ?4, ?4)`)
+      .bind('fee:mo9', 'mo9', 'P800049', at).run();
+    const m = await (await get('/admin/money', ADMIN)).json<any>();
+    const pack = m.evidencePacks.find((p: any) => p.lotId === 'mo9');
+    expect(pack).toMatchObject({ lotId: 'mo9', buyer: 'rt-mo9', disputeId: 'dsp_mo9', key: `evidence/mo9/${at}.pdf`, sha256: 'a'.repeat(64), bytes: 4096, at, createdAt: at, uploadedAt: null, uploadRef: null, uploadError: 'whop_unavailable', upload: 'refused' });
+    expect(typeof pack.id).toBe('number');
+    const inv = m.invoices.find((i: any) => i.id === 'fee:mo9');
+    expect(inv).toEqual({ id: 'fee:mo9', lotId: 'mo9', kind: 'fee', payer: 'P800049', payee: 'biz_obavia', whopId: 'inv_mo9', state: 'open', amountCents: 9900, amountUsd: 99, currency: 'usd', paymentRef: null, error: null, createdAt: at, at, paidAt: null, updatedAt: at });
+    expect(JSON.stringify(m)).not.toContain('whop.test/pay');   // the pay URL stays off the money page
+    expect(JSON.stringify(m)).not.toContain('2145550142');
+    expect((await get('/admin/money', as(own))).status).toBe(403);
+    await env.DB.batch([env.DB.prepare("DELETE FROM invoices WHERE id = 'fee:mo9'"), env.DB.prepare("DELETE FROM evidence_packs WHERE lot_id = 'mo9'")]);   // seeded rows out: the file shares one D1
   });
 
   it('POST /admin/payouts/:id/paid { method, note }: owed and held only; once; the ledger names the admin and the reason', async () => {

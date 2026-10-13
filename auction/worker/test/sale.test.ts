@@ -6,6 +6,7 @@ import type { D1Migration } from '@cloudflare/vitest-pool-workers';
 import type { Env as WorkerEnv } from '../src/env';
 import { payBy } from '../src/push';
 import { OFFER_WINDOW_MS, PAY_WINDOW_MS } from '../src/auction';
+import worker from '../src/index';
 
 declare global { namespace Cloudflare { interface Env extends WorkerEnv { TEST_MIGRATIONS: D1Migration[] } } }
 const base = 'https://auction.test';
@@ -360,6 +361,48 @@ describe('the second-chance offer (decisions §2 row 9; Wave 3-B)', () => {
     expect((await event('offer_expired:sc1'))?.type).toBe('sale.offer_expired');
     const late = await post('/lots/sc1/offer/accept', as(tu));
     expect(late.status).toBe(409); expect(await late.json()).toEqual({ error: 'offer_expired' });
+  });
+  it('POST /lots/:id/dev/clock (DEV=1 only): the deadline moved into the past through the route, the alarm re-armed; then the alarm forfeits no_pay and writes sale.offer as the edit path does', async () => {
+    const gdn = 'P700065', d = await dealer(gdn);
+    const { tu } = await twoBidders('sc5', gdn, d);
+    const before = await lotOf('sc5');
+    expect((await post('/lots/sc5/dev/clock', { 'content-type': 'application/json' }, { deadlineAt: 1 })).status).toBe(403);   // no key: nothing moves
+    expect((await post('/lots/sc5/dev/clock', as(tu), { deadlineAt: 1 })).status).toBe(403);   // a buyer token is no dealer key
+    const other = await post('/lots/sc5/dev/clock', as(await dealer('P700066')), { deadlineAt: 1 });
+    expect(other.status).toBe(403); expect(await other.text()).toBe('not_your_lot');
+    expect((await post('/lots/sc5/dev/clock', as(d), {})).status).toBe(400);   // no clock named
+    expect((await lotOf('sc5')).sale.deadlineAt).toBe(before.sale.deadlineAt);
+    // a later deadline first: the alarm lands on the earliest pending pay-by push, as scheduleSale arms it
+    const later = Date.now() + 30 * H;
+    const moved = await post('/lots/sc5/dev/clock', as(d), { deadlineAt: later });
+    expect(moved.status).toBe(200);
+    const m = await moved.json<{ ok: boolean; alarmAt: number }>();
+    expect(m.ok).toBe(true); expect(m.alarmAt).toBe(later - 24 * H);
+    expect(await runInDurableObject(stub('sc5'), (_i, s) => s.storage.getAlarm())).toBe(m.alarmAt);
+    expect((await lotOf('sc5')).sale.deadlineAt).toBe(later);
+    expect(JSON.parse((await env.DB.prepare('SELECT lot FROM lots WHERE id = ?1').bind('sc5').first<{ lot: string }>())!.lot).sale.deadlineAt).toBe(later);   // the copy follows
+    // the deadline into the past, by the admin key: the alarm is armed at the deadline itself
+    calls = [];
+    const past = Date.now() - 1;
+    const r = await post('/lots/sc5/dev/clock', ADMIN, { deadlineAt: past });
+    expect(r.status).toBe(200);
+    const armed = await r.json<{ ok: boolean; alarmAt: number }>();
+    expect(armed.ok).toBe(true); expect(armed.alarmAt).toBeGreaterThanOrEqual(past); expect(armed.alarmAt).toBeLessThanOrEqual(Date.now());   // a past time is armed now: the runtime clamps it
+    await runDurableObjectAlarm(stub('sc5')); await settle();
+    const l = await lotOf('sc5');
+    expect(l.sale.forfeitedAt).toBeGreaterThan(0);
+    expect(l.sale.offer).toMatchObject({ buyer: 'sc5-under', amount: 5200 });
+    expect(l.sale.offer.expiresAt - l.sale.offer.madeAt).toBe(OFFER_WINDOW_MS);
+    expect(await runInDurableObject(stub('sc5'), (_i, s) => s.storage.getAlarm())).toBe(l.sale.offer.expiresAt);
+    expect(pushes().sort((a, b) => a.to.localeCompare(b.to))).toEqual([
+      { to: 'ExponentPushToken[sc5under]', line: 'Second chance · 2014 Nissan Altima · $5,200 · 12 h', screen: 'offer' },
+      { to: 'ExponentPushToken[sc5winner]', line: 'Deposit forfeited · 2014 Nissan Altima', screen: 'me' },
+    ]);
+    expect(JSON.parse((await env.DB.prepare("SELECT body FROM money_events WHERE type = 'sale.offer' AND json_extract(body, '$.lotId') = 'sc5'").first<{ body: string }>())!.body)).toMatchObject({ buyer: 'sc5-under', amount: 5200, dealer: gdn });
+    expect((await event('forfeit:sc5'))?.type).toBe('deposit.forfeited');
+    // DEV unset: 404 before any key is read
+    const off = await worker.fetch(new Request(`${base}/lots/sc5/dev/clock`, { method: 'POST', headers: ADMIN, body: JSON.stringify({ deadlineAt: 1 }) }), { ...env, DEV: '0' } as WorkerEnv);
+    expect(off.status).toBe(404);
   });
   it('POST /lots/:id/offer/accept: only the offered buyer, with a deposit; the new sale with its own deadline, the forfeited one kept; pickup pays applied:<lot> beside forfeit:<lot>', async () => {
     const gdn = 'P700061', d = await dealer(gdn);
