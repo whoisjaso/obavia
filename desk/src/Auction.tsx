@@ -390,7 +390,8 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
   const [err, setErr] = useState<string | null>(null);
   const [why, setWhy] = useState<string | null>(null);
   /* The pickup (native-patterns §7 line 9): where the browser can read a QR, the camera reads the
-     buyer's pass; where it cannot, the button says "Type The VIN" and the page is the typed six. */
+     buyer's pass; where it cannot, the button says "Type The Pass" and the page is the typed six: the
+     six printed under the buyer's QR (auction/src/pass.ts), the VIN's last six. */
   const [scanner] = useState(canScan);
   const [cam, setCam] = useState(false), [caught, setCaught] = useState(false);
   const video = useRef<HTMLVideoElement>(null), six = useRef<HTMLInputElement>(null);
@@ -416,7 +417,7 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
   const titleW = laneTitleWatch(soldOn, asOf, marks.titleTo), taxW = taxRemitWatch(soldOn, asOf, marks.taxSent);
   useEffect(() => { if (link && (link.soldOn !== soldOn || !!link.unwound !== !live)) rememberLot({ ...link, soldOn, unwound: !live || undefined }); }, [link?.lotId, soldOn, live]);
   const mark = (k: 'titleTo' | 'taxSent') => { feel.done(); setMarks(m => ({ ...m, [k]: asOf })); if (link) rememberLot({ ...(lotLinks().find(l => l.lotId === link.lotId) ?? link), soldOn, [k]: asOf }); };
-  const SAID: Record<string, string> = { 'wrong car': 'That VIN is not this car.', 'no sale': 'There is no sale to mark.', 'no sale to void': 'This sale cannot be voided now.', offline: 'The lane is out of reach.', 'no key': 'Paste your lane key first.' };
+  const SAID: Record<string, string> = { 'wrong car': 'That pass is not this car.', 'no sale': 'There is no sale to mark.', 'no sale to void': 'This sale cannot be voided now.', offline: 'The lane is out of reach.', 'no key': 'Paste your lane key first.' };
   const act = async (f: () => Promise<{ ok: boolean; reason?: string }>) => { setBusy(true); setErr(null); const r = await f(); setBusy(false); if (r.ok) { feel.done(); setMode('sale'); } else setErr(SAID[r.reason ?? ''] ?? `The lane said no: ${r.reason}.`); };
   return (
     <main className="wrap center">
@@ -428,7 +429,7 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
           state === 'started' ? `Picked up ${new Date(s.startedAt!).toLocaleString()}` :
           state === 'voided' ? 'Voided. The buyer’s deposit went back.' :
           state === 'forfeited' ? 'The buyer walked. Their deposit is yours; the car is still yours.' :
-          state === 'paid' ? (scanner ? 'Paid. Scan their pass when the buyer is here.' : 'Paid. Type the VIN when the buyer is here.') :
+          state === 'paid' ? (scanner ? 'Paid. Scan their pass when the buyer is here.' : 'Paid. Type the pass when the buyer is here.') :
           `Sold. The buyer has ${h(left)} to pay.`}</p>
         {mode === 'sale' && <div className="group">
           <div className="row"><span className="t"><b>Won</b></span><span className="v">{new Date(s.wonAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></div>
@@ -440,9 +441,8 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
         </div>}
         {mode === 'vin' && cam && <div className="scan"><video ref={video} muted playsInline autoPlay aria-label="The buyer’s pass, through the camera" /><i aria-hidden="true" /></div>}
         {mode === 'vin' && !cam && <>
-          {!caught && <p className="note" style={{ marginTop: 28 }}>The last six of the VIN, read off the door jamb with the buyer standing there. Then the key.</p>}
-          <label className={'field' + (caught ? ' caught' : '')} style={caught ? { marginTop: 28 } : undefined}><input ref={six} className="input big num" autoFocus={!caught} value={vin} onChange={e => { setCaught(false); setVin(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)); }} placeholder="Last 6" autoCapitalize="characters" aria-label="Last six of the VIN" /></label>
-          {v && !caught && <p className="note">Ends in {v.vin.slice(-6)}</p>}
+          {!caught && <p className="note" style={{ marginTop: 28 }}>The six under the buyer’s code.</p>}
+          <label className={'field' + (caught ? ' caught' : '')} style={caught ? { marginTop: 28 } : undefined}><input ref={six} className="input big num" autoFocus={!caught} value={vin} onChange={e => { setCaught(false); setVin(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/I/g, '1').replace(/[OQ]/g, '0').slice(0, 6)); /* a VIN has no I, O or Q: the Bodoni 1 and 0 typed as letters are the digits */ }} placeholder="Last 6" autoCapitalize="characters" aria-label="The six under the buyer’s code" /></label>
         </>}
         {mode === 'void' && <>
           <p className="note" style={{ marginTop: 28 }}>Ending a sale you cannot deliver returns the buyer’s deposit in full and counts against your lane standing. A second one closes the lane to you.</p>
@@ -453,14 +453,14 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
       {why && <ActionSheet line={<>The buyer’s <b className="num">{usd(250)}</b> deposit goes back in full. This counts against your lane standing.</>} verb="End The Sale" onAct={() => act(() => voidSale(lot.id, why))} onClose={() => setWhy(null)} />}
       <div className="dock"><div className="in">
         {mode === 'sale' && state === 'owed' && <button className="btn primary block" disabled={busy} onClick={() => act(() => markPaid(lot.id))}>Paid At The Lot</button>}
-        {mode === 'sale' && state === 'paid' && <button className="btn primary block" onClick={() => { feel.next(); setVin(''); setCaught(false); setCam(scanner); setMode('vin'); }}>{scanner ? 'Scan The Pass' : 'Type The VIN'}</button>}
+        {mode === 'sale' && state === 'paid' && <button className="btn primary block" onClick={() => { feel.next(); setVin(''); setCaught(false); setCam(scanner); setMode('vin'); }}>{scanner ? 'Scan The Pass' : 'Type The Pass'}</button>}
         {mode === 'sale' && state === 'started' && v && <button className="btn primary block" onClick={() => { feel.done(); const id = startSale(v, { fullName: '', phone: '', address: '', city: '', state: 'TX', zip: '', county: '', idType: 'dl', idNumber: '' }, 'en', v.mileage ?? 0, v.titleStatus); go(`/sale/${id}/guide`); }}>Open The Paperwork</button>}
         {mode === 'sale' && (state === 'forfeited' || state === 'voided') && <button className="btn primary block" onClick={() => { feel.next(); go('/auction/go'); }}>Let It Go Again</button>}
         {mode === 'vin' && <button className="btn primary block" disabled={busy || vin.length < 6} onClick={() => act(() => pickup(lot.id, vin))}>It Started</button>}
         {mode === 'sale' && (state === 'owed' || state === 'paid') && <button className="textlink" onClick={() => { feel.tap(); setMode('void'); }}>I can’t deliver this car</button>}
         {mode === 'sale' && state === 'started' && titleW.state !== 'done' && <button className="textlink" onClick={() => mark('titleTo')}>The Buyer Has The Title</button>}
         {mode === 'sale' && state === 'started' && titleW.state === 'done' && taxW.state !== 'done' && <button className="textlink" onClick={() => mark('taxSent')}>The Tax Went To The County</button>}
-        {mode === 'vin' && cam && <button className="textlink" onClick={() => { feel.tap(); setCam(false); }}>Type the VIN</button>}
+        {mode === 'vin' && cam && <button className="textlink" onClick={() => { feel.tap(); setCam(false); }}>Type The Pass</button>}
         {mode !== 'sale' && <button className="textlink" onClick={() => { feel.tap(); setCam(false); setMode('sale'); }}>Back</button>}
       </div></div>
     </main>

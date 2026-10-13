@@ -4,7 +4,8 @@
    scan sets the lot's sale.startedAt and the pass turns green from that.
    While the pass is on the glass the screen goes to full brightness, as a
    Wallet pass does for its barcode; leaving the page, the app or Pickup puts
-   it back where the buyer had it. */
+   it back where the buyer had it. Under the QR, touching it, the VIN's last six in Bodoni: a Desk with no
+   scanner types what the buyer shows (Type The Pass). One source for both, ../../pass. */
 import React, { useEffect, useRef, useState } from 'react';
 import * as Brightness from 'expo-brightness';
 import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -15,6 +16,7 @@ import { QR } from '../../components/QR';
 import { PressCloud } from '../../components/Cloud';
 import { Body, Button, Caps, Choice, Label, Page, Pager, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
+import { passSix, passValue } from '../../pass';
 import { arriveAtLot, setSale, useSale } from '../../sale';
 import { AUCTION_URL } from '../../store';
 import { theme } from '../../theme';
@@ -40,6 +42,7 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
   if (!sale) return null;
   const started = !!sale.pickedUp;
   const slots = car.hours?.length ? car.hours : SLOTS;
+  const code = passValue(sale.lotId, car.vin, sale.wonAt), six = passSix(car.vin);
 
   const where = (
     <Page>
@@ -73,14 +76,18 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
         <Animated.View style={[{ marginTop: theme.space.m, alignItems: 'center' }, pulseStyle]}>
           {/* the pass is a cloud: it sinks under the thumb, and breathes once when the dealer's scan
               completes the sale (feel.done, from sale.ts or the server), whoever pressed */}
-          <PressCloud holdMs={600} swell="any" sound={!started} onPress={AUCTION_URL || started ? undefined : () => { if (!sale.arrived) arriveAtLot(); }} accessibilityLabel={started ? 'Car started, sale complete' : 'Pass. At the lot, the dealer scans this.'}>
-            <View>
-              <QR value={`obavia:${sale.lotId}:${car.vin}:${sale.wonAt}`} size={200} />
-              {started && (
-                <Animated.View style={[StyleSheet.absoluteFill, greenStyle]} pointerEvents="none">
-                  <QR value={`obavia:${sale.lotId}:${car.vin}:${sale.wonAt}`} green size={200} />
-                </Animated.View>
-              )}
+          <PressCloud holdMs={600} swell="any" sound={!started} onPress={AUCTION_URL || started ? undefined : () => { if (!sale.arrived) arriveAtLot(); }} accessibilityLabel={started ? 'Car started, sale complete' : `Pass, ${six.split('').join(' ')}. At the lot, the dealer scans this.`}>
+            <View style={{ alignItems: 'center' }}>
+              <View>
+                <QR value={code} size={200} />
+                {started && (
+                  <Animated.View style={[StyleSheet.absoluteFill, greenStyle]} pointerEvents="none">
+                    <QR value={code} green size={200} />
+                  </Animated.View>
+                )}
+              </View>
+              {/* the six, touching the QR: one piece, no caption */}
+              <Serif size={theme.size.price * 0.625} style={s.six}>{six}</Serif>
             </View>
           </PressCloud>
         </Animated.View>
@@ -118,4 +125,5 @@ function useFullBrightness(on: boolean) {
 
 const s = StyleSheet.create({
   pin: { marginTop: theme.space.l, alignItems: 'center' },
+  six: { letterSpacing: theme.size.price * 0.075, marginRight: -theme.size.price * 0.075 },   // spaced; the last letter's tracking taken back so the six centre under the QR
 });

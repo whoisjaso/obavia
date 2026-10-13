@@ -2,7 +2,7 @@
    (auction/src/screens/won/Pickup.tsx). The Desk reads it with the phone's camera through the
    BarcodeDetector API where the browser ships one (Chrome on Android does; desktop Chrome on Linux and
    Windows does not; Safari on iPhone keeps it behind a feature flag, unverified on hardware). Where it does not,
-   the screen says "Type The VIN" and never claims a scan it cannot do. Nothing here talks to the lane:
+   the screen says "Type The Pass" and never claims a scan it cannot do. Nothing here talks to the lane:
    the Worker checks the six against the car at POST /pickup. */
 
 type Detected = { rawValue: string };

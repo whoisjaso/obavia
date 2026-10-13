@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { canScan, passSix } from './scan';
 
@@ -15,5 +16,14 @@ describe('the pickup pass', () => {
   });
   it('says it cannot scan where the browser has no BarcodeDetector', () => {
     expect(canScan()).toBe(false);
+  });
+  it('with no scanner, the Desk types the pass: the label and the one line under it', () => {
+    const page = readFileSync(new URL('../Auction.tsx', import.meta.url), 'utf8');
+    expect(page).toContain("{scanner ? 'Scan The Pass' : 'Type The Pass'}");
+    expect(page).toContain('>Type The Pass</button>');
+    expect(page).toContain('>The six under the buyer’s code.</p>');
+    expect(page).not.toMatch(/Type [Tt]he VIN/);
+    expect(page).not.toContain('door jamb');
+    expect(page).toContain(".replace(/I/g, '1').replace(/[OQ]/g, '0')");
   });
 });
