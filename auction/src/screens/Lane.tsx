@@ -27,6 +27,7 @@ import { Won } from './won/Won';
 import { AUCTION_URL, ME, isWatched, toggleWatch, useCars, useLots, useWatched } from '../store';
 import { Me } from './Me';
 import { Label } from '../components/Type';
+import { Object3D } from '../components/Object3D';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { clearSale, followServer, openSale, peekSale, useSale } from '../sale';
 import { clearIntent, useIntent } from '../nav';
@@ -178,14 +179,17 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
   );
 }
 
-/** Zero lots: the line, and the mark so Me (deposit, watching, sign out) is still one tap away. */
-function Empty({ height, onMe }: { height: number; onMe: () => void }) {
+/** Zero lots: the car on the ink lane, the line touching its shade (lego §4.1), and the mark so Me
+    (deposit, watching, sign out) is still one tap away. The car is the rendered object (DOCTRINE §5), the
+    lane's own empty lot; it lands once with the swell. */
+function Empty({ height, width, onMe }: { height: number; width: number; onMe: () => void }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[s.empty, { height }]}>
       <View style={[s.top, { paddingTop: insets.top + 10, justifyContent: 'flex-end' }]} pointerEvents="box-none">
         <Pressable onPress={() => { feel.select(); onMe(); }} hitSlop={12} accessibilityRole="button" accessibilityLabel="Me"><Mark size={30} /></Pressable>
       </View>
+      <Object3D name="car" tone="dark" width={Math.min(340, width - 48)} style={s.emptyCar} />
       <Label ink={theme.color.cloud}>Nothing on the lane yet</Label>
     </View>
   );
@@ -311,7 +315,7 @@ export function Lane() {
             onMe={() => setMe(true)}
             onArm={steps => setSheet({ car: item, steps, key: Date.now() })} />
         ) : null}
-        ListEmptyComponent={<Empty height={height} onMe={() => setMe(true)} />}
+        ListEmptyComponent={<Empty height={height} width={width} onMe={() => setMe(true)} />}
         pagingEnabled
         snapToInterval={height}
         decelerationRate="fast"
@@ -341,6 +345,7 @@ const s = StyleSheet.create({
   eyeOn: { ...theme.type.sansBold },
   eyeText: { color: theme.color.cloud, ...theme.type.sans, fontSize: 17, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(8,14,30,0.75)', textShadowRadius: 8 },
   empty: { alignItems: 'center', justifyContent: 'center' },
+  emptyCar: { marginBottom: -18 },   // the canvas keeps a margin under the shade: the line sits in it, touching the car
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 22 },
   priceHit: { alignSelf: 'flex-start', paddingVertical: 8, paddingRight: 40 },
   foot: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

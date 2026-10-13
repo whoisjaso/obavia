@@ -16,6 +16,7 @@ import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withRepea
 import { BREATH, EASE_OUT, ms } from '../../motion';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { QR } from '../../components/QR';
+import { Object3D } from '../../components/Object3D';
 import { PressCloud } from '../../components/Cloud';
 import { Body, Button, Caps, Choice, Label, Page, Pager, Serif } from '../../components/Type';
 import type { Car } from '../../data/cars';
@@ -101,8 +102,15 @@ export function Pickup({ car, onDone }: { car: Car; onDone: () => void }) {
                   </Animated.View>
                 )}
               </View>
-              {/* the six, touching the QR: one piece, no caption */}
-              <Serif size={theme.size.price * 0.625} style={s.six}>{six}</Serif>
+              {/* the six, touching the QR: one piece, no caption. The key touches the six (lego §4.1): the code
+                  is what hands the buyer the keys. A spacer the key's width on the other side keeps the six
+                  centred under the QR. The pass tile object does not go behind the QR: a second code under the
+                  real one fights it (judged on the capture), so the real QR stands alone. */}
+              <View style={s.sixRow}>
+                <Object3D name="key" height={KEY} delay={120} style={s.key} />
+                <Serif size={theme.size.price * 0.625} style={s.six}>{six}</Serif>
+                <View style={{ width: KEY * 0.5 }} />
+              </View>
             </View>
           </PressCloud>
         </Animated.View>
@@ -138,7 +146,11 @@ function useFullBrightness(on: boolean) {
   }, [on]);
 }
 
+const KEY = 56;   // the key's canvas height in pt; the fob fills its middle half
+
 const s = StyleSheet.create({
+  sixRow: { flexDirection: 'row', alignItems: 'center' },
+  key: { width: KEY * 0.5, marginRight: 4, overflow: 'visible', alignItems: 'center', justifyContent: 'center' },
   pin: { marginTop: theme.space.l, alignItems: 'center' },
   call: { marginTop: theme.space.l, alignItems: 'center' },
   six: { letterSpacing: theme.size.price * 0.075, marginRight: -theme.size.price * 0.075 },   // spaced; the last letter's tracking taken back so the six centre under the QR

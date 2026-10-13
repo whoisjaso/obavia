@@ -1,9 +1,10 @@
-/* Plates. One ring, three words. Pull to refresh. A county kickback turns the
+/* Plates. One ring, the plate inside it, three words. Pull to refresh. A county kickback turns the
    ring amber and the dealer fixes it. */
 import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ring } from '../../components/Ring';
+import { FAINT, Object3D } from '../../components/Object3D';
 import { Button, Caps, Label } from '../../components/Type';
 import { feel } from '../../feel';
 import { useSale, type Plates as Stage } from '../../sale';
@@ -28,7 +29,9 @@ export function Plates({ onBack }: { onBack: () => void }) {
       <View style={s.ringWrap}>
         <Ring size={220} stroke={6} progress={Math.max(0.02, progress)} blue={false} grey={stage === 'none'} warn={stage === 'kickback'} />
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          {/* the plate inside the ring that measures it (lego §4.1, touching): the ring is the plate's clock */}
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <Object3D name="plate" width={136} strength={stage === 'none' ? FAINT : 1} style={{ marginBottom: 2 }} />
             <Caps size={18} ink={stage === 'kickback' ? theme.color.warn : stage === 'none' ? theme.color.muted : theme.color.ink}>{LABEL[stage]}</Caps>
           </View>
         </View>

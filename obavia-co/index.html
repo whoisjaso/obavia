@@ -68,9 +68,10 @@
       <p class="lead" data-r>Obavia is the public lane behind your desk. Buyers across Texas bid from their phones, and the Desk runs the paperwork.</p>
       <div class="act" data-r><button class="btn cloud" type="button" data-go="apply" data-cloud3d>Get on the lane</button></div>
     </div>
-    <!-- The Let It Go film is shot Fri Dec 4, 2026 (plan section 2.1). Until it exists this frame stays empty: no poster, no thumbnail. -->
-    <figure class="film" id="film" data-r aria-label="The film slot">
-      <figcaption>Film in the works, December 4</figcaption>
+    <!-- The Let It Go film is shot Fri Dec 4, 2026 (plan section 2.1). Until it lands the frame shows the rendered car on
+         the lane, light, with no caption (growth plan changelog, 2026-10-13, legibility amendment); the film replaces it. -->
+    <figure class="film" id="film" data-r>
+      <picture class="obj car"><source type="image/webp" srcset="assets/scene-3d/car-light.webp 1x, assets/scene-3d/car-light-2x.webp 2x"><img src="assets/scene-3d/car-light.png" alt="A car on the lane" width="512" height="320" decoding="async"></picture>
     </figure>
   </div>
 </section>
@@ -207,7 +208,10 @@
 <section class="sec" id="held">
   <div class="wrap held">
     <h2 data-r>The car stays yours until the VIN scan.</h2>
-    <p class="p" data-r>It stays on your lot and on your insurance until the buyer scans the VIN and starts it at pickup. The buyer’s $250 deposit is their collateral. Your collateral is the title: in your hand, or at your lender with a release time you set before the first bid.</p>
+    <div class="pair" data-r>
+      <picture class="obj title"><source type="image/webp" srcset="assets/scene-3d/title-light.webp 1x, assets/scene-3d/title-light-2x.webp 2x"><img src="assets/scene-3d/title-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture>
+      <p class="p">It stays on your lot and on your insurance until the buyer scans the VIN and starts it at pickup. The buyer’s $250 deposit is their collateral. Your collateral is the title: in your hand, or at your lender with a release time you set before the first bid.</p>
+    </div>
   </div>
 </section>
 
@@ -234,7 +238,10 @@
     <div>
       <h2 data-r>For the buyer: a price, a time, a name.</h2>
       <p class="p" data-r>Every car shows its live bid, the close time kept by our server, and the selling dealer’s legal name and GDN.</p>
-      <p class="p" data-r>To bid, a buyer puts down $250 once. It’s refunded if they lose. A Texas driver’s license is required.</p>
+      <div class="pair" data-r>
+        <picture class="obj coin"><source type="image/webp" srcset="assets/scene-3d/coin-light.webp 1x, assets/scene-3d/coin-light-2x.webp 2x"><img src="assets/scene-3d/coin-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture>
+        <p class="p">To bid, a buyer puts down $250 once. It’s refunded if they lose. A Texas driver’s license is required.</p>
+      </div>
       <a class="more" href="waitlist.html" data-r>Buying, not selling? Get early access to the app.<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l5.5 4.5L5 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
     </div>
     <figure class="fact slab" data-r>
@@ -252,7 +259,7 @@
     <ul class="worst" data-r>
       <li><b>The car doesn’t start at pickup.</b><span>No sale. The buyer’s money goes back, and the car stays yours.</span></li>
       <li><b>The winner walks away.</b><span>They lose their $250 deposit. It goes to you, less processing, and you relist from the Desk.</span></li>
-      <li><b>You can’t deliver.</b><span>The buyer gets the $250 back in full, and the miss is recorded on your account.</span></li>
+      <li><b>You can’t deliver.</b><span class="pair"><picture class="obj coin"><source type="image/webp" srcset="assets/scene-3d/coin-light.webp 1x, assets/scene-3d/coin-light-2x.webp 2x"><img src="assets/scene-3d/coin-light.png" alt="" width="512" height="512" decoding="async" loading="lazy"></picture><span>The buyer gets the $250 back in full, and the miss is recorded on your account.</span></span></li>
     </ul>
   </div>
 </section>

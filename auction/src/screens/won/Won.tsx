@@ -11,6 +11,8 @@ import { Image } from 'expo-image';
 import Animated, { useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { Confetti, burst } from '../../components/Confetti';
+import { FAINT, Object3D } from '../../components/Object3D';
+import type { SceneName } from '../../components/scene3d';
 import { PressCloud } from '../../components/Cloud';
 import { Sky } from '../../components/Sky';
 import { Button, Caps, Choice, Label, Page, Serif } from '../../components/Type';
@@ -97,12 +99,22 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
             {steps.map(t => {
               const live = t.key === next, locked = !t.done && !live;
               return (
-                <Lift key={t.key} on={live} after={drew ? TICK_AFTER + ms.green : 0}>
-                  <PressCloud disabled={locked} onPress={() => { feel.select(); open(t.key); }} bodyStyle={s.step}
+                // a done step is finished: it keeps its look (the tick) but is not a control and is not read, so
+                // the lit step (or Back to the lane) is the first thing a thumb or a screen reader meets
+                <Lift key={t.key} on={live} after={drew ? TICK_AFTER + ms.green : 0} hidden={t.done}>
+                  <PressCloud disabled={locked || t.done} onPress={() => { feel.select(); open(t.key); }} bodyStyle={s.step}
                     accessibilityState={{ selected: live }} accessibilityLabel={`${t.label}${t.done ? ', done' : live ? ', next' : ''}`}>
-                    <Caps size={live ? 22 : 17} ink={locked ? theme.color.faint : theme.color.ink}>{t.label}</Caps>
-                    {t.done && <Tick draw={!shownDone.current!.has(t.key)} />}
-                    {live && <View style={s.underline} />}
+                    {/* the step's object touching its one noun (lego §4.1): the lit one full strength, the rest faint */}
+                    <View style={s.stepRow}>
+                      <View style={s.obj}><Object3D name={objectFor(t.key, sale)} height={live ? 52 : 40} strength={live ? 1 : FAINT} /></View>
+                      <View style={s.noun}>
+                        <View style={s.nounRow}>
+                          <Caps size={live ? 22 : 17} ink={locked ? theme.color.faint : theme.color.ink}>{t.label}</Caps>
+                          {t.done && <Tick draw={!shownDone.current!.has(t.key)} />}
+                        </View>
+                        {live && <View style={s.underline} />}
+                      </View>
+                    </View>
                   </PressCloud>
                 </Lift>
               );
@@ -126,6 +138,18 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
   );
 }
 
+/* Each tile's object is the thing that tile opens: the licence for ID, the insurance card, the title for the
+   documents. The last tile opens Pay, then Pickup, then Plates (or the title out of state), so its object
+   follows: the coin until paid, the key until the car starts, then the plate (or the title). */
+function objectFor(t: Tile, sale: NonNullable<ReturnType<typeof useSale>>): SceneName {
+  if (t === 'id') return 'licence';
+  if (t === 'insure') return 'insurance';
+  if (t === 'sign') return 'title';
+  if (!sale.pay) return 'coin';
+  if (!sale.pickedUp) return 'key';
+  return outOfState(sale) ? 'title' : 'plate';
+}
+
 function steps0(sale: NonNullable<ReturnType<typeof useSale>>, next: Tile | null): { key: Tile; label: string; done: boolean }[] {
   return [
     { key: 'id', label: 'ID', done: !!sale.id?.confirmed },
@@ -147,7 +171,7 @@ function Tick({ draw }: { draw: boolean }) {
   useEffect(() => { if (draw) k.value = withDelay(TICK_AFTER, withTiming(1, { duration: ms.green, easing: CLOUD_OUT })); }, []);
   const props = useAnimatedProps(() => ({ strokeDashoffset: reduce ? 0 : TICK_LEN * (1 - k.value), strokeOpacity: reduce ? k.value : 1 }));
   return (
-    <Svg width={18} height={18} viewBox="0 0 26 26" style={{ position: 'absolute', right: -28, top: 14 }}>
+    <Svg width={18} height={18} viewBox="0 0 26 26" style={{ marginLeft: 10 }}>
       <APath d="M5 13.5 L10.5 19 L21 7.5" stroke={theme.color.good} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${TICK_LEN} ${TICK_LEN}`} animatedProps={props} />
     </Svg>
   );
@@ -155,17 +179,21 @@ function Tick({ draw }: { draw: boolean }) {
 
 /* The next tile lifts 4 pt once the check before it has drawn: Sequence (lego §4.6), the lit card at the
    front of the fan. Reduced motion: it stays level; the ink and the rule already say which one. */
-function Lift({ on, after, children }: { on: boolean; after: number; children: React.ReactNode }) {
+function Lift({ on, after, hidden, children }: { on: boolean; after: number; hidden?: boolean; children: React.ReactNode }) {
   const reduce = useReducedMotion();
   const y = useSharedValue(0);
   useEffect(() => { y.value = on && !reduce ? withDelay(after, withTiming(-4, { duration: ms.land, easing: EASE_OUT })) : withTiming(0, { duration: ms.land, easing: EASE_OUT }); }, [on, reduce]);
   const st = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
-  return <Animated.View style={st}>{children}</Animated.View>;
+  return <Animated.View style={st} aria-hidden={hidden || undefined} accessibilityElementsHidden={hidden} importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}>{children}</Animated.View>;
 }
 
 const s = StyleSheet.create({
   head: { alignItems: 'center', gap: 2 },
   thumb: { width: 120, height: 150, borderRadius: 14, overflow: 'hidden', backgroundColor: theme.color.well, marginBottom: theme.space.s },
-  step: { alignItems: 'center', paddingVertical: 14 },
+  step: { width: 248, paddingVertical: 10 },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  noun: { flex: 1, alignItems: 'flex-start' },
+  nounRow: { flexDirection: 'row', alignItems: 'center' },   // the check touches the noun it ticks
+  obj: { width: 84, height: 52, alignItems: 'flex-end', justifyContent: 'center' },   // one column for every object, so the nouns share a left edge
   underline: { width: 22, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 6 },
 });

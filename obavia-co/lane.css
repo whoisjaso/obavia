@@ -179,3 +179,19 @@ a.ap-go[hidden]{display:none}
 }
 @media (forced-colors:active){.ap-choice,.film,.slab,.ap{border:1px solid CanvasText}}
 .ap-match.note{color:var(--muted);font-weight:500}
+
+/* ---------- the car objects (tools/scene-3d; DOCTRINE §5; lego.md §4.1, touching) ----------
+   The rendered thing beside the line it means, no caption. Each canvas carries a margin and a soft shade, so
+   the negative margins pull the object itself to the words. WebP at 1x and 2x, a PNG fallback. */
+.obj{display:block;flex:none;line-height:0}
+.obj img{display:block;width:100%;height:auto}
+.film .obj.car{position:absolute;inset:4% 7% 2%;display:grid;place-items:center}
+.film .obj.car img{width:100%;height:100%;object-fit:contain}
+.pair{display:flex;align-items:center;gap:clamp(6px,1.2vw,14px)}
+.pair .p{margin-top:0}
+.held .pair{margin-top:18px;max-width:62ch}
+.held .obj.title{width:clamp(96px,10vw,132px);margin:-14px -6px -14px -12px}
+.buyer .pair{margin-top:18px}
+.obj.coin{width:clamp(84px,8vw,104px);margin:-14px -10px -14px -16px}
+.worst .pair{display:flex;align-items:center}
+.worst .obj.coin{width:72px;margin:-12px -6px -12px -14px}
