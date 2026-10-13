@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NOT_YET, adminApi, bottleneck, disputedDeposits, pickupRefusals, readMoney, reconLine, refusals, reserveLine, scorecard, typeWord, weekOf, WEEK1, type AdminExposure, type Money, type MoneyEvent, type Reconciliation } from './admin-api';
+import { NOT_YET, adminApi, bottleneck, diffWord, disputedDeposits, pickupRefusals, readMoney, readStreak, reconLine, refusals, reserveLine, scorecard, streakRow, typeWord, weekOf, WEEK1, type AdminExposure, type Money, type MoneyEvent, type Reconciliation, type Streak } from './admin-api';
 import type { Lot } from './auction';
 
 const BASE = 'http://lane.test';
@@ -63,6 +63,27 @@ describe('admin-api: every route, and a 404 reads as Not yet', () => {
   it('GET /admin/money 404 is Not yet', async () => {
     expect(await lane({}).api.money()).toEqual({ ok: false, reason: NOT_YET });
   });
+  it('GET /admin/reconcile?n= reads the streak and the nights, newest first, with the admin key', async () => {
+    const { api, seen } = lane({ 'GET /admin/reconcile?n=7': ok({ equalNights: 7, sevenEqual: true, latest: { id: 'rec_b', ranAt: 20, equal: true },
+      nights: [{ id: 'rec_a', ranAt: 10, equal: true, lotsChecked: 3, lotsDiffering: 0, differing: [], differences: [], depositsHeld: 2, payoutsOwed: 0, payoutsOwedCents: 0, whopBalanceCents: 50_000, reserveRatio: 1, note: 'equal' },
+        { id: 'rec_b', ranAt: 20, equal: 1, lotsChecked: 3, lotsDiffering: 0, differing: [], differences: [], depositsHeld: 2, payoutsOwed: 1, payoutsOwedCents: 540_000, whopBalanceCents: null, reserveRatio: null, note: '' }] }) });
+    const r = await api.streak();
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(seen[0]).toMatchObject({ url: '/admin/reconcile?n=7', method: 'GET', auth: `Bearer ${KEY}` });
+    expect(r.value).toMatchObject({ equalNights: 7, sevenEqual: true, latest: { id: 'rec_b', equal: true } });
+    expect(r.value.nights.map(n => n.id)).toEqual(['rec_b', 'rec_a']);
+    expect(r.value.nights[0]).toMatchObject({ equal: true, whopBalanceCents: null, reserveRatio: null, payoutsOwedCents: 540_000 });
+  });
+  it('GET /admin/reconcile?n= clamps n to 1..100 as the Worker does (0 is the default 7), and a 404 is Not yet', async () => {
+    const empty = ok({ equalNights: 0, sevenEqual: false, latest: null, nights: [] });
+    const { api, seen } = lane({ 'GET /admin/reconcile?n=100': empty, 'GET /admin/reconcile?n=7': empty, 'GET /admin/reconcile?n=1': empty });
+    expect((await api.streak(500)).ok).toBe(true);
+    expect((await api.streak(0)).ok).toBe(true);
+    expect((await api.streak(-2)).ok).toBe(true);
+    expect(seen.map(s => s.url)).toEqual(['/admin/reconcile?n=100', '/admin/reconcile?n=7', '/admin/reconcile?n=1']);
+    expect(await lane({}).api.streak()).toEqual({ ok: false, reason: NOT_YET });
+  });
   it('POST /admin/payouts/:id/paid sends the method and the note', async () => {
     const { api, seen } = lane({ 'POST /admin/payouts/p1/paid': ok({ id: 'p1', state: 'paid', method: 'check' }) });
     expect((await api.paidByHand('p1', 'check', '  check 1042 ')).ok).toBe(true);
@@ -106,6 +127,62 @@ describe('readMoney', () => {
   it('reads nothing as empty lists and keeps unknown methods out', () => {
     expect(readMoney(null)).toEqual({ events: [], payouts: [], sales: [] });
     expect(readMoney({ payouts: [{ lotId: 'l', method: 'venmo', state: 'paid' }] }).payouts[0]).toMatchObject({ id: 'l', method: null, state: 'paid' });
+  });
+});
+
+describe('readStreak', () => {
+  it('reads nothing as no nights and no streak; a streak the Worker omits is counted from the rows, never above them', () => {
+    expect(readStreak(null)).toEqual({ equalNights: 0, sevenEqual: false, latest: null, nights: [] });
+    const rows = { nights: [{ id: 'c', ranAt: 3, equal: true }, { id: 'b', ranAt: 2, equal: true }, { id: 'a', ranAt: 1, equal: false }] };
+    const s = readStreak(rows);
+    expect(s).toMatchObject({ equalNights: 2, sevenEqual: false, latest: { id: 'c', ranAt: 3, equal: true } });
+    expect(s.nights[0].differences).toEqual([]);
+    expect(readStreak({ ...rows, equalNights: 9, sevenEqual: true }).sevenEqual).toBe(true);
+    expect(readStreak({ equalNights: -3, nights: [] }).equalNights).toBe(0);
+  });
+});
+
+/* The streak row on the admin home: the number touching "nights equal", the Phase 2 Server gate, the differences. */
+describe('the streak row', () => {
+  const night = (id: string, equal: boolean, differences: Streak['nights'][number]['differences'] = []): Streak['nights'][number] =>
+    ({ id, ranAt: Date.parse('2026-10-13T08:00:00Z'), equal, lotsChecked: 3, lotsDiffering: differences.length, differing: [...new Set(differences.map(d => d.lot))], differences, depositsHeld: 2, payoutsOwed: 0, payoutsOwedCents: 0, whopBalanceCents: 50_000, reserveRatio: 1, note: '' });
+  it('seven nights running meets the gate (phases.md: "equal seven nights running")', () => {
+    const r = streakRow({ equalNights: 7, sevenEqual: true, latest: { id: 'n7', ranAt: 1, equal: true }, nights: [night('n7', true)] });
+    expect(r).toEqual({ n: 7, met: true, gate: 'Phase 2 Server exit, met', differences: [] });
+    expect(streakRow({ equalNights: 6, sevenEqual: false, latest: { id: 'n6', ranAt: 1, equal: true }, nights: [night('n6', true)] })).toMatchObject({ n: 6, met: false, gate: 'Phase 2 Server exit at 7', differences: [] });
+  });
+  it('a latest night that was not equal lists its differences: lot, field, copy, object, four words or fewer each', () => {
+    const diffs = [
+      { lot: 'lot_7', field: 'high', copy: 5400, object: 5425 },
+      { lot: 'lot_9', field: 'closed', copy: null, object: { at: 1, sold: true } },
+    ];
+    const r = streakRow({ equalNights: 0, sevenEqual: false, latest: { id: 'n0', ranAt: 1, equal: false }, nights: [night('n0', false, diffs), night('n1', true)] });
+    expect(r.n).toBe(0);
+    expect(r.met).toBe(false);
+    expect(r.differences).toEqual([
+      { lot: 'lot_7', field: 'High bid', copy: '$5,400', object: '$5,425' },
+      { lot: 'lot_9', field: 'Closed', copy: 'Open', object: 'Sold' },
+    ]);
+    for (const c of r.differences) for (const cell of Object.values(c)) expect(cell.split(/\s+/).length).toBeLessThanOrEqual(4);
+    // an equal latest night lists nothing, even if an older night differed
+    expect(streakRow({ equalNights: 1, sevenEqual: false, latest: { id: 'n1', ranAt: 2, equal: true }, nights: [night('n1', true), night('n0', false, diffs)] }).differences).toEqual([]);
+  });
+  it('not read, and never reconciled', () => {
+    expect(streakRow(null)).toEqual({ n: null, met: false, gate: 'Not read', differences: [] });
+    expect(streakRow({ equalNights: 0, sevenEqual: false, latest: null, nights: [] })).toEqual({ n: 0, met: false, gate: 'Never reconciled', differences: [] });
+  });
+  it('every value is four words or fewer: the time, the leader, the sale, the gone object', () => {
+    expect(diffWord('closesAt', Date.parse('2026-10-13T08:00:00Z'))).toBe('Oct 13, 3:00 AM');
+    expect(diffWord('leader', null)).toBe('Nobody');
+    expect(diffWord('leader', 'b_12')).toBe('b_12');
+    expect(diffWord('sale', null)).toBe('No sale');
+    expect(diffWord('sale', { buyer: 'b_12', hammer: 5400, paidAt: 1 })).toBe('paid, b_12');
+    expect(diffWord('sale', { buyer: 'b_12', hammer: 5400, voidedAt: 1 })).toBe('voided, b_12');
+    expect(diffWord('closed', { at: 1, sold: false })).toBe('Not sold');
+    expect(diffWord('object', '{"high":5400}')).toBe('Copy kept');
+    expect(diffWord('object', null)).toBe('Gone');
+    expect(diffWord('bids', 12)).toBe('12');
+    expect(diffWord('odd', { a: 'x'.repeat(40) })).toHaveLength(24);
   });
 });
 
@@ -206,6 +283,11 @@ describe('refusals and words', () => {
     expect(r.recent).toHaveLength(10);
     expect(r.recent[0]).toMatchObject({ label: 'Sign-in with an old token', at: 107 });
     expect(refusals(ex([])).read).toBe(false);
+  });
+  it('the Worker\'s two bid gates have their desk words, four words or fewer', () => {
+    const r = refusals({ ...ex([]), bidRefusals: { byReason: { too_many_bids: 3, one_open_bid: 1 }, recent: [] } });
+    expect(r.counts).toEqual([{ label: 'Twenty-one bids a minute', n: 3 }, { label: 'A second open bid', n: 1 }]);
+    for (const c of r.counts) expect(c.label.split(/\s+/).length).toBeLessThanOrEqual(4);
   });
   it('names money events in plain words', () => {
     expect(typeWord({ type: 'payment.succeeded', kind: 'deposit' })).toBe('Deposit in');

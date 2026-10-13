@@ -7,6 +7,7 @@
      POST /admin/payouts/:id/paid    { method: 'wire' | 'check' | 'cash', note } -> Payout
      POST /admin/buyers/:id/release  { reason, lotId? } -> { id, deposit: 'refunded' }
      POST /admin/lots/:id/forfeit    { reason } -> the lot
+     GET  /admin/reconcile?n=        -> Streak (the nightly rows newest first and "equal seven nights running")
 
    The arithmetic the admin home shows (the scorecard's five numbers, the bottleneck line, the last
    reconciliation, the refusals) is here too, as pure functions, so the tests read it without a page.
@@ -23,6 +24,17 @@ export type Reconciliation = {
   id: string; ran_at: number; lots_checked: number; lots_differing: number; differing: string[];
   deposits_held: number; whop_balance_cents: number | null; equal: 0 | 1; note: string;
 };
+/** One field of one lot where the D1 copy and the object disagreed (auction/worker/src/reconcile.ts Difference);
+ *  `field: 'object'` with `object: null` when the object is gone. */
+export type Difference = { lot: string; field: string; copy: unknown; object: unknown };
+/** One nightly row as GET /admin/reconcile gives it: `equal` is a boolean here. */
+export type Night = {
+  id: string; ranAt: number; equal: boolean; lotsChecked: number; lotsDiffering: number; differing: string[]; differences: Difference[];
+  depositsHeld: number; payoutsOwed: number; payoutsOwedCents: number; whopBalanceCents: number | null; reserveRatio: number | null; note: string;
+};
+/** The streak: `equalNights` counts nights running from the latest that said equal (0 when the latest did not);
+ *  `sevenEqual` is the Phase 2 Server exit (phases.md: "the nightly report says equal seven nights running"). */
+export type Streak = { equalNights: number; sevenEqual: boolean; latest: { id: string; ranAt: number; equal: boolean } | null; nights: Night[] };
 export type BidRefusal = { lotId: string; who: string; reason: string; matched: string | null; at: number };
 export type TokenRefusal = { claimed: string; reason: string; presented: string; known: number; at: number };
 export type ExposureSale = { lotId: string; dealer?: string; state: SaleState; deposit?: string; hammer: number; deadlineAt: number };
@@ -84,6 +96,8 @@ export function adminApi(base: string, key: () => string | null, f: Fetch = (i, 
     /** The lane from the D1 copy: open lots and lots closed in the last three days (index.ts GET /lots). */
     lane: () => call<Lot[]>('GET', '/lots'),
     money: async (): Promise<Result<Money>> => { const r = await call<unknown>('GET', '/admin/money'); return r.ok ? { ok: true, value: readMoney(r.value) } : r; },
+    /** The nightly rows and the streak. `n` (1 to 100) trims the rows, never the streak. */
+    streak: async (n = 7): Promise<Result<Streak>> => { const r = await call<unknown>('GET', `/admin/reconcile?n=${Math.max(1, Math.min(Math.round(n) || 7, 100))}`); return r.ok ? { ok: true, value: readStreak(r.value) } : r; },
     paidByHand: (payout: string, method: PayMethod, note: string) => {
       if (!PAY_METHODS.includes(method)) return Promise.resolve<Result<Payout>>({ ok: false, reason: 'no method' });
       return call<Payout>('POST', `/admin/payouts/${id(payout)}/paid`, { method, note: note.trim().slice(0, 200) });
@@ -135,6 +149,24 @@ export function readMoney(raw: unknown): Money {
     hammer: num(s.hammer) ?? 0, deadlineAt: num(s.deadlineAt) ?? 0, deposit: str(s.deposit),
   }));
   return { events, payouts, sales };
+}
+/** The streak answer, read defensively: a missing list is empty, the streak is never guessed above what the rows say. */
+export function readStreak(raw: unknown): Streak {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const list = (v: unknown) => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') as Record<string, unknown>[] : []);
+  const nights: Night[] = list(o.nights).map(r => ({
+    id: String(r.id ?? ''), ranAt: num(r.ranAt) ?? 0, equal: r.equal === true || r.equal === 1, lotsChecked: num(r.lotsChecked) ?? 0, lotsDiffering: num(r.lotsDiffering) ?? 0,
+    differing: Array.isArray(r.differing) ? r.differing.map(String) : [],
+    differences: list(r.differences).map(d => ({ lot: String(d.lot ?? ''), field: String(d.field ?? ''), copy: d.copy ?? null, object: d.object ?? null })),
+    depositsHeld: num(r.depositsHeld) ?? 0, payoutsOwed: num(r.payoutsOwed) ?? 0, payoutsOwedCents: num(r.payoutsOwedCents) ?? 0,
+    whopBalanceCents: num(r.whopBalanceCents), reserveRatio: num(r.reserveRatio), note: String(r.note ?? ''),
+  })).sort((a, b) => b.ranAt - a.ranAt);
+  const l = (o.latest && typeof o.latest === 'object' ? o.latest : null) as Record<string, unknown> | null;
+  const latest = l ? { id: String(l.id ?? ''), ranAt: num(l.ranAt) ?? 0, equal: l.equal === true || l.equal === 1 } : nights[0] ? { id: nights[0].id, ranAt: nights[0].ranAt, equal: nights[0].equal } : null;
+  // the Worker's streak stands; without it, count from the rows given (never more than they show)
+  let fromRows = 0; for (const n of nights) { if (!n.equal) break; fromRows += 1; }
+  const equalNights = Math.max(0, Math.floor(num(o.equalNights) ?? fromRows));
+  return { equalNights, sevenEqual: o.sevenEqual === true || equalNights >= 7, latest, nights };
 }
 
 /* ---------- the week, in Central time (the plan's weeks run Monday to Sunday) ---------- */
@@ -278,8 +310,46 @@ export function reconLine(rows: Reconciliation[] | undefined): string {
   return `${when(r.ran_at)}. ${verdict}.`;
 }
 
+/* ---------- the streak: the number touching "nights equal", the gate, the differences ---------- */
+/** The Phase 2 Server exit (phases.md): seven nights running. */
+export const GATE_NIGHTS = 7;
+/** One cell of the differences list: four words or fewer, no sentence. */
+export type DiffCell = { lot: string; field: string; copy: string; object: string };
+export type StreakRow = { n: number | null; met: boolean; gate: string; differences: DiffCell[] };
+/** The field of a lot the reconciliation compares, as the desk says it. */
+export const FIELD_WORD: Record<string, string> = { high: 'High bid', bids: 'Bids', closesAt: 'Closes', leader: 'Leader', closed: 'Closed', sale: 'Sale', object: 'Object' };
+const shortWhen = (t: number) => new Date(t).toLocaleString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+/** A copy's or an object's value as four words or fewer. */
+export function diffWord(field: string, v: unknown): string {
+  if (v == null) return field === 'object' ? 'Gone' : field === 'leader' ? 'Nobody' : field === 'closed' ? 'Open' : field === 'sale' ? 'No sale' : 'None';
+  if (field === 'object') return 'Copy kept';
+  if (field === 'closesAt' && typeof v === 'number') return shortWhen(v);
+  if (field === 'high' && typeof v === 'number') return `$${v.toLocaleString('en-US')}`;
+  if (field === 'closed' && typeof v === 'object') return (v as { sold?: boolean }).sold ? 'Sold' : 'Not sold';
+  if (field === 'sale' && typeof v === 'object') {
+    const s = v as { voidedAt?: number; forfeitedAt?: number; startedAt?: number; paidAt?: number; buyer?: string };
+    const state = s.voidedAt ? 'voided' : s.forfeitedAt ? 'forfeited' : s.startedAt ? 'started' : s.paidAt ? 'paid' : 'owed';
+    return s.buyer ? `${state}, ${s.buyer}` : state;
+  }
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (typeof v === 'string') return v.length > 24 ? `${v.slice(0, 23)}…` : v;
+  const j = JSON.stringify(v); return j.length > 24 ? `${j.slice(0, 23)}…` : j;
+}
+/** The row on the admin home: the streak, the gate, and the latest night's differences when it was not equal. */
+export function streakRow(s: Streak | null): StreakRow {
+  if (!s) return { n: null, met: false, gate: 'Not read', differences: [] };
+  if (!s.latest) return { n: 0, met: false, gate: 'Never reconciled', differences: [] };
+  const met = s.sevenEqual || s.equalNights >= GATE_NIGHTS;
+  const latest = s.nights.find(n => n.id === s.latest!.id) ?? s.nights[0];
+  const differences = !s.latest.equal && latest ? latest.differences.map(d => ({ lot: d.lot, field: FIELD_WORD[d.field] ?? d.field, copy: diffWord(d.field, d.copy), object: diffWord(d.field, d.object) })) : [];
+  return { n: s.equalNights, met, gate: met ? 'Phase 2 Server exit, met' : `Phase 2 Server exit at ${GATE_NIGHTS}`, differences };
+}
+
 /* ---------- the refusals ---------- */
-export const BID_REASON: Record<string, string> = { seller_cannot_bid: 'Seller bid on own car', not_a_buyer: 'A Desk key tried to bid', win_cap: 'A fifth win this year' };
+export const BID_REASON: Record<string, string> = {
+  seller_cannot_bid: 'Seller bid on own car', not_a_buyer: 'A Desk key tried to bid', win_cap: 'A fifth win this year',
+  too_many_bids: 'Twenty-one bids a minute', one_open_bid: 'A second open bid',
+};
 export const TOKEN_PRESENTED: Record<string, string> = { none: 'Sign-in with no token', forged: 'Sign-in with a forged token', other: 'Sign-in with another buyer’s token', stale: 'Sign-in with an old token' };
 export type RefusalRow = { label: string; n: number };
 export type RecentRefusal = { label: string; who: string; at: number };

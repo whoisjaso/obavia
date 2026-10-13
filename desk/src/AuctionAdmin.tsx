@@ -1,16 +1,16 @@
 /* The owner's cockpit on the Desk (#/auction/admin). One question per page, one number per row,
    read from the Worker every 10 seconds (src/lib/admin-api.ts holds every call and every sum).
-     #/auction/admin            the week: the scorecard's five numbers, the bottleneck line, the reserve
+     #/auction/admin            the week: the scorecard's five numbers, the bottleneck line, the reserve, the nights equal
      #/auction/admin/money      who is owed, the sales waiting, every money event (Paid By Hand, Release, Forfeit)
      #/auction/admin/refusals   bids and sign-ins the lane refused, by reason, the last ten
      #/auction/admin/lane       deposits, lots, sales by state, fees owed (collateral.md §5)
      #/auction/admin/dealers    standing: suspend or restore; Add A Dealer mints his key once (collateral.md §6)
    Every verb that moves money or standing is asked on the bottom sheet (BottomSheet.tsx ActionSheet).
    Money is Bodoni Moda (the house face for money and names; obavia-co/waitlist.css). */
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import bodoniUrl from '../../obavia-co/assets/bodoni-moda-500.woff2?url';
 import { auctionLive, isAdminKey, type DealerRow, type Lot, type SaleState } from './lib/auction';
-import { admin, disputedDeposits, PAY_METHODS, pickupRefusals, reconLine, refusals, reserveLine, scorecard, typeWord, when, NOT_YET, type AdminExposure, type Money, type MoneySale, type Payout, type PayMethod } from './lib/admin-api';
+import { admin, disputedDeposits, PAY_METHODS, pickupRefusals, reconLine, refusals, reserveLine, scorecard, streakRow, typeWord, when, NOT_YET, type AdminExposure, type Money, type MoneySale, type Payout, type PayMethod, type Streak } from './lib/admin-api';
 import { Back, Ic, feel, transition, useHash } from './ui';
 import { Count } from './motion';
 import { ActionSheet } from './BottomSheet';
@@ -63,15 +63,15 @@ function OneLine({ line }: { line: string }) {
   );
 }
 
-type Data = { x: AdminExposure | null; lane: Lot[] | null; money: Money | null; moneyWhy: string | null; err: string | null; at: number };
+type Data = { x: AdminExposure | null; lane: Lot[] | null; money: Money | null; moneyWhy: string | null; streak: Streak | null; err: string | null; at: number };
 
 function Cockpit() {
   useBodoni();
   const page = useHash().split('/')[3] ?? '';
-  const [d, setD] = useState<Data>({ x: null, lane: null, money: null, moneyWhy: null, err: null, at: 0 });
+  const [d, setD] = useState<Data>({ x: null, lane: null, money: null, moneyWhy: null, streak: null, err: null, at: 0 });
   const load = async () => {
-    const [x, lane, money] = await Promise.all([admin.exposure(), admin.lane(), admin.money()]);
-    setD({ x: x.ok ? x.value : null, lane: lane.ok ? lane.value : null, money: money.ok ? money.value : null, moneyWhy: money.ok ? null : money.reason, err: x.ok ? null : say(x.reason), at: Date.now() });
+    const [x, lane, money, streak] = await Promise.all([admin.exposure(), admin.lane(), admin.money(), admin.streak()]);
+    setD({ x: x.ok ? x.value : null, lane: lane.ok ? lane.value : null, money: money.ok ? money.value : null, moneyWhy: money.ok ? null : money.reason, streak: streak.ok ? streak.value : null, err: x.ok ? null : say(x.reason), at: Date.now() });
   };
   useEffect(() => { let on = true; const tick = () => { if (on) load(); }; tick(); const t = setInterval(tick, 10_000); return () => { on = false; clearInterval(t); }; }, []);
 
@@ -90,6 +90,7 @@ function Home({ d }: { d: Data }) {
   const ratioOk = r == null || Math.abs(r - 1) < 1e-9;
   const owed = d.money?.payouts.filter(p => p.state === 'owed').length ?? null;
   const ref = refusals(x);
+  const nights = streakRow(d.streak);
   const day = (t: number) => new Date(t).toLocaleDateString('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric' });
   return (
     <main className="wrap center">
@@ -116,6 +117,20 @@ function Home({ d }: { d: Data }) {
           <div className="row"><span className="t"><b>Reserve ratio</b><small>Whop balance over deposits held and payouts owed</small><small>{reserveLine(x)}</small></span>
             {x && r != null ? <span style={{ ...MONEY, fontSize: 24, color: ratioOk ? 'var(--ink)' : 'var(--red)' }}><Count pulse value={r} format={ratio} /></span> : <span className="v" style={{ color: 'var(--faint)' }}>Not read</span>}</div>
           <div className="row"><span className="t"><b>Last reconciled</b><small>{x ? reconLine(x.reconciliations) : 'Not read'}</small></span></div>
+          {/* The streak touches its words (lego.md §4 placement 1); green once the Phase 2 Server exit is met (phases.md: equal seven nights running). */}
+          <div className="row"><span className="t">
+            <b style={{ display: 'flex', alignItems: 'baseline', gap: 8, color: nights.met ? 'var(--good)' : 'var(--ink)' }}>
+              {nights.n == null ? <span style={{ color: 'var(--faint)' }}>Not read</span> : <><span style={{ ...MONEY, fontSize: 24, color: 'inherit' }} className="num">{nights.n}</span>nights equal</>}
+            </b>
+            <small>{nights.gate}</small>
+          </span></div>
+          {nights.differences.length > 0 && <div className="row" style={{ display: 'block' }}>
+            {/* The copy and the object share a baseline per field (placement 2, aligned); the eye compares, nobody writes "versus". */}
+            <div className="num" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,.9fr) minmax(0,.9fr) minmax(0,1.1fr) minmax(0,1.1fr)', columnGap: 10, rowGap: 8, font: '600 14px/1.3 var(--sans)', color: 'var(--ink)', overflowWrap: 'anywhere' }}>
+              {['Lot', 'Field', 'Copy', 'Object'].map(h => <span key={h} style={{ font: '700 11px/1 var(--sans)', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--faint)' }}>{h}</span>)}
+              {nights.differences.map((c, i) => <Fragment key={i}><span>{c.lot}</span><span>{c.field}</span><span style={{ color: 'var(--red)' }}>{c.copy}</span><span>{c.object}</span></Fragment>)}
+            </div>
+          </div>}
         </div>
         {!ratioOk && <p className="note bad">The reserve is not 1.00. Stop opening lots and reconcile the Whop balance today.</p>}
 
