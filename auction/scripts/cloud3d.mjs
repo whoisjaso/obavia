@@ -99,7 +99,7 @@ const labels = { light: {}, dark: {} };
 const labelsJson = path.join(src, 'labels', 'labels.json');
 if (!none && fs.existsSync(labelsJson)) {
   const L = JSON.parse(fs.readFileSync(labelsJson, 'utf8'));
-  for (const tone of ['light', 'dark']) for (const set of ['320', '440']) {
+  for (const tone of TONES) for (const set of ['320', '440']) {   // a label ships with its tone's sheet
     const rect = L.sizes?.[set]?.['@2x']?.rect;
     if (!rect) continue;
     const entries = {};

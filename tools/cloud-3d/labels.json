@@ -1,0 +1,21 @@
+{
+  "note": "The labels the phone carves into the cloud button. Text is set as the app sets it: upright spaced capitals (textTransform uppercase), the platform face at weight 600 (Inter SemiBold stands in for SF Pro and Roboto), 13 pt with 3.1 pt tracking on a 345 pt cloud, so the em is 0.03768 of the canvas width at every size; a label wider than 92 percent of the safe rect is set smaller, as adjustsFontSizeToFit does. The cap line is centred at 0.56 of the canvas height, in the top of the safe rect (0.52 to 0.74), on the sunlit face of the belly: below 0.6 the belly turns to its blue-grey underside, where no floor can hold 4.5:1.",
+  "font": "fonts/Inter.ttf",
+  "weight": 600,
+  "em_of_canvas_w": 0.03768,
+  "tracking_em": 0.2385,
+  "fit_of_safe_w": 0.92,
+  "labels": [
+    "Bid",
+    "Pay",
+    "That's me",
+    "Continue",
+    "Done",
+    "Sign",
+    "Back to the lane",
+    "Not now",
+    "Get on the lane",
+    "Let a car go"
+  ],
+  "cap_centre_y": 0.56
+}

@@ -247,8 +247,10 @@ def _grid_object(dens, lo, hi, res, material):
 
 def render_grid(dens, lo, hi, res, out_npz, width, height, ortho_scale, cam_center,
                 samples=64, density_scale=30.0, anisotropy=0.45, bounces=12, step_rate=2.0, detail=(16.0, 0.42),
-                detail_xform=(1.0, 1.0, 0.0, 0.0, 0.0), etch=None, quiet=True):
-    """Render one density grid; save premultiplied linear passes to out_npz."""
+                detail_xform=(1.0, 1.0, 0.0, 0.0, 0.0), etch=None, quiet=True, border=None):
+    """Render one density grid; save premultiplied linear passes to out_npz.
+    border = (x0, y0, x1, y1) canvas fractions from the top left renders only
+    that region, cropped (the label imprints need only the safe rect)."""
     t0 = time.time()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
@@ -272,6 +274,11 @@ def render_grid(dens, lo, hi, res, out_npz, width, height, ortho_scale, cam_cent
     sc.render.resolution_x = width
     sc.render.resolution_y = height
     sc.render.resolution_percentage = 100
+    if border is not None:
+        sc.render.use_border = True
+        sc.render.use_crop_to_border = True
+        sc.render.border_min_x, sc.render.border_max_x = border[0], border[2]
+        sc.render.border_min_y, sc.render.border_max_y = 1.0 - border[3], 1.0 - border[1]
     sc.render.threads_mode = "FIXED"
     sc.render.threads = 4
     sc.view_settings.view_transform = "Standard"
@@ -324,9 +331,10 @@ def render_grid(dens, lo, hi, res, out_npz, width, height, ortho_scale, cam_cent
     for g in ("key", "rim", "sky", "alpha"):
         fn = [f for f in os.listdir(tmp) if f.startswith(g)][0]
         img = bpy.data.images.load(os.path.join(tmp, fn))
-        px = np.empty(width * height * 4, np.float32)
+        iw, ih = img.size
+        px = np.empty(iw * ih * 4, np.float32)
         img.pixels.foreach_get(px)
-        px = px.reshape(height, width, 4)[::-1]  # top row first
+        px = px.reshape(ih, iw, 4)[::-1]  # top row first
         passes[g] = (px[..., 0] if g == "alpha" else px[..., :3]).astype(np.float16)
         bpy.data.images.remove(img)
         os.remove(os.path.join(tmp, fn))

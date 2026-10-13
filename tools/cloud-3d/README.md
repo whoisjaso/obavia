@@ -131,7 +131,7 @@ The phone's label is the real cut, not three stacked copies of the text. `render
 
 1. **Masks (python3).** The label in upright spaced capitals, set as the app sets it: the platform face at weight 600 (Inter SemiBold, `fonts/Inter.ttf`, OFL, stands in for SF Pro and Roboto), 13 pt with 3.1 pt tracking on a 345 pt cloud, so the em is 0.03768 of the canvas width at every size; a label wider than 92 percent of the safe rect is set smaller (Back to the lane, Get on the lane), as `adjustsFontSizeToFit` does. The cap line is centred at 0.56 of the canvas height, in the top of the safe rect, on the sunlit face of the belly: lower, the belly turns to its blue-grey underside (luminance 0.1 to 0.2), where no floor can hold 4.5:1.
 2. **Renders (bpy).** Only the safe rect and a margin (canvas 0.219 to 0.781 by 0.469 to 0.813, a Cycles border crop, 720 x 176 at 1280) are rendered: once plain and once per label, same grid (frame 23), seed, samples and step rate 1.0, so the difference is the carve and nothing else.
-3. **Post (python3).** Both variants are graded from each render (`grade.py`) and composited on their page. The floor then takes a fill so the label reads, shaded by the same sun: on the light cloud a deep ink (`#141C30` at 94 percent), on the dark lane a thin ice (`#E9EFFE` at 90 percent). The walls come from the same sun (upper left, 30 degrees): the stroke's lower-right edge is the wall facing the sun and is lit; its upper-left edge faces away and is in shade (visible on the ice floor). The carved composite is then unblended against the plain one into the transparent layer with the least alpha that reproduces it (the imprint), limited to the carve's reach, resized from the 1280 master to every size and scale, cut to that size's safe rect and quantized with libimagequant. The lip layer is the part of the imprint brighter than the cloud.
+3. **Post (python3).** Both variants are graded from each render (`grade.py`) and composited on their page. The floor then takes a fill so the label reads, shaded by the same sun: on the light cloud a deep ink a step under the house ink (`#0F1626` at 97 percent; lighter fills measured 3.8 to 4.4:1 on the widest labels), on the dark lane a thin ice (`#E9EFFE` at 90 percent). The walls come from the same sun (upper left, 30 degrees): the stroke's lower-right edge is the wall facing the sun and is lit; its upper-left edge faces away and is in shade (visible on the ice floor). The carved composite is then unblended against the plain one into the transparent layer with the least alpha that reproduces it (the imprint), never thinner than the fills where they cover the cut, so the floor stays the floor over every frame, limited to the carve's reach, resized from the 1280 master to every size and scale, cut to that size's safe rect and quantized with libimagequant. The lip layer is the part of the imprint brighter than the cloud.
 
 The phone lays the imprint over whatever frame the sheet shows (the cut moves with the cloud as it sinks); under the press a second copy deepens it 10 percent; on landed the lip layer brightens with the swell (`auction/src/components/CloudButton.tsx`, `IMPRINT`). No imprint is rendered from the pressed frame: the deepening stands in for it.
 
@@ -140,7 +140,7 @@ Contrast (`labels.json` `contrast`, re-measured on the shipped sprites in `aucti
 | Stage | Size, samples | Time |
 | --- | --- | --- |
 | Masks, 10 labels | 2048 x 512 texture each | about 3 s |
-| Plain crop | 720 x 176 of 1280 x 512, 20 spp + OIDN, step rate 1.0 | LABEL_PLAIN_T |
-| One label | same | LABEL_ONE_T |
-| All ten labels and the plain | | LABEL_ALL_T |
-| Post (grade, fill, unblend, 3 sizes x 2 scales x 2 variants, quantize, contact) | | LABEL_POST_T |
+| Plain crop | 720 x 176 of 1280 x 512, 20 spp + OIDN, step rate 1.0 | about 300 s |
+| One label | same | 276 to 591 s (median 300 s) |
+| All ten labels and the plain | | about 66 min of render (October 13, 2026, load 8 to 13 from another agent on the same 4 CPUs) |
+| Post (grade, fill, unblend, 3 sizes x 2 scales x 2 variants, quantize, contact) | | 29 s |
