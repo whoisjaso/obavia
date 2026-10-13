@@ -1,16 +1,20 @@
-/* Won. The ring closes to a point; nothing for 200 ms; then the flash, the
-   chime, the success haptic, confetti in ice and blue, in one tick (the
-   100 ms rule). No thud here: the thud belongs to the bid's ack. Then one page at a
-   time, each centered: who it is for; the four steps with the next one lit;
-   each step on its own page. Back from a step: its check draws on in 240 ms
-   (feel.step already rang as the step completed), then the next tile lifts
-   4 pt, the front card of a Wallet fan. */
+/* Won. The ring closes to a point; the hammer hangs raised over its cloud for 100 ms; it falls for 100 ms and
+   strikes: the chime, the success haptic, the puff opening under the head and the page settling in beneath it,
+   all on the contact frame (the 100 ms rule; the strike is the frame's own callback, Hammer.tsx). No thud here:
+   the thud belongs to the bid's ack. No flash: the puff is the white. No confetti: the rectangles crossed the
+   hammer at 0.8 to 1.2 s in the captures (October 13), a second celebration in a material that is not cloud; the
+   puff is the one body proof (lego §1.2). Then one page at a time: who it is for,
+   under the hammer resting in its cloud; the four steps with the next one lit, centered; each step on its own
+   page. Back from a step: its check draws on in 240 ms (feel.step already rang as the step completed), then the
+   next tile lifts 4 pt, the front card of a Wallet fan. */
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
-import Animated, { useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
-import { Confetti, burst } from '../../components/Confetti';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HAMMER, HAMMER_FOOT, Hammer, fall, startFrame } from '../../components/Hammer';
+import { clock as hammerClock } from '../../components/hammer';
 import { FAINT, Object3D } from '../../components/Object3D';
 import type { SceneName } from '../../components/scene3d';
 import { PressCloud } from '../../components/Cloud';
@@ -37,24 +41,31 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
   const sale = useSale();
   const [screen, setScreen] = useState<Screen>(initial ?? 'who');
   const [lit, setLit] = useState(false);
-  const flash = useSharedValue(0), confetti = useSharedValue(0);
   const reduce = useReducedMotion();
+  const insets = useSafeAreaInsets();
+  const { height: screenH } = useWindowDimensions();
+  const hammerH = screenH >= 800 ? HAMMER_H : HAMMER_H_SHORT;
+  const hammer = useSharedValue(startFrame(reduce));   // the frame clock: raised at 0, the still at 23
+  const ready = useRef(false), waiting = useRef<null | (() => void)>(null);
+  const onReady = () => { ready.current = true; const go = waiting.current; waiting.current = null; go?.(); };
   useEffect(() => {
     if (initial) {   // straight to the pass or the steps: no celebration, the buyer has been here before
       if (sale && !sale.forWhom) setSale({ forWhom: 'me' });
       return;
     }
-    // the ring has closed to a point; nothing for 200 ms; then all four in one tick: the chime and the
-    // success haptic, the flash, the confetti (already mounted, released by its clock), and the page
-    const t = setTimeout(() => {
-      feel.done();
-      if (!reduce) flash.value = withSequence(withTiming(1, { duration: 60, easing: EASE_OUT }), withTiming(0, { duration: 300, easing: EASE_OUT }));
-      burst(confetti);
-      setLit(true);
-    }, ms.pause);
-    return () => clearTimeout(t);
+    // the ring has closed to a point. The hammer hangs raised; at 100 ms it falls, and the strike (frame 6, 100 ms
+    // later, the sheet's own callback) is the one tick: the chime and the success haptic, and the page settling
+    // in under the puff. Reduced motion: the still, the chime and the haptic at 200 ms.
+    // The fall waits for the sheet to be on the glass, at most HAMMER_WAIT more, so the strike is never a sound
+    // over an empty sky; with no render shipped the strike alone fires at 200 ms.
+    let begun = false;
+    const strike = () => { feel.done(); setLit(true); };
+    const begin = () => { if (begun) return; begun = true; fall(hammer, reduce, strike); };
+    const lead = HAMMER && !reduce ? ms.pause - hammerClock(HAMMER).contactMs : ms.pause;
+    const t = setTimeout(() => { if (ready.current || !HAMMER) begin(); else waiting.current = begin; }, lead);
+    const cap = setTimeout(begin, lead + HAMMER_WAIT);
+    return () => { clearTimeout(t); clearTimeout(cap); waiting.current = null; };
   }, []);
-  const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
   // the checks already on the glass the last time the steps showed: only a newly done step draws its check
   const shownDone = useRef<Set<Tile> | null>(null);
   const doneNow = (sl: NonNullable<typeof sale>) => new Set<Tile>(steps0(sl, nextTile(sl)).filter(t => t.done).map(t => t.key));
@@ -82,8 +93,15 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.sky }]}>
       <Sky />
+      {/* the hammer over its cloud, above where the car and the struck price will settle in (lego §4.1, touching:
+          the hammer lands on the car it sold; §4.6, sequence: the page appears under the strike) */}
+      {screen === 'who' && !initial && (
+        <View pointerEvents="none" style={[s.hammerBox, { top: insets.top + theme.space.m }]}>
+          <Hammer f={hammer} height={hammerH} onReady={onReady} />
+        </View>
+      )}
       {screen === 'who' && lit && (
-        <Page>
+        <Page align="flex-start" top={<View style={{ height: Math.round(hammerH * HAMMER_FOOT) }} />}>
           {head}
           <Label style={{ marginTop: theme.space.xl }}>Who is it for?</Label>
           <View style={{ marginTop: theme.space.s }}>
@@ -136,8 +154,6 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
       {screen === 'pickup' && <Pickup car={car} onDone={() => setScreen(outOfState(sale) ? 'steps' : 'plates')} />}
       {screen === 'plates' && <Plates onBack={back} />}
 
-      {!initial && <Confetti t={confetti} />}
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.cloud }, flashStyle]} />
     </View>
   );
 }
@@ -192,7 +208,12 @@ function Lift({ on, after, hidden, children }: { on: boolean; after: number; hid
   return <Animated.View style={st} aria-hidden={hidden || undefined} accessibilityElementsHidden={hidden} importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}>{children}</Animated.View>;
 }
 
+/* The hammer's cell on the glass: 150 pt on a phone of 800 pt or taller, 110 on a shorter one, so the question
+   and its two choices still fit under the car on a 667 pt screen. The fall waits for the sheet at most this long. */
+const HAMMER_H = 150, HAMMER_H_SHORT = 110, HAMMER_WAIT = 400;
+
 const s = StyleSheet.create({
+  hammerBox: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   head: { alignItems: 'center', gap: 2 },
   thumb: { width: 120, height: 150, borderRadius: 14, overflow: 'hidden', backgroundColor: theme.color.well, marginBottom: theme.space.s },
   step: { width: 248, paddingVertical: 10 },
