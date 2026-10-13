@@ -1,0 +1,278 @@
+{
+ "written": "2026-10-13",
+ "from": "20261013-070225",
+ "ceiling": 4,
+ "screens": {
+  "lane": {
+   "title": "Lane",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "lane-watched": {
+   "title": "Lane, watched (double tap)",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "bid-first": {
+   "title": "Bid sheet, first bid",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 25,
+   "words": [
+    "Bid"
+   ]
+  },
+  "phone-number": {
+   "title": "Phone, your number",
+   "must": 2,
+   "verb": 0,
+   "read": 2,
+   "kept": 0,
+   "words": [
+    "Your number"
+   ]
+  },
+  "phone-code": {
+   "title": "Phone, the code",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "id-frame": {
+   "title": "ID frame (first bid)",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "id-facts": {
+   "title": "ID facts",
+   "must": 2,
+   "verb": 2,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "That's me"
+   ]
+  },
+  "deposit": {
+   "title": "Deposit",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 4,
+   "words": [
+    "Pay"
+   ]
+  },
+  "bid-landed": {
+   "title": "Bid landed, waiting for the hammer",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 30,
+   "words": []
+  },
+  "won-who": {
+   "title": "Won, who is it for",
+   "must": 7,
+   "verb": 3,
+   "read": 4,
+   "kept": 0,
+   "words": [
+    "Who is it for?",
+    "Me",
+    "Someone else"
+   ]
+  },
+  "won-steps": {
+   "title": "Won, steps",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "ID"
+   ]
+  },
+  "id-prefilled": {
+   "title": "ID, prefilled",
+   "must": 2,
+   "verb": 2,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "That's me"
+   ]
+  },
+  "insure": {
+   "title": "Insure",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": []
+  },
+  "sign": {
+   "title": "Sign",
+   "must": 9,
+   "verb": 2,
+   "read": 7,
+   "kept": 0,
+   "words": [
+    "Sign",
+    "Buyers Guide",
+    "The title is signed at pickup."
+   ]
+  },
+  "buyers-guide": {
+   "title": "Buyers Guide, the end",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 14,
+   "words": [
+    "Sign"
+   ]
+  },
+  "buyers-signed": {
+   "title": "Buyers Guide, signed",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 14,
+   "words": [
+    "Sign"
+   ]
+  },
+  "bill-of-sale": {
+   "title": "Bill of Sale, the end",
+   "must": 4,
+   "verb": 4,
+   "read": 0,
+   "kept": 10,
+   "words": [
+    "Use the same signature"
+   ]
+  },
+  "won-steps-2": {
+   "title": "Won, steps (the last one lit)",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Plates"
+   ]
+  },
+  "pay": {
+   "title": "Pay",
+   "must": 3,
+   "verb": 3,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Bank",
+    "Wire",
+    "Cash"
+   ]
+  },
+  "pickup-where": {
+   "title": "Pickup, where",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Directions"
+   ]
+  },
+  "pickup-when": {
+   "title": "Pickup, when",
+   "must": 5,
+   "verb": 5,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Call to set a time"
+   ]
+  },
+  "pickup-pass": {
+   "title": "Pickup, the pass",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "000001"
+   ]
+  },
+  "pickup-started": {
+   "title": "Pickup, started",
+   "must": 2,
+   "verb": 1,
+   "read": 1,
+   "kept": 0,
+   "words": [
+    "Started",
+    "Done"
+   ]
+  },
+  "plates": {
+   "title": "Plates",
+   "must": 4,
+   "verb": 0,
+   "read": 4,
+   "kept": 0,
+   "words": [
+    "Plates",
+    "Filed",
+    "Approved",
+    "Mailed"
+   ]
+  },
+  "plates-mailed": {
+   "title": "Plates, mailed",
+   "must": 4,
+   "verb": 0,
+   "read": 4,
+   "kept": 0,
+   "words": [
+    "Plates",
+    "Filed",
+    "Approved",
+    "Mailed"
+   ]
+  },
+  "won-done": {
+   "title": "Won, all four done",
+   "must": 4,
+   "verb": 4,
+   "read": 0,
+   "kept": 0,
+   "words": [
+    "Back to the lane"
+   ]
+  },
+  "me": {
+   "title": "Me",
+   "must": 1,
+   "verb": 0,
+   "read": 1,
+   "kept": 0,
+   "words": [
+    "Watching"
+   ]
+  }
+ }
+}
