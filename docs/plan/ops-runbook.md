@@ -431,7 +431,7 @@ Each item is something a step above needs and the code does not do. Owner agent 
 9. A `money_events` row for Paid At The Lot, for a void's deposit release, and for a balance handed back. Phases Phase 1 Admin exit: "every money movement traceable to a row". [payments]
 10. Suspension after a second non-delivery, once the owner decides it (due Fri Nov 6, `collateral.md` §6); until then the Desk's line "A second one closes the lane to you" is not true and should not be shown. [admin, dealers]
 11. The Insure tile stores the buyer's insurance card where the Desk can see it (today it only marks the step done on the phone). [frontend, paperwork]
-12. Re-mint after a lost phone by the proved phone; the app's "Write to us" names the one number. [systems, onboarding]
+12. Re-mint after a lost phone by the proved phone; the app's lost line, "This phone lost its sign-in.", gives the one number to call. [systems, onboarding]
 13. On the admin page: the last seven reconciliations, the reserve ratio computed from the last one (not the fixed 1.00), `bidRefusals`, `tokenRefusals`, a lot's bid log with times, and buttons for Bump, Release deposit and Forfeit with a reason (phases Phase 1 Admin row) and a desk log. [admin]
 14. The desk log on the admin page, one line per event, replacing the paper book. [admin]
 15. Handle A Sale refuses a VIN that is in a live lot (decisions §4). [dealers]
