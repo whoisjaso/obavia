@@ -3,15 +3,18 @@
    long, the floor; then Go. Live is the ring and the price. Sold is the
    buyer's clock, the money, the VIN at pickup, and the way out (void).
    The lane refuses collateral it cannot see; so does this screen, earlier. */
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { KEY_SHAPE, auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, releaseRefusal, said, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, takeArrival, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { DEPOSIT_USD, KEY_SHAPE, auctionLive, carMeta, closeLot, collateralRefusal, collect, dealerKey, depositWords, dial, getMe, releaseRefusal, said, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, onLane, openLot, payBy, photoBlob, pickup, putDocument, putPhoto, relistable, rememberLot, takeArrival, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
+import { HOURS, HOURS_ORDER, defaultSettings, hoursChoice, laneReady, lotFields, toE164, E164, type HoursChoice } from './lib/dealer-settings';
+import { formatPhone } from './lib/forms/phone';
 import { buyersGuidePdf } from './lib/official';
 import { usd } from './lib/money';
 import { today } from './lib/loans';
 import { laneTitleWatch, taxRemitWatch, type LaneWatch } from './lib/tax';
 import type { Sale, Vehicle } from './lib/sale';
 import { shrink } from './Paper';
-import { startSale, useStore } from './store';
+import { setLaneSettings, startSale, useStore } from './store';
+import { LaneSettings } from './Onboarding';
 import { Back, CarArt, Choice, Ic, feel, go, transition } from './ui';
 import { Count, Ring, bidPulse, land } from './motion';
 import { ActionSheet, PhotoSheet } from './BottomSheet';
@@ -29,6 +32,30 @@ const longQ = (s: string) => (s.length > 28 ? { fontSize: 'clamp(28px,7.4vw,36px
 /* The inner face of the big ring: room for "44h 59m" on one line. */
 const FACE = { width: 68, height: 68, whiteSpace: 'nowrap' } as const;
 const WORDS = ['Paint', 'Glass', 'Tires', 'Lights', 'A/C', 'Drives'] as const;
+
+/* ---------- the car objects (DOCTRINE §5; assets/scene-3d, copied to public/scene-3d) ----------
+   The real thing beside the number it means, touching (lego.md §4.1): the car by "Which car goes?", the title by the title
+   gate and the day-21 row, the coin by every $250, the clock by Pay by. The Desk is sky, so the light set; WebP at 1x and
+   2x with the PNG fallback. No caption, silent to a screen reader: the word beside it already says it. */
+type ObjName = 'car' | 'title' | 'plate' | 'coin' | 'clock';
+const OBJ_RATIO: Record<ObjName, number> = { car: 512 / 320, title: 1, plate: 512 / 320, coin: 1, clock: 1 };
+function Obj({ name, h = 28, style }: { name: ObjName; h?: number; style?: CSSProperties }) {
+  const base = `${import.meta.env.BASE_URL}scene-3d/${name}-light`;
+  const w = Math.round(h * OBJ_RATIO[name]);
+  return (
+    <picture aria-hidden="true" style={{ display: 'inline-block', flex: 'none', width: w, height: h, lineHeight: 0, ...style }}>
+      <source type="image/webp" srcSet={`${base}.webp 1x, ${base}-2x.webp 2x`} />
+      <img src={`${base}.png`} width={w} height={h} alt="" draggable={false} style={{ width: w, height: h, objectFit: 'contain', userSelect: 'none' }} />
+    </picture>
+  );
+}
+/** A number with its object touching it, inside a row's value. */
+const V = ({ obj, children }: { obj: ObjName; children: ReactNode }) => <span className="v num" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Obj name={obj} h={36} />{children}</span>;
+/** Let It Go Again: the car that just left the lane is the car that goes. Kept for the next Let It Go only (the router
+    reads #/auction/go as it is; a query there would be read as a lot id). */
+const AGAIN = 'obavia.desk.auction.again';
+const goAgain = (vehicleId?: string) => { try { if (vehicleId) sessionStorage.setItem(AGAIN, vehicleId); else sessionStorage.removeItem(AGAIN); } catch { /* private mode */ } go('/auction/go'); };
+const takeAgain = () => { try { const id = sessionStorage.getItem(AGAIN); sessionStorage.removeItem(AGAIN); return id; } catch { return null; } };
 const GRADES: { label: string; gloss: string; v: number }[] = [{ label: 'Good', gloss: 'Nothing to say', v: 1 }, { label: 'Fair', gloss: 'Worn, works', v: 0.6 }, { label: 'Poor', gloss: 'Needs work', v: 0.25 }];
 
 /* ---------- /auction : what is on the lane, one primary action ---------- */
@@ -50,20 +77,42 @@ export function Lane() {
     <main className="wrap center">
       <div className="top"><Back to="#/" label="Sales" /><span style={{ display: 'flex', gap: 18 }}>{isAdminKey() && <a className="link" href="#/auction/admin" onClick={feel.tap}>Admin</a>}<a className="link" href="#/auction/setup" onClick={feel.tap}>Key</a></span></div>
       <section className="enter" key="lane">
+        {!open.length && <Obj name="car" h={96} style={{ display: 'block', margin: '0 auto 10px' }} />}
         <h1 className="q">{open.length ? <>On the <em>lane.</em></> : <>Let a car <em>go.</em></>}</h1>
         {!open.length && <p className="note">A car the lot is losing money on, on every phone in Texas by tonight. You set the floor; the lane finds the price.</p>}
         <div className="choices">{open.map(l => <LotRow key={l.lotId} link={l} lot={lots[l.lotId]} v={byId(l.vehicleId)} />)}</div>
         {!!done.length && <><p className="note" style={{ marginTop: 28 }}>Sold or closed</p><div className="choices">{done.map(l => <LotRow key={l.lotId} link={l} lot={lots[l.lotId]} v={byId(l.vehicleId)} />)}</div></>}
+        <LaneSettingsRow />
       </section>
       <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.next(); go('/auction/go'); }}>Let A Car Go</button></div></div>
     </main>
   );
 }
 
+/* The lane settings on the auction home: Connected or Not yet (GET /dealers/me), the hours choice and the after-hours
+   number, one row that opens the settings pages (Onboarding.tsx LaneSettings at #/auction/settings). */
+function LaneSettingsRow() {
+  const { dealer, laneSettings } = useStore();
+  const s = laneSettings ?? defaultSettings(dealer, true);
+  const [me, setMe] = useState<{ whopAccount: string | null; payoutsOwed: number } | null | undefined>(undefined);
+  useEffect(() => { let on = true; getMe().then(r => { if (on) setMe(r.ok ? r.value : null); }); return () => { on = false; }; }, []);
+  const choice = hoursChoice(s.hours);
+  const hours = choice ? HOURS[choice].label : s.hours.join(', ');
+  const paid = me === undefined ? 'Reaching the lane…' : me?.whopAccount ? `Connected · ${me.whopAccount}` : 'Not yet';
+  return (
+    <div className="group" style={{ marginTop: 28 }}>
+      <a className="row" href="#/auction/settings" onClick={feel.next} style={{ textDecoration: 'none', color: 'inherit' }}>
+        <span className="t"><b>Lane settings</b><small>{hours} · after hours {formatPhone(s.afterHours) || 'not set'}</small><small>Paid into Whop: {paid}{me?.payoutsOwed ? ` · ${usd(me.payoutsOwed)} owed to you` : ''}</small></span>
+        <span className="go"><Ic n="chev" s={18} w={2.4} /></span>
+      </a>
+    </div>
+  );
+}
+
 function LotRow({ link, lot, v }: { link: LotLink; lot?: Lot; v?: Vehicle }) {
   const s = lot?.sale;
   const line = !lot ? 'Reaching the lane…'
-    : s?.startedAt ? 'Picked up' : s?.voidedAt ? 'Voided' : s?.forfeitedAt ? 'Buyer walked · deposit yours'
+    : s?.startedAt ? 'Picked up' : s?.voidedAt ? 'Voided' : s?.forfeitedAt ? 'Buyer walked · $250 owed to you'
     : s ? (s.paidAt ? 'Paid · waiting on pickup' : `Sold · ${timeLeft(s.deadlineAt)} for the buyer`)
     : lot.closed ? 'Closed, no bids'
     : `${usd(lot.high)} · ${n(lot.bids)} ${lot.bids === 1 ? 'bid' : 'bids'} · ${timeLeft(lot.closesAt)}`;
@@ -104,16 +153,21 @@ export function Setup() {
 }
 
 /* ---------- /auction/go : Let It Go, one question per page ---------- */
-type Page = 'car' | 'title' | 'lienholder' | 'payoff' | 'release' | 'photos' | `word${0 | 1 | 2 | 3 | 4 | 5}` | 'insured' | 'days' | 'floor' | 'bring' | 'go';
+type Page = 'car' | 'title' | 'lienholder' | 'payoff' | 'release' | 'photos' | `word${0 | 1 | 2 | 3 | 4 | 5}` | 'insured' | 'pickup' | 'days' | 'floor' | 'bring' | 'go';
+const HOURS_GLOSS: Record<HoursChoice, string> = { weekdays: 'The buyer picks a weekday', saturday: 'Weekdays and Saturday', call: 'The buyer calls the after-hours line' };
 const DAYS = [{ d: 3, gloss: 'Quick. Fewer eyes, less holding cost.' }, { d: 7, gloss: 'The usual. A full week of phones.' }, { d: 10, gloss: 'Patient. The most bidders.' }];
 
 export function LetItGo() {
-  const { lot, dealer, sales } = useStore();
+  const { lot, dealer, sales, laneSettings } = useStore();
   const busy = new Set(sales.filter(s => s.status === 'in_progress').map(s => s.vehicle.id));
-  const onLane = new Set(lotLinks().map(l => l.vehicleId));
-  const [page, setPage] = useState<Page>('car');
+  const taken = onLane();   // unwound and unsold lots have left the lane: their cars may go again
+  const again = useMemo(() => { const id = takeAgain(); return id ? lot.find(v => v.id === id && !busy.has(v.id) && !taken.has(v.id)) ?? null : null; }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [page, setPage] = useState<Page>(again ? 'title' : 'car');
   const [q, setQ] = useState('');
-  const [car, setCar] = useState<Vehicle | null>(null);
+  const [car, setCar] = useState<Vehicle | null>(again);
+  const settings = laneSettings ?? defaultSettings(dealer, true);
+  const [hours, setHours] = useState<HoursChoice | null>(hoursChoice(settings.hours));
+  const [after, setAfter] = useState(formatPhone(settings.afterHours));
   const [status, setStatus] = useState<Collateral['title']['status'] | null>(null);
   const [lienholder, setLienholder] = useState('');
   const [payoff, setPayoff] = useState('');
@@ -135,17 +189,21 @@ export function LetItGo() {
      A browser may hold the chime and the tick until the first touch on this page (no gesture crossed the link). */
   useEffect(() => { if (takeArrival()) feel.landedOn(opener.current); }, []);
 
-  const found = useMemo(() => lot.filter(v => !busy.has(v.id) && !onLane.has(v.id) && `${v.stock} ${v.year} ${v.make} ${v.model} ${v.vin}`.toLowerCase().includes(q.toLowerCase())), [lot, q, sales]);
+  const found = useMemo(() => lot.filter(v => !busy.has(v.id) && !taken.has(v.id) && `${v.stock} ${v.year} ${v.make} ${v.model} ${v.vin}`.toLowerCase().includes(q.toLowerCase())), [lot, q, sales]); // eslint-disable-line react-hooks/exhaustive-deps
   const payoffN = status === 'lender' ? Number(payoff) || 0 : 0, floorN = Number(floor) || 0;
   const bring = youGetYouBring(floorN, payoffN);
-  const pages: Page[] = ['car', 'title', ...(status === 'lender' ? ['lienholder', 'payoff', 'release'] as const : []), 'photos', 'word0', 'word1', 'word2', 'word3', 'word4', 'word5', 'insured', 'days', 'floor', ...(bring.bring > 0 ? ['bring'] as const : []), 'go'];
+  const pages: Page[] = ['car', 'title', ...(status === 'lender' ? ['lienholder', 'payoff', 'release'] as const : []), 'photos', 'word0', 'word1', 'word2', 'word3', 'word4', 'word5', 'insured', 'pickup', 'days', 'floor', ...(bring.bring > 0 ? ['bring'] as const : []), 'go'];
+  /* The pickup answer is the dealer's lane settings, kept for every later lot (store.laneSettings; dealer-settings.ts). */
+  const afterOk = E164.test(toE164(after));
+  const laneNow = () => ({ ...settings, lane: true, hours: hours ? [...HOURS[hours].hours] : settings.hours, afterHours: toE164(after) || settings.afterHours });
+  const keepPickup = (h: HoursChoice) => { setHours(h); const nd = { ...laneNow(), hours: [...HOURS[h].hours] }; setLaneSettings(nd); };
   const at = Math.max(0, pages.indexOf(page));
   const to = (p: Page, d: 'fwd' | 'back' = 'fwd') => transition(() => { setPage(p); scrollTo(0, 0); }, d);
   const next = () => { feel.next(); to(pages[at + 1]); };
   const back = () => to(pages[at - 1], 'back');
 
   const collateral: Collateral | null = status ? { title: { status, ...(status === 'lender' ? { lienholder: lienholder.trim(), payoff: payoffN, releaseDays: Number(release) || 0 } : {}) }, floor: floorN, payoffAcknowledged: ack, insured } : null;
-  const refusal = collateralRefusal(collateral ?? undefined);
+  const refusal = collateralRefusal(collateral ?? undefined) ?? (laneReady(laneNow()) ? null : 'lane settings missing');
   const releaseLate = releaseRefusal(Number(release) || 0);
   const band = car ? wholesaleBand(car.price, grade.map(g => g ?? 0.6)) : null;
 
@@ -172,12 +230,15 @@ export function LetItGo() {
     let guide: string | undefined;
     try { const g = await putDocument(id, 'guide', await buyersGuidePdf({ vehicle: car } as Sale, dealer, 'en')); if (g.ok) guide = g.value.url; } catch { /* the lane opens without it; the window copy is printed at the lot */ }
     setSending('Opening the lane');
-    const car2 = carMeta(car, dealer, remote, grade.map(g => g ?? 0.6) as [number, number, number, number, number, number], collateral, dealer.phone, []);
+    const ls = laneNow(); setLaneSettings(ls);
+    const f = lotFields(ls);   // the pickup hours, the after-hours line and the address the buyer's Pickup screen reads
+    const car2 = carMeta(car, dealer, remote, grade.map(g => g ?? 0.6) as [number, number, number, number, number, number], collateral, f.afterHours, f.hours, f.address);
     if (guide) car2.documents = { guide };
     const closesAt = Date.now() + days * 86_400_000;
     const r = await openLot(id, { id, dealer: dealer.licence, start: floorN, retail: car.price, closesAt, car: car2 });
     setSending(null);
     if (!r.ok) { setFailed(`The lane refused: ${r.reason}.`); return; }
+    for (const old of lotLinks().filter(l => l.vehicleId === car.id && relistable(l))) rememberLot({ ...old, unwound: true });   // the earlier lot stays remembered as left
     rememberLot({ lotId: id, vehicleId: car.id, openedAt: new Date().toISOString(), closesAt, floor: floorN, days });
     /* The one landed state: the chime, the button settling and its word changing on the same frame; the lot opens as the chime ends. */
     setLanded(true); feel.done(); land(goBtn.current);
@@ -190,6 +251,7 @@ export function LetItGo() {
       <div className="top">{at === 0 ? <Back to="#/auction" label="Lane" /> : <button className="back" onClick={() => { feel.tap(); back(); }}><Ic n="chev" s={18} w={2.4} />Back</button>}<span className="step num">{at + 1} of {pages.length}</span></div>
 
       {page === 'car' && <section className="enter" key="car">
+        <Obj name="car" h={72} style={{ display: 'block', margin: '0 auto 8px' }} />
         <h1 className="q" ref={opener}>Which car <em>goes?</em></h1>
         <label className="field"><input className="input" autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Stock, year, make or VIN" /></label>
         <div className="choices">{found.slice(0, 8).map(v => <Choice key={v.id} label={carName(v)} gloss={`${v.stock} · ${usd(v.price)}${v.mileage != null ? ` · ${v.mileage.toLocaleString()} mi` : ''}`} on={car?.id === v.id} onPick={() => { setCar(v); next(); }} />)}
@@ -197,6 +259,7 @@ export function LetItGo() {
       </section>}
 
       {page === 'title' && car && <section className="enter" key="title">
+        <Obj name="title" h={64} style={{ display: 'block', margin: '0 auto 8px' }} />
         <h1 className="q">Where is the <em>title?</em></h1>
         <p className="note">The lane shows the buyer who holds it before the first bid. It will not open on a title it cannot place.</p>
         <div className="choices">
@@ -246,6 +309,14 @@ export function LetItGo() {
         <div className="choices"><Choice label="Yes, insured on the lot" on={insured} onPick={() => { setInsured(true); next(); }} /><Choice label="No" gloss="The lane will not take it" on={false} onPick={() => { setInsured(false); feel.tap(); }} /></div>
       </section>}
 
+      {page === 'pickup' && <section className="enter" key="pickup">
+        <h1 className="q">When can they <em>pick up?</em></h1>
+        <p className="note">The buyer picks a window from these on their phone. The after-hours line is under it.</p>
+        <div className="choices">{HOURS_ORDER.map(h => <Choice key={h} label={HOURS[h].label} gloss={HOURS_GLOSS[h]} on={hours === h} onPick={() => { keepPickup(h); if (afterOk) next(); }} />)}</div>
+        <label className={'field' + (afterOk ? '' : ' faint-field')} style={{ marginTop: 22 }}><span>After hours, someone answers</span><input className="input num" inputMode="tel" autoComplete="tel" value={after} onChange={e => setAfter(formatPhone(e.target.value))} placeholder="(555) 000-0000" maxLength={14} aria-label="After-hours line" /></label>
+        {!!after && !afterOk && <p className="note" role="alert">Not a number that rings.</p>}
+      </section>}
+
       {page === 'days' && <section className="enter" key="days">
         <h1 className="q">How <em>long?</em></h1>
         <div className="choices">{DAYS.map(x => <Choice key={x.d} label={`${x.d} days`} gloss={x.gloss} on={days === x.d} onPick={() => { setDays(x.d); next(); }} />)}</div>
@@ -276,7 +347,7 @@ export function LetItGo() {
           <div className="row"><span className="t"><b>Closes</b></span><span className="v">{new Date(Date.now() + days * 86_400_000).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span></div>
           <div className="row"><span className="t"><b>Photos</b></span><span className="v num">{photos.length}</span></div>
         </div>
-        {refusal && <p className="note">{refusal === said(refusal) ? `The lane will refuse this: ${refusal}.` : said(refusal)}</p>}
+        {refusal && <p className="note">{said(refusal)}</p>}
         {failed && <p className="note">{failed}</p>}
       </section>}
 
@@ -285,6 +356,7 @@ export function LetItGo() {
         {page === 'payoff' && <button className="btn primary block" disabled={!payoffN} onClick={next}>Next</button>}
         {page === 'release' && <button className="btn primary block" disabled={!Number(release) || !!releaseLate} onClick={next}>Next</button>}
         {page === 'photos' && <button className="btn primary block" disabled={photos.length < 3 || adding} onClick={next}>{photos.length < 3 ? `${3 - photos.length} more to go` : 'Next'}</button>}
+        {page === 'pickup' && hours && <button className="btn primary block" disabled={!afterOk} onClick={() => { keepPickup(hours); next(); }}>Next</button>}
         {page === 'floor' && <button className="btn primary block" disabled={floorN < 100} onClick={next}>Next</button>}
         {page === 'go' && <button ref={goBtn} className="btn primary block" disabled={!!refusal || !!sending || photos.length < 3} onClick={landed ? undefined : send}>{landed ? <><Ic n="check" s={18} w={2.6} />On The Lane</> : sending ? `${sending}…` : 'Go'}</button>}
       </div></div>
@@ -294,6 +366,10 @@ export function LetItGo() {
 
 /* ---------- /auction/:lot : Live while bidding; Sold after the hammer ---------- */
 export function LotPage({ id }: { id: string }) {
+  if (id === 'settings') return <LaneSettings onDone={() => go('/auction')} />;
+  return <LotPageOf id={id} />;
+}
+function LotPageOf({ id }: { id: string }) {
   const { lot: cars } = useStore();
   const [lot, setLot] = useState<Lot | null>(null);
   const [gone, setGone] = useState(false);
@@ -350,6 +426,8 @@ function Live({ lot, v, link, hammer, onLot }: { lot: Lot; v?: Vehicle; link?: L
   const name = v ? carName(v) : lot.car ? `${lot.car.year} ${lot.car.make} ${lot.car.model}` : lot.id;
   const floor = lot.car?.collateral?.floor ?? lot.start;
   const closed = !!lot.closed;
+  /* Closed with no bids: the car left the lane and may go again (gap table §2 item 4). */
+  useEffect(() => { if (closed && !lot.bids && !lot.sale && link && !link.unsold) rememberLot({ ...(lotLinks().find(l => l.lotId === link.lotId) ?? link), unsold: true }); }, [closed, lot.bids]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/auction" label="Lane" /></div>
@@ -370,11 +448,11 @@ function Live({ lot, v, link, hammer, onLot }: { lot: Lot; v?: Vehicle; link?: L
       </section>
       {asking && <ActionSheet line={<>End it now at <b className="num">{usd(lot.high)}</b>. The high bidder has it.</>} verb="Sell It Now" onAct={sell} onClose={() => setAsking(false)} />}
       {!hammer && <div className="dock"><div className="in">
-        {closed ? <button className="btn primary block" onClick={() => { feel.next(); go('/auction/go'); }}>Let It Go Again</button>
+        {closed ? <button className="btn primary block" onClick={() => { feel.next(); goAgain(link?.vehicleId); }}>Let It Go Again</button>
           : lowering ? <button className="btn primary block" disabled={busy || !Number(newFloor) || Number(newFloor) >= floor} onClick={async () => { setBusy(true); const c = lot.car!.collateral; const r = await updateCar(lot.id, { collateral: { ...c, floor: Number(newFloor), payoffAcknowledged: (c.title.payoff ?? 0) > Number(newFloor) ? c.payoffAcknowledged : undefined } }); setBusy(false); if (r.ok) { feel.done(); setLowering(false); } }}>Set The Floor</button>
           : lot.bids >= 1 ? <button className="btn primary block" disabled={busy} onClick={() => { feel.tap(); setAsking(true); }}>Sell It Now</button>
           : <button className="btn primary block" onClick={() => { feel.tap(); setLowering(true); }}>Lower The Floor</button>}
-        {!closed && !lowering && lot.bids >= 1 && <button className="textlink" onClick={() => { feel.tap(); setLowering(true); }}>Lower the floor</button>}
+        {/* a lower floor is gone once a bid is placed: the Worker refuses it (409 bids placed), so the glass does not offer it */}
         {lowering && <button className="textlink" onClick={() => { feel.tap(); setLowering(false); }}>Leave it</button>}
       </div></div>}
     </main>
@@ -424,8 +502,13 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
   const titleW = laneTitleWatch(soldOn, asOf, marks.titleTo), taxW = taxRemitWatch(soldOn, asOf, marks.taxSent);
   useEffect(() => { if (link && (link.soldOn !== soldOn || !!link.unwound !== !live)) rememberLot({ ...link, soldOn, unwound: !live || undefined }); }, [link?.lotId, soldOn, live]);
   const mark = (k: 'titleTo' | 'taxSent') => { feel.done(); setMarks(m => ({ ...m, [k]: asOf })); if (link) rememberLot({ ...(lotLinks().find(l => l.lotId === link.lotId) ?? link), soldOn, [k]: asOf }); };
-  const SAID: Record<string, string> = { 'wrong car': 'That pass is not this car.', 'no sale': 'There is no sale to mark.', 'no sale to void': 'This sale cannot be voided now.', offline: 'The lane is out of reach.', 'no key': 'Paste your lane key first.' };
-  const act = async (f: () => Promise<{ ok: boolean; reason?: string }>) => { setBusy(true); setErr(null); const r = await f(); setBusy(false); if (r.ok) { feel.done(); setMode('sale'); } else setErr(SAID[r.reason ?? ''] ?? `The lane said no: ${r.reason}.`); };
+  const act = async (f: () => Promise<{ ok: boolean; reason?: string }>) => { setBusy(true); setErr(null); const r = await f(); setBusy(false); if (r.ok) { feel.done(); setMode('sale'); } else setErr(said(r.reason ?? 'offline')); };
+  /* CP9: the deadline in the push's words. The Worker pushes "Pay by <payBy(deadlineAt)>" (worker/src/auction.ts); this row and the setter line say the same. */
+  const payByLine = `Pay by ${payBy(s.deadlineAt)}`;
+  /* CF9's setter half: the winner's name and number for the one call within the hour; "Buyer" when the Worker has no name. */
+  const who = s.contact?.name?.trim() || 'Buyer';
+  const phone = s.contact?.phone ?? null;
+  const fees = lot.car?.dealer?.fees ?? dealer.fees;
   return (
     <main className="wrap center">
       <div className="top"><Back to="#/auction" label="Lane" /></div>
@@ -435,15 +518,22 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
         <p className="note">{name} · {
           state === 'started' ? `Picked up ${new Date(s.startedAt!).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` :
           state === 'voided' ? 'Voided. The buyer’s deposit went back.' :
-          state === 'forfeited' ? 'The buyer walked. Their deposit is yours; the car is still yours.' :
+          state === 'forfeited' ? 'The buyer walked. The car is still yours.' :
           state === 'paid' ? (scanner ? 'Paid. Scan their pass when the buyer is here.' : 'Paid. Type the pass when the buyer is here.') :
-          `Sold. The buyer has ${h(left)} to pay.`}</p>
+          `Sold. ${payByLine}.`}</p>
+        {mode === 'sale' && state === 'owed' && <div className="group">
+          <a className="row" href={phone ? `tel:${phone}` : undefined} onClick={phone ? feel.tap : undefined} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <span className="t"><b>Call {who} within the hour.</b><small>Say: {payByLine}. Then the pickup hours.</small></span>
+            <span className="v num" style={{ whiteSpace: 'nowrap' }}>{phone ? dial(phone) : 'No number yet'}</span>
+          </a>
+        </div>}
         {mode === 'sale' && <div className="group">
           <div className="row"><span className="t"><b>Won</b></span><span className="v">{new Date(s.wonAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></div>
-          <div className="row"><span className="t"><b>Pay by</b></span><span className="v">{new Date(s.deadlineAt).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}</span></div>
-          <div className="row"><span className="t"><b>Deposit</b><small>{s.deposit === 'to_dealer' ? 'Forfeited to you' : s.deposit === 'released' ? 'Released to the buyer' : 'Held by Obavia for the buyer'}</small></span><span className="v num">{usd(250)}</span></div>
+          {state !== 'started' && state !== 'forfeited' && <div className="row"><span className="t"><b>Pay by</b></span><V obj="clock">{payBy(s.deadlineAt)}</V></div>}
+          {state === 'owed' && <div className="row"><span className="t"><b>Collect at the lot</b><small>The total less the {usd(DEPOSIT_USD)} deposit</small></span><span className="v num">{usd(collect(s.hammer, fees))}</span></div>}
+          <div className="row"><span className="t"><b>{s.payout || s.deposit === 'applied' || s.deposit === 'to_dealer' ? depositWords(s) : 'Deposit'}</b><small>{s.payout || s.deposit === 'applied' || s.deposit === 'to_dealer' ? (s.payout?.state === 'owed' || !s.payout ? 'Until Whop sends it' : s.payout.at ? new Date(s.payout.at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '') : depositWords(s)}</small></span><V obj="coin">{usd(DEPOSIT_USD)}</V></div>
           {link && <div className="row"><span className="t"><b>Floor</b></span><span className="v num">{usd(link.floor)}</span></div>}
-          {live && <div className="row"><span className="t"><b>Title to the buyer before day 21.</b></span><span className="v" style={{ whiteSpace: 'nowrap' }}>{titleW.state === 'done' ? 'Done' : shortDay(titleW.due)} <i className={`dot ${tone(titleW)}`} style={DOT} aria-label={titleW.state} /></span></div>}
+          {live && <div className="row"><span className="t"><b>Title to the buyer before day 21.</b></span><V obj="title"><span style={{ whiteSpace: 'nowrap' }}>{titleW.state === 'done' ? 'Done' : shortDay(titleW.due)} <i className={`dot ${tone(titleW)}`} style={DOT} aria-label={titleW.state} /></span></V></div>}
           {live && <div className="row"><span className="t"><b>Tax to the county.</b></span><span className="v" style={{ whiteSpace: 'nowrap' }}>{taxW.state === 'done' ? 'Done' : shortDay(taxW.due)} <i className={`dot ${tone(taxW)}`} style={DOT} aria-label={taxW.state} /></span></div>}
         </div>}
         {mode === 'vin' && cam && <div className="scan"><video ref={video} muted playsInline autoPlay aria-label="The buyer’s pass, through the camera" /><i aria-hidden="true" /></div>}
@@ -462,7 +552,7 @@ function Sold({ lot, v, link }: { lot: Lot; v?: Vehicle; link?: LotLink }) {
         {mode === 'sale' && state === 'owed' && <button className="btn primary block" disabled={busy} onClick={() => act(() => markPaid(lot.id))}>Paid At The Lot</button>}
         {mode === 'sale' && state === 'paid' && <button className="btn primary block" onClick={() => { feel.next(); setVin(''); setCaught(false); setCam(scanner); setMode('vin'); }}>{scanner ? 'Scan The Pass' : 'Type The Pass'}</button>}
         {mode === 'sale' && state === 'started' && v && <button className="btn primary block" onClick={() => { feel.done(); const id = startSale(v, { fullName: '', phone: '', address: '', city: '', state: 'TX', zip: '', county: '', idType: 'dl', idNumber: '' }, 'en', v.mileage ?? 0, v.titleStatus); go(`/sale/${id}/guide`); }}>Open The Paperwork</button>}
-        {mode === 'sale' && (state === 'forfeited' || state === 'voided') && <button className="btn primary block" onClick={() => { feel.next(); go('/auction/go'); }}>Let It Go Again</button>}
+        {mode === 'sale' && (state === 'forfeited' || state === 'voided') && <button className="btn primary block" onClick={() => { feel.next(); goAgain(link?.vehicleId); }}>Let It Go Again</button>}
         {mode === 'vin' && <button className="btn primary block" disabled={busy || vin.length < 6} onClick={() => act(() => pickup(lot.id, vin))}>It Started</button>}
         {mode === 'sale' && (state === 'owed' || state === 'paid') && <button className="textlink" onClick={() => { feel.tap(); setMode('void'); }}>I can’t deliver this car</button>}
         {mode === 'sale' && state === 'started' && titleW.state !== 'done' && <button className="textlink" onClick={() => mark('titleTo')}>The Buyer Has The Title</button>}

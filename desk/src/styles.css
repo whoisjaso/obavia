@@ -343,7 +343,7 @@ a{color:inherit;text-decoration:none}
 @keyframes vt-in{from{opacity:0}}
 @keyframes vt-out-back{to{opacity:0;transform:translateY(4px)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
-@media (max-width:520px){.choices.grid2{grid-template-columns:1fr}.systems{grid-template-columns:1fr 1fr}.states{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.st{border-radius:16px;padding:10px 6px 8px}.st span{font-size:10.5px}.code{gap:7px}.code span{height:62px;font-size:28px}}
+@media (max-width:520px){.choices.grid2{grid-template-columns:1fr}.systems{grid-template-columns:1fr 1fr}.states{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.st{border-radius:16px;padding:10px 6px 8px}.st span{font-size:17px}.code{gap:7px}.code span{height:62px;font-size:28px}}
 @media print{.sky,.top,.dock,.bar,.progress,.noprint{display:none!important}.wrap{padding:0;max-width:none}.paper{box-shadow:none}.paper .scroll{max-height:none;overflow:visible;padding:0}}
 
 /* ---------- big, centered, one thing per screen ----------
