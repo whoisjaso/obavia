@@ -48,6 +48,9 @@ import { EASE_OUT, EASE_SHEET, cloud, ms, spring } from '../motion';
 import { theme } from '../theme';
 import { IdScan } from './won/Scan';
 import { PhoneSignIn } from './won/Phone';
+import { ClausePage } from './Clause';
+import { clauseDue, useClause } from '../clause';
+import { acceptClause, clauseNeeded, clauseRequired } from '../store';
 
 const STEP_PT = 28;
 /** The coin moment, light on the sheet's sky (DOCTRINE §5: "the deposit coin coming back"); null when no render ships. */
@@ -58,7 +61,7 @@ const COIN_H = 88;
     on its face, then the held line lands and the bid goes. No coin shipped: no hold. */
 const COIN_HOLD = COIN ? momentClock(COIN).totalMs + ms.land : 0;
 const AIR = 64;          // the 17 pt words, the held line and the air above the cloud's crowns: everything fits at rest, nothing touches
-type Phase = 'arming' | 'phone' | 'id' | 'deposit' | 'terms' | 'inflight' | 'landed' | 'rejected';
+type Phase = 'arming' | 'phone' | 'id' | 'deposit' | 'clause' | 'terms' | 'inflight' | 'landed' | 'rejected';
 
 export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot; now: number; steps: number; onClose: () => void }) {
   const { height } = useWindowDimensions();
@@ -86,6 +89,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   const [held, setHeld] = useState<{ lotId: string; screen: 'lane' | 'won'; name?: string } | null>(null);
   const [teach, setTeach] = useState(false);
   const [lead, setLead] = useState(false);          // the leading mark, on the frame the lead chime plays
+  const clauseNow = useClause();   // W4: the clause in force (GET /terms), re-read after a 409 clause_required
   const opened = lot.bids > 0;
   const closed = !!lot.closed || lot.closesAt <= now;
   const amount = phase === 'rejected' || phase === 'landed' ? lot.high : roll(lot.high, opened, stepsNow);
@@ -153,8 +157,15 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
   const place = async () => {
     if (peekBuyer().phoneVerified !== true) { setPhase('phone'); return; }   // the chain's first link: Bid, Phone, ID, Pay, the terms
     if (!once.deposit) { setPhase(once.licence ? 'deposit' : 'id'); return; }
+    if (clauseNeeded()) { setPhase('clause'); return; }                      // W4: the clause, once, before the terms
     if (terms !== undefined) { setPhase('terms'); return; }                  // the last page before the irrevocable act
     await send();
+  };
+  // the clause agreed (the Worker holds the version): the chain goes on to the terms, or the bid itself
+  const agreedClause = async (version: string) => {
+    const ok = await acceptClause(version);
+    if (ok) { setPhase('arming'); later(place, ms.land); }
+    return ok;
   };
   /** The bid itself: the irrevocable act. From the sheet's Bid once the terms are stamped, else from the terms page's. */
   const send = async () => {
@@ -167,6 +178,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
       const code = e instanceof Refused ? e.code : '';
       if (code === 'phone_required') { setBuyer({ phoneVerified: false }); setPhase('phone'); return; }   // the number again, nothing else
       if (code === 'terms_required') { setBuyer({ termsCurrent: false }); setTerms(Date.now()); setPhase('terms'); return; }   // the read again, nothing else
+      if (code === 'clause_required') { void clauseRequired(); setPhase('clause'); return; }   // W4: the clause again, nothing else
       if (code === 'win_cap') { setBuyer({ winsLeft: 0 }); setPhase('rejected'); setStamp(SAID.win_cap); return; }
       if (code === 'too_many_bids') {
         // the Worker's 429: the words, the seconds beside them counting down, Bid off until they pass
@@ -288,6 +300,7 @@ export function BidSheet({ car, lot, now, steps, onClose }: { car: Car; lot: Lot
       {/* the first bid: the phone, then the licence, then the deposit, then the terms; the sheet waits under them */}
       {phase === 'phone' && <PhoneSignIn onDone={phoned} onCancel={() => setPhase('arming')} />}
       {phase === 'id' && <IdScan onDone={id => { once.licence = id; setPhase('deposit'); }} onCancel={() => setPhase('arming')} />}
+      {phase === 'clause' && clauseDue(clauseNow) && <ClausePage clause={clauseDue(clauseNow)!} onAgree={agreedClause} onCancel={() => setPhase('arming')} />}
       {phase === 'terms' && <TermsPage amount={amount} hold={hold} onBid={() => { void send(); }} onCancel={() => setPhase('arming')} />}
     </View>
   );

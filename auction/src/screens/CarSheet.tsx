@@ -1,18 +1,21 @@
 /* The Car. Three pages, one idea each: the car and its photos; its condition
    in six words; its papers. Centered, spaced, nothing boxed. Swipe down on the
    grip to return to the Lane. A photo opens out of its own thumbnail
-   (components/Lightbox). The condition badge, six dots, one per row, lights
+   (components/Lightbox). With a walkaround (W4-B, car.video) the grid's first
+   tile is the film: still until a tap, then playing muted in its tile, then the
+   full width of the page on a second tap, back to its tile on a third. No label. The condition badge, six dots, one per row, lights
    dot by dot 60 ms apart with a light impact each the first time its page is
    seen; after that it is simply there. */
 import React, { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
-import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import Animated, { LinearTransition, interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Lightbox, type Rect } from '../components/Lightbox';
 import { EASE_OUT } from '../motion';
 import { Sheet } from '../components/Sheet';
 import { Body, Caps, Hairline, Label, Pager, Serif } from '../components/Type';
-import { GRADE_WORDS, isWide, type Car, type Photo } from '../data/cars';
+import { GRADE_WORDS, isWide, type Car, type Media, type Photo } from '../data/cars';
 import { pack } from '../engine/grid';
 import { feel } from '../feel';
 import { theme } from '../theme';
@@ -40,6 +43,7 @@ export function CarSheet({ car, onClose }: { car: Car; onClose: () => void }) {
       <Serif size={`${car.make} ${car.model}`.length > 22 ? theme.size.title + 6 : theme.size.display}>{car.make} {car.model}</Serif>
       <Body ink={theme.color.muted} style={{ marginTop: 2 }}>{car.miles.toLocaleString('en-US')} miles</Body>
       <View style={[s.grid, { gap, marginTop: theme.space.l }]}>
+        {car.video ? <Walkaround source={car.video} w={cell * 2 + gap} h={cell} full={width - pad * 2} /> : null}
         {pack(car.photos, cols, isWide).map(({ p, i }) => {
           const wide = isWide(p);
           return (
@@ -117,6 +121,31 @@ function Thumb({ p, w, h, label, onOpen }: { p: Photo; w: number; h: number; lab
       accessibilityRole="imagebutton" accessibilityLabel={label}>
       <Image source={p.src} style={StyleSheet.absoluteFill} contentFit="cover" transition={120} />
     </Pressable>
+  );
+}
+
+/** The walkaround's tile (W4-B): the film's first frame, wide like a sideways photo; one tap plays it muted where it
+    is (a selection tick), a second opens it to the page's full width (16:9, the row below reflows under it on the
+    house curve), a third puts it back. Looping, muted, no controls, no picture-in-picture: the car is the whole
+    thing. Reduced motion: the tile changes size without the reflow animation. */
+function Walkaround({ source, w, h, full }: { source: Media; w: number; h: number; full: number }) {
+  const [stage, setStage] = useState<0 | 1 | 2>(0);   // still, playing in the tile, playing full width
+  const reduce = useReducedMotion();
+  const player = useVideoPlayer(source, p => { p.loop = true; p.muted = true; });
+  const tap = () => {
+    feel.select();
+    if (stage === 0) { try { player.play(); } catch { /* the stream is not here yet: the tile stays */ } setStage(1); return; }
+    setStage(stage === 1 ? 2 : 1);
+  };
+  const wide = stage === 2;
+  return (
+    <Animated.View layout={reduce ? undefined : LinearTransition.duration(200).easing(EASE_OUT)}
+      style={{ width: wide ? full : w, height: wide ? Math.round(full * 9 / 16) : h, borderRadius: 8, overflow: 'hidden', backgroundColor: theme.color.well }}>
+      <Pressable onPress={tap} style={StyleSheet.absoluteFill} accessibilityRole="button"
+        accessibilityLabel={stage === 0 ? 'Walkaround, play' : wide ? 'Walkaround, back to its tile' : 'Walkaround, full width'}>
+        <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} allowsPictureInPicture={false} />
+      </Pressable>
+    </Animated.View>
   );
 }
 

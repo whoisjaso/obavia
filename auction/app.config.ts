@@ -40,6 +40,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-audio',
+    'expo-video',   // the walkaround on the Car (W4-B); inline, muted, no picture-in-picture
     'expo-image',
     'expo-font',
     'expo-web-browser',

@@ -24,7 +24,16 @@ export type MeRead = {
   openBids?: number; paidCars?: number;
   /** the verified number as its last four ("(•••) •••-0142"), null until a code proved it */
   phone?: string | null; phoneVerified?: boolean;
+  /** W4: this buyer's own referral code (the Share sheet's ?r=) and how many buyers claimed it. Never a reward:
+      the Worker waives nothing and the glass says nothing about one. */
+  referralCode?: string; referred?: number;
 };
+/** GET /terms: the arbitration clause behind its flag (D13; phases.md amendment of October 13, 2026: the mechanism
+    is built, the words are counsel's and marked draft until then). Null when the flag is off. */
+export type Clause = { version: string; text: string; requiresScrollToEnd: true };
+export type TermsRead = { clause: Clause | null };
+/** What POST /me/referral/claim answers: ok, or the Worker's code (409 already_claimed, 404 no_such_code). */
+export type ClaimAnswer = { ok: true } | { ok: false; code: string };
 /** What the phone routes answer: the masked number on success, the Worker's code and its Retry-After otherwise. */
 export type PhoneAnswer = { ok: true; phone: string | null } | { ok: false; code: string; retryAfter?: number };
 /** What POST /me/recover/verify answers (W3-B, recovery by phone): the proved number's buyer, moved to this phone
@@ -33,7 +42,8 @@ export type RecoverAnswer = { ok: true; session: Session; phone: string | null }
 
 /** A request the Worker refused, by its code: `not_yours` (sign-in with a dead token), `sign_in` (401 elsewhere),
     `phone_required` (409, no number proved by a code), `deposit` (402), `terms_required` (409), `win_cap`, `seller_cannot_bid`, `not_a_buyer` (403),
-    `too_many_bids` (429, with `retryAfter`), `one_open_bid` (409, with `open`), or `http_<status>`. */
+    `too_many_bids` (429, with `retryAfter`), `one_open_bid` (409, with `open`), `clause_required` (409: the clause is
+    on and this buyer has not agreed to its current version), or `http_<status>`. */
 export interface Refused {
   /** `too_many_bids` (429): the Worker's Retry-After, whole seconds; absent on every other refusal. */
   readonly retryAfter?: number;
@@ -255,6 +265,35 @@ export class RemoteAuctionServer {
       const b = await r.json() as { phone?: string | null; verified?: boolean; sent?: boolean };
       if (path.endsWith('/verify') && b.verified !== true) return { ok: false, code: 'not_verified' };   // a fake proof on a deployed Worker
       return { ok: true, phone: typeof b.phone === 'string' ? b.phone : null };
+    } catch { return { ok: false, code: 'network' }; }
+  }
+
+  /** GET /terms: the clause behind its flag, or null. Null too on the network: the flag is then read as off until the
+      Worker says otherwise, and a bid's 409 clause_required opens the page anyway. */
+  static async terms(base: string): Promise<Clause | null> {
+    try {
+      const r = await fetch(`${base}/terms`);
+      if (!r.ok) return null;
+      const b = await r.json() as Partial<TermsRead>;
+      const c = b.clause;
+      if (!c || typeof c !== 'object' || typeof c.version !== 'string' || typeof c.text !== 'string' || !c.version || !c.text) return null;
+      return { version: c.version, text: c.text, requiresScrollToEnd: true };
+    } catch { return null; }
+  }
+  /** POST /me/clause { version }: the buyer agreed to the clause as shown. True once the Worker holds it. */
+  static async acceptClause(base: string, token: string, version: string): Promise<boolean> {
+    try {
+      const r = await fetch(`${base}/me/clause`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ version }) });
+      return r.ok;
+    } catch { return false; }
+  }
+  /** POST /me/referral/claim { code }: the code the lane link carried, claimed once the phone is proved. The Worker's
+      409 already_claimed and 404 no_such_code come back as codes; the network as 'network'. */
+  static async claimReferral(base: string, token: string, code: string): Promise<ClaimAnswer> {
+    try {
+      const r = await fetch(`${base}/me/referral/claim`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ code }) });
+      if (r.ok) return { ok: true };
+      return { ok: false, code: (await refusal(r)).code };
     } catch { return { ok: false, code: 'network' }; }
   }
 

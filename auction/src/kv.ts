@@ -38,4 +38,9 @@ export const kv = {
     }
     try { local()?.setItem(k, v); } catch { /* nowhere to keep it */ }
   },
+  /** Forget a plain value (never a credential: those are cleared by the sign-in path, not here). */
+  remove(k: string) {
+    if (SECRET_KEYS.has(k)) return;
+    try { local()?.removeItem(k); } catch { /* nothing to forget */ }
+  },
 };

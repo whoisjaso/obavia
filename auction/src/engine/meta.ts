@@ -15,6 +15,13 @@ export type CarMeta = {
   hours?: string[];                      // pickup windows the dealer offers, e.g. "Sat 10 to 2"
   collateral: Collateral;                // who holds what before the first bid; the lane refuses without it
   listingUrl?: string | null;            // the dealer's own Marketplace listing, pasted on PostCar (W3-C), for Sold's "End your Marketplace listing"; null clears it
+  /** W4 (phases.md amendment of October 13, 2026): a closed lot (the wholesale lane) never appears on GET /lots, so
+      the Lane filters nothing; the local stand-in omits it the same way (server.ts). Absent means public. */
+  lane?: 'public' | 'closed';
+  /** The engine's idle the Desk recorded on Show It (hold), streamed from GET /lots/:id/audio; the walkaround the
+      Desk uploaded, from GET /lots/:id/video. Keys on the Worker; the phone never sees R2. */
+  audioKey?: string;
+  videoKey?: string;
 };
 
 /** The collateral the dealer puts behind the lot. docs/plan/collateral.md. */

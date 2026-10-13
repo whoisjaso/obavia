@@ -1,6 +1,6 @@
 {
  "written": "2026-10-13",
- "from": "20261013-190301",
+ "from": "20261013-202654",
  "ceiling": 3,
  "screens": {
   "lane": {
@@ -126,7 +126,7 @@
    "must": 1,
    "verb": 1,
    "read": 0,
-   "kept": 14,
+   "kept": 15,
    "words": [
     "Sign"
    ]
@@ -257,6 +257,24 @@
    "kept": 0,
    "words": [
     "Take it"
+   ]
+  },
+  "clause-top": {
+   "title": "Clause, the top (Agree locked)",
+   "must": 0,
+   "verb": 0,
+   "read": 0,
+   "kept": 41,
+   "words": []
+  },
+  "clause": {
+   "title": "Clause, the end",
+   "must": 1,
+   "verb": 1,
+   "read": 0,
+   "kept": 41,
+   "words": [
+    "Agree"
    ]
   }
  }

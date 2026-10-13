@@ -34,7 +34,12 @@ describe('nav intent bus', () => {
     off();
   });
 
-  it('ignores a screen outside the five', () => {
+  it('clause is a screen: a 409 clause_required met outside the Bid sheet, or a push, lands on the clause page with no lot', () => {
+    go({ screen: 'clause' });
+    expect(peekIntent()).toEqual({ screen: 'clause' });
+  });
+
+  it('ignores a screen outside the six', () => {
     go({ screen: 'settings' } as unknown as Intent);
     expect(peekIntent()).toBeNull();
   });

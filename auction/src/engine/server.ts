@@ -45,7 +45,9 @@ export class LocalAuctionServer {
   private rivals: Array<{ lotId: string; at: number; max: number; id: string }> = [];
 
   constructor(lots: Lot[], private clock: () => number = () => Date.now(), private latencyMs: () => number = () => 200 + Math.random() * 400) {
-    for (const l of lots) this.lots.set(l.id, { ...l });
+    // GET /lots never carries a closed lot (CarMeta.lane 'closed', the wholesale lane): the stand-in drops it here, at
+    // the same boundary, so the Lane needs no filter against either server
+    for (const l of lots) if (isPublic(l)) this.lots.set(l.id, { ...l });
   }
 
   /** Server-side close is an alarm plus a read-time check; here, one interval. */
@@ -163,6 +165,9 @@ export class LocalAuctionServer {
     return ack;
   }
 }
+
+/** A lot the public lane carries: every lot but one the Desk marked closed. */
+export const isPublic = (l: Lot): boolean => l.car?.lane !== 'closed';
 
 /** The sale the stand-in writes at a hammer or an accepted offer: the Worker's shape (meta.ts SaleState) plus the
     balance invoice W3-A creates at the hammer. The stand-in has no Whop, so its invoice URL is the app's own

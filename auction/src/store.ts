@@ -9,6 +9,9 @@ import { depositStanding, type DepositStanding } from './depositLine';
 import { kv } from './kv';
 import { go, isScreen, peekIntent, subscribeIntent, type Intent, type Screen } from './nav';
 import type { Licence } from './sale';
+import { claimSettled, codeFromUrl, forgetReferral, pendingReferral, rememberReferral, withReferral } from './referral';
+import { DRAFT_CLAUSE, clauseDue, markClauseAccepted, peekClause, reopenClause, setClause } from './clause';
+import { Platform } from 'react-native';
 
 export const DEPOSIT = 250;
 export const AUCTION_URL = (process.env.EXPO_PUBLIC_AUCTION_URL ?? '').replace(/\/$/, '');
@@ -34,6 +37,9 @@ export type AuctionServer = {
     the format the site will answer, named in the W3-D hand-back. */
 export const LANE_SITE = (process.env.EXPO_PUBLIC_LANE_SITE ?? 'https://obavia.co').replace(/\/$/, '');
 export const laneLink = (lotId: string) => `${LANE_SITE}/lane/${encodeURIComponent(lotId)}`;
+/** The lane link the Share sheet sends: the lot's link with this buyer's referral code on it (?r=), when the Worker
+    has given one (GET /me referralCode). Without a code it is the plain link. */
+export const shareLink = (lotId: string, code: string | undefined | null = buyer.referralCode) => withReferral(laneLink(lotId), code);
 
 /* Where the buyer's id and token live: secure storage on a phone, localStorage on the web (./kv). */
 const SESSION_KEY = 'obavia.buyer', PROFILE_KEY = 'obavia.profile', OPENED_KEY = 'obavia.opened';
@@ -56,6 +62,9 @@ export type Buyer = {
       (it went to the car at the engine start), released, forfeited, disputed, none. Absent on the local stand-in and
       until the first GET /me; Me then reads `once.deposit` and its own sale. `once.deposit` stays the bid path's flag. */
   deposit?: DepositStanding;
+  /** W4 referral: this buyer's own code for the Share sheet's link, and how many buyers claimed it (Me shows the count
+      above zero as one faint line; never a word about a reward). From GET /me; the local stand-in wears a fixture code. */
+  referralCode?: string; referred?: number;
 };
 
 /* The local stand-in's buyer (no Worker) wears a fixture name so the demo reads; `?name=none` previews the
@@ -64,7 +73,11 @@ const query = () => (globalThis as { location?: { search?: string } }).location?
 const localName = () => (/[?&]name=none/.test(query()) ? undefined : /[?&]data=worst/.test(query()) ? 'Maximiliano Echeverría-Ortiz' : 'Marisol Treviño');
 const savedName = () => readJSON<Profile>(PROFILE_KEY)?.name?.trim() || undefined;
 
-let buyer: Buyer = { lost: false, winsPerYear: WINS_PER_YEAR, termsCurrent: AUCTION_URL ? undefined : false, name: savedName() ?? (AUCTION_URL ? undefined : localName()) };
+const previewReferred = () => Number(query().match(/[?&]referred=(\d+)/)?.[1] ?? 0);   // preview only: Me's "N referred"
+let buyer: Buyer = {
+  lost: false, winsPerYear: WINS_PER_YEAR, termsCurrent: AUCTION_URL ? undefined : false, name: savedName() ?? (AUCTION_URL ? undefined : localName()),
+  ...(AUCTION_URL ? {} : { referralCode: 'MARISOL7', referred: previewReferred() }),
+};
 const buyerSubs = new Set<() => void>();
 export const peekBuyer = () => buyer;
 export function setBuyer(patch: Partial<Buyer>) { buyer = { ...buyer, ...patch }; for (const f of buyerSubs) f(); }
@@ -105,7 +118,74 @@ export async function refreshMe(): Promise<void> {
     winsLeft: m.winsLeft, winsPerYear: m.winsPerYear ?? WINS_PER_YEAR, termsCurrent: m.termsCurrent, phone: m.phone ?? null, phoneVerified: m.phoneVerified === true, name: m.name?.trim() || savedName(),
     deposit: depositStanding(m.deposit_status),
     ...(typeof m.openBids === 'number' ? { openBids: m.openBids } : {}), ...(typeof m.paidCars === 'number' ? { paidCars: m.paidCars } : {}),
+    ...(typeof m.referralCode === 'string' && m.referralCode ? { referralCode: m.referralCode } : {}),
+    ...(typeof m.referred === 'number' && m.referred >= 0 ? { referred: m.referred } : {}),
   });
+  if (m.phoneVerified === true) void claimReferral();   // a code still waiting from a link (a claim the network lost): now
+}
+
+/* ---- Referral (./referral): the code a lane link carried, claimed once after the phone code lands ---- */
+
+/** At launch: the code on the URL that opened the app (web: the query; native: the deep link, read once it arrives). */
+function readReferralLink() {
+  rememberReferral(codeFromUrl(query()));
+  if (Platform.OS === 'web') return;
+  try {
+    const L = require('expo-linking') as typeof import('expo-linking');
+    L.getInitialURL().then(u => rememberReferral(codeFromUrl(u))).catch(() => {});
+    L.addEventListener('url', e => rememberReferral(codeFromUrl(e.url)));
+  } catch { /* no linking module (a test): the web query above is all there is */ }
+}
+
+/** The claim, once: only with a code waiting and the number proved (the Worker's rule, and the stand-in's). Ok and the
+    Worker's final answers (409 already_claimed, 404 no_such_code) forget the code; the network keeps it for the next
+    launch. Ok re-reads GET /me so nothing on the glass is stale. Returns what happened, for the tests. */
+let claiming: Promise<string> | null = null;
+let localClaimed = false;
+export function claimReferral(): Promise<string> {
+  if (claiming) return claiming;
+  claiming = (async () => {
+    const code = pendingReferral();
+    if (!code) return 'none';
+    if (!buyer.phoneVerified) return 'later';
+    if (!AUCTION_URL) {
+      if (localClaimed) { forgetReferral(); return 'already_claimed'; }
+      localClaimed = true; forgetReferral(); return 'ok';
+    }
+    if (!token) return 'later';
+    const r = await RemoteAuctionServer.claimReferral(AUCTION_URL, token, code);
+    if (r.ok) { forgetReferral(); return 'ok'; }
+    if (claimSettled(r.code)) forgetReferral();
+    return r.code;
+  })().finally(() => { claiming = null; });
+  return claiming;
+}
+
+/* ---- The clause (./clause): GET /terms behind its flag; POST /me/clause on Agree ---- */
+
+/** At launch: the clause in force, from the Worker; locally, ?clause=1 plays the draft. */
+async function loadTerms() {
+  if (!AUCTION_URL) { setClause(/[?&]clause=1/.test(query()) ? DRAFT_CLAUSE : null); return; }
+  setClause(await RemoteAuctionServer.terms(AUCTION_URL));
+}
+/** Agree on the clause page: the Worker records the version; the phone keeps it so the page never returns on its
+    own. False when the Worker refused or the network failed: the page stays. */
+export async function acceptClause(version: string): Promise<boolean> {
+  if (AUCTION_URL) {
+    if (!token) return false;
+    const ok = await RemoteAuctionServer.acceptClause(AUCTION_URL, token, version);
+    if (!ok) return false;
+  }
+  markClauseAccepted(version);
+  return true;
+}
+/** The clause the next bid needs agreed, or null; a 409 clause_required calls `clauseRequired` and it is due again. */
+export const clauseNeeded = () => clauseDue(peekClause());
+/** The Worker refused a bid for want of the clause: the phone's acceptance is wrong, and if the phone holds no clause
+    (GET /terms failed at launch) it is read again now, so the page has words to show. */
+export async function clauseRequired(): Promise<void> {
+  reopenClause();
+  if (!peekClause()) await loadTerms();
 }
 
 /** The number as the phone shows it once proved: the last four. The Worker's mask, made here for the stand-in. */
@@ -130,7 +210,7 @@ export async function verifyPhoneCode(code: string): Promise<PhoneAnswer> {
   if (AUCTION_URL) r = token ? await RemoteAuctionServer.verifyPhone(AUCTION_URL, token, code) : { ok: false, code: 'sign_in' };
   else if (localRecover && localPhone && code === '000000') r = { ok: false, code: 'phone_in_use' };   // preview: the number is another install's
   else r = !localPhone ? { ok: false, code: 'code_expired' } : code === '000000' ? { ok: true, phone: maskPhone(localPhone) } : { ok: false, code: 'wrong_code' };
-  if (r.ok) setBuyer({ phone: r.phone, phoneVerified: true });
+  if (r.ok) { setBuyer({ phone: r.phone, phoneVerified: true }); void claimReferral(); }   // the number proved: a link's code is claimed now
   return r;
 }
 
@@ -153,7 +233,7 @@ export async function verifyRecovery(code: string): Promise<RecoverAnswer> {
   if (AUCTION_URL) {
     const r = await RemoteAuctionServer.recoverVerify(AUCTION_URL, recoverPhone, code);
     if (r.ok) { recoverPhone = ''; adopt(r.session); setBuyer({ lost: false, phone: r.phone, phoneVerified: true }); await refreshMe(); }
-    return r;
+    return r;   // a recovered buyer is not a new one: no claim here beyond what refreshMe does
   }
   if (!localRecovering) return { ok: false, code: 'code_expired' };
   if (code !== '000000') return { ok: false, code: 'wrong_code' };
@@ -233,12 +313,16 @@ export function getServer(): AuctionServer {
     if (stored) ME = stored.id;
     const remote = new RemoteAuctionServer(AUCTION_URL, buyerToken);
     server = remote;
+    readReferralLink();
+    void loadTerms();
     signIn().catch(() => {}).finally(() => { remote.start(); });
     reopen();
     return server;
   }
   if (!server) {
     const lots = seedLots(Date.now());
+    readReferralLink();
+    void loadTerms();
     reopen();
     const closeIn = Number((globalThis as { location?: { search?: string } }).location?.search?.match(/closeIn=(\d+)/)?.[1]);
     const search = (globalThis as { location?: { search?: string } }).location?.search ?? '';
@@ -250,7 +334,7 @@ export function getServer(): AuctionServer {
     }
     // rivals so the demo lane breathes: one refill on the Altima, one on the Fusion; never under ?win=1, where a
     // rival inside the 2.5 s hammer window would refill the close and take the lead from the walk
-    if (lots.length === 3 && lots[0].high < 5400 && !/[?&]win=1/.test(search)) {   // the seeded lane only, not the break-ui fixtures
+    if (local.all().length === 3 && lots[0].high < 5400 && !/[?&]win=1/.test(search)) {   // the seeded lane only (the closed lot dropped), not the break-ui fixtures
       local.scheduleRival('altima', 25_000, 5400, 'r3');
       local.scheduleRival('altima', 55_000, 5700, 'r4');
       local.scheduleRival('fusion', 40_000, 3500, 'r5');
@@ -268,6 +352,7 @@ export function getServer(): AuctionServer {
       async walletPass(lotId) { return local.walletPass(lotId, ME); },
       async bid(req) {
         if (!buyer.phoneVerified) throw new Refused('phone_required', 409);
+        if (clauseNeeded()) throw new Refused('clause_required', 409);   // W4: the clause on and not agreed, before the terms
         if (!buyer.termsCurrent && req.terms !== TERMS_VERSION) throw new Refused('terms_required', 409);
         if (localCommitted(local.all(), req.lotId) >= WINS_PER_YEAR) throw new Refused('win_cap', 403);
         const retry = Number(search.match(/[?&]retry=(\d+)/)?.[1]);   // preview only: the Worker's 429, Retry-After as given

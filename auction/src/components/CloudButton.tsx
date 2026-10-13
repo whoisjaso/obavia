@@ -332,7 +332,7 @@ export function CloudButton({
       <GestureDetector gesture={g.enabled(!off)}>
         <Animated.View style={[{ width: w, height: h }, tier === 'ink' && s.ink, disabled && s.off, body]}
           accessible accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityHint={accessibilityHint}
-          accessibilityState={{ disabled: off }} accessibilityActions={off ? undefined : [{ name: 'activate' }]}
+          accessibilityState={{ disabled: off }} aria-disabled={off || undefined} accessibilityActions={off ? undefined : [{ name: 'activate' }]}
           onAccessibilityAction={e => { if (e.nativeEvent.actionName === 'activate') fire(); }}>
           {tier === 'ink' && <InkBody />}
           {tier === 'photo' && (

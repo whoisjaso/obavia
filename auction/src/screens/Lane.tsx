@@ -1,6 +1,8 @@
 /* The Lane. One car per screen. Swipe up: next car. Tap: next angle. Hold: the
-   engine. Drag the price up: arms a bid and hands off to the Bid sheet. Long-
-   press the ring: the time, spoken once. No reading: two bars are the copy. */
+   engine (W4-B: the recording the Desk made on Show It, streamed from the Worker;
+   the small rendered car at the foot is the only hint, and only when there is one).
+   Drag the price up: arms a bid and hands off to the Bid sheet. Long-press the
+   ring: the time, spoken once. No reading: two bars are the copy. */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
 import { Image } from 'expo-image';
@@ -24,7 +26,10 @@ import { theme } from '../theme';
 import { BidSheet } from './BidSheet';
 import { CarSheet } from './CarSheet';
 import { Won } from './won/Won';
-import { AUCTION_URL, ME, isWatched, laneLink, toggleWatch, useCars, useLots, useWatched } from '../store';
+import { AUCTION_URL, ME, acceptClause, isWatched, shareLink, toggleWatch, useCars, useLots, useWatched } from '../store';
+import { clauseDue, useClause } from '../clause';
+import { ClausePage } from './Clause';
+import { useEngine } from '../engine/hear';
 import { Offer } from './won/Offer';
 import { Me } from './Me';
 import { Label } from '../components/Type';
@@ -64,7 +69,7 @@ function useScreenReader(): boolean {
 /** The share sheet (phases.md Phase 2 Marketing: "the Lane's share sheet"): the platform's own sheet with the lot's
     lane link, the car's name as the words. Nothing of ours in it; a browser with no sheet does nothing, silently. */
 function share(car: Car) {
-  const name = `${car.year} ${car.make} ${car.model}`, url = laneLink(car.id);
+  const name = `${car.year} ${car.make} ${car.model}`, url = shareLink(car.id);   // the buyer's own ?r= on it when the Worker gave one
   feel.select();
   // Android's sheet carries the message only, so the link rides in it there; iOS takes both pieces
   void Share.share(Platform.OS === 'android' ? { message: `${name} ${url}` } : { message: name, url }, { dialogTitle: name, subject: name }).catch(() => {});
@@ -114,11 +119,14 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
     scheduleOnRN(watch);
   });
   const bloomStyle = useAnimatedStyle(() => ({ opacity: bo.value, transform: [{ translateX: bx.value - BLOOM / 2 }, { translateY: by.value - BLOOM / 2 }, { scale: bs.value }] }));
-  // Hold: the engine (no recording seeded yet: the photo settles in, a soft pulse). Reduced motion: the pulse only.
+  // Hold: the engine. With a recording (car.engine, W4-B) it plays from the first frame of the hold with the medium
+  // impact, and fades out as the thumb lifts; without one the photo settles in with a light touch, as before.
+  // Reduced motion: the photo keeps still either way; the sound and the haptic are not motion.
+  const engine = useEngine(car.engine);
   const hold = Gesture.LongPress().minDuration(350).onStart(() => {
     if (!reduce) photoScale.value = withSpring(1.03, spring.settle);
-    scheduleOnRN(feel.touch);
-  }).onFinalize(() => { photoScale.value = withSpring(1, spring.settle); });
+    scheduleOnRN(engine.start);
+  }).onFinalize(() => { photoScale.value = withSpring(1, spring.settle); scheduleOnRN(engine.stop); });
   const photoStyle = useAnimatedStyle(() => ({ transform: [{ scale: photoScale.value }] }));
   // Swipe left: the Car. Instagram's edge. A flick counts as much as a distance.
   const open = Gesture.Pan().activeOffsetX(-14).failOffsetY([-10, 10]).onEnd(e => { if (e.translationX < -40 || e.velocityX < -500) scheduleOnRN(onOpen); });
@@ -210,6 +218,9 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
         )}
         <Bars bid={lot.high} retail={lot.retail} />
         <View style={s.foot}>
+          {/* the engine recorded: the rendered car (DOCTRINE §5) touching the dealer's line, the one hint that the
+              photo can be held; it swells with the photo under the hold. No word. */}
+          {car.engine ? <Animated.View style={[s.engineCar, photoStyle]}><Object3D name="car" tone="dark" width={56} appear={false} /></Animated.View> : null}
           <Text style={s.dealer} numberOfLines={1}>{car.dealer.name} · {car.dealer.city}</Text>
           {/* the car's next photo, small, with its count: the object, not a grid glyph to decode */}
           <Pressable onPress={onOpen} style={s.pill} hitSlop={10} accessibilityRole="button" accessibilityLabel={`${photos} photos, open the car`}>
@@ -269,6 +280,8 @@ export function Lane() {
   const [wonAt, setWonInitial] = useState<'pickup' | 'steps' | undefined>(undefined);
   const [meOpen, setMe] = useState(false);
   const [offer, setOffer] = useState<Car | null>(null);   // the second chance, opened by its push
+  const [clauseOpen, setClauseOpen] = useState(false);   // the clause page on its own (nav 'clause'), outside a bid
+  const clause = useClause();
   const reader = useScreenReader();
   const listRef = useRef<FlatList<Car>>(null);
   const cloudFar = useDrift(drift.far.period), cloudMid = useDrift(drift.mid.period);   // one clock per lane: a swipe never restarts the drift
@@ -328,6 +341,7 @@ export function Lane() {
   useEffect(() => {
     if (!intent) return;
     if (intent.screen === 'me') { setOpen(null); setMe(true); clearIntent(); return; }
+    if (intent.screen === 'clause') { setSheet(null); setClauseOpen(true); clearIntent(); return; }
     if (intent.screen === 'lane') {
       if (intent.lotId) {
         if (cars.length === 0) return;   // the lane has not loaded yet; the intent waits
@@ -381,8 +395,12 @@ export function Lane() {
         onViewableItemsChanged={onViewable}
         viewabilityConfig={cfg}
         getItemLayout={(_, i) => ({ length: height, offset: height * i, index: i })}
-        scrollEnabled={!sheet && !open && !meOpen && !offer}
+        scrollEnabled={!sheet && !open && !meOpen && !offer && !clauseOpen}
       />
+      {/* the clause on its own, where nav 'clause' lands: due, it shows; agreed or not now, the lane is the glass */}
+      {clauseOpen && (clauseDue(clause)
+        ? <ClausePage clause={clauseDue(clause)!} onAgree={async v => { const ok = await acceptClause(v); if (ok) setClauseOpen(false); return ok; }} onCancel={() => setClauseOpen(false)} />
+        : null)}
       {meOpen && <Me lots={lots} now={now} onClose={() => setMe(false)} onOpenCar={id => { const l = lots[id]; if (l?.closed && live(l) && readWon(l)) return; setMe(false); const i = cars.findIndex(c => c.id === id); if (i >= 0) listRef.current?.scrollToIndex({ index: i, animated: true }); }} />}
       {sheet && <BidSheet key={sheet.key} car={sheet.car} lot={lots[sheet.car.id]} now={now} steps={sheet.steps} onClose={() => setSheet(null)} />}
       {open && <CarSheet car={open} onClose={() => setOpen(null)} />}
@@ -411,6 +429,7 @@ const s = StyleSheet.create({
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 22 },
   priceHit: { alignSelf: 'flex-start', paddingVertical: 8, paddingRight: 40 },
   foot: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  engineCar: { marginRight: 2, marginLeft: -4, marginVertical: -8 },   // the car's canvas keeps a margin: the rendered body touches the dealer's words
   nophoto: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: theme.color.inkSoft },
   dealer: { flexShrink: 1, marginRight: 12, color: theme.color.cloud, ...theme.type.sans, fontSize: 17, textShadowColor: 'rgba(8,14,30,0.5)', textShadowRadius: 6 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40 },

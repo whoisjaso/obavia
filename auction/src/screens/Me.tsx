@@ -202,6 +202,8 @@ export function Me({ lots, now, onClose, onOpenCar }: { lots: Record<string, Lot
         {buyer.name || !buyer.lost ? <Name name={buyer.name} /> : null}
         {/* the proved number, last four only, faint and touching the name it belongs to */}
         {buyer.phone ? <Body ink={theme.color.faint} style={{ fontVariant: ['tabular-nums'] }}>{buyer.phone}</Body> : null}
+        {/* W4 referral: the count of buyers who came by this buyer's link, one faint line, only above zero; never a reward */}
+        {(buyer.referred ?? 0) > 0 ? <Body ink={theme.color.faint} style={{ fontVariant: ['tabular-nums'] }}>{`${buyer.referred} referred`}</Body> : null}
       </View>
       {buyer.lost && (call ? (
         <Pressable onPress={() => { feel.select(); void Linking.openURL(`tel:${call.replace(/[^\d+]/g, '')}`).catch(() => {}); }} hitSlop={8} accessibilityRole="link" accessibilityLabel={`This phone lost its sign-in. Call ${call}`}>

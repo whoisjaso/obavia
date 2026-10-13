@@ -19,7 +19,7 @@ if (!ROOT || !OUT) { console.error('usage: node walk.mjs <webroot> <outdir> [por
 fs.mkdirSync(OUT, { recursive: true });
 
 /* ---------- the fixture server: the export, single page fallback ---------- */
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ttf': 'font/ttf', '.otf': 'font/otf', '.woff2': 'font/woff2', '.json': 'application/json', '.ico': 'image/x-icon', '.glb': 'model/gltf-binary' };
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.mp4': 'video/mp4', '.ttf': 'font/ttf', '.otf': 'font/otf', '.woff2': 'font/woff2', '.json': 'application/json', '.ico': 'image/x-icon', '.glb': 'model/gltf-binary' };
 const server = http.createServer((q, r) => {
   let f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0].split('#')[0]));
   if (!f.startsWith(path.resolve(ROOT))) { r.statusCode = 403; return r.end(); }
@@ -51,9 +51,9 @@ const SPEC = {
   'won-steps':       { title: 'Won, steps', primary: /^ID, next/ },
   'id-prefilled':    { title: 'ID, prefilled', primary: /^That's me$/, before: [/^(Name|Born|Address|Licen[cs]e|State) /], verb: "That's me" },
   'insure':          { title: 'Insure', primary: /^Take the photo$/ },
-  'buyers-guide':    { title: 'Buyers Guide, the end', primary: /^(Signature pad|Sign)$/, verb: 'Sign', kept: 'document' },
+  'buyers-guide':    { title: 'Buyers Guide, the end', primary: /^(Signature pad|Sign)$/, awaits: /^Signature pad$/, verb: 'Sign', kept: 'document' },
   'buyers-signed':   { title: 'Buyers Guide, signed', primary: /^Sign$/, verb: 'Sign', kept: 'document' },
-  'bill-of-sale':    { title: 'Bill of Sale, the end', primary: /^(Signature pad|Sign)$/, verb: 'Sign', kept: 'document' },
+  'bill-of-sale':    { title: 'Bill of Sale, the end', primary: /^(Signature pad|Sign)$/, awaits: /^Signature pad$/, verb: 'Sign', kept: 'document' },
   'won-steps-2':     { title: 'Won, steps (the last one lit)', primary: /^(Pay|Keys|Plates|Title), next/ },
   'pay':             { title: 'Pay', primary: /^(Bank|Wire|Cash)/, choices: true },
   'pickup-where':    { title: 'Pickup, where', primary: /^Directions to / },
@@ -66,6 +66,10 @@ const SPEC = {
   'me':              { title: 'Me', gesture: 'nothing to do', anchor: /./, allow: [/./] },
   // the second chance (decisions §2 row 9): the push's intent, played by ?offer=1; one verb, Take it; Not now faint and last
   'offer':           { title: 'Offer, the second chance', primary: /^Take it/, verb: 'Take it' },
+  // the clause behind its flag (W4-B, D13), played by ?clause=1: the words are a document (a kept read); at the top
+  // Agree is locked and the one thing to do is scroll; at the end Agree is the one verb, Not now faint and last
+  'clause-top':      { title: 'Clause, the top (Agree locked)', gesture: 'scroll to the end', anchor: /^Agree$/, allow: [/^Not now$/], kept: 'document' },
+  'clause':          { title: 'Clause, the end', primary: /^Agree$/, verb: 'Agree', kept: 'document' },
 };
 
 /* ---------- the browser ---------- */
@@ -187,7 +191,13 @@ async function screen(key, extra = {}) {
   if (unlabelled.length) notes.push(`${key}: ${unlabelled.length} tappable element(s) with no accessible name (${unlabelled.map(t => t.text ? `"${t.text}"` : `at ${t.box.slice(0, 2)}`).join(', ')})`);
   if (modal.length) { fail(key, `modal in the tree: ${modal.join(', ')}`); checks.push('modal'); }
   if (spec.primary) {
-    const first = live.find(t => !(spec.before || []).some(rx => rx.test(t.name)));
+    let first = live.find(t => !(spec.before || []).some(rx => rx.test(t.name)));
+    // a page whose one action waits on a gesture (the signature pad): the verb is on the glass, disabled until the pad is drawn
+    // (CloudButton carries aria-disabled since Wave 4); the pad, by its label, is the live piece the verb touches
+    if (!first && spec.awaits && anchors.some(a => spec.awaits.test(a))) {
+      const waiting = taps.find(t => t.disabled && spec.primary.test(t.name));
+      if (waiting) { live.push(waiting); first = waiting; notes.push(`${key}: "${waiting.name}" waits on the ${spec.awaits.source.replace(/[\^$]/g, '')}`); }
+    }
     if (!first) { fail(key, `no tappable element; expected ${spec.primary}`); checks.push('no tappable'); }
     else if (!spec.primary.test(first.name)) { fail(key, `first tappable is "${first.name}" (${first.role}), expected ${spec.primary}`); checks.push('primary not first'); }
     const prim = live.find(t => spec.primary.test(t.name));   // the one action, wherever it sits, for the reads count
@@ -332,6 +342,31 @@ const steps = [
     await screen('offer');
     await tap(/^Take it/, 'last');
     if (!(await until(() => visible(/^ID, next/), 8000))) throw new Error('Take it did not open Won');
+  }],
+  ['the clause, behind ?clause=1', async () => {
+    // a fresh launch with the clause on (store.ts ?clause=1 plays the draft GET /terms would carry): the first bid's
+    // chain again (the phone, the ID and the deposit live in memory, so the reload asks for them), then the clause
+    // page before the terms; scroll to the end unlocks Agree, and Agree opens the terms page
+    await page.goto(`http://127.0.0.1:${PORT}/?clause=1&win=1`); await wait(3000);
+    await dragPriceUp(); if (!(await visible('Bid')) && !(await visible('Bid, double tap and hold'))) throw new Error('no Bid sheet (?clause=1)');
+    await tap(/^Bid/, 'last'); await wait(1300);
+    if (await visible('Your number')) {
+      await tap('Your number', 'last'); await page.keyboard.type('2145550142', { delay: 20 }); await wait(300);
+      await tap('Text me a code', 'last'); await wait(1000);
+      await page.keyboard.type('000000', { delay: 40 }); await wait(2200);
+    }
+    if (!(await until(() => visible('Take the photo'), 6000))) throw new Error('no ID frame (?clause=1)');
+    await tap('Take the photo'); await wait(1600);
+    await tap("That's me", 'last'); await wait(1300);
+    if (!(await until(() => visible(/^Pay \d+ dollars/), 6000))) throw new Error('no deposit page (?clause=1)');
+    await tap(/^Pay \d+ dollars/, 'last'); await wait(900);
+    if (!(await until(() => visible('Agree'), 8000))) throw new Error('no clause page after the deposit (?clause=1)');
+    await wait(400);
+    await screen('clause-top');
+    await scrollToEnd();
+    await screen('clause');
+    await tap('Agree', 'last');
+    if (!(await until(async () => /irrevocable/i.test(await bodyText()), 6000))) throw new Error('Agree did not open the terms page');
   }],
 ];
 

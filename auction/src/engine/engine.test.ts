@@ -164,7 +164,10 @@ describe('carFromLot', async () => {
   const { createRequire } = await import('node:module');
   const Module = createRequire(import.meta.url)('node:module') as { _extensions: Record<string, (m: { exports: unknown }) => void> };
   Module._extensions['.jpg'] = m => { m.exports = 1; };
-  const { carFromLot, isWide } = await import('../data/cars');
+  Module._extensions['.wav'] = m => { m.exports = 2; };
+  Module._extensions['.mp4'] = m => { m.exports = 3; };
+  const { carFromLot, isWide, lotMedia, seedLots } = await import('../data/cars');
+  const { LocalAuctionServer, isPublic } = await import('./server');
   const meta = {
     year: 2016, make: 'Toyota', model: 'Camry', miles: 88_000, vin: '4T1BF1FK0GU000004',
     photos: [{ url: '/photos/camry/0.jpg', w: 1600, h: 900 }, { url: 'photos/camry/1.jpg', w: 900, h: 1600 }],
@@ -191,5 +194,30 @@ describe('carFromLot', async () => {
   it('a lot without a car is null', () => {
     const { car: _, ...bare } = lot;
     expect(carFromLot(bare, 'https://auction.example.com')).toBeNull();
+  });
+  // W4-B: the engine recording and the walkaround, streamed by lot, never by key
+  it('audioKey and videoKey become the lot\'s own stream paths; without them the car has neither', () => {
+    const car = carFromLot({ ...lot, car: { ...meta, audioKey: 'r2/private/engine.wav', videoKey: 'r2/private/walk.mp4' } }, 'https://auction.example.com/')!;
+    expect(car.engine).toEqual({ uri: 'https://auction.example.com/lots/camry/audio' });
+    expect(car.video).toEqual({ uri: 'https://auction.example.com/lots/camry/video' });
+    expect(JSON.stringify(car)).not.toMatch(/r2\/private/);
+    const bare = carFromLot(lot, 'https://auction.example.com')!;
+    expect(bare.engine).toBeUndefined(); expect(bare.video).toBeUndefined();
+    expect(lotMedia('https://a.example', 'lot 9', 'audio')).toBe('https://a.example/lots/lot%209/audio');
+  });
+  // W4: the closed lane. GET /lots never lists a closed lot; the stand-in drops it at the same boundary
+  it('a closed lot never reaches the lane: the stand-in omits it as GET /lots does', () => {
+    const now = 1_700_000_000_000;
+    const seeded = seedLots(now);
+    const closed = seeded.filter(l => !isPublic(l));
+    expect(closed.map(l => l.id)).toEqual(['tahoe-closed']);
+    expect(closed[0].car?.lane).toBe('closed');
+    const server = new LocalAuctionServer(seeded, () => now);
+    expect(server.all().map(l => l.id)).toEqual(['altima', 'sonata', 'fusion']);
+    expect(() => server.get('tahoe-closed')).toThrow();
+    expect(isPublic({ ...lot, car: { ...meta, lane: 'public' } })).toBe(true);
+    expect(isPublic(lot)).toBe(true);
+    // the first seeded lot carries the fixture's keys
+    expect(seeded[0].car).toMatchObject({ audioKey: expect.any(String), videoKey: expect.any(String) });
   });
 });

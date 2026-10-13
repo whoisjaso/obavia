@@ -387,3 +387,152 @@ describe('the lane link, the second chance and the Wallet pass on the stand-in',
     expect(await store.walletPassUrl('nowhere')).toBeNull();
   });
 });
+
+/* ---- W4-B: the referral claim, the share link, the clause gate ---- */
+describe('referral (W4-B): the link\'s code, kept until the phone is proved, claimed once', () => {
+  const withSearch = async (search: string, f: () => Promise<void>) => {
+    (globalThis as { location?: unknown }).location = { search };
+    try { await f(); } finally { delete (globalThis as { location?: unknown }).location; }
+  };
+
+  it('a cold open with ?r= keeps the code; the share link carries the buyer\'s own code, not the one received', async () => {
+    await withSearch('?r=abcd1234', async () => {
+      const { store } = await launch(false);
+      store.getServer();
+      expect(ls.getItem('obavia.referral')).toBe('ABCD1234');
+      expect(store.shareLink('altima')).toBe('https://obavia.co/lane/altima?r=MARISOL7');   // the stand-in's fixture code
+      expect(store.shareLink('altima', null)).toBe('https://obavia.co/lane/altima');   // no code from the Worker: the plain link
+    });
+  });
+
+  it('nothing is claimed before the phone code lands; then once; the stand-in answers already_claimed after', async () => {
+    await withSearch('?r=abcd1234', async () => {
+      const { store } = await launch(false);
+      store.getServer();
+      expect(await store.claimReferral()).toBe('later');
+      expect(ls.getItem('obavia.referral')).toBe('ABCD1234');
+      await store.sendPhoneCode('+12145550142');
+      expect((await store.verifyPhoneCode('000000')).ok).toBe(true);
+      await settle();
+      expect(ls.getItem('obavia.referral')).toBeNull();   // claimed on the proof, and forgotten
+      expect(await store.claimReferral()).toBe('none');
+    });
+  });
+
+  it('on the Worker: POST /me/referral/claim with the code after the proof; 409 already_claimed forgets it; the network keeps it', async () => {
+    let claimStatus = 0;
+    const base = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith('/me/referral/claim')) {
+        calls.push({ url: u, method: init?.method ?? 'GET', body: init?.body ? JSON.parse(String(init.body)) : null, auth: ((init?.headers ?? {}) as Record<string, string>).authorization ?? null });
+        if (claimStatus === 0) throw new TypeError('network');
+        return new Response(claimStatus === 200 ? '{}' : JSON.stringify({ error: 'already_claimed' }), { status: claimStatus });
+      }
+      if (u.endsWith('/me/phone/verify')) return new Response(JSON.stringify({ verified: true, phone: '(•••) •••-0142' }), { status: 200 });
+      return base(url, init);
+    }) as typeof fetch;
+    await withSearch('?r=abcd1234', async () => {
+      const { store } = await launch(true);
+      const server = store.getServer() as unknown as { stop(): void };
+      stop = () => server.stop();
+      await settle(); await settle();
+      expect(calls.filter(c => c.url.endsWith('/me/referral/claim'))).toHaveLength(0);   // not before the number is proved
+      expect(await store.verifyPhoneCode('000000')).toEqual({ ok: true, phone: '(•••) •••-0142' });
+      await settle(); await settle();
+      const first = calls.filter(c => c.url.endsWith('/me/referral/claim'));
+      expect(first).toHaveLength(1);
+      expect(first[0]).toMatchObject({ method: 'POST', body: { code: 'ABCD1234' }, auth: 'Bearer t-1' });
+      expect(ls.getItem('obavia.referral')).toBe('ABCD1234');   // the network lost it: kept for the next time
+      claimStatus = 409;
+      expect(await store.claimReferral()).toBe('already_claimed');
+      expect(ls.getItem('obavia.referral')).toBeNull();   // the Worker's final word: forgotten
+      expect(await store.claimReferral()).toBe('none');
+      expect(calls.filter(c => c.url.endsWith('/me/referral/claim'))).toHaveLength(2);
+    });
+  });
+
+  it('GET /me puts the code and the count on the buyer; a link\'s code never becomes the buyer\'s own', async () => {
+    const base = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith('/me') && (init?.method ?? 'GET') === 'GET') return new Response(JSON.stringify({ id: 'b-1', winsLeft: 4, phoneVerified: false, referralCode: 'B1X7K2', referred: 3 }), { status: 200 });
+      return base(url, init);
+    }) as typeof fetch;
+    await withSearch('?r=zzzz9999', async () => {
+      const { store } = await launch(true);
+      const server = store.getServer() as unknown as { stop(): void };
+      stop = () => server.stop();
+      await settle(); await settle();
+      expect(store.peekBuyer()).toMatchObject({ referralCode: 'B1X7K2', referred: 3 });
+      expect(store.shareLink('altima')).toBe('https://obavia.co/lane/altima?r=B1X7K2');
+      expect(ls.getItem('obavia.referral')).toBe('ZZZZ9999');
+    });
+  });
+});
+
+describe('the clause (W4-B, D13): behind its flag, once, before the terms; a 409 brings it back', () => {
+  it('off: no clause, the stand-in\'s bid never asks for one', async () => {
+    const { store } = await launch(false);
+    store.getServer();
+    await settle();
+    expect(store.clauseNeeded()).toBeNull();
+  });
+
+  it('?clause=1: the bid is refused clause_required until Agree; agreed, the version is kept and the bid goes on', async () => {
+    (globalThis as { location?: unknown }).location = { search: '?clause=1' };
+    // one open lot on the stand-in, so the bid after Agree has somewhere to land
+    vi.doMock('./data/cars', () => ({ seedLots: () => [{ id: 'sonata', start: 3400, retail: 6495, opensAt: Date.now() - 1000, closesAt: Date.now() + 86_400_000, high: 3400, bids: 0, watching: 0 }], cars: [], carFromLot: () => null }));
+    try {
+      const { store } = await launch(false);
+      const server = store.getServer();
+      await settle();
+      const clause = store.clauseNeeded();
+      expect(clause).toMatchObject({ version: 'draft-2026-10-13', requiresScrollToEnd: true });
+      expect(clause!.text).toMatch(/^Draft\./);   // the words are counsel's; until then the text says it is a draft
+      expect(clause!.text).not.toMatch(/[\u2013\u2014]/);
+      await store.sendPhoneCode('+12145550142'); await store.verifyPhoneCode('000000');
+      const req = { lotId: 'sonata', bidder: 'me', amount: 3400, max: 3400, key: 'k1', terms: '2026-10-13' };
+      await expect(server.bid(req)).rejects.toMatchObject({ code: 'clause_required', status: 409 });
+      expect(await store.acceptClause(clause!.version)).toBe(true);
+      expect(ls.getItem('obavia.clause')).toBe('draft-2026-10-13');
+      expect(store.clauseNeeded()).toBeNull();
+      expect((await server.bid({ ...req, key: 'k2' })).ok).toBe(true);
+      // the Worker's 409 (a lost record, new words): the page is due again
+      await store.clauseRequired();
+      expect(store.clauseNeeded()).toMatchObject({ version: 'draft-2026-10-13' });
+    } finally {
+      delete (globalThis as { location?: unknown }).location;
+      vi.doMock('./data/cars', () => ({ seedLots: () => [], cars: [], carFromLot: () => null }));
+    }
+  });
+
+  it('on the Worker: GET /terms at launch, POST /me/clause { version } on Agree, and a failed POST keeps the page due', async () => {
+    let post = 200;
+    const base = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url), method = init?.method ?? 'GET';
+      if (u.endsWith('/terms')) return new Response(JSON.stringify({ clause: { version: 'v2', text: 'Words.', requiresScrollToEnd: true } }), { status: 200 });
+      if (u.endsWith('/me/clause')) { calls.push({ url: u, method, body: JSON.parse(String(init?.body)), auth: ((init?.headers ?? {}) as Record<string, string>).authorization ?? null }); return new Response('{}', { status: post }); }
+      return base(url, init);
+    }) as typeof fetch;
+    const { store } = await launch(true);
+    const server = store.getServer() as unknown as { stop(): void };
+    stop = () => server.stop();
+    await settle(); await settle();
+    expect(store.clauseNeeded()).toMatchObject({ version: 'v2', text: 'Words.' });
+    post = 500;
+    expect(await store.acceptClause('v2')).toBe(false);
+    expect(store.clauseNeeded()).toMatchObject({ version: 'v2' });
+    post = 200;
+    expect(await store.acceptClause('v2')).toBe(true);
+    expect(calls.filter(c => c.url.endsWith('/me/clause')).at(-1)).toMatchObject({ method: 'POST', body: { version: 'v2' }, auth: 'Bearer t-1' });
+    expect(store.clauseNeeded()).toBeNull();
+    // the next launch holds the version: the page does not return on its own
+    const again = await launch(true);
+    const s2 = again.store.getServer() as unknown as { stop(): void };
+    await settle(); await settle();
+    expect(again.store.clauseNeeded()).toBeNull();
+    s2.stop();
+  });
+});
