@@ -464,6 +464,8 @@ describe('the GDN row, the fees line, the verified state, the invoices, the disp
     const packs = [{ lotId: 'a', buyer: 'b_1', disputeId: 'dp', sha256: 'aa', uploadedAt: T0, uploadError: null, at: 1 }, { lotId: 'b', buyer: null, disputeId: null, sha256: 'bb', uploadedAt: null, uploadError: 'no key', at: 2 }, { lotId: 'c', buyer: null, disputeId: null, sha256: null, uploadedAt: null, uploadError: null, at: 3 }];
     expect(disputeRows(null, { events: [], payouts: [], sales: [], invoices: [], evidencePacks: packs }).map(r => [r.lotId, r.upload])).toEqual([['c', 'Not sent'], ['b', 'Refused'], ['a', 'Sent']]);
     expect(disputeRows(x3({ evidencePacks: [packs[0]] }), null)).toEqual([{ lotId: 'a', buyer: 'b_1', sha256: 'aa', upload: 'Sent', at: 1 }]);
+    expect(disputeRows(null, { events: [], payouts: [], sales: [], invoices: [], evidencePacks: [{ ...packs[1], uploadError: 'whop_unavailable' }] })[0].upload).toBe('Not sent');
+    expect(invoicesByState({ events: [], payouts: [], sales: [], invoices: [{ id: 'e', lotId: 'l', kind: 'balance', state: 'paid_at_lot', amountUsd: 10 } as never, { id: 'f', lotId: 'l', kind: 'fee', state: 'held', amountUsd: 199 } as never], evidencePacks: [] }).map(g => g.word)).toEqual(['Paid at the lot', 'Not yet invoiced']);
     expect(disputeRows(null, null)).toEqual([]);
   });
   it('every log word is four words or fewer, every kind the Worker joins has one', () => {

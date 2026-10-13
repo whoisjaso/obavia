@@ -522,7 +522,7 @@ export function verifiedWord(r: AdminDealerRow): string {
 }
 
 /* ---------- invoices by state ---------- */
-export const INVOICE_STATE: Record<string, string> = { open: 'Open', sent: 'Sent', paid: 'Paid', void: 'Voided', voided: 'Voided', failed: 'Failed', refunded: 'Refunded' };
+export const INVOICE_STATE: Record<string, string> = { held: 'Not yet invoiced', open: 'Open', sent: 'Sent', paid: 'Paid', paid_at_lot: 'Paid at the lot', void: 'Voided', voided: 'Voided', failed: 'Failed', refunded: 'Refunded' };
 export const INVOICE_KIND: Record<InvoiceKind, string> = { balance: 'Balance', fee: 'Fee' };
 export type InvoiceGroup = { state: string; word: string; rows: Invoice[] };
 /** Open first, then paid, then the rest in the order met; each row keeps its kind word. */
@@ -534,12 +534,12 @@ export function invoicesByState(m: Money | null): InvoiceGroup[] {
   return [...groups.entries()].sort(([a], [b]) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99)).map(([state, rows]) => ({ state, word: INVOICE_STATE[state] ?? state, rows }));
 }
 
-/* ---------- the disputes rows: the pack's sha256 and Whop's upload result ---------- */
+/* ---------- the disputes rows: the pack's sha256 and Whop's upload result; no key (whop_unavailable) is Not sent, a Whop refusal is Refused ---------- */
 export type DisputeRow = { lotId: string; buyer: string | null; sha256: string | null; upload: 'Sent' | 'Not sent' | 'Refused'; at: number };
 /** Packs from the money list first, the exposure's if the money list has none; newest first. */
 export function disputeRows(x: AdminExposure | null, m: Money | null): DisputeRow[] {
   const packs = m?.evidencePacks.length ? m.evidencePacks : x?.evidencePacks ?? [];
-  return [...packs].sort((a, b) => b.at - a.at).map(p => ({ lotId: p.lotId, buyer: p.buyer, sha256: p.sha256, upload: p.uploadedAt ? 'Sent' : p.uploadError ? 'Refused' : 'Not sent', at: p.at }));
+  return [...packs].sort((a, b) => b.at - a.at).map(p => ({ lotId: p.lotId, buyer: p.buyer, sha256: p.sha256, upload: p.uploadedAt ? 'Sent' : p.uploadError && p.uploadError !== 'whop_unavailable' ? 'Refused' : 'Not sent', at: p.at }));
 }
 
 /* ---------- the lot's log: every row in the desk's words ---------- */
