@@ -164,6 +164,55 @@ export function landed(el: HTMLElement | null | undefined) {
 /** The Go button's landed state (kept as a name for Auction.tsx). */
 export const land = landed;
 
+/* ---------- the rendered moments on the Desk (DOCTRINE §4 rule 14: one event each, no words) ---------- */
+/** Go: the car on the lot rolls off the glass to the right as the chime lands, a small bob on its wheels on the way; the
+ *  delight tier (once per lot). Reduced motion: it fades. Nothing else on the page moves. */
+export function rollOff(el: HTMLElement | null | undefined) {
+  if (!el || !el.isConnected) return;
+  if (reduced) { gsap.to(el, { opacity: 0, duration: 0.3, ease: 'none', overwrite: 'auto' }); return; }
+  gsap.set(el, { transition: 'none' });
+  gsap.timeline()
+    .to(el, { x: innerWidth, duration: 0.9, ease: 'power2.in', overwrite: 'auto' }, 0)
+    .to(el, { y: -2, duration: 0.11, ease: 'sine.inOut', repeat: 7, yoyo: true }, 0)
+    .to(el, { opacity: 0, duration: 0.2, ease: 'none' }, 0.7);
+}
+/** The engine started: the key turns a quarter turn on the house spring and stays turned. Reduced motion: the word change alone. */
+export function turnKey(el: HTMLElement | null | undefined) {
+  if (!el || !el.isConnected || reduced) return;
+  gsap.set(el, { transition: 'none', transformOrigin: '50% 50%' });
+  gsap.timeline()
+    .to(el, { rotation: 90, scale: 1.06, duration: 0.42, ease: SPRING, overwrite: 'auto' })
+    .to(el, { scale: 1, duration: 0.2, ease: EASE });
+}
+/** A word waiting on the Worker breathes (opacity 1 to 0.45 and back, 0.8 s a side) until stop() is called; the glass stays
+ *  honest while the answer is out. Reduced motion: it rests at 0.6. */
+export function breathe(el: HTMLElement | null | undefined) {
+  if (!el || !el.isConnected) return () => {};
+  if (reduced) { gsap.set(el, { opacity: 0.6 }); return () => { gsap.set(el, { clearProps: 'opacity' }); }; }
+  const t = gsap.to(el, { opacity: 0.45, duration: 0.8, ease: 'sine.inOut', repeat: -1, yoyo: true, overwrite: 'auto' });
+  return () => { t.kill(); gsap.set(el, { clearProps: 'opacity' }); };
+}
+/* ---------- ink: a row's value turns ink the moment its number is met ---------- */
+const cssVar = (n: string, fallback: string) => (typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement).getPropertyValue(n).trim() : '') || fallback;
+/** The value goes from the muted ink to the full ink in 0.3 s and lifts once (pulse) on the way in; back to muted on the way out,
+ *  with no lift (nothing bad gets a sound or a swell). Reduced motion: the colour changes at once. */
+export function ink(el: HTMLElement | null | undefined, on: boolean) {
+  if (!el || !el.isConnected) return;
+  const to = cssVar(on ? '--ink' : '--muted', on ? '#1C2436' : '#4F576B');
+  if (reduced) { el.style.color = to; return; }
+  gsap.to(el, { color: to, duration: 0.3, ease: EASE, overwrite: 'auto' });
+  if (on) pulse(el);
+}
+/** useInk(ref, on): the first render sets the colour; a change tweens it. */
+export function useInk(ref: RefObject<HTMLElement>, on: boolean) {
+  const was = useRef<boolean | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el) return;
+    if (was.current === null) { el.style.color = cssVar(on ? '--ink' : '--muted', on ? '#1C2436' : '#4F576B'); was.current = on; return; }
+    if (was.current !== on) { was.current = on; ink(el, on); }
+  }, [on]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 /* ---------- a bid lands: the figure lifts once ---------- */
 /** native-patterns §7 line 8: scale 1 → 1.04 → 1 over 420 ms on the house curve (--ease), once per new
  *  bid. Bigger than landed's 1.03 because nobody pressed anything: the eye has to be called. Reduced

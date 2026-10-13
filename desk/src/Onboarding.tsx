@@ -71,19 +71,22 @@ const laneKeyHeld = () => { const k = dealerKey.get(); return !!k && KEY_SHAPE.t
 const splitAddress = (a: string) => { const at = a.indexOf(','); return at < 0 ? [a, ''] : [a.slice(0, at), a.slice(at + 1).trim()]; };
 
 /** onward(patch): the answer is the next tap; the owner applies the patch and decides the next page. */
-type LaneProps = { page: LanePage; d: Draft; put: (p: Partial<Draft>) => void; editAddr: boolean; setEditAddr: (b: boolean) => void; onward: (p?: Partial<Draft>) => void; dealerEmail: string; whopBusy: boolean; whopErr: string | null };
+type LaneProps = { page: LanePage; d: Draft; put: (p: Partial<Draft>) => void; editAddr: boolean; setEditAddr: (b: boolean) => void; editAfter: boolean; setEditAfter: (b: boolean) => void; onward: (p?: Partial<Draft>) => void; dealerEmail: string; whopBusy: boolean; whopErr: string | null };
+/** The after-hours line is a number that rings (dealer-settings.ts E164): prefilled from the dealership's phone, it is confirmed, not typed. */
+const afterRings = (d: Draft) => E164.test(toE164(d.afterHours));
 /** The pages this dealer walks: the Whop page only with a key on this device (the call carries it). */
 export const lanePages = (keyHeld = laneKeyHeld()): LanePage[] => LANE_PAGES.filter(p => p !== 'whop' || keyHeld);
 
-function LaneQuestion({ page, d, put, editAddr, onward, dealerEmail }: LaneProps) {
+function LaneQuestion({ page, d, put, editAddr, editAfter, onward, dealerEmail }: LaneProps) {
   /* The Whop page opens on what the lane already holds: a connected account shows itself, so the page is a confirmation, not a question. */
   useEffect(() => { if (page !== 'whop' || d.whopAccount) return; let on = true; getMe().then(r => { if (on && r.ok && r.value.whopAccount) put({ whopAccount: r.value.whopAccount }); }); return () => { on = false; }; }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
   if (page === 'lane') return (
     <section className="enter" key="lane">
-      <h1 className="q">Let Cars Go On The Lane?</h1>
+      <Obj name="car" h={72} style={{ display: 'block', margin: '0 auto 8px' }} />
+      <h1 className="q">The <em>lane?</em></h1>
       <div className="choices">
-        <Choice label="Yes, Let Them Go" on={d.lane} onPick={() => onward({ lane: true })} />
-        <Choice label="Not Now" on={!d.lane} onPick={() => onward({ lane: false })} />
+        <Choice label="Yes" on={d.lane} onPick={() => onward({ lane: true })} />
+        <Choice label="Not now" on={!d.lane} onPick={() => onward({ lane: false })} />
       </div>
     </section>);
   if (page === 'whop') {
@@ -102,14 +105,15 @@ function LaneQuestion({ page, d, put, editAddr, onward, dealerEmail }: LaneProps
   }
   if (page === 'hours') return (
     <section className="enter" key="hours">
-      <h1 className="q">When Can Buyers Pick Up?</h1>
+      <h1 className="q">Pickup <em>hours?</em></h1>
       <div className="choices">{HOURS_ORDER.map(k => <Choice key={k} label={HOURS[k].label} on={hoursChoice(d.hours) === k} onPick={() => onward({ hours: [...HOURS[k].hours] })} />)}</div>
     </section>);
   if (page === 'pickup') {
     const [street, rest] = splitAddress(d.address);
     return (
       <section className="enter" key="pickup">
-        <h1 className="q">{editAddr ? 'Where Do They Pick Up?' : 'Is This Where They Pick Up?'}</h1>
+        {/* the pin on the address asks the question (simplicity-audit §4 row 19; lego.md §4.1 touching): no heading until the address is typed */}
+        {editAddr ? <h1 className="q">Pickup <em>address?</em></h1> : <span aria-hidden="true" style={{ display: 'block', width: 'fit-content', margin: '0 auto -6px', color: 'var(--accent)' }}><Ic n="pin" s={64} w={1.6} /></span>}
         {editAddr
           ? <label className="field"><input className="input" autoFocus value={d.address} onChange={e => put({ address: e.target.value })} placeholder="Street, city, ZIP" maxLength={120} autoComplete="street-address" /></label>
           : <div className="idcard enter2"><b>{street}</b>{rest && <span style={{ ...T17, marginTop: 6 }}>{rest}</span>}</div>}
@@ -117,28 +121,32 @@ function LaneQuestion({ page, d, put, editAddr, onward, dealerEmail }: LaneProps
   }
   return (
     <section className="enter" key="after">
-      <h1 className="q">The After-Hours Line?</h1>
-      <p className="note" style={T17}>Someone answers it, 9 pm included.</p>
-      <label className="field"><input className="input big num" autoFocus value={d.afterHours} onChange={e => put({ afterHours: formatPhone(e.target.value) })} placeholder="(555) 000-0000" inputMode="tel" autoComplete="tel" maxLength={14} aria-label="After-hours line" /></label>
+      <h1 className="q">After <em>hours?</em></h1>
+      {editAfter || !afterRings(d)
+        ? <label className="field"><input className="input big num" autoFocus value={d.afterHours} onChange={e => put({ afterHours: formatPhone(e.target.value) })} placeholder="(555) 000-0000" inputMode="tel" autoComplete="tel" maxLength={14} aria-label="After-hours line" /></label>
+        : <div className="idcard enter2"><span style={{ color: 'var(--accent)', marginBottom: 10 }}><Ic n="phone" s={40} w={1.7} /></span><b className="num">{formatPhone(d.afterHours)}</b></div>}
     </section>);
 }
 
-function LaneDock({ page, d, editAddr, setEditAddr, onward, dealerEmail, whopBusy, whopErr }: LaneProps) {
+function LaneDock({ page, d, editAddr, setEditAddr, editAfter, setEditAfter, onward, dealerEmail, whopBusy, whopErr }: LaneProps) {
   if (page === 'whop') {
     const email = (d.whopEmail ?? dealerEmail).trim();
     return <>
       {d.whopAccount
-        ? <button className="btn primary block" onClick={() => onward()}>That’s Right</button>
+        ? <button className="btn primary block" onClick={() => onward()}>That’s right</button>
         : <button className="btn primary block" disabled={whopBusy || !emailOk(email)} onClick={() => onward({ whopEmail: email })}>{whopBusy ? 'Opening…' : 'Connect Whop'}</button>}
       {whopErr && <p className="note" role="alert" style={{ ...T17, margin: '2px 0 0', textAlign: 'center' }}>{whopErr}</p>}
       {!d.whopAccount && !whopBusy && <button className="textlink" style={{ fontSize: 17 }} onClick={() => onward({ whopAccount: null })}>Later</button>}
     </>;
   }
   if (page === 'pickup') return <>
-    <button className="btn primary block" disabled={!d.address.trim()} onClick={() => onward()}>That’s Right</button>
-    {!editAddr && <button className="textlink" style={{ fontSize: 17 }} onClick={() => { feel.tap(); setEditAddr(true); }}>Change It</button>}
+    <button className="btn primary block" disabled={!d.address.trim()} onClick={() => onward()}>That’s right</button>
+    {!editAddr && <button className="textlink" style={{ fontSize: 17 }} onClick={() => { feel.tap(); setEditAddr(true); }}>Change it</button>}
   </>;
-  if (page === 'after') return <button className="btn primary block" disabled={!E164.test(toE164(d.afterHours))} onClick={() => onward()}>That’s Right</button>;
+  if (page === 'after') return <>
+    <button className="btn primary block" disabled={!afterRings(d)} onClick={() => onward()}>That’s right</button>
+    {!editAfter && afterRings(d) && <button className="textlink" style={{ fontSize: 17 }} onClick={() => { feel.tap(); setEditAfter(true); }}>Change it</button>}
+  </>;
   return null;
 }
 
@@ -167,6 +175,7 @@ export function LaneSettings({ onDone, start }: { onDone: () => void; start?: La
   const pages = useMemo(() => lanePages(), []);
   const [k, setK] = useState(() => Math.max(0, pages.indexOf(start ?? 'lane')));
   const [editAddr, setEditAddr] = useState(false);
+  const [editAfter, setEditAfter] = useState(false);
   const page = pages[k];
   const total = d.lane ? pages.length : 1;
   const put = (p: Partial<Draft>) => setD(x => ({ ...x, ...p }));
@@ -179,12 +188,12 @@ export function LaneSettings({ onDone, start }: { onDone: () => void; start?: La
     feel.next(); transition(() => { setK(k + 1); scrollTo(0, 0); });
   };
   const back = () => { feel.tap(); if (k === 0) { onDone(); return; } transition(() => { setK(k - 1); scrollTo(0, 0); }, 'back'); };
-  const props: LaneProps = { page, d, put, editAddr, setEditAddr, onward, dealerEmail: dealer.email ?? '', whopBusy: whop.busy, whopErr: whop.err };
+  const props: LaneProps = { page, d, put, editAddr, setEditAddr, editAfter, setEditAfter, onward, dealerEmail: dealer.email ?? '', whopBusy: whop.busy, whopErr: whop.err };
   return (
     <main className="wrap ob center">
       <div className="top">
         <button className="back" style={{ fontSize: 17 }} onClick={back}><Ic n="chev" s={18} w={2.4} />Back</button>
-        <span className="progress" style={{ fontSize: 17 }}>{k + 1} of {total}</span>
+        <span />
       </div>
       <div className="bar"><i style={{ width: `${((k + 1) / total) * 100}%` }} /></div>
       <LaneQuestion {...props} />
@@ -230,6 +239,7 @@ export function Onboarding() {
   const codeRef = useRef<HTMLInputElement>(null);
   const [laneDraft, setLaneDraft] = useState<Draft | null>(null);
   const [editPickup, setEditPickup] = useState(false);
+  const [editAfter, setEditAfter] = useState(false);
 
   const [idx, setIdx] = useState<DealerIndex | null | undefined>(undefined);
   useEffect(() => { if (!state || !listFor(state)) { setIdx(null); return; } setIdx(undefined); let live = true; loadDealerIndex(state).then(x => live && setIdx(x)); return () => { live = false; }; }, [state]);
@@ -289,7 +299,7 @@ export function Onboarding() {
     const nd = { ...lane, ...p }; setLaneDraft(nd);
     if (!nd.lane || page === 'whop' || (page === 'after' && !keyGdn)) go('email'); else next();   // the Whop page needs the key: without one, straight on
   };
-  const laneProps: LaneProps | null = (LANE_PAGES as readonly string[]).includes(page) ? { page: page as LanePage, d: lane, put: p => setLaneDraft({ ...lane, ...p }), editAddr: editPickup, setEditAddr: setEditPickup, onward: laneOnward, dealerEmail: dealer.email ?? '', whopBusy: whop.busy, whopErr: whop.err } : null;
+  const laneProps: LaneProps | null = (LANE_PAGES as readonly string[]).includes(page) ? { page: page as LanePage, d: lane, put: p => setLaneDraft({ ...lane, ...p }), editAddr: editPickup, setEditAddr: setEditPickup, editAfter, setEditAfter, onward: laneOnward, dealerEmail: dealer.email ?? '', whopBusy: whop.busy, whopErr: whop.err } : null;
   // Progress counts the pages this dealer walks: the key's path skips the search, Not Now skips the lane's four; the Whop page needs the key.
   const viaKey = !!keyRec && (page === 'key' || picked === keyRec);
   const steps = ORDER.filter(p => (viaKey ? !['state', 'name', 'you', 'code'].includes(p) : p !== 'key') && (lane.lane || !['hours', 'pickup', 'after', 'whop'].includes(p)) && (p !== 'whop' || !!keyGdn));
@@ -305,7 +315,7 @@ export function Onboarding() {
     <main className="wrap ob center">
       <div className="top">
         {trail.length ? <button className="back" style={{ fontSize: 17 }} onClick={back}><Ic n="chev" s={18} w={2.4} />Back</button> : <span />}
-        {page !== 'key' || keyRec ? <span className="progress" style={{ fontSize: 17 }}>{at + 1} of {TOTAL}</span> : <span />}
+        <span />{/* the thin line below counts the pages; no number to dread (simplicity-audit §4 row 7) */}
       </div>
       <div className="bar"><i style={{ width: `${((at + 1) / TOTAL) * 100}%` }} /></div>
 
