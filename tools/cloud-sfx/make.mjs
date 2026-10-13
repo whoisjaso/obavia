@@ -1,344 +1,256 @@
-// Obavia cloud sound kit: deterministic synthesis, no dependencies.
-// Spec: docs/design/cloud-system.md, section 3 (Sound).
+// Obavia cloud sound kit v2: deterministic synthesis, no dependencies.
+// Spec: docs/design/cloud-system.md, section 3 (Sound); the press timing is section 2 and section 8.
 // Run:  node tools/cloud-sfx/make.mjs
-// Writes 16-bit PCM mono WAV at 44.1 kHz into assets/cloud-sfx/, plus waveforms.svg.
-// Every random value comes from a seeded PRNG, so the output is byte-identical on every run.
+// Writes 16-bit PCM stereo WAV at 44.1 kHz into assets/cloud-sfx/, copies the UI files into every
+// surface, then runs measure.mjs (README table) and contact.mjs (contact.png).
+// Every random value comes from a seeded PRNG (and the dither too), so the output is byte-identical on every run.
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  SR, ms, TAU, mulberry32, white, pink, biquad, sweep, smooth, envAD, mul, scale, addInto, peakOf, pan,
+  room, truePeakOf, wavBytes,
+} from './dsp.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = resolve(HERE, '../../assets/cloud-sfx');
-const SR = 44100;
-const PEAK_DBFS = -18;
-const PEAK = Math.pow(10, PEAK_DBFS / 20); // 0.1259
+const REPO = resolve(HERE, '../..');
+const OUT = join(REPO, 'assets/cloud-sfx');
+const SURFACES = ['obavia-co/audio/cloud', 'desk/public/sfx/cloud', 'auction/assets/sfx/cloud'];
 const EDGE_FADE_MS = 2;
-const ROOM_MS = 180; // shared reverb tail
-const ROOM_WET = 0.22;
+const db = (x) => Math.pow(10, x / 20);
 
-const ms = (x) => Math.round((x / 1000) * SR);
-
-// ---------- seeded PRNG (mulberry32) ----------
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+// ---------- building blocks ----------
+const stereo = (n) => [new Float64Array(n), new Float64Array(n)];
+const addSt = (dst, [l, r], g = 1, at = 0) => { addInto(dst[0], l, g, at); addInto(dst[1], r, g, at); return dst; };
+const mulSt = ([l, r], e) => [mul(l, e), mul(r, e)];
+const peakSt = (s) => peakOf(s[0], s[1]);
+const normSt = (s, to = 1) => { const g = to / peakSt(s); return [scale(s[0], g), scale(s[1], g)]; };
+// mid plus a little decorrelated side: width without losing the centre
+function airPair(n, seedM, seedS, width, gen = white) {
+  const m = gen(n, seedM), s = gen(n, seedS);
+  return [m.map((v, i) => v + width * s[i]), m.map((v, i) => v - width * s[i])];
 }
+const filtSt = (s, ...a) => [biquad(s[0], ...a), biquad(s[1], ...a)];
 
-function white(n, seed) {
-  const r = mulberry32(seed);
-  const x = new Float64Array(n);
-  for (let i = 0; i < n; i++) x[i] = r() * 2 - 1;
-  return x;
-}
-
-// Paul Kellet's refined pink filter over seeded white noise.
-function pink(n, seed) {
-  const w = white(n, seed);
-  const x = new Float64Array(n);
-  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-  for (let i = 0; i < n; i++) {
-    const v = w[i];
-    b0 = 0.99886 * b0 + v * 0.0555179;
-    b1 = 0.99332 * b1 + v * 0.0750759;
-    b2 = 0.969 * b2 + v * 0.153852;
-    b3 = 0.8665 * b3 + v * 0.3104856;
-    b4 = 0.55 * b4 + v * 0.5329522;
-    b5 = -0.7616 * b5 - v * 0.016898;
-    x[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + v * 0.5362) * 0.11;
-    b6 = v * 0.115926;
-  }
-  return x;
-}
-
-// ---------- biquad (RBJ cookbook), time-varying ----------
-// kind: 'bp' (constant 0 dB peak), 'lp', 'hp'. freq: number or (i) => Hz. q: number.
-function biquad(input, kind, freq, q) {
-  const n = input.length;
-  const out = new Float64Array(n);
-  const fAt = typeof freq === 'function' ? freq : () => freq;
-  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-  let b0, b1, b2, a1, a2;
-  const BLOCK = 16; // recompute coefficients every 16 samples (0.36 ms), smooth enough for slow sweeps
-  for (let i = 0; i < n; i++) {
-    if (i % BLOCK === 0) {
-      const f = Math.min(Math.max(fAt(i), 10), SR * 0.45);
-      const w0 = (2 * Math.PI * f) / SR;
-      const cw = Math.cos(w0), sw = Math.sin(w0);
-      const alpha = sw / (2 * q);
-      const a0 = 1 + alpha;
-      if (kind === 'bp') { b0 = alpha; b1 = 0; b2 = -alpha; }
-      else if (kind === 'lp') { b0 = (1 - cw) / 2; b1 = 1 - cw; b2 = (1 - cw) / 2; }
-      else { b0 = (1 + cw) / 2; b1 = -(1 + cw); b2 = (1 + cw) / 2; }
-      b0 /= a0; b1 /= a0; b2 /= a0;
-      a1 = (-2 * cw) / a0; a2 = (1 - alpha) / a0;
-    }
-    const x = input[i];
-    const y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
-    x2 = x1; x1 = x; y2 = y1; y1 = y;
-    out[i] = y;
-  }
-  return out;
-}
-
-// Exponential (perceptually even) sweep from f0 to f1 across n samples, optionally over a sub-span.
-const sweep = (f0, f1, n) => (i) => f0 * Math.pow(f1 / f0, Math.min(1, Math.max(0, i / (n - 1))));
-
-// Band between lo and hi: geometric centre, Q = centre / bandwidth. Two stages for softer skirts.
-function band(x, lo, hi) {
-  const fc = Math.sqrt(lo * hi);
-  const q = fc / (hi - lo);
-  return biquad(biquad(x, 'bp', fc, q), 'bp', fc, q);
-}
-
-// ---------- envelopes ----------
-const smooth = (t) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, t))); // raised cosine 0..1
-
-// attack (raised cosine) then exponential decay reaching -60 dB at decayEnd.
-function envAD(n, attackS, decayEndS) {
-  const e = new Float64Array(n);
-  const a = Math.max(1, attackS * SR);
-  const d = Math.max(1, (decayEndS - attackS) * SR);
-  for (let i = 0; i < n; i++) {
-    e[i] = i < a ? smooth(i / a) : Math.exp((-6.9 * (i - a)) / d);
-  }
-  return e;
-}
-
-function mul(x, e) { const y = new Float64Array(x.length); for (let i = 0; i < x.length; i++) y[i] = x[i] * e[i]; return y; }
-function add(x, y, gy = 1) { const z = new Float64Array(x.length); for (let i = 0; i < x.length; i++) z[i] = x[i] + gy * y[i]; return z; }
-function peakOf(x) { let p = 0; for (let i = 0; i < x.length; i++) p = Math.max(p, Math.abs(x[i])); return p; }
-function scale(x, g) { const y = new Float64Array(x.length); for (let i = 0; i < x.length; i++) y[i] = x[i] * g; return y; }
-
-// ---------- the one room ----------
-// A tiny convolution reverb: 180 ms of seeded decaying noise (-60 dB at 180 ms),
-// softened by a one-pole low-pass so the tail is air, not hiss. Every sound goes through it.
-const ROOM = (() => {
-  const n = ms(ROOM_MS);
-  const w = white(n, 0x0b4c1a);
-  const ir = new Float64Array(n);
-  let lp = 0;
-  const k = 1 - Math.exp((-2 * Math.PI * 3500) / SR);
-  for (let i = 0; i < n; i++) {
-    lp += k * (w[i] - lp);
-    const t = i / n;
-    const onset = smooth(i / ms(6)); // 6 ms pre-diffusion, no hard first reflection
-    ir[i] = lp * Math.exp(-6.9 * t) * onset;
-  }
-  let energy = 0; for (const v of ir) energy += v * v;
-  const g = 1 / Math.sqrt(energy);
-  for (let i = 0; i < n; i++) ir[i] *= g;
-  return ir;
-})();
-
-// Linear convolution truncated to input length (tail inside the file), or circular for loops.
-function room(dry, { circular = false } = {}) {
-  const n = dry.length, m = ROOM.length;
-  const wet = new Float64Array(n);
-  for (let i = 0; i < n; i++) {
-    const v = dry[i];
-    if (v === 0) continue;
-    for (let j = 0; j < m; j++) {
-      let k = i + j;
-      if (k >= n) { if (!circular) break; k -= n; }
-      wet[k] += v * ROOM[j];
-    }
-  }
-  return add(dry, wet, ROOM_WET);
-}
-
-function edgeFades(x) {
-  const y = Float64Array.from(x);
+function edgeFades([l, r]) {
   const f = ms(EDGE_FADE_MS);
+  const L = Float64Array.from(l), R = Float64Array.from(r);
   for (let i = 0; i < f; i++) {
     const g = smooth(i / f);
-    y[i] *= g;
-    y[y.length - 1 - i] *= g;
+    L[i] *= g; R[i] *= g; L[L.length - 1 - i] *= g; R[R.length - 1 - i] *= g;
   }
-  return y;
+  return [L, R];
 }
 
-// ---------- the five sounds ----------
-
-// cloud-touch: 90 ms, band-passed noise 900 to 2400 Hz, fast attack, soft decay. The puff.
+// ---------- the puff: a granular air body over a soft thump ----------
+// 64 grains of band-passed noise, 5 to 16 ms each, centre pitch spread across a fifth (1250 to 1870 Hz),
+// onsets clustered at the front, each grain panned a little; a broad air bed under them; the whole
+// shaped by a 4 ms raised-cosine attack and an exponential decay. Under it, a sine gliding 90 to 70 Hz
+// for 30 ms at -24 dB so the finger feels mass (phone speakers barely reproduce it; the haptic carries it there).
 function puff(n, seed) {
-  const nz = band(white(n, seed), 900, 2400);
-  return mul(nz, envAD(n, 0.004, 0.06));
-}
-function cloudTouch() {
-  const n = ms(90);
-  return edgeFades(room(puff(n, 0x7001)));
+  const r = mulberry32(seed);
+  const grains = stereo(n);
+  const GRAINS = 64;
+  for (let k = 0; k < GRAINS; k++) {
+    const onset = k < 6 ? (k / 6) * 0.004 : 0.002 + -Math.log(1 - r() * 0.97) * 0.016;
+    const len = ms(5 + r() * 11);
+    const fc = 1250 * Math.pow(2, (r() * 7) / 12);
+    const warm = ms(4);
+    const nz = biquad(biquad(white(len + warm, (seed * 131 + k * 7919) >>> 0), 'bp', fc, 2.4), 'bp', fc, 2.4).subarray(warm);
+    const g = new Float64Array(len);
+    for (let i = 0; i < len; i++) g[i] = nz[i] * Math.sin((Math.PI * i) / len) ** 2 * (0.7 + 0.3 * r());
+    addSt(grains, pan(g, (r() * 2 - 1) * 0.35), 1, ms(onset * 1000));
+  }
+  const bed = filtSt(filtSt(airPair(n, seed + 1, seed + 2, 0.3), 'hp', 650, 0.7), 'lp', 3600, 0.7);
+  const body = addSt(normSt(grains), normSt(bed), 0.45);
+  const shaped = normSt(mulSt(body, envAD(n, 0.004, 0.09)));
+  const tn = ms(30), th = new Float64Array(n);
+  let ph = 0;
+  for (let i = 0; i < tn; i++) {
+    const t = i / tn;
+    ph += (TAU * (90 - 20 * t)) / SR;
+    th[i] = Math.sin(ph) * smooth(i / ms(3)) * Math.cos((Math.PI / 2) * t) ** 2;
+  }
+  return addSt(shaped, [th, th], db(-24));
 }
 
-// cloud-rise: 220 ms, noise sweeping upward 700 to 1800 Hz, slow attack. The breath in.
+// ---------- the six sounds (dry; the room and the fades come after) ----------
+
+// cloud-touch, 110 ms: press down. The puff.
+const cloudTouch = () => puff(ms(110), 0x7101);
+
+// cloud-rise, 240 ms: release, the re-inflation. Noise sweeping 600 to 2200 Hz, two peaking
+// resonances climbing with it (formant-like), slow attack, a faint high breath of air at the end.
 function cloudRise() {
-  const n = ms(220);
-  const f = sweep(700, 1800, n);
-  const nz = biquad(biquad(white(n, 0x7002), 'bp', f, 2.2), 'bp', f, 2.2);
+  const n = ms(240);
+  let s = airPair(n, 0x7201, 0x7202, 0.35);
+  const f = sweep(600, 2200, 0, n);
+  s = filtSt(filtSt(s, 'bp', f, 1.1), 'bp', f, 1.1);
+  s = filtSt(s, 'peak', sweep(750, 1500, 0, n), 5, 8);
+  s = filtSt(s, 'peak', sweep(1700, 2900, 0, n), 6, 6);
   const e = new Float64Array(n);
-  const peakAt = 0.62; // slow attack to 62 percent of the length, then soft release
-  for (let i = 0; i < n; i++) {
-    const t = i / n;
-    e[i] = t < peakAt ? Math.pow(smooth(t / peakAt), 1.4) : Math.exp((-5.5 * (t - peakAt)) / (1 - peakAt));
-  }
-  return edgeFades(room(mul(nz, e)));
+  const pk = 0.6;
+  for (let i = 0; i < n; i++) { const t = i / n; e[i] = t < pk ? smooth(t / pk) ** 1.4 : Math.exp((-4.6 * (t - pk)) / (1 - pk)); }
+  s = normSt(mulSt(s, e));
+  let br = filtSt(airPair(n, 0x7203, 0x7204, 0.6), 'hp', 5200, 0.7);
+  const eb = new Float64Array(n);
+  for (let i = 0; i < n; i++) { const t = (i / SR - 0.165) / 0.07; eb[i] = t > 0 && t < 1 ? Math.sin(Math.PI * t) ** 2 : 0; }
+  br = normSt(mulSt(br, eb));
+  return addSt(s, br, db(-18));
 }
 
-// cloud-settle: 380 ms, low-passed noise, cutoff 200 to 600 Hz, long decay. The air leaving.
+// cloud-settle, 420 ms: a page or sheet lands. Air leaving: low-passed noise falling 500 to 220 Hz,
+// long decay; above it, a very soft wide shimmer of two detuned narrow noise bands panned apart.
 function cloudSettle() {
-  const n = ms(380);
-  const f = sweep(200, 600, n);
-  const nz = biquad(biquad(white(n, 0x7003), 'lp', f, 0.707), 'lp', f, 0.707);
-  return edgeFades(room(mul(nz, envAD(n, 0.03, 0.55)))); // about -40 dB at the last sample: a long exhale, not a thump
+  const n = ms(420);
+  let s = airPair(n, 0x7301, 0x7302, 0.25);
+  const f = sweep(500, 220, 0, n);
+  s = filtSt(filtSt(filtSt(s, 'lp', f, 0.707), 'lp', f, 0.707), 'hp', 70, 0.707);
+  s = normSt(mulSt(s, envAD(n, 0.06, 0.75))); // 60 ms in: the sheet arrives on air, it does not hit
+  const band = (seed, fc) => normSt([biquad(biquad(white(n, seed), 'bp', fc, 14), 'bp', fc, 14), new Float64Array(n)])[0];
+  const es = new Float64Array(n);
+  for (let i = 0; i < n; i++) { const t = i / n; es[i] = t < 0.25 ? smooth(t / 0.25) : Math.exp((-4 * (t - 0.25)) / 0.75); }
+  const a = mul(band(0x7303, 2950), es), b = mul(band(0x7304, 3110), es);
+  addSt(s, pan(a, -0.8), db(-22));
+  addSt(s, pan(b, 0.8), db(-22));
+  return s;
 }
 
-// cloud-drift: 1.2 s seamless loop, pink noise through 400 to 1200 Hz, no transient.
-// Rendered long, then the loop point is crossfaded (equal power, 120 ms) so the wrap is continuous.
-// No edge fades here: a fade at both ends of a loop would put a 4 ms hole at every wrap.
-// The surface starts it at zero gain (gain follows finger velocity), so the first start cannot click.
+// cloud-drift, 1.6 s seamless loop: pink noise through two slowly moving band-passes, stereo width,
+// no transient. The modulation is periodic in the loop (one cycle per 1.6 s, 0.625 Hz): a 0.2 Hz LFO
+// cannot close inside 1.6 s, so it would jump at every wrap. Depth is shallow (a third of an octave)
+// so the motion still reads slow. Rendered long, then the tail is crossfaded into the head
+// (equal power, 200 ms). No edge fades on a loop: a fade at both ends would put a hole in every cycle.
+// Surfaces start it at zero gain and let finger velocity bring it up.
 function cloudDrift() {
-  const N = ms(1200);
-  const X = ms(120);
-  const WARM = ms(400); // let the filters and the room settle before the part we keep
+  const N = ms(1600), X = ms(200), WARM = ms(700);
   const total = WARM + N + X;
-  let b = pink(total, 0x7004);
-  b = biquad(biquad(b, 'hp', 400, 0.707), 'hp', 400, 0.707);
-  b = biquad(biquad(b, 'lp', 1200, 0.707), 'lp', 1200, 0.707);
-  b = room(b);
-  b = b.subarray(WARM);
-  const out = new Float64Array(N);
-  for (let i = 0; i < N; i++) out[i] = b[i];
-  for (let i = 0; i < X; i++) {
-    const t = (i + 0.5) / X;
-    const gin = Math.sin((Math.PI / 2) * t);
-    const gout = Math.cos((Math.PI / 2) * t);
-    out[i] = b[i] * gin + b[N + i] * gout; // tail of the loop flows into its head
-  }
-  // One slow breath per loop (8 percent depth), periodic in the loop length so it stays seamless.
-  for (let i = 0; i < N; i++) out[i] *= 1 + 0.08 * Math.sin((2 * Math.PI * i) / N);
-  return out;
+  const lfo = (phase0, lo, hi) => (i) => {
+    const p = (((i - WARM) % N) + N) % N / N;
+    return lo * Math.pow(hi / lo, 0.5 + 0.5 * Math.sin(TAU * p + phase0));
+  };
+  const src = airPair(total, 0x7401, 0x7402, 0.5, pink);
+  const ch = src.map((x, c) => {
+    const off = c * 0.9; // left and right breathe out of phase: the image moves
+    const a = biquad(biquad(x, 'bp', lfo(off, 480, 760), 1.3), 'bp', lfo(off, 480, 760), 1.3);
+    const b = biquad(biquad(x, 'bp', lfo(off + 2.2, 1150, 1700), 1.6), 'bp', lfo(off + 2.2, 1150, 1700), 1.6);
+    return a.map((v, i) => v + 0.6 * b[i]);
+  });
+  const wet = room(ch);
+  return wet.map((b) => {
+    const out = new Float64Array(N);
+    for (let i = 0; i < N; i++) out[i] = b[WARM + i];
+    for (let i = 0; i < X; i++) {
+      const t = (i + 0.5) / X;
+      out[i] = b[WARM + i] * Math.sin((Math.PI / 2) * t) + b[WARM + N + i] * Math.cos((Math.PI / 2) * t);
+    }
+    return out;
+  });
 }
 
-// cloud-landed: 520 ms, the puff plus a soft air swell with a slight upward sweep. The one swell.
+// cloud-landed, 560 ms: an action completes. The puff, an upward air swell, and one soft harmonic
+// bloom (C major triad, 1047, 1319, 1568 Hz, the Desk chime key) at BLOOM_DB for 200 ms, under the air.
+// The brief set the bloom at -20 dB under the file peak. Measured there, each partial stood only 6 to 9 dB over
+// the air per 5 Hz bin, about 7 dB under the air in its own critical band: masked, so not positive. It sits at
+// -12 dB (-30 dBFS), 12 to 16 dB over the air per bin: audible as a soft harmony, still under the air.
+const BLOOM_DB = -12;
 function cloudLanded() {
-  const n = ms(520);
-  const p = puff(n, 0x7005);
-  const f = sweep(650, 1100, n);
-  const sw = biquad(biquad(white(n, 0x7006), 'bp', f, 1.4), 'bp', f, 1.4);
+  const n = ms(560);
+  const s = normSt(puff(n, 0x7501));
+  let sw = airPair(n, 0x7502, 0x7503, 0.4);
+  const f = sweep(500, 1600, 0, ms(380));
+  sw = filtSt(filtSt(sw, 'bp', f, 1.3), 'bp', f, 1.3);
   const e = new Float64Array(n);
-  const peakAt = 0.48;
-  for (let i = 0; i < n; i++) {
-    const t = i / n;
-    e[i] = t < peakAt ? smooth(t / peakAt) : Math.exp((-6.2 * (t - peakAt)) / (1 - peakAt));
-  }
-  // Swell sits under the puff: matched so the puff leads and the swell carries.
-  const swell = mul(sw, e);
-  const mix = add(scale(p, 1 / peakOf(p)), scale(swell, 0.62 / peakOf(swell)));
-  return edgeFades(room(mix));
+  const pk = 0.42;
+  for (let i = 0; i < n; i++) { const t = i / n; e[i] = t < pk ? smooth(t / pk) : Math.exp((-6 * (t - pk)) / (1 - pk)); }
+  addSt(s, normSt(mulSt(sw, e)), 0.6);
+  const bl = stereo(n), on = ms(130), bn = ms(200);
+  [[1046.5, 1], [1318.51, 0.7], [1567.98, 0.5]].forEach(([hz, a], k) => {
+    for (let c = 0; c < 2; c++) {
+      const hzc = hz + (c ? 0.7 : -0.7); // a hair of detune between the ears: width, not a beat
+      for (let i = 0; i < bn; i++) {
+        const t = i / bn;
+        const env = t < 0.14 ? smooth(t / 0.14) : Math.cos((Math.PI / 2) * ((t - 0.14) / 0.86)) ** 2;
+        bl[c][on + i] += a * env * Math.sin((TAU * hzc * i) / SR + k);
+      }
+    }
+  });
+  return addSt(s, normSt(bl, peakSt(s)), db(BLOOM_DB));
 }
 
-// ---------- output ----------
-function toPcm16(x) {
-  const g = PEAK / peakOf(x);
-  const pcm = new Int16Array(x.length);
-  for (let i = 0; i < x.length; i++) {
-    const v = Math.round(x[i] * g * 32767);
-    pcm[i] = Math.max(-32768, Math.min(32767, v));
-  }
-  return pcm;
+// cloud-hover, 260 ms: pointer enter. The gentlest: pink noise rising through 500 to 1400 Hz,
+// 120 ms attack, soft release. Mastered 8 dB under the kit. Once on enter, never on leave.
+function cloudHover() {
+  const n = ms(260);
+  let s = airPair(n, 0x7601, 0x7602, 0.3, pink);
+  const f = sweep(500, 1400, 0, n);
+  s = filtSt(filtSt(s, 'bp', f, 1.2), 'bp', f, 1.2);
+  const e = new Float64Array(n), a = ms(120);
+  for (let i = 0; i < n; i++) e[i] = i < a ? smooth(i / a) : Math.exp((-6.2 * (i - a)) / (n - a));
+  return mulSt(s, e);
 }
 
-function wav(pcm) {
-  const data = pcm.length * 2;
-  const buf = Buffer.alloc(44 + data);
-  buf.write('RIFF', 0, 'ascii');
-  buf.writeUInt32LE(36 + data, 4);
-  buf.write('WAVE', 8, 'ascii');
-  buf.write('fmt ', 12, 'ascii');
-  buf.writeUInt32LE(16, 16);
-  buf.writeUInt16LE(1, 20); // PCM
-  buf.writeUInt16LE(1, 22); // mono
-  buf.writeUInt32LE(SR, 24);
-  buf.writeUInt32LE(SR * 2, 28);
-  buf.writeUInt16LE(2, 32);
-  buf.writeUInt16LE(16, 34);
-  buf.write('data', 36, 'ascii');
-  buf.writeUInt32LE(data, 40);
-  for (let i = 0; i < pcm.length; i++) buf.writeInt16LE(pcm[i], 44 + i * 2);
-  return buf;
+// ---------- mastering: room, fades, true-peak-safe gain, seeded TPDF dither ----------
+function master(st, peakDbfs, { loop = false } = {}) {
+  let s = loop ? st : edgeFades(room(st));
+  const tp = Math.max(truePeakOf(s[0]), truePeakOf(s[1]), peakSt(s));
+  const target = db(peakDbfs) - 2 / 32768; // two LSB of headroom for the dither
+  const g = target / tp;
+  const r = mulberry32(0xd17e + Math.round(-peakDbfs * 10));
+  const pcm = s.map((x) => {
+    const p = new Int16Array(x.length);
+    for (let i = 0; i < x.length; i++) {
+      const d = (r() - r()) * 0.5; // TPDF, half an LSB each way
+      p[i] = Math.max(-32768, Math.min(32767, Math.round(x[i] * g * 32768 + d)));
+    }
+    return p;
+  });
+  if (!loop) for (const p of pcm) { p[0] = 0; p[p.length - 1] = 0; } // the dither must not undo the fade's zero ends
+  return { pcm, float: s.map((x) => scale(x, g)) };
 }
 
 const KIT = [
-  ['cloud-touch', cloudTouch, 'press down'],
-  ['cloud-rise', cloudRise, 'release, re-inflate'],
-  ['cloud-settle', cloudSettle, 'page or sheet settles'],
-  ['cloud-drift', cloudDrift, 'drag, looped'],
-  ['cloud-landed', cloudLanded, 'action completed'],
+  ['cloud-hover', cloudHover, -26],
+  ['cloud-touch', cloudTouch, -18],
+  ['cloud-rise', cloudRise, -18],
+  ['cloud-settle', cloudSettle, -18],
+  ['cloud-drift', cloudDrift, -18, { loop: true }],
+  ['cloud-landed', cloudLanded, -18],
 ];
 
 mkdirSync(OUT, { recursive: true });
-const rendered = [];
-for (const [name, fn, role] of KIT) {
-  const pcm = toPcm16(fn());
-  writeFileSync(join(OUT, `${name}.wav`), wav(pcm));
-  let p = 0; for (const v of pcm) p = Math.max(p, Math.abs(v));
-  const durMs = (pcm.length / SR) * 1000;
-  const peakDb = 20 * Math.log10(p / 32767);
-  rendered.push({ name, role, pcm, durMs, peakDb });
-  const extra = name === 'cloud-drift'
-    ? `  wrap jump ${Math.abs(pcm[0] - pcm[pcm.length - 1])} (median step ${medianStep(pcm)})`
-    : `  ends ${pcm[0]}/${pcm[pcm.length - 1]}`;
-  console.log(`${(name + '.wav').padEnd(18)} ${durMs.toFixed(1).padStart(7)} ms  ${pcm.length.toString().padStart(6)} samples  peak ${peakDb.toFixed(2)} dBFS${extra}`);
+const done = {};
+for (const [name, fn, peak, opt] of KIT) {
+  const m = master(fn(), peak, opt);
+  done[name] = m;
+  writeFileSync(join(OUT, `${name}.wav`), wavBytes(m.pcm));
+  console.log(`wrote ${name}.wav`);
 }
 
-function medianStep(pcm) {
-  const d = [];
-  for (let i = 1; i < pcm.length; i++) d.push(Math.abs(pcm[i] - pcm[i - 1]));
-  d.sort((a, b) => a - b);
-  return d[d.length >> 1];
-}
-
-// ---------- contact sheet (SVG, no canvas) ----------
-// Shared time axis so relative lengths read true. Min/max per column, mirrored, icy blue on ink.
+// cloud-press-full.wav: the shipped touch and rise, placed where the 3D button plays them
+// (sink 0 to 100 ms: touch at 0; release puff 100 to 260 ms: rise at 100; settle to 400 ms).
+// Both at the gain the UI plays them (1). For the contact sheet and the films, not for the UI.
 {
-  const W = 1200, ROW = 132, PAD = 28, LABEL = 210;
-  const plotW = W - LABEL - PAD;
-  const maxMs = 1200;
-  const H = PAD + rendered.length * ROW + 30;
-  const full = 32767 * PEAK; // rows scaled to the -18 dBFS ceiling
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">\n`;
-  s += `<rect width="${W}" height="${H}" fill="#1C2436"/>\n`;
-  s += `<g font-family="-apple-system, Helvetica, Arial, sans-serif" fill="#E9EFFE">\n`;
-  rendered.forEach((r, k) => {
-    const y0 = PAD + k * ROW;
-    const mid = y0 + ROW / 2 - 6;
-    const half = ROW / 2 - 22;
-    const cols = Math.max(1, Math.round((r.durMs / maxMs) * plotW));
-    const per = r.pcm.length / cols;
-    const top = [], bot = [];
-    for (let c = 0; c < cols; c++) {
-      let lo = 0, hi = 0;
-      const a = Math.floor(c * per), b = Math.min(r.pcm.length, Math.floor((c + 1) * per) + 1);
-      for (let i = a; i < b; i++) { const v = r.pcm[i]; if (v > hi) hi = v; if (v < lo) lo = v; }
-      const x = (LABEL + c).toFixed(1);
-      top.push(`${x},${(mid - (hi / full) * half).toFixed(1)}`);
-      bot.unshift(`${x},${(mid - (lo / full) * half).toFixed(1)}`);
-    }
-    s += `<line x1="${LABEL}" y1="${mid}" x2="${W - PAD}" y2="${mid}" stroke="#E9EFFE" stroke-opacity="0.10"/>\n`;
-    s += `<polygon points="${top.join(' ')} ${bot.join(' ')}" fill="#A9C4F5" fill-opacity="0.85"/>\n`;
-    s += `<text x="${PAD}" y="${mid - 6}" font-size="15" letter-spacing="1.5">${r.name.toUpperCase()}</text>\n`;
-    s += `<text x="${PAD}" y="${mid + 16}" font-size="12" fill-opacity="0.6">${Math.round(r.durMs)} ms, peak ${r.peakDb.toFixed(1)} dBFS</text>\n`;
-  });
-  for (let t = 0; t <= maxMs; t += 200) {
-    const x = LABEL + (t / maxMs) * plotW;
-    s += `<text x="${x.toFixed(1)}" y="${H - 12}" font-size="11" fill-opacity="0.5" text-anchor="middle">${t} ms</text>\n`;
-  }
-  s += `</g>\n</svg>\n`;
-  writeFileSync(join(OUT, 'waveforms.svg'), s);
+  const n = ms(400);
+  const s = stereo(n);
+  addSt(s, done['cloud-touch'].float, 1, 0);
+  addSt(s, done['cloud-rise'].float, 1, ms(100));
+  const tp = Math.max(truePeakOf(s[0]), truePeakOf(s[1]));
+  const lim = db(-18) - 2 / 32768;
+  const g = tp > lim ? lim / tp : 1; // only ever lowered, to stay inside -18 dBFS
+  const pcm = s.map((x) => Int16Array.from(x, (v) => Math.max(-32768, Math.min(32767, Math.round(v * g * 32768)))));
+  writeFileSync(join(OUT, 'cloud-press-full.wav'), wavBytes(pcm));
+  console.log(`wrote cloud-press-full.wav (overlap gain ${(20 * Math.log10(g)).toFixed(2)} dB)`);
 }
+
+// ---------- copy step: the UI files into every surface (press-full stays here) ----------
+for (const dir of SURFACES) {
+  const to = join(REPO, dir);
+  mkdirSync(to, { recursive: true });
+  for (const [name] of KIT) copyFileSync(join(OUT, `${name}.wav`), join(to, `${name}.wav`));
+  console.log(`copied ${KIT.length} files to ${dir}/`);
+}
+
+await import('./measure.mjs');
+await import('./contact.mjs');
