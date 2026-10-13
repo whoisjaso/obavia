@@ -2,13 +2,21 @@
    Each opens as Paper; the end of the page unlocks the pad; the second offers
    the first signature back with one tap. The title is not drawn here (decisions
    §9 D8, D9): a Texas licence signs it through webDEALER at pickup; any other
-   licence takes the paper packet at pickup. One line says which. */
+   licence takes the paper packet at pickup. One line says which.
+
+   With a Worker the drawing goes to POST /sales/:lot/sign, which stamps it into
+   the bytes the Desk uploaded at Go and logs the consent; the sale then holds
+   the signed copy's viewer path, never the drawing, and Paper shows that copy.
+   The drawing stays in memory only while the second document may reuse it
+   (one sale, this launch); nothing writes it to storage or to a log. Without a
+   Worker (the local fixtures) the drawing is the sale's mark, as before. */
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Body, Button, Choice, Label, Page } from '../../components/Type';
-import { outOfState, setSale, useSale, type Doc } from '../../sale';
+import { outOfState, peekSale, setSale, useSale, type Doc } from '../../sale';
+import { AUCTION_URL, buyerToken } from '../../store';
 import { theme } from '../../theme';
-import { Paper } from '../Paper';
+import { CONSENT_VERSION, Paper, isSignedPath, type Signature } from '../Paper';
 
 const DOCS: { key: Doc; title: string; subtitle?: string }[] = [
   { key: 'guide', title: 'Buyers Guide', subtitle: 'AS IS - NO DEALER WARRANTY' },
@@ -18,13 +26,45 @@ const DOCS: { key: Doc; title: string; subtitle?: string }[] = [
 const TITLE_TX = 'The title is signed at pickup.';
 const TITLE_AWAY = 'Paper packet at pickup: Form 14-312, the assigned title, a green 60-day plate.';
 
+/** The first drawing of this sale, for the second document's one-tap reuse. Memory only. */
+let drawn: { lotId: string; sig: Signature } | null = null;
+
+/** The Worker stamps the drawing into the Desk's PDF and answers with the signed copy's viewer path; a document
+    already signed answers 409 with the same path, which is as good. Anything else: null, and the pad stays. */
+export async function signOnLane(lotId: string, doc: Doc, sig: Signature, reuse: boolean, base = AUCTION_URL, token = buyerToken()): Promise<string | null> {
+  if (!base || !token) return null;
+  try {
+    const r = await fetch(`${base}/sales/${encodeURIComponent(lotId)}/sign`, {
+      method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ doc, svg: sig, consent: true, consentVersion: CONSENT_VERSION, ...(reuse ? { reuse: true } : {}) }),
+    });
+    const b = await r.json().catch(() => null) as { error?: string; path?: string } | null;
+    if (r.ok || (r.status === 409 && b?.error === 'already_signed')) return `/sales/${lotId}/view/${doc}`;
+    return null;
+  } catch { return null; }
+}
+
 export function SignDocs({ onDone, onClose, docs }: { onDone: () => void; onClose: () => void; docs?: { guide?: string; bill?: string; title?: string } }) {
   const sale = useSale();
   const [open, setOpen] = useState<Doc | null>(null);
   if (!sale) return null;
-  const first = sale.signed.guide ?? sale.signed.bill;
+  const local = !AUCTION_URL;
+  const mine = drawn?.lotId === sale.lotId ? drawn.sig : undefined;
+  const first = local ? sale.signed.guide ?? sale.signed.bill : mine;
   const next = DOCS.find(d => !sale.signed[d.key]);
   const doc = DOCS.find(d => d.key === open);
+  const signedView = doc ? sale.signed[doc.key] : undefined;
+
+  async function sign(key: Doc, sig: Signature, reused: boolean): Promise<boolean> {
+    const cur = peekSale(); if (!cur) return false;
+    if (local) { setSale({ signed: { ...cur.signed, [key]: sig } }); setOpen(null); return true; }
+    const view = await signOnLane(cur.lotId, key, sig, reused);
+    if (!view) return false;
+    if (!reused) drawn = { lotId: cur.lotId, sig };
+    const now = peekSale(); if (now) setSale({ signed: { ...now.signed, [key]: view } });
+    return true;   // Paper stays open on the signed copy; Done closes it
+  }
+
   return (
     <>
       <Page foot={<Button label={next ? 'Later' : 'Done'} onPress={next ? onClose : onDone} ghost={!!next} />}>
@@ -40,8 +80,10 @@ export function SignDocs({ onDone, onClose, docs }: { onDone: () => void; onClos
       {/* the document opens over the whole glass, from where the step was: outside the Page, whose
           centred column clipped it to its own box (it opened half-height, its title off the top) */}
       {doc && (
-        <Paper title={doc.title} subtitle={doc.subtitle} url={docs?.[doc.key]} onClose={() => setOpen(null)} reuse={doc.key !== 'guide' ? first : undefined}
-          sign={sig => { setSale({ signed: { ...sale.signed, [doc.key]: sig } }); setOpen(null); }} />
+        <Paper title={doc.title} subtitle={doc.subtitle} url={docs?.[doc.key]} onClose={() => setOpen(null)}
+          signed={isSignedPath(signedView) ? signedView : undefined}
+          reuse={doc.key !== 'guide' ? first : undefined}
+          sign={signedView ? undefined : (sig, reused) => sign(doc.key, sig, reused)} />
       )}
     </>
   );

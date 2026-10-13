@@ -2,14 +2,19 @@
    read from (the sale's answers, the car, the buyer, the dealer, the business
    date); every later print, preview and signing reads the frozen copy, never
    a regeneration from today's records (Handle A Sale SOP, After the paperwork).
-   A signature's date is the business date it was signed on. */
+   A signature's date is the business date it was signed on.
+
+   A lane sale opens from the lane's signed PDFs (openLanePapers, below): the Buyers Guide and the bill of sale the
+   buyer signed on the phone are the bytes the Desk uploaded at Go plus the Worker's stamp, the buyer's name and
+   signature already on them. They are read, checked against the hash the Worker recorded, and never regenerated;
+   the buyer's name starts the Desk's sale, so its paperwork is not blank. */
 import { businessDate, type DealerConfig } from './config';
 import { LENDERS } from '../data';
 import { payment, PER_YEAR } from './paperwork';
 import { solveTerms, type Agreed, type Terms } from './terms';
 import { computeMoney, parseMoney } from './money';
 import type { DocType } from './plan';
-import type { AgreementState, Sale } from './sale';
+import type { AgreementState, Buyer, Sale } from './sale';
 
 export type Frozen = { date: string; dealer: DealerConfig; sale: Pick<Sale, 'vehicle' | 'buyer' | 'step' | 'language'>;
   agent?: string };   // the staff member who handled the sale: printed beside the dealership on the 130-U's seller line
@@ -42,4 +47,60 @@ export function financingTerms(s: Sale, dealer: DealerConfig): Terms & { princip
   const agreed = (p.agreed as Agreed) ?? 'count';
   const t = solveTerms({ principal, perYear, agreed, payment: parseMoney(p.payment) ?? undefined, count: Number(p.count) || undefined, rate: p.rate !== undefined ? Number(p.rate) : undefined, ceiling: dealer.rateCeiling });
   return { ...t, payment: t.payment || payment(principal, t.rate, t.count, perYear), principal, down, perYear };
+}
+
+/* ---------- the lane's signed papers (auction/worker/src/sign.ts, GET /sales/:lot/papers) ---------- */
+export type LanePaper = { original: string | null; signed: null | { path: string; view: string; at: number; reuse: boolean; consent: string; sha256: string; originalSha256: string } };
+export type LanePapers = { lotId: string; buyer?: { name: string | null }; guide: LanePaper; bill: LanePaper };
+/** One document as the Desk opens it: the signed bytes when the buyer signed, else the bytes uploaded at Go. */
+export type LaneOpenedDoc = { pdf: Uint8Array; signed: boolean; at?: number; reuse?: boolean; consent?: string; sha256?: string };
+export type LaneOpened = { buyerName: string; guide?: LaneOpenedDoc; bill?: LaneOpenedDoc };
+/** The Worker, the dealer's key and fetch: passed in (sign.ts openLaneSale passes the live ones), so this file stays free of
+    the browser-only auction module the Desk's server build cannot read. */
+export type LaneIo = { api: string; key: string | null; fetch: typeof fetch };
+
+async function sha256Hex(b: Uint8Array): Promise<string> {
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', b.slice()));
+  return Array.from(d, x => x.toString(16).padStart(2, '0')).join('');
+}
+
+/** The sale's documents from the lane: signed where the buyer signed, the Go upload where not, the buyer's name.
+    A signed copy whose bytes do not match the Worker's recorded hash is not opened (null for that document). */
+export async function openLanePapers(lotId: string, io: LaneIo): Promise<LaneOpened | null> {
+  if (!io.api || !io.key) return null;
+  const auth = { Authorization: `Bearer ${io.key}` };
+  let papers: LanePapers;
+  try {
+    const r = await io.fetch(`${io.api}/sales/${encodeURIComponent(lotId)}/papers`, { headers: auth });
+    if (!r.ok) return null;
+    papers = await r.json() as LanePapers;
+  } catch { return null; }
+  const out: LaneOpened = { buyerName: (papers.buyer?.name ?? '').trim() };
+  for (const d of ['guide', 'bill'] as const) {
+    const p = papers[d], path = p?.signed?.path ?? p?.original;
+    if (!path) continue;
+    try {
+      const r = await io.fetch(`${io.api}${path}`, { headers: auth });
+      if (!r.ok) continue;
+      const pdf = new Uint8Array(await r.arrayBuffer());
+      if (p.signed) {
+        if ((await sha256Hex(pdf)) !== p.signed.sha256) continue;   // not the bytes the buyer signed
+        out[d] = { pdf, signed: true, at: p.signed.at, reuse: p.signed.reuse, consent: p.signed.consent, sha256: p.signed.sha256 };
+      } else out[d] = { pdf, signed: false };
+    } catch { /* that document stays closed; the other still opens */ }
+  }
+  return out;
+}
+
+/** The Desk's buyer for a lane sale: the name the buyer signed under; the rest is asked at pickup. */
+export function laneBuyer(opened: Pick<LaneOpened, 'buyerName'> | null): Buyer {
+  return { fullName: opened?.buyerName ?? '', phone: '', address: '', city: '', state: 'TX', zip: '', county: '', idType: 'dl', idNumber: '' };
+}
+
+/** The bill of sale's row on the Desk's sale once the buyer signed it on the lane: filed with what it was signed
+    on, buyer-signed, its signing time, and whether the first signature was reused with consent. */
+export function laneBillAgreement(doc: LaneOpenedDoc, frozen: Frozen): AgreementState | null {
+  if (!doc.signed || !doc.at) return null;
+  const at = new Date(doc.at).toISOString();
+  return { state: 'filed', frozen, buyerSigned: true, signedAt: at, signatureReused: !!doc.reuse, ...(doc.reuse ? { reuseConsentAt: at } : {}) };
 }
