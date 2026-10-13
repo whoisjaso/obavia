@@ -15,10 +15,11 @@ WORK=${WORK:-$HERE/.work}
 OUT=${OUT:-$ROOT/assets/cloud-3d}
 BUTTON_W=${BUTTON_W:-1280}     # master width: the 640 hero at @2x
 BUTTON_SPP=${BUTTON_SPP:-20}
-INBETWEEN_W=${INBETWEEN_W:-960}
-INBETWEEN_SPP=${INBETWEEN_SPP:-16}
+INBETWEEN_W=${INBETWEEN_W:-1280}   # native since October 13, 2026 (was 960, upscaled)
+INBETWEEN_SPP=${INBETWEEN_SPP:-20}
 SKY_W=${SKY_W:-2048}
 SKY_SPP=${SKY_SPP:-16}
+SHADOW_SPP=${SHADOW_SPP:-32}    # the ray-traced contact shadows, at the master width
 LABEL_SPP=${LABEL_SPP:-20}     # the label imprints: the safe rect only, at the hero @2x master
 STAGE=${STAGE:-all}
 mkdir -p "$WORK" "$OUT"
@@ -31,9 +32,10 @@ if [ "$STAGE" = all ] || [ "$STAGE" = fields ] || [ "$STAGE" = labels ]; then
 fi
 if [ "$STAGE" = all ] || [ "$STAGE" = render ]; then
   # rest (23), pressed (5) and the first two sink frames at the hero @2x
-  # master; the in-between frames at 960 wide (see README, render budget)
+  # master; the in-between frames at INBETWEEN_W (see README, render budget)
   "$BLENDER_PY" render_button.py "$WORK" "$BUTTON_W" "$BUTTON_SPP" --frames=23,5,0,1 2>&1 | grep -E '^render|Error' || true
   "$BLENDER_PY" render_button.py "$WORK" "$INBETWEEN_W" "$INBETWEEN_SPP" 2>&1 | grep -E '^render|Error' || true
+  "$BLENDER_PY" render_shadow.py "$WORK" "$BUTTON_W" "$SHADOW_SPP" 2>&1 | grep -E '^render|Error' || true
   "$BLENDER_PY" render_fx.py "$WORK" 2>&1 | grep -E '^render|Error' || true
   "$BLENDER_PY" render_sky.py "$WORK" "$SKY_W" "$SKY_SPP" 2>&1 | grep -E '^render|Error' || true
   "$BLENDER_PY" render_etched.py "$WORK" "$BUTTON_W" "$BUTTON_SPP" 2>&1 | grep -E '^render|Error' || true

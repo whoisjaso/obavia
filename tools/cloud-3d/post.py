@@ -69,32 +69,17 @@ def save_both(arr, path_png):
 
 # ----------------------------------------------------------------- shadows
 
-def contact_shadow(alpha, pressed, variant):
-    """A soft contact shadow under the belly, from the rendered footprint.
-    Pressed: closer to the page, so shorter offset, 40 percent less blur,
-    a touch darker (cloud-system section 2)."""
-    from PIL import ImageFilter
-    h, w = alpha.shape
-    cov = alpha.max(0)                                        # silhouette width per column
-    cols = np.where(cov > 0.5)[0]
-    x0, x1 = cols.min(), cols.max()
-    rows = np.where(alpha.max(1) > 0.5)[0]
-    base = rows.max()                                         # bottom of the belly
-    off = (0.030 if pressed else 0.055) * h
-    blur = (0.042 if pressed else 0.070) * h
+def contact_shadow(work, pressed, variant, width):
+    """The ray-traced contact shadow (render_shadow.py): the page's lost light
+    under the cloud, coloured with the house shade (cloud-system section 5:
+    ink on light, a deeper ink on the dark lane) and scaled per variant.
+    Pressed is shorter, sharper and darker by the render's own optics."""
+    sh = np.load(os.path.join(work, f"shadow-{'pressed' if pressed else 'rest'}-{width}.npz"))["shadow"].astype(np.float32)
     strength = (0.30 if pressed else 0.24) if variant == "light" else (0.60 if pressed else 0.50)
-    m = Image.new("L", (w, h), 0)
-    d = ImageDraw.Draw(m)
-    inset = 0.06 * (x1 - x0)
-    cy = base - 0.02 * h + off
-    ry = 0.045 * h
-    d.ellipse([x0 + inset, cy - ry, x1 - inset, cy + ry], fill=255)
-    m = m.filter(ImageFilter.GaussianBlur(blur))
-    a = np.asarray(m).astype(np.float32) / 255.0 * strength
     colour = grade.hexrgb(INK) if variant == "light" else (8, 11, 18)
-    out = np.zeros((h, w, 4), np.uint8)
+    out = np.zeros(sh.shape + (4,), np.uint8)
     out[..., :3] = colour
-    out[..., 3] = (np.clip(a, 0, 1) * 255 + 0.5).astype(np.uint8)
+    out[..., 3] = (np.clip(sh * strength, 0, 1) * 255 + 0.5).astype(np.uint8)
     return out
 
 
@@ -151,8 +136,7 @@ def build_button(work, out):
     json.dump(safe, open(os.path.join(out, "button", "safe-zone.json"), "w"), indent=2)
     print("safe zone min alpha across frames:", round(amin, 3))
     for v in ("light", "dark"):
-        shadows = {p: contact_shadow(frames[REST if not p else PRESSED]["alpha"].astype(np.float32), p, v)
-                   for p in (False, True)}
+        shadows = {p: contact_shadow(work, p, v, W0) for p in (False, True)}
         for W, H in SIZES.items():
             d = os.path.join(out, "button", v, str(W))
             for s in SCALES:
@@ -165,7 +149,8 @@ def build_button(work, out):
                 for f in range(FRAMES):
                     save_both(sized[f], os.path.join(d, "press", f"{f:03d}{sfx}.png"))
                 for p, name in ((False, "shadow-rest"), (True, "shadow-pressed")):
-                    save_both(premul_resize(shadows[p], w, h), os.path.join(d, f"{name}{sfx}.png"))
+                    sh = shadows[p] if shadows[p].shape[:2] == (h, w) else premul_resize(shadows[p], w, h)
+                    save_both(sh, os.path.join(d, f"{name}{sfx}.png"))
                 # sprite sheet: 3 columns x 8 rows, a 4 px transparent gap between
                 # frames (rects exclude it) so no neighbour ever bleeds. The hero
                 # @2x sheet is 3848 x 4124: over 4096 tall, inside 8192.
@@ -218,14 +203,40 @@ def save_png_full(arr, path):
 
 # ----------------------------------------------------------------- sky
 
+def wrap_blend(p, width):
+    """A layer rendered one period wide plus an overlap each side (render_sky.py)
+    becomes one period: the left overlap band is crossfaded, in premultiplied
+    linear, between the columns inside the period and the same columns one
+    period to the right, so the wrap's two edges are the same cloud at the
+    same light and meet without a seam."""
+    w2 = next(iter(p.values())).shape[1]
+    ov = (w2 - width) // 2
+    if ov <= 0:
+        return p, 0
+    t = (np.arange(ov, dtype=np.float32) + 0.5) / ov          # 0 at the edge, 1 inside
+    s = (t * t * (3 - 2 * t))[None, :]
+    out = {}
+    for k, v in p.items():
+        v = v.astype(np.float32)
+        a, b = v[:, ov:ov + width], v[:, ov + width:ov + width + ov]   # the period, the wrap's continuation
+        band = a[:, :ov] * s[..., None] if a.ndim == 3 else a[:, :ov] * s
+        band = band + (b * (1 - s[..., None]) if a.ndim == 3 else b * (1 - s))
+        a = a.copy()
+        a[:, :ov] = band
+        out[k] = a
+    return out, ov
+
+
 def build_sky(work, out, width=2048):
     for layer in ("far", "mid", "near"):
         p = dict(np.load(os.path.join(work, f"sky-{layer}-{width}.npz")))
+        p, ov = wrap_blend(p, width)
         for v in ("light", "dark"):
             g = grade.grade(p, v)
             save_both(g, os.path.join(out, "sky", v, f"{layer}.png"))
             seam = float(np.abs(g[:, 0].astype(np.float32) - g[:, -1].astype(np.float32)).mean())
-            print("sky", layer, v, "seam mean abs diff", round(seam, 2), flush=True)
+            inner = float(np.abs(g[:, width // 3].astype(np.float32) - g[:, width // 3 + 1].astype(np.float32)).mean())
+            print("sky", layer, v, "seam mean abs diff", round(seam, 2), "inside", round(inner, 2), "overlap", ov, flush=True)
 
 
 # ----------------------------------------------------------------- contact

@@ -48,7 +48,7 @@ CROP = (0.21875, 0.46875, 0.78125, 0.8125)
 INK, ICE, SKY = "#1C2436", "#E9EFFE", "#EEF2FC"
 # the dark lane: the carve alone does not read on ink, so the floor takes a
 # thin ice fill at 90 percent, shaded by the same sun (brighter where it falls)
-DARK_FILL = dict(colour=ICE, opacity=0.90, shade=(0.80, 1.0))
+DARK_FILL = dict(colour=ICE, opacity=0.92, shade=(0.78, 1.0))
 # the light cloud: the cut's floor in Cycles is a soft blue-grey; deepened to
 # ink with the cloud's blue in it, shaded by the same sun, so it holds 4.5:1
 LIGHT_FILL = dict(colour="#0F1626", opacity=0.97, shade=(0.94, 1.04))
@@ -59,7 +59,12 @@ LIP = "#F8FAFF"
 SUN_AWAY = (0.819, 0.574)       # image x right, y down: the direction the light travels
 WALL = dict(width=0.075,
             light=dict(lit=("#FBF8F2", 0.85), shade=None),
-            dark=dict(lit=("#FFFFFF", 0.55), shade=("#0E1424", 0.55)))
+            dark=dict(lit=("#FFFFFF", 0.88), shade=("#0A101E", 0.72)))
+# the ambient inside the cut: the cloud's own light cannot reach the rim of a cut, so a soft band of the house
+# shade (a deeper ink on the dark lane, cloud-system section 5) sits around every stroke, widest at the floor's
+# edge and gone at about a third of the cap height. On the light cloud the sun fills the cut and the band is
+# faint; on ink it is what makes the carve read as a cut and not as a sticker.
+AO = dict(light=("#1C2436", 0.10, 0.22), dark=("#070B14", 0.42, 0.30))   # colour, opacity, reach as a share of the cap
 SURROUND = 0.5      # the surround the floor is read against: the cloud blurred at half a cap height
 
 
@@ -331,9 +336,14 @@ def post(work, out, width, only):
                     fill = DARK_FILL if v == "dark" else LIGHT_FILL
                     shade = _shade(Lc_light, core, *fill["shade"])[..., None]
                     col = np.clip(hexrgb(fill["colour"]) * shade, 0, 1)
+                    # the ambient inside the cut, laid before the floor so the floor stays on top of it
+                    ao_c, ao_o, ao_r = AO[v]
+                    halo = np.clip(_blur(cov, max(0.5, ao_r * cap_px)) * 2.2, 0, 1) * (1 - floor)
+                    ha = (ao_o * halo)[..., None]
+                    Cf = hexrgb(ao_c) * ha + C * (1 - ha)
                     fa = (fill["opacity"] * floor)[..., None]
-                    Cf = col * fa + C * (1 - fa)
-                    keep = fa[..., 0]                            # what the fills cover: never thinner than this
+                    Cf = col * fa + Cf * (1 - fa)
+                    keep = np.maximum(fa[..., 0], ha[..., 0])    # what the fills cover: never thinner than this
                     for band, spec in ((shd, WALL[v]["shade"]), (lit, WALL[v]["lit"])):
                         if spec is not None:
                             ba = (spec[1] * band)[..., None]

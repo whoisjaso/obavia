@@ -14,7 +14,8 @@ LIGHT = dict(key=2.60, rim=0.10, sky=0.36, exposure=1.30, sky_tint=(0.80, 0.90, 
 # dark lane: lit from behind and above, ice rim on ink; the body stays dim
 DARK = dict(key=0.06, rim=1.60, sky=0.10, exposure=1.30, sky_tint=(0.78, 0.86, 1.10),
             lift=(0.0, 0.0, 0.0), sat=0.85, rim_tint=(0.86, 0.93, 1.06),
-            body_alpha=0.20, rim_alpha=1.10, lum_gain=1.6, ice=(0.91, 0.95, 1.0))
+            body_alpha=0.20, rim_alpha=1.10, lum_gain=1.6, ice=(0.91, 0.95, 1.0),
+            thin=0.55, thin_light=0.30)   # thickness ramp: a wisp under 55 percent coverage thins and dims
 
 
 def _srgb(x):
@@ -49,8 +50,16 @@ def grade(passes, variant):
         # alpha follows the light the volume scatters toward the camera, so a
         # dim body reads as thin ice over ink and the rim reads as silver.
         l = lum[..., 0]
-        aa = a * np.clip(cfg["body_alpha"] + cfg["rim_alpha"] * l, 0.0, 1.0)
-        c = c / np.maximum(lum, 1e-3) * np.clip(l * cfg["lum_gain"], 0.0, 1.0)[..., None]
+        # thickness: how much volume the pixel covers (the straight alpha). A thin
+        # wisp scatters little light toward the camera over ink, so its alpha and
+        # its light fall with its thickness; the dense body and the silhouette rim
+        # keep theirs. Without this the puff's outward wisps (frames 8 to 13) read
+        # as lit smoke on ink; with it they read as thin cloud.
+        th = np.clip(a / cfg["thin"], 0.0, 1.0)
+        th = th * th * (3.0 - 2.0 * th)
+        aa = a * np.clip(cfg["body_alpha"] + cfg["rim_alpha"] * l * th, 0.0, 1.0)
+        g = np.clip(l * cfg["lum_gain"] * (cfg["thin_light"] + (1.0 - cfg["thin_light"]) * th), 0.0, 1.0)
+        c = c / np.maximum(lum, 1e-3) * g[..., None]
         c = np.maximum(c, 0)
         # keep the colour of the rim icy, never neutral grey
         c = c * np.array(cfg["ice"], np.float32)
