@@ -64,76 +64,87 @@ precision highp float;
 precision highp sampler3D;
 uniform sampler3D uNoise;
 uniform vec2 uRes;
-uniform float uTime, uLift, uLod;
+uniform float uTime, uLift, uLod, uPage;
 out vec4 o;
 ${LIB}
-const vec3 SUN=normalize(vec3(-.78,.42,.32));
-const vec3 SUNC=vec3(1.,.955,.89);
-const vec3 SHADE=vec3(.66,.72,.84);
-const float YB=-2.5, YT=-.62;
-vec3 page(float v){
-  vec3 c0=vec3(.863,.902,.992), c1=vec3(.949,.965,1.), c2=vec3(.969,.976,1.), c3=vec3(.902,.929,.992);
-  return v<.45 ? mix(c0,c1,v/.45) : v<.8 ? mix(c1,c2,(v-.45)/.35) : mix(c2,c3,(v-.8)/.2);
+const vec3 SUN=normalize(vec3(-.78,.5,.16));
+const vec3 SUNC=vec3(1.,.94,.86);
+const vec3 BASEC=vec3(.64,.71,.85);
+const vec3 TOPC=vec3(.92,.945,1.);
+const float YB=1.5, YT=2.55;
+float cover;
+vec3 sky(vec3 rd){
+  float e=clamp(rd.y,0.,1.);
+  vec3 hz=vec3(.949,.965,1.), mid=vec3(.863,.902,.98), zen=vec3(.788,.847,.961);
+  vec3 c=e<.3 ? mix(hz,mid,smoothstep(0.,.3,e)) : mix(mid,zen,smoothstep(.3,.75,e));
+  float s=max(dot(rd,SUN),0.);
+  return c+vec3(.05,.035,.01)*pow(s,6.)+vec3(.04,.03,.015)*pow(s,40.);
 }
-float dens(vec3 p,float lod,bool det){
+float dens(vec3 p,float t,bool det){
   float h=(p.y-YB)/(YT-YB);
   if(h<0.||h>1.) return 0.;
-  vec3 q=p+vec3(uTime*.0042,0.,uTime*.0016);
-  float wc=textureLod(uNoise,vec3(q.xz*.06,.37),0.).r;
-  float cov=clamp(remap(wc,.25,.8,.08,.6),0.,1.);
-  float top=.42+.58*smoothstep(.3,.85,wc);
-  float prof=clamp(h/.09,0.,1.)*clamp(remap(h,top*.45,top,1.,0.),0.,1.);
-  vec4 n=textureLod(uNoise,q*vec3(.16,.22,.16)+vec3(0.,0.,uTime*.0009),lod);
-  float base=remap(n.r,fbm3(n)-1.,1.,0.,1.)*prof;
-  base=remap(base,1.-cov,1.,0.,1.)*cov;
-  if(base<=0.) return 0.;
-  if(det){
-    vec4 d=textureLod(uNoise,q*.62+vec3(uTime*.005,uTime*.002,0.),lod);
-    float hf=fbm3(d);
-    hf=mix(1.-hf,hf,clamp(h*3.,0.,1.));
-    base=remap(base,hf*.55,1.,0.,1.);
+  vec3 q=p+vec3(uTime*.006,0.,uTime*.0024);
+  vec2 wq=q.xz*.085;
+  vec4 w0=textureLod(uNoise,vec3(wq*.37,.71),0.);
+  wq+=(w0.gb-.5)*.42;
+  float wc=textureLod(uNoise,vec3(wq,.37),0.).r*.7+textureLod(uNoise,vec3(wq*2.3+.31,.13),0.).r*.3;
+  float cl=cover-.12*(1.-smoothstep(2.1,4.,t));   // near the eye the clouds shrink, never thin to fog
+  float m=clamp(remap(wc,1.-cl,1.-cl+.22,0.,1.),0.,1.);
+  if(m<=0.) return 0.;
+  float th=.35+.65*m;
+  float prof=smoothstep(0.,.045,h)*smoothstep(th,th*.45,h);
+  float lod=clamp(log2(max(t*uLod*64.*.55,1.)),0.,4.);
+  vec4 n=textureLod(uNoise,q*vec3(.5,.62,.5),lod);
+  float b=remap(n.r,(fbm3(n)-1.)*.75,1.,0.,1.);
+  float d=clamp(remap(b*prof,1.-m,1.,0.,1.),0.,1.)*m;
+  if(det&&d>0.){
+    float ero=mix(.26,.3,smoothstep(2.,5.,t))*(1.-smoothstep(10.,22.,t));
+    float dl=clamp(log2(max(t*uLod*64.*2.6,1.)),0.,5.);
+    vec4 dn=textureLod(uNoise,q*2.6+vec3(0.,uTime*.004,0.),dl);
+    float hf=mix(1.-fbm3(dn),fbm3(dn),max(smoothstep(.0,.35,h),1.-smoothstep(3.,6.,t)));
+    d=clamp(remap(d,hf*ero,1.,0.,1.),0.,1.);
   }
-  return clamp(base,0.,1.);
+  return d;
 }
 void main(){
   vec2 fc=gl_FragCoord.xy;
   vec2 uv=(fc-.5*uRes)/uRes.y;
-  float d0=ign(fc);
-  vec3 bg=page(1.-fc.y/uRes.y);
-  float gw=length((fc/uRes-vec2(.5,.56))*vec2(uRes.x/uRes.y,1.));
-  bg=mix(bg,vec3(1.),.32*smoothstep(.8,0.,gw));
-  vec3 ro=vec3(0.,-uLift,0.);
-  float pit=-.16;
+  float d0=fract(ign(fc)+fract(sin(dot(fc,vec2(12.9898,78.233)))*43758.5453)*.618);
+  cover=.3*mix(1.,.88,smoothstep(.35,1.1,uPage));
+  vec3 ro=vec3(0.,-uLift*.6,uLift*5.);
+  float pit=.44;
   vec3 fw=vec3(0.,sin(pit),cos(pit)), rt=vec3(1.,0.,0.), up=cross(fw,rt);
   vec3 rd=normalize(fw*1.15+rt*uv.x+up*uv.y);
+  vec3 bg=sky(rd);
   vec3 col=bg;
-  if(rd.y<-.004){
-    float t0=(YT-ro.y)/rd.y, t1=min((YB-ro.y)/rd.y,24.);
-    if(t1>t0){
+  if(rd.y>.006){
+    float t0=(YB-ro.y)/rd.y, t1=min((YT-ro.y)/rd.y,t0+7.);
+    if(t0<70.){
       const int N=48;
       float dt=(t1-t0)/float(N), t=t0+dt*d0;
-      float cth=dot(rd,SUN), ph=.5*hg(cth,.6)+.5*hg(cth,-.25);
+      float cth=dot(rd,SUN);
+      float ph=mix(hg(cth,.72),hg(cth,-.18),.55);
       float T=1., tw=0., ww=0.; vec3 L=vec3(0.);
       for(int i=0;i<N;i++){
         vec3 p=ro+rd*t;
-        float lod=clamp(log2(max(t*uLod,1.)),0.,5.);
-        float d=dens(p,lod,true);
-        if(d>.002){
-          float ls=dens(p+SUN*.1,lod,false)*.1+dens(p+SUN*.28,lod,false)*.18+dens(p+SUN*.62,lod+1.,false)*.34;
-          float Tl=max(exp(-ls*9.),.3*exp(-ls*2.2));
-          float pw=1.-exp(-d*7.);
+        float d=dens(p,t,true);
+        if(d>.003){
+          float ls=dens(p+SUN*.12,t,false)*.12+dens(p+SUN*.36,t,false)*.24+dens(p+SUN*.8,t,false)*.44;
+          float Tl=max(exp(-ls*8.),.45*exp(-ls*1.3));
+          float pw=1.-exp(-d*5.);
           float h=clamp((p.y-YB)/(YT-YB),0.,1.);
-          vec3 amb=mix(SHADE,vec3(.985,.99,1.),smoothstep(0.,.75,h));
-          vec3 lum=SUNC*Tl*(ph*mix(.5,1.,pw)*.5+(1.-pw)*.42)+amb*.8;
-          float a=1.-exp(-d*dt*22.);
+          vec3 amb=mix(BASEC,TOPC,smoothstep(0.,.6,h));
+          vec3 lum=SUNC*Tl*((ph*.85+.45)*mix(.62,1.,pw)+(1.-pw)*.5*hg(cth,.86))+amb*.62;
+          float a=1.-exp(-d*dt*mix(42.,24.,smoothstep(3.,10.,t)));
           L+=T*a*lum; tw+=T*a*t; ww+=T*a; T*=1.-a;
-          if(T<.012) break;
+          if(T<.01) break;
         }
         t+=dt;
       }
       float dist=ww>0.?tw/ww:t1;
-      float fog=max(1.-exp(-dist*.06),smoothstep(7.,22.,t0));
-      col=mix(L,bg*(1.-T),fog)+T*bg;
+      float fog=max(1.-exp(-dist*.034),smoothstep(26.,70.,dist));
+      vec3 hz=sky(normalize(vec3(rd.x,.02,rd.z)));
+      col=mix(L,hz*(1.-T),fog)+T*bg;
     }
   }
   col+=(d0-.5)/255.;
@@ -152,6 +163,8 @@ uniform int uWispN;
 uniform float uTime, uSeed, uTop;
 uniform vec4 uPress;
 uniform vec4 uAir;
+uniform sampler2D uLabel;
+uniform vec3 uEtch;
 out vec4 o;
 ${LIB}
 const vec3 SUN=normalize(vec3(-.42,.74,.52));
@@ -164,7 +177,7 @@ float field(vec3 p){
   float d=sdRB(p-vec3(0.,-.2,0.),vec3(max(uBox.w-.12,.2),.37,.42),.36);
   for(int i=0;i<14;i++){ if(i>=uLobeN) break;
     vec4 l=uLobe[i];
-    d=smin(d,length(p-l.xyz)-l.w*(1.+.015*uAir.y*step(0.,l.z)),.32);
+    d=smin(d,length(p-l.xyz)-l.w*(1.+.015*uAir.y*step(0.,l.z)),.42);
   }
   return max(d,BASE-p.y);
 }
@@ -172,9 +185,10 @@ float dens(vec3 p0,bool det){
   vec3 p=p0;
   p.y=BASE+(p.y-BASE)/uPress.x;
   p.xy=vec2(0.,-.1)+(p.xy-vec2(0.,-.1))/uPress.w;
-  float sd=field(p);
-  float d=0.;
   vec3 q=p*(1.-.2*uAir.x)*vec3(.5,.56,.5)+vec3(uSeed,uTime*.005,uTime*.0035);
+  vec4 wn=textureLod(uNoise,q*.35+.5,2.);
+  float sd=field(p+(wn.gba-.5)*vec3(.22,.12,.1));
+  float d=0.;
   if(sd<.5){
     vec4 n=textureLod(uNoise,q,0.);
     sd+=(.62-n.r)*.42+(.5-n.g)*.18;
@@ -208,6 +222,11 @@ void main(){
   vec3 inv=1./rd, ta=(bmin-E)*inv, tb=(bmax-E)*inv, tn=min(ta,tb), tx=max(ta,tb);
   float t0=max(max(tn.x,tn.y),tn.z), t1=min(min(tx.x,tx.y),tx.z);
   vec3 L=vec3(0.); float T=1.;
+  // the label, pressed into the cloud: a mask from the DOM's own text, feathered 1 to 2 px
+  vec2 luv=fc/uEtch.xy, lo=vec2(-.7071,.7071)*1.6*uEtch.z/uEtch.xy;
+  float lm=uEtch.z>0.?texture(uLabel,luv).r:0.;
+  float deep=.32*(1.+.1*uPress.z);
+  float tf=-1.;
   if(t1>t0){
     const int N=40;
     float dt=(t1-t0)/float(N), t=t0+dt*d0;
@@ -215,6 +234,7 @@ void main(){
     for(int i=0;i<N;i++){
       vec3 p=E+rd*t;
       float d=dens(p,true);
+      if(d>.003&&lm>0.){ if(tf<0.) tf=t; d*=1.-lm*deep*(1.-smoothstep(0.,.3,t-tf)); }
       if(d>.003){
         float ls=dens(p+SUN*.09,false)*.09+dens(p+SUN*.22,false)*.13+dens(p+SUN*.42,false)*.2;
         float Tl=max(exp(-ls*11.*uPress.y),.3*exp(-ls*2.6));
@@ -231,8 +251,20 @@ void main(){
   }
   float sy=BASE-.05-uAir.z;
   vec2 sp=vec2(P.x/(uBox.w+.5+.12*uAir.y-.06*uAir.w),(P.y-sy)/(.17+.07*uAir.y-.05*uAir.w));
-  float sa=exp(-pow(abs(sp.x),6.))*exp(-sp.y*sp.y*1.5)*(.12+.05*uAir.w-.025*uAir.y);
+  float sa=exp(-pow(abs(sp.x),4.))*exp(-sp.y*sp.y*2.2)*(.12+.05*uAir.w-.025*uAir.y);
+  sa*=smoothstep(-.92,-.7,P.y)*smoothstep(uBox.w+.8,uBox.w+.38,abs(P.x));   // zero before the canvas edge (EXT bottom .42, side .8)
   float a=1.-T;
+  if(lm>0.){
+    // the floor of the imprint in soft blue-grey shade with the ink in it; the wall that faces away from the
+    // upper-left sun falls into shadow, the wall that faces it catches a thin silver line
+    float up=texture(uLabel,luv+lo).r, dn=texture(uLabel,luv-lo).r;
+    float wallS=clamp(lm-up,0.,1.), wallL=clamp(lm-dn,0.,1.);
+    float ink=uEtch.z>0.?(.78-.04*uAir.y)*(1.+.1*uPress.z):0.;
+    vec3 floorC=mix(L,vec3(.34,.4,.54)*a,lm*deep*1.8);
+    L=mix(floorC,INK*a,lm*ink);
+    L=mix(L,vec3(.3,.36,.5)*a,wallS*.55*(1.+.1*uPress.z));
+    L+=vec3(.95,.97,1.)*a*wallL*.32*(1.+.14*uAir.y);
+  }
   vec3 col=L+T*INK*sa;
   a+=T*sa;
   col+=(d0-.5)/255.*a;
@@ -402,7 +434,8 @@ export function createCloud3D(opt) {
       gl.uniform2f(u.uRes, w, h);
       gl.uniform1f(u.uTime, reduced() ? 600 : T());
       gl.uniform1f(u.uLift, reduced() ? 0 : (o.lift ? o.lift() : 0));
-      gl.uniform1f(u.uLod, 1 / (h * 1.15 * (1 / (64 * .16))));
+      gl.uniform1f(u.uLod, 1 / (h * 1.15));   // the pixel footprint per unit of distance; the shader scales it by each noise's frequency
+      gl.uniform1f(u.uPage, typeof scrollY === 'number' && innerHeight ? Math.min(3, scrollY / innerHeight) : 0);   // below the first viewport the sky clears so the copy reads
       m.begin(c); gl.drawArrays(gl.TRIANGLES, 0, 3); m.end(c);
     };
     const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { dirty = true; }) : null;
@@ -449,6 +482,15 @@ export function createCloud3D(opt) {
   };
 
   /* ---------- the buttons ---------- */
+  /* The label: drawn into the volume, the DOM text stays in the accessibility tree but paints nothing.
+     Without the volume: an embossed label, ink at 85 percent, pressed in rather than printed. */
+  if (typeof document !== 'undefined' && !document.getElementById('c3d-label-css')) {
+    const st = document.createElement('style'); st.id = 'c3d-label-css';
+    st.textContent = 'html .c3d-etch,html .o-nav .c3d-etch,html .o-sheet .c3d-etch{color:transparent!important;text-shadow:none!important;-webkit-text-fill-color:transparent}'
+      + 'html .c3d-emboss:not(.c3d-etch){color:rgba(28,36,54,.85)!important;text-shadow:.6px .8px .8px rgba(250,252,255,.9),-.6px -.8px .8px rgba(96,114,156,.42)!important}'
+      + '@media (forced-colors:active){html .c3d-etch{color:ButtonText!important;-webkit-text-fill-color:ButtonText}}';
+    document.head.appendChild(st);
+  }
   const B = new Map();
   let bc = null, bcWait = null, glc = null, loop = false;
   const liveCount = () => { let n = 0; B.forEach(b => { if (b.mode === 'gl') n++; }); return n; };
@@ -456,7 +498,10 @@ export function createCloud3D(opt) {
     if (bcWait) return bcWait;
     glc = document.createElement('canvas'); glc.width = 512; glc.height = 256;
     bcWait = context(glc, BTN_FS, true).then(c => {
-      bc = c; if (c) { stats.button = meter('button'); glc.addEventListener('webglcontextlost', e => { e.preventDefault(); c.lost = true; B.forEach(b => { if (b.mode === 'gl') demote(b); }); }); }
+      bc = c; if (c) {
+        const gl = c.gl; c.blank = gl.createTexture(); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, c.blank);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); gl.activeTexture(gl.TEXTURE0);
+        stats.button = meter('button'); glc.addEventListener('webglcontextlost', e => { e.preventDefault(); c.lost = true; B.forEach(b => { if (b.mode === 'gl') demote(b); }); }); }
       return c;
     }).catch(e => { if (opt.debug) console.warn(e); return null; });
     return bcWait;
@@ -498,7 +543,7 @@ export function createCloud3D(opt) {
     Object.assign(b.wrap.style, { left: -side + 'px', top: -top + 'px', width: w + 2 * side + 'px', height: h + top + bot + 'px' });
     b.wrap.style.setProperty('--rw', Math.round(w * 1.25) + 'px'); b.wrap.style.setProperty('--rh', Math.round(h * 2.6) + 'px');
     if (b.mode === 'gl') {
-      const q = dpr() * .75;
+      const q = Math.max(1, dpr() * .75);   // never under one canvas pixel per CSS pixel: the etched label must stay crisp
       b.canvas.width = Math.max(1, Math.round((w + 2 * side) * q)); b.canvas.height = Math.max(1, Math.round((h + top + bot) * q));
       b.q = q; b.side = side; b.bot = bot;
       const W = w / 2 / h, rnd = mulberry(hashStr((el.textContent || '').trim() + '|' + Math.round(W * 10)));
@@ -543,12 +588,53 @@ export function createCloud3D(opt) {
     gl.uniform1f(u.uTime, reduced() ? 300 : t); gl.uniform1f(u.uSeed, b.seed); gl.uniform1f(u.uTop, .5 + b.top);
     gl.uniform4f(u.uPress, s.squash, s.dens * (1 + .01 * s.hold), s.light, s.swell * (1 + .01 * s.hold));
     gl.uniform4f(u.uAir, s.loosen, s.sun, s.lift / b.h, s.shadow);
+    const etched = etch(b, gl);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, etched ? b.lt : bc.blank); gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(u.uLabel, 1); gl.uniform3f(u.uEtch, cw, ch, etched ? q : 0);
     const wn = wisps(b);
     gl.uniform1i(u.uWispN, wn); if (wn) gl.uniform4fv(u.uWisp, b.wispBuf);
     stats.button.begin(bc); gl.drawArrays(gl.TRIANGLES, 0, 3); stats.button.end(bc);
     b.ctx.globalCompositeOperation = 'copy';
     b.ctx.drawImage(glc, 0, glc.height - ch, cw, ch, 0, 0, cw, ch);
     b.drawn = true;
+  }
+  /** The label as a mask in the button canvas's own pixels, drawn from the DOM text with its computed font,
+   *  weight, size, tracking and case, feathered by a sub-pixel blur. Redrawn only when any of those change. */
+  function etch(b, gl) {
+    const el = b.el, nodes = [...el.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
+    if (!nodes.length) { el.classList.remove('c3d-etch'); return false; }
+    const cs = getComputedStyle(el), q = b.q, cw = b.canvas.width, ch = b.canvas.height;
+    const er = el.getBoundingClientRect(), k = er.width / el.offsetWidth || 1;
+    const r = document.createRange(); r.setStart(nodes[0], 0); const last = nodes[nodes.length - 1]; r.setEnd(last, last.textContent.length);
+    const rr = r.getBoundingClientRect();
+    const x = (rr.left - er.left) / k, y = (rr.top - er.top) / k;
+    const raw = nodes.map(n => n.textContent).join('').replace(/\s+/g, ' ').trim();
+    const text = cs.textTransform === 'uppercase' ? raw.toUpperCase() : cs.textTransform === 'lowercase' ? raw.toLowerCase()
+      : cs.textTransform === 'capitalize' ? raw.replace(/(^|\s)(\S)/g, (m, a, c) => a + c.toUpperCase()) : raw;
+    const font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const key = [text, font, cs.letterSpacing, cw, ch, Math.round(x * 4), Math.round(y * 4)].join('|');
+    if (key === b.lkey && b.lt) return true;
+    b.lkey = key;
+    const c = b.lc || (b.lc = document.createElement('canvas')), g = c.getContext('2d');
+    c.width = cw; c.height = ch;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#000'; g.fillRect(0, 0, cw, ch);
+    g.setTransform(q, 0, 0, q, 0, 0);
+    g.font = font; try { g.letterSpacing = cs.letterSpacing === 'normal' ? '0px' : cs.letterSpacing; } catch (e) { /* older canvas */ }
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#fff';
+    g.filter = `blur(${(.42 / q).toFixed(3)}px)`;   // a 1 to 2 px feather at the canvas's own resolution
+    const m = g.measureText(text), asc = m.fontBoundingBoxAscent || parseFloat(cs.fontSize) * .8, des = m.fontBoundingBoxDescent || parseFloat(cs.fontSize) * .2;
+    const lh = rr.height / k;
+    g.fillText(text, b.side + x, (b.top * b.h) + y + (lh - asc - des) / 2 + asc);
+    if (!b.lt) b.lt = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, b.lt);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.activeTexture(gl.TEXTURE0);
+    el.classList.add('c3d-etch');
+    return true;
   }
   /** After a release: six to ten wisps leave the top edge, up and out 12 to 20 px, fading over 600 ms. */
   function wisps(b) {
@@ -562,7 +648,7 @@ export function createCloud3D(opt) {
       const y0 = Math.max(.42, lob[li + 1] + lob[li + 3] * .72);
       const ang = Math.atan2(1, (x0 / (b.W + .5)) * 1.3 + (rnd() - .5) * .5);
       const dist = (12 + 8 * rnd()) / b.h;
-      buf.set([x0 + Math.cos(ang) * dist * e, y0 + Math.sin(ang) * dist * e, (.15 + .09 * rnd()) * (1 + .5 * e), 1.7 * Math.pow(1 - k, 1.5)], i * 4);
+      buf.set([x0 + Math.cos(ang) * dist * e, y0 + Math.sin(ang) * dist * e, (.15 + .09 * rnd()) * (1 + .5 * e), .9 * Math.pow(1 - k, 1.5)], i * 4);
     }
     b.dirty = true;
     return w.n;
@@ -598,12 +684,13 @@ export function createCloud3D(opt) {
     b.w = 0; layout(b); b.dirty = true;
   }
   function demote(b) {           // the live volume went away: sprites if they exist, else the CSS cloud
-    if (b.canvas) b.canvas.remove(); b.canvas = null; b.el.classList.remove('c3d-gl');
+    if (b.canvas) b.canvas.remove(); b.canvas = null; b.el.classList.remove('c3d-gl', 'c3d-etch'); b.lt = null; b.lkey = '';
     fallback(b);
   }
   async function fallback(b) {
     const set = await sprites();
     if (!B.has(b.el)) return;
+    b.el.classList.add('c3d-emboss');
     if (!set) { b.mode = 'css'; b.el.classList.remove('c3d-on'); stats.mode.button = stats.mode.button || 'css'; return; }
     const w = b.el.offsetWidth, key = w <= 320 ? 320 : w <= 440 ? 440 : 640, s = set[key] || set[640] || set[440] || set[320];
     b.mode = 'sprite'; b.sprite = s; stats.mode.button = stats.mode.button === 'webgl2' ? 'webgl2' : 'sprite';
@@ -668,7 +755,8 @@ export function createCloud3D(opt) {
     el.removeEventListener('pointerenter', b.enter); el.removeEventListener('pointerleave', b.leave);
     el.removeEventListener('focus', b.focusIn); el.removeEventListener('blur', b.focusOut);
     if (b.breath) b.breath.stop(); clearTimeout(b.holdT);
-    G.killTweensOf(b.st); b.wrap.remove(); el.classList.remove('c3d-on', 'c3d-gl', 'c3d-hover', 'c3d-focus');
+    G.killTweensOf(b.st); b.wrap.remove(); el.classList.remove('c3d-on', 'c3d-gl', 'c3d-hover', 'c3d-focus', 'c3d-etch', 'c3d-emboss');
+    if (b.lt && bc && !bc.lost) bc.gl.deleteTexture(b.lt);
   };
   E.has = el => B.has(el);
   /** React may replace a button's children; put the cloud back before the frame paints. */
@@ -726,7 +814,7 @@ export function createCloud3D(opt) {
     if (b.mode === 'sprite') { if (!playSheet(b, 6, 23, 300)) G.to(b.img.lastChild, { opacity: 0, duration: .3, ease: cancel ? FLAT : RISE, overwrite: 'auto' }); }
     if (cancel || !was) return;
     G.timeline({ onUpdate: b.onDirty }).to(b.st, { swell: 1.03, loosen: 1, duration: .12, ease: 'power2.out' }).to(b.st, { swell: 1, loosen: 0, duration: .48, ease: 'sine.inOut' });
-    shed(b); ring(b, .18);
+    shed(b); ring(b, .22);
     // the label dips a pixel and rises: the cloud lifts 1 px under it, then settles back
     G.timeline().to(b.wrap, { y: -1, duration: .08, ease: 'power2.out' }).to(b.wrap, { y: 0, duration: .5, ease: RISE, clearProps: 'transform' });
   };
@@ -754,7 +842,7 @@ export function createCloud3D(opt) {
       s.className = 'c3d-wisp'; s.style.cssText = `--s:${size}px;left:${side + u * b.w - size / 2}px;top:${top - size * .55}px`;
       b.wrap.appendChild(s);
       const dx = (u - .5) * 2 * (6 + 6 * Math.random()), dy = -(12 + 8 * Math.random());
-      G.fromTo(s, { x: 0, y: 0, opacity: .85, scale: .8 }, { x: dx, y: dy, opacity: 0, scale: 1.3, duration: .6, ease: 'expo.out', onComplete: () => s.remove() });
+      G.fromTo(s, { x: 0, y: 0, opacity: .45, scale: .8 }, { x: dx, y: dy, opacity: 0, scale: 1.3, duration: .6, ease: 'expo.out', onComplete: () => s.remove() });
     }
   }
   return E;
