@@ -68,13 +68,17 @@ export function Sky({ radius = 0, layers = true, low = false, drag }: { radius?:
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderTopLeftRadius: radius, borderTopRightRadius: radius, overflow: 'hidden' }]}>
       <LinearGradient colors={cloudInk.body} style={StyleSheet.absoluteFill} />
       {layers && three && (
-        // the rendered sky: 2:1 tileable layers. Full surfaces cover the box; a short sheet keeps the near
-        // bank at the full width along its bottom.
+        // the rendered sky: 2:1 tileable layers, each drawn at the box's full width in its own band (far high,
+        // mid across the lower middle, near along the bottom), so the clouds keep the scale they were rendered at.
+        // Covering the whole box at the README's 0.72 / 0.84 / 0.94 blew the near bank up to 1700 pt wide and
+        // its blue-grey undersides sat behind the copy (the Me capture, October 13); here far stays at 0.72, mid
+        // and near step back to 0.4 and 0.6, near the calibration the cloud-layers set already holds for text.
+        // A short sheet keeps only the near bank along its bottom.
         <>
-          {!low && <Layer source={three.far.src} t={far} depth="far" opacity={1} fit="cover" box={{ left: -O, right: -O, top: -O, bottom: -O }} drag={drag} reduce={reduce} />}
-          {!low && <Layer source={three.mid.src} t={mid} depth="mid" opacity={1} fit="cover" box={{ left: -O, right: -O, top: -O, bottom: -O }} drag={drag} reduce={reduce} dir={-1} />}
-          <Layer source={three.near.src} t={near} depth="near" opacity={1} fit={low ? 'fill' : 'cover'}
-            box={low ? { left: -O, right: -O, bottom: -O, aspectRatio: ratio(three.near) } : { left: -O, right: -O, top: -O, bottom: -O }} drag={drag} reduce={reduce} />
+          {!low && <Layer source={three.far.src} t={far} depth="far" opacity={0.72} box={{ left: -O, right: -O, top: -O, aspectRatio: ratio(three.far) }} drag={drag} reduce={reduce} />}
+          {!low && <Layer source={three.mid.src} t={mid} depth="mid" opacity={0.4} box={{ left: -O, right: -O, top: '40%', aspectRatio: ratio(three.mid) }} drag={drag} reduce={reduce} dir={-1} />}
+          <Layer source={three.near.src} t={near} depth="near" opacity={low ? 0.94 : 0.6} fit="fill"
+            box={{ left: -O, right: -O, bottom: -O, aspectRatio: ratio(three.near) }} drag={drag} reduce={reduce} />
         </>
       )}
       {layers && !three && (

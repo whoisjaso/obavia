@@ -11,8 +11,11 @@
    - The button: a small cloud volume (a soft body plus seeded lobes, eroded by billow noise) seen from
      a little above, so it has a near side and a far side; its own contact shadow on the page.
      Press, hold, release, hover and landed are uniforms (cloud-system §2), driven by GSAP.
-   - Fallback chain: WebGL2, then the Blender sprites (assets/cloud-3d contract), then the CSS cloud.
-   Flags for tests: ?cloud3d=off (no WebGL), ?cloud3d-bench (gl.finish timing per frame),
+   - Fallback chain: WebGL2, then the Blender sprites (the web's share of assets/cloud-3d, copied by
+     tools/cloud-3d/sync.mjs: rest, pressed, the two contact shadows and the 24 press frames as WebP, placed
+     by button/safe-zone.json), then the CSS cloud. The sky falls back to the Blender layers (sky/light).
+   Flags for tests: ?cloud3d=off or ?cloud3d=sprites (no WebGL: the sprite tier), ?cloud3d=css (no WebGL,
+     no sprites: the CSS cloud), ?cloud3d-bench (gl.finish timing per frame),
    ?cloud3d-governor=off (no quality step-down), ?cloud3d-t=<s> (a fixed time). */
 
 const VS = `#version 300 es
@@ -275,7 +278,8 @@ export const GLSL = { VS, NOISE_FS, SKY_FS, BTN_FS };
 
 /* ---------- small helpers ---------- */
 const query = (() => { try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(''); } })();
-const FLAG_OFF = query.get('cloud3d') === 'off' || (typeof window !== 'undefined' && window.OCLOUD3D_OFF === true);
+const FLAG_CSS = query.get('cloud3d') === 'css';
+const FLAG_OFF = FLAG_CSS || query.get('cloud3d') === 'off' || query.get('cloud3d') === 'sprites' || (typeof window !== 'undefined' && window.OCLOUD3D_OFF === true);
 const BENCH = query.has('cloud3d-bench');
 const NO_GOV = query.get('cloud3d-governor') === 'off' || BENCH;
 const FIXED_T = query.has('cloud3d-t') ? Number(query.get('cloud3d-t')) || 0 : null;
@@ -416,7 +420,7 @@ export function createCloud3D(opt) {
     canvas.className = 'c3d-sky'; canvas.setAttribute('aria-hidden', 'true');
     let c = null;
     try { c = await context(canvas, SKY_FS, false); } catch (e) { c = null; if (opt.debug) console.warn(e); }
-    if (!c) { stats.mode.sky = await E.skySprites(o.layers || {}) ? 'sprites' : 'layers'; return null; }
+    if (!c) { stats.mode.sky = await E.skySprites(o.layers || {}, host) ? 'sprites' : 'layers'; return null; }
     stats.mode.sky = 'webgl2';
     host.insertBefore(canvas, o.before || host.firstChild);
     const { gl, u } = c, m = stats.sky = meter('sky');
@@ -466,18 +470,20 @@ export function createCloud3D(opt) {
       destroy() { alive = false; if (ro) ro.disconnect(); host.classList.remove('c3d-sky-on'); canvas.remove(); const x = gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); },
     };
   };
-  /** The Blender sky layers (assets/cloud-3d/sky/light), tileable, over the existing layers; false when they are not there yet. */
-  E.skySprites = async (layers) => {
+  /** The Blender sky layers (sky/light/{far,mid,near}.webp, 2048 x 1024, tileable in x) in place of the cloud-layers
+   *  set; the host takes .c3d-sky-blender and the page's CSS sizes, places and weights them. False when they are
+   *  not deployed (the cloud-layers stay). */
+  E.skySprites = async (layers, host) => {
     const keys = Object.keys(layers).filter(k => layers[k]);
-    if (!keys.length) return false;
-    const x2 = dpr() > 1.4 ? 2 : 1;
-    const ok = await firstImage([`${assets}sky/light/far@${x2}x.webp`]);
+    if (!keys.length || FLAG_CSS) return false;
+    const ok = await firstImage([`${assets}sky/light/far.webp`]);
     if (!ok) return false;
     keys.forEach(k => {
       const s = layers[k].style;
-      s.backgroundImage = `url(${assets}sky/light/${k}@${x2}x.webp)`;
-      s.backgroundRepeat = 'repeat-x'; s.backgroundSize = 'auto 100%';
+      s.backgroundImage = `url(${assets}sky/light/${k}.webp)`;
+      s.backgroundRepeat = 'repeat-x';
     });
+    if (host) host.classList.add('c3d-sky-blender');
     return true;
   };
 
@@ -506,46 +512,64 @@ export function createCloud3D(opt) {
     }).catch(e => { if (opt.debug) console.warn(e); return null; });
     return bcWait;
   };
-  let spriteSet = null;
-  const sprites = () => spriteSet || (spriteSet = (async () => {
-    const x2 = dpr() > 1.4 ? 2 : 1, sets = {};
-    for (const wdt of [320, 440, 640]) {
-      const base = `${assets}button/light/${wdt}/`;
-      const rest = await firstImage([`${base}rest@${x2}x.webp`, `${base}rest@${x2}x.png`, `${base}rest.png`]);
-      if (!rest) continue;
-      const pressed = await firstImage([`${base}pressed@${x2}x.webp`, `${base}pressed@${x2}x.png`, `${base}pressed.png`]);
-      let sheet = null;
-      try {
-        const r = await fetch(`${base}sheet.json`);
-        if (r.ok) { const j = await r.json(), img = await firstImage([`${base}sheet.webp`, `${base}sheet.png`]); if (img) sheet = { img, frames: frameRects(j, img) }; }
-      } catch (e) { /* no sheet: crossfade */ }
-      sets[wdt] = { rest: rest.src, pressed: pressed ? pressed.src : null, sheet };
-    }
-    return Object.keys(sets).length ? sets : null;
+  /* The sprite tier. One size per button (320, 440 or 640, by the drawn width), at the device's scale: rest, pressed
+     and the two contact shadows first, the 24 press frames after (decoded before the player uses them). */
+  const SAFE = { x: .25, y: .52, w: .5, h: .22 };   // button/safe-zone.json fractions, if the file is missing
+  let zoneWait = null;
+  const zone = () => zoneWait || (zoneWait = fetch(`${assets}button/safe-zone.json`).then(r => (r.ok ? r.json() : null)).then(j => (j && j.fractions) || SAFE).catch(() => SAFE));
+  const setWait = {};
+  const spriteSet = wdt => setWait[wdt] || (setWait[wdt] = (async () => {
+    if (FLAG_CSS) return null;
+    const at = dpr() > 1.4 ? '@2x' : '', base = `${assets}button/light/${wdt}/`;
+    const pick = n => firstImage([`${base}${n}${at}.webp`, `${base}${n}.webp`]);
+    const rest = await pick('rest');
+    if (!rest) return null;
+    const [pressed, shadowRest, shadowPressed, safe] = await Promise.all([pick('pressed'), pick('shadow-rest'), pick('shadow-pressed'), zone()]);
+    let meta = null;
+    try { const r = await fetch(`${base}sheet${at}.json`); if (r.ok) meta = await r.json(); } catch (e) { /* the contract's defaults */ }
+    const set = {
+      w: wdt, ratio: rest.naturalHeight / rest.naturalWidth, safe,
+      rest: rest.src, pressed: pressed ? pressed.src : null,
+      shadowRest: shadowRest ? shadowRest.src : null, shadowPressed: shadowPressed ? shadowPressed.src : null,
+      fps: (meta && meta.fps) || 60, restI: meta && meta.rest != null ? meta.rest : 23, pressedI: meta && meta.pressed != null ? meta.pressed : 5,
+      count: meta && meta.frames ? meta.frames.length : 24, frames: null,
+    };
+    // the press frames, after the first paint; a frame that fails leaves the crossfade in charge
+    const decode = i => (i.decode ? i.decode().then(() => i, () => i) : i);
+    setTimeout(() => Promise.all(Array.from({ length: set.count }, (_, i) => image(`${base}press/${String(i).padStart(3, '0')}${at}.webp`).then(decode)))
+      .then(f => { set.frames = f; }, () => { /* crossfade */ }), 0);
+    return set;
   })());
-  /** sheet.json: an array of {x,y,w,h}, or {frames:[...]} / {frames:{name:{frame:{x,y,w,h}}}} (TexturePacker), or a grid {cols,rows,frameWidth,frameHeight}. */
-  function frameRects(j, img) {
-    let f = Array.isArray(j) ? j : j.frames;
-    if (f && !Array.isArray(f)) f = Object.keys(f).sort().map(k => f[k].frame || f[k]);
-    if (Array.isArray(f) && f.length) return f.map(r => ({ x: r.x, y: r.y, w: r.w || r.width, h: r.h || r.height }));
-    const cols = j.cols || j.columns, fw = j.frameWidth || j.w, fh = j.frameHeight || j.h, n = j.count || j.frameCount || 24;
-    if (!cols || !fw || !fh) return null;
-    return Array.from({ length: n }, (_, i) => ({ x: (i % cols) * fw, y: Math.floor(i / cols) * fh, w: fw, h: fh }));
+  const sizeFor = sw => (sw <= 330 ? 320 : sw <= 450 ? 440 : 640);
+  /** The label's box inside the button, in CSS px of the button (transforms undone). */
+  function labelBox(el) {
+    const nodes = [...el.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
+    const w = el.offsetWidth, h = el.offsetHeight;
+    if (!nodes.length) return { x: w / 2, y: h / 2, w: 0 };
+    const er = el.getBoundingClientRect(), k = er.width / w || 1;
+    const r = document.createRange(); r.setStart(nodes[0], 0); const last = nodes[nodes.length - 1]; r.setEnd(last, last.textContent.length);
+    const rr = r.getBoundingClientRect();
+    return { x: (rr.left + rr.width / 2 - er.left) / k, y: (rr.top + rr.height / 2 - er.top) / k, w: rr.width / k };
   }
+  /** The sprite's width for a button: the cloud body (about 89 percent of the canvas) spans the button, and the
+   *  label fits the safe rect with 8 px either side. */
+  const spriteW = (w, lw, f) => Math.max(w / .89, (lw + 16) / f.w);
 
   const EXT = { top: 1, bottom: .42, side: .8 };   // canvas reach beyond the box, in button heights
+  const HEAD = 24, PAD = 12;                        // and on top of that, CSS px: the shed wisps never meet a straight edge
+  const reach = b => ({ top: b.top * b.h + HEAD, side: EXT.side * b.h + PAD, bot: EXT.bottom * b.h });
   function layout(b) {
     const el = b.el, w = el.offsetWidth, h = el.offsetHeight;
     if (!w || !h) { b.w = 0; return false; }
     if (w === b.w && h === b.h) return true;
     b.w = w; b.h = h;
-    const top = b.top * h, bot = EXT.bottom * h, side = EXT.side * h;
+    const { top, side, bot } = reach(b);
+    b.topPx = top; b.side = side;
     Object.assign(b.wrap.style, { left: -side + 'px', top: -top + 'px', width: w + 2 * side + 'px', height: h + top + bot + 'px' });
-    b.wrap.style.setProperty('--rw', Math.round(w * 1.25) + 'px'); b.wrap.style.setProperty('--rh', Math.round(h * 2.6) + 'px');
     if (b.mode === 'gl') {
       const q = Math.max(1, dpr() * .75);   // never under one canvas pixel per CSS pixel: the etched label must stay crisp
       b.canvas.width = Math.max(1, Math.round((w + 2 * side) * q)); b.canvas.height = Math.max(1, Math.round((h + top + bot) * q));
-      b.q = q; b.side = side; b.bot = bot;
+      b.q = q; b.bot = bot;
       const W = w / 2 / h, rnd = mulberry(hashStr((el.textContent || '').trim() + '|' + Math.round(W * 10)));
       const cap = .5 + b.top - .12, L = new Float32Array(56), put = (i, x, y, z, r) => L.set([x, y, z, r], i * 4);
       const span = Math.max(.25, W - .2), towers = Math.max(2, Math.min(6, Math.round(W * 2 / .95))), puffs = Math.max(1, towers - 1);
@@ -570,11 +594,14 @@ export function createCloud3D(opt) {
   function placeSprite(b) {
     const set = b.sprite, w = b.w, h = b.h;
     if (!set) return;
-    // contract safe zone (assets/cloud-button/README.md): x 12 to 88 percent, y 40 to 85 percent of the sprite
-    const sw = w / .76, sh = h / .45, side = EXT.side * h, top = b.top * h;
-    const sx = side - .12 * sw, sy = top - .40 * sh;
-    b.img.style.cssText = `left:${sx}px;top:${sy}px;width:${sw}px;height:${sh}px;inset:auto`;
-    if (b.sheetCanvas) { b.sheetCanvas.style.cssText = b.img.style.cssText; }
+    // the safe rect (button/safe-zone.json) centred on the label: the embossed DOM text sits where the contract says
+    const f = set.safe, L = labelBox(b.el), sw = spriteW(w, L.w, f), sh = sw * set.ratio;
+    const { side, top } = reach(b);
+    const sx = side + L.x - (f.x + f.w / 2) * sw, sy = top + L.y - (f.y + f.h / 2) * sh;
+    const css = `inset:auto;left:${sx.toFixed(2)}px;top:${sy.toFixed(2)}px;width:${sw.toFixed(2)}px;height:${sh.toFixed(2)}px`;   // inset first: after left and top it would reset them
+    b.img.style.cssText = css; b.shade.style.cssText = css;
+    if (b.sheetCanvas) b.sheetCanvas.style.cssText = css + (b.sheetCanvas.dataset.on ? '' : ';visibility:hidden');
+    b.safeRect = { x: sx - side + f.x * sw, y: sy - top + f.y * sh, w: f.w * sw, h: f.h * sh };   // in the button's box, for the capture runs
   }
 
   function drawButton(b, t) {
@@ -585,7 +612,7 @@ export function createCloud3D(opt) {
     gl.viewport(0, 0, cw, ch);
     gl.uniform4f(u.uBox, (b.side + b.w / 2) * q, (b.bot + b.h / 2) * q, b.h * q, b.W);
     gl.uniform4fv(u.uLobe, b.lobes); gl.uniform1i(u.uLobeN, b.lobeN);
-    gl.uniform1f(u.uTime, reduced() ? 300 : t); gl.uniform1f(u.uSeed, b.seed); gl.uniform1f(u.uTop, .5 + b.top);
+    gl.uniform1f(u.uTime, reduced() ? 300 : t); gl.uniform1f(u.uSeed, b.seed); gl.uniform1f(u.uTop, .5 + b.top + HEAD / b.h);
     gl.uniform4f(u.uPress, s.squash, s.dens * (1 + .01 * s.hold), s.light, s.swell * (1 + .01 * s.hold) * (1 + .01 * s.breath));
     gl.uniform4f(u.uAir, s.loosen, s.sun, s.lift / b.h, s.shadow);
     const etched = etch(b, gl);
@@ -596,6 +623,7 @@ export function createCloud3D(opt) {
     stats.button.begin(bc); gl.drawArrays(gl.TRIANGLES, 0, 3); stats.button.end(bc);
     b.ctx.globalCompositeOperation = 'copy';
     b.ctx.drawImage(glc, 0, glc.height - ch, cw, ch, 0, 0, cw, ch);
+    if (b.ring.o > .002) { b.ctx.globalCompositeOperation = 'destination-over'; ringGl(b, b.ctx, q); }
     b.drawn = true;
   }
   /** The label as a mask in the button canvas's own pixels, drawn from the DOM text with its computed font,
@@ -624,7 +652,7 @@ export function createCloud3D(opt) {
     g.filter = `blur(${(.42 / q).toFixed(3)}px)`;   // a 1 to 2 px feather at the canvas's own resolution
     const m = g.measureText(text), asc = m.fontBoundingBoxAscent || parseFloat(cs.fontSize) * .8, des = m.fontBoundingBoxDescent || parseFloat(cs.fontSize) * .2;
     const lh = rr.height / k;
-    g.fillText(text, b.side + x, (b.top * b.h) + y + (lh - asc - des) / 2 + asc);
+    g.fillText(text, b.side + x, b.topPx + y + (lh - asc - des) / 2 + asc);
     if (!b.lt) b.lt = gl.createTexture();
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, b.lt);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -672,8 +700,7 @@ export function createCloud3D(opt) {
   function wrapFor(b) {
     const wrap = document.createElement('span');
     wrap.className = 'c3d'; wrap.setAttribute('aria-hidden', 'true');
-    wrap.innerHTML = '<i class="c3d-ring"></i>';
-    b.ring = wrap.firstChild;
+    b.ring = { s: 1, o: 0 };   // the air ring: drawn on a canvas behind the cloud (ringOn), never a DOM shape
     return wrap;
   }
   function promote(b) {          // to the live volume
@@ -688,30 +715,46 @@ export function createCloud3D(opt) {
     fallback(b);
   }
   async function fallback(b) {
-    const set = await sprites();
-    if (!B.has(b.el)) return;
-    b.el.classList.add('c3d-emboss');
-    if (!set) { b.mode = 'css'; b.el.classList.remove('c3d-on'); stats.mode.button = stats.mode.button || 'css'; return; }
-    const w = b.el.offsetWidth, key = w <= 320 ? 320 : w <= 440 ? 440 : 640, s = set[key] || set[640] || set[440] || set[320];
+    const zf = await zone(), el = b.el, L = labelBox(el);
+    const want = sizeFor(spriteW(el.offsetWidth, L.w, zf));
+    let s = null;
+    for (const wdt of [want, 640, 440, 320]) { s = await spriteSet(wdt); if (s) break; }
+    if (!B.has(el)) return;
+    // the last resort: the squared ink bar (.c3d-ink in the page's CSS), its label ice on ink
+    if (!s) { b.mode = 'css'; el.classList.remove('c3d-on'); el.classList.add('c3d-ink'); stats.mode.button = stats.mode.button || 'css'; return; }
+    el.classList.add('c3d-emboss');
     b.mode = 'sprite'; b.sprite = s; stats.mode.button = stats.mode.button === 'webgl2' ? 'webgl2' : 'sprite';
+    // under the cloud its contact shadow (rest, pressed crossfaded), then the cloud (rest, pressed), then the frame player
+    const pair = (a, z) => `<i style="background-image:url(${a})"></i><i class="p" style="background-image:url(${z || a})"></i>`;
+    b.shade = document.createElement('span'); b.shade.className = 'c3d-img c3d-shade';
+    if (s.shadowRest) b.shade.innerHTML = pair(s.shadowRest, s.shadowPressed);
     b.img = document.createElement('span'); b.img.className = 'c3d-img';
-    b.img.innerHTML = `<i style="background-image:url(${s.rest})"></i><i class="p" style="background-image:url(${s.pressed || s.rest})"></i>`;
-    b.wrap.appendChild(b.img);
-    if (s.sheet && s.sheet.frames) { b.sheetCanvas = document.createElement('canvas'); b.sheetCanvas.className = 'c3d-sheet'; b.wrap.appendChild(b.sheetCanvas); }
-    b.el.classList.add('c3d-on');
+    b.img.innerHTML = pair(s.rest, s.pressed);
+    b.sheetCanvas = document.createElement('canvas'); b.sheetCanvas.className = 'c3d-sheet';
+    b.wrap.append(b.shade, b.img, b.sheetCanvas);
+    el.classList.add('c3d-on');
     b.w = 0; layout(b);
   }
-  /** Sprite sheet player: frames [a, b] over ms on a 2D canvas (the press is 24 frames over 400 ms: sink, puff, settle). */
-  function playSheet(b, a, z, ms) {
-    const sh = b.sprite && b.sprite.sheet; if (!sh || !b.sheetCanvas) return false;
-    const cv = b.sheetCanvas, x = cv.getContext('2d'), f0 = sh.frames[0];
-    cv.width = f0.w; cv.height = f0.h; b.img.style.opacity = '0';
-    const t0 = now(), run = ++b.sheetRun;
+  /** The frame player: frames a to z at the contract's 60 fps on a 2D canvas over the rest sprite (the press is 24
+   *  frames over 400 ms: 0 to 5 the sink, 6 to 23 the puff and settle, the re-inflation baked in). Ending on the rest
+   *  frame hands back to the rest sprite. False until the frames are decoded: the caller crossfades instead. */
+  function playFrames(b, a, z) {
+    const set = b.sprite, fr = set && set.frames, cv = b.sheetCanvas;
+    if (!fr || !cv) return false;
+    const x = cv.getContext('2d'), f0 = fr[0];
+    if (cv.width !== f0.naturalWidth) { cv.width = f0.naturalWidth; cv.height = f0.naturalHeight; }
+    const t0 = now(), run = ++b.sheetRun, n = z - a;
+    const show = i => {
+      x.clearRect(0, 0, cv.width, cv.height); x.drawImage(fr[i], 0, 0, cv.width, cv.height);
+      cv.dataset.frame = String(i);
+      if (!cv.dataset.on) { cv.dataset.on = '1'; cv.style.visibility = ''; b.img.style.opacity = '0'; }
+    };
     const step = () => {
       if (run !== b.sheetRun) return;
-      const k = Math.min(1, (now() - t0) / ms), i = Math.round(a + (z - a) * k), r = sh.frames[Math.min(sh.frames.length - 1, i)];
-      x.clearRect(0, 0, cv.width, cv.height); x.drawImage(sh.img, r.x, r.y, r.w, r.h, 0, 0, cv.width, cv.height);
-      if (k < 1) raf(step); else if (z >= sh.frames.length - 1) b.img.style.opacity = '';
+      const i = a + Math.min(n, Math.floor((now() - t0) * set.fps / 1000));
+      if (String(i) !== cv.dataset.frame) show(i);
+      if (i < z) { raf(step); return; }
+      if (z === set.restI) { b.img.style.opacity = ''; cv.style.visibility = 'hidden'; delete cv.dataset.on; }
     };
     step();
     return true;
@@ -734,7 +777,7 @@ export function createCloud3D(opt) {
     el.addEventListener('pointerenter', b.enter); el.addEventListener('pointerleave', b.leave);
     el.addEventListener('focus', b.focusIn); el.addEventListener('blur', b.focusOut);
     if (typeof IntersectionObserver === 'function') { b.io = new IntersectionObserver(es => { b.visible = es[es.length - 1].isIntersecting; if (b.visible) b.onDirty(); }, { rootMargin: '80px' }); b.io.observe(el); }
-    if (typeof ResizeObserver === 'function') { b.ro = new ResizeObserver(() => { b.w = -1; b.onDirty(); }); b.ro.observe(el); }
+    if (typeof ResizeObserver === 'function') { b.ro = new ResizeObserver(() => { b.w = -1; if (b.mode === 'sprite') layout(b); b.onDirty(); }); b.ro.observe(el); }   // the sprites have no draw loop: place them now
     const goLive = o.live && E.gl && liveCount() < LIVE_MAX;
     if (goLive && bc) { promote(b); drawButton(b, T()); b.drawn = true; kick(); }
     else if (goLive) {
@@ -755,7 +798,7 @@ export function createCloud3D(opt) {
     el.removeEventListener('pointerenter', b.enter); el.removeEventListener('pointerleave', b.leave);
     el.removeEventListener('focus', b.focusIn); el.removeEventListener('blur', b.focusOut);
     if (b.breath) b.breath.stop(); clearTimeout(b.holdT); if (b.breathTw) b.breathTw.kill();
-    G.killTweensOf(b.st); b.wrap.remove(); el.classList.remove('c3d-on', 'c3d-gl', 'c3d-hover', 'c3d-focus', 'c3d-etch', 'c3d-emboss');
+    G.killTweensOf(b.st); b.wrap.remove(); el.classList.remove('c3d-on', 'c3d-gl', 'c3d-hover', 'c3d-focus', 'c3d-etch', 'c3d-emboss', 'c3d-ink');
     if (b.lt && bc && !bc.lost) bc.gl.deleteTexture(b.lt);
   };
   E.has = el => B.has(el);
@@ -797,7 +840,10 @@ export function createCloud3D(opt) {
     if (reduced()) { G.to(el, { opacity: .82, duration: .1, overwrite: 'auto' }); return; }
     G.to(el, { y: baseY(b) + 2.5, scale: .985, duration: .1, ease: 'power2.out', overwrite: 'auto' });
     G.to(b.st, { squash: .94, dens: 1.15, light: 1, shadow: 1, duration: .1, ease: 'power2.out', overwrite: 'auto', onUpdate: b.onDirty });
-    if (b.mode === 'sprite') { if (!playSheet(b, 0, 5, 100)) G.to(b.img.lastChild, { opacity: 1, duration: .1, ease: 'power2.out', overwrite: 'auto' }); }
+    if (b.mode === 'sprite') {
+      if (!playFrames(b, 0, b.sprite.pressedI)) G.to(b.img.lastChild, { opacity: 1, duration: .1, ease: 'power2.out', overwrite: 'auto' });
+      if (b.shade.lastChild) G.to(b.shade.lastChild, { opacity: 1, duration: .1, ease: 'power2.out', overwrite: 'auto' });
+    }
     clearTimeout(b.holdT);
     b.holdT = setTimeout(() => {           // held past 400 ms: the compressed cloud breathes, 1 percent on a 1.2 s sine
       if (!b.pressed) return;
@@ -815,7 +861,10 @@ export function createCloud3D(opt) {
     const y = baseY(b);
     G.to(el, { y, scale: 1, duration: .6, ease: cancel ? FLAT : RISE, overwrite: 'auto', clearProps: y ? '' : 'transform' });
     G.to(b.st, { squash: 1, dens: 1, light: 0, shadow: 0, duration: .6, ease: cancel ? FLAT : RISE, overwrite: 'auto', onUpdate: b.onDirty });
-    if (b.mode === 'sprite') { if (!playSheet(b, 6, 23, 300)) G.to(b.img.lastChild, { opacity: 0, duration: .3, ease: cancel ? FLAT : RISE, overwrite: 'auto' }); }
+    if (b.mode === 'sprite') {
+      if (!playFrames(b, b.sprite.pressedI + 1, b.sprite.restI)) G.to(b.img.lastChild, { opacity: 0, duration: .3, ease: cancel ? FLAT : RISE, overwrite: 'auto' });
+      if (b.shade.lastChild) G.to(b.shade.lastChild, { opacity: 0, duration: .3, ease: cancel ? FLAT : RISE, overwrite: 'auto' });
+    }
     if (cancel || !was) return;
     G.timeline({ onUpdate: b.onDirty }).to(b.st, { swell: 1.03, loosen: 1, duration: .12, ease: 'power2.out' }).to(b.st, { swell: 1, loosen: 0, duration: .48, ease: 'sine.inOut' });
     shed(b); ring(b, .22);
@@ -831,16 +880,46 @@ export function createCloud3D(opt) {
       .to(b.st, { swell: 1, dens: 1, sun: b.hover ? 1 : 0, loosen: 0, duration: .21, ease: 'sine.inOut' });
     ring(b, .14);
   };
+  /** The air ring (§2): a soft radial brightening behind the cloud, 1.0 to 1.4, opacity to `peak` at 120 ms and out
+   *  by 600 ms. Its alpha reaches zero inside the canvas at the full 1.4, so it never meets a straight edge. On the
+   *  live volume it is drawn under the cloud on the button's own canvas; on the sprites, on a canvas of its own
+   *  under the sprite that reaches as far above and below the cloud as the ring needs. */
+  function ringOn(b, ctx, q, cx, cy, rx, ry) {
+    const r = b.ring, k = r.s / 1.4;
+    ctx.save(); ctx.translate(cx * q, cy * q); ctx.scale(1, ry / rx);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx * k * q);
+    g.addColorStop(0, `rgba(255,255,255,${r.o})`); g.addColorStop(.55, `rgba(250,252,255,${r.o * .8})`);
+    g.addColorStop(.8, `rgba(246,249,255,${r.o * .3})`); g.addColorStop(1, 'rgba(246,249,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx * k * q, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  /** On the live canvas: the largest ellipse about the cloud's centre that the canvas holds. */
+  function ringGl(b, ctx, q) {
+    const { top, side, bot } = reach(b), cx = side + b.w / 2, cy = top + b.h * .56;
+    ringOn(b, ctx, q, cx, cy, cx - 1, Math.min(cy, bot + b.h * .44) - 1);
+  }
+  function ringDraw(b) {
+    if (b.mode === 'gl') { b.onDirty(); return; }
+    if (!b.w) return;
+    const { top, side } = reach(b), ry = b.h * 1.5, W = b.w + 2 * side, H = 2 * ry, q = dpr();
+    const cv = b.ringCv || (b.ringCv = b.wrap.insertBefore(document.createElement('canvas'), b.wrap.firstChild));
+    cv.className = 'c3d-airring';
+    cv.style.cssText = `inset:auto;left:0;top:${(top + b.h * .56 - ry).toFixed(2)}px;width:${W.toFixed(2)}px;height:${H.toFixed(2)}px`;
+    if (cv.width !== Math.round(W * q) || cv.height !== Math.round(H * q)) { cv.width = Math.round(W * q); cv.height = Math.round(H * q); }
+    const x = cv.getContext('2d'); x.clearRect(0, 0, cv.width, cv.height);
+    if (b.ring.o > .002) ringOn(b, x, q, W / 2, ry, W / 2 - 1, ry - 1);
+  }
   function ring(b, peak) {
     G.killTweensOf(b.ring);
-    G.timeline().fromTo(b.ring, { scale: 1, opacity: 0 }, { scale: 1.12, opacity: peak, duration: .12, ease: 'power2.out' })
-      .to(b.ring, { scale: 1.4, opacity: 0, duration: .48, ease: 'sine.out' });
+    const up = () => ringDraw(b);
+    G.timeline({ onUpdate: up, onComplete: up }).fromTo(b.ring, { s: 1, o: 0 }, { s: 1.12, o: peak, duration: .12, ease: 'power2.out' })
+      .to(b.ring, { s: 1.4, o: 0, duration: .48, ease: 'sine.out' });
   }
   function shed(b) {
     const n = 6 + (hashStr(String(now())) % 5);
     if (b.mode === 'gl') { b.wisp = { t0: now(), n, seed: (Math.random() * 1e9) | 0 }; b.onDirty(); return; }
     // without the volume: soft DOM wisps on transform and opacity
-    const top = b.top * b.h, side = EXT.side * b.h;
+    const { top, side } = reach(b);
     for (let i = 0; i < n; i++) {
       const s = document.createElement('i'), u = (i + .5) / n, size = Math.round(b.h * (.22 + .14 * Math.random()));
       s.className = 'c3d-wisp'; s.style.cssText = `--s:${size}px;left:${side + u * b.w - size / 2}px;top:${top - size * .55}px`;

@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import type { Receipt as R } from './lib/money';
 import { usd } from './lib/money';
 import { landed, pressedNow, skyDrift } from './motion';
-import { startSky } from './cloud3d';
+import { blenderSky, startSky } from './cloud3d';
 
 /* ---------- feel: soft tones after a tap, a haptic tick, never on scroll ---------- */
 let ac: AudioContext | null = null;
@@ -95,13 +95,14 @@ export const feel = {
 };
 
 /* ---------- the sky: three cloud banks, far to near, over a fine grain ----------
-   The layers are the shared volumetric set (assets/cloud-layers/light, as WebP in src/sky; drawn by
-   styles.css); src/motion.ts (skyDrift) drifts each on its own slow timeline and parts them by depth
+   The layers are the Blender sky (public/cloud-3d/sky/light, through tools/cloud-3d/sync.mjs; cloud3d.ts
+   blenderSky) and, when it is not deployed, the shared volumetric set (assets/cloud-layers/light, as WebP
+   in src/sky; drawn by styles.css); src/motion.ts (skyDrift) drifts each on its own slow timeline and parts them by depth
    on scroll. The sky never takes a tap and never moves on a page change. Where WebGL2 runs, a live
    raymarched deck (cloud3d.ts) takes their place once it has a frame; the layers stay as its fallback. */
 export function Sky() {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { const el = ref.current!, a = skyDrift(el), b = startSky(el); return () => { a(); b(); }; }, []);
+  useEffect(() => { const el = ref.current!; blenderSky(el); const a = skyDrift(el), b = startSky(el); return () => { a(); b(); }; }, []);
   return (
     <div className="sky" aria-hidden="true" ref={ref}>
       <i className="glow" />

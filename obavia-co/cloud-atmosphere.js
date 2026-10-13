@@ -1,6 +1,9 @@
 /* The sky: three volumetric cloud layers (far, mid, near) plus grain.
-   Spec: docs/design/cloud-system.md sections 1 and 4. Layers come from
-   tools/cloud-layers (assets/cloud-layers), served from sky/clouds.
+   Spec: docs/design/cloud-system.md sections 1, 4 and 8. The layers are the
+   Blender sky (assets/cloud-3d/sky/light, copied by tools/cloud-3d/sync.mjs
+   into assets/cloud-3d) when it is deployed; the cloud-layers set
+   (assets/cloud-layers, served from sky/clouds) is the last fallback. The
+   host holds .c3d-sky-wait while the probe runs, so neither set flashes.
 
    Drift: each layer's cloud moves 4 to 16 px on its own GSAP sine.inOut
    cycle (120 / 80 / 48 s), read from the wall clock so the sky does not
@@ -22,6 +25,22 @@ const base = new URL('.', self ? self.src : location.href);
 // far / mid / near: parallax factor, drift cycle (s), drift travel (px, x and y)
 const DEPTH = [['far', .2, 120, 6, 3], ['mid', .5, 80, 10, 4], ['near', 1, 48, 16, 6]];
 const LAYERS = DEPTH.map(([d]) => `<div class="cl-layer ${d}"><i class="cl-cloud"></i></div>`).join('') + '<i class="cl-grain"></i>';
+
+// the Blender sky in place of the cloud-layers set, when it is deployed; the stack's depths live in cloud.css
+function blender(sky) {
+  const at = new URL(root.dataset.cloud3dAssets || 'assets/cloud-3d/', base).href + 'sky/light/';
+  const probe = new Image();
+  sky.classList.add('c3d-sky-wait');
+  probe.onload = () => {
+    DEPTH.forEach(([d]) => {
+      const c = sky.querySelector(`.cl-layer.${d} .cl-cloud`);
+      if (c) Object.assign(c.style, { backgroundImage: `url(${at}${d}.webp)`, backgroundRepeat: 'repeat-x' });
+    });
+    sky.classList.add('c3d-sky-blender'); sky.classList.remove('c3d-sky-wait');
+  };
+  probe.onerror = () => sky.classList.remove('c3d-sky-wait');
+  probe.src = at + 'far.webp';
+}
 
 function host() {
   let el = document.querySelector('.o-sky');
@@ -75,6 +94,7 @@ function start(sky) {
 
 const boot = () => {
   const sky = host();
+  blender(sky);
   if (matchMedia('(prefers-reduced-motion: reduce)').matches && !window.gsap) return;   // still sky, no library needed
   gsapReady().then(() => start(sky)).catch(() => {});                                   // without GSAP the layers simply rest
 };

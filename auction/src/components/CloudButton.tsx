@@ -2,8 +2,9 @@
    buttons as well, and animations after clicking them, and sfx").
 
    The body is a rendered cloud. Three tiers, chosen once per set and never mixed:
-     3d     the Blender contract (assets/cloud-3d via scripts/cloud3d.mjs): a 24-frame sprite sheet, 0 to 5 the
-            press, 6 to 23 the re-inflation, played on the UI thread by a shared value. One image, clipped to a
+     3d     the Blender contract (assets/cloud-3d via scripts/cloud3d.mjs): a 24-frame sprite sheet (3 by 8, a 4 px
+            gap between frames), 0 to 5 the press, 6 to 23 the re-inflation baked in, 23 the rest; played linearly
+            at the contract's 60 fps on the UI thread by a shared value; only the sink springs. One image, clipped to a
             frame-sized window and translated by the frame's rect: one transform per frame, no JS, no decode.
      photo  the photographic sprites (assets/cloud-button): rest and pressed, crossfaded by the same frame value.
      ink    the squared ink bar (Cloud.tsx InkBody), if neither set is bundled or an image fails to load.
@@ -21,8 +22,9 @@
    Disabled never sinks. Reduced motion: no transform, no wisps, no ring, no breath; the press is an opacity
    and the frames jump rest, pressed, rest; sounds and haptics stay.
 
-   The label is pressed into the cloud, not printed on it (the owner: "make the text as well etched into the
-   clouds, make it feel real and clean blended properly"). Three copies of the same glyphs: the wall of the cut
+   The label is carved into the cloud, not printed on it (the owner: "etched into the clouds, real and clean
+   blended"). On the 3D tier it is the Cycles carve itself (IMPRINT, tools/cloud-3d/render_labels.py): an imprint
+   layer over the sheet frame. Without an imprint, three copies of the same glyphs stand in: the wall of the cut
    that faces away from the sun (a blue-grey shade, soft), the wall that catches it (ice), and the floor of the
    letter (ink with the cloud's blue in it, not quite opaque, so the material shows through). See ETCH. */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -38,7 +40,7 @@ import { feel } from '../feel';
 import { BREATH, EASE_OUT, cloud, ms, press3d, spring } from '../motion';
 import { theme } from '../theme';
 import { InkBody } from './Cloud';
-import { BUTTON_3D, type Rect } from './cloud3d';
+import { BUTTON_3D, LABELS_3D, type Label3D, type Rect } from './cloud3d';
 import { useReduceMotion } from './Sky';
 
 type Tone = 'light' | 'dark';
@@ -49,7 +51,7 @@ type Tier = '3d' | 'photo' | 'ink';
 type Sprites = {
   tier: Tier; frameW: number; frameH: number; safe: Rect; shadowW: number; shadowH: number;
   rest?: number; pressed?: number; shadowRest?: number; shadowPressed?: number;
-  sheet?: number; sheetW?: number; sheetH?: number; frames?: Rect[];
+  sheet?: number; sheetW?: number; sheetH?: number; frames?: Rect[]; gap?: number;
 };
 
 /* The photographic set (assets/cloud-button/README.md): 112 css px tall at every width, the shadow sprite 40 css
@@ -84,7 +86,7 @@ function sprites(tone: Tone, set: SetKey): Sprites {
       shadowW: s.shadowW ?? s.frameW * (PHOTO[tone][set].shadowW / PHOTO[tone][set].frameW),
       shadowH: s.shadowH ?? s.frameH * (PHOTO[tone][set].shadowH / PHOTO[tone][set].frameH),
       shadowRest: s.shadowRest ?? PHOTO[tone][set].shadowRest, shadowPressed: s.shadowPressed ?? PHOTO[tone][set].shadowPressed,
-      sheet: s.sheet, sheetW: s.sheetW, sheetH: s.sheetH, frames: s.frames.length ? s.frames : [frame0],
+      sheet: s.sheet, sheetW: s.sheetW, sheetH: s.sheetH, frames: s.frames.length ? s.frames : [frame0], gap: s.gap,
     };
   }
   return PHOTO[tone][set];
@@ -92,6 +94,11 @@ function sprites(tone: Tone, set: SetKey): Sprites {
 
 /** The set whose drawn width is nearest: the 320 cloud for a narrow column, the 440 for the phone's full one. */
 const setFor = (w: number): SetKey => (w <= 330 ? '320' : '440');
+
+/* The 3D frame is 2.5:1 with air above the crowns for the puff's wisps and below the belly for the shadow; the
+   cloud takes its full height on the glass but gives back 10 percent of it above and below to the layout, so a
+   sheet sized for the body is not pushed off the screen (the 440 frame at 345 pt is 138 pt, the body about 100). */
+const SKY_TRIM = 0.1;
 
 /** The ink fallback's height: the house's squared bar. */
 const INK_H = 54;
@@ -133,12 +140,34 @@ export type EtchRecipe = keyof typeof ETCH;
 /** The recipe for what the label sits on: the ink bar is the only dark floor (see ETCH). */
 export const etchFor = (tier: Tier): EtchRecipe => (tier === 'ink' ? 'ice' : 'pressed');
 
-const frameOf = (v: number) => { 'worklet'; return Math.max(0, Math.min(press3d.frames - 1, v >= press3d.frames - 1.5 ? press3d.frames - 1 : Math.round(v))); };
+/* The true cut (tools/cloud-3d/render_labels.py): the label carved into the rest volume in Cycles, shipped as an
+   imprint (the shadowed wall, the lit lip, the darkened floor, each with its alpha) cut to the safe rect, laid
+   over whatever frame the sheet shows. Under the press a second copy deepens it by `press`; on landed the lip
+   alone brightens by `land` with the swell. Labels with no imprint, and the photo and ink tiers, keep ETCH. */
+export const IMPRINT = { press: 0.1, land: 0.5 } as const;
+/** The imprint for a label on the 3D tier, with its rect in points inside the safe zone; null when none ships. */
+const imprintFor = (tier: Tier, tone: Tone, w: number, label: string, sp: Sprites, sc: number) => {
+  if (tier !== '3d') return null;
+  const set = LABELS_3D[tone][setFor(w)];
+  const im = set?.labels[label.toUpperCase()];
+  if (!set || !im) return null;
+  const r = set.rect;
+  return { ...im, left: (r.x - sp.safe.x) * sc, top: (r.y - sp.safe.y) * sc, width: r.w * sc, height: r.h * sc };
+};
+type Imprint = Label3D & { left: number; top: number; width: number; height: number };
+
+/* The frame clock: the shared value runs linearly from a frame to just under the next whole frame past the last
+   one, and the frame shown is its floor, so each frame holds exactly 1000 / 60 ms (frames 0 to 5 in 100 ms, 6 to
+   23 in 300 ms). Rest is 23, pressed 5 (the contract's sheet.json). */
+const REST = press3d.frames - 1;
+const FRAME_MS = 1000 / 60;
+const UNDER = 0.999;
+const frameOf = (v: number) => { 'worklet'; return Math.max(0, Math.min(REST, Math.floor(v))); };
 /** How pressed a frame looks, 0 to 1: up over the press frames, down over the release frames. */
 const pressedness = (v: number) => {
   'worklet';
   const last = press3d.frames - 1;
-  return v <= press3d.downLast ? v / press3d.downLast : Math.max(0, (last - v) / (last - press3d.upFirst));
+  return v < press3d.upFirst ? Math.min(1, v / press3d.downLast) : Math.max(0, (last - v) / (last - press3d.upFirst));
 };
 
 export type CloudButtonProps = {
@@ -178,7 +207,7 @@ export function CloudButton({
   const h = tier === 'ink' ? INK_H : Math.round(sp.frameH * sc);
   const off = !!disabled || !onPress;   // no gesture; only `disabled` also fades it (in flight, the cloud stays whole)
 
-  const f = useSharedValue(0);       // the frame, 0 to 23
+  const f = useSharedValue(REST);    // the frame clock, 0 to 23 (rest)
   const k = useSharedValue(0);       // the sink, 0 at rest, 1 down
   const sw = useSharedValue(1);      // the landed swell
   const br = useSharedValue(0);      // the hold's breath
@@ -220,17 +249,18 @@ export function CloudButton({
     if (reduce) { f.value = press3d.downLast; k.value = withTiming(1, { duration: ms.sink, easing: EASE_OUT }); }
     else {
       f.value = 0;
-      f.value = withTiming(press3d.downLast, { duration: ms.sink, easing: Easing.linear });   // the frames are the curve
+      f.value = withTiming(press3d.downLast + UNDER, { duration: (press3d.downLast + 1) * FRAME_MS, easing: Easing.linear });   // the frames are the curve
       k.value = withTiming(1, { duration: ms.sink, easing: EASE_OUT });
     }
     scheduleOnRN(feel.press);
   };
   const up = (ok: boolean) => {
     'worklet';
-    if (reduce) { f.value = 0; k.value = withTiming(0, { duration: ms.press, easing: EASE_OUT }); }
+    if (reduce) { f.value = REST; k.value = withTiming(0, { duration: ms.press, easing: EASE_OUT }); }
     else {
       const sp2 = ok ? spring.rise : spring.cancel;
-      f.value = press3d.upFirst; f.value = withSpring(press3d.frames - 1, sp2);
+      // the re-inflation is baked into 6 to 23: linear at 60 fps; only the sink springs
+      f.value = press3d.upFirst; f.value = withTiming(REST + UNDER, { duration: (REST - press3d.upFirst + 1) * FRAME_MS, easing: Easing.linear });
       k.value = withSpring(0, sp2);
       if (ok) {
         wp.value = 0; wp.value = withTiming(1, { duration: press3d.wispMs, easing: Easing.linear });   // time; the travel eases itself
@@ -286,7 +316,7 @@ export function CloudButton({
   const failed = () => setBroken(true);
 
   return (
-    <View style={[{ alignSelf: 'stretch', height: h }, style]} onLayout={e => { const n = Math.round(e.nativeEvent.layout.width); if (n > 0 && n !== w) setW(n); }}>
+    <View style={[{ alignSelf: 'stretch', height: h }, tier === '3d' && { marginVertical: -h * SKY_TRIM }, style]} onLayout={e => { const n = Math.round(e.nativeEvent.layout.width); if (n > 0 && n !== w) setW(n); }}>
       {/* behind: the air ring, then the contact shadow, which stays on the page while the cloud sinks into it */}
       {tier !== 'ink' && !reduce && (
         <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: w * 0.04, top: h * 0.1, width: w * 0.92, height: h * 0.9 }, ringSt]}>
@@ -315,7 +345,7 @@ export function CloudButton({
             ? <Stack sp={sp} sc={sc} f={f} onError={failed} />
             : <SheetPlayer sp={sp} sc={sc} f={f} onError={failed} />)}
           <Animated.View pointerEvents="none" style={[s.safe, safe, labelSt]}>
-            {content ?? <Etch label={label} recipe={etchFor(tier)} k={k} sw={sw} still={reduce} />}
+            {content ?? <Etch label={label} recipe={etchFor(tier)} imprint={imprintFor(tier, tone, w, label, sp, sc)} k={k} sw={sw} still={reduce} />}
             {holdMs != null && <Animated.View style={[s.fill, { backgroundColor: ink }, fillSt]} />}
           </Animated.View>
         </Animated.View>
@@ -329,7 +359,30 @@ export function CloudButton({
 /** The label, pressed into the material: the shade wall, the lit wall, then the floor over both, three copies of
     the same glyphs so only the edges of the walls show. The floor sits in the flow and sizes the box; the walls
     are laid over it. Reduced motion: all three stay where they are. */
-function Etch({ label, recipe, k, sw, still }: { label: string; recipe: EtchRecipe; k: SharedValue<number>; sw: SharedValue<number>; still: boolean }) {
+function Etch({ label, recipe, imprint, k, sw, still }: { label: string; recipe: EtchRecipe; imprint: Imprint | null; k: SharedValue<number>; sw: SharedValue<number>; still: boolean }) {
+  const [lost, setLost] = useState(false);   // the imprint failed to load: the layered emboss
+  if (imprint && !lost) return <Carved label={label} im={imprint} k={k} sw={sw} still={still} onError={() => setLost(true)} />;
+  return <Layered label={label} recipe={recipe} k={k} sw={sw} still={still} />;
+}
+
+/** The carved label: the Cycles imprint over the sheet frame, the press deepening it, the landed swell lighting
+    its lip. The words stay as text for the screen reader and for find, drawn transparent. */
+function Carved({ label, im, k, sw, still, onError }: { label: string; im: Imprint; k: SharedValue<number>; sw: SharedValue<number>; still: boolean; onError: () => void }) {
+  const at = { position: 'absolute' as const, left: im.left, top: im.top, width: im.width, height: im.height };
+  const deepSt = useAnimatedStyle(() => ({ opacity: still ? 0 : IMPRINT.press * k.value }));
+  const lipSt = useAnimatedStyle(() => ({ opacity: still ? 0 : IMPRINT.land * Math.max(0, Math.min(1, (sw.value - 1) / (cloud.swell - 1))) }));
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Text numberOfLines={1} style={[s.label, s.unseen]}>{label}</Text>
+      <Image testID="label-imprint" source={im.src} style={at} contentFit="fill" cachePolicy="memory" onError={onError} />
+      <Animated.View style={[at, deepSt]}><Image source={im.src} style={StyleSheet.absoluteFill} contentFit="fill" cachePolicy="memory" /></Animated.View>
+      {im.lip != null && <Animated.View style={[at, lipSt]}><Image source={im.lip} style={StyleSheet.absoluteFill} contentFit="fill" cachePolicy="memory" /></Animated.View>}
+    </View>
+  );
+}
+
+/** The fallback: three stacked copies of the glyphs (see ETCH). */
+function Layered({ label, recipe, k, sw, still }: { label: string; recipe: EtchRecipe; k: SharedValue<number>; sw: SharedValue<number>; still: boolean }) {
   const e = ETCH[recipe];
   const pr = PixelRatio.get(), d = e.d / pr, dIn = e.dIn / pr;   // device pixels to points
   const lightSt = useAnimatedStyle(() => ({
@@ -362,9 +415,10 @@ function SheetPlayer({ sp, sc, f, onError }: { sp: Sprites; sc: number; f: Share
     const i = Math.min(frameOf(f.value), xs.length - 1);
     return { transform: [{ translateX: xs[i] }, { translateY: ys[i] }] };
   });
-  // the contract's frames touch: at a scale that is not a whole number the filter samples the opaque base of the
-  // frame above into this one's top row. A frame's top is empty sky, so the window drops its top 2 device px.
-  const inset = 2 / pr;
+  // frames that touch (no gap in the json): at a scale that is not a whole number the filter samples the opaque
+  // base of the frame above into this one's top row, so the window drops its top 2 device px. The contract's 4 px
+  // transparent gap makes that unnecessary.
+  const inset = (sp.gap ?? 0) >= 2 ? 0 : 2 / pr;
   return (
     <View style={[StyleSheet.absoluteFill, { top: inset, overflow: 'hidden' }]}>
       <Animated.View testID="cloud-sheet" style={[{ marginTop: -inset, width: (sp.sheetW ?? 0) * sc, height: (sp.sheetH ?? 0) * sc }, st]}>
@@ -414,5 +468,6 @@ const s = StyleSheet.create({
   label: { ...theme.type.sansBold, fontSize: 13, letterSpacing: 3.1, textTransform: 'uppercase', textAlign: 'center' },
   etch: { alignSelf: 'center' },
   wall: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
+  unseen: { position: 'absolute', left: 0, right: 0, top: 0, color: 'transparent' },
   fill: { position: 'absolute', left: '22%', right: '22%', bottom: 4, height: 2, opacity: 0.5, transformOrigin: 'left' },
 });

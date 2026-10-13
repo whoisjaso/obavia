@@ -69,3 +69,94 @@ describe('the etched label', () => {
     expect(P.dIn).toBeLessThan(P.d as number);
   });
 });
+
+/* The carved labels (tools/cloud-3d/render_labels.py): every imprint the contract ships, laid over the sprite
+   frame it sits on at its size and scale, the way the phone lays it. The floor is the glyph's solid core (the
+   floor mask written beside the imprints). Each floor pixel is compared with the cloud it is read against: the
+   frame's own luminance blurred at half a cap height (the surround; a letter is read against the cloud around
+   it, not the one pixel under it), at rest and on the pressed frame with the press's second copy at
+   IMPRINT.press. The strict ratio, against the very pixel under the floor, is printed beside it in the table. */
+const labelsDir = join(root, '..', 'assets', 'cloud-3d', 'labels');
+const labelsJson = join(labelsDir, 'labels.json');
+const imprintPress = +src.match(/IMPRINT = \{ press: ([\d.]+)/)![1];
+type Img = { width: number; height: number; data: Buffer };
+const png = (f: string): Img => PNG.sync.read(readFileSync(f));
+const lumOf = (c: RGB) => lum(c);
+const fromLum = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+/** Gaussian blur of a luminance field (w x h), edges extended. */
+function blur(f: Float64Array, w: number, h: number, sigma: number) {
+  const r = Math.max(1, Math.floor(3 * sigma)), k: number[] = [];
+  for (let i = -r; i <= r; i++) k.push(Math.exp(-0.5 * (i / sigma) ** 2));
+  const ks = k.reduce((a, b) => a + b, 0);
+  const tmp = new Float64Array(w * h), out = new Float64Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let v = 0; for (let i = -r; i <= r; i++) v += k[i + r] * f[y * w + Math.min(w - 1, Math.max(0, x + i))];
+    tmp[y * w + x] = v / ks;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let v = 0; for (let i = -r; i <= r; i++) v += k[i + r] * tmp[Math.min(h - 1, Math.max(0, y + i)) * w + x];
+    out[y * w + x] = v / ks;
+  }
+  return out;
+}
+/** The worst floor ratios of one imprint over one frame, surround and strict (null when no floor pixel is solid). */
+function carved(imprint: Img, floor: Img, frame: Img, rect: { x: number; y: number; w: number; h: number }, page: RGB, deepen: number, sigma: number) {
+  // the cloud's luminance over the rect and a margin of 3 sigma, so the blur sees the cloud past the rect's edge
+  const m = Math.ceil(3 * sigma), x0 = Math.max(0, rect.x - m), y0 = Math.max(0, rect.y - m);
+  const x1 = Math.min(frame.width, rect.x + rect.w + m), y1 = Math.min(frame.height, rect.y + rect.h + m), W = x1 - x0, H = y1 - y0;
+  const cl = new Float64Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = ((y0 + y) * frame.width + x0 + x) * 4;
+    cl[y * W + x] = lumOf(over([frame.data[i], frame.data[i + 1], frame.data[i + 2]], frame.data[i + 3] / 255, page));
+  }
+  const sur = blur(cl, W, H, sigma);
+  let min = Infinity, strict = Infinity, n = 0;
+  for (let y = 0; y < imprint.height; y++) for (let x = 0; x < imprint.width; x++) {
+    const j = y * imprint.width + x;
+    if (floor.data[j * 4] < 128) continue;
+    const i = ((rect.y + y) * frame.width + rect.x + x) * 4;
+    const cloud = over([frame.data[i], frame.data[i + 1], frame.data[i + 2]], frame.data[i + 3] / 255, page);
+    const t: RGB = [imprint.data[j * 4], imprint.data[j * 4 + 1], imprint.data[j * 4 + 2]], a = imprint.data[j * 4 + 3] / 255;
+    let out = over(t, a, cloud);
+    if (deepen) out = over(t, a * deepen, out);
+    const lo = lumOf(out), k = (rect.y + y - y0) * W + rect.x + x - x0;
+    min = Math.min(min, fromLum(lo, sur[k])); strict = Math.min(strict, fromLum(lo, cl[k])); n++;
+  }
+  return n ? { min, strict, n } : null;
+}
+const exists = (f: string) => { try { readFileSync(f); return true; } catch { return false; } };
+const L = exists(labelsJson) ? JSON.parse(readFileSync(labelsJson, 'utf8')) as {
+  surround_of_cap: number;
+  sizes: Record<string, Record<string, { canvas: { w: number }; rect: { x: number; y: number; w: number; h: number } }>>;
+  labels: Record<string, { text: string; cap_of_canvas_w: number }>;
+} : null;
+const rows = L ? Object.keys(L.labels).flatMap(slug => (['light', 'dark'] as const).map(tone => [slug, tone] as const)) : [];
+const table: string[] = [];
+const f2 = (v?: number) => (v == null ? '-' : v.toFixed(2));
+
+describe.skipIf(!L)('the carved labels', () => {
+  it.each(rows)('%s (%s) holds a 4.5:1 floor against its cloud at every size, at rest and pressed', (slug, tone) => {
+    const page = tone === 'dark' ? hex('#1C2436') : hex('#EEF2FC');
+    let solid = 0;
+    for (const size of ['320', '440', '640']) for (const k of ['1', '2']) {
+      const scale = `@${k}x`, sfx = k === '2' ? '@2x' : '';
+      const { rect, canvas } = L!.sizes[size][scale];
+      const sigma = L!.surround_of_cap * L!.labels[slug].cap_of_canvas_w * canvas.w;
+      const imprint = png(join(labelsDir, tone, size, `${slug}${scale}.png`));
+      const floor = png(join(labelsDir, size, `${slug}-floor${scale}.png`));
+      expect([imprint.width, imprint.height]).toEqual([rect.w, rect.h]);
+      const btn = join(root, '..', 'assets', 'cloud-3d', 'button', tone, size);
+      const rest = carved(imprint, floor, png(join(btn, `rest${sfx}.png`)), rect, page, 0, sigma);
+      const pressed = carved(imprint, floor, png(join(btn, `pressed${sfx}.png`)), rect, page, imprintPress, sigma);
+      table.push(`| ${L!.labels[slug].text} | ${tone} | ${size}${scale} | ${f2(rest?.min)} | ${f2(pressed?.min)} | ${f2(rest?.strict)} | ${rest?.n ?? 0} |`);
+      if (!rest || !pressed) continue;   // a 1x stroke with no solid pixel: the 2x of the same size carries it
+      solid++;
+      expect(rest.min).toBeGreaterThanOrEqual(4.5);
+      expect(pressed.min).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(solid).toBeGreaterThanOrEqual(3);   // every size measured at 2x at least
+  });
+  it.runIf(!!process.env.ETCH_TABLE)('prints the table', () => {
+    console.log(['| label | tone | size | rest | pressed | strict (rest) | floor px |', '| --- | --- | --- | --- | --- | --- | --- |', ...table].join('\n'));
+  });
+});

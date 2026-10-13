@@ -41,6 +41,15 @@ const whenIdle = (cb: () => void) => {
 };
 const first = () => { const h = location.hash.slice(1) || '/'; return h === '/' || h === '/auction'; };
 
+/** The Blender sky layers (public/cloud-3d/sky/light) in place of the cloud-layers set, at once and without WebGL;
+    the set in src/sky stays as the last fallback. */
+export function blenderSky(host: HTMLElement): void {
+  const layer = (d: string) => host.querySelector<HTMLElement>(`.layer.${d} .drift`);
+  host.classList.add('c3d-sky-wait');
+  void engine().skySprites({ far: layer('far'), mid: layer('mid'), near: layer('near') }, host)
+    .finally(() => host.classList.remove('c3d-sky-wait'));
+}
+
 /** The live sky inside <Sky>; returns a cleanup. */
 export function startSky(host: HTMLElement): () => void {
   let stop = () => { /* not started */ };

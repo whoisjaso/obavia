@@ -12,6 +12,14 @@ body{isolation:isolate}
 .cloud-atmosphere .far .cl-cloud{background-image:image-set(url(./sky/clouds/far@1x.webp) 1x,url(./sky/clouds/far@2x.webp) 2x)}
 .cloud-atmosphere .mid .cl-cloud{background-image:image-set(url(./sky/clouds/mid@1x.webp) 1x,url(./sky/clouds/mid@2x.webp) 2x)}
 .cloud-atmosphere .near .cl-cloud{background-position:center bottom;background-image:image-set(url(./sky/clouds/near@1x.webp) 1x,url(./sky/clouds/near@2x.webp) 2x)}
+/* the Blender sky (cloud-atmosphere.js, cloud3d-engine.js): three full-frame, tileable layers. The README's pure
+   stack is 0.72, 0.84, 0.94; behind copy the mid and near banks step back to 0.4 and 0.6 (the phone's Sky does
+   the same) so their blue-grey undersides never sit behind a line of text. The cloud-layers set stays hidden while
+   the probe runs. */
+html .c3d-sky-wait .cl-cloud{background-image:none!important}
+.cloud-atmosphere.c3d-sky-blender>.cl-layer{top:0;bottom:auto;height:100%}
+.cloud-atmosphere.c3d-sky-blender .cl-cloud{background-size:auto 100%;background-repeat:repeat-x}
+.cloud-atmosphere.c3d-sky-blender>.cl-layer.far{opacity:.72}.cloud-atmosphere.c3d-sky-blender>.cl-layer.mid{opacity:.4}.cloud-atmosphere.c3d-sky-blender>.cl-layer.near{opacity:.6}
 .cloud-atmosphere .cl-grain{position:absolute;inset:0;display:block;background:url(./sky/clouds/grain.webp) 0 0/256px repeat;mix-blend-mode:soft-light;opacity:.03}
 @media(max-width:719px){.cloud-atmosphere .far{top:4%;height:46%}.cloud-atmosphere .mid{top:30%;height:52%}.cloud-atmosphere .near{height:56%;bottom:-16%}}
 /* Keep the central reading column white while cloud forms remain at the edges. */

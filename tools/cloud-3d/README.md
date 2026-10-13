@@ -21,6 +21,8 @@ From the repo root:
 BLENDER_PY=/path/to/blender-venv/bin/python tools/cloud-3d/render.sh       # everything
 STAGE=post tools/cloud-3d/render.sh                                         # regrade and repack only (seconds)
 STAGE=fields tools/cloud-3d/render.sh                                       # density grids only
+STAGE=labels tools/cloud-3d/render.sh                                       # the label imprints only
+STAGE=sync tools/cloud-3d/render.sh                                         # copy the web's share only
 ```
 
 `BLENDER_PY` is any Python with `bpy` 4.2 installed (this machine: `scratchpad/blender-venv/bin/python`). `PY` defaults to `python3` with numpy and Pillow. Grids and passes go to `tools/cloud-3d/.work/` (gitignored); each step skips outputs that exist, so delete `.work` to rebuild from zero.
@@ -34,6 +36,10 @@ $BLENDER_PY tools/cloud-3d/render_button.py tools/cloud-3d/.work 960 16
 $BLENDER_PY tools/cloud-3d/render_fx.py tools/cloud-3d/.work
 $BLENDER_PY tools/cloud-3d/render_sky.py tools/cloud-3d/.work 2048 16
 python3 tools/cloud-3d/post.py tools/cloud-3d/.work assets/cloud-3d all
+python3 tools/cloud-3d/render_labels.py tools/cloud-3d/.work masks
+$BLENDER_PY tools/cloud-3d/render_labels.py tools/cloud-3d/.work render 1280 20
+python3 tools/cloud-3d/render_labels.py tools/cloud-3d/.work post assets/cloud-3d
+node tools/cloud-3d/sync.mjs                                               # the web's share, see Where it ships
 ```
 
 ## Outputs (`assets/cloud-3d/`)
@@ -52,6 +58,11 @@ button/ring.png ring@2x.png ring-dark*    a soft air ring, 256 px (512 at @2x)
 sky/{light,dark}/{far,mid,near}.png/.webp 2048 x 1024, tile horizontally
 button/{light,dark}/640/etched-reference.png  GET ON THE LANE carved into the volume (reference only)
 contact.png                               the owner's one-glance judgement sheet
+labels/labels.json                        every label: text, cap size, the rect per size and scale, the contrast
+labels/{light,dark}/{320,440,640}/<slug>@1x.png <slug>@2x.png       the imprint, cut to the safe rect
+labels/{light,dark}/{320,440,640}/<slug>-lip@1x.png <slug>-lip@2x.png   its lit wall alone (landed)
+labels/{320,440,640}/<slug>-floor@1x.png <slug>-floor@2x.png       the floor's solid core (contrast test only)
+labels/contact.png                        every imprint on the 640 rest sprite, light and dark
 ```
 
 Canvas per CSS width: 320 x 128, 440 x 176, 640 x 256 (2.5:1). The cloud body inside spans about 89 percent of the width and reads at about 3.2:1; the rest of the canvas holds the crowns, the wisps and the puff.
@@ -82,6 +93,12 @@ The contact shadows are not ray traced: a sun at 30 degrees would throw the shad
 
 Each layer is a field that is periodic in x (every noise frequency is quantized to a whole number of cells per period, and every cloud is evaluated with its wrapped neighbours) rendered through an orthographic camera that spans exactly one period. The left and right edges meet with no seam; `post.py` prints the edge difference. far: 22 small, flat cumulus humilis high in the frame; mid: 9 medium cumulus in the middle; near: 4 large, soft, low masses. Stack over the sky gradient at 0.72, 0.84, 0.94 with parallax 0.2, 0.5, 1.0 and reuse `assets/cloud-layers/grain.png` at 3 percent soft-light.
 
+## Where it ships
+
+`render.sh` ends with `sync.mjs` (node, no dependencies), which empties and refills the two web copies from the contract, deterministically: `obavia-co/assets/cloud-3d/` and `desk/public/cloud-3d/`. It copies WebP only: rest, pressed and the two shadows at 1x and @2x, the 24 press frames at 1x and @2x for 320, 440 and 640 in light and dark, wisp and ring, the six sky layers, `safe-zone.json` and each size's `sheet.json` and `sheet@2x.json` (geometry and phases; the sheet images stay phone only). 363 files, about 17.5 MB per copy. The web's sprite tier loads one size at the device's scale and its 24 frames after the first paint (`cloud3d-engine.js`; force it with `?cloud3d=sprites`).
+
+The phone takes its own share with `node auction/scripts/cloud3d.mjs`: the 320 and 440 sheets at @2x, converted to WebP, the shadows and the sky, with a generated manifest of literal requires.
+
 ## Render budget (this machine: 4 CPUs, shared)
 
 Measured on October 13, 2026 while another agent rendered on the same 4 CPUs (load 10 to 17), so a quiet machine is faster.
@@ -107,3 +124,23 @@ PNG: 256-colour RGBA palette made by libimagequant with dithering (for the phone
 ## The etched reference
 
 `render_etched.py` carves the label into the rest volume inside Cycles. `build_fields.py etch` writes a glyph mask (DejaVu Sans Bold, upright spaced capitals, centred in the safe rect) and a front-surface depth map (the first voxel above density 0.06 along the view axis) as 16-bit PNGs. The volume shader projects both along the view axis and removes density from the visible surface to 0.14 units deep (about a third of the belly's front depth), feathered 0.03 units at the floor and by a blurred mask at the glyph edges. The same sun shades the groove: the walls fall into blue-grey shade and the floor reads as ink. Labels are never baked into the shipped sprites.
+
+## The label imprints
+
+The phone's label is the real cut, not three stacked copies of the text. `render_labels.py` carves each label in `labels.json` (Bid, Pay, That's me, Continue, Done, Sign, Back to the lane, Not now, Get on the lane, Let a car go) into the rest volume in Cycles exactly as the etched reference is carved (glyph mask plus front-surface depth, 0.14 units deep, feathered), and ships only what the carve changes.
+
+1. **Masks (python3).** The label in upright spaced capitals, set as the app sets it: the platform face at weight 600 (Inter SemiBold, `fonts/Inter.ttf`, OFL, stands in for SF Pro and Roboto), 13 pt with 3.1 pt tracking on a 345 pt cloud, so the em is 0.03768 of the canvas width at every size; a label wider than 92 percent of the safe rect is set smaller (Back to the lane, Get on the lane), as `adjustsFontSizeToFit` does. The cap line is centred at 0.56 of the canvas height, in the top of the safe rect, on the sunlit face of the belly: lower, the belly turns to its blue-grey underside (luminance 0.1 to 0.2), where no floor can hold 4.5:1.
+2. **Renders (bpy).** Only the safe rect and a margin (canvas 0.219 to 0.781 by 0.469 to 0.813, a Cycles border crop, 720 x 176 at 1280) are rendered: once plain and once per label, same grid (frame 23), seed, samples and step rate 1.0, so the difference is the carve and nothing else.
+3. **Post (python3).** Both variants are graded from each render (`grade.py`) and composited on their page. The floor then takes a fill so the label reads, shaded by the same sun: on the light cloud a deep ink (`#141C30` at 94 percent), on the dark lane a thin ice (`#E9EFFE` at 90 percent). The walls come from the same sun (upper left, 30 degrees): the stroke's lower-right edge is the wall facing the sun and is lit; its upper-left edge faces away and is in shade (visible on the ice floor). The carved composite is then unblended against the plain one into the transparent layer with the least alpha that reproduces it (the imprint), limited to the carve's reach, resized from the 1280 master to every size and scale, cut to that size's safe rect and quantized with libimagequant. The lip layer is the part of the imprint brighter than the cloud.
+
+The phone lays the imprint over whatever frame the sheet shows (the cut moves with the cloud as it sinks); under the press a second copy deepens it 10 percent; on landed the lip layer brightens with the swell (`auction/src/components/CloudButton.tsx`, `IMPRINT`). No imprint is rendered from the pressed frame: the deepening stands in for it.
+
+Contrast (`labels.json` `contrast`, re-measured on the shipped sprites in `auction/src/components/etch.test.ts`): each floor pixel against the cloud around it (the frame's luminance blurred at half a cap height) holds 4.5:1 or better on the rest frame and on the pressed frame with the deepening, at every size measured at 2x, and at 1x where the stroke has a solid core. 320 at 1x has no solid floor pixel (the strokes are under 2 px).
+
+| Stage | Size, samples | Time |
+| --- | --- | --- |
+| Masks, 10 labels | 2048 x 512 texture each | about 3 s |
+| Plain crop | 720 x 176 of 1280 x 512, 20 spp + OIDN, step rate 1.0 | LABEL_PLAIN_T |
+| One label | same | LABEL_ONE_T |
+| All ten labels and the plain | | LABEL_ALL_T |
+| Post (grade, fill, unblend, 3 sizes x 2 scales x 2 variants, quantize, contact) | | LABEL_POST_T |

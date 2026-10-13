@@ -30,7 +30,7 @@ html.o-pre .hero [data-r]{opacity:0;animation:o-pre-safe 0s 6s forwards}
 .hero h1{max-width:19ch;font-size:clamp(31px,3.9vw,56px);line-height:1.06;letter-spacing:-.036em}
 .hero h1 em{font-style:normal;color:var(--tint)}
 .hero .lead{max-width:44ch;margin-top:clamp(16px,2vw,22px);font:500 clamp(17px,1.35vw,19px)/1.55 var(--sans);color:var(--body)}
-.hero .act{margin-top:clamp(32px,3.4vw,40px)}
+.hero .act{margin-top:clamp(56px,5vw,64px)}   /* the cloud's crowns rise above its box */
 .film{position:relative;margin:0;aspect-ratio:16/9;border-radius:clamp(20px,2.2vw,30px);isolation:isolate;
   background-color:#F4F7FE;background-image:var(--cl-grain),radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.95),rgba(255,255,255,0) 62%),var(--cl-body);background-size:256px 256px,100% 100%,100% 100%;
   box-shadow:inset 0 1px 0 var(--cl-top),inset 0 -26px 40px -26px rgba(28,36,54,.12),var(--cl-ao);display:grid;place-items:end center}

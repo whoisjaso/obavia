@@ -22,6 +22,14 @@
 .near .cl-cloud{background-position:center bottom;background-image:url(sky/clouds/near@1x.webp);background-image:-webkit-image-set(url(sky/clouds/near@1x.webp) 1x,url(sky/clouds/near@2x.webp) 2x);background-image:image-set(url(sky/clouds/near@1x.webp) 1x,url(sky/clouds/near@2x.webp) 2x)}
 .cl-grain{position:absolute;inset:0;display:block;background:url(sky/clouds/grain.webp) 0 0/256px 256px repeat;mix-blend-mode:soft-light;opacity:.03;pointer-events:none}
 html.o-veil .o-sky .cl-layer{opacity:0;translate:none}
+/* the Blender sky (cloud-atmosphere.js, cloud3d-engine.js): three full-frame, tileable layers. The README's pure
+   stack is 0.72, 0.84, 0.94; behind copy the mid and near banks step back to 0.4 and 0.6 (the phone's Sky does
+   the same) so their blue-grey undersides never sit behind a line of text. The cloud-layers set stays hidden while
+   the probe runs. */
+html .c3d-sky-wait .cl-cloud{background-image:none!important}
+.c3d-sky-blender>.cl-layer{top:0;bottom:auto;height:100%}
+.c3d-sky-blender .cl-cloud{background-size:auto 100%;background-repeat:repeat-x}
+.c3d-sky-blender>.cl-layer.far{opacity:.72}.c3d-sky-blender>.cl-layer.mid{opacity:.4}.c3d-sky-blender>.cl-layer.near{opacity:.6}
 @media (max-width:719px){.cl-layer.far{top:4%;height:46%;opacity:.45}.cl-layer.mid{top:30%;height:52%;opacity:.5}.cl-layer.near{height:56%;bottom:-16%}}
 
 /* ---------- the cloud material: top light, body, underside, contact, grain ----------
@@ -41,13 +49,23 @@ html .cards article:hover{translate:none;box-shadow:inset 0 1px 0 var(--cl-top),
 @media (hover:hover) and (pointer:fine){html .cards article:hover{translate:0 -3px}}
 
 /* ---------- the cloud button ----------
-   The last fallback only: the §5 material without any drawn silhouette (the scalloped puffs are banned,
-   cloud-system §8). The button is a live raymarched volume (cloud3d.js) or the Blender sprites; this
-   rest state shows before they load and wherever neither can run. Press and release run on GSAP. */
-.cloud{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:999px;cursor:pointer;
-  color:var(--cl-ink);font-weight:750;letter-spacing:-.01em;text-decoration:none;white-space:nowrap;
+   The button is a live raymarched volume (cloud3d.js) or the Blender sprites (cloud3d-engine.js). Before the
+   engine boots, the rest sprite itself is the silhouette (::before, its shadow on ::after), placed as the
+   engine places it: the body spans the button, the label sits in the contract's safe rect. Where neither the
+   volume nor the sprites can run, the engine marks the button .c3d-ink: the squared ink bar, as on the phone.
+   No pill anywhere (cloud-system §8). Press and release run on GSAP. */
+.cloud{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:4px;cursor:pointer;
+  color:var(--cl-ink);font-weight:750;text-transform:uppercase;letter-spacing:.14em;text-decoration:none;white-space:nowrap;
   text-shadow:0 1px 0 rgba(255,255,255,.9);-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-user-select:none;user-select:none;
   transition:translate .5s var(--cl-spring)}
+html .cloud:not(.c3d-on):not(.c3d-ink){background:transparent;box-shadow:none}
+html .cloud:not(.c3d-on):not(.c3d-ink)::before,html .cloud:not(.c3d-on):not(.c3d-ink)::after{content:"";position:absolute;z-index:-1;inset:auto;width:112.36%;height:auto;
+  left:-6.18%;top:50%;aspect-ratio:5/2;translate:0 -63%;border-radius:0;box-shadow:none;pointer-events:none;background:center/100% 100% no-repeat;
+  background-image:url(assets/cloud-3d/button/light/440/rest@2x.webp);background-image:image-set(url(assets/cloud-3d/button/light/440/rest.webp) 1x,url(assets/cloud-3d/button/light/440/rest@2x.webp) 2x)}
+html .cloud:not(.c3d-on):not(.c3d-ink)::after{z-index:-2;opacity:1;background-image:url(assets/cloud-3d/button/light/440/shadow-rest@2x.webp);background-image:image-set(url(assets/cloud-3d/button/light/440/shadow-rest.webp) 1x,url(assets/cloud-3d/button/light/440/shadow-rest@2x.webp) 2x)}
+/* the last resort: the squared ink bar, the ice label (the phone's InkBody) */
+html .cloud.c3d-ink,html .o-nav .cloud.c3d-ink,html .o-sheet .cloud.c3d-ink{background:#1C2436;color:#E9EFFE;border-radius:4px;text-shadow:none;box-shadow:0 10px 24px -14px rgba(28,36,54,.45)}
+html .cloud.c3d-ink::before,html .cloud.c3d-ink::after{display:none}
 @media (hover:hover) and (pointer:fine){
   html:not(.cl-physics) .cloud:hover{translate:0 -2px}
 }
@@ -70,14 +88,12 @@ html:not(.cl-physics) .cloud:active{transform:translateY(2px) scale(.985);transi
 .c3d canvas,.c3d .c3d-img{position:absolute;inset:0;width:100%;height:100%;display:block}
 .c3d .c3d-img i{position:absolute;inset:0;background:center/100% 100% no-repeat}
 .c3d .c3d-img i.p{opacity:0}
-.c3d .c3d-ring{position:absolute;left:calc(50% - var(--rw,200px)/2);top:calc(50% - var(--rh,120px)/2 + 6%);width:var(--rw,200px);height:var(--rh,120px);border-radius:50%;opacity:0;
-  background:radial-gradient(closest-side,#fff,rgba(244,247,254,.7) 42%,rgba(242,246,255,0))}
 .c3d .c3d-wisp{position:absolute;width:var(--s);height:var(--s);border-radius:50%;opacity:0;background:radial-gradient(closest-side,rgba(255,255,255,.95),rgba(244,247,254,.55) 50%,rgba(244,247,254,0))}
 html .c3d-on,html .o-nav .c3d-on,html .o-sheet .c3d-on{background:transparent;box-shadow:none;text-shadow:0 1px 0 rgba(255,255,255,.7);translate:none;transition:letter-spacing .18s cubic-bezier(.16,1,.3,1)}
 html .c3d-on::after,html .c3d-on::before{display:none}
 html .c3d-on:focus-visible{box-shadow:none;outline:none}
-.c3d-on.c3d-hover{letter-spacing:0}
-.c3d-on.c3d-focus{outline:1px solid #6F8AC4!important;outline-offset:5px;border-radius:999px}
+.c3d-on.c3d-hover{letter-spacing:.15em}
+.c3d-on.c3d-focus{outline:1px solid #6F8AC4!important;outline-offset:5px;border-radius:2px}
 /* the live sky: over the plain gradient, under the grain; the drawn layers step back once it has a frame */
 .c3d-sky{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.6s cubic-bezier(.2,.7,.2,1)}
 .c3d-sky-on>.c3d-sky{opacity:1}

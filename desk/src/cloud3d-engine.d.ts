@@ -10,7 +10,7 @@ export interface Cloud3D {
   stats: { sky: FrameMeter | null; button: FrameMeter | null; mode: Record<string, string> };
   GLSL: Record<'VS' | 'NOISE_FS' | 'SKY_FS' | 'BTN_FS', string>;
   sky(host: HTMLElement, o?: { before?: Node | null; layers?: Record<string, HTMLElement | null>; lift?: () => number; rate?: number; scale?: number }): Promise<SkyHandle | null>;
-  skySprites(layers: Record<string, HTMLElement | null>): Promise<boolean>;
+  skySprites(layers: Record<string, HTMLElement | null>, host?: HTMLElement): Promise<boolean>;
   attach(el: HTMLElement, o?: { live?: boolean; top?: number; form?: boolean }): unknown;
   detach(el: HTMLElement): void;
   has(el: Element): boolean;

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node ../tools/cloud-3d/sync.mjs",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b && tsc -p server/tsconfig.json",
     "preview": "vite preview",
