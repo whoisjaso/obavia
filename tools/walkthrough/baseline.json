@@ -1,6 +1,6 @@
 {
  "written": "2026-10-13",
- "from": "20261013-070225",
+ "from": "20261013-100146",
  "ceiling": 4,
  "screens": {
   "lane": {
@@ -256,12 +256,12 @@
   },
   "won-done": {
    "title": "Won, all four done",
-   "must": 4,
-   "verb": 4,
+   "must": 3,
+   "verb": 3,
    "read": 0,
    "kept": 0,
    "words": [
-    "Back to the lane"
+    "To the lane"
    ]
   },
   "me": {
