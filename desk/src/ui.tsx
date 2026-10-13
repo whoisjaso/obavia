@@ -3,14 +3,13 @@ import { flushSync } from 'react-dom';
 import type { Receipt as R } from './lib/money';
 import { usd } from './lib/money';
 import { landed, pressedNow, skyDrift } from './motion';
+import { startSky } from './cloud3d';
 
 /* ---------- feel: soft tones after a tap, a haptic tick, never on scroll ---------- */
 let ac: AudioContext | null = null;
-const quiet = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const audio = () => { try { ac ??= new AudioContext(); if (ac.state === 'suspended') void ac.resume(); return ac; } catch { return null; } };
 /** A soft, rounded tone: slow attack, low pass, short tail. Never loud. */
 function chime(freqs: number[], gain = 0.012, gap = 0.1, tail = 0.7) {
-  if (quiet()) return;
   const a = audio(); if (!a) return;
   freqs.forEach((f, i) => {
     const t0 = a.currentTime + 0.01 + i * gap, o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter();
@@ -22,9 +21,10 @@ function chime(freqs: number[], gain = 0.012, gap = 0.1, tail = 0.7) {
 /* The cloud kit (docs/design/cloud-system.md §3, public/sfx/cloud/): filtered air, every file peaking at
    -18 dBFS with the one room baked in. Decoded once, after the first gesture (no sound before a
    gesture is allowed anyway). Gains only ever lower a file: the house tones stay the moment's voice,
-   the clouds are the texture under them. Never on scroll; negative paths are silent. */
-type Cloud = 'touch' | 'rise' | 'settle' | 'landed';
-const KIT: Record<Cloud, number> = { touch: 0.8, rise: 0.7, settle: 0.6, landed: 1 };
+   the clouds are the texture under them. Never on scroll; negative paths are silent. Reduced motion
+   keeps every sound and haptic (cloud-system §4): it reduces motion, not feedback. */
+type Cloud = 'touch' | 'rise' | 'settle' | 'landed' | 'hover' | 'drift';
+const KIT: Record<Cloud, number> = { touch: 0.8, rise: 0.7, settle: 0.6, landed: 1, hover: 1, drift: 1 };
 const kit: Partial<Record<Cloud, AudioBuffer>> = {};
 let primed = false, lastGesture = -1e9;
 /** Fetch and decode the kit once, on the first pointer or key; every gesture after keeps the context awake. */
@@ -37,14 +37,40 @@ export function primeClouds() {
       .then(b => a.decodeAudioData(b)).then(d => { kit[n] = d; }).catch(() => { /* the kit is texture; the tones still play */ });
   });
 }
-function puff(n: Cloud, delay = 0) {
-  const b = kit[n]; if (!b || !ac || quiet()) return;
+function puff(n: Cloud, delay = 0, gain = 1) {
+  const b = kit[n]; if (!b || !ac) return;
   try {
     const s = ac.createBufferSource(), g = ac.createGain();
-    s.buffer = b; g.gain.value = KIT[n]; s.connect(g).connect(ac.destination); s.start(ac.currentTime + delay);
+    s.buffer = b; g.gain.value = KIT[n] * gain; s.connect(g).connect(ac.destination); s.start(ac.currentTime + delay);
   } catch { /* a closed context: silence */ }
 }
-export const haptic = () => { try { navigator.vibrate?.(6); } catch { /* no haptics */ } };
+const isCloud = (n: string): n is Cloud => n in KIT;
+/** The kit for the live clouds (cloud3d.ts): one-shots, and a held breath (cloud-drift looped, in over 180 ms, out over 300 ms). */
+export const cloudSound = {
+  play: (n: string, gain = 1) => { if (isCloud(n)) puff(n, 0, gain); },
+  loop: (n: string, gain = 0.15) => {
+    const b = isCloud(n) ? kit[n] : undefined, none = { stop() { /* silent */ } };
+    if (!b || !ac) return none;
+    try {
+      const s = ac.createBufferSource(), g = ac.createGain(), t = ac.currentTime, a = ac;
+      s.buffer = b; s.loop = true; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.18);
+      s.connect(g).connect(a.destination); s.start();
+      let done = false;
+      return { stop() { if (done) return; done = true; const n0 = a.currentTime; g.gain.cancelScheduledValues(n0); g.gain.setValueAtTime(g.gain.value, n0); g.gain.linearRampToValueAtTime(0, n0 + 0.3); s.stop(n0 + 0.32); } };
+    } catch { return none; }
+  },
+};
+/** A tap you can feel: the vibration API where it exists; on iPhone (Safari ignores vibrate) a native
+ *  iOS 18 switch toggled off-screen ticks the Taptic Engine, the same trick as obavia-co/shell.js. */
+export const haptic = () => {
+  try { if (navigator.vibrate) { navigator.vibrate(6); return; } } catch { /* fall through */ }
+  try {
+    const l = document.createElement('label'), i = document.createElement('input');
+    i.type = 'checkbox'; i.setAttribute('switch', ''); l.appendChild(i);
+    l.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
+    document.body.appendChild(l); l.click(); l.remove();
+  } catch { /* no haptics */ }
+};
 let lastKey = 0;
 export const feel = {
   tap: () => { haptic(); chime([659.25], 0.009, 0, 0.45); },
@@ -64,10 +90,11 @@ export const feel = {
 /* ---------- the sky: three cloud banks, far to near, over a fine grain ----------
    The layers are the shared volumetric set (assets/cloud-layers/light, as WebP in src/sky; drawn by
    styles.css); src/motion.ts (skyDrift) drifts each on its own slow timeline and parts them by depth
-   on scroll. The sky never takes a tap and never moves on a page change. */
+   on scroll. The sky never takes a tap and never moves on a page change. Where WebGL2 runs, a live
+   raymarched deck (cloud3d.ts) takes their place once it has a frame; the layers stay as its fallback. */
 export function Sky() {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => skyDrift(ref.current!), []);
+  useEffect(() => { const el = ref.current!, a = skyDrift(el), b = startSky(el); return () => { a(); b(); }; }, []);
   return (
     <div className="sky" aria-hidden="true" ref={ref}>
       <i className="glow" />

@@ -104,7 +104,7 @@ if(!HOST && !KIT_ONLY){
    ============================================================ */
 const CLOUD_SURFACE = '.cloud,.btn,.o-join,.cards article,.facts .row>div';
 const CL = OBV.cloud = {};
-const KIT = {}, KIT_FILES = ['touch','rise','settle','landed'];
+const KIT = {}, KIT_FILES = ['touch','rise','settle','landed','hover','drift'];
 const spring = (z,resp,T) => { const w=2*Math.PI/resp, s=Math.sqrt(Math.max(1e-6,1-z*z)), wd=w*s;
   return p => p>=1 ? 1 : z<1 ? 1-Math.exp(-z*w*p*T)*(Math.cos(wd*p*T)+z/s*Math.sin(wd*p*T)) : 1-Math.exp(-w*p*T)*(1+w*p*T); };
 const RISE = spring(.65,.3,.6), RISE_FLAT = spring(1,.3,.6);
@@ -117,11 +117,23 @@ function loadKit(){
 // fetched after the page has loaded, when the browser is idle; decoded once, played on the shell's context
 addEventListener('load',()=>{ (window.requestIdleCallback||setTimeout)(loadKit,{timeout:2500}); },{once:true});
 const loud = () => [...document.querySelectorAll('video')].some(v=>!v.paused && !v.muted);
+// Reduced motion keeps the kit (owner, Oct 13: "sounds stay"); the motion is what it reduces.
 CL.play = (name,gain=1) => {
   const sh = window.OSHELL && OSHELL.snd, buf = KIT[name];
-  if(!sh || !sh.on || !sh.ac || !buf || matchMedia('(prefers-reduced-motion: reduce)').matches || loud()) return;
+  if(!sh || !sh.on || !sh.ac || !buf || loud()) return;
   try{ const ac=sh.ac, src=ac.createBufferSource(), g=ac.createGain(); src.buffer=buf; g.gain.value=gain;
     src.connect(g); g.connect(ac.destination); src.start(); }catch(e){}
+};
+// a held breath: cloud-drift looped, faded in over 180 ms, out over 300 ms on stop (hover, a long press)
+CL.loop = (name,gain=.15) => {
+  const sh = window.OSHELL && OSHELL.snd, buf = KIT[name], none = {stop(){}};
+  if(!sh || !sh.on || !sh.ac || !buf || loud()) return none;
+  try{ const ac=sh.ac, src=ac.createBufferSource(), g=ac.createGain(), t=ac.currentTime; src.buffer=buf; src.loop=true;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(gain,t+.18); src.connect(g); g.connect(ac.destination); src.start();
+    let done=false;
+    return {stop(){ if(done) return; done=true; const n=ac.currentTime; g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(g.gain.value,n);
+      g.gain.linearRampToValueAtTime(0,n+.3); src.stop(n+.32); }};
+  }catch(e){ return none; }
 };
 const GS = window.gsap;
 if(GS){

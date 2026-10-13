@@ -1,8 +1,8 @@
 /* obavia.co, the lane's page: layout, the film slot, the embedded
    application and the sections below it. Tokens and the cloud material
    come from cloud.css (docs/design/cloud-system.md section 5); the primary
-   button is cloud.css's .cloud, unchanged, so its rendered sprite lands
-   with one CSS change there. Reveals and press physics run in site.js. */
+   button is cloud.css's .cloud; cloud3d.js makes the hero's a live volume,
+   whose lobes rise above the box, hence the hero's taller gap above it. Reveals and press physics run in site.js. */
 :root{--ink:#1C2436;--body:#4B5468;--muted:#636B7E;--navy:#28344F;--tint:#4E6AA8;--deep:#7D97C7;--line:rgba(28,36,54,.09);--warn:#9A5A1C;
   --sans:'Manrope','Helvetica Neue',Arial,sans-serif;--mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
   --ease:cubic-bezier(.2,.7,.2,1);--out:cubic-bezier(.16,1,.3,1);--spring:cubic-bezier(.32,.72,0,1)}
@@ -30,7 +30,7 @@ html.o-pre .hero [data-r]{opacity:0;animation:o-pre-safe 0s 6s forwards}
 .hero h1{max-width:19ch;font-size:clamp(31px,3.9vw,56px);line-height:1.06;letter-spacing:-.036em}
 .hero h1 em{font-style:normal;color:var(--tint)}
 .hero .lead{max-width:44ch;margin-top:clamp(16px,2vw,22px);font:500 clamp(17px,1.35vw,19px)/1.55 var(--sans);color:var(--body)}
-.hero .act{margin-top:clamp(24px,3vw,34px)}
+.hero .act{margin-top:clamp(32px,3.4vw,40px)}
 .film{position:relative;margin:0;aspect-ratio:16/9;border-radius:clamp(20px,2.2vw,30px);isolation:isolate;
   background-color:#F4F7FE;background-image:var(--cl-grain),radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.95),rgba(255,255,255,0) 62%),var(--cl-body);background-size:256px 256px,100% 100%,100% 100%;
   box-shadow:inset 0 1px 0 var(--cl-top),inset 0 -26px 40px -26px rgba(28,36,54,.12),var(--cl-ao);display:grid;place-items:end center}

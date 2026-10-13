@@ -1,8 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import { Sky, feel, primeClouds } from './ui';
+import { Sky, cloudSound, feel, primeClouds } from './ui';
 import { cloudPress, watchEnter } from './motion';
+import { setCloudSound, watchButtons } from './cloud3d';
 import './styles.css';
 
 // A soft tick on every keystroke in any field.
@@ -16,4 +17,6 @@ watchEnter(root, feel.settle);
 addEventListener('pointerdown', primeClouds, { capture: true, passive: true });
 addEventListener('keydown', primeClouds, { capture: true, passive: true });
 cloudPress(document, { press: feel.touch, release: feel.rise });
+setCloudSound(cloudSound);
+watchButtons(document.body);
 createRoot(root).render(<StrictMode><Sky /><App /></StrictMode>);

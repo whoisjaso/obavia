@@ -15,6 +15,7 @@
 import { createElement, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { gsap } from 'gsap';
 import { CustomEase } from 'gsap/CustomEase';
+import { cloud3d } from './cloud3d';
 
 gsap.registerPlugin(CustomEase);
 /* The house curves from styles.css, so CSS and GSAP move alike. */
@@ -154,6 +155,7 @@ export function useRing(ref: RefObject<HTMLElement>, p: number, remember?: strin
 export function landed(el: HTMLElement | null | undefined) {
   if (!el || !el.isConnected) return;
   el.classList.remove('is-pressed');
+  cloud3d.landed(el); // a live cloud also breathes inside its volume (sun, density, the air ring)
   if (reduced) return;
   gsap.timeline({ onComplete: () => { gsap.set(el, { clearProps: TRANSFORM }); } })
     .to(el, { y: 0, scale: 1.03, duration: 0.21, ease: 'sine.inOut', overwrite: 'auto' })
@@ -172,11 +174,13 @@ export const pressedNow = () => (lastPress && performance.now() - lastPress.at <
 const inert = (el: HTMLElement) => el.matches(':disabled, [aria-disabled="true"], .locked') || !!el.closest('fieldset:disabled, .locked');
 function sink(el: HTMLElement) {
   el.classList.add('is-pressed'); // the shade pseudo-element fades to 55 percent in CSS (100 ms)
+  if (cloud3d.has(el)) { cloud3d.press(el); return; } // a cloud volume: the engine sinks the box and compresses the field together
   if (reduced) { gsap.to(el, { opacity: 0.7, duration: 0.08, ease: 'none', overwrite: 'auto' }); return; }
   gsap.to(el, { y: 2.5, scale: 0.985, duration: 0.1, ease: OUT, overwrite: 'auto' });
 }
 function rise(el: HTMLElement, cancel: boolean) {
   el.classList.remove('is-pressed');
+  if (cloud3d.has(el)) { cloud3d.release(el, cancel); return; } // the spring, the puff, the wisps, the ring, the label dip
   if (reduced) { gsap.to(el, { opacity: 1, duration: 0.12, ease: 'none', overwrite: 'auto', clearProps: 'opacity' }); return; }
   gsap.to(el, { y: 0, scale: 1, duration: 0.3, ease: cancel ? OUT : RISE, overwrite: 'auto', clearProps: TRANSFORM });
 }

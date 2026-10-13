@@ -53,11 +53,11 @@
   <div class="o-wrap">
     <a class="o-brand" href="#top" aria-label="Obavia, back to the top"><img src="favicon.svg" alt="" id="oMark"></a>
     <ul class="o-links"><li><a href="#how">How it works</a></li><li><a href="#cost">What it costs</a></li><li><a href="#buyers">Buyers</a></li><li><a href="#worst">How bad it can get</a></li></ul>
-    <a class="o-join cloud" href="#apply">Get on the lane</a>
+    <a class="o-join cloud" href="#apply" data-cloud3d="compact">Get on the lane</a>
     <button class="o-menu" id="oMenu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="oSheet"><span><i></i><i></i></span></button>
   </div>
 </header>
-<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="#how">How it works</a><a href="#cost">What it costs</a><a href="#buyers">Buyers</a><a href="#worst">How bad it can get</a><a class="o-join cloud" href="#apply">Get on the lane</a></nav>
+<nav class="o-sheet" id="oSheet" aria-label="Menu"><a href="#how">How it works</a><a href="#cost">What it costs</a><a href="#buyers">Buyers</a><a href="#worst">How bad it can get</a><a class="o-join cloud" href="#apply" data-cloud3d="compact">Get on the lane</a></nav>
 <script src="shell.js"></script>
 <main>
 <!-- The first viewport: the dealer hook (messaging-hooks.md, DV1), one line, the film slot, one action (CF6). -->
@@ -66,7 +66,7 @@
     <div class="copy">
       <h1 data-r>Name the least you’ll take on the car you’re losing money on, and <em>its bidding closes Thursday at 3.</em></h1>
       <p class="lead" data-r>Obavia is the public lane behind your desk. Buyers across Texas bid from their phones, and the Desk runs the paperwork.</p>
-      <div class="act" data-r><button class="btn cloud" type="button" data-go="apply">Get on the lane</button></div>
+      <div class="act" data-r><button class="btn cloud" type="button" data-go="apply" data-cloud3d>Get on the lane</button></div>
     </div>
     <!-- The Let It Go film is shot Fri Dec 4, 2026 (plan section 2.1). Until it exists this frame stays empty: no poster, no thumbnail. -->
     <figure class="film" id="film" data-r aria-label="The film slot">
@@ -273,5 +273,6 @@
 <script src="site.js"></script>
 <script src="cloud-atmosphere.js"></script>
 <script src="lane-apply.js"></script>
+<script type="module" src="cloud3d.js"></script>
 </body>
 </html>
