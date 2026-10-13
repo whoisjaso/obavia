@@ -4,7 +4,7 @@
    buyer's clock, the money, the VIN at pickup, and the way out (void).
    The lane refuses collateral it cannot see; so does this screen, earlier. */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, releaseRefusal, said, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
+import { KEY_SHAPE, auctionLive, carMeta, closeLot, collateralRefusal, dealerKey, releaseRefusal, said, getLot, holdingCost, isAdminKey, lotId, lotLinks, markPaid, openLot, photoBlob, pickup, putDocument, putPhoto, rememberLot, takeArrival, timeLeft, updateCar, voidSale, watchLot, wholesaleBand, youGetYouBring, type Collateral, type Lot, type LotLink, type RemotePhoto } from './lib/auction';
 import { buyersGuidePdf } from './lib/official';
 import { usd } from './lib/money';
 import { today } from './lib/loans';
@@ -84,17 +84,21 @@ function Offline() {
   );
 }
 
-/* ---------- /auction/setup : the dealer's key, pasted once ---------- */
+/* ---------- /auction/setup : the key page, the fallback ----------
+   A dealer arrives by Open The Desk on the application's key screen (main.tsx, takeKeyFromLink) and never
+   sees this page. It is reached from a link with no usable key, or from Key on the Lane. The one line says
+   where the key comes from; the paste field sits below it, faint, and Keep It joins only once a key is in it. */
 export function Setup() {
   const [k, setK] = useState(dealerKey.get() ?? '');
+  const ready = KEY_SHAPE.test(k.trim());
   return (
     <main className="wrap center"><div className="top"><Back to="#/auction" label="Lane" /></div>
       <section className="enter" key="setup">
         <h1 className="q">Your lane <em>key.</em></h1>
-        <p className="note">Obavia gives each dealer one key. Paste it here, once, on this device.</p>
-        <label className="field"><input className="input" value={k} onChange={e => setK(e.target.value)} placeholder="d:P123456.…" autoCapitalize="off" autoCorrect="off" spellCheck={false} /></label>
+        <p className="note">Tap Open The Desk on the page that gave you your key, on this phone.</p>
+        <label className="field faint-field" style={{ marginTop: 40 }}><span>Or paste the key here.</span><input className="input" value={k} onChange={e => setK(e.target.value)} placeholder="d:P123456.…" autoCapitalize="off" autoCorrect="off" spellCheck={false} aria-label="Your key" /></label>
       </section>
-      <div className="dock"><div className="in"><button className="btn primary block" disabled={!/^d:[^.]+\.[A-Za-z0-9_-]+$/.test(k.trim())} onClick={() => { feel.done(); dealerKey.set(k); go('/auction'); }}>Keep It</button></div></div>
+      {ready && <div className="dock"><div className="in"><button className="btn primary block" onClick={() => { feel.done(); dealerKey.set(k); go('/auction'); }}>Keep It</button></div></div>}
     </main>
   );
 }
@@ -126,6 +130,10 @@ export function LetItGo() {
   const [failed, setFailed] = useState<string | null>(null);
   const [landed, setLanded] = useState(false);
   const goBtn = useRef<HTMLButtonElement>(null);
+  const opener = useRef<HTMLHeadingElement>(null);
+  /* Arrived by Open The Desk: the key is kept, so the first question breathes once with the chime and the tick.
+     A browser may hold the chime and the tick until the first touch on this page (no gesture crossed the link). */
+  useEffect(() => { if (takeArrival()) feel.landedOn(opener.current); }, []);
 
   const found = useMemo(() => lot.filter(v => !busy.has(v.id) && !onLane.has(v.id) && `${v.stock} ${v.year} ${v.make} ${v.model} ${v.vin}`.toLowerCase().includes(q.toLowerCase())), [lot, q, sales]);
   const payoffN = status === 'lender' ? Number(payoff) || 0 : 0, floorN = Number(floor) || 0;
@@ -182,7 +190,7 @@ export function LetItGo() {
       <div className="top">{at === 0 ? <Back to="#/auction" label="Lane" /> : <button className="back" onClick={() => { feel.tap(); back(); }}><Ic n="chev" s={18} w={2.4} />Back</button>}<span className="step num">{at + 1} of {pages.length}</span></div>
 
       {page === 'car' && <section className="enter" key="car">
-        <h1 className="q">Which car <em>goes?</em></h1>
+        <h1 className="q" ref={opener}>Which car <em>goes?</em></h1>
         <label className="field"><input className="input" autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Stock, year, make or VIN" /></label>
         <div className="choices">{found.slice(0, 8).map(v => <Choice key={v.id} label={carName(v)} gloss={`${v.stock} · ${usd(v.price)}${v.mileage != null ? ` · ${v.mileage.toLocaleString()} mi` : ''}`} on={car?.id === v.id} onPick={() => { setCar(v); next(); }} />)}
           {!found.length && <p className="empty">{lot.length ? 'No car matches. Cars in a sale or on the lane stay out.' : 'Add cars to the lot first.'}</p>}</div>

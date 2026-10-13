@@ -136,12 +136,13 @@ The submit screen is the key screen. There is no "we will call you" and no separ
 | | |
 | --- | --- |
 | Copy, headline | **Here is your key.** |
-| Copy, the key | The key in a large monospace box: `d:…` |
-| Primary action | `Copy Key` |
-| Copy, under the button | Paste it in the Desk under Auction, then Key. One key, one device. |
+| Copy, the key | The key as a thing: its first and last four characters in Bodoni, the middle hidden (`d:P1 •••• tEx0`). |
+| Primary action | `Open The Desk`, one cloud button: a link to the Desk with the key in the fragment (`<desk>#/auction/setup?key=<token>`). The fragment never reaches a server. The Desk keeps the key, takes it out of the address bar and the tab's history (`history.replaceState`) and lands on Let It Go with the landed moment. (Legibility audit D2, built 2026-10-13.) |
+| Second line, faint | `Copy Key`, for a dealer opening the Desk on another device; it copies the whole key. |
+| Copy, under it, faint | One key, one device. |
 | Copy, last line, faint | Start with your 2014 Altima. (The page 5 answer, shown back.) |
-| Built from | `POST /dealers` (Worker) issues the key. The Desk's `#/auction/setup` takes the paste ("Keep It"). |
-| Held to | Submit → key pasted: floor 50%, target 84%. A pasted key fires `CompleteRegistration`. Key → first lot within 14 days ≥ 50%. |
+| Built from | `POST /dealers` (Worker) issues the key; the Worker is unchanged. The Desk reads the fragment before its first render (`desk/src/lib/auction.ts` `takeKeyFromLink`). `#/auction/setup` is the fallback, reached from a link with no usable key or from Key on the Lane: one line, then the paste field, faint ("Keep It" appears once a key is in it). |
+| Held to | Submit → key kept (by the link or the paste; the stage the plan calls "key pasted"): floor 50%, target 84%. A kept key fires `CompleteRegistration` (not built yet: the Desk carries no pixel). Key → first lot within 14 days ≥ 50%. |
 
 What this needs that is not built yet, as of this file: today `POST /dealers` is an admin call. For the key to be issued on submit without a person, the Worker has to issue a key only after a verified page 8 code and a page 6 TxDMV match. That build belongs to onboarding, admin and systems, and it is due by Mon Nov 16, 2026. No copy here claims it before then.
 

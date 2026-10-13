@@ -89,6 +89,7 @@
   <div class="wrap">
     <form class="ap" id="ap" novalidate data-r
       data-endpoint="/api/waitlist"
+      data-desk="https://desk.obavia.co/"
       data-backend="pending: worker must accept step, application{gdnHeld,lotSize,agedOver60,floorplan,losingCar,gdn,dealerName,dealerCity,phoneVerified}">
       <div class="ap-top"><button class="ap-back" id="apBack" type="button" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 3.5L5 8l5.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</button></div>
       <div class="ap-line" id="apLine" role="progressbar" aria-label="Application progress" aria-valuemin="1" aria-valuemax="9" aria-valuenow="1"><i></i></div>
@@ -166,11 +167,15 @@
           <button class="btn cloud ap-go" type="button" data-next>Apply</button>
         </div>
 
+        <!-- The key screen (legibility audit D2, Oct 13): two pieces, the key and the one verb. The key shows its
+             first and last four; Open The Desk carries it in the fragment (#/auction/setup?key=...), which never
+             reaches a server log, and the Desk keeps it itself. Copy Key is for a dealer on another device. -->
         <div class="ap-p" data-p="key" hidden>
           <h2 class="ap-q" tabindex="-1">Here is your key.</h2>
-          <code class="ap-key" id="apKey"></code>
-          <button class="btn cloud ap-go" type="button" id="apCopy">Copy Key</button>
-          <p class="ap-sub">Paste it in the Desk under Auction, then Key. One key, one device.</p>
+          <p class="ap-key" id="apKey" aria-label="Your key"><span id="apKeyHead"></span><span class="ap-key-mid" aria-hidden="true">&bull;&bull;&bull;&bull;</span><span id="apKeyTail"></span></p>
+          <a class="btn cloud ap-go" id="apOpen" data-cloud3d>Open The Desk</a>
+          <button class="ap-again ap-copy" id="apCopy" type="button">Copy Key</button>
+          <p class="ap-sub faint ap-one">One key, one device.</p>
           <p class="ap-sub faint" id="apStart"></p>
         </div>
 

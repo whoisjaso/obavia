@@ -788,3 +788,20 @@ button.row:active{background:rgba(255,255,255,.7)}
 .wrap{padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))}
 .wrap:has(.dock .textlink){padding-bottom:calc(230px + env(safe-area-inset-bottom,0px))}
 
+
+/* The key page is the fallback (legibility audit D2): the paste field sits low and quiet, the label in muted at 17 px,
+   the field without its panel until it is touched. Contrast holds: the words stay ink and muted on the sky. */
+.faint-field span{text-align:center;font-weight:600}
+.faint-field .input{background:rgba(255,255,255,.5);box-shadow:0 0 0 1px var(--line);font-size:17px;text-align:center}
+.faint-field .input:focus{background:var(--panel)}
+
+/* The dock's cloud (legibility-audit D3). Every page with a dock pads its foot by the dock's cloud height plus 16 px:
+   --dock-cloud is measured from the crowns' top to the glass's bottom, the safe area included (cloud3d.ts
+   watchDock); the fallbacks are the same sum for a lone button (crowns 41, button 58, dock foot 16) and for a
+   button with a text link under it (+51). A centered page centers in what is left above it, so at rest its last
+   row sits clear of the cloud whenever it fits on the glass; when it does not, the padding lets it scroll clear. */
+.wrap:has(.dock){padding-bottom:calc(var(--dock-cloud,115px) + 16px)}
+.wrap:has(.dock .textlink){padding-bottom:calc(var(--dock-cloud,166px) + 16px)}
+.center:has(.dock) section.enter{min-height:calc(100svh - max(20px,env(safe-area-inset-top,0px)) - 62px - var(--dock-cloud,115px) - 16px)}
+.center:has(.dock .textlink) section.enter{min-height:calc(100svh - max(20px,env(safe-area-inset-top,0px)) - 62px - var(--dock-cloud,166px) - 16px)}
+

@@ -14,6 +14,31 @@ export const dealerKey = {
   set: (k: string) => { try { localStorage.setItem(KEY, k.trim()); } catch { /* private mode */ } },
 };
 
+/** A dealer key's shape: d:<who>.<signature>. The paste field and the link take the same shape. */
+export const KEY_SHAPE = /^d:[^.]+\.[A-Za-z0-9_-]+$/;
+
+/* ---------- Open The Desk (legibility audit D2) ----------
+   The application's key screen links to the Desk with the key in the fragment:
+   <desk>#/auction/setup?key=<token>. A fragment is never sent to a server, so the key is in no
+   request line or server log. Read once, before the first render: the key is kept exactly as a
+   pasted key is kept (dealerKey.set), then replaceState takes it out of the address bar and out of
+   this tab's history entry, and the Desk lands on Let It Go. A link with no usable key lands on the
+   key page, where the paste field is the fallback. Returns null when the address is not such a link. */
+let arrived = false;
+type Loc = Pick<Location, 'hash' | 'pathname' | 'search'>;
+type Hist = Pick<History, 'replaceState' | 'state'>;
+export function takeKeyFromLink(loc: Loc = location, hist: Hist = history): 'kept' | 'bad' | null {
+  const m = /^#\/auction\/setup\?(.*)$/.exec(loc.hash);
+  if (!m) return null;
+  const k = (new URLSearchParams(m[1]).get('key') ?? '').trim();
+  const ok = KEY_SHAPE.test(k);
+  if (ok) { dealerKey.set(k); arrived = true; }
+  hist.replaceState(hist.state, '', `${loc.pathname}${loc.search}${ok ? '#/auction/go' : '#/auction/setup'}`);
+  return ok ? 'kept' : 'bad';
+}
+/** True once, on the first Let It Go after the link kept a key: that screen plays the landed moment. */
+export function takeArrival() { const a = arrived; arrived = false; return a; }
+
 /** The lane as the Desk remembers it: one lot per car it let go. */
 export type LotLink = { lotId: string; vehicleId: string; openedAt: string; closesAt: number; floor: number; days: number;
   soldOn?: string;      // the hammer's date in the dealer's zone: the lane title and tax clocks run from it

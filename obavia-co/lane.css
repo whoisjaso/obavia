@@ -152,7 +152,15 @@ html:not(.cl-physics) .ap-choice:active{transform:translateY(2px) scale(.985)}
 .ap-go.cloud{margin-top:clamp(52px,5vw,60px)}   /* the cloud's crowns rise above its box: room so they never touch the field */
 .ap-again{justify-self:center;height:40px;padding:0 12px;border:0;background:none;cursor:pointer;font:600 17px/1 var(--sans);color:var(--muted);text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(79,87,107,.4)}
 .ap-again[hidden]{display:none}
-.ap-key{display:block;padding:18px 16px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1px rgba(28,36,54,.1);font:500 clamp(15px,1.6vw,18px)/1.4 var(--mono);color:var(--ink);word-break:break-all;-webkit-user-select:all;user-select:all}
+/* the key screen (audit D2): the key as a thing, its first and last four in Bodoni with the middle hidden, then the one verb */
+@font-face{font-family:'Bodoni Moda';src:url(assets/bodoni-moda-500.woff2) format('woff2');font-weight:500;font-style:normal;font-display:swap}
+.ap-key{display:flex;align-items:center;justify-content:center;gap:.32em;padding:20px 16px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1px rgba(28,36,54,.1);font:500 clamp(32px,3.4vw,38px)/1.1 'Bodoni Moda','Bodoni 72',Didot,serif;font-variant-numeric:lining-nums;letter-spacing:.01em;color:var(--ink);white-space:nowrap}
+.ap-key-mid{color:var(--muted);letter-spacing:.14em;font:600 .62em/1 var(--sans)}
+.ap-p[data-p="key"] .ap-copy{margin-top:6px}
+.ap-p[data-p="key"] .ap-one{margin-top:0;text-align:center}
+.ap-p[data-p="key"] #apStart{text-align:center}
+.ap-p[data-p="key"] #apStart:empty{display:none}
+a.ap-go[hidden]{display:none}
 .ap-note{margin-top:16px;font:500 17px/1.45 var(--sans);color:var(--muted);text-align:center}
 .ap-note:empty{display:none}
 .ap .trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}

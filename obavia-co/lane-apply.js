@@ -214,7 +214,7 @@ emBtn.addEventListener('click', async () => {
     if (typeof window.fbq === 'function') window.fbq('track', 'Lead');      // AD1: submit fires Lead
     hist = []; log('advance', '9');
     if (typeof r.data.key === 'string' && r.data.key) {
-      $('apKey').textContent = r.data.key;
+      showKey(r.data.key);
       const first = A.losingCar.split(/[,;(]/)[0].trim().replace(/[.\s]+$/, '');
       $('apStart').textContent = first ? `Start with your ${first}.` : '';
       show('key');
@@ -230,11 +230,29 @@ emBtn.addEventListener('click', async () => {
   else say(emErr, 'We couldn’t send that yet. Please try again.');
 });
 
-/* ---------- the key ---------- */
+/* ---------- the key (legibility audit D2) ----------
+   Two pieces: the key, its first and last four in Bodoni with the middle hidden, and the one verb.
+   Open The Desk is a link to the Desk with the key in the fragment (#/auction/setup?key=...): a fragment
+   is never sent to a server, so it is in no request line or log; the Desk stores it, takes it out of the
+   address bar and lands on Let It Go. Copy Key, faint, is for a dealer opening the Desk on another device. */
+let theKey = '';
+const DESK = form.dataset.desk || '';
+function showKey(k) {
+  theKey = k;
+  $('apKeyHead').textContent = k.slice(0, 4);
+  $('apKeyTail').textContent = k.length > 8 ? k.slice(-4) : '';
+  const open = $('apOpen');
+  if (DESK) open.href = new URL(DESK).origin + new URL(DESK).pathname + '#/auction/setup?key=' + encodeURIComponent(k);
+  else open.hidden = true;           // no Desk address on this build: Copy Key is the only way across
+}
 $('apCopy').addEventListener('click', async e => {
-  const btn = e.currentTarget, key = $('apKey').textContent;
-  try { await navigator.clipboard.writeText(key); btn.textContent = 'Copied'; }
-  catch (err) { const s = getSelection(), rg = document.createRange(); rg.selectNodeContents($('apKey')); s.removeAllRanges(); s.addRange(rg); btn.textContent = 'Selected. Copy it.'; }
+  const btn = e.currentTarget;
+  try { await navigator.clipboard.writeText(theKey); btn.textContent = 'Copied'; }
+  catch (err) {                      // no clipboard API (an http preview, an old browser): the textarea copy, then a box to copy from
+    const t = document.createElement('textarea'); t.value = theKey; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;left:-9999px;top:0';
+    document.body.appendChild(t); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { ok = false; } t.remove();
+    if (ok) btn.textContent = 'Copied'; else window.prompt('Your key', theKey);
+  }
   setTimeout(() => { btn.textContent = 'Copy Key'; }, 2400);
 });
 
