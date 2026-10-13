@@ -7,6 +7,7 @@
 import { useSyncExternalStore } from 'react';
 import type { Signature } from './screens/Paper';
 import { feel } from './feel';
+import { PILOT_TZ } from './engine/time';
 
 /** The documents the buyer draws a signature on: the Buyers Guide acknowledgement and the bill of sale. The title
     is never drawn (D8, D9): a Texas licence signs it through webDEALER at pickup, any other licence gets paper. */
@@ -50,14 +51,45 @@ export const outOfState = (s: Sale | null) => !!s?.id?.confirmed && s.id.state !
 /** Sign is done when both drawn documents carry a signature. */
 export const signedAll = (s: Sale) => !!(s.signed.guide && s.signed.bill);
 
-/** Which tile is next. The next one lifts; the ones before are ticked. */
+/** Which tile is next. The next one lifts; the ones before are ticked. The last tile is done when the car has
+    started at the lot (the Worker's sale.startedAt, the dealer's VIN scan): the sale is complete (decisions §2 row
+    "the sale completes at pickup"), and the plates are the county's clock, read on the ring, nothing to do. */
 export type Tile = 'id' | 'insure' | 'sign' | 'plates';
 export function nextTile(s: Sale): Tile | null {
+  if (s.pickedUp) return null;   // started at the lot: complete, whatever this phone still remembers of the steps before
   if (!s.id?.confirmed) return 'id';
   if (!s.insured) return 'insure';
   if (!signedAll(s)) return 'sign';
-  if (!s.pickedUp || (s.plates !== 'mailed' && !outOfState(s))) return 'plates';
+  if (!s.pickedUp) return 'plates';
   return null;
+}
+
+/** Won opens itself (on the hammer, and on every launch) only while the sale is still the buyer's to finish:
+    no sale yet on the lot (the local stand-in writes none), or one not started, voided or forfeited. Once the
+    car has started the lane and Me are the glass; a tap on the car opens Won to read it. */
+export function wonOpensItself(sale?: { startedAt?: number; voidedAt?: number; forfeitedAt?: number } | null): boolean {
+  return !sale || !(sale.startedAt || sale.voidedAt || sale.forfeitedAt);
+}
+
+/** The last day the dealer has to put the title (and so the 130-U, the plates with it) through the county: day 20
+    after the sale date, the Desk's own clock (desk/src/lib/tax.ts laneTitleWatch; Transp. Code §503.039(b),
+    "before the 21st day after the date of the sale", read 2026-10-13). The sale date is the hammer's day in the
+    pilot's zone, as the Desk counts it. Returns the instant at noon UTC of that day, for formatting. */
+export const TITLE_DAYS = 21;
+export function titleDueAt(wonAt: number, timeZone: string = PILOT_TZ): number {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(new Date(wonAt));
+  const get = (t: string) => Number(parts.find(p => p.type === t)?.value);
+  return Date.UTC(get('year'), get('month') - 1, get('day') + TITLE_DAYS - 1, 12);
+}
+const dayWords = (at: number) => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }).format(new Date(at));
+
+/** The word under the plate on the ring, four words or fewer, never a stage the server has not sent. Before the
+    first filing event the ring says the dealer's deadline, the one fact the sale carries: "Filed by Nov 2".
+    Then the server's own word: Filed, Approved, Mailed, or Dealer fixing on a county kickback. */
+export const PLATES_WORDS: Record<Exclude<Plates, 'none'>, string> = { filed: 'Filed', approved: 'Approved', mailed: 'Mailed', kickback: 'Dealer fixing' };
+export function platesWords(s: Pick<Sale, 'plates' | 'wonAt'>, timeZone: string = PILOT_TZ): string {
+  if (s.plates === 'none') return `Filed by ${dayWords(titleDueAt(s.wonAt, timeZone))}`;
+  return PLATES_WORDS[s.plates];
 }
 
 /** A Worker is configured (EXPO_PUBLIC_AUCTION_URL, inlined at build time): the server owns the sale. */

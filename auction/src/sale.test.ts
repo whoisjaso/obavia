@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // the sensory layer loads native modules; the sale only needs to know it was called
 vi.mock('./feel', () => ({ feel: { heartbeat: vi.fn(), done: vi.fn(), tick: vi.fn() } }));
 
-import { arriveAtLot, clearSale, followServer, openSale, payByWords, payDeadline, peekSale, pickupWhen, runPlates, PAY_WINDOW_MS } from './sale';
+import { arriveAtLot, clearSale, followServer, nextTile, openSale, payByWords, payDeadline, peekSale, pickupWhen, platesWords, runPlates, titleDueAt, wonOpensItself, PAY_WINDOW_MS, type Sale } from './sale';
 
 const HOUR = 3_600_000;
 // Tue Oct 13 2026 21:37 UTC = 4:37 pm in Houston (CDT, UTC-5)
@@ -95,5 +95,72 @@ describe('the plates ring', () => {
     expect(peekSale()?.plates).toBe('filed');
     followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE, startedAt: HAMMER + HOUR, plates: 'kickback' });
     expect(peekSale()?.plates).toBe('kickback');
+  });
+});
+
+const DAY = 24 * HOUR;
+const SIGNED = { guide: { paths: [] }, bill: { paths: [] } } as unknown as Sale['signed'];
+const TX = { name: 'Marisol Treviño', dob: '04/12/1991', address: '2210 Example Ave, San Antonio', licence: '12344821', state: 'TX', confirmed: true };
+const ready = (over: Partial<Sale> = {}): Sale => ({ lotId: 'L1', hammer: 5200, total: 5900, wonAt: HAMMER, id: TX, insured: true, signed: SIGNED, pay: 'wire', plates: 'none', ...over });
+
+describe('Won is done', () => {
+  it('once the car has started at the lot, whatever the county has done', () => {
+    expect(nextTile(ready())).toBe('plates');                                   // paid, not started: the last tile is lit
+    expect(nextTile(ready({ pickedUp: true }))).toBeNull();                     // started, the Worker carries no plates state
+    expect(nextTile(ready({ pickedUp: true, plates: 'filed' }))).toBeNull();
+    expect(nextTile(ready({ pickedUp: true, plates: 'mailed' }))).toBeNull();
+    expect(nextTile(ready({ pickedUp: true, id: { ...TX, state: 'OK' } }))).toBeNull();
+    // a fresh launch after the start: the Worker carries startedAt and nothing of the steps this phone once did
+    expect(nextTile({ lotId: 'L1', hammer: 5200, total: 5900, wonAt: HAMMER, signed: {}, plates: 'none', pickedUp: true })).toBeNull();
+  });
+
+  it('not before: each earlier step in its order', () => {
+    expect(nextTile(ready({ id: undefined }))).toBe('id');
+    expect(nextTile(ready({ insured: false }))).toBe('insure');
+    expect(nextTile(ready({ signed: {} }))).toBe('sign');
+    expect(nextTile(ready({ pay: undefined }))).toBe('plates');                 // the last tile opens Pay first
+  });
+
+  it('follows the server start into the done rule', () => {
+    openSale({ lotId: 'L1', hammer: 5200, total: 5900, wonAt: HAMMER });
+    followServer({ wonAt: HAMMER, deadlineAt: SERVER_DEADLINE, startedAt: HAMMER + DAY });
+    expect(peekSale()?.pickedUp).toBe(true);
+    expect(nextTile(ready({ pickedUp: peekSale()!.pickedUp }))).toBeNull();
+    clearSale();
+  });
+});
+
+describe('Won opens itself', () => {
+  it('only while the sale is still mine to finish', () => {
+    expect(wonOpensItself(undefined)).toBe(true);                                 // the local stand-in writes no sale
+    expect(wonOpensItself({})).toBe(true);
+    expect(wonOpensItself({ startedAt: HAMMER + DAY })).toBe(false);              // started: the lane and Me are the glass
+    expect(wonOpensItself({ voidedAt: HAMMER + DAY })).toBe(false);
+    expect(wonOpensItself({ forfeitedAt: HAMMER + 2 * DAY })).toBe(false);
+  });
+});
+
+describe('the plates words', () => {
+  it('before the server has sent a filing: the dealer deadline, day 20 after the sale date, the Desk clock', () => {
+    expect(platesWords({ plates: 'none', wonAt: HAMMER })).toBe('Filed by Nov 2');
+    // 11:30 pm in Houston on Oct 13 is Oct 14 in UTC: the sale date is the pilot zone's, as the Desk counts it
+    expect(platesWords({ plates: 'none', wonAt: Date.UTC(2026, 9, 14, 4, 30) })).toBe('Filed by Nov 2');
+    expect(platesWords({ plates: 'none', wonAt: Date.UTC(2026, 9, 14, 5, 30) })).toBe('Filed by Nov 3');
+    expect(titleDueAt(HAMMER)).toBe(Date.UTC(2026, 10, 2, 12));
+  });
+
+  it('then only the stage the server sent', () => {
+    expect(platesWords({ plates: 'filed', wonAt: HAMMER })).toBe('Filed');
+    expect(platesWords({ plates: 'approved', wonAt: HAMMER })).toBe('Approved');
+    expect(platesWords({ plates: 'mailed', wonAt: HAMMER })).toBe('Mailed');
+    expect(platesWords({ plates: 'kickback', wonAt: HAMMER })).toBe('Dealer fixing');
+  });
+
+  it('are four words or fewer, with no dash', () => {
+    for (const plates of ['none', 'filed', 'approved', 'mailed', 'kickback'] as const) {
+      const w = platesWords({ plates, wonAt: HAMMER });
+      expect(w.split(' ').length).toBeLessThanOrEqual(4);
+      expect(w).not.toMatch(/[\u2013\u2014]/);
+    }
   });
 });

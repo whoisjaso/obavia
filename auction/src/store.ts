@@ -202,8 +202,9 @@ export function getServer(): AuctionServer {
     if (/[?&]win=1/.test(search)) {   // preview only: the hammer falls 2.5 s after my first bid
       const off = local.subscribe(e => { if (e.kind === 'bid' && e.lot.leader === ME) { local.closeSoon(e.lotId, 2500); off(); } });
     }
-    // rivals so the demo lane breathes: one refill on the Altima, one on the Fusion
-    if (lots.length === 3 && lots[0].high < 5400) {   // the seeded lane only, not the break-ui fixtures
+    // rivals so the demo lane breathes: one refill on the Altima, one on the Fusion; never under ?win=1, where a
+    // rival inside the 2.5 s hammer window would refill the close and take the lead from the walk
+    if (lots.length === 3 && lots[0].high < 5400 && !/[?&]win=1/.test(search)) {   // the seeded lane only, not the break-ui fixtures
       local.scheduleRival('altima', 25_000, 5400, 'r3');
       local.scheduleRival('altima', 55_000, 5700, 'r4');
       local.scheduleRival('fusion', 40_000, 3500, 'r5');

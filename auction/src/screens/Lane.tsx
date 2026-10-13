@@ -29,7 +29,7 @@ import { Me } from './Me';
 import { Label } from '../components/Type';
 import { Object3D } from '../components/Object3D';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
-import { clearSale, followServer, openSale, peekSale, useSale } from '../sale';
+import { clearSale, followServer, openSale, peekSale, useSale, wonOpensItself } from '../sale';
 import { clearIntent, useIntent } from '../nav';
 
 const STEP_PT = 28;   // one increment per 28 pt of drag
@@ -47,10 +47,10 @@ function spoken(ms: number) {
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, onOpen, onMe, refillKey }: {
+function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, onOpen, onMe, onWon, refillKey }: {
   car: Car; lot: Lot; now: number; width: number; height: number; active: boolean; near: boolean;
   clouds: { far: SharedValue<number>; mid: SharedValue<number> };
-  onArm: (steps: number) => void; onOpen: () => void; onMe: () => void; refillKey: number;
+  onArm: (steps: number) => void; onOpen: () => void; onMe: () => void; onWon?: () => void; refillKey: number;
 }) {
   const watched = useWatched();
   const watching = watched.includes(car.id);
@@ -160,11 +160,18 @@ function CarPage({ car, lot, now, width, height, active, near, clouds, onArm, on
 
       {/* bottom: the two numbers, the bars, the dealer */}
       <View style={[s.bottom, { paddingBottom: insets.bottom + 22 }]} pointerEvents="box-none">
-        <GestureDetector gesture={drag}>
-          <Animated.View style={s.priceHit}>
+        {/* the car is mine and has started: the struck price is the way back into the sale, to read it */}
+        {closed && onWon ? (
+          <Pressable onPress={() => { feel.select(); onWon(); }} style={s.priceHit} hitSlop={8} accessibilityRole="button" accessibilityLabel="Yours, open the sale">
             <Price hammer={preview} total={total} lift={lift} struck={closed} leading={lot.leader === ME && armed === 0} />
-          </Animated.View>
-        </GestureDetector>
+          </Pressable>
+        ) : (
+          <GestureDetector gesture={drag}>
+            <Animated.View style={s.priceHit}>
+              <Price hammer={preview} total={total} lift={lift} struck={closed} leading={lot.leader === ME && armed === 0} />
+            </Animated.View>
+          </GestureDetector>
+        )}
         <Bars bid={lot.high} retail={lot.retail} />
         <View style={s.foot}>
           <Text style={s.dealer} numberOfLines={1}>{car.dealer.name} · {car.dealer.city}</Text>
@@ -223,19 +230,21 @@ export function Lane() {
   const [sheet, setSheet] = useState<{ car: Car; steps: number; key: number } | null>(null);
   const [open, setOpen] = useState<Car | null>(null);
   const [won, setWon] = useState<Car | null>(null);
-  const [wonAt, setWonInitial] = useState<'pickup' | undefined>(undefined);
+  const [wonAt, setWonInitial] = useState<'pickup' | 'steps' | undefined>(undefined);
   const [meOpen, setMe] = useState(false);
   const listRef = useRef<FlatList<Car>>(null);
   const cloudFar = useDrift(drift.far.period), cloudMid = useDrift(drift.mid.period);   // one clock per lane: a swipe never restarts the drift
   const clouds = useMemo(() => ({ far: cloudFar, mid: cloudMid }), []);
   const settled = useRef(0);   // the page the lane last came to rest on: a snap back to it is silent
-  // the hammer: a lot closes with me leading
+  // the hammer: a lot closes with me leading. On a launch the lot arrives already closed: Won opens itself
+  // only while the sale is still mine to finish (not started, voided or forfeited); after the start the lane
+  // and Me are the glass and the struck price opens Won to read it
   const closedSeen = useRef<Record<string, boolean>>({});
   for (const l of Object.values(lots)) {
     if (l.closed && !closedSeen.current[l.id]) {
       closedSeen.current[l.id] = true;
       const car = cars.find(c => c.id === l.id) ?? (AUCTION_URL ? carFromLot(l, AUCTION_URL) ?? undefined : undefined);
-      if (car && l.leader === ME && l.closed.sold) {
+      if (car && l.leader === ME && l.closed.sold && wonOpensItself(l.sale)) {
         openSale({ lotId: l.id, hammer: l.high, total: outTheDoor(l.high, car.dealer.fees).total });
         setSheet(null); setWonInitial(undefined); setWon(car);
       }
@@ -259,6 +268,8 @@ export function Lane() {
   }
 
   const carFor = (l: Lot) => cars.find(c => c.id === l.id) ?? (AUCTION_URL ? carFromLot(l, AUCTION_URL) ?? undefined : undefined);
+  // a tap on a car I won (from its page on the lane, or from Me): the sale opens to read, no celebration
+  const readWon = (l: Lot) => { const car = carFor(l); if (!car) return false; ensureSale(l, car); setMe(false); setOpen(null); setSheet(null); setWonInitial('steps'); setWon(car); return true; };
 
   // the server's sale states: the one sale I hold opens here; void or forfeit clears it. One sale at a time:
   // the open one while it lives, else the most recent win.
@@ -313,6 +324,7 @@ export function Lane() {
             refillKey={refills.current[item.id] ?? 0}
             onOpen={() => { feel.select(); setOpen(item); }}
             onMe={() => setMe(true)}
+            onWon={lots[item.id].closed && live(lots[item.id]) ? () => readWon(lots[item.id]) : undefined}
             onArm={steps => setSheet({ car: item, steps, key: Date.now() })} />
         ) : null}
         ListEmptyComponent={<Empty height={height} width={width} onMe={() => setMe(true)} />}
@@ -326,7 +338,7 @@ export function Lane() {
         getItemLayout={(_, i) => ({ length: height, offset: height * i, index: i })}
         scrollEnabled={!sheet && !open && !meOpen}
       />
-      {meOpen && <Me lots={lots} now={now} onClose={() => setMe(false)} onOpenCar={id => { setMe(false); const i = cars.findIndex(c => c.id === id); if (i >= 0) listRef.current?.scrollToIndex({ index: i, animated: true }); }} />}
+      {meOpen && <Me lots={lots} now={now} onClose={() => setMe(false)} onOpenCar={id => { const l = lots[id]; if (l?.closed && live(l) && readWon(l)) return; setMe(false); const i = cars.findIndex(c => c.id === id); if (i >= 0) listRef.current?.scrollToIndex({ index: i, animated: true }); }} />}
       {sheet && <BidSheet key={sheet.key} car={sheet.car} lot={lots[sheet.car.id]} now={now} steps={sheet.steps} onClose={() => setSheet(null)} />}
       {open && <CarSheet car={open} onClose={() => setOpen(null)} />}
       {won && sale && <Won key={`${won.id}-${wonAt ?? 'won'}`} car={won} initial={wonAt} onDone={() => { setWon(null); setWonInitial(undefined); }} />}

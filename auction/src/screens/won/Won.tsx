@@ -19,7 +19,7 @@ import { Button, Caps, Choice, Label, Page, Serif } from '../../components/Type'
 import type { Car } from '../../data/cars';
 import { dollars } from '../../engine/money';
 import { feel } from '../../feel';
-import { nextTile, outOfState, setSale, signedAll, useSale, type Tile } from '../../sale';
+import { nextTile, outOfState, platesWords, setSale, signedAll, useSale, type Tile } from '../../sale';
 import { CLOUD_OUT, EASE_OUT, ms } from '../../motion';
 import { once } from '../../store';
 import { theme } from '../../theme';
@@ -31,14 +31,16 @@ import { Plates } from './Plates';
 
 type Screen = 'who' | 'steps' | Tile | 'pay' | 'pickup';
 
-export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; initial?: 'pickup' }) {
+/** `initial`: 'pickup' lands on the pass (a push); 'steps' opens the finished sale to read (a tap on the car from
+    the lane or Me after the start). Both skip the celebration: the buyer has been here before. */
+export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; initial?: 'pickup' | 'steps' }) {
   const sale = useSale();
   const [screen, setScreen] = useState<Screen>(initial ?? 'who');
   const [lit, setLit] = useState(false);
   const flash = useSharedValue(0), confetti = useSharedValue(0);
   const reduce = useReducedMotion();
   useEffect(() => {
-    if (initial === 'pickup') {   // straight to the pass: no celebration, the buyer has been here before
+    if (initial) {   // straight to the pass or the steps: no celebration, the buyer has been here before
       if (sale && !sale.forWhom) setSale({ forWhom: 'me' });
       return;
     }
@@ -55,13 +57,12 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
   const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
   // the checks already on the glass the last time the steps showed: only a newly done step draws its check
   const shownDone = useRef<Set<Tile> | null>(null);
-  const doneNow = (sl: NonNullable<typeof sale>) => new Set<Tile>([
-    ...(sl.id?.confirmed ? ['id' as const] : []), ...(sl.insured ? ['insure' as const] : []), ...(signedAll(sl) ? ['sign' as const] : []),
-  ]);
-  if (shownDone.current === null && sale) shownDone.current = initial === 'pickup' ? doneNow(sale) : new Set();
+  const doneNow = (sl: NonNullable<typeof sale>) => new Set<Tile>(steps0(sl, nextTile(sl)).filter(t => t.done).map(t => t.key));
+  if (shownDone.current === null && sale) shownDone.current = initial ? doneNow(sale) : new Set();
   useEffect(() => { if (screen === 'steps' && sale) shownDone.current = doneNow(sale); }, [screen, sale]);
   if (!sale) return null;
   const next = nextTile(sale);
+  const reading = initial === 'steps';   // the finished sale, opened to read: nothing to do but go back to the lane
   const drew = steps0(sale, next).some(t => t.done && !shownDone.current!.has(t.key));
   const steps = steps0(sale, next);
   const open = (t: Tile) => {
@@ -98,12 +99,14 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
           <View style={{ marginTop: theme.space.xl, alignItems: 'center', gap: theme.space.xs }}>
             {steps.map(t => {
               const live = t.key === next, locked = !t.done && !live;
+              // a done step is finished: it keeps its look (the tick) but is not a control and is not read, so
+              // the lit step (or To the lane) is the first thing a thumb or a screen reader meets. Opened to
+              // read after the start, the Plates tile carries the ring's word (the county's clock) under its noun
+              const clock = reading && t.done && t.key === 'plates' && !outOfState(sale) ? platesWords(sale) : null;
               return (
-                // a done step is finished: it keeps its look (the tick) but is not a control and is not read, so
-                // the lit step (or To the lane) is the first thing a thumb or a screen reader meets
-                <Lift key={t.key} on={live} after={drew ? TICK_AFTER + ms.green : 0} hidden={t.done}>
+                <Lift key={t.key} on={live} after={drew ? TICK_AFTER + ms.green : 0} hidden={t.done && !clock}>
                   <PressCloud disabled={locked || t.done} onPress={() => { feel.select(); open(t.key); }} bodyStyle={s.step}
-                    accessibilityState={{ selected: live }} accessibilityLabel={`${t.label}${t.done ? ', done' : live ? ', next' : ''}`}>
+                    accessibilityState={{ selected: live }} accessibilityLabel={`${t.label}${t.done ? ', done' : live ? ', next' : ''}${clock ? `, ${clock}` : ''}`}>
                     {/* the step's object touching its one noun (lego §4.1): the lit one full strength, the rest faint */}
                     <View style={s.stepRow}>
                       <View style={s.obj}><Object3D name={objectFor(t.key, sale)} height={live ? 52 : 40} strength={live ? 1 : FAINT} /></View>
@@ -113,6 +116,7 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
                           {t.done && <Tick draw={!shownDone.current!.has(t.key)} />}
                         </View>
                         {live && <View style={s.underline} />}
+                        {clock && <Label style={s.clock}>{clock.replace(/^(\S+ \S+) /, '$1\n')}</Label>}
                       </View>
                     </View>
                   </PressCloud>
@@ -132,7 +136,7 @@ export function Won({ car, onDone, initial }: { car: Car; onDone: () => void; in
       {screen === 'pickup' && <Pickup car={car} onDone={() => setScreen(outOfState(sale) ? 'steps' : 'plates')} />}
       {screen === 'plates' && <Plates onBack={back} />}
 
-      {initial !== 'pickup' && <Confetti t={confetti} />}
+      {!initial && <Confetti t={confetti} />}
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.cloud }, flashStyle]} />
     </View>
   );
@@ -145,16 +149,17 @@ function objectFor(t: Tile, sale: NonNullable<ReturnType<typeof useSale>>): Scen
   if (t === 'id') return 'licence';
   if (t === 'insure') return 'insurance';
   if (t === 'sign') return 'title';
+  if (sale.pickedUp) return outOfState(sale) ? 'title' : 'plate';   // started: the plate, whatever this phone remembers of Pay
   if (!sale.pay) return 'coin';
-  if (!sale.pickedUp) return 'key';
-  return outOfState(sale) ? 'title' : 'plate';
+  return 'key';
 }
 
 function steps0(sale: NonNullable<ReturnType<typeof useSale>>, next: Tile | null): { key: Tile; label: string; done: boolean }[] {
+  const over = !!sale.pickedUp;   // the car started at the lot: the sale is complete and every step is behind the buyer
   return [
-    { key: 'id', label: 'ID', done: !!sale.id?.confirmed },
-    { key: 'insure', label: 'Insure', done: !!sale.insured },
-    { key: 'sign', label: 'Sign', done: signedAll(sale) },
+    { key: 'id', label: 'ID', done: over || !!sale.id?.confirmed },
+    { key: 'insure', label: 'Insure', done: over || !!sale.insured },
+    { key: 'sign', label: 'Sign', done: over || signedAll(sale) },
     { key: 'plates', label: outOfState(sale) ? 'Title' : 'Plates', done: next === null },
   ];
 }
@@ -196,4 +201,5 @@ const s = StyleSheet.create({
   nounRow: { flexDirection: 'row', alignItems: 'center' },   // the check touches the noun it ticks
   obj: { width: 84, height: 52, alignItems: 'flex-end', justifyContent: 'center' },   // one column for every object, so the nouns share a left edge
   underline: { width: 22, height: 2, borderRadius: 1, backgroundColor: theme.color.accent, marginTop: 6 },
+  clock: { textAlign: 'left', marginTop: 4, lineHeight: 22 },   // the county's clock touching the noun it measures (lego §4.1); the date whole on its own line
 });
