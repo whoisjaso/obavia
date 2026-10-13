@@ -177,7 +177,7 @@ float field(vec3 p){
   float d=sdRB(p-vec3(0.,-.2,0.),vec3(max(uBox.w-.12,.2),.37,.42),.36);
   for(int i=0;i<14;i++){ if(i>=uLobeN) break;
     vec4 l=uLobe[i];
-    d=smin(d,length(p-l.xyz)-l.w*(1.+.015*uAir.y*step(0.,l.z)),.42);
+    d=smin(d,length(p-l.xyz)-l.w*(1.+.025*uAir.y*step(0.,l.z)),.42);
   }
   return max(d,BASE-p.y);
 }
@@ -230,7 +230,7 @@ void main(){
   if(t1>t0){
     const int N=40;
     float dt=(t1-t0)/float(N), t=t0+dt*d0;
-    float sun=.42*(1.+.08*uAir.y)*(1.-.12*uPress.z);
+    float sun=.42*(1.+.14*uAir.y)*(1.-.12*uPress.z);
     for(int i=0;i<N;i++){
       vec3 p=E+rd*t;
       float d=dens(p,true);
@@ -249,8 +249,8 @@ void main(){
       t+=dt;
     }
   }
-  float sy=BASE-.05-uAir.z;
-  vec2 sp=vec2(P.x/(uBox.w+.5+.12*uAir.y-.06*uAir.w),(P.y-sy)/(.17+.07*uAir.y-.05*uAir.w));
+  float sy=BASE-.05-2.*uAir.z;   // hover: the cloud lifts uAir.z and its shadow lies as far again below (offset +3 px)
+  vec2 sp=vec2(P.x/(uBox.w+.5+.12*uAir.y-.06*uAir.w),(P.y-sy)/(.17*(1.+.4*uAir.y)-.05*uAir.w));   // blur +40 percent on hover
   float sa=exp(-pow(abs(sp.x),4.))*exp(-sp.y*sp.y*2.2)*(.12+.05*uAir.w-.025*uAir.y);
   sa*=smoothstep(-.92,-.7,P.y)*smoothstep(uBox.w+.8,uBox.w+.38,abs(P.x));   // zero before the canvas edge (EXT bottom .42, side .8)
   float a=1.-T;
@@ -586,7 +586,7 @@ export function createCloud3D(opt) {
     gl.uniform4f(u.uBox, (b.side + b.w / 2) * q, (b.bot + b.h / 2) * q, b.h * q, b.W);
     gl.uniform4fv(u.uLobe, b.lobes); gl.uniform1i(u.uLobeN, b.lobeN);
     gl.uniform1f(u.uTime, reduced() ? 300 : t); gl.uniform1f(u.uSeed, b.seed); gl.uniform1f(u.uTop, .5 + b.top);
-    gl.uniform4f(u.uPress, s.squash, s.dens * (1 + .01 * s.hold), s.light, s.swell * (1 + .01 * s.hold));
+    gl.uniform4f(u.uPress, s.squash, s.dens * (1 + .01 * s.hold), s.light, s.swell * (1 + .01 * s.hold) * (1 + .01 * s.breath));
     gl.uniform4f(u.uAir, s.loosen, s.sun, s.lift / b.h, s.shadow);
     const etched = etch(b, gl);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, etched ? b.lt : bc.blank); gl.activeTexture(gl.TEXTURE0);
@@ -721,7 +721,7 @@ export function createCloud3D(opt) {
   E.attach = (el, o = {}) => {
     if (B.has(el)) return B.get(el);
     const b = { el, top: o.top || EXT.top, mode: 'css', visible: true, sheetRun: 0, hover: false, pressed: false,
-      st: { squash: 1, dens: 1, light: 0, swell: 1, loosen: 0, sun: 0, lift: 0, shadow: 0, hold: 0 } };
+      st: { squash: 1, dens: 1, light: 0, swell: 1, loosen: 0, sun: 0, lift: 0, shadow: 0, hold: 0, breath: 0 } };
     b.wrap = wrapFor(b);
     el.appendChild(b.wrap);
     B.set(el, b);
@@ -754,7 +754,7 @@ export function createCloud3D(opt) {
     B.delete(el); if (b.io) b.io.disconnect(); if (b.ro) b.ro.disconnect();
     el.removeEventListener('pointerenter', b.enter); el.removeEventListener('pointerleave', b.leave);
     el.removeEventListener('focus', b.focusIn); el.removeEventListener('blur', b.focusOut);
-    if (b.breath) b.breath.stop(); clearTimeout(b.holdT);
+    if (b.breath) b.breath.stop(); clearTimeout(b.holdT); if (b.breathTw) b.breathTw.kill();
     G.killTweensOf(b.st); b.wrap.remove(); el.classList.remove('c3d-on', 'c3d-gl', 'c3d-hover', 'c3d-focus', 'c3d-etch', 'c3d-emboss');
     if (b.lt && bc && !bc.lost) bc.gl.deleteTexture(b.lt);
   };
@@ -764,7 +764,7 @@ export function createCloud3D(opt) {
   E.each = fn => B.forEach(fn);
 
   const off = el => el.disabled || el.getAttribute('aria-disabled') === 'true';
-  const baseY = b => (b.hover && !reduced() ? -2 : 0);
+  const baseY = b => (b.hover && !reduced() ? -3 : 0);
   function hoverIn(b, withSound) {
     if (b.hover || off(b.el)) return;
     b.hover = true;
@@ -774,15 +774,19 @@ export function createCloud3D(opt) {
       if (sound.loop) { if (b.breath) b.breath.stop(); b.breath = sound.loop('drift', .15); }
     }
     if (reduced()) { G.to(b.st, { sun: 1, duration: .18, ease: 'none', overwrite: 'auto', onUpdate: b.onDirty }); return; }
-    G.to(b.st, { sun: 1, lift: 2, duration: .18, ease: 'expo.out', overwrite: 'auto', onUpdate: b.onDirty });
-    if (!b.pressed) G.to(b.el, { y: -2, duration: .18, ease: 'expo.out', overwrite: 'auto' });
+    G.to(b.st, { sun: 1, lift: 3, duration: .18, ease: 'expo.out', overwrite: 'auto', onUpdate: b.onDirty });
+    if (!b.pressed) G.to(b.el, { y: -3, duration: .18, ease: 'expo.out', overwrite: 'auto' });
+    // alive under the pointer: a 1 percent breath on a 1.2 s sine while hovered (cloud-system §2, amended October 13)
+    if (b.breathTw) b.breathTw.kill();
+    b.breathTw = G.fromTo(b.st, { breath: 0 }, { breath: 1, duration: .6, ease: 'sine.inOut', yoyo: true, repeat: -1, onUpdate: b.onDirty });
   }
   function hoverOut(b) {
     if (!b.hover) return;
     b.hover = false;
     b.el.classList.remove('c3d-hover');
     if (b.breath && !b.pressed) { b.breath.stop(); b.breath = null; }
-    G.to(b.st, { sun: 0, lift: 0, duration: .6, ease: FLAT, overwrite: 'auto', onUpdate: b.onDirty });
+    if (b.breathTw) { b.breathTw.kill(); b.breathTw = null; }
+    G.to(b.st, { sun: 0, lift: 0, breath: 0, duration: .6, ease: FLAT, overwrite: 'auto', onUpdate: b.onDirty });
     if (!b.pressed && !reduced()) G.to(b.el, { y: 0, duration: .6, ease: FLAT, overwrite: 'auto', clearProps: 'transform' });
   }
 
