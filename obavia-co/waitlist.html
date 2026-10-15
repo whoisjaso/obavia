@@ -61,7 +61,7 @@
           <label class="choice"><input type="radio" name="sellChannel" value="both"><span>Both</span></label>
         </div>
         <p class="step-error" role="alert"></p>
-        <div class="actions"><button class="btn" type="button" data-next>Get my FREE guide</button></div>
+        <div class="actions"><button class="btn" type="button" data-next>Continue</button></div>
       </fieldset>
 
       <fieldset data-step="1" tabindex="-1" hidden>
@@ -71,7 +71,7 @@
         </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
-          <button class="btn" type="button" data-next>Get my FREE guide</button>
+          <button class="btn" type="button" data-next>Continue</button>
           <button class="btn ghost" type="button" data-back>Back</button>
         </div>
       </fieldset>
@@ -83,7 +83,7 @@
         </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
-          <button class="btn" type="button" data-next>Get my FREE guide</button>
+          <button class="btn" type="button" data-next>Continue</button>
           <button class="btn ghost" type="button" data-back>Back</button>
         </div>
       </fieldset>
@@ -95,7 +95,7 @@
         </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
-          <button class="btn" type="button" data-next>Get my FREE guide</button>
+          <button class="btn" type="button" data-next>Continue</button>
           <button class="btn ghost" type="button" data-back>Back</button>
         </div>
       </fieldset>
@@ -107,7 +107,7 @@
         </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
-          <button class="btn" type="button" data-next>Get my FREE guide</button>
+          <button class="btn" type="button" data-next>Continue</button>
           <button class="btn ghost" type="button" data-back>Back</button>
         </div>
       </fieldset>
@@ -115,15 +115,16 @@
       <fieldset data-step="5" tabindex="-1" hidden>
         <legend id="phoneLegend">Your mobile</legend>
         <div class="field">
-          <input id="wlPhone" name="phone" type="tel" autocomplete="tel" maxlength="20" placeholder="Optional" aria-labelledby="phoneLegend">
+          <input id="wlPhone" name="phone" type="tel" autocomplete="tel" maxlength="20" aria-labelledby="phoneLegend">
         </div>
+        <p class="hint">Optional. Only for launch-day reminders.</p>
         <div class="hp" aria-hidden="true">
           <label for="wlSite">Website</label>
           <input id="wlSite" name="website" tabindex="-1" autocomplete="off">
         </div>
         <p class="step-error" id="wlStatus" role="status"></p>
         <div class="actions">
-          <button class="btn" id="wlBtn" type="submit">Get my FREE guide</button>
+          <button class="btn" id="wlBtn" type="submit">Save my spot + get my FREE guide</button>
           <button class="btn ghost" type="button" data-back>Back</button>
         </div>
       </fieldset>
@@ -132,9 +133,6 @@
   <p class="fine" id="trust" hidden>We don’t sell this list.</p>
   <noscript><p class="fine">Turn on JavaScript to join the waitlist.</p></noscript>
 </main>
-<footer class="foot">
-  <span>Doors open April 24, 2027</span>
-</footer>
 <script>
 /* True: the waitlist Worker stores sellChannel, callsPerWeek, topObjection, phone, and utm.
    Set false to fall back to fullName, email, and website only. */

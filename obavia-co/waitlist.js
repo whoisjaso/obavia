@@ -388,7 +388,7 @@ function init() {
     } finally {
       clearTimeout(timeout);
       busy = false;
-      if (button) button.textContent = 'Get my FREE guide';
+      if (button) button.textContent = 'Save my spot + get my FREE guide';
       if (retry) setTimeout(() => { if (button) button.disabled = false; }, Math.min(retry, 86400) * 1000);
       else if (button) button.disabled = false;
     }

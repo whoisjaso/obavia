@@ -5,12 +5,6 @@
       if (typeof window.obaviaTrack === 'function') window.obaviaTrack('CompleteRegistration');
     });
   }
-  var wallet = document.getElementById('wallet');
-  if (wallet && typeof fetch === 'function') {
-    fetch('/api/wallet', { method: 'HEAD' }).then(function (res) {
-      if (res && res.ok) wallet.hidden = false;
-    }).catch(function () {});
-  }
   var film = document.getElementById('why');
   if (!film) return;
   var showPoster = function () {
