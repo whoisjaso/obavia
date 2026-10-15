@@ -1,0 +1,23 @@
+{
+  "name": "Obavia",
+  "short_name": "Obavia",
+  "description": "Obavia transcribes the call in real time and suggests the next line, for anyone selling on phone or video.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F7FF",
+  "theme_color": "#4E66A0",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
