@@ -163,7 +163,7 @@
     <h2 id="faqTitle">Questions.</h2>
     <details>
       <summary>Who hears the call, and do they agree?</summary>
-      <p>The waitlist keeps your name and email so we can write when early access opens. We don’t sell that list. This page does not join a call or record one. Obavia is being built to listen during a call and put one question on the rep’s screen. When that ships, the people on the call are told before a call is captured.</p>
+      <p>The waitlist keeps your answers, name and email (and a number if you add one) so we can write when early access opens and shape what we build first. We don’t sell that list. This page does not join a call or record one. Obavia is being built to listen during a call and put one question on the rep’s screen. When that ships, the people on the call are told before a call is captured.</p>
     </details>
     <details>
       <summary>Which calls does this cover?</summary>
@@ -181,9 +181,9 @@
   <span>Early access · April 24, 2027</span>
 </footer>
 <script>
-/* False until the waitlist Worker stores sellChannel, callsPerWeek, topObjection, phone, and utm.
-   While this is false the form still asks the questions, and the request stays fullName, email, and website. */
-window.OBAVIA_WAITLIST_V2 = false;
+/* True: the waitlist Worker stores sellChannel, callsPerWeek, topObjection, phone, and utm.
+   Set false to fall back to fullName, email, and website only. */
+window.OBAVIA_WAITLIST_V2 = true;
 </script>
 <script src="/pixel.js"></script>
 <script type="module" src="/waitlist.js"></script>
