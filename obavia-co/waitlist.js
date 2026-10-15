@@ -200,7 +200,7 @@ function init() {
       return false;
     }
     if (index === 1 && cleanCalls(document.querySelector('#wlCalls')?.value) === null) {
-      say(1, 'Enter a whole number of calls, from 0 to 999.');
+      say(1, 'Use a whole number from 0 to 999.');
       document.querySelector('#wlCalls')?.focus();
       return false;
     }
@@ -211,7 +211,7 @@ function init() {
         return false;
       }
       if (!text) {
-        say(2, 'Tell us the objection you’d most like help with.');
+        say(2, 'Name the objection.');
         objection?.focus();
         return false;
       }
