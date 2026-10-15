@@ -16,6 +16,7 @@
       email.focus();
       return;
     }
+    if (typeof window.obaviaChime === 'function') window.obaviaChime();
     if (!endpoint) {
       if (status) status.textContent = 'The guide opens on obavia.co.';
       return;

@@ -100,6 +100,26 @@ a { color: var(--accent); }
   letter-spacing: -.03em;
 }
 .brand img { width: 40px; height: 40px; display: block; }
+.sound {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(78, 102, 160, .12);
+  color: var(--accent);
+  cursor: pointer;
+}
+.sound svg, .sound svg * { fill: none; }
+.sound svg { width: 18px; height: 18px; display: block; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.sound .slash { display: none; }
+.sound[aria-pressed="true"] .wave { display: none; }
+.sound[aria-pressed="true"] .slash { display: block; }
 
 .page {
   width: min(640px, calc(100% - 40px));

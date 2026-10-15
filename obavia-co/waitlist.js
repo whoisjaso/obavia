@@ -106,6 +106,10 @@ export { LAUNCH_MS, CHANNELS, cleanName, cleanObjection, cleanCalls, cleanPhone,
 
 if (typeof document !== 'undefined') init();
 
+function chime() {
+  if (typeof window.obaviaChime === 'function') window.obaviaChime();
+}
+
 function init() {
   const form = document.querySelector('#wlForm');
   if (!form) return;
@@ -287,6 +291,7 @@ function init() {
     if (next) {
       event.preventDefault();
       if (!checkStep(step)) return;
+      chime();
       if (step === 1 && cleanCalls(document.querySelector('#wlCalls')?.value) === 0) {
         location.assign('/guide');
         return;
@@ -306,6 +311,7 @@ function init() {
     if (step < steps.length - 1) {
       event.preventDefault();
       if (!checkStep(step)) return;
+      chime();
       if (step === 1 && cleanCalls(document.querySelector('#wlCalls')?.value) === 0) {
         location.assign('/guide');
         return;
@@ -323,6 +329,7 @@ function init() {
         return;
       }
     }
+    chime();
     if (cleanCalls(document.querySelector('#wlCalls')?.value) === 0) {
       location.assign('/guide');
       return;
