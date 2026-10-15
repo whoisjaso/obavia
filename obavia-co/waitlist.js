@@ -280,6 +280,10 @@ function init() {
     if (next) {
       event.preventDefault();
       if (!checkStep(step)) return;
+      if (step === 1 && cleanCalls(document.querySelector('#wlCalls')?.value) === 0) {
+        location.assign('/guide');
+        return;
+      }
       go(step + 1, 'push');
     }
     if (back) {
@@ -295,6 +299,10 @@ function init() {
     if (step < steps.length - 1) {
       event.preventDefault();
       if (!checkStep(step)) return;
+      if (step === 1 && cleanCalls(document.querySelector('#wlCalls')?.value) === 0) {
+        location.assign('/guide');
+        return;
+      }
       go(step + 1, 'push');
     }
   });
@@ -307,6 +315,10 @@ function init() {
         if (index !== step) go(index, 'push');
         return;
       }
+    }
+    if (cleanCalls(document.querySelector('#wlCalls')?.value) === 0) {
+      location.assign('/guide');
+      return;
     }
     if (status) status.textContent = '';
     if (!endpoint) {
@@ -333,9 +345,9 @@ function init() {
 
     const button = document.querySelector('#wlBtn');
     busy = true;
-    if (button) {
+      if (button) {
       button.disabled = true;
-      button.textContent = 'Joining…';
+      button.textContent = 'Saving…';
     }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
@@ -369,7 +381,7 @@ function init() {
     } finally {
       clearTimeout(timeout);
       busy = false;
-      if (button) button.textContent = 'Join the waitlist';
+      if (button) button.textContent = 'Save my spot';
       if (retry) setTimeout(() => { if (button) button.disabled = false; }, Math.min(retry, 86400) * 1000);
       else if (button) button.disabled = false;
     }

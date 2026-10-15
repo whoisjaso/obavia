@@ -21,7 +21,7 @@
     }
     if (button) {
       button.disabled = true;
-      button.textContent = 'Saving…';
+      button.textContent = 'Sending…';
     }
     var controller = new AbortController();
     var timeout = setTimeout(function () { controller.abort(); }, 12000);
@@ -52,7 +52,7 @@
       clearTimeout(timeout);
       if (button && !form.hidden) {
         button.disabled = false;
-        button.textContent = 'Email me the guide';
+        button.textContent = 'Send me the 7 questions';
       }
     });
   });
