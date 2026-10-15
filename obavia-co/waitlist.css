@@ -2,7 +2,7 @@
 :root {
   --ink: #1c2640;
   --body: #243044;
-  --accent: #3A4E84;
+  --accent: #4E66A0;
   --paper: #F4F7FF;
   --line: rgba(28, 38, 64, .22);
   --sans: "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -399,7 +399,7 @@ textarea:focus {
   margin: 0;
   padding: 6px 14px;
   border-radius: 999px;
-  background: rgba(58, 78, 132, .12);
+  background: rgba(78, 102, 160, .12);
   color: var(--accent);
   font-size: 16px;
   font-weight: 600;
@@ -461,36 +461,34 @@ textarea:focus {
 }
 .cal-line a { color: var(--ink); text-decoration: none; }
 .cal-line a + a { margin-left: 16px; }
-strong { font-weight: 700; }
+strong { font-weight: 600; }
 em { font-style: italic; }
 .free-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
-  min-height: 72px;
-  padding: 8px 28px;
-  border-radius: 22px;
-  background: #3A4E84;
-  color: #fff;
-  font-size: clamp(36px, 8vw, 52px);
-  font-weight: 700;
-  letter-spacing: .14em;
-  line-height: 1;
+  margin: 0 auto;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(78, 102, 160, .12);
+  color: var(--accent);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  line-height: 1.2;
 }
 .hit {
-  color: #3A4E84;
-  font-weight: 700;
+  color: var(--accent);
+  font-weight: 600;
   font-style: normal;
 }
 .scan {
-  margin: 14px auto 0;
-  max-width: 20em;
+  margin: 16px auto 0;
+  max-width: 36rem;
   color: var(--ink);
-  font-size: clamp(22px, 3vw, 28px);
-  font-weight: 700;
-  letter-spacing: -.03em;
-  line-height: 1.25;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 .inbox {
   margin: 10px 0 0;
@@ -550,9 +548,9 @@ em { font-style: italic; }
 .bullets li {
   padding: 16px 0;
   border-top: 1px solid var(--line);
-  color: #3A4E84;
-  font-size: 22px;
-  font-weight: 700;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: -.02em;
 }
 .bullets li:first-child { border-top: 0; }
@@ -702,7 +700,7 @@ em { font-style: italic; }
   font-weight: 600;
 }
 .cmp tbody tr + tr { border-top: 1px solid var(--line); }
-.cmp td.us { color: #3A4E84; font-weight: 700; }
+.cmp td.us { color: var(--ink); font-weight: 600; }
 
 .faq { margin-top: 8px; }
 .faq details { border-top: 1px solid var(--line); }
