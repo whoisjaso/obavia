@@ -1,34 +1,20 @@
 /* Soft ticks, button clicks, and a short chime for the funnel. No audio files. */
 (function () {
-  var KEY = 'obavia-sound';
-  var button = document.getElementById('soundToggle');
-  if (!button) return;
-
-  var reduced = false;
-  try {
-    reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch (err) {}
-
-  var stored = null;
-  try { stored = localStorage.getItem(KEY); } catch (err) {}
-  var muted = stored === 'off' || (stored !== 'on' && reduced);
-
-  function paint() {
-    button.setAttribute('aria-pressed', muted ? 'true' : 'false');
-    button.setAttribute('aria-label', muted ? 'Unmute sounds' : 'Mute sounds');
-  }
-  paint();
-
   var ctx = null;
   var master = null;
   var lastTick = 0;
   var choiceFromClick = false;
 
   function ensure() {
-    if (muted) return null;
     var AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return null;
     if (!ctx) {
+      // iOS keeps the default ambient session, so the silent switch still mutes these.
+      try {
+        if (navigator.audioSession && navigator.audioSession.type !== 'ambient') {
+          navigator.audioSession.type = 'ambient';
+        }
+      } catch (err) {}
       ctx = new AudioCtx();
       master = ctx.createGain();
       master.gain.value = Math.pow(10, -30 / 20);
@@ -47,7 +33,6 @@
   }
 
   function tick() {
-    if (muted) return;
     var now = performance.now();
     if (now - lastTick < 40) return;
     lastTick = now;
@@ -70,7 +55,6 @@
   }
 
   function tap() {
-    if (muted) return;
     var audio = ensure();
     if (!audio) return;
     var t = audio.currentTime;
@@ -86,7 +70,6 @@
   }
 
   function chime() {
-    if (muted) return;
     var audio = ensure();
     if (!audio) return;
     var t = audio.currentTime;
@@ -105,8 +88,8 @@
 
   window.obaviaChime = chime;
 
-  document.addEventListener('pointerdown', function () { if (!muted) ensure(); }, true);
-  document.addEventListener('keydown', function () { if (!muted) ensure(); }, true);
+  document.addEventListener('pointerdown', function () { ensure(); }, true);
+  document.addEventListener('keydown', function () { ensure(); }, true);
 
   document.addEventListener('click', function (event) {
     var el = event.target;
@@ -134,12 +117,5 @@
     var type = (el.getAttribute('type') || 'text').toLowerCase();
     if (type === 'radio' || type === 'checkbox' || type === 'hidden' || type === 'button' || type === 'submit') return;
     tick();
-  });
-
-  button.addEventListener('click', function () {
-    muted = !muted;
-    try { localStorage.setItem(KEY, muted ? 'off' : 'on'); } catch (err) {}
-    paint();
-    if (!muted) tap();
   });
 })();
