@@ -1,4 +1,4 @@
-/* Soft ticks and a short chime for the funnel. No audio files. */
+/* Soft ticks, button clicks, and a short chime for the funnel. No audio files. */
 (function () {
   var KEY = 'obavia-sound';
   var button = document.getElementById('soundToggle');
@@ -22,6 +22,7 @@
   var ctx = null;
   var master = null;
   var lastTick = 0;
+  var choiceFromClick = false;
 
   function ensure() {
     if (muted) return null;
@@ -68,6 +69,22 @@
     osc.stop(t + 0.04);
   }
 
+  function tap() {
+    if (muted) return;
+    var audio = ensure();
+    if (!audio) return;
+    var t = audio.currentTime;
+    var osc = audio.createOscillator();
+    var gain = envelope(t, 0.65, 0.001, 0.014);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(620, t);
+    osc.frequency.exponentialRampToValueAtTime(340, t + 0.012);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(t);
+    osc.stop(t + 0.028);
+  }
+
   function chime() {
     if (muted) return;
     var audio = ensure();
@@ -91,6 +108,25 @@
   document.addEventListener('pointerdown', function () { if (!muted) ensure(); }, true);
   document.addEventListener('keydown', function () { if (!muted) ensure(); }, true);
 
+  document.addEventListener('click', function (event) {
+    var el = event.target;
+    if (!el || !el.closest) return;
+    var choice = el.closest('.choice');
+    if (!choice && !el.closest('button, a.btn')) return;
+    if (choice) choiceFromClick = true;
+    tap();
+  }, true);
+
+  document.addEventListener('click', function () {
+    setTimeout(function () { choiceFromClick = false; }, 0);
+  }, true);
+
+  document.addEventListener('change', function (event) {
+    var el = event.target;
+    if (!el || !el.closest || !el.closest('.choice') || choiceFromClick) return;
+    tap();
+  });
+
   document.addEventListener('input', function (event) {
     var el = event.target;
     if (!el || !el.matches || !el.matches('input, textarea')) return;
@@ -104,9 +140,6 @@
     muted = !muted;
     try { localStorage.setItem(KEY, muted ? 'off' : 'on'); } catch (err) {}
     paint();
-    if (!muted) {
-      ensure();
-      tick();
-    }
+    if (!muted) tap();
   });
 })();
