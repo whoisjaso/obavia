@@ -3,6 +3,7 @@
   if (!form) return;
   var status = document.getElementById('guideStatus');
   var ready = document.getElementById('guideReady');
+  var lead = document.getElementById('guideLead');
   var button = document.getElementById('guideBtn');
   var origin = location.origin;
   var endpoint = origin === 'https://obavia.co' || origin === 'https://www.obavia.co' ? origin + '/api/waitlist' : null;
@@ -11,17 +12,18 @@
     event.preventDefault();
     var email = document.getElementById('guideEmail');
     if (!email.value.trim() || !email.checkValidity()) {
-      if (status) status.textContent = 'Please check your email address.';
+      if (status) status.textContent = 'Check your email.';
       email.focus();
       return;
     }
+    if (typeof window.obaviaChime === 'function') window.obaviaChime();
     if (!endpoint) {
-      if (status) status.textContent = 'The guide list opens on obavia.co. This preview doesn’t save it.';
+      if (status) status.textContent = 'The guide opens on obavia.co.';
       return;
     }
     if (button) {
       button.disabled = true;
-      button.textContent = 'Saving…';
+      button.textContent = 'Sending…';
     }
     var controller = new AbortController();
     var timeout = setTimeout(function () { controller.abort(); }, 12000);
@@ -42,17 +44,18 @@
       if (result.ok && result.data && result.data.status === 'accepted') {
         if (typeof window.obaviaTrack === 'function') window.obaviaTrack('Lead');
         form.hidden = true;
+        if (lead) lead.hidden = true;
         if (ready) ready.hidden = false;
         return;
       }
-      if (status) status.textContent = 'Please check your email address and try again.';
+      if (status) status.textContent = 'Check your email.';
     }).catch(function () {
-      if (status) status.textContent = 'We couldn’t reach the list. Check your connection and try again.';
+      if (status) status.textContent = 'Check your connection.';
     }).finally(function () {
       clearTimeout(timeout);
       if (button && !form.hidden) {
         button.disabled = false;
-        button.textContent = 'Email me the guide';
+        button.textContent = 'Get my FREE guide';
       }
     });
   });

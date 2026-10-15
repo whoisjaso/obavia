@@ -4,7 +4,7 @@
 
 const LAUNCH_MS = Date.parse('2027-04-24T05:00:00.000Z');
 const CHANNELS = ['phone', 'video', 'both'];
-const KICKERS = ['Question 1 of 3', 'Question 2 of 3', 'Question 3 of 3', 'Your name', 'Email', 'Phone'];
+const KICKERS = ['1 of 6', '2 of 6', '3 of 6', '4 of 6', '5 of 6', '6 of 6'];
 
 function codePoints(value) {
   return Array.from(value).length;
@@ -106,6 +106,10 @@ export { LAUNCH_MS, CHANNELS, cleanName, cleanObjection, cleanCalls, cleanPhone,
 
 if (typeof document !== 'undefined') init();
 
+function chime() {
+  if (typeof window.obaviaChime === 'function') window.obaviaChime();
+}
+
 function init() {
   const form = document.querySelector('#wlForm');
   if (!form) return;
@@ -196,41 +200,41 @@ function init() {
 
   function checkStep(index) {
     if (index === 0 && !CHANNELS.includes(selected('sellChannel'))) {
-      say(0, 'Choose where you sell.');
+      say(0, 'Choose one.');
       return false;
     }
     if (index === 1 && cleanCalls(document.querySelector('#wlCalls')?.value) === null) {
-      say(1, 'Enter a whole number of calls, from 0 to 999.');
+      say(1, 'Use a whole number.');
       document.querySelector('#wlCalls')?.focus();
       return false;
     }
     if (index === 2) {
       const text = cleanObjection(objection?.value);
       if (text === null) {
-        say(2, 'Keep that to 280 characters.');
+        say(2, '280 characters max.');
         return false;
       }
       if (!text) {
-        say(2, 'Tell us the objection you’d most like help with.');
+        say(2, 'Name the objection.');
         objection?.focus();
         return false;
       }
     }
     if (index === 3 && !cleanName(document.querySelector('#wlName')?.value)) {
-      say(3, 'Please enter your full name.');
+      say(3, 'Add your name.');
       document.querySelector('#wlName')?.focus();
       return false;
     }
     if (index === 4) {
       const email = document.querySelector('#wlEmail');
       if (!email?.value.trim() || !email.checkValidity()) {
-        say(4, 'Please check your email address.');
+        say(4, 'Check your email.');
         email?.focus();
         return false;
       }
     }
     if (index === 5 && cleanPhone(document.querySelector('#wlPhone')?.value) === null) {
-      say(5, 'Check the phone number, or leave it blank.');
+      say(5, 'Check the number, or leave it blank.');
       document.querySelector('#wlPhone')?.focus();
       return false;
     }
@@ -244,10 +248,17 @@ function init() {
       panel.hidden = panelIndex !== index;
     });
     if (kicker) kicker.textContent = KICKERS[index] || '';
+    const page = document.querySelector('.page');
+    const intro = document.querySelector('#intro');
+    const trust = document.querySelector('#trust');
+    if (page) page.dataset.step = String(index);
+    if (intro) intro.hidden = index !== 0;
+    if (trust) trust.hidden = index < 4;
     if (meter) {
-      meter.hidden = index > 2;
-      meter.dataset.on = String(Math.min(index + 1, 3));
+      meter.hidden = false;
+      meter.dataset.on = String(index + 1);
     }
+    if (focus) window.scrollTo(0, 0);
     if (focus) {
       const panel = steps[index];
       const field = panel?.querySelector('input:not([tabindex="-1"]), textarea');
@@ -280,6 +291,11 @@ function init() {
     if (next) {
       event.preventDefault();
       if (!checkStep(step)) return;
+      chime();
+      if (step === 1 && cleanCalls(document.querySelector('#wlCalls')?.value) === 0) {
+        location.assign('/guide');
+        return;
+      }
       go(step + 1, 'push');
     }
     if (back) {
@@ -295,6 +311,11 @@ function init() {
     if (step < steps.length - 1) {
       event.preventDefault();
       if (!checkStep(step)) return;
+      chime();
+      if (step === 1 && cleanCalls(document.querySelector('#wlCalls')?.value) === 0) {
+        location.assign('/guide');
+        return;
+      }
       go(step + 1, 'push');
     }
   });
@@ -308,9 +329,14 @@ function init() {
         return;
       }
     }
+    chime();
+    if (cleanCalls(document.querySelector('#wlCalls')?.value) === 0) {
+      location.assign('/guide');
+      return;
+    }
     if (status) status.textContent = '';
     if (!endpoint) {
-      say(steps.length - 1, 'Signups open on obavia.co. This preview doesn’t save them.');
+      say(steps.length - 1, 'Signups open on obavia.co.');
       return;
     }
 
@@ -335,7 +361,7 @@ function init() {
     busy = true;
     if (button) {
       button.disabled = true;
-      button.textContent = 'Joining…';
+      button.textContent = 'Sending…';
     }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
@@ -356,20 +382,20 @@ function init() {
       }
       if (response.status === 422) {
         const code = data && data.error;
-        if (code === 'invalid_full_name') say(last, 'Please check your full name and try again.');
-        else if (code === 'invalid_answers') say(last, 'Please check your answers and try again.');
-        else say(last, 'Please check your email address and try again.');
+        if (code === 'invalid_full_name') say(last, 'Check your name.');
+        else if (code === 'invalid_answers') say(last, 'Check your answers.');
+        else say(last, 'Check your email.');
       } else if (response.status === 429) {
         const value = response.headers.get('Retry-After');
         retry = Math.max(1, Number(value) || Math.ceil((Date.parse(value) - Date.now()) / 1000) || 30);
-        say(last, `Please wait ${retry} seconds, then try again.`);
-      } else say(last, 'We couldn’t save that yet. Please try again.');
+        say(last, `Wait ${retry} seconds.`);
+      } else say(last, 'Try again.');
     } catch {
-      say(last, 'We couldn’t reach the waitlist. Check your connection and try again.');
+      say(last, 'Check your connection.');
     } finally {
       clearTimeout(timeout);
       busy = false;
-      if (button) button.textContent = 'Join the waitlist';
+      if (button) button.textContent = 'Save my spot + get my FREE guide';
       if (retry) setTimeout(() => { if (button) button.disabled = false; }, Math.min(retry, 86400) * 1000);
       else if (button) button.disabled = false;
     }

@@ -3,19 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" type="image/x-icon">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/mask-icon.svg" color="#4E66A0">
+<meta name="theme-color" content="#7D97C7">
+
   <title>Your next line, while the buyer is still talking. · Obavia</title>
-  <meta name="description" content="Obavia listens to your sales calls live and puts the right question on screen. Not notes after. Help during. Early access opens April 24, 2027.">
-  <link rel="icon" href="/assets/obavia-mark.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/assets/obavia-mark-180.png">
+  <meta name="description" content="The 7 objections that end sales calls, and what to ask instead. Doors open April 24, 2027.">
   <link rel="canonical" href="https://obavia.co/waitlist">
-  <meta name="theme-color" content="#F4F7FF">
   <meta property="og:title" content="Your next line, while the buyer is still talking.">
-  <meta property="og:description" content="Obavia listens to your sales calls live and puts the right question on screen. Not notes after. Help during.">
+  <meta property="og:description" content="The 7 objections that end sales calls, and what to ask instead. Doors open April 24, 2027.">
   <meta property="og:url" content="https://obavia.co/waitlist">
-  <meta property="og:image" content="https://obavia.co/assets/obavia-mark-180.png">
+  <meta property="og:image" content="https://obavia.co/og.png">
+<meta property="og:image:type" content="image/png">
+<meta name="twitter:image:alt" content="Obavia. Your next line, while the buyer is still talking.">
+<meta name="twitter:image" content="https://obavia.co/og.png">
+<meta name="twitter:description" content="The 7 objections that end sales calls, and what to ask instead. Doors open April 24, 2027.">
+<meta name="twitter:title" content="Your next line, while the buyer is still talking.">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:image:alt" content="Obavia. Your next line, while the buyer is still talking.">
+<meta property="og:image:height" content="630">
+<meta property="og:image:width" content="1200">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,500;0,600;0,700;1,600;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/waitlist.css">
 </head>
 <body>
@@ -27,26 +40,18 @@
   <img class="cloud c3" src="/sky/w7.webp" alt="">
 </div>
 <header class="top">
-  <a class="brand" href="/"><img src="/assets/obavia-lockup.svg" alt="Obavia" width="132" height="28"></a>
+  <a class="brand" href="/"><img src="/assets/obavia-mark.svg" alt="Obavia" width="40" height="40"></a>
 </header>
-<main class="page">
-  <h1>Your next line, while the buyer is still talking.</h1>
-  <p class="sub">Obavia listens to your sales calls live and puts the right question on screen. Not notes after. Help during.</p>
-  <p class="when">Early access opens <time datetime="2027-04-24T05:00:00.000Z">April 24, 2027</time>, Chicago time.</p>
-  <div class="clock" id="clock" aria-hidden="true"><span><b>—</b><small>days</small></span><span><b>—</b><small>hours</small></span><span><b>—</b><small>min</small></span><span><b>—</b><small>sec</small></span></div>
-  <aside class="near">
-    <p class="eyebrow">Monthly live demo</p>
-    <p>A nearer step than launch. The first date isn’t set. We’ll write when it is.</p>
-  </aside>
-
-  <figure class="demo">
-    <video id="demo" preload="none" playsinline muted data-poster="/assets/waitlist-demo-poster.svg" aria-label="Still of the demo. The film arrives at launch. The still shows the next question on screen."></video>
-    <figcaption>The next question, on screen. Film at launch.</figcaption>
-  </figure>
+<main class="page" data-step="0">
+  <p class="free-badge">FREE</p>
+  <div class="intro" id="intro">
+    <p class="scan">The <span class="hit">7 objections</span> that end sales calls, and <span class="hit">what to ask</span> instead.</p>
+    <p class="when">Doors open <time datetime="2027-04-24T05:00:00.000Z">April 24, 2027</time>.</p>
+  </div>
 
   <section class="card" id="join" aria-labelledby="stepKicker">
-    <p class="kicker" id="stepKicker">Question 1 of 3</p>
-    <div class="meter" id="meter" data-on="1" aria-hidden="true"><i></i><i></i><i></i></div>
+    <p class="kicker" id="stepKicker">1 of 6</p>
+    <div class="meter" id="meter" data-on="1" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <form id="wlForm" method="post" action="" novalidate>
       <fieldset data-step="0" tabindex="-1">
         <legend>Where do you sell?</legend>
@@ -60,131 +65,80 @@
       </fieldset>
 
       <fieldset data-step="1" tabindex="-1" hidden>
-        <legend id="callsLegend">How many sales calls do you take a week?</legend>
-        <label class="field" for="wlCalls"><span>A typical week</span>
+        <legend id="callsLegend">How many calls a week?</legend>
+        <div class="field">
           <input id="wlCalls" name="callsPerWeek" type="text" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="12" aria-labelledby="callsLegend">
-        </label>
-        <p class="hint">A whole number. Zero is fine.</p>
+        </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
-          <button class="btn ghost" type="button" data-back>Back</button>
           <button class="btn" type="button" data-next>Continue</button>
+          <button class="btn ghost" type="button" data-back>Back</button>
         </div>
       </fieldset>
 
       <fieldset data-step="2" tabindex="-1" hidden>
-        <legend id="objLegend">The objection you’d most like help with?</legend>
-        <textarea id="wlObjection" name="topObjection" maxlength="280" rows="4" aria-labelledby="objLegend" required></textarea>
-        <p class="countline">Required · <span id="objCount">0</span> / 280</p>
+        <legend id="objLegend">The objection that ends the call?</legend>
+        <div class="field">
+          <textarea id="wlObjection" name="topObjection" maxlength="280" rows="3" placeholder="It’s too expensive." aria-labelledby="objLegend" required></textarea>
+        </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
-          <button class="btn ghost" type="button" data-back>Back</button>
           <button class="btn" type="button" data-next>Continue</button>
+          <button class="btn ghost" type="button" data-back>Back</button>
         </div>
       </fieldset>
 
       <fieldset data-step="3" tabindex="-1" hidden>
-        <legend>What’s your name?</legend>
-        <label class="field" for="wlName"><span>Full name</span>
-          <input id="wlName" name="fullName" type="text" autocomplete="name" maxlength="160" placeholder="Your full name" required>
-        </label>
+        <legend id="nameLegend">Your name</legend>
+        <div class="field">
+          <input id="wlName" name="fullName" type="text" autocomplete="name" maxlength="160" placeholder="Your name" aria-labelledby="nameLegend" required>
+        </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
-          <button class="btn ghost" type="button" data-back>Back</button>
           <button class="btn" type="button" data-next>Continue</button>
+          <button class="btn ghost" type="button" data-back>Back</button>
         </div>
       </fieldset>
 
       <fieldset data-step="4" tabindex="-1" hidden>
-        <legend>Where should we write you?</legend>
-        <label class="field" for="wlEmail"><span>Email</span>
-          <input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@agency.com" required>
-        </label>
+        <legend id="emailLegend">Your email</legend>
+        <div class="field">
+          <input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@email.com" aria-labelledby="emailLegend" required>
+        </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
-          <button class="btn ghost" type="button" data-back>Back</button>
           <button class="btn" type="button" data-next>Continue</button>
+          <button class="btn ghost" type="button" data-back>Back</button>
         </div>
       </fieldset>
 
       <fieldset data-step="5" tabindex="-1" hidden>
-        <legend>A number for launch day?</legend>
-        <label class="field" for="wlPhone"><span>Mobile</span>
-          <input id="wlPhone" name="phone" type="tel" autocomplete="tel" maxlength="20" placeholder="Optional">
-        </label>
-        <p class="hint">Optional. We won’t text you until a launch-day message exists.</p>
+        <legend id="phoneLegend">Your mobile</legend>
+        <div class="field">
+          <input id="wlPhone" name="phone" type="tel" autocomplete="tel" maxlength="20" aria-labelledby="phoneLegend">
+        </div>
+        <p class="hint">Optional. Only for launch-day reminders.</p>
         <div class="hp" aria-hidden="true">
           <label for="wlSite">Website</label>
           <input id="wlSite" name="website" tabindex="-1" autocomplete="off">
         </div>
         <p class="step-error" id="wlStatus" role="status"></p>
         <div class="actions">
+          <button class="btn" id="wlBtn" type="submit">Save my spot + get my FREE guide</button>
           <button class="btn ghost" type="button" data-back>Back</button>
-          <button class="btn" id="wlBtn" type="submit">Join the waitlist</button>
         </div>
-        <p class="fine">Free to join. No account or payment.</p>
       </fieldset>
     </form>
   </section>
+  <p class="fine" id="trust" hidden>We don’t sell this list.</p>
   <noscript><p class="fine">Turn on JavaScript to join the waitlist.</p></noscript>
-
-  <section class="fold" aria-labelledby="cmpTitle">
-    <h2 id="cmpTitle">After the call, or during it.</h2>
-    <table class="cmp">
-      <caption>After-call notetakers compared with Obavia</caption>
-      <thead>
-        <tr>
-          <th scope="col"></th>
-          <th scope="col">After-call notetakers</th>
-          <th scope="col">Obavia</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th scope="row">When</th>
-          <td data-col="After-call notetakers">After the buyer is gone</td>
-          <td class="us" data-col="Obavia">While the buyer is still talking</td>
-        </tr>
-        <tr>
-          <th scope="row">What you see</th>
-          <td data-col="After-call notetakers">Notes to read later</td>
-          <td class="us" data-col="Obavia">The next question, on screen</td>
-        </tr>
-        <tr>
-          <th scope="row">What you can do</th>
-          <td data-col="After-call notetakers">Review it once the buyer is gone</td>
-          <td class="us" data-col="Obavia">Ask it before the call moves on</td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
-
-  <section class="fold faq" aria-labelledby="faqTitle">
-    <h2 id="faqTitle">Questions.</h2>
-    <details>
-      <summary>Who hears the call, and do they agree?</summary>
-      <p>The waitlist keeps your answers, name and email (and a number if you add one) so we can write when early access opens and shape what we build first. We don’t sell that list. This page does not join a call or record one. Obavia is being built to listen during a call and put one question on the rep’s screen. When that ships, the people on the call are told before a call is captured.</p>
-    </details>
-    <details>
-      <summary>Which calls does this cover?</summary>
-      <p>Phone, Zoom, and Google Meet. Tell us where you sell and that is the path we open first. Nothing connects from this page.</p>
-    </details>
-    <details>
-      <summary>What does it cost?</summary>
-      <p>Announced at launch. Joining the list is free. There is no account and no payment.</p>
-    </details>
-  </section>
 </main>
-<footer class="foot">
-  <a href="/">Home</a>
-  <a href="/guide">The 7 objections</a>
-  <span>Early access · April 24, 2027</span>
-</footer>
 <script>
 /* True: the waitlist Worker stores sellChannel, callsPerWeek, topObjection, phone, and utm.
    Set false to fall back to fullName, email, and website only. */
 window.OBAVIA_WAITLIST_V2 = true;
 </script>
+<script src="/funnel-sound.js"></script>
 <script src="/pixel.js"></script>
 <script type="module" src="/waitlist.js"></script>
 </body>
