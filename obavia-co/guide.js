@@ -52,7 +52,7 @@
       clearTimeout(timeout);
       if (button && !form.hidden) {
         button.disabled = false;
-        button.textContent = 'Send me the 7 questions';
+        button.textContent = 'Send my FREE guide';
       }
     });
   });
