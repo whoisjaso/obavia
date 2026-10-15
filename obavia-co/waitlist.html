@@ -34,6 +34,10 @@
   <p class="sub">Obavia listens to your sales calls live and puts the right question on screen. Not notes after. Help during.</p>
   <p class="when">Early access opens <time datetime="2027-04-24T05:00:00.000Z">April 24, 2027</time>, Chicago time.</p>
   <div class="clock" id="clock" aria-hidden="true"><span><b>—</b><small>days</small></span><span><b>—</b><small>hours</small></span><span><b>—</b><small>min</small></span><span><b>—</b><small>sec</small></span></div>
+  <aside class="near">
+    <p class="eyebrow">Monthly live demo</p>
+    <p>A nearer step than launch. The first date isn’t set. We’ll write when it is.</p>
+  </aside>
 
   <figure class="demo">
     <video id="demo" preload="none" playsinline muted data-poster="/assets/waitlist-demo-poster.svg" aria-label="Still of the demo. The film arrives at launch. The still shows the next question on screen."></video>
@@ -55,36 +59,23 @@
         <div class="actions"><button class="btn" type="button" data-next>Continue</button></div>
       </fieldset>
 
-      <div data-step="1" tabindex="-1" hidden>
-        <fieldset>
-          <legend>What’s your role?</legend>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="role" value="ae_closer"><span>AE / closer</span></label>
-            <label class="choice"><input type="radio" name="role" value="sdr_setter"><span>SDR / setter</span></label>
-            <label class="choice"><input type="radio" name="role" value="founder"><span>Founder</span></label>
-            <label class="choice"><input type="radio" name="role" value="manager"><span>Sales manager</span></label>
-          </div>
-        </fieldset>
-        <fieldset>
-          <legend>How many people sell with you?</legend>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="teamSize" value="1"><span>Just me</span></label>
-            <label class="choice"><input type="radio" name="teamSize" value="2-10"><span>2–10</span></label>
-            <label class="choice"><input type="radio" name="teamSize" value="11-50"><span>11–50</span></label>
-            <label class="choice"><input type="radio" name="teamSize" value="51+"><span>51+</span></label>
-          </div>
-        </fieldset>
+      <fieldset data-step="1" tabindex="-1" hidden>
+        <legend id="callsLegend">How many sales calls do you take a week?</legend>
+        <label class="field" for="wlCalls"><span>A typical week</span>
+          <input id="wlCalls" name="callsPerWeek" type="text" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="12" aria-labelledby="callsLegend">
+        </label>
+        <p class="hint">A whole number. Zero is fine.</p>
         <p class="step-error" role="alert"></p>
         <div class="actions">
           <button class="btn ghost" type="button" data-back>Back</button>
           <button class="btn" type="button" data-next>Continue</button>
         </div>
-      </div>
+      </fieldset>
 
       <fieldset data-step="2" tabindex="-1" hidden>
         <legend id="objLegend">The objection you’d most like help with?</legend>
-        <textarea id="wlObjection" name="topObjection" maxlength="280" rows="4" aria-labelledby="objLegend"></textarea>
-        <p class="countline">Optional · <span id="objCount">0</span> / 280</p>
+        <textarea id="wlObjection" name="topObjection" maxlength="280" rows="4" aria-labelledby="objLegend" required></textarea>
+        <p class="countline">Required · <span id="objCount">0</span> / 280</p>
         <p class="step-error" role="alert"></p>
         <div class="actions">
           <button class="btn ghost" type="button" data-back>Back</button>
@@ -93,13 +84,35 @@
       </fieldset>
 
       <fieldset data-step="3" tabindex="-1" hidden>
-        <legend>Where should we write you?</legend>
+        <legend>What’s your name?</legend>
         <label class="field" for="wlName"><span>Full name</span>
           <input id="wlName" name="fullName" type="text" autocomplete="name" maxlength="160" placeholder="Your full name" required>
         </label>
+        <p class="step-error" role="alert"></p>
+        <div class="actions">
+          <button class="btn ghost" type="button" data-back>Back</button>
+          <button class="btn" type="button" data-next>Continue</button>
+        </div>
+      </fieldset>
+
+      <fieldset data-step="4" tabindex="-1" hidden>
+        <legend>Where should we write you?</legend>
         <label class="field" for="wlEmail"><span>Email</span>
           <input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@agency.com" required>
         </label>
+        <p class="step-error" role="alert"></p>
+        <div class="actions">
+          <button class="btn ghost" type="button" data-back>Back</button>
+          <button class="btn" type="button" data-next>Continue</button>
+        </div>
+      </fieldset>
+
+      <fieldset data-step="5" tabindex="-1" hidden>
+        <legend>A number for launch day?</legend>
+        <label class="field" for="wlPhone"><span>Mobile</span>
+          <input id="wlPhone" name="phone" type="tel" autocomplete="tel" maxlength="20" placeholder="Optional">
+        </label>
+        <p class="hint">Optional. We won’t text you until a launch-day message exists.</p>
         <div class="hp" aria-hidden="true">
           <label for="wlSite">Website</label>
           <input id="wlSite" name="website" tabindex="-1" autocomplete="off">
@@ -150,7 +163,7 @@
     <h2 id="faqTitle">Questions.</h2>
     <details>
       <summary>Who hears the call, and do they agree?</summary>
-      <p>The waitlist keeps your name and email so we can write when early access opens. We don’t sell that list. This page does not join a call or record one. Obavia is being built to listen during a call and put one question on the rep’s screen. When that ships, the people on the call are told before a call is captured. The questions above are part of the form. Today the saved record is your name and email.</p>
+      <p>The waitlist keeps your name and email so we can write when early access opens. We don’t sell that list. This page does not join a call or record one. Obavia is being built to listen during a call and put one question on the rep’s screen. When that ships, the people on the call are told before a call is captured.</p>
     </details>
     <details>
       <summary>Which calls does this cover?</summary>
@@ -168,7 +181,7 @@
   <span>Early access · April 24, 2027</span>
 </footer>
 <script>
-/* False until the waitlist Worker stores sellChannel, role, teamSize, topObjection, and utm.
+/* False until the waitlist Worker stores sellChannel, callsPerWeek, topObjection, phone, and utm.
    While this is false the form still asks the questions, and the request stays fullName, email, and website. */
 window.OBAVIA_WAITLIST_V2 = false;
 </script>

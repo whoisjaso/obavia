@@ -4,8 +4,7 @@
 
 const LAUNCH_MS = Date.parse('2027-04-24T05:00:00.000Z');
 const CHANNELS = ['phone', 'video', 'both'];
-const ROLES = ['ae_closer', 'sdr_setter', 'founder', 'manager'];
-const TEAMS = ['1', '2-10', '11-50', '51+'];
+const KICKERS = ['Question 1 of 3', 'Question 2 of 3', 'Question 3 of 3', 'Your name', 'Email', 'Phone'];
 
 function codePoints(value) {
   return Array.from(value).length;
@@ -23,6 +22,23 @@ function cleanObjection(value) {
   if (!text) return '';
   if (codePoints(text) > 280) return null;
   return text;
+}
+
+function cleanCalls(value) {
+  const text = String(value ?? '').trim();
+  if (!/^\d{1,3}$/.test(text)) return null;
+  const count = Number(text);
+  if (!Number.isInteger(count) || count > 999) return null;
+  return count;
+}
+
+function cleanPhone(value) {
+  const raw = String(value ?? '').trim().replace(/\s+/gu, ' ');
+  if (!raw) return '';
+  const digits = raw.replace(/\D/gu, '');
+  if (digits.length < 8 || digits.length > 15) return null;
+  if (!/^[+\d][\d\s().-]*$/u.test(raw)) return null;
+  return raw;
 }
 
 function clampPoints(value, max) {
@@ -56,7 +72,7 @@ function waitlistEndpoint(origin) {
   return null;
 }
 
-function buildPayload({ fullName, email, website, sellChannel, role, teamSize, topObjection, search, v2 }) {
+function buildPayload({ fullName, email, website, sellChannel, callsPerWeek, topObjection, phone, search, v2 }) {
   const payload = {
     fullName,
     email: String(email ?? '').trim(),
@@ -64,9 +80,9 @@ function buildPayload({ fullName, email, website, sellChannel, role, teamSize, t
   };
   if (v2 !== true) return payload;
   payload.sellChannel = sellChannel;
-  payload.role = role;
-  payload.teamSize = teamSize;
+  payload.callsPerWeek = callsPerWeek;
   if (topObjection) payload.topObjection = topObjection;
+  if (phone) payload.phone = phone;
   const utm = utmJson(search || '');
   if (utm) payload.utm = utm;
   return payload;
@@ -86,7 +102,7 @@ function chicagoLaunchLabel(ms) {
   return `${get('month')} ${get('day')}, ${get('year')}`;
 }
 
-export { LAUNCH_MS, CHANNELS, ROLES, TEAMS, cleanName, cleanObjection, utmJson, waitlistEndpoint, buildPayload, chicagoLaunchLabel };
+export { LAUNCH_MS, CHANNELS, cleanName, cleanObjection, cleanCalls, cleanPhone, utmJson, waitlistEndpoint, buildPayload, chicagoLaunchLabel };
 
 if (typeof document !== 'undefined') init();
 
@@ -179,39 +195,44 @@ function init() {
   }
 
   function checkStep(index) {
-    if (index === 0) {
-      if (!CHANNELS.includes(selected('sellChannel'))) {
-        say(0, 'Choose where you sell.');
-        return false;
-      }
-    }
-    if (index === 1) {
-      if (!ROLES.includes(selected('role'))) {
-        say(1, 'Choose your role.');
-        return false;
-      }
-      if (!TEAMS.includes(selected('teamSize'))) {
-        say(1, 'Choose a team size.');
-        return false;
-      }
-    }
-    if (index === 2 && cleanObjection(objection?.value) === null) {
-      say(2, 'Keep that to 280 characters.');
+    if (index === 0 && !CHANNELS.includes(selected('sellChannel'))) {
+      say(0, 'Choose where you sell.');
       return false;
     }
-    if (index === 3) {
-      const name = cleanName(document.querySelector('#wlName')?.value);
-      const email = document.querySelector('#wlEmail');
-      if (!name) {
-        say(3, 'Please enter your full name.');
-        document.querySelector('#wlName')?.focus();
+    if (index === 1 && cleanCalls(document.querySelector('#wlCalls')?.value) === null) {
+      say(1, 'Enter a whole number of calls, from 0 to 999.');
+      document.querySelector('#wlCalls')?.focus();
+      return false;
+    }
+    if (index === 2) {
+      const text = cleanObjection(objection?.value);
+      if (text === null) {
+        say(2, 'Keep that to 280 characters.');
         return false;
       }
+      if (!text) {
+        say(2, 'Tell us the objection you’d most like help with.');
+        objection?.focus();
+        return false;
+      }
+    }
+    if (index === 3 && !cleanName(document.querySelector('#wlName')?.value)) {
+      say(3, 'Please enter your full name.');
+      document.querySelector('#wlName')?.focus();
+      return false;
+    }
+    if (index === 4) {
+      const email = document.querySelector('#wlEmail');
       if (!email?.value.trim() || !email.checkValidity()) {
-        say(3, 'Please check your email address.');
+        say(4, 'Please check your email address.');
         email?.focus();
         return false;
       }
+    }
+    if (index === 5 && cleanPhone(document.querySelector('#wlPhone')?.value) === null) {
+      say(5, 'Check the phone number, or leave it blank.');
+      document.querySelector('#wlPhone')?.focus();
+      return false;
     }
     clearStepError(index);
     return true;
@@ -222,16 +243,20 @@ function init() {
     steps.forEach((panel, panelIndex) => {
       panel.hidden = panelIndex !== index;
     });
-    const onQuestion = index < 3;
-    if (kicker) kicker.textContent = onQuestion ? `Question ${index + 1} of 3` : 'Your details';
-    if (meter) meter.dataset.on = String(Math.min(index + 1, 3));
+    if (kicker) kicker.textContent = KICKERS[index] || '';
+    if (meter) {
+      meter.hidden = index > 2;
+      meter.dataset.on = String(Math.min(index + 1, 3));
+    }
     if (focus) {
       const panel = steps[index];
+      const field = panel?.querySelector('input:not([tabindex="-1"]), textarea');
       const legend = panel?.querySelector('legend');
-      if (legend) {
-        legend.tabIndex = -1;
-        legend.focus({ preventScroll: false });
-      } else panel?.focus({ preventScroll: false });
+      const target = field || legend || panel;
+      if (target) {
+        if (target === legend) legend.tabIndex = -1;
+        target.focus({ preventScroll: false });
+      }
     }
   }
 
@@ -267,7 +292,7 @@ function init() {
 
   form.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' || event.target.matches('textarea')) return;
-    if (step < 3) {
+    if (step < steps.length - 1) {
       event.preventDefault();
       if (!checkStep(step)) return;
       go(step + 1, 'push');
@@ -277,7 +302,7 @@ function init() {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (busy) return;
-    for (let index = 0; index <= 3; index += 1) {
+    for (let index = 0; index < steps.length; index += 1) {
       if (!checkStep(index)) {
         if (index !== step) go(index, 'push');
         return;
@@ -285,21 +310,23 @@ function init() {
     }
     if (status) status.textContent = '';
     if (!endpoint) {
-      say(3, 'Signups open on obavia.co. This preview doesn’t save them.');
+      say(steps.length - 1, 'Signups open on obavia.co. This preview doesn’t save them.');
       return;
     }
 
     const name = cleanName(document.querySelector('#wlName').value);
     const email = document.querySelector('#wlEmail').value.trim();
     const objectionText = cleanObjection(objection?.value);
+    const phone = cleanPhone(document.querySelector('#wlPhone')?.value);
+    const last = steps.length - 1;
     const payload = buildPayload({
       fullName: name,
       email,
       website: document.querySelector('#wlSite')?.value ?? '',
       sellChannel: selected('sellChannel'),
-      role: selected('role'),
-      teamSize: selected('teamSize'),
+      callsPerWeek: cleanCalls(document.querySelector('#wlCalls')?.value),
       topObjection: objectionText || '',
+      phone: phone || '',
       search: location.search,
       v2: window.OBAVIA_WAITLIST_V2 === true,
     });
@@ -329,16 +356,16 @@ function init() {
       }
       if (response.status === 422) {
         const code = data && data.error;
-        if (code === 'invalid_full_name') say(3, 'Please check your full name and try again.');
-        else if (code === 'invalid_answers') say(3, 'Please check your answers and try again.');
-        else say(3, 'Please check your email address and try again.');
+        if (code === 'invalid_full_name') say(last, 'Please check your full name and try again.');
+        else if (code === 'invalid_answers') say(last, 'Please check your answers and try again.');
+        else say(last, 'Please check your email address and try again.');
       } else if (response.status === 429) {
         const value = response.headers.get('Retry-After');
         retry = Math.max(1, Number(value) || Math.ceil((Date.parse(value) - Date.now()) / 1000) || 30);
-        say(3, `Please wait ${retry} seconds, then try again.`);
-      } else say(3, 'We couldn’t save that yet. Please try again.');
+        say(last, `Please wait ${retry} seconds, then try again.`);
+      } else say(last, 'We couldn’t save that yet. Please try again.');
     } catch {
-      say(3, 'We couldn’t reach the waitlist. Check your connection and try again.');
+      say(last, 'We couldn’t reach the waitlist. Check your connection and try again.');
     } finally {
       clearTimeout(timeout);
       busy = false;
