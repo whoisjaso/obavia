@@ -1,0 +1,8 @@
+{
+  "name": "obavia",
+  "private": true,
+  "description": "Obavia site. node-forge signs the Apple Wallet pass in functions/.",
+  "dependencies": {
+    "node-forge": "^1.3.1"
+  }
+}
