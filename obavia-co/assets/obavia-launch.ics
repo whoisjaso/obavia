@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Obavia//Waitlist//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Obavia
+X-WR-TIMEZONE:America/Chicago
+BEGIN:VEVENT
+UID:early-access-2027-04-24@obavia.co
+DTSTAMP:20261015T000000Z
+DTSTART;VALUE=DATE:20270424
+DTEND;VALUE=DATE:20270425
+SUMMARY:Obavia early access opens
+DESCRIPTION:Early access opens April 24\, 2027 (Chicago time). https://obavia.co/waitlist
+URL:https://obavia.co/waitlist
+END:VEVENT
+END:VCALENDAR
