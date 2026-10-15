@@ -2,7 +2,7 @@ name: Deploy obavia.co
 on:
   push:
     branches: [main]
-    paths: ['obavia-co/**', 'deploy/site/**', '.github/workflows/deploy-site.yml']
+    paths: ['obavia-co/**', 'deploy/site/**', '.github/workflows/deploy-site.yml', 'functions/**', 'package.json', 'package-lock.json']
   workflow_dispatch:
 concurrency:
   group: deploy-site
@@ -19,6 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm ci
       - run: deploy/site/build.sh
       - run: npx --yes wrangler@4 pages deploy deploy/site/dist --project-name obavia --branch main
         env:
