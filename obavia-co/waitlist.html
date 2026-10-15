@@ -11,16 +11,16 @@
 <meta name="theme-color" content="#4E66A0">
 
   <title>Your next line, while the buyer is still talking. · Obavia</title>
-  <meta name="description" content="Your FREE guide. Know what to ask the second a buyer pushes back.">
+  <meta name="description" content="The 7 objections that kill sales calls, and what to ask instead. Doors open April 24, 2027.">
   <link rel="canonical" href="https://obavia.co/waitlist">
   <meta property="og:title" content="Your next line, while the buyer is still talking.">
-  <meta property="og:description" content="Your FREE guide. Know what to ask the second a buyer pushes back.">
+  <meta property="og:description" content="The 7 objections that kill sales calls, and what to ask instead. Doors open April 24, 2027.">
   <meta property="og:url" content="https://obavia.co/waitlist">
   <meta property="og:image" content="https://obavia.co/og.png">
 <meta property="og:image:type" content="image/png">
 <meta name="twitter:image:alt" content="Obavia. Your next line, while the buyer is still talking.">
 <meta name="twitter:image" content="https://obavia.co/og.png">
-<meta name="twitter:description" content="Your FREE guide. Know what to ask the second a buyer pushes back.">
+<meta name="twitter:description" content="The 7 objections that kill sales calls, and what to ask instead. Doors open April 24, 2027.">
 <meta name="twitter:title" content="Your next line, while the buyer is still talking.">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:image:alt" content="Obavia. Your next line, while the buyer is still talking.">
@@ -42,16 +42,16 @@
 <header class="top">
   <a class="brand" href="/"><img src="/assets/obavia-lockup.svg" alt="Obavia" width="132" height="28"></a>
 </header>
-<main class="page">
+<main class="page" data-step="0">
   <p class="free-badge">FREE</p>
-  <h1>Your <span class="hit">FREE</span> guide</h1>
-  <p class="scan">Know <span class="hit">what to ask</span> the second a buyer <span class="hit">pushes back</span>.</p>
-  <p class="when">Early access opens <time datetime="2027-04-24T05:00:00.000Z">April 24, 2027</time>.</p>
-  <div class="clock" id="clock" aria-hidden="true"><span><b>0</b><small>days</small></span><span><b>00</b><small>hours</small></span><span><b>00</b><small>min</small></span><span><b>00</b><small>sec</small></span></div>
+  <div class="intro" id="intro">
+    <p class="scan">The <span class="hit">7 objections</span> that kill sales calls, and <span class="hit">what to ask</span> instead.</p>
+    <p class="when">Doors open <time datetime="2027-04-24T05:00:00.000Z">April 24, 2027</time>.</p>
+  </div>
 
   <section class="card" id="join" aria-labelledby="stepKicker">
-    <p class="kicker" id="stepKicker">Question 1 of 3</p>
-    <div class="meter" id="meter" data-on="1" aria-hidden="true"><i></i><i></i><i></i></div>
+    <p class="kicker" id="stepKicker">1 of 6</p>
+    <div class="meter" id="meter" data-on="1" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <form id="wlForm" method="post" action="" novalidate>
       <fieldset data-step="0" tabindex="-1">
         <legend>Where do you sell?</legend>
@@ -61,7 +61,7 @@
           <label class="choice"><input type="radio" name="sellChannel" value="both"><span>Both</span></label>
         </div>
         <p class="step-error" role="alert"></p>
-        <div class="actions"><button class="btn" type="button" data-next>Continue</button></div>
+        <div class="actions"><button class="btn" type="button" data-next>Get my FREE guide</button></div>
       </fieldset>
 
       <fieldset data-step="1" tabindex="-1" hidden>
@@ -71,44 +71,44 @@
         </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
+          <button class="btn" type="button" data-next>Get my FREE guide</button>
           <button class="btn ghost" type="button" data-back>Back</button>
-          <button class="btn" type="button" data-next>Continue</button>
         </div>
       </fieldset>
 
       <fieldset data-step="2" tabindex="-1" hidden>
         <legend id="objLegend">The objection that ends the call?</legend>
         <div class="field">
-          <textarea id="wlObjection" name="topObjection" maxlength="280" rows="4" aria-labelledby="objLegend" required></textarea>
+          <textarea id="wlObjection" name="topObjection" maxlength="280" rows="3" placeholder="It’s too expensive." aria-labelledby="objLegend" required></textarea>
         </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
+          <button class="btn" type="button" data-next>Get my FREE guide</button>
           <button class="btn ghost" type="button" data-back>Back</button>
-          <button class="btn" type="button" data-next>Continue</button>
         </div>
       </fieldset>
 
       <fieldset data-step="3" tabindex="-1" hidden>
         <legend id="nameLegend">Your name</legend>
         <div class="field">
-          <input id="wlName" name="fullName" type="text" autocomplete="name" maxlength="160" placeholder="Your full name" aria-labelledby="nameLegend" required>
+          <input id="wlName" name="fullName" type="text" autocomplete="name" maxlength="160" placeholder="Your name" aria-labelledby="nameLegend" required>
         </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
+          <button class="btn" type="button" data-next>Get my FREE guide</button>
           <button class="btn ghost" type="button" data-back>Back</button>
-          <button class="btn" type="button" data-next>Continue</button>
         </div>
       </fieldset>
 
       <fieldset data-step="4" tabindex="-1" hidden>
         <legend id="emailLegend">Your email</legend>
         <div class="field">
-          <input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@agency.com" aria-labelledby="emailLegend" required>
+          <input id="wlEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@email.com" aria-labelledby="emailLegend" required>
         </div>
         <p class="step-error" role="alert"></p>
         <div class="actions">
+          <button class="btn" type="button" data-next>Get my FREE guide</button>
           <button class="btn ghost" type="button" data-back>Back</button>
-          <button class="btn" type="button" data-next>Continue</button>
         </div>
       </fieldset>
 
@@ -123,63 +123,17 @@
         </div>
         <p class="step-error" id="wlStatus" role="status"></p>
         <div class="actions">
+          <button class="btn" id="wlBtn" type="submit">Get my FREE guide</button>
           <button class="btn ghost" type="button" data-back>Back</button>
-          <button class="btn" id="wlBtn" type="submit">Save my spot</button>
         </div>
       </fieldset>
     </form>
   </section>
-  <ul class="bullets">
-    <li>“It’s too expensive.”</li>
-    <li>“Send me some information.”</li>
-    <li>“We need to think about it.”</li>
-  </ul>
-  <p class="scan">We don’t sell this list. This page doesn’t join a call.</p>
-  <details class="questions">
-    <summary>Questions?</summary>
-    <div class="questions-body">
-      <h2>After the call, or during it.</h2>
-      <table class="cmp">
-        <caption>After-call notetakers compared with Obavia</caption>
-        <thead>
-          <tr>
-            <th scope="col"></th>
-            <th scope="col">After-call notetakers</th>
-            <th scope="col">Obavia</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th scope="row">When</th>
-            <td data-col="After-call notetakers">After the buyer is gone</td>
-            <td class="us" data-col="Obavia">While the buyer is still talking</td>
-          </tr>
-          <tr>
-            <th scope="row">What you see</th>
-            <td data-col="After-call notetakers">Notes to read later</td>
-            <td class="us" data-col="Obavia">The next question, on screen</td>
-          </tr>
-          <tr>
-            <th scope="row">What you can do</th>
-            <td data-col="After-call notetakers">Review it once the buyer is gone</td>
-            <td class="us" data-col="Obavia">Ask it before the call moves on</td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="answers">
-        <h3>Who hears the call?</h3>
-        <p>This page doesn’t join a call. We don’t sell this list.</p>
-        <h3>Which calls?</h3>
-        <p><span class="hit">Phone</span>, Zoom, and Google Meet.</p>
-        <h3>What does it cost?</h3>
-        <p><span class="hit">FREE</span> to join. Price when doors open.</p>
-      </div>
-    </div>
-  </details>
+  <p class="fine" id="trust" hidden>We don’t sell this list.</p>
   <noscript><p class="fine">Turn on JavaScript to join the waitlist.</p></noscript>
 </main>
 <footer class="foot">
-  <span>Early access · April 24, 2027</span>
+  <span>Doors open April 24, 2027</span>
 </footer>
 <script>
 /* True: the waitlist Worker stores sellChannel, callsPerWeek, topObjection, phone, and utm.
