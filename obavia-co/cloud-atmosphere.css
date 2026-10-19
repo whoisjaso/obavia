@@ -26,8 +26,6 @@ body{isolation:isolate}
 .motion-paused .cloud-layer{will-change:auto}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.cloud-layer{transform:none!important;will-change:auto}.cloud-layer-far{transform:rotate(180deg)!important}.entrance{display:none}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 
-/* Verified Apohenia intro typography: Barlow Condensed 800, tabular count,
-   0.04em tracking and raised 0.4em percentage. Palette follows Obavia. */
 .entrance{background:#e7eefe;flex-direction:column;gap:clamp(20px,4vw,34px)}
 .entrance:before,.entrance:after{inset:-12%;background-color:#e7eefe;background-blend-mode:multiply;background-size:cover;background-position:18% bottom;opacity:.9}
 .entrance:after{background-position:82% bottom;opacity:.5;transform:rotate(180deg)}
